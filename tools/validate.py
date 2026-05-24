@@ -142,6 +142,24 @@ def main():
                 f"chapitre '{c['id']}' : drawFn '{c['drawFn']}' référencé mais fonction non définie."
             )
 
+    # --- 5. « < » littéral suivi d'une lettre dans une formule MathJax ---
+    # « <X » (X lettre) dans \(...\), $$...$$ ou \[...\] est interprété par le
+    # navigateur comme une balise HTML → formule cassée + DOM corrompu.
+    # Utiliser \lt (et \gt pour la cohérence) à la place. NB : « <0 », « <\eta »
+    # ou « >x » sont sûrs (pas un début de balise).
+    math_spans = []
+    math_spans += re.findall(r"\\\((.*?)\\\)", html)        # \( ... \)
+    math_spans += re.findall(r"\$\$(.*?)\$\$", html, re.S)   # $$ ... $$
+    math_spans += re.findall(r"\\\[(.*?)\\\]", html, re.S)   # \[ ... \]
+    bad = set()
+    for span in math_spans:
+        if re.search(r"<[A-Za-z]", span):
+            bad.add(span.strip()[:70])
+    for snippet in sorted(bad):
+        errors.append(
+            "formule avec « < » collé à une lettre (utiliser \\lt) : " + snippet
+        )
+
     # --- Rapport ---
     print(f"Validation de {target.name}")
     print(f"  {len(chapters)} chapitres dans CHAPTERS / {len(dom_ids)} <div class=\"chapter\"> dans le DOM")
