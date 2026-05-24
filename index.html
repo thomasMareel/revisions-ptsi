@@ -1660,6 +1660,69 @@ footer{
   color:#7a5a0e;
 }
 .notice strong{color:var(--amber)}
+
+/* ===== Fenêtre Sauvegarde (export/import progression) ===== */
+.backup-overlay{
+  display:none;
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,0.55);
+  z-index:1003;
+  align-items:center;
+  justify-content:center;
+  backdrop-filter:blur(3px);
+  padding:1rem;
+}
+.backup-overlay.open{ display:flex; }
+.backup-modal{
+  max-width:460px;
+  width:100%;
+  background:var(--paper);
+  border:2px solid var(--ink);
+  box-shadow:0 12px 48px rgba(0,0,0,0.4);
+  padding:1.5rem;
+}
+.backup-modal h2{
+  font-family:'Fraunces',serif;
+  font-size:1.3rem;
+  margin-bottom:0.3rem;
+}
+.backup-modal .backup-intro{
+  font-size:0.85rem;
+  color:#666;
+  margin-bottom:1.2rem;
+  line-height:1.5;
+}
+:root[data-theme="dark"] .backup-modal .backup-intro{ color:#a8a496; }
+.backup-actions{ display:flex; flex-direction:column; gap:0.7rem; }
+.backup-actions button{
+  background:var(--paper-dark);
+  border:1px solid var(--ink);
+  color:var(--ink);
+  font-family:'JetBrains Mono',monospace;
+  font-size:0.82rem;
+  padding:0.7rem 1rem;
+  cursor:pointer;
+  text-align:left;
+  display:flex;
+  align-items:center;
+  gap:0.6rem;
+  transition:background 0.15s;
+}
+.backup-actions button:hover{ background:var(--accent); color:#fff; }
+.backup-actions .ba-desc{ display:block; font-size:0.72rem; opacity:0.75; margin-top:0.15rem; font-family:'Inter Tight',sans-serif; }
+.backup-feedback{ font-size:0.8rem; margin-top:1rem; min-height:1.2em; }
+.backup-feedback.ok{ color:var(--green); }
+.backup-feedback.err{ color:var(--accent); }
+.backup-close{
+  margin-top:1.2rem;
+  background:none;
+  border:none;
+  color:#888;
+  cursor:pointer;
+  font-size:0.8rem;
+  text-decoration:underline;
+}
 </style>
 </head>
 <body>
@@ -1670,6 +1733,7 @@ footer{
     <button id="quiz-btn" class="hdr-btn" title="Quiz global (toutes les flashcards)" aria-label="Quiz">⚡ <span class="hdr-btn-label">Quiz</span></button>
     <button class="hdr-btn" title="Raccourcis clavier" aria-label="Aide clavier" onclick="document.dispatchEvent(new KeyboardEvent('keydown',{key:'?',bubbles:true}))">⌨ <span class="hdr-btn-label">Raccourcis</span></button>
     <button id="print-btn" class="hdr-btn" title="Imprimer le chapitre actif" aria-label="Imprimer" onclick="printChapter()">⎙ <span class="hdr-btn-label">Imprimer</span></button>
+    <button id="backup-btn" class="hdr-btn" title="Sauvegarder / restaurer ma progression" aria-label="Sauvegarde">⤓ <span class="hdr-btn-label">Sauvegarde</span></button>
     <button id="theme-btn" class="hdr-btn" title="Changer de thème" aria-label="Changer de thème">◐ <span class="hdr-btn-label" id="theme-label">Sombre</span></button>
   </div>
   <div class="eyebrow">PTSI · Programme officiel · 1ère année</div>
@@ -1684,6 +1748,7 @@ footer{
   <div class="mob-header-actions">
     <button id="mob-search-btn" aria-label="Rechercher">⌕</button>
     <button id="mob-quiz-btn" aria-label="Quiz">⚡</button>
+    <button id="mob-backup-btn" aria-label="Sauvegarde">⤓</button>
     <button id="mob-theme-btn" aria-label="Thème">◐</button>
   </div>
 </div>
@@ -24886,6 +24951,28 @@ r = mv⊥/(|q|B) | Pas = v∥·T | La composante v∥ est inchangée par la forc
   </div>
 </div>
 
+<!-- ===== Fenêtre Sauvegarde / restauration de la progression ===== -->
+<div id="backup-overlay" class="backup-overlay">
+  <div class="backup-modal">
+    <h2>Sauvegarde de ma progression</h2>
+    <div class="backup-intro">
+      Ta progression (flashcards, thème) est enregistrée dans <strong>ce navigateur uniquement</strong>.
+      Exporte-la régulièrement pour la conserver, ou pour la transférer sur un autre appareil (téléphone, autre PC).
+    </div>
+    <div class="backup-actions">
+      <button id="backup-export-btn">⤓ Exporter ma progression
+        <span class="ba-desc">Télécharge un fichier .json à conserver</span>
+      </button>
+      <button id="backup-import-btn">⤒ Importer une sauvegarde
+        <span class="ba-desc">Restaure depuis un fichier .json exporté</span>
+      </button>
+      <input type="file" id="backup-file-input" accept="application/json,.json" style="display:none">
+    </div>
+    <div id="backup-feedback" class="backup-feedback"></div>
+    <button class="backup-close" id="backup-close-btn">Fermer</button>
+  </div>
+</div>
+
 <script>
 /* ============================================== */
 /* ========= COUCHE DE STOCKAGE PERSISTANT ===== */
@@ -33146,6 +33233,87 @@ ${bodyContent}
 
 /* Initial draws */
 setTimeout(()=>{drawSim();},100);
+</script>
+
+<script>
+/* ============================================== */
+/* ===== SAUVEGARDE / RESTAURATION PROGRESSION == */
+/* ============================================== */
+(function(){
+  const overlay   = document.getElementById('backup-overlay');
+  const fb        = document.getElementById('backup-feedback');
+  const fileInput = document.getElementById('backup-file-input');
+  if(!overlay) return;
+
+  function open(){ fb.textContent=''; fb.className='backup-feedback'; overlay.classList.add('open'); }
+  function close(){ overlay.classList.remove('open'); }
+
+  const openBtn  = document.getElementById('backup-btn');
+  const mobBtn   = document.getElementById('mob-backup-btn');
+  if(openBtn) openBtn.addEventListener('click', open);
+  if(mobBtn)  mobBtn.addEventListener('click', open);
+  document.getElementById('backup-close-btn').addEventListener('click', close);
+  overlay.addEventListener('click', e=>{ if(e.target===overlay) close(); });
+  document.addEventListener('keydown', e=>{
+    if(e.key==='Escape' && overlay.classList.contains('open')) close();
+  });
+
+  /* Récupère toutes les clés du localStorage (même origine = tout est à nous) */
+  function collect(){
+    const data={};
+    try {
+      for(let i=0;i<localStorage.length;i++){
+        const k=localStorage.key(i);
+        data[k]=localStorage.getItem(k);
+      }
+    } catch(e){}
+    return data;
+  }
+
+  document.getElementById('backup-export-btn').addEventListener('click', ()=>{
+    const data=collect();
+    const n=Object.keys(data).filter(k=>k.indexOf('flash:')===0).length;
+    const payload={app:'revisions-ptsi', version:1, exportedAt:new Date().toISOString(), data};
+    const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    const d=new Date().toISOString().slice(0,10);
+    a.href=url; a.download='revisions-ptsi-progression-'+d+'.json';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),1000);
+    fb.className='backup-feedback ok';
+    fb.textContent='Export réussi ('+n+' chapitre'+(n>1?'s':'')+' avec progression).';
+  });
+
+  document.getElementById('backup-import-btn').addEventListener('click', ()=> fileInput.click());
+
+  fileInput.addEventListener('change', ()=>{
+    const file=fileInput.files[0];
+    if(!file) return;
+    const reader=new FileReader();
+    reader.onload=()=>{
+      try {
+        const obj=JSON.parse(reader.result);
+        const data=(obj && obj.data && typeof obj.data==='object') ? obj.data : null;
+        const keys=data ? Object.keys(data) : [];
+        if(keys.length===0) throw new Error('format');
+        const flashKeys=keys.filter(k=>k.indexOf('flash:')===0);
+        if(!confirm('Importer cette sauvegarde ?\n'+flashKeys.length+' chapitre(s) avec progression.\nCela remplacera la progression actuelle de ce navigateur.')){
+          fileInput.value=''; return;
+        }
+        keys.forEach(k=>{ try{ localStorage.setItem(k, data[k]); }catch(e){} });
+        fb.className='backup-feedback ok';
+        fb.textContent='Import réussi. Rechargement…';
+        setTimeout(()=>location.reload(),900);
+      } catch(e){
+        fb.className='backup-feedback err';
+        fb.textContent='Fichier invalide : ce n’est pas une sauvegarde revisions-ptsi.';
+      }
+      fileInput.value='';
+    };
+    reader.readAsText(file);
+  });
+})();
 </script>
 
 </body>

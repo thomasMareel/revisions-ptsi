@@ -83,6 +83,10 @@ const <prefix>Flash = makeFlash(<prefix>Cards, '<prefix>',
 
 Objet `Store` (~l.24912) : wrapper `localStorage` avec **fallback en mémoire** si indisponible. API : `get/set`, `getJSON/setJSON`, `available()`. Utiliser `Store`, jamais `localStorage` directement.
 
+Clés utilisées : `flash:<prefix>` (progression par chapitre), `theme` (clair/sombre), `lastPos` (dernier chapitre/panneau vu).
+
+**Sauvegarde / restauration** : bouton « Sauvegarde » dans l'en-tête (et mobile) → fenêtre `#backup-overlay`. Export = télécharge toutes les clés du `localStorage` dans un JSON `{app,version,exportedAt,data}`. Import = relit le JSON (vérifie `obj.data`), réécrit les clés, recharge la page. Protège la progression et permet le transfert entre appareils.
+
 ## Dépendances : tout en local (aucun CDN)
 
 Le site est **100 % autonome** — aucune requête externe, fonctionne hors-ligne.

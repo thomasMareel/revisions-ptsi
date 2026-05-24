@@ -9,6 +9,7 @@ Application web statique, **mono-fichier** (`index.html`) : tout le HTML, le CSS
 - **61 chapitres** organisés par matière et sous-domaine.
 - Onglets par chapitre : **Cours**, **Méthodes**, **Simulateur** (12 chapitres), **Flashcards**, **Exercices**.
 - **Flashcards** avec suivi de progression (acquis / hésitant / à revoir), sauvegardé localement (`localStorage`).
+- **Sauvegarde / restauration** de la progression (export/import en `.json`) pour la protéger ou la transférer entre appareils.
 - **Simulateurs** interactifs en Canvas (RLC, filtres, optique, oscillateurs, MCC, hacheurs, intégrales, etc.).
 - **Recherche** globale (cours + formules + encadrés).
 - **Quiz** global multi-chapitres.
