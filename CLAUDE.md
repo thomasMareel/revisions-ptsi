@@ -1,213 +1,101 @@
-# CLAUDE.md — Conventions du projet revisions-ptsi
+# CLAUDE.md — Conventions du projet « Révisions PTSI »
 
-Ce fichier est lu par Claude Code au démarrage de chaque session.  
-Il documente les conventions internes du projet pour maintenir la cohérence.
+Notes destinées à Claude pour les sessions futures. Objectif du projet : rendre maintenable un fichier de révisions PTSI et l'héberger sur GitHub Pages, **sans casser l'existant**.
 
-## Fichiers du projet
+## Règles de collaboration
 
-| Fichier | Rôle |
-|---|---|
-| `index.html` | Fichier principal servi par GitHub Pages |
-| `cours_ptsi-42.html` | Backup (copie de travail, ne pas supprimer) |
-| `README.md` | Documentation publique du projet |
-| `CLAUDE.md` | Ce fichier — conventions internes |
+- **Tout en français** (réponses, commentaires, contenu).
+- **Ne rien casser** de ce qui marche (design + fonctionnalités). Pas de refonte non demandée.
+- **Demander confirmation avant toute modification du HTML.**
+- L'utilisateur est étudiant en prépa, débutant en dev. Privilégier des explications claires et des changements incrémentaux.
 
-## Architecture du fichier HTML
+## Architecture
 
-Tout est dans `index.html` (fichier monolithique, ~30 600 lignes) :
+- **Un seul fichier servi : `index.html`** (~33 000 lignes, 2,1 Mo). HTML + CSS + JS tout inline.
+- `cours_ptsi-42.html` à la racine = **backup** d'origine (le temps du travail).
+- `fichier de départ/` = original intact, **non versionné** (voir `.gitignore`).
+- Aucun build. Édition directe du fichier.
 
-```
-<head>          → CSS inline (~1638 lignes) + config MathJax
-<body>
-  <header>      → Titre + boutons (recherche, quiz, thème, impression)
-  nav mobile    → #mob-header + #mob-drawer (≤767px)
-  .matiere-bar  → Physique | Maths | SI  [desktop uniquement]
-  .mat-content[data-mat-content="physique"]
-  .mat-content[data-mat-content="maths"]
-  .mat-content[data-mat-content="si"]
-  <main>        → Chapitres Physique + Maths
-  <main id="si-content"> → Chapitres SI
-  #quiz-overlay → Modal quiz global
-  #search-overlay → Overlay recherche
-  <script>      → Tout le JS (~5738 lignes)
-```
+### Pilotage data-driven
 
-## Registre central des chapitres
-
-Le tableau `CHAPTERS` (ligne ~24970) est **la source de vérité**.  
-Chaque entrée doit correspondre à un `<div id="chap-{id}">` dans le DOM.  
-Un script de validation (`validateChaptersCoherence`) tourne au boot et avertit en console si un chapitre est déclaré mais absent du DOM, ou présent sans déclaration.
-
-## Convention de nommage des IDs
-
-| Élément | Convention | Exemple |
-|---|---|---|
-| Div chapitre | `chap-{id}` | `chap-rlc` |
-| Panel cours | `{prefix}-cours` | `rlc-cours` |
-| Panel méthodes | `{prefix}-meth` | `rlc-meth` |
-| Panel simulateur | `{prefix}-simu` | `rlc-simu` |
-| Panel flashcards | `{prefix}-flash` | `rlc-flash` |
-| Panel exercices | `{prefix}-exos` | `rlc-exos` |
-| Canvas simulateur | `{prefix}-canvas` | `rlc-canvas` |
-| Bouton navigation | `data-chap="{id}"` | `data-chap="rlc"` |
-
-**Règle** : l'`id` est le nom court du chapitre (3-10 caractères, minuscules, tirets).  
-Le `prefix` est encore plus court (2-6 caractères) et sert à préfixer tous les IDs internes.
-
-## Structure standard d'un chapitre
-
-```html
-<!-- ========================================================== -->
-<!-- ============== CHAPITRE {NOM EN MAJUSCULES} ============== -->
-<!-- ========================================================== -->
-<div class="chapter" id="chap-{id}">
-
-<nav class="tabs">
-  <button class="tab active" data-panel="{prefix}-cours"><span class="num">01</span>Cours</button>
-  <button class="tab" data-panel="{prefix}-meth"><span class="num">02</span>Méthodes</button>
-  <!-- Si simulateur : -->
-  <button class="tab" data-panel="{prefix}-simu"><span class="num">03</span>Simulateur</button>
-  <button class="tab" data-panel="{prefix}-flash"><span class="num">04</span>Flashcards</button>
-  <button class="tab" data-panel="{prefix}-exos"><span class="num">05</span>Exercices</button>
-</nav>
-
-<!-- ============ {ID} : COURS ============ -->
-<section class="panel active" id="{prefix}-cours">
-  <div class="course-section">
-    <div class="sec-num">§1 · TITRE DE SECTION EN MAJUSCULES</div>
-    <h2>Titre lisible de la section</h2>
-    <div class="intro">Texte d'introduction de 2-3 phrases.</div>
-    <h3>Sous-section</h3>
-    <div class="def-box">Définition ou formule clé.</div>
-    <div class="prop-box">Propriété ou théorème.</div>
-    <div class="notice">Mise en garde ou remarque importante.</div>
-  </div>
-  <!-- Répéter .course-section pour chaque grande section -->
-</section>
-
-<!-- ============ {ID} : MÉTHODES ============ -->
-<section class="panel" id="{prefix}-meth">
-  <div class="course-section">
-    <div class="sec-num">MÉTHODES</div>
-    <h2>Méthodes et savoir-faire</h2>
-    <div class="method-box">
-      <strong>Méthode : Titre</strong><br>
-      Étapes de la méthode.
-    </div>
-  </div>
-</section>
-
-<!-- ============ {ID} : FLASHCARDS ============ -->
-<section class="panel" id="{prefix}-flash">
-  <div id="{prefix}-flash-content"><!-- injecté par makeFlash --></div>
-  <div id="{prefix}-flash-prog"></div>
-  <div id="{prefix}-flash-stats"></div>
-</section>
-<script>
-makeFlash([
-  { q: "Question ?", a: "Réponse." },
-  { q: "Question 2 ?", a: "Réponse 2." }
-], '{prefix}', '{prefix}-flash-content', '{prefix}-flash-prog', '{prefix}-flash-stats');
-</script>
-
-<!-- ============ {ID} : EXERCICES ============ -->
-<section class="panel" id="{prefix}-exos">
-  <div class="exo">
-    <h3>Exercice 1 — Titre</h3>
-    <p>Énoncé.</p>
-    <button class="sol-btn" onclick="toggleSol(this)">Voir la solution</button>
-    <div class="sol">Solution détaillée.</div>
-  </div>
-</section>
-
-</div><!-- fin chap-{id} -->
-```
-
-## Déclaration CHAPTERS (ligne ~24970)
+Le tableau **`CHAPTERS`** (JS, vers la ligne ~24985) est la source de vérité : navigation, redraw des simulateurs, recherche en dérivent. Chaque entrée :
 
 ```js
-{ id:'{id}',       prefix:'{prefix}',  name:'Nom complet du chapitre',
-  matiere:'{physique|maths|si}',
-  sub:'{ondes|meca|thermo|chimie|null}',   // null pour maths et si
-  subLabel:'Sous-domaine affiché',
-  domain:'{ondes|meca|thermo|chimie|maths|elec|auto}',  // pour la couleur
-  matiereLabel:'Intitulé matière',
-  panels:['cours','meth','flash','exos'],  // ajouter 'simu' si nécessaire
-  drawFn:null,    // nom de la fonction JS de dessin canvas, ou null
-  mobLabel:'Nom court mobile' }
+{ id:'rlc', prefix:'rlc', name:'Circuit RLC série',
+  matiere:'physique', sub:'ondes', subLabel:'Ondes & signaux', domain:'ondes',
+  matiereLabel:'Électrocinétique',
+  panels:['cours','meth','simu','flash','exos'], drawFn:'drawSim',
+  mobLabel:'Circuit RLC série' }
 ```
 
-## Bouton de navigation à ajouter
+- `matiere` ∈ `physique` | `maths` | `si`.
+- `drawFn` : nom de la fonction Canvas du simulateur, ou `null` si pas de simu.
+- `CHAPTERS_BY_ID` / `CHAPTERS_BY_PREFIX` sont dérivés automatiquement.
+- `validateChaptersCoherence()` (~l.25256) alerte dans la console si DOM ≠ `CHAPTERS` au chargement.
 
-**Pour Physique** (dans `.mat-content[data-mat-content="physique"] .chapter-bar`) :
+## Conventions de nommage des IDs (IMPORTANT)
+
+- Le `<div>` du chapitre : `id="chap-<id>"` (ex. `chap-rlc`).
+- **`id` ≠ `prefix`** : le `prefix` sert aux panels et aux flashcards, et peut différer de l'`id`.
+  Ex. chapitre `id:'ondes'` → panels préfixés `ond-` ; chapitre `id:'rlc'` → panels `rlc-`.
+- Panels : `<section class="panel" id="<prefix>-<panel>">` avec `<panel>` ∈ `cours` | `meth` | `simu` | `flash` | `exos`.
+- Onglets : `<button class="tab" data-panel="<prefix>-<panel>">`.
+- Bouton de navigation : `<button class="chap-btn" data-chap="<id>">`.
+
+## Structure d'un chapitre (DOM)
+
 ```html
-<button class="chap-btn sub-content" data-chap="{id}" data-sub-content="{ondes|meca|thermo|chimie}" style="display:none">
-  <span class="matiere">{Sous-domaine}</span>
-  {Nom du chapitre}
-</button>
+<div class="chapter" id="chap-<id>">
+  <nav class="tabs">
+    <button class="tab active" data-panel="<prefix>-cours"><span class="num">01</span>Cours</button>
+    <button class="tab" data-panel="<prefix>-meth">…Méthodes</button>
+    <!-- simu seulement si drawFn défini -->
+    <button class="tab" data-panel="<prefix>-flash">…Flashcards</button>
+    <button class="tab" data-panel="<prefix>-exos">…Exercices</button>
+  </nav>
+  <section class="panel active" id="<prefix>-cours"> … </section>
+  <section class="panel" id="<prefix>-meth"> … </section>
+  …
+</div>
 ```
 
-**Pour Maths** (dans `.mat-content[data-mat-content="maths"] .chapter-bar`) :
-```html
-<button class="chap-btn" data-chap="{id}">
-  {Nom du chapitre}
-</button>
+Classes de contenu : `.course-section`, `.sec-num` (ex. « §1 · LES BASES »), `.intro`, `.formula` (formules MathJax `$$…$$`), `.def-box`, `.prop-box`, `.method-box`, `.notice`, `.reveal` (bloc dépliable au clic).
+
+## Formules : deux conventions distinctes
+
+- **Cours / méthodes** : LaTeX via MathJax. Inline `\( … \)`, bloc `$$ … $$`.
+- **Flashcards** : **caractères Unicode**, PAS de LaTeX (ex. `ω₀`, `√(LC)`, `½`, `→`, `²`). MathJax ne retypeset pas les cartes.
+
+## Flashcards
+
+```js
+const <prefix>Cards = [
+  {q:"Question ?", a:"Réponse."},
+  …
+];
+const <prefix>Flash = makeFlash(<prefix>Cards, '<prefix>',
+  '<prefix>-flash-content', '<prefix>-flash-prog', '<prefix>-stats');
 ```
 
-**Pour SI** (dans `.mat-content[data-mat-content="si"] .chapter-bar`) :
-```html
-<button class="chap-btn sub-content" data-chap="{id}" data-sub-content="{elec|meca-si}" style="display:none">
-  <span class="matiere">{Sous-domaine}</span>
-  {Nom du chapitre}
-</button>
-```
+`makeFlash` (~l.25998) gère flip / notation (à revoir / hésitant / acquis) / progression, persistée via l'objet `Store`.
 
-## Classes CSS des encadrés
+## Stockage
 
-| Classe | Usage |
-|---|---|
-| `.def-box` | Définition formelle, formule clé |
-| `.prop-box` | Propriété, théorème, résultat important |
-| `.method-box` | Méthode de résolution, algorithme |
-| `.notice` | Mise en garde, piège à éviter |
-| `.course-section` | Bloc de section (avec bordure colorée selon le domaine) |
-| `.sec-num` | Numéro de section (§1 · NOM) |
-| `.formula` | Formule display isolée (scroll horizontal sur mobile) |
-| `.exo` | Bloc d'exercice |
-| `.sol-btn` | Bouton "Voir la solution" |
-| `.sol` | Contenu de la solution (masqué par défaut) |
+Objet `Store` (~l.24912) : wrapper `localStorage` avec **fallback en mémoire** si indisponible. API : `get/set`, `getJSON/setJSON`, `available()`. Utiliser `Store`, jamais `localStorage` directement.
 
-## Variables CSS thème
+## Dépendances externes (CDN)
 
-```css
-var(--ink)          /* Texte principal */
-var(--paper)        /* Fond de page */
-var(--paper-dark)   /* Fond encadrés / barres */
-var(--accent)       /* Rouge — actions, actif */
-var(--accent2)      /* Bleu — liens, secondaire */
-var(--green)        /* Vert — méthodes */
-var(--amber)        /* Orange — notices */
-```
+- **MathJax 3** : `cdn.jsdelivr.net/npm/mathjax@3/...` (l.31).
+- **Google Fonts** : Fraunces, JetBrains Mono, Inter Tight (l.9).
+- `printChapter()` régénère un document d'impression qui recharge ces mêmes ressources.
+- Conséquence hors-ligne : formules en texte brut + police système. À héberger en local si la révision hors-ligne devient un besoin.
 
-## Simulateurs canvas
+## Anomalies connues (à traiter avec validation utilisateur)
 
-Les chapitres avec simulateur ont :
-- Un `<canvas>` dans `{prefix}-simu`
-- Une fonction `draw{Xxx}()` exposée sur `window`
-- Le champ `drawFn:'draw{Xxx}'` dans `CHAPTERS`
-- Un `ResizeObserver` ou listener pour redessiner au resize
+1. **ID dupliqué `int-meth`** (vrai bug) : utilisé par le panneau Méthodes des intégrales (`<section id="int-meth">`, ~l.17286) ET par un `<select id="int-meth">` du simulateur (~l.17425). `getElementById` ne renvoie que le premier.
+2. **Commentaires de bannière obsolètes** : certains `<!-- CHAPITRE X -->` ne correspondent plus au chapitre qui suit (ex. l.~1893 « RLC » devant `chap-ondes`).
+3. Deux chapitres ont `class="chapter active"` au chargement (`chap-rlc`, `chap-mcc`) — **non bug** : ils sont dans deux `<main>` séparés (physique vs SI), un seul affiché à la fois.
 
-La fonction `redrawChapter(chapId)` appelle automatiquement la `drawFn` depuis le registre.
+## Variables CSS de thème (`:root`)
 
-## Dépendances CDN (à connaître)
-
-- **MathJax v3** : `cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js`  
-  → Formules LaTeX. Délimiteurs : `\(…\)` (inline) et `$$…$$` (display).  
-  → Rendu à la demande : `MathJax.typesetPromise([element])`.
-- **Google Fonts** : Fraunces (titres), Inter Tight (corps), JetBrains Mono (code/UI).
-
-## Incohérences connues (à corriger un jour)
-
-- `chap-fluides` : `data-sub-content="meca"` dans le nav HTML mais `sub:'thermo'` dans CHAPTERS → invisible sous l'onglet Thermodynamique
-- SI nav : `transm`, `dynsolide`, `energsi`, `slci` apparaissent en double dans les boutons de navigation
-- SI : `mcc`, `cvs`, `hacheurs` ont `data-sub-content="meca"` au lieu de `"elec"`
+`--ink`, `--paper`, `--paper-dark`, `--accent` (#c8472e), `--accent2` (#2d5f8a), `--green`, `--amber`, `--grid`, `--shadow`. Thème sombre : `:root[data-theme="dark"]` avec overrides ciblés. Bascule via `applyTheme()` (~l.31354).
