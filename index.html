@@ -550,30 +550,40 @@ section.panel.active {
 #mob-drawer-overlay { transition: opacity 0.25s; }
 
 /* ============================================================ */
-/* ===== DESKTOP : tiroir → barre latérale permanente ======== */
+/* ===== DESKTOP : tiroir coulissant ouvert à la demande ===== */
 /* ============================================================ */
 @media(min-width:768px){
-  /* Masquer le header mobile, l'overlay, le bouton de fermeture et les
-     anciennes barres horizontales (remplacées par la sidebar) */
+  /* Masquer le header mobile et les anciennes barres horizontales.
+     L'overlay et le bouton de fermeture restent actifs (tiroir desktop). */
   #mob-header,
-  #mob-drawer-overlay,
-  #mob-drawer-close,
   .matiere-bar,
   .subdomain-bar,
   .chapter-bar { display:none !important; }
 
-  /* Le tiroir devient une barre latérale fixe, toujours visible */
+  /* Tiroir coulissant : caché par défaut, ouvert via le bouton ☰ Chapitres.
+     Le contenu garde ainsi toute la largeur. */
   #mob-drawer{
     position:fixed;
     top:0; left:0; bottom:0;
-    width:280px;
-    transform:none !important;
+    width:300px; max-width:85vw;
     display:flex; flex-direction:column;
     background:var(--paper);
     border-right:2px solid var(--ink);
     overflow:hidden;
-    z-index:50;
+    z-index:301;
+    transform:translateX(-100%);
+    transition:transform 0.28s cubic-bezier(0.4,0,0.2,1);
+    box-shadow:4px 0 24px rgba(0,0,0,0.18);
   }
+  #mob-drawer.open{ transform:translateX(0); }
+  #mob-drawer-overlay{
+    display:none;
+    position:fixed; inset:0;
+    background:rgba(0,0,0,0.45);
+    z-index:300;
+    backdrop-filter:blur(2px);
+  }
+  #mob-drawer-overlay.open{ display:block; }
   #mob-drawer-header{
     display:flex; align-items:center; justify-content:space-between;
     padding:1.1rem 1rem;
@@ -581,6 +591,13 @@ section.panel.active {
     background:var(--paper-dark);
     flex-shrink:0;
   }
+  #mob-drawer-close{
+    display:block;
+    background:none; border:none; cursor:pointer;
+    font-size:1.1rem; color:var(--ink); opacity:0.6;
+    padding:0.2rem 0.4rem;
+  }
+  #mob-drawer-close:hover{ opacity:1; }
   #mob-mat-bar{
     display:flex;
     border-bottom:1.5px solid var(--ink);
@@ -620,9 +637,9 @@ section.panel.active {
     display:block; width:100%;
     text-align:left;
     background:none; border:none; cursor:pointer;
-    padding:0.55rem 1rem 0.55rem 1.3rem;
+    padding:0.6rem 1rem 0.6rem 1.3rem;
     font-family:'Inter Tight',sans-serif;
-    font-size:0.86rem;
+    font-size:0.88rem;
     color:var(--ink);
     border-left:3px solid transparent;
     transition:all 0.15s;
@@ -634,14 +651,10 @@ section.panel.active {
     background:var(--paper-dark);
     font-weight:600;
   }
-
-  /* Décaler l'en-tête et le contenu à droite de la sidebar.
-     `body > main` est plus spécifique que la règle `main{margin:0 auto}`
-     définie plus bas, donc l'emporte. */
-  header{ margin-left:280px; }
-  body > main,
-  body > main#si-content{ margin-left:280px; margin-right:1.5rem; }
 }
+/* Le bouton ☰ « Chapitres » est dans l'en-tête desktop (.header-actions),
+   lui-même masqué sur mobile — donc visible uniquement sur desktop, sans
+   règle d'affichage dédiée. */
 
 /* MathJax — formules inline : ne pas briser le flux de texte */
 mjx-container:not([display="true"]){
@@ -1874,6 +1887,7 @@ footer{
 
 <header>
   <div class="header-actions">
+    <button id="nav-toggle-btn" class="hdr-btn" title="Ouvrir le menu des chapitres" aria-label="Chapitres">☰ <span class="hdr-btn-label">Chapitres</span></button>
     <button id="search-btn" class="hdr-btn" title="Rechercher (Ctrl+K)" aria-label="Rechercher">⌕ <span class="hdr-btn-label">Rechercher</span> <kbd>Ctrl K</kbd></button>
     <button id="quiz-btn" class="hdr-btn" title="Quiz global (toutes les flashcards)" aria-label="Quiz">⚡ <span class="hdr-btn-label">Quiz</span></button>
     <button class="hdr-btn" title="Raccourcis clavier" aria-label="Aide clavier" onclick="document.dispatchEvent(new KeyboardEvent('keydown',{key:'?',bubbles:true}))">⌨ <span class="hdr-btn-label">Raccourcis</span></button>
@@ -32984,8 +32998,10 @@ ${bodyContent}
   }
 
   document.getElementById('mob-menu-btn').addEventListener('click', openDrawer);
+  document.getElementById('nav-toggle-btn')?.addEventListener('click', openDrawer); // bouton ☰ desktop
   document.getElementById('mob-drawer-close').addEventListener('click', closeDrawer);
   document.getElementById('mob-drawer-overlay').addEventListener('click', closeDrawer);
+  document.addEventListener('keydown', e => { if(e.key === 'Escape' && drawerOpen) closeDrawer(); });
 
   /* ── Swipe pour ouvrir le drawer depuis le bord gauche ── */
   let swipeStartX = 0, swipeStartY = 0;
