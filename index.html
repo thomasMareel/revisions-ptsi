@@ -1939,6 +1939,17 @@ footer{
 .dash-chap .c-pct{ width:42px; text-align:right; font-family:'JetBrains Mono',monospace; font-size:0.78rem; flex-shrink:0; }
 .dash-chap .c-revoir{ color:var(--accent); font-size:0.72rem; width:62px; text-align:right; flex-shrink:0; }
 .dash-empty{ color:#888; font-size:0.9rem; text-align:center; padding:1.5rem; }
+.dash-revise-btn{
+  display:block; width:100%;
+  margin:0 0 1.4rem;
+  padding:0.8rem 1rem;
+  background:var(--accent); color:#fff;
+  border:2px solid var(--ink);
+  font-family:'JetBrains Mono',monospace; font-size:0.85rem; font-weight:600;
+  cursor:pointer; letter-spacing:0.03em;
+  transition:filter 0.15s;
+}
+.dash-revise-btn:hover{ filter:brightness(1.08); }
 @media(max-width:767px){
   .dash-chap .c-mini{ display:none; }
   #dash-body{ padding:1rem; }
@@ -33725,6 +33736,10 @@ setTimeout(()=>{drawSim();},100);
         <div class="dash-bar"><span style="width:${gPct}%"></span></div>
       </div>
       <div class="dash-mats">${matsHtml}</div>`;
+    const weakCount = s.gRevoir + s.gHesitant;
+    if(weakCount > 0){
+      html += `<button class="dash-revise-btn" id="dash-revise-btn">↻ Réviser mes points faibles (${weakCount} carte${weakCount > 1 ? 's' : ''})</button>`;
+    }
     if(started.length) html += `<span class="dash-section-label">À renforcer en priorité</span>` + started.map(row).join('');
     if(notStarted.length) html += `<span class="dash-section-label">Pas encore commencés</span>` + notStarted.map(row).join('');
     body.innerHTML = html;
@@ -33733,6 +33748,19 @@ setTimeout(()=>{drawSim();},100);
         close();
         navigateTo('chap-' + btn.dataset.chap, btn.dataset.prefix + '-flash');
       });
+    });
+    const revBtn = document.getElementById('dash-revise-btn');
+    if(revBtn) revBtn.addEventListener('click', () => {
+      close();
+      if(typeof quizOpen !== 'function' || typeof quizStart !== 'function') return;
+      quizOpen();
+      // Mode « Ciblé » (à revoir + hésitant), toutes matières, toutes les cartes
+      const weak = document.querySelector('input[name="quiz-mode"][value="weak"]');
+      if(weak) weak.checked = true;
+      const nbAll = document.querySelector('input[name="quiz-nb"][value="all"]');
+      if(nbAll) nbAll.checked = true;
+      ['qc-physique','qc-maths','qc-si'].forEach(id => { const c = document.getElementById(id); if(c) c.checked = true; });
+      quizStart();
     });
   }
 
