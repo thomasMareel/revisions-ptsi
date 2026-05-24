@@ -1887,7 +1887,7 @@ footer{
 
 <header>
   <div class="header-actions">
-    <button id="nav-toggle-btn" class="hdr-btn" title="Ouvrir le menu des chapitres" aria-label="Chapitres">☰ <span class="hdr-btn-label">Chapitres</span></button>
+    <button id="nav-toggle-btn" class="hdr-btn" title="Ouvrir le menu des chapitres" aria-label="Chapitres" aria-controls="mob-drawer" aria-expanded="false">☰ <span class="hdr-btn-label">Chapitres</span></button>
     <button id="search-btn" class="hdr-btn" title="Rechercher (Ctrl+K)" aria-label="Rechercher">⌕ <span class="hdr-btn-label">Rechercher</span> <kbd>Ctrl K</kbd></button>
     <button id="quiz-btn" class="hdr-btn" title="Quiz global (toutes les flashcards)" aria-label="Quiz">⚡ <span class="hdr-btn-label">Quiz</span></button>
     <button class="hdr-btn" title="Raccourcis clavier" aria-label="Aide clavier" onclick="document.dispatchEvent(new KeyboardEvent('keydown',{key:'?',bubbles:true}))">⌨ <span class="hdr-btn-label">Raccourcis</span></button>
@@ -1902,7 +1902,7 @@ footer{
 
 <!-- ===== HEADER MOBILE (visible uniquement sur mobile) ===== -->
 <div id="mob-header">
-  <button id="mob-menu-btn" aria-label="Menu chapitres">☰</button>
+  <button id="mob-menu-btn" aria-label="Menu chapitres" aria-controls="mob-drawer" aria-expanded="false">☰</button>
   <span id="mob-chapter-title">Choisir un chapitre</span>
   <div class="mob-header-actions">
     <button id="mob-search-btn" aria-label="Rechercher">⌕</button>
@@ -33000,17 +33000,47 @@ ${bodyContent}
   }
 
   /* ── Ouvrir/fermer le drawer ── */
+  function setExpanded(state){
+    document.querySelectorAll('#nav-toggle-btn, #mob-menu-btn').forEach(b => {
+      if(b) b.setAttribute('aria-expanded', state ? 'true' : 'false');
+    });
+  }
+  // Bouton d'ouverture pertinent selon le format (desktop ☰ header vs mobile)
+  function currentToggle(){
+    return window.innerWidth >= 768
+      ? document.getElementById('nav-toggle-btn')
+      : document.getElementById('mob-menu-btn');
+  }
   function openDrawer(){
     drawerOpen = true;
-    document.getElementById('mob-drawer').classList.add('open');
+    const drawer = document.getElementById('mob-drawer');
+    drawer.classList.add('open');
     document.getElementById('mob-drawer-overlay').classList.add('open');
     buildDrawerList(currentMat);
+    setExpanded(true);
+    // Déplacer le focus dans le tiroir (sur le bouton fermer)
+    const closeBtn = document.getElementById('mob-drawer-close');
+    if(closeBtn) setTimeout(() => closeBtn.focus(), 30);
   }
   function closeDrawer(){
     drawerOpen = false;
     document.getElementById('mob-drawer').classList.remove('open');
     document.getElementById('mob-drawer-overlay').classList.remove('open');
+    setExpanded(false);
+    // Rendre le focus au bouton d'ouverture (différé pour passer après le clic)
+    const opener = currentToggle();
+    if(opener) setTimeout(() => opener.focus(), 0);
   }
+  /* Piège de focus : tant que le tiroir est ouvert, Tab boucle à l'intérieur */
+  document.getElementById('mob-drawer').addEventListener('keydown', e => {
+    if(e.key !== 'Tab' || !drawerOpen) return;
+    const focusables = document.getElementById('mob-drawer')
+      .querySelectorAll('button:not([disabled]), [href], [tabindex]:not([tabindex="-1"])');
+    if(!focusables.length) return;
+    const first = focusables[0], last = focusables[focusables.length - 1];
+    if(e.shiftKey && document.activeElement === first){ e.preventDefault(); last.focus(); }
+    else if(!e.shiftKey && document.activeElement === last){ e.preventDefault(); first.focus(); }
+  });
 
   document.getElementById('mob-menu-btn').addEventListener('click', openDrawer);
   document.getElementById('nav-toggle-btn')?.addEventListener('click', openDrawer); // bouton ☰ desktop
