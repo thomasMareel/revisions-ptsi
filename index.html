@@ -32088,22 +32088,16 @@ function navigateTo(chapId, panelId, onDone){
         tabs[prev].click();
         break;
       }
-      // n : chapitre suivant
+      // n : chapitre suivant (ordre CHAPTERS, robuste au tiroir)
       case 'n':{
         e.preventDefault();
-        const visibleBtns = Array.from(document.querySelectorAll('.chap-btn'))
-          .filter(b=>b.offsetParent!==null);
-        const ci = visibleBtns.findIndex(b=>b.classList.contains('active'));
-        if(ci!==-1 && ci<visibleBtns.length-1) visibleBtns[ci+1].click();
+        if(window.goRelChapter) window.goRelChapter(1);
         break;
       }
       // p : chapitre précédent
       case 'p':{
         e.preventDefault();
-        const visibleBtns2 = Array.from(document.querySelectorAll('.chap-btn'))
-          .filter(b=>b.offsetParent!==null);
-        const ci2 = visibleBtns2.findIndex(b=>b.classList.contains('active'));
-        if(ci2>0) visibleBtns2[ci2-1].click();
+        if(window.goRelChapter) window.goRelChapter(-1);
         break;
       }
       // ? : afficher les raccourcis
@@ -32128,6 +32122,7 @@ function navigateTo(chapId, panelId, onDone){
           <tr><td><kbd>1</kbd>–<kbd>5</kbd></td><td>Aller à l'onglet N</td></tr>
           <tr><td><kbd>g</kbd> / <kbd>G</kbd></td><td>Onglet suivant / précédent</td></tr>
           <tr><td><kbd>n</kbd> / <kbd>p</kbd></td><td>Chapitre suivant / précédent</td></tr>
+          <tr><td><kbd>Alt ←</kbd> / <kbd>Alt →</kbd></td><td>Chapitre précédent / suivant</td></tr>
           <tr><td><kbd>Espace</kbd></td><td>Retourner la flashcard</td></tr>
           <tr><td><kbd>←</kbd> <kbd>→</kbd></td><td>Carte précédente / suivante</td></tr>
           <tr><td><kbd>Ctrl K</kbd></td><td>Ouvrir la recherche</td></tr>
@@ -33739,6 +33734,10 @@ setTimeout(()=>{drawSim();},100);
     if(t < 0 || t >= CHAPTERS.length) return;
     navigateTo('chap-' + CHAPTERS[t].id, null);
   }
+  // Exposé pour que les raccourcis n/p (définis ailleurs) l'utilisent aussi —
+  // l'ancienne logique n/p s'appuyait sur les .chap-btn visibles, désormais
+  // masqués par le tiroir.
+  window.goRelChapter = goRelChapter;
   document.getElementById('prev-chap-btn')?.addEventListener('click', () => goRelChapter(-1));
   document.getElementById('next-chap-btn')?.addEventListener('click', () => goRelChapter(1));
   document.addEventListener('keydown', e => {
