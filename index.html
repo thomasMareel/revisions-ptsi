@@ -1943,6 +1943,20 @@ footer{
   .dash-chap .c-mini{ display:none; }
   #dash-body{ padding:1rem; }
 }
+
+/* ===== Accessibilité : respecter la préférence système « réduire les animations » ===== */
+@media (prefers-reduced-motion: reduce){
+  *, *::before, *::after{
+    animation-duration:0.001ms !important;
+    animation-iteration-count:1 !important;
+    transition-duration:0.001ms !important;
+    scroll-behavior:auto !important;
+  }
+}
+
+/* Boutons d'en-tête désactivés (ex. préc./suiv. en bout de liste) */
+.hdr-btn:disabled{ opacity:0.3; cursor:default; }
+.hdr-btn:disabled:hover{ background:var(--paper-dark); color:var(--ink); }
 </style>
 </head>
 <body>
@@ -33746,6 +33760,19 @@ setTimeout(()=>{drawSim();},100);
       else if(e.key === 'ArrowRight'){ e.preventDefault(); goRelChapter(1); }
     }
   });
+  // Désactiver ‹ au premier chapitre et › au dernier (ordre CHAPTERS)
+  function updateNavButtons(){
+    const prevB = document.getElementById('prev-chap-btn');
+    const nextB = document.getElementById('next-chap-btn');
+    const active = document.querySelector('.chapter.active');
+    if(!prevB || !nextB || !active) return;
+    const idx = CHAPTERS.findIndex(c => c.id === active.id.replace('chap-',''));
+    prevB.disabled = (idx <= 0);
+    nextB.disabled = (idx < 0 || idx >= CHAPTERS.length - 1);
+  }
+  const navObs = new MutationObserver(updateNavButtons);
+  document.querySelectorAll('.chapter').forEach(ch => navObs.observe(ch, {attributes:true, attributeFilter:['class']}));
+  updateNavButtons();
 })();
 </script>
 
