@@ -23,12 +23,21 @@ window.MathJax = {
     typeset: false,
     ready() {
       MathJax.startup.defaultReady();
-      const active = document.querySelector('.chapter.active');
-      if (active) {
-        // Ne rendre d'abord que le panneau visible (Cours) ; les autres panneaux
-        // sont typesettés à l'ouverture de leur onglet → premier affichage plus rapide.
-        const panel = active.querySelector('.panel.active') || active;
-        MathJax.typesetPromise([panel]).catch(() => {});
+      // Ne rendre d'abord que le panneau visible (Cours) ; les autres panneaux
+      // sont typesettés à l'ouverture de leur onglet → premier affichage plus rapide.
+      // On attend que le DOM soit prêt : avec MathJax servi depuis le cache (PWA),
+      // ready() peut se déclencher avant que les chapitres soient parsés.
+      const typesetActive = () => {
+        const active = document.querySelector('.chapter.active');
+        if (active) {
+          const panel = active.querySelector('.panel.active') || active;
+          MathJax.typesetPromise([panel]).catch(() => {});
+        }
+      };
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', typesetActive);
+      } else {
+        typesetActive();
       }
     }
   }
@@ -540,11 +549,98 @@ section.panel.active {
 #mob-drawer { transition: transform 0.28s cubic-bezier(0.4,0,0.2,1); }
 #mob-drawer-overlay { transition: opacity 0.25s; }
 
-/* Sur desktop : masquer les éléments mobiles */
+/* ============================================================ */
+/* ===== DESKTOP : tiroir → barre latérale permanente ======== */
+/* ============================================================ */
 @media(min-width:768px){
+  /* Masquer le header mobile, l'overlay, le bouton de fermeture et les
+     anciennes barres horizontales (remplacées par la sidebar) */
   #mob-header,
-  #mob-drawer,
-  #mob-drawer-overlay
+  #mob-drawer-overlay,
+  #mob-drawer-close,
+  .matiere-bar,
+  .subdomain-bar,
+  .chapter-bar { display:none !important; }
+
+  /* Le tiroir devient une barre latérale fixe, toujours visible */
+  #mob-drawer{
+    position:fixed;
+    top:0; left:0; bottom:0;
+    width:280px;
+    transform:none !important;
+    display:flex; flex-direction:column;
+    background:var(--paper);
+    border-right:2px solid var(--ink);
+    overflow:hidden;
+    z-index:50;
+  }
+  #mob-drawer-header{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:1.1rem 1rem;
+    border-bottom:1.5px solid var(--ink);
+    background:var(--paper-dark);
+    flex-shrink:0;
+  }
+  #mob-mat-bar{
+    display:flex;
+    border-bottom:1.5px solid var(--ink);
+    flex-shrink:0;
+  }
+  .mob-mat-btn{
+    flex:1;
+    font-family:'JetBrains Mono',monospace;
+    font-size:0.68rem; letter-spacing:0.08em;
+    text-transform:uppercase;
+    padding:0.7rem 0.3rem;
+    background:none; border:none; cursor:pointer;
+    color:var(--ink); opacity:0.5;
+    border-right:1px solid rgba(128,128,128,.2);
+    transition:all 0.18s;
+  }
+  .mob-mat-btn:last-child{ border-right:none; }
+  .mob-mat-btn:hover{ opacity:0.85; }
+  .mob-mat-btn.active{
+    opacity:1; font-weight:700;
+    background:var(--paper-dark);
+    box-shadow:inset 0 -2px 0 var(--accent);
+  }
+  #mob-chap-list{
+    flex:1; overflow-y:auto;
+    padding:0.3rem 0;
+  }
+  .mob-subdomain-label{
+    font-family:'JetBrains Mono',monospace;
+    font-size:0.58rem; letter-spacing:0.2em;
+    text-transform:uppercase;
+    color:var(--accent);
+    padding:0.8rem 1rem 0.3rem;
+    display:block;
+  }
+  .mob-chap-item{
+    display:block; width:100%;
+    text-align:left;
+    background:none; border:none; cursor:pointer;
+    padding:0.55rem 1rem 0.55rem 1.3rem;
+    font-family:'Inter Tight',sans-serif;
+    font-size:0.86rem;
+    color:var(--ink);
+    border-left:3px solid transparent;
+    transition:all 0.15s;
+    border-bottom:1px solid rgba(128,128,128,.08);
+  }
+  .mob-chap-item:hover{ background:var(--paper-dark); }
+  .mob-chap-item.active{
+    border-left-color:var(--accent);
+    background:var(--paper-dark);
+    font-weight:600;
+  }
+
+  /* Décaler l'en-tête et le contenu à droite de la sidebar.
+     `body > main` est plus spécifique que la règle `main{margin:0 auto}`
+     définie plus bas, donc l'emporte. */
+  header{ margin-left:280px; }
+  body > main,
+  body > main#si-content{ margin-left:280px; margin-right:1.5rem; }
 }
 
 /* MathJax — formules inline : ne pas briser le flux de texte */
@@ -25441,9 +25537,18 @@ function typesetPanel(panel){
 document.querySelectorAll('.chap-btn').forEach(b=>{
   b.addEventListener('click',()=>{
     const bar = b.closest('.chapter-bar');
-    bar.querySelectorAll('.chap-btn').forEach(x=>x.classList.remove('active'));
+    if(bar) bar.querySelectorAll('.chap-btn').forEach(x=>x.classList.remove('active'));
     document.querySelectorAll('.chapter').forEach(x=>x.classList.remove('active'));
     b.classList.add('active');
+    // Afficher le bon <main> selon la matière (corrige l'accès aux chapitres SI,
+    // qui vivent dans #si-content, séparé du main physique/maths)
+    const chapInfo = chapterFor(b.dataset.chap);
+    if(chapInfo){
+      const siMain = document.getElementById('si-content');
+      const mainEl = document.querySelector('main:not(#si-content)');
+      if(chapInfo.matiere === 'si'){ if(siMain) siMain.style.display=''; if(mainEl) mainEl.style.display='none'; }
+      else { if(siMain) siMain.style.display='none'; if(mainEl) mainEl.style.display=''; }
+    }
     const chapEl = document.getElementById('chap-'+b.dataset.chap);
     if(chapEl) chapEl.classList.add('active');
     setTimeout(()=>{ redrawChapter(b.dataset.chap); }, 50);
@@ -32772,10 +32877,11 @@ ${bodyContent}
 })();
 
 /* ============================================================ */
-/* =================== JS MOBILE UNIQUEMENT ================== */
+/* ===== NAVIGATION : tiroir (mobile) + sidebar (desktop) ===== */
 /* ============================================================ */
 (function(){
-  if(window.innerWidth >= 768) return; // Ne s'exécute que sur mobile
+  // Ce module pilote la navigation par matière/chapitre. Il fonctionne sur
+  // mobile (tiroir coulissant) ET desktop (barre latérale permanente).
 
   /* ── Données chapitres pour le drawer (dérivées de CHAPTERS) ── */
   const CHAP_DATA = (function buildChapData(){
@@ -32812,13 +32918,11 @@ ${bodyContent}
         btn.textContent = item.label;
         btn.addEventListener('click', () => {
           closeDrawer();
-          // Activer la bonne matière desktop en arrière-plan
-          const matBtn = document.querySelector(`.mat-btn[data-mat="${mat}"]`);
-          if(matBtn && !matBtn.classList.contains('active')) matBtn.click();
-          // Activer le chapitre
+          // Activer le chapitre (le clic sur .chap-btn gère l'affichage du bon <main>)
           const chapBtn = document.querySelector(`.chap-btn[data-chap="${item.id.replace('chap-','')}"]`);
           if(chapBtn) chapBtn.click();
           updateMobTitle();
+          buildDrawerList(currentMat); // rafraîchir le surlignage du chapitre actif (sidebar desktop)
         });
         list.appendChild(btn);
       });
@@ -32865,6 +32969,15 @@ ${bodyContent}
       currentMat = btn.dataset.mat;
       document.querySelectorAll('.mob-mat-btn').forEach(b => b.classList.toggle('active', b === btn));
       buildDrawerList(currentMat);
+      // Aller au 1er chapitre de la matière → montre le bon contenu (et corrige SI)
+      const firstGroup = (CHAP_DATA[currentMat] || [])[0];
+      const firstItem = firstGroup && firstGroup.items[0];
+      if(firstItem){
+        const cb = document.querySelector('.chap-btn[data-chap="'+firstItem.id.replace('chap-','')+'"]');
+        if(cb) cb.click();
+        updateMobTitle();
+        buildDrawerList(currentMat);
+      }
     });
   });
 
