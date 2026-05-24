@@ -24,7 +24,12 @@ window.MathJax = {
     ready() {
       MathJax.startup.defaultReady();
       const active = document.querySelector('.chapter.active');
-      if (active) MathJax.typesetPromise([active]).catch(() => {});
+      if (active) {
+        // Ne rendre d'abord que le panneau visible (Cours) ; les autres panneaux
+        // sont typesettés à l'ouverture de leur onglet → premier affichage plus rapide.
+        const panel = active.querySelector('.panel.active') || active;
+        MathJax.typesetPromise([panel]).catch(() => {});
+      }
     }
   }
 };
@@ -25383,7 +25388,7 @@ document.querySelectorAll('.mat-btn').forEach(b=>{
         visibleArea.querySelectorAll('.chap-btn').forEach(x=>x.classList.remove('active'));
         visibleChapBtn.classList.add('active');
         const chapEl = document.getElementById('chap-'+visibleChapBtn.dataset.chap);
-        if(chapEl) chapEl.classList.add('active');
+        if(chapEl){ chapEl.classList.add('active'); typesetPanel(chapEl.querySelector('.panel.active')); }
         setTimeout(()=>{ redrawChapter(visibleChapBtn.dataset.chap); }, 50);
       }
     }
@@ -25410,7 +25415,7 @@ document.querySelectorAll('.sub-btn').forEach(b=>{
     if(firstVisible){
       firstVisible.classList.add('active');
       const chapEl = document.getElementById('chap-'+firstVisible.dataset.chap);
-      if(chapEl) chapEl.classList.add('active');
+      if(chapEl){ chapEl.classList.add('active'); typesetPanel(chapEl.querySelector('.panel.active')); }
       setTimeout(()=>{ redrawChapter(firstVisible.dataset.chap); }, 50);
     }
   });
@@ -25424,6 +25429,14 @@ function redrawChapter(chap){
   }
 }
 
+/* Typeset paresseux d'un seul panneau (perf : évite de tout rendre d'un coup).
+   Ne fait rien si MathJax n'est pas prêt ou si le panneau est déjà rendu. */
+function typesetPanel(panel){
+  if(panel && window.MathJax && window.MathJax.typesetPromise && !panel.querySelector('mjx-container')){
+    MathJax.typesetPromise([panel]).catch(()=>{});
+  }
+}
+
 /* ========== CHAPTER SWITCHING ========== */
 document.querySelectorAll('.chap-btn').forEach(b=>{
   b.addEventListener('click',()=>{
@@ -25434,10 +25447,8 @@ document.querySelectorAll('.chap-btn').forEach(b=>{
     const chapEl = document.getElementById('chap-'+b.dataset.chap);
     if(chapEl) chapEl.classList.add('active');
     setTimeout(()=>{ redrawChapter(b.dataset.chap); }, 50);
-    // Rendu MathJax à la demande sur ce chapitre
-    if(chapEl && window.MathJax && window.MathJax.typesetPromise && !chapEl.querySelector('mjx-container')){
-      MathJax.typesetPromise([chapEl]).catch(()=>{});
-    }
+    // Rendu MathJax à la demande : seulement le panneau visible (le reste suit à l'ouverture des onglets)
+    if(chapEl) typesetPanel(chapEl.querySelector('.panel.active'));
   });
 });
 
@@ -25448,7 +25459,9 @@ document.querySelectorAll('.tab').forEach(t=>{
     chap.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
     chap.querySelectorAll('.panel').forEach(x=>x.classList.remove('active'));
     t.classList.add('active');
-    document.getElementById(t.dataset.panel).classList.add('active');
+    const shownPanel = document.getElementById(t.dataset.panel);
+    shownPanel.classList.add('active');
+    typesetPanel(shownPanel);
     // Redraw simulateur si on arrive sur un panel -simu (dérivé de CHAPTERS)
     const panelId = t.dataset.panel;
     if(panelId.endsWith('-simu')){
