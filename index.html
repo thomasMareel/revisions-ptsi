@@ -1316,6 +1316,7 @@ section.panel.active{display:block;animation:fadeIn 0.4s ease}
   margin-bottom:1.5rem;
   position:relative;
   box-shadow:var(--shadow);
+  max-width:820px; /* largeur de lecture confortable (~90 caractères) */
 }
 .course-section::before{
   content:"";
@@ -32998,6 +32999,26 @@ ${bodyContent}
     document.getElementById('mob-chapter-title').textContent = label;
   }
 
+  /* ── Synchroniser la sidebar/tiroir avec le chapitre actif ── */
+  function syncSidebar(){
+    const activeChap = document.querySelector('.chapter.active');
+    if(activeChap){
+      const c = CHAPTERS_BY_ID[activeChap.id.replace('chap-','')];
+      if(c && c.matiere !== currentMat){
+        currentMat = c.matiere;
+        document.querySelectorAll('.mob-mat-btn').forEach(b => b.classList.toggle('active', b.dataset.mat === currentMat));
+      }
+    }
+    buildDrawerList(currentMat); // reconstruit la liste + surligne le chapitre actif
+    updateMobTitle();
+  }
+  let syncQueued = false;
+  function queueSync(){
+    if(syncQueued) return;
+    syncQueued = true;
+    requestAnimationFrame(() => { syncQueued = false; syncSidebar(); });
+  }
+
   /* ── Swipe horizontal sur les panels (onglets) ── */
   let panelSwipeStartX = 0, panelSwipeStartY = 0;
   document.addEventListener('touchstart', e => {
@@ -33034,11 +33055,10 @@ ${bodyContent}
   });
 
   /* ── Init ── */
-  buildDrawerList(currentMat);
-  updateMobTitle();
+  syncSidebar();
 
-  // Observer les changements de chapitre actif pour mettre à jour le titre
-  const chapObs = new MutationObserver(() => updateMobTitle());
+  // Observer les changements de chapitre actif pour resynchroniser la sidebar
+  const chapObs = new MutationObserver(() => queueSync());
   document.querySelectorAll('.chapter').forEach(ch => {
     chapObs.observe(ch, {attributes:true, attributeFilter:['class']});
   });
