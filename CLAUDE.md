@@ -108,6 +108,7 @@ Le site est **100 % autonome** — aucune requête externe, fonctionne hors-lign
 ## Outils
 
 - `tools/validate.py` (Python stdlib, aucune dépendance) : vérifie cohérence `CHAPTERS` ↔ DOM, IDs HTML dupliqués, flashcards câblées (`makeFlash` par chapitre listant `flash`), `drawFn` existants. `python tools/validate.py` → `[OK]` / liste d'erreurs + exit ≠ 0. **À lancer avant chaque commit touchant `index.html`.**
+- `tools/pre-commit` + `tools/install-hooks.sh` : hook git qui lance `validate.py` automatiquement avant chaque commit (bloque si erreur). Installer une fois avec `sh tools/install-hooks.sh`. Contourner ponctuellement avec `git commit --no-verify`. (Le dossier `.git/hooks/` n'est pas versionné, d'où l'installeur.)
 
 ## Anomalies connues (à traiter avec validation utilisateur)
 

@@ -32539,12 +32539,27 @@ ${bodyContent}
   iDoc.write(printDoc);
   iDoc.close();
 
-  // Attendre fonts + MathJax puis imprimer
+  // Attendre la fin du rendu MathJax (+ polices) de l'iframe avant d'imprimer,
+  // au lieu d'un délai fixe qui peut être trop court sur une machine lente.
   iframe.onload = function(){
-    setTimeout(()=>{
-      iframe.contentWindow.focus(); // requis sur certains navigateurs
-      iframe.contentWindow.print();
-    }, 1500);
+    const win = iframe.contentWindow;
+    let printed = false;
+    const printOnce = () => { if(printed) return; printed = true; try{ win.focus(); win.print(); }catch(e){} };
+    const fallback = setTimeout(printOnce, 5000); // garde-fou
+    const waitMathJax = (tries) => {
+      if(printed) return;
+      const mj = win.MathJax;
+      if(mj && mj.startup && mj.startup.promise){
+        const fonts = (win.document.fonts && win.document.fonts.ready) || Promise.resolve();
+        Promise.all([mj.startup.promise, fonts])
+          .then(() => setTimeout(() => { clearTimeout(fallback); printOnce(); }, 250))
+          .catch(() => {});
+      } else if(tries > 0){
+        setTimeout(() => waitMathJax(tries - 1), 150);
+      }
+      // sinon : le garde-fou (fallback) déclenche l'impression
+    };
+    waitMathJax(30);
   };
 }
 
