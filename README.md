@@ -16,6 +16,7 @@ Application web statique, **mono-fichier** (`index.html`) : tout le HTML, le CSS
 - **Thème clair / sombre**.
 - **Version mobile** (menu tiroir) et **mode impression** par chapitre.
 - Formules mathématiques rendues avec **MathJax**.
+- **Application installable (PWA)** : depuis le site en ligne (HTTPS), installable sur téléphone/ordinateur, avec mise en cache pour un fonctionnement hors-ligne et un lancement instantané.
 
 ## Chapitres présents
 

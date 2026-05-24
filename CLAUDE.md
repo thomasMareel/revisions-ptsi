@@ -96,6 +96,14 @@ Le site est **100 % autonome** — aucune requête externe, fonctionne hors-lign
 - **Template d'impression** (`printChapter()`) : le document généré est écrit dans un iframe (`about:blank`), donc une balise `<base href="${location.href}">` est injectée pour que les chemins relatifs `vendor/...` résolvent correctement.
 - Pour mettre à jour MathJax : `npm pack mathjax@3`, extraire, recopier `es5/tex-mml-chtml.js` + `es5/output/chtml/fonts/woff-v2/`. Pour les polices : refetch du CSS Google avec un User-Agent Chrome, filtrer les subsets latin/latin-ext.
 
+## PWA (installable + hors-ligne sur mobile)
+
+- `manifest.webmanifest` (nom, icônes `icons/`, `display:standalone`, `theme_color`) + `sw.js` (service worker). Enregistré dans `index.html` en fin de `<body>`, **uniquement en http/https** (pas en `file://`).
+- `sw.js` : précache toute la coquille (index.html, fonts.css, MathJax + toutes les polices, icônes) ; HTML en *réseau-d'abord* (frais en ligne, cache hors-ligne), assets en *cache-d'abord*.
+- ⚠️ **À chaque modification d'un asset mis en cache** (index.html inclus), **incrémenter `CACHE_VERSION`** en tête de `sw.js` (`ptsi-cache-v1` → `v2`…), sinon les utilisateurs déjà « installés » gardent l'ancienne version en cache. Le HTML étant en réseau-d'abord, il se rafraîchit seul en ligne ; mais bumper la version reste la garantie propre.
+- Si on ajoute/retire des polices, mettre à jour la liste `PRECACHE` de `sw.js`.
+- Le service worker ne s'active pas en ouverture locale `file://` (normal) ; le hors-ligne local reste assuré par les assets embarqués.
+
 ## Anomalies connues (à traiter avec validation utilisateur)
 
 1. ~~**ID dupliqué `int-meth`**~~ — **CORRIGÉ** : le `<select>` du simulateur des intégrales a été renommé `int-meth-sel` (le panneau garde `int-meth`). Avant, `getElementById('int-meth')` renvoyait la `<section>`, donc le choix de méthode d'intégration était ignoré.
