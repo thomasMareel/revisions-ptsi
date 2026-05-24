@@ -92,7 +92,7 @@ Objet `Store` (~l.24912) : wrapper `localStorage` avec **fallback en mémoire** 
 
 ## Anomalies connues (à traiter avec validation utilisateur)
 
-1. **ID dupliqué `int-meth`** (vrai bug) : utilisé par le panneau Méthodes des intégrales (`<section id="int-meth">`, ~l.17286) ET par un `<select id="int-meth">` du simulateur (~l.17425). `getElementById` ne renvoie que le premier.
+1. ~~**ID dupliqué `int-meth`**~~ — **CORRIGÉ** : le `<select>` du simulateur des intégrales a été renommé `int-meth-sel` (le panneau garde `int-meth`). Avant, `getElementById('int-meth')` renvoyait la `<section>`, donc le choix de méthode d'intégration était ignoré.
 2. **Commentaires de bannière obsolètes** : certains `<!-- CHAPITRE X -->` ne correspondent plus au chapitre qui suit (ex. l.~1893 « RLC » devant `chap-ondes`).
 3. Deux chapitres ont `class="chapter active"` au chargement (`chap-rlc`, `chap-mcc`) — **non bug** : ils sont dans deux `<main>` séparés (physique vs SI), un seul affiché à la fois.
 
