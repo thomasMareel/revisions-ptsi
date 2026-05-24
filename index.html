@@ -1881,6 +1881,68 @@ footer{
 #mob-chap-list::-webkit-scrollbar{ width:8px; }
 #mob-chap-list::-webkit-scrollbar-thumb{ background:rgba(128,128,128,0.35); border-radius:4px; }
 #mob-chap-list::-webkit-scrollbar-track{ background:transparent; }
+
+/* ===== Tableau de bord « À réviser » ===== */
+.dash-overlay{
+  display:none;
+  position:fixed; inset:0;
+  background:rgba(0,0,0,0.55);
+  z-index:1003;
+  align-items:flex-start; justify-content:center;
+  backdrop-filter:blur(3px);
+  padding:4vh 1rem;
+  overflow-y:auto;
+}
+.dash-overlay.open{ display:flex; }
+.dash-modal{
+  max-width:680px; width:100%;
+  background:var(--paper);
+  border:2px solid var(--ink);
+  box-shadow:0 12px 48px rgba(0,0,0,0.4);
+  max-height:92vh; display:flex; flex-direction:column;
+}
+.dash-head{
+  display:flex; align-items:center; justify-content:space-between;
+  padding:1.1rem 1.4rem;
+  border-bottom:2px solid var(--ink);
+  background:var(--paper-dark);
+  flex-shrink:0;
+}
+.dash-head h2{ font-family:'Fraunces',serif; font-size:1.4rem; font-weight:600; }
+.dash-close{ background:none; border:none; cursor:pointer; font-size:1.1rem; color:var(--ink); opacity:0.6; }
+.dash-close:hover{ opacity:1; }
+#dash-body{ padding:1.4rem; overflow-y:auto; }
+.dash-global{ margin-bottom:1.3rem; }
+.dash-global .dash-big{ font-family:'Fraunces',serif; font-size:2rem; font-weight:700; line-height:1; }
+.dash-global .dash-sub{ font-size:0.85rem; color:#777; margin-top:0.25rem; }
+:root[data-theme="dark"] .dash-global .dash-sub{ color:#a8a496; }
+.dash-bar{ height:10px; background:var(--paper-dark); border:1px solid var(--ink); margin-top:0.6rem; overflow:hidden; }
+.dash-bar > span{ display:block; height:100%; background:var(--green); }
+.dash-mats{ display:flex; gap:0.6rem; margin-bottom:1.4rem; flex-wrap:wrap; }
+.dash-mat{ flex:1; min-width:120px; border:1px solid var(--ink); padding:0.6rem 0.8rem; background:var(--paper-dark); }
+.dash-mat .m-name{ font-family:'JetBrains Mono',monospace; font-size:0.6rem; letter-spacing:0.12em; text-transform:uppercase; color:var(--accent); }
+.dash-mat .m-pct{ font-family:'Fraunces',serif; font-size:1.3rem; font-weight:600; }
+.dash-mat .m-sub{ font-size:0.72rem; color:#888; }
+.dash-section-label{ font-family:'JetBrains Mono',monospace; font-size:0.62rem; letter-spacing:0.18em; text-transform:uppercase; color:var(--accent); margin:0.5rem 0 0.6rem; display:block; }
+.dash-chap{
+  display:flex; align-items:center; gap:0.8rem;
+  width:100%; text-align:left;
+  background:none; border:none; border-bottom:1px solid rgba(128,128,128,.12);
+  padding:0.6rem 0.2rem; cursor:pointer; color:var(--ink);
+  transition:background 0.15s;
+}
+.dash-chap:hover{ background:var(--paper-dark); }
+.dash-chap .c-name{ flex:1; font-size:0.9rem; }
+.dash-chap .c-mat{ font-family:'JetBrains Mono',monospace; font-size:0.55rem; letter-spacing:0.1em; text-transform:uppercase; opacity:0.6; }
+.dash-chap .c-mini{ width:90px; height:7px; background:var(--paper-dark); border:1px solid rgba(128,128,128,.4); overflow:hidden; flex-shrink:0; }
+.dash-chap .c-mini > span{ display:block; height:100%; background:var(--green); }
+.dash-chap .c-pct{ width:42px; text-align:right; font-family:'JetBrains Mono',monospace; font-size:0.78rem; flex-shrink:0; }
+.dash-chap .c-revoir{ color:var(--accent); font-size:0.72rem; width:62px; text-align:right; flex-shrink:0; }
+.dash-empty{ color:#888; font-size:0.9rem; text-align:center; padding:1.5rem; }
+@media(max-width:767px){
+  .dash-chap .c-mini{ display:none; }
+  #dash-body{ padding:1rem; }
+}
 </style>
 </head>
 <body>
@@ -1892,6 +1954,7 @@ footer{
     <button id="next-chap-btn" class="hdr-btn" title="Chapitre suivant (Alt+→)" aria-label="Chapitre suivant">›</button>
     <button id="search-btn" class="hdr-btn" title="Rechercher (Ctrl+K)" aria-label="Rechercher">⌕ <span class="hdr-btn-label">Rechercher</span> <kbd>Ctrl K</kbd></button>
     <button id="quiz-btn" class="hdr-btn" title="Quiz global (toutes les flashcards)" aria-label="Quiz">⚡ <span class="hdr-btn-label">Quiz</span></button>
+    <button id="dash-btn" class="hdr-btn" title="Bilan de révision" aria-label="Bilan de révision">▤ <span class="hdr-btn-label">Bilan</span></button>
     <button class="hdr-btn" title="Raccourcis clavier" aria-label="Aide clavier" onclick="document.dispatchEvent(new KeyboardEvent('keydown',{key:'?',bubbles:true}))">⌨ <span class="hdr-btn-label">Raccourcis</span></button>
     <button id="print-btn" class="hdr-btn" title="Imprimer le chapitre actif" aria-label="Imprimer" onclick="printChapter()">⎙ <span class="hdr-btn-label">Imprimer</span></button>
     <button id="backup-btn" class="hdr-btn" title="Sauvegarder / restaurer ma progression" aria-label="Sauvegarde">⤓ <span class="hdr-btn-label">Sauvegarde</span></button>
@@ -1909,6 +1972,7 @@ footer{
   <div class="mob-header-actions">
     <button id="mob-search-btn" aria-label="Rechercher">⌕</button>
     <button id="mob-quiz-btn" aria-label="Quiz">⚡</button>
+    <button id="mob-dash-btn" aria-label="Bilan de révision">▤</button>
     <button id="mob-backup-btn" aria-label="Sauvegarde">⤓</button>
     <button id="mob-theme-btn" aria-label="Thème">◐</button>
   </div>
@@ -25134,6 +25198,17 @@ r = mv⊥/(|q|B) | Pas = v∥·T | La composante v∥ est inchangée par la forc
   </div>
 </div>
 
+<!-- ===== Tableau de bord « À réviser » ===== -->
+<div id="dash-overlay" class="dash-overlay">
+  <div class="dash-modal">
+    <div class="dash-head">
+      <h2>Bilan de révision</h2>
+      <button class="dash-close" id="dash-close-btn" aria-label="Fermer">✕</button>
+    </div>
+    <div id="dash-body"></div>
+  </div>
+</div>
+
 <script>
 /* ============================================== */
 /* ========= COUCHE DE STOCKAGE PERSISTANT ===== */
@@ -33565,6 +33640,89 @@ setTimeout(()=>{drawSim();},100);
     };
     reader.readAsText(file);
   });
+})();
+</script>
+
+<script>
+/* ===== Tableau de bord « À réviser » ===== */
+(function(){
+  const overlay = document.getElementById('dash-overlay');
+  const body = document.getElementById('dash-body');
+  if(!overlay) return;
+
+  function computeStats(){
+    const reg = window.FLASH_REGISTRY || {};
+    const perChapter = [];
+    let gTotal=0, gAcquis=0, gRevoir=0, gHesitant=0, gJamais=0;
+    const perMat = { physique:{t:0,a:0,label:'Physique'}, maths:{t:0,a:0,label:'Maths'}, si:{t:0,a:0,label:'SI'} };
+    CHAPTERS.filter(c => c.panels.includes('flash')).forEach(c => {
+      const cards = reg[c.prefix] || [];
+      const total = cards.length;
+      if(!total) return;
+      const state = Store.getJSON('flash:'+c.prefix, []) || [];
+      let acquis=0, hesitant=0, revoir=0, jamais=0;
+      for(let i=0;i<total;i++){
+        const last = state[i] ? state[i].last : null;
+        if(last===2) acquis++;
+        else if(last===1) hesitant++;
+        else if(last===0) revoir++;
+        else jamais++;
+      }
+      perChapter.push({ id:c.id, name:c.name, prefix:c.prefix, matiere:c.matiere,
+        total, acquis, hesitant, revoir, jamais, pct: Math.round(acquis/total*100),
+        started: (acquis+hesitant+revoir) > 0 });
+      gTotal+=total; gAcquis+=acquis; gRevoir+=revoir; gHesitant+=hesitant; gJamais+=jamais;
+      if(perMat[c.matiere]){ perMat[c.matiere].t+=total; perMat[c.matiere].a+=acquis; }
+    });
+    return { perChapter, gTotal, gAcquis, gRevoir, gHesitant, gJamais, perMat };
+  }
+
+  function render(){
+    const s = computeStats();
+    if(s.gTotal === 0){
+      body.innerHTML = '<div class="dash-empty">Aucune flashcard évaluée pour l’instant.<br>Ouvre un chapitre, onglet Flashcards, et commence à réviser !</div>';
+      return;
+    }
+    const gPct = Math.round(s.gAcquis / s.gTotal * 100);
+    const matsHtml = Object.keys(s.perMat).filter(m => s.perMat[m].t > 0).map(m => {
+      const p = s.perMat[m]; const pct = Math.round(p.a / p.t * 100);
+      return `<div class="dash-mat"><div class="m-name">${p.label}</div><div class="m-pct">${pct}%</div><div class="m-sub">${p.a}/${p.t} acquises</div></div>`;
+    }).join('');
+    const started = s.perChapter.filter(c => c.started).sort((a,b) => (a.pct - b.pct) || (b.revoir - a.revoir));
+    const notStarted = s.perChapter.filter(c => !c.started);
+    const matLabel = { physique:'PHY', maths:'MATH', si:'SI' };
+    const row = c => `<button class="dash-chap" data-chap="${c.id}" data-prefix="${c.prefix}">
+        <span class="c-name">${c.name}</span>
+        <span class="c-mat">${matLabel[c.matiere]||''}</span>
+        <span class="c-mini"><span style="width:${c.pct}%"></span></span>
+        <span class="c-pct">${c.pct}%</span>
+        <span class="c-revoir">${c.revoir > 0 ? ('↻ '+c.revoir) : ''}</span>
+      </button>`;
+    let html = `<div class="dash-global">
+        <div class="dash-big">${gPct}%</div>
+        <div class="dash-sub">${s.gAcquis} / ${s.gTotal} cartes acquises · ${s.gRevoir} à revoir · ${s.gJamais} non vues</div>
+        <div class="dash-bar"><span style="width:${gPct}%"></span></div>
+      </div>
+      <div class="dash-mats">${matsHtml}</div>`;
+    if(started.length) html += `<span class="dash-section-label">À renforcer en priorité</span>` + started.map(row).join('');
+    if(notStarted.length) html += `<span class="dash-section-label">Pas encore commencés</span>` + notStarted.map(row).join('');
+    body.innerHTML = html;
+    body.querySelectorAll('.dash-chap').forEach(btn => {
+      btn.addEventListener('click', () => {
+        close();
+        navigateTo('chap-' + btn.dataset.chap, btn.dataset.prefix + '-flash');
+      });
+    });
+  }
+
+  function open(){ render(); overlay.classList.add('open'); }
+  function close(){ overlay.classList.remove('open'); }
+
+  document.getElementById('dash-btn')?.addEventListener('click', open);
+  document.getElementById('mob-dash-btn')?.addEventListener('click', open);
+  document.getElementById('dash-close-btn').addEventListener('click', close);
+  overlay.addEventListener('click', e => { if(e.target === overlay) close(); });
+  document.addEventListener('keydown', e => { if(e.key === 'Escape' && overlay.classList.contains('open')) close(); });
 })();
 </script>
 

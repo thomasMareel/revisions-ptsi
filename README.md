@@ -10,6 +10,8 @@ Application web statique, **mono-fichier** (`index.html`) : tout le HTML, le CSS
 - Onglets par chapitre : **Cours**, **Méthodes**, **Simulateur** (12 chapitres), **Flashcards**, **Exercices**.
 - **Flashcards** avec suivi de progression (acquis / hésitant / à revoir), sauvegardé localement (`localStorage`).
 - **Sauvegarde / restauration** de la progression (export/import en `.json`) pour la protéger ou la transférer entre appareils.
+- **Tableau de bord « Bilan »** : % de cartes acquises global, par matière et par chapitre, chapitres à renforcer en priorité, accès direct aux flashcards d'un chapitre.
+- **Navigation chapitre précédent/suivant** (boutons ‹ › + Alt+←/→).
 - **Simulateurs** interactifs en Canvas (RLC, filtres, optique, oscillateurs, MCC, hacheurs, intégrales, etc.).
 - **Recherche** globale (cours + formules + encadrés).
 - **Quiz** global multi-chapitres.

@@ -85,6 +85,8 @@ Objet `Store` (~l.24912) : wrapper `localStorage` avec **fallback en mémoire** 
 
 Clés utilisées : `flash:<prefix>` (progression par chapitre), `theme` (clair/sombre), `lastPos` (dernier chapitre/panneau vu).
 
+**Tableau de bord** : bouton « Bilan » → overlay `#dash-overlay` qui agrège `flash:*` (via `FLASH_REGISTRY` pour le total de cartes + `Store.getJSON('flash:'+prefix)` pour les états) : % acquis global/par matière/par chapitre, tri par priorité, clic → `navigateTo` vers les flashcards du chapitre.
+
 **Sauvegarde / restauration** : bouton « Sauvegarde » dans l'en-tête (et mobile) → fenêtre `#backup-overlay`. Export = télécharge toutes les clés du `localStorage` dans un JSON `{app,version,exportedAt,data}`. Import = relit le JSON (vérifie `obj.data`), réécrit les clés, recharge la page. Protège la progression et permet le transfert entre appareils.
 
 ## Dépendances : tout en local (aucun CDN)
