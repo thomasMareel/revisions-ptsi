@@ -83,12 +83,14 @@ const <prefix>Flash = makeFlash(<prefix>Cards, '<prefix>',
 
 Objet `Store` (~l.24912) : wrapper `localStorage` avec **fallback en mémoire** si indisponible. API : `get/set`, `getJSON/setJSON`, `available()`. Utiliser `Store`, jamais `localStorage` directement.
 
-## Dépendances externes (CDN)
+## Dépendances : tout en local (aucun CDN)
 
-- **MathJax 3** : `cdn.jsdelivr.net/npm/mathjax@3/...` (l.31).
-- **Google Fonts** : Fraunces, JetBrains Mono, Inter Tight (l.9).
-- `printChapter()` régénère un document d'impression qui recharge ces mêmes ressources.
-- Conséquence hors-ligne : formules en texte brut + police système. À héberger en local si la révision hors-ligne devient un besoin.
+Le site est **100 % autonome** — aucune requête externe, fonctionne hors-ligne.
+
+- **MathJax 3.2.2** : `vendor/mathjax/tex-mml-chtml.js` + polices CHTML dans `vendor/mathjax/output/chtml/fonts/woff-v2/`. Référencé dans l'en-tête ET dans le template d'impression. Ne pas spécifier de `fontPath` dans la config MathJax : le chemin par défaut (relatif au script) trouve les polices.
+- **Polices** : Fraunces, Inter Tight, JetBrains Mono dans `vendor/fonts/` (woff2 latin + latin-ext), déclarées dans `vendor/fonts/fonts.css`. Référencé via `<link rel="stylesheet" href="vendor/fonts/fonts.css">`.
+- **Template d'impression** (`printChapter()`) : le document généré est écrit dans un iframe (`about:blank`), donc une balise `<base href="${location.href}">` est injectée pour que les chemins relatifs `vendor/...` résolvent correctement.
+- Pour mettre à jour MathJax : `npm pack mathjax@3`, extraire, recopier `es5/tex-mml-chtml.js` + `es5/output/chtml/fonts/woff-v2/`. Pour les polices : refetch du CSS Google avec un User-Agent Chrome, filtrer les subsets latin/latin-ext.
 
 ## Anomalies connues (à traiter avec validation utilisateur)
 

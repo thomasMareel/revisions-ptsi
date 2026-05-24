@@ -32,7 +32,7 @@ Logique & ensembles, géométrie de l'espace, nombres complexes, fonctions réel
 - **En ligne** : voir GitHub Pages (lien dans les paramètres du dépôt).
 - **En local** : ouvrir `index.html` dans un navigateur (double-clic).
 
-> ⚠️ **Hors-ligne** : MathJax et les polices sont chargés depuis un CDN. Sans connexion, les formules du cours s'affichent en texte brut et les polices retombent sur une police système. Les flashcards (caractères Unicode) restent lisibles.
+> ✅ **Fonctionne hors-ligne** : MathJax et les polices sont hébergés en local dans `vendor/` (aucune dépendance CDN). Les formules et la mise en page s'affichent correctement même sans connexion.
 
 ## Ajouter un nouveau chapitre
 
