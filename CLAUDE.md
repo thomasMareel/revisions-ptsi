@@ -104,6 +104,10 @@ Le site est **100 % autonome** — aucune requête externe, fonctionne hors-lign
 - Si on ajoute/retire des polices, mettre à jour la liste `PRECACHE` de `sw.js`.
 - Le service worker ne s'active pas en ouverture locale `file://` (normal) ; le hors-ligne local reste assuré par les assets embarqués.
 
+## Outils
+
+- `tools/validate.py` (Python stdlib, aucune dépendance) : vérifie cohérence `CHAPTERS` ↔ DOM, IDs HTML dupliqués, flashcards câblées (`makeFlash` par chapitre listant `flash`), `drawFn` existants. `python tools/validate.py` → `[OK]` / liste d'erreurs + exit ≠ 0. **À lancer avant chaque commit touchant `index.html`.**
+
 ## Anomalies connues (à traiter avec validation utilisateur)
 
 1. ~~**ID dupliqué `int-meth`**~~ — **CORRIGÉ** : le `<select>` du simulateur des intégrales a été renommé `int-meth-sel` (le panneau garde `int-meth`). Avant, `getElementById('int-meth')` renvoyait la `<section>`, donc le choix de méthode d'intégration était ignoré.

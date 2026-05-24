@@ -47,3 +47,11 @@ Les conventions détaillées sont dans [`CLAUDE.md`](CLAUDE.md). En résumé :
 3. **Créer le bloc** `<div class="chapter" id="chap-<id>">` avec sa `<nav class="tabs">` et ses `<section class="panel" id="<prefix>-<panel>">`.
 4. **Définir les flashcards** : `const <prefix>Cards = [{q:"…", a:"…"}, …]` puis `makeFlash(...)`.
 5. La fonction `validateChaptersCoherence()` signale dans la console toute incohérence entre `CHAPTERS` et le DOM au chargement.
+
+Avant de committer, lance le validateur (sans dépendance) :
+
+```
+python tools/validate.py
+```
+
+Il vérifie la cohérence `CHAPTERS` ↔ DOM, l'absence d'IDs dupliqués, les flashcards câblées et les `drawFn` existants.

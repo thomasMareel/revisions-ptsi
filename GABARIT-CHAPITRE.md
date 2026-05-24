@@ -168,9 +168,14 @@ const monFlash = makeFlash(monCards, 'mon', 'mon-flash-content', 'mon-flash-prog
 
 ## Vérification après ajout
 
-1. Ouvre `index.html` dans le navigateur.
-2. Ouvre la **console** (F12) : la fonction `validateChaptersCoherence()` y signale toute incohérence entre le tableau `CHAPTERS` et le DOM (id manquant, etc.).
-3. Vérifie que le bouton apparaît, que les 4 onglets fonctionnent, que les formules se rendent et que les flashcards défilent.
+1. **Lance le validateur** (recommandé, avant de committer) :
+   ```
+   python tools/validate.py
+   ```
+   Il vérifie la cohérence `CHAPTERS` ↔ DOM, les IDs dupliqués, les flashcards câblées et les `drawFn`. Il affiche `[OK]` ou la liste des erreurs (et renvoie un code de sortie ≠ 0 en cas de problème).
+2. Ouvre `index.html` dans le navigateur.
+3. Ouvre la **console** (F12) : la fonction `validateChaptersCoherence()` y signale aussi toute incohérence `CHAPTERS` ↔ DOM au chargement.
+4. Vérifie que le bouton apparaît, que les onglets fonctionnent, que les formules se rendent et que les flashcards défilent.
 
 ## Ajouter un simulateur (optionnel, avancé)
 
