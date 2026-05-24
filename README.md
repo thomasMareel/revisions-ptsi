@@ -36,6 +36,8 @@ Logique & ensembles, géométrie de l'espace, nombres complexes, fonctions réel
 
 ## Ajouter un nouveau chapitre
 
+👉 **Modèle prêt à copier-coller : [`GABARIT-CHAPITRE.md`](GABARIT-CHAPITRE.md)** (les 4 morceaux à ajouter, avec placeholders).
+
 Les conventions détaillées sont dans [`CLAUDE.md`](CLAUDE.md). En résumé :
 
 1. **Déclarer le chapitre** dans le tableau `CHAPTERS` (JS) : `id`, `prefix`, `name`, `matiere`, `sub`, `subLabel`, `domain`, `matiereLabel`, `panels`, `drawFn`, `mobLabel`.
