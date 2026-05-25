@@ -31906,19 +31906,80 @@ const optCards = [
   {q:"Ordre de grandeur du pouvoir séparateur de l'œil ?", a:"α_min ≈ 3×10⁻⁴ rad (environ 1 minute d'arc). C'est l'angle minimal pour distinguer deux points."}
 ];
 
-/* Embellit l'affichage des flashcards : transforme la notation « texte » des
-   exposants ^(...) / ^x et des indices _(...) / _x en vrais <sup>/<sub>.
-   Appliqué à toutes les cartes. Le contenu Unicode (√, ω, ², ∑, →…) est conservé ;
-   une carte contenant du LaTeX est laissée intacte (rendue ensuite par MathJax). */
+/* Rendu des maths des flashcards À L'IDENTIQUE DU COURS (MathJax).
+   Les cartes sont écrites en Unicode « texte » (e^(iθ), ω_k, √(LC), z̄, ü, ⁿ, ≤, ∫…).
+   flashPretty repère les fragments « mathématiques », les convertit en LaTeX et les
+   enrobe dans \( … \) ; le texte français reste hors maths. MathJax (appelé dans
+   show()) effectue le rendu, dans la même police que le cours.
+   Une carte déjà écrite en LaTeX est laissée intacte. */
+const FLASH_FR2 = new Set(['et','ou','ne','se','ce','si','au','en','on','il','le','la','me','te','ma','ta','sa','je','tu','ni','or','de','un','ça','où','là','eh']);
+const FLASH_FUNC = /^(arccos|arcsin|arctan|sinh|cosh|tanh|cos|sin|tan|cot|ln|log|exp|lim|sup|inf|max|min|arg|det|dim|ker|Re|Im|Card|pgcd|ppcm)$/;
+const FLASH_MATHSIG = /[0-9=+*\/^_<>≤≥≠≈≅±∓−√∑∏∫∮∂∇∈∉⊂⊃⊆⊇∪∩∅∀∃∞≡≜∝∘→←↦⇒⇔↔⟶⟹\[\]ℝℂℤℕℚ𝕌𝔻²³¹⁰⁴⁵⁶⁷⁸⁹ⁿⁱ⁺⁻₀₁₂₃₄₅₆₇₈₉ₙₖᵢⱼℓ°|·×÷αβγδεζηθϑικλμνξοπρϱσςτυφϕχψωΓΔΘΛΞΠΣΦΨΩ]/;
+const FLASH_FCALL = /[A-Za-zℓ'’]\(/;
+const FLASH_COMB = /[̀-ͯ]/;
+// Convertit un fragment de maths Unicode en LaTeX (sans les délimiteurs \( \)).
+function flashConvertMath(m){
+  const O = '', C = '';                                          // marque-place pour { } de groupement
+  m = m.replace(/([_^])\{([^{}]*)\}/g, (x,op,inn)=>op+O+inn+C);              // _{...} ^{...} déjà LaTeX
+  m = m.replace(/\^\(((?:[^()]|\([^()]*\))+)\)/g, (x,inn)=>'^'+O+inn+C);     // ^(…)
+  m = m.replace(/_\(((?:[^()]|\([^()]*\))+)\)/g, (x,inn)=>'_'+O+inn+C);      // _(…)
+  m = m.replace(/√\s*\(((?:[^()]|\([^()]*\))+)\)/g, (x,inn)=>'\\sqrt'+O+inn+C);
+  m = m.replace(/√\s*([A-Za-z0-9])/g, (x,c)=>'\\sqrt'+O+c+C);
+  m = m.replace(/\^([−+\-]?[A-Za-z0-9])/g, (x,c)=>'^'+O+c+C);                // ^x
+  m = m.replace(/_([A-Za-z0-9])/g, (x,c)=>'_'+O+c+C);                       // _x
+  m = m.replace(/\{/g,'\\{').replace(/\}/g,'\\}').replace(/%/g,'\\%');       // accolades littérales (ensembles)
+  m = m.replace(/</g,'\\lt ').replace(/>/g,'\\gt ').replace(/&/g,'\\&');     // sûr pour innerHTML
+  const sup = {'²':'2','³':'3','¹':'1','⁰':'0','⁴':'4','⁵':'5','⁶':'6','⁷':'7','⁸':'8','⁹':'9','ⁿ':'n','ⁱ':'i','⁺':'+','⁻':'-'};
+  m = m.replace(/[²³¹⁰⁴⁵⁶⁷⁸⁹ⁿⁱ⁺⁻]+/g, r=>'^{'+[...r].map(c=>sup[c]||'').join('')+'}');
+  const sub = {'₀':'0','₁':'1','₂':'2','₃':'3','₄':'4','₅':'5','₆':'6','₇':'7','₈':'8','₉':'9','ₙ':'n','ₖ':'k','ᵢ':'i','ⱼ':'j','₊':'+','₋':'-'};
+  m = m.replace(/[₀₁₂₃₄₅₆₇₈₉ₙₖᵢⱼ₊₋]+/g, r=>'_{'+[...r].map(c=>sub[c]||'').join('')+'}');
+  m = m.replace(/([A-Za-zα-ωΑ-Ω])̄/g,'\\bar{$1}').replace(/([A-Za-zα-ωΑ-Ω])̇/g,'\\dot{$1}').replace(/([A-Za-zα-ωΑ-Ω])̈/g,'\\ddot{$1}').replace(/([A-Za-zα-ωΑ-Ω])⃗/g,'\\vec{$1}');
+  m = m.replace(/ü/g,'\\ddot{u}').replace(/ö/g,'\\ddot{o}');
+  m = m.replace(/𝕌/g,'\\mathbb{U}').replace(/𝔻/g,'\\mathbb{D}').replace(/𝕂/g,'\\mathbb{K}');
+  m = m.replace(/\b(arccos|arcsin|arctan|sinh|cosh|tanh|cos|sin|tan|cot|ln|log|exp|lim|sup|inf|max|min|arg|det|dim|ker|gcd)\b/g,'\\$1 ');
+  m = m.replace(/\bRe(?=\s*\()/g,'\\operatorname{Re}').replace(/\bIm(?=\s*\()/g,'\\operatorname{Im}');
+  m = m.replace(/·/g,'\\cdot ').replace(/×/g,'\\times ');
+  m = m.replace(//g,'{').replace(//g,'}');
+  return m;
+}
 function flashPretty(s){
   if(s == null) return '';
-  let t = String(s);
-  if(/\\\(|\\\[|\$/.test(t)) return t;                       // déjà du LaTeX → MathJax s'en charge
-  t = t.replace(/\^\(((?:[^()]|\([^()]*\))+)\)/g, '<sup>$1</sup>'); // e^(iθ), r^(1/n), e^(i(θ+2kπ)/n)…
-  t = t.replace(/\^([−+-]?[A-Za-z0-9]+)/g, '<sup>$1</sup>');  // e^z, x^2, 2^n, 10^-3…
-  t = t.replace(/_\(((?:[^()]|\([^()]*\))+)\)/g, '<sub>$1</sub>'); // a_(ij), x_(i+1)…
-  t = t.replace(/_([A-Za-z0-9]+)/g, '<sub>$1</sub>');         // ω_k, 𝕌_n, R_th…
-  return t;
+  const str = String(s);
+  if(/\\\(|\\\[|\$/.test(str)) return str;                  // déjà du LaTeX → laissé à MathJax
+  const toks = str.split(/(\s+)/);
+  const baseTok = t=>t.replace(/^[(«"“”'’\[]+|[)»"“”'’.,;:!?…\]]+$/g,'');
+  const cls = t=>{
+    if(/^\s+$/.test(t)) return 'W';                                          // espace
+    if(/^[(),.;:!?«»"“”'’\-–—…]+$/.test(t)) return 'X';                       // ponctuation neutre
+    const b = baseTok(t);
+    if(FLASH_MATHSIG.test(t)||FLASH_COMB.test(t)||FLASH_FCALL.test(t)||FLASH_FUNC.test(b)) return 'M';
+    if(/^[A-Za-zℓ]$/.test(b)) return 'L';                                     // lettre seule (variable ?)
+    return 'P';                                                              // mot français
+  };
+  const K = toks.map(cls);
+  const nn = (i,d)=>{ for(let j=i+d;j>=0&&j<K.length;j+=d){ if(K[j]!=='W') return j; } return -1; };
+  for(let i=0;i<toks.length;i++) if(K[i]==='L'){            // lettre seule = variable, sauf a/y/o isolés (« il y a »)
+    const b = baseTok(toks[i]).toLowerCase();
+    if(b==='a'||b==='y'||b==='o'){ const l=nn(i,-1),r=nn(i,1); K[i]=((l>=0&&K[l]==='M')||(r>=0&&K[r]==='M'))?'M':'P'; }
+    else K[i]='M';
+  }
+  for(let i=0;i<toks.length;i++) if(K[i]==='P'){            // ib, dx, dt… collés à des maths
+    const b = baseTok(toks[i]);
+    if(/^[A-Za-z]{1,2}$/.test(b) && !FLASH_FR2.has(b.toLowerCase())){ const l=nn(i,-1),r=nn(i,1); if((l>=0&&K[l]==='M')||(r>=0&&K[r]==='M')) K[i]='M'; }
+  }
+  let out='', i=0;
+  while(i<toks.length){
+    if(K[i]==='M'){                                          // regroupe les jetons maths consécutifs en un seul \( … \)
+      let lastM=i,k=i+1;
+      while(k<toks.length){ if(K[k]==='M'){ lastM=k; k++; } else if(K[k]==='W'||K[k]==='X'){ k++; } else break; }
+      let mm = flashConvertMath(toks.slice(i,lastM+1).join(''));
+      mm = mm.replace(/(\^(?:\{[^{}]*\}|[A-Za-z0-9]))('+)/g, '$1{}$2');                       // évite « prime after exponent »
+      mm = mm.replace(/(_\{[^{}]*\})(?=_)/g, '$1{}').replace(/(\^\{[^{}]*\})(?=\^)/g, '$1{}'); // évite doubles indices/exposants
+      out += '\\(' + mm + '\\)';
+      i = lastM+1;
+    } else { out += toks[i]; i++; }
+  }
+  return out;
 }
 function makeFlash(cards, idPrefix, contentId, progId, statsId){
   const storeKey = 'flash:'+idPrefix;

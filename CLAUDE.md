@@ -64,7 +64,7 @@ Classes de contenu : `.course-section`, `.sec-num` (ex. « §1 · LES BASES »),
 ## Formules : deux conventions distinctes
 
 - **Cours / méthodes** : LaTeX via MathJax. Inline `\( … \)`, bloc `$$ … $$`.
-- **Flashcards** : **caractères Unicode** privilégiés (ex. `ω₀`, `√(LC)`, `½`, `→`, `²`). À l'affichage, `makeFlash` applique `flashPretty()` qui transforme la notation « texte » des exposants `^(…)` / `^x` et des indices `_(…)` / `_x` en vrais `<sup>` / `<sub>` (utile surtout en maths : `e^(iθ)`, `r^(1/n)`, `ω_k`…). MathJax **est** appliqué aux cartes (`MathJax.typesetPromise`) : on peut donc aussi écrire du LaTeX `\( … \)` dans une carte — dans ce cas `flashPretty` la laisse intacte et c'est MathJax qui la rend.
+- **Flashcards** : contenu écrit en **caractères Unicode** (ex. `ω₀`, `√(LC)`, `e^(iθ)`, `ω_k`, `≤`, `∫`, `z̄`, `ü`). À l'affichage, `makeFlash` applique `flashPretty()` qui **repère les fragments mathématiques, les convertit en LaTeX et les enrobe dans `\( … \)`** ; MathJax (déjà appelé dans `show()`) les rend alors **dans la même police que le cours**. Le texte français reste hors maths. Le helper `flashConvertMath()` fait la conversion Unicode→LaTeX (exposants `^(…)`/`^x`, indices `_(…)`/`_x`, `√(…)`→`\sqrt{}`, accolades d'ensembles `{…}`→`\{…\}`, fonctions `cos`→`\cos`, accents `z̄`→`\bar{z}`, `u̇`→`\dot{u}`, `ü`→`\ddot{u}`, exposants/indices Unicode `²`/`ₙ`…). Une carte déjà écrite en LaTeX `\( … \)` est laissée intacte. ⚠️ La séparation maths/texte est **heuristique** : quelques cartes mêlant phrase et formule peuvent demander un affinage manuel (réécriture directe en `\( … \)` dans la carte).
 
 ## Flashcards
 
