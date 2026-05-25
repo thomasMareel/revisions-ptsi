@@ -1706,6 +1706,18 @@ section.panel.active{display:block;animation:fadeIn 0.4s ease}
   transition:background 0.2s,color 0.2s;
 }
 .flash-course-link:hover{ background:var(--accent2); color:#fff; }
+/* Cible du saut flashcard → cours : décalage sous l'en-tête/onglets + surbrillance */
+.panel h2, .panel h3, .panel .sec-num{ scroll-margin-top:104px; }
+.cours-target-flash{ animation:coursTargetFlash 2.6s ease-out; border-radius:6px; }
+@keyframes coursTargetFlash{
+  0%,12%   { background:rgba(45,95,138,0.22); box-shadow:0 0 0 8px rgba(45,95,138,0.10); }
+  100%     { background:transparent;          box-shadow:0 0 0 8px rgba(45,95,138,0); }
+}
+:root[data-theme="dark"] .cours-target-flash{ animation:coursTargetFlashDark 2.6s ease-out; }
+@keyframes coursTargetFlashDark{
+  0%,12%   { background:rgba(120,170,210,0.28); box-shadow:0 0 0 8px rgba(120,170,210,0.12); }
+  100%     { background:transparent;            box-shadow:0 0 0 8px rgba(120,170,210,0); }
+}
 
 /* EXOS */
 .exo-wrapper{max-width:900px;margin:0 auto;padding-top:1.25rem}
@@ -29505,7 +29517,7 @@ function makeFlash(cards, idPrefix, contentId, progId, statsId){
       b.className = 'flash-course-link';
       b.textContent = '↪ Voir le cours';
       b.title = 'Aller au cours de ce chapitre';
-      b.addEventListener('click', ()=> window.flashToCourse(idPrefix));
+      b.addEventListener('click', ()=> window.flashToCourse(idPrefix, cards[order[idx]]));
       fw.insertBefore(b, fw.firstChild);
     }
   } catch(e){ /* injection non bloquante */ }
@@ -29521,13 +29533,52 @@ function makeFlash(cards, idPrefix, contentId, progId, statsId){
   return api;
 }
 
-/* Saut instantané d'une flashcard vers le cours du même chapitre */
-window.flashToCourse = function(prefix){
+/* Saut d'une flashcard vers LE POINT de cours correspondant.
+   On bascule sur l'onglet Cours, puis on repère le titre (h2/h3/§) du cours
+   qui partage le plus de mots-clés avec la carte, on y défile et on le surligne. */
+const FLASH_STOP = new Set(['dans','avec','pour','quel','quelle','quels','quelles','comment','pourquoi','est','sont','une','des','les','que','qui','quoi','sur','par','aux','son','sas','ses','leur','cette','entre','deux','trois','être','etre','quand','donc','vers','plus','moins','tout','tous','toute','sans','peut','elle','dont','ainsi','alors','quelle','cas','lors','selon','même','autre','leurs','cela','dont','enonce','exprime','donner','citer','definir']);
+function flashNorm(s){ return (s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9 ]/g,' '); }
+function flashTokens(s){ return flashNorm(s).split(/\s+/).filter(w => w.length>=4 && !FLASH_STOP.has(w)); }
+// Texte d'une sous-section = son titre + le n° de §  + le corps jusqu'au titre suivant
+function flashUnitText(head){
+  let t = head.textContent + ' ';
+  const sn = head.closest('.course-section');
+  const sec = sn ? sn.querySelector('.sec-num') : null;
+  if(sec) t += ' ' + sec.textContent;
+  let n = head.nextElementSibling;
+  while(n && !/^H[23]$/.test(n.tagName)){ t += ' ' + n.textContent; n = n.nextElementSibling; }
+  return t;
+}
+window.flashToCourse = function(prefix, card){
   const tab = document.querySelector('.tab[data-panel="' + prefix + '-cours"]');
   if(!tab) return;
   tab.click();                       // réutilise la logique des onglets (active le panel + typeset)
-  const panel = document.getElementById(prefix + '-cours');
-  if(panel && panel.scrollIntoView) panel.scrollIntoView({ behavior:'smooth', block:'start' });
+  const cours = document.getElementById(prefix + '-cours');
+  if(!cours) return;
+  let target = cours, best = null, bestScore = 0;
+  if(card){
+    const qset = new Set(flashTokens(card.q));   // mots-clés de la question (poids fort)
+    const aset = new Set(flashTokens(card.a));   // mots-clés de la réponse (poids faible)
+    cours.querySelectorAll('h2, h3').forEach(h => {
+      const H = new Set(flashTokens(h.textContent));     // mots du titre = signal le plus sûr
+      const U = new Set(flashTokens(flashUnitText(h)));  // titre + corps de la sous-section
+      if(!U.size) return;
+      // un mot trouvé dans le TITRE pèse davantage qu'un mot trouvé dans le corps
+      let s = 0;
+      qset.forEach(t => { if(H.has(t)) s += 3; else if(U.has(t)) s += 2; });
+      aset.forEach(t => { if(H.has(t)) s += 2; else if(U.has(t)) s += 1; });
+      if(s > bestScore){ bestScore = s; best = h; }
+    });
+    if(best && bestScore >= 3) target = best;
+  }
+  setTimeout(() => {
+    target.scrollIntoView({ behavior:'smooth', block:'start' });
+    if(target !== cours){
+      target.classList.remove('cours-target-flash');
+      void target.offsetWidth;                     // force le redémarrage de l'animation
+      target.classList.add('cours-target-flash');
+    }
+  }, 60);
 };
 
 const rlcFlash = makeFlash(rlcCards,'rlc','rlc-flash-content','rlc-flash-prog','rlc-stats');
