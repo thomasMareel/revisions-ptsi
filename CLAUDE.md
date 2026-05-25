@@ -64,7 +64,7 @@ Classes de contenu : `.course-section`, `.sec-num` (ex. « §1 · LES BASES »),
 ## Formules : deux conventions distinctes
 
 - **Cours / méthodes** : LaTeX via MathJax. Inline `\( … \)`, bloc `$$ … $$`.
-- **Flashcards** : **caractères Unicode**, PAS de LaTeX (ex. `ω₀`, `√(LC)`, `½`, `→`, `²`). MathJax ne retypeset pas les cartes.
+- **Flashcards** : **caractères Unicode** privilégiés (ex. `ω₀`, `√(LC)`, `½`, `→`, `²`). À l'affichage, `makeFlash` applique `flashPretty()` qui transforme la notation « texte » des exposants `^(…)` / `^x` et des indices `_(…)` / `_x` en vrais `<sup>` / `<sub>` (utile surtout en maths : `e^(iθ)`, `r^(1/n)`, `ω_k`…). MathJax **est** appliqué aux cartes (`MathJax.typesetPromise`) : on peut donc aussi écrire du LaTeX `\( … \)` dans une carte — dans ce cas `flashPretty` la laisse intacte et c'est MathJax qui la rend.
 
 ## Flashcards
 

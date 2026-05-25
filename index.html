@@ -1642,6 +1642,10 @@ section.panel.active{display:block;animation:fadeIn 0.4s ease}
   pointer-events:none;
 }
 .flash-side{font-size:1.15rem;font-family:'Fraunces',serif}
+/* Exposants / indices des flashcards rendus proprement (sans gonfler l'interligne) */
+.flash-side sub,.flash-side sup{font-size:0.72em;line-height:0;position:relative;vertical-align:baseline}
+.flash-side sup{top:-0.5em}
+.flash-side sub{bottom:-0.28em}
 .flash-side .tag{
   font-family:'JetBrains Mono',monospace;
   font-size:0.7rem;
@@ -31902,6 +31906,20 @@ const optCards = [
   {q:"Ordre de grandeur du pouvoir séparateur de l'œil ?", a:"α_min ≈ 3×10⁻⁴ rad (environ 1 minute d'arc). C'est l'angle minimal pour distinguer deux points."}
 ];
 
+/* Embellit l'affichage des flashcards : transforme la notation « texte » des
+   exposants ^(...) / ^x et des indices _(...) / _x en vrais <sup>/<sub>.
+   Appliqué à toutes les cartes. Le contenu Unicode (√, ω, ², ∑, →…) est conservé ;
+   une carte contenant du LaTeX est laissée intacte (rendue ensuite par MathJax). */
+function flashPretty(s){
+  if(s == null) return '';
+  let t = String(s);
+  if(/\\\(|\\\[|\$/.test(t)) return t;                       // déjà du LaTeX → MathJax s'en charge
+  t = t.replace(/\^\(((?:[^()]|\([^()]*\))+)\)/g, '<sup>$1</sup>'); // e^(iθ), r^(1/n), e^(i(θ+2kπ)/n)…
+  t = t.replace(/\^([−+-]?[A-Za-z0-9]+)/g, '<sup>$1</sup>');  // e^z, x^2, 2^n, 10^-3…
+  t = t.replace(/_\(((?:[^()]|\([^()]*\))+)\)/g, '<sub>$1</sub>'); // a_(ij), x_(i+1)…
+  t = t.replace(/_([A-Za-z0-9]+)/g, '<sub>$1</sub>');         // ω_k, 𝕌_n, R_th…
+  return t;
+}
 function makeFlash(cards, idPrefix, contentId, progId, statsId){
   const storeKey = 'flash:'+idPrefix;
   // Enregistrer ce jeu de cartes dans le registre global (pour la recherche)
@@ -31942,9 +31960,9 @@ function makeFlash(cards, idPrefix, contentId, progId, statsId){
     const c = document.getElementById(contentId);
     if(!c) return;
     if(!flipped){
-      c.innerHTML = `<span class="tag">Question</span><div>${card.q}</div>`;
+      c.innerHTML = `<span class="tag">Question</span><div>${flashPretty(card.q)}</div>`;
     } else {
-      c.innerHTML = `<span class="tag" style="color:#5a7a3a">Réponse</span><div>${card.a}</div>`;
+      c.innerHTML = `<span class="tag" style="color:#5a7a3a">Réponse</span><div>${flashPretty(card.a)}</div>`;
     }
     try {
       if(window.MathJax && window.MathJax.typesetPromise){
