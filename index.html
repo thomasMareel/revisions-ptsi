@@ -1690,6 +1690,22 @@ section.panel.active{display:block;animation:fadeIn 0.4s ease}
   transition:opacity 0.2s;
 }
 .flash-reset:hover{opacity:1}
+/* Lien « Voir le cours » depuis une flashcard (ajouté par makeFlash) */
+.flash-course-link{
+  display:block;
+  margin:0 auto 1.1rem;
+  background:transparent;
+  border:1px solid var(--accent2);
+  color:var(--accent2);
+  font-family:'Inter Tight',system-ui,sans-serif;
+  font-size:0.8rem;
+  font-weight:600;
+  padding:0.4rem 1rem;
+  border-radius:6px;
+  cursor:pointer;
+  transition:background 0.2s,color 0.2s;
+}
+.flash-course-link:hover{ background:var(--accent2); color:#fff; }
 
 /* EXOS */
 .exo-wrapper{max-width:900px;margin:0 auto;padding-top:1.25rem}
@@ -29479,6 +29495,21 @@ function makeFlash(cards, idPrefix, contentId, progId, statsId){
   }
 
   show();
+
+  // Bouton « Voir le cours » : bascule vers l'onglet Cours du même chapitre
+  try {
+    const fw = document.getElementById(contentId)?.closest('.flash-wrapper');
+    if(fw && !fw.querySelector('.flash-course-link')){
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'flash-course-link';
+      b.textContent = '↪ Voir le cours';
+      b.title = 'Aller au cours de ce chapitre';
+      b.addEventListener('click', ()=> window.flashToCourse(idPrefix));
+      fw.insertBefore(b, fw.firstChild);
+    }
+  } catch(e){ /* injection non bloquante */ }
+
   const api = {flip,rate,prev,next,resetProgress,
     getProgress(){
       let acquis=0; cardState.forEach(s=>{ if(s.last===2) acquis++; });
@@ -29489,6 +29520,15 @@ function makeFlash(cards, idPrefix, contentId, progId, statsId){
   window.FLASH_INSTANCES[idPrefix] = api;
   return api;
 }
+
+/* Saut instantané d'une flashcard vers le cours du même chapitre */
+window.flashToCourse = function(prefix){
+  const tab = document.querySelector('.tab[data-panel="' + prefix + '-cours"]');
+  if(!tab) return;
+  tab.click();                       // réutilise la logique des onglets (active le panel + typeset)
+  const panel = document.getElementById(prefix + '-cours');
+  if(panel && panel.scrollIntoView) panel.scrollIntoView({ behavior:'smooth', block:'start' });
+};
 
 const rlcFlash = makeFlash(rlcCards,'rlc','rlc-flash-content','rlc-flash-prog','rlc-stats');
 const ogFlash = makeFlash(ogCards,'og','og-flash-content','og-flash-prog','og-stats');
