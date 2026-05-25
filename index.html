@@ -1978,6 +1978,29 @@ footer{
   text-decoration:none; border-radius:0 4px 4px 0;
 }
 .skip-link:focus{ left:0; }
+
+/* Menu « ⋯ Plus » de l'en-tête (regroupe Sauvegarde / Raccourcis / Imprimer) */
+.hdr-more{ position:relative; display:inline-flex; }
+.hdr-more-menu{
+  display:none;
+  position:absolute; top:calc(100% + 4px); right:0;
+  background:var(--paper);
+  border:1px solid var(--ink);
+  box-shadow:0 4px 16px rgba(0,0,0,0.18);
+  z-index:60; min-width:190px;
+  padding:0.25rem;
+}
+.hdr-more-menu.open{ display:block; }
+.hdr-more-item{
+  display:flex; align-items:center; gap:0.55rem; width:100%;
+  background:none; border:none; text-align:left; cursor:pointer;
+  font-family:'JetBrains Mono',monospace; font-size:0.72rem;
+  letter-spacing:0.03em; color:var(--ink);
+  padding:0.6rem 0.8rem; white-space:nowrap;
+  transition:background 0.15s, color 0.15s;
+}
+.hdr-more-item:hover{ background:var(--accent); color:#fff; }
+#more-btn.open{ background:var(--ink); color:var(--paper); }
 </style>
 </head>
 <body>
@@ -1987,15 +2010,18 @@ footer{
 <header>
   <div class="header-actions">
     <button id="nav-toggle-btn" class="hdr-btn" title="Ouvrir le menu des chapitres" aria-label="Chapitres" aria-controls="mob-drawer" aria-expanded="false">☰ <span class="hdr-btn-label">Chapitres</span></button>
-    <button id="prev-chap-btn" class="hdr-btn" title="Chapitre précédent (Alt+←)" aria-label="Chapitre précédent">‹</button>
-    <button id="next-chap-btn" class="hdr-btn" title="Chapitre suivant (Alt+→)" aria-label="Chapitre suivant">›</button>
     <button id="search-btn" class="hdr-btn" title="Rechercher (Ctrl+K)" aria-label="Rechercher">⌕ <span class="hdr-btn-label">Rechercher</span> <kbd>Ctrl K</kbd></button>
     <button id="quiz-btn" class="hdr-btn" title="Quiz global (toutes les flashcards)" aria-label="Quiz">⚡ <span class="hdr-btn-label">Quiz</span></button>
     <button id="dash-btn" class="hdr-btn" title="Bilan de révision" aria-label="Bilan de révision">▤ <span class="hdr-btn-label">Bilan</span></button>
-    <button class="hdr-btn" title="Raccourcis clavier" aria-label="Aide clavier" onclick="document.dispatchEvent(new KeyboardEvent('keydown',{key:'?',bubbles:true}))">⌨ <span class="hdr-btn-label">Raccourcis</span></button>
-    <button id="print-btn" class="hdr-btn" title="Imprimer le chapitre actif" aria-label="Imprimer" onclick="printChapter()">⎙ <span class="hdr-btn-label">Imprimer</span></button>
-    <button id="backup-btn" class="hdr-btn" title="Sauvegarder / restaurer ma progression" aria-label="Sauvegarde">⤓ <span class="hdr-btn-label">Sauvegarde</span></button>
     <button id="theme-btn" class="hdr-btn" title="Changer de thème" aria-label="Changer de thème">◐ <span class="hdr-btn-label" id="theme-label">Sombre</span></button>
+    <div class="hdr-more">
+      <button id="more-btn" class="hdr-btn" title="Plus d'actions" aria-label="Plus d'actions" aria-haspopup="true" aria-expanded="false">⋯ <span class="hdr-btn-label">Plus</span></button>
+      <div id="more-menu" class="hdr-more-menu" role="menu">
+        <button id="backup-btn" class="hdr-more-item" role="menuitem" title="Sauvegarder / restaurer ma progression">⤓ Sauvegarde</button>
+        <button class="hdr-more-item" role="menuitem" title="Raccourcis clavier" onclick="document.dispatchEvent(new KeyboardEvent('keydown',{key:'?',bubbles:true}))">⌨ Raccourcis</button>
+        <button id="print-btn" class="hdr-more-item" role="menuitem" title="Imprimer le chapitre actif" onclick="printChapter()">⎙ Imprimer</button>
+      </div>
+    </div>
   </div>
   <div class="eyebrow">PTSI · Programme officiel · 1ère année</div>
   <h1>Mes cours de <em>prépa</em></h1>
@@ -34218,6 +34244,26 @@ document.getElementById('skip-link')?.addEventListener('click', e => {
     active.scrollIntoView({ block: 'start' });
   }
 });
+</script>
+
+<script>
+/* Menu « ⋯ Plus » de l'en-tête */
+(function(){
+  const btn = document.getElementById('more-btn');
+  const menu = document.getElementById('more-menu');
+  if(!btn || !menu) return;
+  function close(){ menu.classList.remove('open'); btn.classList.remove('open'); btn.setAttribute('aria-expanded','false'); }
+  btn.addEventListener('click', e => {
+    e.stopPropagation();
+    const open = !menu.classList.contains('open');
+    menu.classList.toggle('open', open);
+    btn.classList.toggle('open', open);
+    btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+  });
+  menu.querySelectorAll('.hdr-more-item').forEach(it => it.addEventListener('click', close));
+  document.addEventListener('click', e => { if(!menu.contains(e.target) && e.target !== btn) close(); });
+  document.addEventListener('keydown', e => { if(e.key === 'Escape') close(); });
+})();
 </script>
 
 <script>
