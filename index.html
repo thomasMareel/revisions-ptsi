@@ -31925,8 +31925,8 @@ function flashConvertMath(m){
   m = m.replace(/_\(((?:[^()]|\([^()]*\))+)\)/g, (x,inn)=>'_'+O+inn+C);      // _(…)
   m = m.replace(/√\s*\(((?:[^()]|\([^()]*\))+)\)/g, (x,inn)=>'\\sqrt'+O+inn+C);
   m = m.replace(/√\s*([A-Za-z0-9])/g, (x,c)=>'\\sqrt'+O+c+C);
-  m = m.replace(/\^([−+\-]?[A-Za-z0-9])/g, (x,c)=>'^'+O+c+C);                // ^x
-  m = m.replace(/_([A-Za-z0-9])/g, (x,c)=>'_'+O+c+C);                       // _x
+  m = m.replace(/\^([−+\-]?(?:[A-Za-zÀ-ÿ]+|[0-9]+))/g, (x,c)=>'^'+O+c+C);    // ^x, ^-12, ^max
+  m = m.replace(/_([A-Za-zÀ-ÿ]+|[0-9]+)/g, (x,c)=>'_'+O+c+C);               // _x, _Carnot, _éq (lettres OU chiffres : H_2O reste H_2 puis O)
   m = m.replace(/\{/g,'\\{').replace(/\}/g,'\\}').replace(/%/g,'\\%');       // accolades littérales (ensembles)
   m = m.replace(/</g,'\\lt ').replace(/>/g,'\\gt ').replace(/&/g,'\\&');     // sûr pour innerHTML
   const sup = {'²':'2','³':'3','¹':'1','⁰':'0','⁴':'4','⁵':'5','⁶':'6','⁷':'7','⁸':'8','⁹':'9','ⁿ':'n','ⁱ':'i','⁺':'+','⁻':'-'};
@@ -32008,8 +32008,10 @@ function flashPretty(s){
     if(K[i]==='M'){                                          // regroupe les jetons maths consécutifs en un seul \( … \)
       let lastM=i,k=i+1;
       while(k<toks.length){ if(K[k]==='M'){ lastM=k; k++; } else if(K[k]==='W'||K[k]==='X'){ k++; } else break; }
-      let mm = flashConvertMath(toks.slice(i,lastM+1).join('').normalize('NFD'));
+      let mm = flashConvertMath(toks.slice(i,lastM+1).join(''));
+      mm = mm.replace(/ẋ/g,'\\dot{x}').replace(/ẍ/g,'\\ddot{x}').replace(/ẏ/g,'\\dot{y}').replace(/ṙ/g,'\\dot{r}').replace(/ṗ/g,'\\dot{p}').replace(/ṡ/g,'\\dot{s}').replace(/ṁ/g,'\\dot{m}').replace(/ṅ/g,'\\dot{n}').replace(/ḋ/g,'\\dot{d}').replace(/ġ/g,'\\dot{g}').replace(/ḣ/g,'\\dot{h}'); // dérivées précomposées
       mm = flashFrac(mm);                                                                      // divisions A/B -> \dfrac{A}{B}
+      mm = mm.replace(/\b(rang|Vect|pgcd|ppcm|Card|Ker|diag|sgn)\b/g, '\\operatorname{$1}');   // opérateurs rendus droits
       mm = mm.replace(/(\^(?:\{[^{}]*\}|[A-Za-z0-9]))('+)/g, '$1{}$2');                       // évite « prime after exponent »
       mm = mm.replace(/(_\{[^{}]*\})(?=_)/g, '$1{}').replace(/(\^\{[^{}]*\})(?=\^)/g, '$1{}'); // évite doubles indices/exposants
       out += '\\(' + mm + '\\)';
