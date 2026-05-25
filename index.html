@@ -31942,6 +31942,41 @@ function flashConvertMath(m){
   m = m.replace(//g,'{').replace(//g,'}');
   return m;
 }
+/* Transforme les divisions A/B en fractions empilées \dfrac{A}{B}, comme le cours.
+   Opère sur un fragment déjà converti en LaTeX ; ignore les « / » entre accolades
+   (donc pas dans un exposant : r^{1/n} reste tel quel). Les opérandes sont un groupe
+   (…), une commande \cmd{…}, ou une suite de caractères jusqu'à un séparateur. */
+function flashFrac(s){
+  const SEP = new Set([' ','+','=','<','>',',',';',':','±','∓','→','↦','⇒','⇔','∈','∉','≤','≥','≠','≈','≡','·','×','÷','−','-','(',')','{','}']);
+  function popNum(res){                                   // numérateur = opérande en fin de res
+    let j=res.length-1; while(j>=0 && res[j]===' ') j--; if(j<0) return null;
+    if(res[j]===')'){ let d=0,k=j; for(;k>=0;k--){ if(res[k]===')')d++; else if(res[k]==='('){ d--; if(d===0) break; } } if(k<0) return null; return {head:res.slice(0,k), op:res.slice(k+1,j)}; }
+    let k=j;
+    while(k>=0){ const c=res[k];
+      if(c==='}'){ let d=0; while(k>=0){ if(res[k]==='}')d++; else if(res[k]==='{'){ d--; if(d===0){ k--; break; } } k--; } continue; }
+      if(SEP.has(c)) break; k--;
+    }
+    const op=res.slice(k+1, j+1); if(op==='') return null; return {head:res.slice(0,k+1), op};
+  }
+  function takeDen(str,j){                                // dénominateur = opérande en tête à partir de j
+    while(j<str.length && str[j]===' ') j++; if(j>=str.length) return null;
+    if(str[j]==='('){ let d=0,k=j; for(;k<str.length;k++){ if(str[k]==='(')d++; else if(str[k]===')'){ d--; if(d===0) break; } } if(k>=str.length) return null; return {op:str.slice(j+1,k), next:k+1}; }
+    if(str[j]==='\\'){ let k=j+1; while(k<str.length && /[a-zA-Z]/.test(str[k])) k++; if(str[k]==='{'){ let d=0; for(;k<str.length;k++){ if(str[k]==='{')d++; else if(str[k]==='}'){ d--; if(d===0){ k++; break; } } } } return {op:str.slice(j,k), next:k}; }
+    let k=j;
+    while(k<str.length){ const c=str[k];
+      if(c==='{'){ let d=0; while(k<str.length){ if(str[k]==='{')d++; else if(str[k]==='}'){ d--; if(d===0){ k++; break; } } k++; } continue; }
+      if(SEP.has(c)) break; k++;
+    }
+    const op=str.slice(j,k); if(op==='') return null; return {op, next:k};
+  }
+  let res='', i=0, depth=0;
+  while(i<s.length){ const c=s[i];
+    if(c==='{') depth++; else if(c==='}') depth--;
+    if(c==='/' && depth===0){ const num=popNum(res), den=takeDen(s,i+1); if(num && den){ res = num.head + '\\dfrac{'+num.op+'}{'+den.op+'}'; i = den.next; continue; } }
+    res += c; i++;
+  }
+  return res;
+}
 function flashPretty(s){
   if(s == null) return '';
   const str = String(s);
@@ -31973,6 +32008,7 @@ function flashPretty(s){
       let lastM=i,k=i+1;
       while(k<toks.length){ if(K[k]==='M'){ lastM=k; k++; } else if(K[k]==='W'||K[k]==='X'){ k++; } else break; }
       let mm = flashConvertMath(toks.slice(i,lastM+1).join(''));
+      mm = flashFrac(mm);                                                                      // divisions A/B -> \dfrac{A}{B}
       mm = mm.replace(/(\^(?:\{[^{}]*\}|[A-Za-z0-9]))('+)/g, '$1{}$2');                       // évite « prime after exponent »
       mm = mm.replace(/(_\{[^{}]*\})(?=_)/g, '$1{}').replace(/(\^\{[^{}]*\})(?=\^)/g, '$1{}'); // évite doubles indices/exposants
       out += '\\(' + mm + '\\)';
