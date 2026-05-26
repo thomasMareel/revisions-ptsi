@@ -28,10 +28,14 @@ Le tableau **`CHAPTERS`** (JS, vers la ligne ~24985) est la source de vérité :
   mobLabel:'Circuit RLC série' }
 ```
 
-- `matiere` ∈ `physique` | `maths` | `si`.
+- `matiere` ∈ `physique` | `maths` | `si` | `info`.
 - `drawFn` : nom de la fonction Canvas du simulateur, ou `null` si pas de simu.
 - `CHAPTERS_BY_ID` / `CHAPTERS_BY_PREFIX` sont dérivés automatiquement.
 - `validateChaptersCoherence()` (~l.25256) alerte dans la console si DOM ≠ `CHAPTERS` au chargement.
+
+### Ordre d'apprentissage (réorganisation centralisée)
+
+Juste après la définition de `CHAPTERS` (IIFE `reorderChapters`), le tableau **`CHAP_GROUPS`** = `[ [subLabel, [ids…]] , … ]` est la **source unique de l'ordre** des chapitres (ordre pédagogique conventionnel) et **normalise les `subLabel`** par sous-domaine. Il réordonne `CHAPTERS` en place : cela pilote le tiroir mobile (groupé par `subLabel`, dans l'ordre de `CHAP_GROUPS`), la navigation précédent/suivant et le tableau de bord. **Pour changer l'ordre d'un chapitre : éditer `CHAP_GROUPS`** (et l'ordre des boutons `.chap-btn` dans le HTML des sidebars, qui doit suivre le même ordre — la sidebar desktop n'est pas générée depuis `CHAPTERS`). Un `id` absent de `CHAP_GROUPS` est rejeté en fin de liste et garde son `subLabel` d'origine.
 
 ## Conventions de nommage des IDs (IMPORTANT)
 
