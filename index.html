@@ -108,9 +108,14 @@ body{
 /* HEADER */
 header{
   border-bottom:2px solid var(--ink);
-  padding:2rem 2rem 1.5rem;
+  padding:3.4rem 2rem 1.5rem;
   background:var(--paper);
   position:relative;
+}
+.header-nav{
+  position:absolute;
+  top:1rem;left:1rem;
+  z-index:6;
 }
 .header-actions{
   position:absolute;
@@ -119,6 +124,14 @@ header{
   gap:0.5rem;
   z-index:5;
 }
+/* Bouton « Chapitres » : onglet proéminent en haut à gauche */
+.hdr-btn-tab{
+  background:var(--ink);
+  color:var(--paper);
+  border-color:var(--ink);
+  font-weight:700;
+}
+.hdr-btn-tab:hover{background:var(--accent);border-color:var(--accent);color:var(--paper)}
 .hdr-btn{
   background:var(--paper-dark);
   border:1px solid var(--ink);
@@ -318,6 +331,8 @@ header{
     gap:0;
   }
   nav.tabs::-webkit-scrollbar{display:none;}
+  /* Le titre du chapitre est déjà affiché dans l'en-tête mobile sticky */
+  .chap-title-banner{display:none !important;}
   .tab{
     padding:0.75rem 1rem !important;
     font-size:0.72rem !important;
@@ -1283,6 +1298,32 @@ h1 em{
   text-transform:uppercase;
 }
 
+/* BANDEAU TITRE DU CHAPITRE (injecté en haut de chaque chapitre) */
+.chap-title-banner{
+  padding:1.15rem 2rem 0.95rem;
+  background:var(--paper);
+  border-bottom:1px solid rgba(0,0,0,0.12);
+}
+.chap-title-banner .ctb-sub{
+  display:block;
+  font-family:'JetBrains Mono',monospace;
+  font-size:0.68rem;
+  letter-spacing:0.18em;
+  text-transform:uppercase;
+  color:var(--accent);
+  margin-bottom:0.3rem;
+}
+.chap-title-banner .ctb-title{
+  font-family:'Fraunces',serif;
+  font-size:1.7rem;
+  font-weight:700;
+  letter-spacing:-0.015em;
+  line-height:1.12;
+  margin:0;
+  color:var(--ink);
+}
+:root[data-theme="dark"] .chap-title-banner{border-bottom-color:rgba(255,255,255,0.12)}
+
 /* NAV TABS */
 nav.tabs{
   display:flex;
@@ -1341,14 +1382,15 @@ section.panel.active{display:block;animation:fadeIn 0.4s ease}
 }
 .course-section .sec-num{
   font-family:'JetBrains Mono',monospace;
-  font-size:0.7rem;
-  letter-spacing:0.2em;
+  font-size:0.82rem;
+  font-weight:600;
+  letter-spacing:0.16em;
   color:var(--accent);
-  margin-bottom:0.5rem;
+  margin-bottom:0.35rem;
 }
 .course-section h2{
   font-family:'Fraunces',serif;
-  font-size:1.85rem;
+  font-size:1.45rem;
   font-weight:600;
   letter-spacing:-0.01em;
   margin-bottom:0.5rem;
@@ -2156,8 +2198,10 @@ figure.schema figcaption{
 <a href="#" class="skip-link" id="skip-link">Aller au contenu</a>
 
 <header>
+  <div class="header-nav">
+    <button id="nav-toggle-btn" class="hdr-btn hdr-btn-tab" title="Ouvrir le menu des chapitres" aria-label="Chapitres" aria-controls="mob-drawer" aria-expanded="false">☰ <span class="hdr-btn-label">Chapitres</span></button>
+  </div>
   <div class="header-actions">
-    <button id="nav-toggle-btn" class="hdr-btn" title="Ouvrir le menu des chapitres" aria-label="Chapitres" aria-controls="mob-drawer" aria-expanded="false">☰ <span class="hdr-btn-label">Chapitres</span></button>
     <button id="search-btn" class="hdr-btn" title="Rechercher (Ctrl+K)" aria-label="Rechercher">⌕ <span class="hdr-btn-label">Rechercher</span> <kbd>Ctrl K</kbd></button>
     <button id="quiz-btn" class="hdr-btn" title="Quiz global (toutes les flashcards)" aria-label="Quiz">⚡ <span class="hdr-btn-label">Quiz</span></button>
     <button id="dash-btn" class="hdr-btn" title="Bilan de révision" aria-label="Bilan de révision">▤ <span class="hdr-btn-label">Bilan</span></button>
@@ -35102,6 +35146,28 @@ const CHAPTERS_BY_PREFIX = Object.fromEntries(CHAPTERS.map(c => [c.prefix, c]));
 function chapterFor(id)        { return CHAPTERS_BY_ID[id] || null; }
 function chapterForPrefix(p)   { return CHAPTERS_BY_PREFIX[p] || null; }
 function chaptersByMatiere(m)  { return CHAPTERS.filter(c => c.matiere === m); }
+
+/* Bandeau de titre en haut de chaque chapitre (sous-domaine + titre).
+   Injecté dynamiquement pour ne pas dupliquer le HTML des 89 chapitres. */
+(function injectChapterTitleBanners(){
+  document.querySelectorAll('.chapter').forEach(ch => {
+    const c = CHAPTERS_BY_ID[ch.id.replace('chap-','')];
+    if(!c) return;
+    const tabs = ch.querySelector('nav.tabs');
+    if(!tabs || ch.querySelector(':scope > .chap-title-banner')) return;
+    const banner = document.createElement('div');
+    banner.className = 'chap-title-banner';
+    const sub = document.createElement('span');
+    sub.className = 'ctb-sub';
+    sub.textContent = c.subLabel || c.matiereLabel || '';
+    const title = document.createElement('div');
+    title.className = 'ctb-title';
+    title.textContent = c.name;
+    banner.appendChild(sub);
+    banner.appendChild(title);
+    ch.insertBefore(banner, tabs);
+  });
+})();
 
 /* Validation au boot : alerte console si le DOM ne correspond pas à CHAPTERS */
 (function validateChaptersCoherence(){
