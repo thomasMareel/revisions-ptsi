@@ -107,6 +107,12 @@ Le site est **100 % autonome** — aucune requête externe, fonctionne hors-lign
 - Si on ajoute/retire des polices, mettre à jour la liste `PRECACHE` de `sw.js`.
 - Le service worker ne s'active pas en ouverture locale `file://` (normal) ; le hors-ligne local reste assuré par les assets embarqués.
 
+## Déploiement (GitHub Pages)
+
+- Servi par **GitHub Pages** depuis `main` (dossier `/`). URL : `https://thomasmareel.github.io/revisions-ptsi/`.
+- ⚠️ **`.nojekyll` à la racine est OBLIGATOIRE — ne jamais le supprimer.** Sans lui, GitHub lance **Jekyll**, dont le parseur **Liquid** bute sur le LaTeX (`{{…}}`), les gabarits JS `${…}` et la taille de `index.html` → le build **échoue** (« Page build failed ») et le site reste **figé au dernier build réussi** (les commits suivants ne se voient pas, alors que `git push` a réussi). `.nojekyll` fait servir les fichiers tels quels.
+- **Diagnostic déploiement** : `gh api repos/thomasMareel/revisions-ptsi/pages/builds/latest --jq '{status, commit: .commit[0:7], error: .error.message}'` → statut `built` (ok) / `errored` (échec) / `building` (en cours). Le binaire `gh` est à `C:\Program Files\GitHub CLI\gh.exe`.
+
 ## Outils
 
 - `tools/validate.py` (Python stdlib, aucune dépendance) : vérifie cohérence `CHAPTERS` ↔ DOM, IDs HTML dupliqués, flashcards câblées (`makeFlash` par chapitre listant `flash`), `drawFn` existants. `python tools/validate.py` → `[OK]` / liste d'erreurs + exit ≠ 0. **À lancer avant chaque commit touchant `index.html`.**
