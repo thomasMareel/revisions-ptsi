@@ -147,10 +147,16 @@ def main():
     # navigateur comme une balise HTML → formule cassée + DOM corrompu.
     # Utiliser \lt (et \gt pour la cohérence) à la place. NB : « <0 », « <\eta »
     # ou « >x » sont sûrs (pas un début de balise).
+    # On ne scanne que le corps HTML : le JS (<script>) contient des « \( »
+    # littéraux (regex de flashConvertMath, LaTeX des flashcards) qui ne sont
+    # pas des formules MathJax du cours et fausseraient l'appariement.
+    html_body = re.sub(r"<script.*?</script>", "", html, flags=re.S)
     math_spans = []
-    math_spans += re.findall(r"\\\((.*?)\\\)", html)        # \( ... \)
-    math_spans += re.findall(r"\$\$(.*?)\$\$", html, re.S)   # $$ ... $$
-    math_spans += re.findall(r"\\\[(.*?)\\\]", html, re.S)   # \[ ... \]
+    math_spans += re.findall(r"\\\((.*?)\\\)", html_body)        # \( ... \)
+    math_spans += re.findall(r"\$\$(.*?)\$\$", html_body, re.S)   # $$ ... $$
+    # (?<!\\) : ne pas confondre « \[1.1em] » (espacement de ligne LaTeX dans
+    # un array, précédé de \\) avec une formule « \[ ... \] ».
+    math_spans += re.findall(r"(?<!\\)\\\[(.*?)\\\]", html_body, re.S)  # \[ ... \]
     bad = set()
     for span in math_spans:
         if re.search(r"<[A-Za-z]", span):
