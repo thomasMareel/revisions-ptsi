@@ -2199,6 +2199,22 @@ figure.schema figcaption{
 .dash-chap .c-pct{ width:42px; text-align:right; font-family:'JetBrains Mono',monospace; font-size:0.78rem; flex-shrink:0; }
 .dash-chap .c-revoir{ color:var(--accent); font-size:0.72rem; width:62px; text-align:right; flex-shrink:0; }
 .dash-empty{ color:#888; font-size:0.9rem; text-align:center; padding:1.5rem; }
+
+/* ── Entraînement au calcul ── */
+#drill-body{ padding:1.4rem; }
+.drill-cats{ display:flex; align-items:center; justify-content:space-between; gap:1rem; flex-wrap:wrap; font-size:0.82rem; margin-bottom:1.2rem; }
+.drill-cats select{ font-family:'JetBrains Mono',monospace; font-size:0.8rem; padding:0.3rem 0.5rem; border:1px solid var(--ink); background:var(--paper); color:var(--ink); }
+.drill-score b{ font-family:'JetBrains Mono',monospace; color:var(--accent); }
+.drill-question{ font-size:1.35rem; text-align:center; padding:1.6rem 1rem; min-height:2.2em; border:2px solid var(--ink); background:var(--paper-dark); margin-bottom:1rem; }
+#drill-form{ display:flex; gap:0.6rem; }
+#drill-input{ flex:1; font-family:'JetBrains Mono',monospace; font-size:1.05rem; padding:0.6rem 0.8rem; border:2px solid var(--ink); background:var(--paper); color:var(--ink); }
+.drill-check{ font-family:'JetBrains Mono',monospace; font-size:0.85rem; padding:0 1.2rem; border:2px solid var(--ink); background:var(--ink); color:var(--paper); cursor:pointer; letter-spacing:0.05em; }
+.drill-check:hover{ background:var(--accent); border-color:var(--accent); }
+.drill-feedback{ min-height:1.6em; margin:0.9rem 0; font-size:0.95rem; font-weight:600; }
+.drill-feedback.ok{ color:var(--green); }
+.drill-feedback.ko{ color:var(--accent); }
+.drill-next{ display:none; font-family:'JetBrains Mono',monospace; font-size:0.85rem; padding:0.55rem 1rem; border:1px solid var(--ink); background:var(--paper-dark); color:var(--ink); cursor:pointer; }
+.drill-next:hover{ background:var(--accent2); color:var(--paper); border-color:var(--accent2); }
 .dash-revise-btn{
   display:block; width:100%;
   margin:0 0 1.4rem;
@@ -2282,6 +2298,7 @@ figure.schema figcaption{
   <div class="header-actions">
     <button id="search-btn" class="hdr-btn" title="Rechercher (Ctrl+K)" aria-label="Rechercher">⌕ <span class="hdr-btn-label">Rechercher</span> <kbd>Ctrl K</kbd></button>
     <button id="quiz-btn" class="hdr-btn" title="Quiz global (toutes les flashcards)" aria-label="Quiz">⚡ <span class="hdr-btn-label">Quiz</span></button>
+    <button id="drill-btn" class="hdr-btn" title="Entraînement au calcul (automatismes)" aria-label="Calcul">∑ <span class="hdr-btn-label">Calcul</span></button>
     <button id="dash-btn" class="hdr-btn" title="Bilan de révision" aria-label="Bilan de révision">▤ <span class="hdr-btn-label">Bilan</span></button>
     <button id="theme-btn" class="hdr-btn" title="Changer de thème" aria-label="Changer de thème">◐ <span class="hdr-btn-label" id="theme-label">Sombre</span></button>
     <div class="hdr-more">
@@ -2304,6 +2321,7 @@ figure.schema figcaption{
   <div class="mob-header-actions">
     <button id="mob-search-btn" aria-label="Rechercher">⌕</button>
     <button id="mob-quiz-btn" aria-label="Quiz">⚡</button>
+    <button id="mob-drill-btn" aria-label="Calcul">∑</button>
     <button id="mob-dash-btn" aria-label="Bilan de révision">▤</button>
     <button id="mob-backup-btn" aria-label="Sauvegarde">⤓</button>
     <button id="mob-theme-btn" aria-label="Thème">◐</button>
@@ -36737,6 +36755,37 @@ occurrences("abba")   <span class="cmt"># {'a': 2, 'b': 2}</span></pre>
   </div>
 </div>
 
+<!-- ===== Entraînement au calcul (automatismes) ===== -->
+<div id="drill-overlay" class="dash-overlay">
+  <div class="dash-modal" role="dialog" aria-modal="true" aria-label="Entraînement au calcul">
+    <div class="dash-head">
+      <h2>Calcul — automatismes</h2>
+      <button class="dash-close" id="drill-close-btn" aria-label="Fermer">✕</button>
+    </div>
+    <div id="drill-body">
+      <div class="drill-cats">
+        <label>Catégorie&nbsp;:
+          <select id="drill-cat">
+            <option value="all" selected>Mélange</option>
+            <option value="deriv">Dérivée en un point</option>
+            <option value="integ">Intégrale de polynôme</option>
+            <option value="somme">Sommes usuelles</option>
+            <option value="combi">Combinatoire</option>
+          </select>
+        </label>
+        <span class="drill-score">Score : <b id="drill-score">0 / 0</b> · Série : <b id="drill-streak">0</b></span>
+      </div>
+      <div class="drill-question" id="drill-question">—</div>
+      <form id="drill-form" autocomplete="off">
+        <input type="text" id="drill-input" inputmode="numeric" placeholder="Réponse (nombre)…" aria-label="Réponse">
+        <button type="submit" class="drill-check">Vérifier</button>
+      </form>
+      <div class="drill-feedback" id="drill-feedback"></div>
+      <button class="drill-next" id="drill-next">Question suivante →</button>
+    </div>
+  </div>
+</div>
+
 <script>
 /* ============================================== */
 /* ========= COUCHE DE STOCKAGE PERSISTANT ===== */
@@ -46832,6 +46881,58 @@ document.getElementById('skip-link')?.addEventListener('click', e => {
     active.scrollIntoView({ block: 'start' });
   }
 });
+
+/* ============================================== */
+/* === ENTRAÎNEMENT AU CALCUL (automatismes) ==== */
+/* ============================================== */
+(function drillCalc(){
+  const overlay = document.getElementById('drill-overlay');
+  if(!overlay) return;
+  const qEl=document.getElementById('drill-question'), input=document.getElementById('drill-input'),
+        fb=document.getElementById('drill-feedback'), nextBtn=document.getElementById('drill-next'),
+        form=document.getElementById('drill-form'), catSel=document.getElementById('drill-cat'),
+        scoreEl=document.getElementById('drill-score'), streakEl=document.getElementById('drill-streak');
+  let total=0, good=0, streak=0, current=null, answered=false;
+  const ri=(a,b)=>Math.floor(Math.random()*(b-a+1))+a;
+  const gens={
+    deriv(){ const a=ri(1,5),b=ri(-5,5),c=ri(-5,5),x0=ri(-3,3);
+      return {q:`\\(f(x)=${a}x^2 ${b>=0?'+':''}${b}x ${c>=0?'+':''}${c}\\) — calculer \\(f'(${x0})\\).`, a:2*a*x0+b}; },
+    integ(){ const a=ri(1,4)*2,b=ri(0,5),n=ri(1,4);
+      return {q:`Calculer \\(\\displaystyle\\int_0^{${n}} (${a}x ${b>0?'+':''}${b>0?b:''})\\,dx\\).`, a:a*n*n/2+b*n}; },
+    somme(){ if(Math.random()<0.5){ const n=ri(3,12); return {q:`Calculer \\(\\displaystyle\\sum_{k=1}^{${n}} k\\).`, a:n*(n+1)/2}; }
+      const n=ri(3,8); return {q:`Calculer \\(\\displaystyle\\sum_{k=1}^{${n}} k^2\\).`, a:n*(n+1)*(2*n+1)/6}; },
+    combi(){ if(Math.random()<0.6){ const n=ri(4,9),k=ri(1,n-1); let c=1; for(let i=0;i<k;i++) c=c*(n-i)/(i+1);
+      return {q:`Calculer \\(\\binom{${n}}{${k}}\\).`, a:Math.round(c)}; }
+      const n=ri(3,6); let f=1; for(let i=2;i<=n;i++) f*=i; return {q:`Calculer \\(${n}!\\).`, a:f}; }
+  };
+  function newQuestion(){
+    answered=false; fb.textContent=''; fb.className='drill-feedback'; input.value=''; nextBtn.style.display='none';
+    let cat=catSel.value; if(cat==='all'){ const ks=Object.keys(gens); cat=ks[ri(0,ks.length-1)]; }
+    current=gens[cat]();
+    qEl.innerHTML=current.q;
+    if(window.MathJax&&MathJax.typesetPromise) MathJax.typesetPromise([qEl]).catch(()=>{});
+    setTimeout(()=>input.focus(),30);
+  }
+  function check(){
+    if(answered) return;
+    const val=input.value.trim().replace(',','.'); if(val==='') return;
+    const num=parseFloat(val); answered=true; total++;
+    if(!isNaN(num) && Math.abs(num-current.a)<1e-6){ good++; streak++; fb.textContent='✓ Correct !'; fb.className='drill-feedback ok'; }
+    else { streak=0; fb.textContent='✗ Faux — réponse : '+current.a; fb.className='drill-feedback ko'; }
+    scoreEl.textContent=good+' / '+total; streakEl.textContent=streak;
+    nextBtn.style.display='inline-block';
+  }
+  form.addEventListener('submit', e=>{ e.preventDefault(); if(answered) newQuestion(); else check(); });
+  nextBtn.addEventListener('click', newQuestion);
+  catSel.addEventListener('change', newQuestion);
+  function open(){ overlay.classList.add('open'); newQuestion(); }
+  function close(){ overlay.classList.remove('open'); }
+  document.getElementById('drill-btn')&&document.getElementById('drill-btn').addEventListener('click', open);
+  document.getElementById('mob-drill-btn')&&document.getElementById('mob-drill-btn').addEventListener('click', open);
+  document.getElementById('drill-close-btn')&&document.getElementById('drill-close-btn').addEventListener('click', close);
+  overlay.addEventListener('click', e=>{ if(e.target===overlay) close(); });
+  document.addEventListener('keydown', e=>{ if(e.key==='Escape' && overlay.classList.contains('open')) close(); });
+})();
 </script>
 
 <script>
