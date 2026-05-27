@@ -35,7 +35,13 @@ Le tableau **`CHAPTERS`** (JS, vers la ligne ~24985) est la source de vérité :
 
 ### Ordre d'apprentissage (réorganisation centralisée)
 
-Juste après la définition de `CHAPTERS` (IIFE `reorderChapters`), le tableau **`CHAP_GROUPS`** = `[ [subLabel, [ids…]] , … ]` est la **source unique de l'ordre** des chapitres (ordre pédagogique conventionnel) et **normalise les `subLabel`** par sous-domaine. Il réordonne `CHAPTERS` en place : cela pilote le tiroir mobile (groupé par `subLabel`, dans l'ordre de `CHAP_GROUPS`), la navigation précédent/suivant et le tableau de bord. **Pour changer l'ordre d'un chapitre : éditer `CHAP_GROUPS`** (et l'ordre des boutons `.chap-btn` dans le HTML des sidebars, qui doit suivre le même ordre — la sidebar desktop n'est pas générée depuis `CHAPTERS`). Un `id` absent de `CHAP_GROUPS` est rejeté en fin de liste et garde son `subLabel` d'origine.
+Juste après la définition de `CHAPTERS` (IIFE `reorderChapters`), le tableau **`CHAP_GROUPS`** = `[ [subCode, subLabel, [ids…]] , … ]` est la **source unique** de l'ordre des chapitres (ordre pédagogique conventionnel), des **sous-domaines** (`c.sub`) et de leurs **libellés** (`c.subLabel`). Il réordonne `CHAPTERS` en place et réécrit `c.sub`/`c.subLabel`. Un `subCode` à `null` = matière « à plat » (sans sous-domaines, ex. maths). Cela pilote **tout** : sidebars desktop (générées par l'IIFE `buildSidebars` à partir de `CHAPTERS` — plus de HTML de boutons à maintenir), tiroir mobile (`buildChapData`, groupé par `subLabel`), navigation précédent/suivant, tableau de bord. **Pour changer l'ordre, le sous-domaine ou le libellé d'un chapitre : éditer uniquement `CHAP_GROUPS`.** Un `id` absent est rejeté en fin de liste.
+
+Les `.mat-content` du HTML ne contiennent plus que des conteneurs vides `<div class="subdomain-bar"></div><div class="chapter-bar"></div>` ; `buildSidebars` les remplit (tag `.matiere` = `matiereLabel`, libellé = `mobLabel`). Elle tourne **avant** l'attachement des handlers de clic.
+
+### Routage par URL (deep-link + bouton précédent)
+
+L'IIFE `urlRouting` synchronise `location.hash` (`#chapId/onglet`, ex. `#rlc/cours`) avec le chapitre/onglet actif, par **délégation** (écoute les clics sur `.chap-btn`/`.tab`/`.sub-btn`/`.mob-chap-item`/boutons matière, puis `syncHash`). `pushState` au changement de chapitre (le bouton « précédent » revient au chapitre précédent), `replaceState` au simple changement d'onglet. Au chargement, un `#hash` a priorité sur `lastPos` (`window.__navFromHash`). `popstate` rejoue la navigation.
 
 ## Conventions de nommage des IDs (IMPORTANT)
 
