@@ -156,6 +156,8 @@ header{
   transition:background 0.2s;
 }
 .hdr-btn:hover{background:var(--accent);color:var(--paper)}
+.rev-badge{display:inline-block;min-width:1.15em;padding:0 0.3em;margin-left:0.35em;border-radius:999px;background:var(--accent);color:#fff;font-size:0.62rem;font-weight:700;text-align:center;line-height:1.5}
+.hdr-btn:hover .rev-badge{background:var(--paper);color:var(--accent)}
 .hdr-btn kbd{
   font-family:'JetBrains Mono',monospace;
   font-size:0.6rem;
@@ -2299,6 +2301,7 @@ figure.schema figcaption{
     <button id="search-btn" class="hdr-btn" title="Rechercher (Ctrl+K)" aria-label="Rechercher">⌕ <span class="hdr-btn-label">Rechercher</span> <kbd>Ctrl K</kbd></button>
     <button id="quiz-btn" class="hdr-btn" title="Quiz global (toutes les flashcards)" aria-label="Quiz">⚡ <span class="hdr-btn-label">Quiz</span></button>
     <button id="drill-btn" class="hdr-btn" title="Entraînement au calcul (automatismes)" aria-label="Calcul">∑ <span class="hdr-btn-label">Calcul</span></button>
+    <button id="revise-btn" class="hdr-btn" title="Révisions du jour (répétition espacée)" aria-label="Réviser">↻ <span class="hdr-btn-label">Réviser</span><span class="rev-badge" id="rev-badge" hidden>0</span></button>
     <button id="dash-btn" class="hdr-btn" title="Bilan de révision" aria-label="Bilan de révision">▤ <span class="hdr-btn-label">Bilan</span></button>
     <button id="theme-btn" class="hdr-btn" title="Changer de thème" aria-label="Changer de thème">◐ <span class="hdr-btn-label" id="theme-label">Sombre</span></button>
     <div class="hdr-more">
@@ -2322,6 +2325,7 @@ figure.schema figcaption{
     <button id="mob-search-btn" aria-label="Rechercher">⌕</button>
     <button id="mob-quiz-btn" aria-label="Quiz">⚡</button>
     <button id="mob-drill-btn" aria-label="Calcul">∑</button>
+    <button id="mob-revise-btn" aria-label="Réviser">↻<span class="rev-badge" id="rev-badge-mob" hidden>0</span></button>
     <button id="mob-dash-btn" aria-label="Bilan de révision">▤</button>
     <button id="mob-backup-btn" aria-label="Sauvegarde">⤓</button>
     <button id="mob-theme-btn" aria-label="Thème">◐</button>
@@ -38429,6 +38433,39 @@ function flashPretty(s){
   }
   return out;
 }
+/* ============================================== */
+/* === RÉPÉTITION ESPACÉE (Leitner) ============= */
+/* ============================================== */
+/* Met à jour, sur l'état d'une carte, sa « boîte » et sa date de prochaine
+   révision (due) selon la note : 0 = à revoir, 1 = hésitant, 2 = acquis.
+   Boîtes → intervalles (jours) : 0→0, 1→1, 2→3, 3→7, 4→16, 5→35, 6→75.
+   Une carte est « à réviser » si due est absent (jamais vue) ou ≤ maintenant. */
+const SRS_INTERVALS = [0, 1, 3, 7, 16, 35, 75];
+function srsSchedule(s, level){
+  if(!s) return;
+  let box = s.box || 0;
+  if(level === 0)      box = 0;                 // à revoir → recommence
+  else if(level === 1) box = Math.max(1, box);  // hésitant → boîte 1 mini
+  else                 box = box + 1;            // acquis → monte d'une boîte
+  s.box = box;
+  const days = SRS_INTERVALS[Math.min(box, SRS_INTERVALS.length - 1)];
+  s.due = Date.now() + days * 86400000;
+}
+function srsIsDue(s){
+  return !s || s.last === null || s.last === undefined || s.due === undefined || s.due <= Date.now();
+}
+/* Compte les cartes « à réviser aujourd'hui » sur tout le registre. */
+function srsCountDue(){
+  const reg = window.FLASH_REGISTRY || {};
+  let n = 0;
+  Object.keys(reg).forEach(prefix=>{
+    const cards = reg[prefix]; if(!Array.isArray(cards)) return;
+    const arr = Store.getJSON('flash:'+prefix, null);
+    cards.forEach((_, i)=>{ const s = arr ? arr[i] : null; if(s && s.last !== null && s.last !== undefined && srsIsDue(s)) n++; });
+  });
+  return n;
+}
+
 function makeFlash(cards, idPrefix, contentId, progId, statsId){
   const storeKey = 'flash:'+idPrefix;
   // Enregistrer ce jeu de cartes dans le registre global (pour la recherche)
@@ -38488,7 +38525,9 @@ function makeFlash(cards, idPrefix, contentId, progId, statsId){
     else if(level===1) s.o++;
     else s.e++;
     s.last = level;
+    srsSchedule(s, level);   // planifie la prochaine révision (Leitner)
     persist();
+    if(window.__updateReviseBadge) window.__updateReviseBadge();
     idx = (idx+1) % cards.length;
     flipped = false;
     if(idx===0) order = buildOrder();
@@ -45787,6 +45826,26 @@ ${bodyContent}
     return all;
   }
 
+  /* Cartes « à réviser aujourd'hui » (révision espacée), toutes matières,
+     triées par échéance la plus ancienne d'abord. */
+  function dueDeck(){
+    const registry = getRegistry();
+    let due = [];
+    Object.keys(registry).forEach(prefix=>{
+      const meta = CHAPTER_META[prefix];
+      const cards = registry[prefix];
+      if(!meta || !Array.isArray(cards)) return;
+      cards.forEach((card, i)=>{
+        const state = getCardState(prefix, i);
+        if(state && state.last !== null && state.last !== undefined && srsIsDue(state)){
+          due.push({ card, prefix, idx:i, lastEval:state.last, meta, due: state.due || 0 });
+        }
+      });
+    });
+    due.sort((a,b)=> (a.due||0) - (b.due||0));
+    return due;
+  }
+
   function updateConfigInfo(){
     const mats = getSelectedMats();
     const mode = getSelectedMode();
@@ -45856,6 +45915,20 @@ ${bodyContent}
     quizWeakCards = [];
     showScreen('quiz-screen-question');
     renderCard();
+  };
+
+  /* Lancer une session « Révisions du jour » (cartes dues, toutes matières) */
+  window.quizStartDue = function(){
+    const deck = dueDeck();
+    document.getElementById('quiz-overlay').classList.add('open');
+    if(!deck.length){
+      showScreen('quiz-screen-config');
+      const info = document.getElementById('quiz-config-info');
+      if(info) info.textContent = 'Aucune carte à réviser pour le moment 🎉 — reviens plus tard !';
+      const sb = document.getElementById('quiz-start-btn'); if(sb) sb.disabled = false;
+      return;
+    }
+    quizStart(deck);
   };
 
   function renderCard(){
@@ -45936,7 +46009,9 @@ ${bodyContent}
     else if(level===1){ stateArr[item.idx].o++; }
     else { stateArr[item.idx].e++; }
     stateArr[item.idx].last = level;
+    srsSchedule(stateArr[item.idx], level);   // planification espacée (Leitner)
     Store.setJSON(key, stateArr);
+    if(window.__updateReviseBadge) window.__updateReviseBadge();
 
     // Stats de session
     if(level===0){ quizStats.rev++; quizWeakCards.push(item); }
@@ -46981,6 +47056,25 @@ document.getElementById('skip-link')?.addEventListener('click', e => {
   document.getElementById('drill-close-btn')&&document.getElementById('drill-close-btn').addEventListener('click', close);
   overlay.addEventListener('click', e=>{ if(e.target===overlay) close(); });
   document.addEventListener('keydown', e=>{ if(e.key==='Escape' && overlay.classList.contains('open')) close(); });
+})();
+
+/* ============================================== */
+/* === RÉVISIONS DU JOUR (badge + déclencheur) == */
+/* ============================================== */
+(function reviseInit(){
+  function start(){ if(window.quizStartDue) window.quizStartDue(); }
+  ['revise-btn','mob-revise-btn'].forEach(id=>{ const b=document.getElementById(id); if(b) b.addEventListener('click', start); });
+  function updateBadge(){
+    if(typeof srsCountDue !== 'function') return;
+    const n = srsCountDue();
+    ['rev-badge','rev-badge-mob'].forEach(id=>{
+      const el=document.getElementById(id); if(!el) return;
+      if(n>0){ el.textContent = n>99 ? '99+' : String(n); el.hidden=false; }
+      else el.hidden=true;
+    });
+  }
+  window.__updateReviseBadge = updateBadge;
+  setTimeout(updateBadge, 1500);   // laisser le registre de flashcards se peupler
 })();
 </script>
 

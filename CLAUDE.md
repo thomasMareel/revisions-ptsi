@@ -93,7 +93,9 @@ const <prefix>Flash = makeFlash(<prefix>Cards, '<prefix>',
 
 Objet `Store` (~l.24912) : wrapper `localStorage` avec **fallback en mémoire** si indisponible. API : `get/set`, `getJSON/setJSON`, `available()`. Utiliser `Store`, jamais `localStorage` directement.
 
-Clés utilisées : `flash:<prefix>` (progression par chapitre), `theme` (clair/sombre), `lastPos` (dernier chapitre/panneau vu).
+Clés utilisées : `flash:<prefix>` (progression par chapitre), `theme` (clair/sombre), `lastPos` (dernier chapitre/panneau vu), `year` (1 ou 2 — sélecteur d'année du tiroir).
+
+**Répétition espacée (Leitner)** : l'état d'une carte est `{h,o,e,last,box,due}` — `box` = boîte de Leitner, `due` = timestamp de prochaine révision. `srsSchedule(state, level)` (global, ~avant `makeFlash`) met à jour `box`/`due` à chaque notation (intervalles `SRS_INTERVALS` = [0,1,3,7,16,35,75] jours) ; appelé dans `makeFlash.rate` **et** `quizRate`. `srsIsDue(s)`/`srsCountDue()` comptent les cartes dues. Bouton **« ↻ Réviser »** (en-tête + mobile, badge = nb de cartes dues via `window.__updateReviseBadge`) → `window.quizStartDue()` lance une session quiz limitée aux cartes dues de **toutes** les matières (`dueDeck()` dans le module quiz).
 
 **Tableau de bord** : bouton « Bilan » → overlay `#dash-overlay` qui agrège `flash:*` (via `FLASH_REGISTRY` pour le total de cartes + `Store.getJSON('flash:'+prefix)` pour les états) : % acquis global/par matière/par chapitre, tri par priorité, clic → `navigateTo` vers les flashcards du chapitre.
 
