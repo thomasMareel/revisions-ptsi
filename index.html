@@ -2083,6 +2083,31 @@ figure.schema figcaption{
 /* — Onglets : léger espacement de lettres, hover doux — */
 .tab{ letter-spacing:0.04em; transition:background 0.18s, color 0.18s; }
 
+/* — Sélecteur d'année (en haut du tiroir, au-dessus des matières) — */
+#mob-year-bar{
+  display:flex;
+  gap:0;
+  flex-shrink:0;
+  border-bottom:1.5px solid var(--ink);
+  background:var(--ink);
+}
+.mob-year-btn{
+  flex:1;
+  font-family:'Fraunces',serif;
+  font-size:0.95rem;
+  font-weight:600;
+  padding:0.6rem 0.3rem;
+  background:none;
+  border:none;
+  border-right:1px solid rgba(244,241,232,0.18);
+  color:rgba(244,241,232,0.6);
+  cursor:pointer;
+  transition:all 0.18s;
+}
+.mob-year-btn:last-child{ border-right:none; }
+.mob-year-btn:hover{ color:var(--paper); }
+.mob-year-btn.active{ color:var(--paper); background:var(--accent); }
+
 /* — Sidebar : barre de défilement discrète, item actif accentué — */
 #mob-chap-list{ scrollbar-width:thin; scrollbar-color:rgba(128,128,128,0.4) transparent; }
 #mob-chap-list::-webkit-scrollbar{ width:8px; }
@@ -2263,6 +2288,11 @@ figure.schema figcaption{
   <div id="mob-drawer-header">
     <span style="font-family:'Fraunces',serif;font-size:1rem;font-weight:600">Chapitres</span>
     <button id="mob-drawer-close" aria-label="Fermer">✕</button>
+  </div>
+  <!-- Année (au-dessus des matières) -->
+  <div id="mob-year-bar">
+    <button class="mob-year-btn active" data-year="1">1ʳᵉ année</button>
+    <button class="mob-year-btn" data-year="2">2ᵉ année</button>
   </div>
   <!-- Matières -->
   <div id="mob-mat-bar">
@@ -35384,6 +35414,7 @@ function chaptersByMatiere(m)  { return CHAPTERS.filter(c => c.matiere === m); }
     list.forEach(c => {
       const btn = document.createElement('button');
       btn.dataset.chap = c.id;
+      btn.dataset.year = (window.__YEAR2A && window.__YEAR2A.has(c.id)) ? '2' : '1';
       if(hasSub){
         btn.className = 'chap-btn sub-content';
         btn.dataset.subContent = c.sub;
@@ -43640,7 +43671,8 @@ ${bodyContent}
       CHAPTERS.filter(c => c.matiere === mat).forEach(c => {
         const key = c.subLabel || '';
         if(!(key in groups)){ groups[key] = []; order.push(key); }
-        groups[key].push({ id: 'chap-' + c.id, label: c.mobLabel });
+        groups[key].push({ id: 'chap-' + c.id, label: c.mobLabel,
+          year: (window.__YEAR2A && window.__YEAR2A.has(c.id)) ? 2 : 1 });
       });
       order.forEach(sub => out[mat].push({ sub, items: groups[sub] }));
     });
@@ -43648,7 +43680,35 @@ ${bodyContent}
   })();
 
   let currentMat = 'physique';
+  let currentYear = (parseInt(Store.get('year')) === 2) ? 2 : 1;
   let drawerOpen = false;
+
+  /* ── Filtre par année (1ʳᵉ / 2ᵉ année) ── */
+  const MATS = ['physique','maths','si','info'];
+  function chaptersInYear(mat, year){
+    return (CHAP_DATA[mat] || []).some(g => g.items.some(it => it.year === year));
+  }
+  function matieresForYear(year){ return MATS.filter(m => chaptersInYear(m, year)); }
+  function firstChapInYear(mat, year){
+    for(const g of (CHAP_DATA[mat] || [])){
+      const it = g.items.find(x => x.year === year);
+      if(it) return it.id;
+    }
+    return null;
+  }
+  function refreshYearButtons(){
+    document.querySelectorAll('.mob-year-btn').forEach(b =>
+      b.classList.toggle('active', parseInt(b.dataset.year) === currentYear));
+  }
+  function refreshMatButtons(){
+    const avail = matieresForYear(currentYear);
+    document.querySelectorAll('.mob-mat-btn').forEach(b => {
+      b.style.display = avail.includes(b.dataset.mat) ? '' : 'none';
+    });
+    if(!avail.includes(currentMat)) currentMat = avail[0] || currentMat;
+    document.querySelectorAll('.mob-mat-btn').forEach(b =>
+      b.classList.toggle('active', b.dataset.mat === currentMat));
+  }
 
   /* ── Construire la liste des chapitres du drawer ── */
   function buildDrawerList(mat){
@@ -43656,11 +43716,13 @@ ${bodyContent}
     list.innerHTML = '';
     const activeChapId = (document.querySelector('.chapter.active') || {}).id || '';
     (CHAP_DATA[mat] || []).forEach(group => {
+      const items = group.items.filter(it => it.year === currentYear);
+      if(items.length === 0) return;          // groupe sans chapitre dans l'année courante
       const label = document.createElement('span');
       label.className = 'mob-subdomain-label';
       label.textContent = group.sub;
       list.appendChild(label);
-      group.items.forEach(item => {
+      items.forEach(item => {
         const btn = document.createElement('button');
         btn.className = 'mob-chap-item' + (item.id === activeChapId ? ' active' : '');
         btn.textContent = item.label;
@@ -43746,17 +43808,34 @@ ${bodyContent}
 
   ;
 
+  /* ── Année dans le drawer (au-dessus des matières) ── */
+  document.querySelectorAll('.mob-year-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      currentYear = (parseInt(btn.dataset.year) === 2) ? 2 : 1;
+      Store.set('year', String(currentYear));
+      refreshYearButtons();
+      refreshMatButtons();          // masque les matières sans contenu + ajuste currentMat
+      buildDrawerList(currentMat);
+      const id = firstChapInYear(currentMat, currentYear);
+      if(id){
+        const cb = document.querySelector('.chap-btn[data-chap="'+id.replace('chap-','')+'"]');
+        if(cb) cb.click();
+        updateMobTitle();
+        buildDrawerList(currentMat);
+      }
+    });
+  });
+
   /* ── Matières dans le drawer ── */
   document.querySelectorAll('.mob-mat-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       currentMat = btn.dataset.mat;
       document.querySelectorAll('.mob-mat-btn').forEach(b => b.classList.toggle('active', b === btn));
       buildDrawerList(currentMat);
-      // Aller au 1er chapitre de la matière → montre le bon contenu (et corrige SI)
-      const firstGroup = (CHAP_DATA[currentMat] || [])[0];
-      const firstItem = firstGroup && firstGroup.items[0];
-      if(firstItem){
-        const cb = document.querySelector('.chap-btn[data-chap="'+firstItem.id.replace('chap-','')+'"]');
+      // Aller au 1er chapitre de la matière DANS l'année courante
+      const id = firstChapInYear(currentMat, currentYear);
+      if(id){
+        const cb = document.querySelector('.chap-btn[data-chap="'+id.replace('chap-','')+'"]');
         if(cb) cb.click();
         updateMobTitle();
         buildDrawerList(currentMat);
@@ -43786,11 +43865,13 @@ ${bodyContent}
     const activeChap = document.querySelector('.chapter.active');
     if(activeChap){
       const c = CHAPTERS_BY_ID[activeChap.id.replace('chap-','')];
-      if(c && c.matiere !== currentMat){
-        currentMat = c.matiere;
-        document.querySelectorAll('.mob-mat-btn').forEach(b => b.classList.toggle('active', b.dataset.mat === currentMat));
+      if(c){
+        const y = (window.__YEAR2A && window.__YEAR2A.has(c.id)) ? 2 : 1;
+        if(y !== currentYear){ currentYear = y; Store.set('year', String(currentYear)); refreshYearButtons(); }
+        if(c.matiere !== currentMat){ currentMat = c.matiere; }
       }
     }
+    refreshMatButtons();         // visibilité matières + bouton actif selon l'année
     buildDrawerList(currentMat); // reconstruit la liste + surligne le chapitre actif
     updateMobTitle();
   }
@@ -43839,6 +43920,8 @@ ${bodyContent}
   });
 
   /* ── Init ── */
+  refreshYearButtons();
+  refreshMatButtons();
   syncSidebar();
 
   // Observer les changements de chapitre actif pour resynchroniser la sidebar
