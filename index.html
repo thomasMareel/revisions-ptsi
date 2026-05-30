@@ -1637,7 +1637,7 @@ section.panel.active{display:block;animation:fadeIn 0.4s ease}
 
 #sim-canvas, #opt-canvas, #osc-canvas, #ser-canvas, #lin-canvas, #oxr-canvas,
 #slci-canvas, #hach-canvas, #mcc-canvas, #th2-canvas, #cine-canvas, #int-canvas, #flt-canvas,
-#con-canvas, #crb-canvas, #tr-canvas, #stat-canvas, #s2-canvas, #dyn-canvas, #s1-canvas, #ond-canvas{
+#con-canvas, #crb-canvas, #tr-canvas, #stat-canvas, #s2-canvas, #dyn-canvas, #s1-canvas, #ond-canvas, #cc-canvas{
   width:100%;
   height:380px;
   background:var(--paper);
@@ -1650,6 +1650,7 @@ section.panel.active{display:block;animation:fadeIn 0.4s ease}
 #dyn-canvas{height:430px}
 #s1-canvas{height:430px}
 #ond-canvas{height:400px}
+#cc-canvas{height:480px}
 #con-canvas, #crb-canvas{height:440px}
 #opt-canvas{height:450px}
 #lin-canvas{height:450px}
@@ -7134,8 +7135,9 @@ figure.schema figcaption{
 <nav class="tabs">
   <button class="tab active" data-panel="cc-cours"><span class="num">01</span>Cours</button>
   <button class="tab" data-panel="cc-meth"><span class="num">02</span>Méthodes</button>
-  <button class="tab" data-panel="cc-flash"><span class="num">03</span>Flashcards</button>
-  <button class="tab" data-panel="cc-exos"><span class="num">04</span>Exercices</button>
+  <button class="tab" data-panel="cc-simu"><span class="num">03</span>Simulateur</button>
+  <button class="tab" data-panel="cc-flash"><span class="num">04</span>Flashcards</button>
+  <button class="tab" data-panel="cc-exos"><span class="num">05</span>Exercices</button>
 </nav>
 <section class="panel active" id="cc-cours">
 <div class="course-section">
@@ -7309,6 +7311,49 @@ figure.schema figcaption{
       <li>La loi des aires vaut pour toute force centrale, pas seulement la gravitation.</li>
       <li>En périhélie, la vitesse est maximale (conservation de L et \(r\) minimal).</li>
     </ul>
+  </div>
+</div>
+</section>
+<section class="panel" id="cc-simu">
+<div class="sim-wrapper">
+  <h2>Simulateur — Orbite dans un champ newtonien</h2>
+  <p class="lead">Un corps est lancé au périastre (à distance fixe) avec une vitesse réglable. Selon le rapport \(\alpha = v/v_c\) (vitesse sur vitesse circulaire), la trajectoire est un <strong>cercle, une ellipse, une parabole ou une hyperbole</strong>. L'animation respecte la 2ᵉ loi de Kepler (plus rapide au périastre) ; vecteurs vitesse et rayon, énergies, et nature de l'orbite calculés en direct.</p>
+
+  <div id="cc-regime-display" class="regime-badge">—</div>
+
+  <div class="sim-controls">
+    <div class="control">
+      <label>Vitesse de lancement α = v / v_c</label>
+      <input type="range" id="cc-alpha" min="0.55" max="1.55" step="0.01" value="1.2">
+      <span class="value" id="cc-alpha-val">1,20</span>
+    </div>
+    <div class="control">
+      <label>Vitesse d'animation</label>
+      <input type="range" id="cc-speed" min="20" max="200" step="5" value="100">
+      <span class="value" id="cc-speed-val">×1,0</span>
+    </div>
+    <div class="control">
+      <label>Vecteurs vitesse / rayon</label>
+      <input type="checkbox" id="cc-vec" checked style="width:auto;align-self:start">
+      <span class="value" id="cc-vec-val">affichés</span>
+    </div>
+    <div class="control">
+      <label>Animation</label>
+      <input type="checkbox" id="cc-anim" checked style="width:auto;align-self:start">
+      <span class="value" id="cc-anim-val">en cours</span>
+    </div>
+  </div>
+
+  <canvas id="cc-canvas"></canvas>
+
+  <div class="sim-info">
+    <div><span class="lbl">Nature de la trajectoire</span><span id="cc-info-nat">—</span></div>
+    <div><span class="lbl">Excentricité e</span><span id="cc-info-e">—</span></div>
+    <div><span class="lbl">Énergie mécanique Em (signe)</span><span id="cc-info-em">—</span></div>
+    <div><span class="lbl">Demi-grand axe a · période T</span><span id="cc-info-aT">—</span></div>
+  </div>
+  <div class="notice" style="margin-top:1rem">
+    <strong>Critère sur l'énergie.</strong> \(E_m \lt 0\) → état lié (ellipse, \(\alpha \lt \sqrt2\)) ; \(E_m = 0\) → parabole (\(\alpha = \sqrt2 \approx 1{,}41\), vitesse de libération) ; \(E_m \gt 0\) → hyperbole. \(\alpha = 1\) donne le cercle. Pour une ellipse : \(E_m = -GMm/2a\), période \(T = 2\pi\sqrt{a^3/GM}\) (3ᵉ loi de Kepler). <span id="cc-info-detail"></span>
   </div>
 </div>
 </section>
@@ -38701,7 +38746,7 @@ const CHAPTERS = [
     mobLabel:'Oscillateurs' },
   { id:'chcentral', prefix:'cc',  name:'Mouvement dans un champ central',
     matiere:'physique', sub:'meca', subLabel:'Mécanique', domain:'meca',
-    matiereLabel:'Mécanique', panels:['cours','meth','flash','exos'], drawFn:null,
+    matiereLabel:'Mécanique', panels:['cours','meth','simu','flash','exos'], drawFn:'drawOrbit',
     mobLabel:'Champ central' },{ id:'mcinc',     prefix:'mcin',name:'Moment cinétique',
     matiere:'physique', sub:'meca', subLabel:'Mécanique', domain:'meca',
     matiereLabel:'Mécanique', panels:['cours','meth','flash','exos'], drawFn:null,
@@ -39807,7 +39852,7 @@ function drawForced(W,H,padL,padR,padT,padB,y0,p){
   ctx.fillText('log(f)',W-padR-50,H-padB+22);
 }
 
-window.addEventListener('resize',()=>{drawSim();drawOpt();drawOsc();if(typeof drawSer==='function')drawSer();if(typeof drawLin==='function')drawLin();if(typeof drawOxred==='function')drawOxred();if(typeof drawConiques==='function')drawConiques();if(typeof drawCourbesParam==='function')drawCourbesParam();if(typeof drawTrain==='function')drawTrain();if(typeof drawStat==='function')drawStat();if(typeof drawSys2==='function')drawSys2();if(typeof drawPend==='function')drawPend();if(typeof drawSys1==='function')drawSys1();if(typeof drawWave==='function')drawWave()});
+window.addEventListener('resize',()=>{drawSim();drawOpt();drawOsc();if(typeof drawSer==='function')drawSer();if(typeof drawLin==='function')drawLin();if(typeof drawOxred==='function')drawOxred();if(typeof drawConiques==='function')drawConiques();if(typeof drawCourbesParam==='function')drawCourbesParam();if(typeof drawTrain==='function')drawTrain();if(typeof drawStat==='function')drawStat();if(typeof drawSys2==='function')drawSys2();if(typeof drawPend==='function')drawPend();if(typeof drawSys1==='function')drawSys1();if(typeof drawWave==='function')drawWave();if(typeof drawOrbit==='function')drawOrbit()});
 
 /* ============================================== */
 /* =========== OPTIQUE SIMULATEUR =============== */
@@ -47305,6 +47350,136 @@ document.addEventListener('keydown',e=>{
 
   function drawWave(){ render(); if($('ond-anim').checked) start(); }
   window.drawWave = drawWave;
+})();
+
+/* ============================================== */
+/* ===== CHAMP CENTRAL — ORBITE DE KEPLER ======= */
+/* ============================================== */
+(function(){
+  const canvas = document.getElementById('cc-canvas');
+  if(!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  const $ = id => document.getElementById(id);
+  const MU=1, R0=1;                 // µ et distance de lancement normalisés
+  let animId=null, st=null, trail=[], tElapsed=0;
+
+  function fmt(x,n){ if(!isFinite(x)) return '∞'; return (Math.round(x*10**n)/10**n).toString().replace('.',','); }
+  function withA(hex,a){ const h=hex.replace('#',''); if(h.length<6)return hex; const n=parseInt(h,16); return `rgba(${(n>>16)&255},${(n>>8)&255},${n&255},${a})`; }
+
+  function params(){
+    const al=+$('cc-alpha').value;
+    const vc=Math.sqrt(MU/R0), v=al*vc;
+    const E=0.5*v*v - MU/R0, L=R0*v;
+    const e=Math.abs(al*al-1);
+    const bound = al < Math.SQRT2 - 1e-3;
+    const a = bound ? 1/(2-al*al) : Infinity;       // demi-grand axe
+    const p = L*L/MU;                                // paramètre = α²
+    const thp = al>=1 ? 0 : Math.PI;                 // direction du périastre
+    const T = bound ? 2*Math.PI*Math.pow(a,1.5)/Math.sqrt(MU) : Infinity;
+    let nat = Math.abs(al-1)<0.01 ? 'cercle' : (bound ? 'ellipse' : (Math.abs(al-Math.SQRT2)<0.01?'parabole':'hyperbole'));
+    return {al,v,E,L,e,bound,a,p,thp,T,nat,centerX: bound?(1-a):0, scaleRef: bound?a:R0};
+  }
+
+  function reset(){ const P=params(); st={x:R0, y:0, vx:0, vy:P.v}; trail=[]; tElapsed=0; }
+
+  function accel(x,y){ const r=Math.hypot(x,y), k=-MU/(r*r*r); return {ax:k*x, ay:k*y}; }
+
+  function stepPhys(dt){
+    const f=(s)=>{ const a=accel(s.x,s.y); return {x:s.vx, y:s.vy, vx:a.ax, vy:a.ay}; };
+    const s=st;
+    const k1=f(s);
+    const k2=f({x:s.x+dt/2*k1.x,y:s.y+dt/2*k1.y,vx:s.vx+dt/2*k1.vx,vy:s.vy+dt/2*k1.vy});
+    const k3=f({x:s.x+dt/2*k2.x,y:s.y+dt/2*k2.y,vx:s.vx+dt/2*k2.vx,vy:s.vy+dt/2*k2.vy});
+    const k4=f({x:s.x+dt*k3.x,y:s.y+dt*k3.y,vx:s.vx+dt*k3.vx,vy:s.vy+dt*k3.vy});
+    s.x+=dt/6*(k1.x+2*k2.x+2*k3.x+k4.x); s.y+=dt/6*(k1.y+2*k2.y+2*k3.y+k4.y);
+    s.vx+=dt/6*(k1.vx+2*k2.vx+2*k3.vx+k4.vx); s.vy+=dt/6*(k1.vy+2*k2.vy+2*k3.vy+k4.vy);
+    tElapsed+=dt;
+  }
+
+  function render(){
+    const panel=$('cc-simu'); if(panel && !panel.classList.contains('active')) return;
+    if(!st) reset();
+    const r=canvas.getBoundingClientRect();
+    canvas.width=r.width*dpr; canvas.height=r.height*dpr; ctx.setTransform(dpr,0,0,dpr,0,0);
+    const W=r.width, H=r.height, C=getCanvasColors();
+    const P=params();
+    const minDim=Math.min(W,H);
+    const scale = P.bound ? 0.40*minDim/P.a : 0.30*minDim/R0;
+    const cx=W/2, cy=H/2;
+    const SX=wx=>cx + (wx - P.centerX)*scale;
+    const SY=wy=>cy - wy*scale;
+    ctx.clearRect(0,0,W,H);
+
+    // conique analytique (faible) : r(θ)=p/(1+e cos(θ-θp))
+    ctx.strokeStyle=withA(C.ink,0.32); ctx.lineWidth=1.2; ctx.beginPath(); let started=false;
+    for(let i=0;i<=360;i++){ const th=2*Math.PI*i/360; const den=1+P.e*Math.cos(th-P.thp);
+      if(den<0.04){ started=false; continue; } const rr=P.p/den; if(rr>12){ started=false; continue; }
+      const X=SX(rr*Math.cos(th)), Y=SY(rr*Math.sin(th));
+      if(!started){ ctx.moveTo(X,Y); started=true; } else ctx.lineTo(X,Y); }
+    ctx.stroke();
+
+    // astre attracteur (au foyer = origine)
+    ctx.fillStyle=C.amber; ctx.beginPath(); ctx.arc(SX(0),SY(0),9,0,2*Math.PI); ctx.fill();
+    ctx.strokeStyle=withA(C.amber,0.4); ctx.lineWidth=6; ctx.beginPath(); ctx.arc(SX(0),SY(0),9,0,2*Math.PI); ctx.stroke();
+
+    // trace
+    ctx.strokeStyle=withA(C.accent,0.55); ctx.lineWidth=1.6; ctx.beginPath();
+    trail.forEach((q,i)=>{ const X=SX(q.x),Y=SY(q.y); if(i===0)ctx.moveTo(X,Y); else ctx.lineTo(X,Y); }); ctx.stroke();
+
+    // corps + vecteurs
+    const bx=SX(st.x), by=SY(st.y);
+    if($('cc-vec').checked){
+      // rayon focal
+      ctx.strokeStyle=withA(C.accent2,0.7); ctx.lineWidth=1.4;
+      ctx.beginPath(); ctx.moveTo(SX(0),SY(0)); ctx.lineTo(bx,by); ctx.stroke();
+      // vitesse
+      const vs=scale*0.5; const ex=bx+st.vx*vs, ey=by-st.vy*vs;
+      ctx.strokeStyle=C.green; ctx.fillStyle=C.green; ctx.lineWidth=2.2;
+      ctx.beginPath(); ctx.moveTo(bx,by); ctx.lineTo(ex,ey); ctx.stroke();
+      const ang=Math.atan2(ey-by,ex-bx);
+      ctx.beginPath(); ctx.moveTo(ex,ey); ctx.lineTo(ex-8*Math.cos(ang-0.4),ey-8*Math.sin(ang-0.4)); ctx.lineTo(ex-8*Math.cos(ang+0.4),ey-8*Math.sin(ang+0.4)); ctx.closePath(); ctx.fill();
+      ctx.fillStyle=C.green; ctx.font='11px JetBrains Mono, monospace'; ctx.fillText('v', ex+3, ey-3);
+    }
+    ctx.fillStyle=C.accent; ctx.beginPath(); ctx.arc(bx,by,6,0,2*Math.PI); ctx.fill();
+
+    // infos
+    const rc=Math.hypot(st.x,st.y), v=Math.hypot(st.vx,st.vy), Em=0.5*v*v-MU/rc;
+    $('cc-info-nat').textContent=P.nat;
+    $('cc-info-e').textContent=fmt(P.e,3);
+    $('cc-info-em').textContent=fmt(Em,3)+(Em<-1e-3?'  < 0 (lié)':(Em>1e-3?'  > 0 (libre)':'  ≈ 0 (parabole)'));
+    $('cc-info-aT').textContent= P.bound ? ('a = '+fmt(P.a,2)+' · T = '+fmt(P.T,2)) : 'orbite ouverte (non liée)';
+    const badge=$('cc-regime-display');
+    const lbl={cercle:'CERCLE (α = 1)',ellipse:'ELLIPSE — état lié (Em < 0)',parabole:'PARABOLE — vitesse de libération (Em = 0)',hyperbole:'HYPERBOLE — état de diffusion (Em > 0)'}[P.nat];
+    badge.textContent=lbl; badge.className='regime-badge '+(P.bound?'pseudo':(P.nat==='parabole'?'critique':'aperiodique'));
+    $('cc-info-detail').innerHTML='α = '+fmt(P.al,2)+' → e = '+fmt(P.e,2)+'. '+
+      (P.nat==='cercle'?'Vitesse exactement circulaire.':
+       P.bound?'Le corps est piégé : il repasse périodiquement (Kepler), plus rapide au périastre.':
+       'Le corps s\'échappe à l\'infini (α ≥ √2 ≈ 1,41).');
+  }
+
+  function loop(){
+    if($('cc-anim').checked){
+      const sp=(+$('cc-speed').value)/100;
+      const dt=0.012*sp; for(let i=0;i<3;i++){ stepPhys(dt); }
+      trail.push({x:st.x,y:st.y}); if(trail.length>2000) trail.shift();
+      const P=params();
+      const r=Math.hypot(st.x,st.y);
+      if(P.bound && tElapsed>P.T){ reset(); }
+      else if(!P.bound && r>5*R0 && (st.x*st.vx+st.y*st.vy)>0){ reset(); }
+    }
+    render(); animId=requestAnimationFrame(loop);
+  }
+  function start(){ if(animId===null) animId=requestAnimationFrame(loop); }
+  function stop(){ if(animId!==null){ cancelAnimationFrame(animId); animId=null; } }
+
+  $('cc-alpha').addEventListener('input',()=>{ $('cc-alpha-val').textContent=fmt(+$('cc-alpha').value,2); reset(); render(); });
+  $('cc-speed').addEventListener('input',()=>{ $('cc-speed-val').textContent='×'+fmt((+$('cc-speed').value)/100,1); });
+  $('cc-vec').addEventListener('change',()=>{ $('cc-vec-val').textContent=$('cc-vec').checked?'affichés':'masqués'; render(); });
+  $('cc-anim').addEventListener('change',()=>{ $('cc-anim-val').textContent=$('cc-anim').checked?'en cours':'arrêtée'; });
+
+  function drawOrbit(){ if(!st) reset(); render(); start(); }
+  window.drawOrbit = drawOrbit;
 })();
 
 /* ============================================== */
