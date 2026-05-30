@@ -1637,7 +1637,7 @@ section.panel.active{display:block;animation:fadeIn 0.4s ease}
 
 #sim-canvas, #opt-canvas, #osc-canvas, #ser-canvas, #lin-canvas, #oxr-canvas,
 #slci-canvas, #hach-canvas, #mcc-canvas, #th2-canvas, #cine-canvas, #int-canvas, #flt-canvas,
-#con-canvas, #crb-canvas, #tr-canvas{
+#con-canvas, #crb-canvas, #tr-canvas, #stat-canvas{
   width:100%;
   height:380px;
   background:var(--paper);
@@ -1645,6 +1645,7 @@ section.panel.active{display:block;animation:fadeIn 0.4s ease}
   display:block;
 }
 #tr-canvas{height:560px}
+#stat-canvas{height:480px}
 #con-canvas, #crb-canvas{height:440px}
 #opt-canvas{height:450px}
 #lin-canvas{height:450px}
@@ -31680,8 +31681,9 @@ occurrences("abba")   <span class="cmt"># {'a': 2, 'b': 2}</span></pre>
 <nav class="tabs">
   <button class="tab active" data-panel="stat-cours"><span class="num">01</span>Cours</button>
   <button class="tab" data-panel="stat-meth"><span class="num">02</span>Méthodes</button>
-  <button class="tab" data-panel="stat-flash"><span class="num">03</span>Flashcards</button>
-  <button class="tab" data-panel="stat-exos"><span class="num">04</span>Exercices</button>
+  <button class="tab" data-panel="stat-simu"><span class="num">03</span>Simulateur</button>
+  <button class="tab" data-panel="stat-flash"><span class="num">04</span>Flashcards</button>
+  <button class="tab" data-panel="stat-exos"><span class="num">05</span>Exercices</button>
 </nav>
 
 <!-- ============ STATIQUE : COURS ============ -->
@@ -32017,6 +32019,58 @@ occurrences("abba")   <span class="cmt"># {'a': 2, 'b': 2}</span></pre>
       <li>Pour les systèmes hyperstatiques : ne pas tenter de résoudre par le PFS seul, le système est sous-déterminé.</li>
       <li>Oublier la condition de non-pénétration : la réaction normale N est toujours ≥ 0 (elle pousse, ne tire jamais).</li>
     </ul>
+  </div>
+</div>
+</section>
+
+<!-- ============ STATIQUE : SIMULATEUR ============ -->
+<section class="panel" id="stat-simu">
+<div class="sim-wrapper">
+  <h2>Simulateur — Équilibre de l'échelle (PFS + frottement)</h2>
+  <p class="lead">Une échelle homogène s'appuie sur un mur lisse (réaction horizontale) et repose sur un sol avec frottement. Fais varier l'angle, le coefficient d'adhérence et la position de l'opérateur : le PFS donne les réactions, et le critère de Coulomb dit si l'échelle <strong>tient</strong> ou <strong>glisse</strong>. Idéal pour voir l'arc-boutement et l'angle critique.</p>
+
+  <div id="stat-regime-display" class="regime-badge">—</div>
+
+  <div class="sim-controls">
+    <div class="control">
+      <label>Angle au sol θ</label>
+      <input type="range" id="stat-theta" min="20" max="85" step="1" value="60">
+      <span class="value" id="stat-theta-val">60°</span>
+    </div>
+    <div class="control">
+      <label>Coefficient d'adhérence f (sol)</label>
+      <input type="range" id="stat-f" min="0.05" max="0.8" step="0.01" value="0.3">
+      <span class="value" id="stat-f-val">0,30</span>
+    </div>
+    <div class="control">
+      <label>Position opérateur (0 = pied, 1 = sommet)</label>
+      <input type="range" id="stat-s" min="0" max="1" step="0.01" value="0.5">
+      <span class="value" id="stat-s-val">0,50</span>
+    </div>
+    <div class="control">
+      <label>Poids opérateur / poids échelle (Q/P)</label>
+      <input type="range" id="stat-q" min="0" max="5" step="0.1" value="2">
+      <span class="value" id="stat-q-val">2,0</span>
+    </div>
+    <div class="control">
+      <label>Cône d'adhérence</label>
+      <input type="checkbox" id="stat-cone" checked style="width:auto;align-self:start">
+      <span class="value" id="stat-cone-val">affiché</span>
+    </div>
+  </div>
+
+  <canvas id="stat-canvas"></canvas>
+
+  <div class="sim-info">
+    <div><span class="lbl">Réaction mur (horizontale) N_mur</span><span id="stat-info-nmur">—</span></div>
+    <div><span class="lbl">Réaction sol — normale N / tangentielle T</span><span id="stat-info-sol">—</span></div>
+    <div><span class="lbl">Critère : T / (f·N)</span><span id="stat-info-ratio">—</span></div>
+    <div><span class="lbl">Angle critique θ_min</span><span id="stat-info-thetac">—</span></div>
+  </div>
+  <div class="notice" style="margin-top:1rem">
+    <strong>Mise en équations (PFS, poids unitaire P = 1) :</strong> bilan horizontal \(T = N_{\text{mur}}\) ; vertical \(N = P + Q\) ; moment au pied \(N_{\text{mur}}\,L\sin\theta = P\tfrac{L}{2}\cos\theta + Q\,s\,L\cos\theta\), d'où
+    $$N_{\text{mur}} = \frac{P/2 + Q\,s}{\tan\theta},\qquad \text{équilibre si } \;T \le f\,N \;\Leftrightarrow\; \tan\theta \ge \frac{P/2+Q\,s}{f\,(P+Q)}.$$
+    <span id="stat-info-detail"></span>
   </div>
 </div>
 </section>
@@ -38805,7 +38859,7 @@ const CHAPTERS = [
   { id:'statique',   prefix:'stat',    name:'Statique',
     matiere:'si',       sub:'meca',   subLabel:'Mécanique',         domain:'meca',
     matiereLabel:'Mécanique',
-    panels:['cours','meth','flash','exos'], drawFn:null,
+    panels:['cours','meth','simu','flash','exos'], drawFn:'drawStat',
     mobLabel:'Statique' },
   { id:'transm',   prefix:'tr',  name:'Transmission de puissance',
     matiere:'si', sub:'meca', subLabel:'Mécanique', domain:'meca',
@@ -39555,7 +39609,7 @@ function drawForced(W,H,padL,padR,padT,padB,y0,p){
   ctx.fillText('log(f)',W-padR-50,H-padB+22);
 }
 
-window.addEventListener('resize',()=>{drawSim();drawOpt();drawOsc();if(typeof drawSer==='function')drawSer();if(typeof drawLin==='function')drawLin();if(typeof drawOxred==='function')drawOxred();if(typeof drawConiques==='function')drawConiques();if(typeof drawCourbesParam==='function')drawCourbesParam();if(typeof drawTrain==='function')drawTrain()});
+window.addEventListener('resize',()=>{drawSim();drawOpt();drawOsc();if(typeof drawSer==='function')drawSer();if(typeof drawLin==='function')drawLin();if(typeof drawOxred==='function')drawOxred();if(typeof drawConiques==='function')drawConiques();if(typeof drawCourbesParam==='function')drawCourbesParam();if(typeof drawTrain==='function')drawTrain();if(typeof drawStat==='function')drawStat()});
 
 /* ============================================== */
 /* =========== OPTIQUE SIMULATEUR =============== */
@@ -46425,6 +46479,138 @@ document.addEventListener('keydown',e=>{
     if($('tr-anim').checked) startLoop(); else stopLoop();
   }
   window.drawTrain = drawTrain;
+})();
+
+/* ============================================== */
+/* ====== STATIQUE — ÉCHELLE (PFS + frottement) = */
+/* ============================================== */
+(function(){
+  const canvas = document.getElementById('stat-canvas');
+  if(!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  const $ = id => document.getElementById(id);
+
+  function fmt(x,n){ if(!isFinite(x)) return '∞'; return (Math.round(x*10**n)/10**n).toString().replace('.',','); }
+
+  function arrow(x1,y1,x2,y2,color,label,lblColor){
+    ctx.strokeStyle=color; ctx.fillStyle=color; ctx.lineWidth=2.4;
+    ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+    const a=Math.atan2(y2-y1,x2-x1), h=8;
+    ctx.beginPath(); ctx.moveTo(x2,y2);
+    ctx.lineTo(x2-h*Math.cos(a-0.4), y2-h*Math.sin(a-0.4));
+    ctx.lineTo(x2-h*Math.cos(a+0.4), y2-h*Math.sin(a+0.4));
+    ctx.closePath(); ctx.fill();
+    if(label){ ctx.fillStyle=lblColor||color; ctx.font='700 12px JetBrains Mono, monospace';
+      ctx.fillText(label, x2 + 6*Math.cos(a) + (Math.cos(a)<0?-26:2), y2 + 6*Math.sin(a) + (Math.sin(a)>0?14:-4)); }
+  }
+
+  function render(){
+    const panel=$('stat-simu'); if(panel && !panel.classList.contains('active')) return;
+    const r=canvas.getBoundingClientRect();
+    canvas.width=r.width*dpr; canvas.height=r.height*dpr;
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+    const W=r.width, H=r.height, C=getCanvasColors();
+
+    const theta = (+$('stat-theta').value)*Math.PI/180;
+    const f = +$('stat-f').value;
+    const s = +$('stat-s').value;
+    const Q = +$('stat-q').value;
+    const P = 1;
+    const showCone = $('stat-cone').checked;
+
+    // --- statique (PFS) ---
+    const Nmur = (P/2 + Q*s)/Math.tan(theta);   // = T
+    const T = Nmur;
+    const N = P + Q;
+    const ratio = T/(f*N);
+    const stable = ratio <= 1;
+    const thetaMin = Math.atan((P/2 + Q*s)/(f*(P+Q)));
+
+    ctx.clearRect(0,0,W,H);
+
+    // --- géométrie ---
+    const yFloor=H-44, xWall=64;
+    const Lpx = Math.min((yFloor-40)/Math.sin(theta), (W-xWall-130)/Math.cos(theta));
+    const Ax=xWall+Lpx*Math.cos(theta), Ay=yFloor;     // pied
+    const Bx=xWall, By=yFloor-Lpx*Math.sin(theta);     // sommet (sur le mur)
+    const Gx=(Ax+Bx)/2, Gy=(Ay+By)/2;                  // centre (poids échelle)
+    const Qx=Ax+(Bx-Ax)*s, Qy=Ay+(By-Ay)*s;            // position opérateur
+
+    // sol + mur (hachurés)
+    ctx.strokeStyle=C.ink; ctx.lineWidth=2.2;
+    ctx.beginPath(); ctx.moveTo(20,yFloor); ctx.lineTo(W-16,yFloor); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(xWall,yFloor); ctx.lineTo(xWall,28); ctx.stroke();
+    ctx.strokeStyle=C.muted; ctx.lineWidth=1;
+    for(let x=30;x<W-20;x+=16){ ctx.beginPath(); ctx.moveTo(x,yFloor); ctx.lineTo(x-9,yFloor+9); ctx.stroke(); }
+    for(let y=34;y<yFloor;y+=16){ ctx.beginPath(); ctx.moveTo(xWall,y); ctx.lineTo(xWall-9,y-9); ctx.stroke(); }
+    ctx.fillStyle=C.muted; ctx.font='10px JetBrains Mono, monospace'; ctx.textAlign='left';
+    ctx.fillText('mur lisse', xWall+4, 40); ctx.fillText('sol (adhérence f)', 30, yFloor+22);
+
+    // échelle (barreaux)
+    ctx.strokeStyle=C.accent2; ctx.lineWidth=5; ctx.lineCap='round';
+    ctx.beginPath(); ctx.moveTo(Ax,Ay); ctx.lineTo(Bx,By); ctx.stroke();
+    ctx.lineCap='butt';
+    // opérateur (point)
+    ctx.fillStyle=C.accent; ctx.beginPath(); ctx.arc(Qx,Qy,6,0,2*Math.PI); ctx.fill();
+
+    // angle θ
+    ctx.strokeStyle=C.muted; ctx.lineWidth=1.2;
+    ctx.beginPath(); ctx.arc(Ax,Ay,26,Math.PI,Math.PI+ (Math.PI/2 - (Math.PI/2-theta)) ,true); ctx.stroke();
+    ctx.fillStyle=C.ink; ctx.font='12px JetBrains Mono, monospace';
+    ctx.fillText('θ='+Math.round(theta*180/Math.PI)+'°', Ax-58, Ay-6);
+
+    // --- forces ---
+    const Fmax=Math.max(P,Q,N,Nmur,Math.abs(T),0.001);
+    const k = 52/Fmax;
+    const L = v => Math.max(12, Math.min(78, v*k));
+    // poids échelle P (vers le bas, en G)
+    arrow(Gx,Gy,Gx,Gy+L(P),C.amber,'P', C.amber);
+    // poids opérateur Q
+    if(Q>0.01) arrow(Qx,Qy,Qx,Qy+L(Q),C.accent,'Q='+fmt(Q,1), C.accent);
+    // réaction mur (horizontale, +x) en B
+    arrow(Bx,By,Bx+L(Nmur),By,C.green,'N_mur', C.green);
+    // réaction sol : N (haut) + T (vers le mur, -x) en A
+    arrow(Ax,Ay,Ax,Ay-L(N),C.accent2,'N', C.accent2);
+    if(T>0.01) arrow(Ax,Ay,Ax-L(T),Ay,C.accent2,'T', C.accent2);
+
+    // --- cône d'adhérence en A ---
+    if(showCone){
+      const phi=Math.atan(f), cl=Math.min(120,Lpx*0.7);
+      ctx.strokeStyle=stable?C.green:C.accent; ctx.setLineDash([5,4]); ctx.lineWidth=1.4;
+      ctx.beginPath(); ctx.moveTo(Ax,Ay); ctx.lineTo(Ax-cl*Math.sin(phi),Ay-cl*Math.cos(phi)); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(Ax,Ay); ctx.lineTo(Ax+cl*Math.sin(phi),Ay-cl*Math.cos(phi)); ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle=C.muted; ctx.font='10px JetBrains Mono, monospace';
+      ctx.fillText('cône φ=arctan f', Ax+6, Ay-cl*Math.cos(phi)-2);
+      // résultante sol R = (−T, −N) ; angle/vertical = atan(T/N)
+      const Rm=Math.sqrt(T*T+N*N);
+      arrow(Ax,Ay,Ax - L(N)*(T/Rm)*0.0 - (T/Rm)*Math.min(95,Rm*k), Ay - (N/Rm)*Math.min(95,Rm*k),
+            stable?C.green:C.accent, 'R', stable?C.green:C.accent);
+    }
+
+    // --- badge + info ---
+    const badge=$('stat-regime-display');
+    badge.textContent = stable
+      ? 'ÉQUILIBRE — l\'échelle tient (T ≤ f·N), réaction dans le cône'
+      : 'GLISSEMENT — l\'échelle glisse (T > f·N), il faut redresser';
+    badge.className='regime-badge '+(stable?'pseudo':'aperiodique');
+    $('stat-info-nmur').textContent = fmt(Nmur,3)+'  (× P)';
+    $('stat-info-sol').textContent  = 'N = '+fmt(N,2)+'  ·  T = '+fmt(T,3)+'  (× P)';
+    $('stat-info-ratio').textContent= fmt(ratio,3)+(stable?'  ≤ 1 ✓':'  > 1 ✗');
+    $('stat-info-thetac').textContent = fmt(thetaMin*180/Math.PI,1)+'°'+(theta>=thetaMin?'  (θ au-dessus → stable)':'  (θ en-dessous → glisse)');
+    $('stat-info-detail').innerHTML = 'Avec ces réglages : θ = '+Math.round(theta*180/Math.PI)+'°, f = '+fmt(f,2)+
+      ', opérateur à s = '+fmt(s,2)+', Q/P = '+fmt(Q,1)+'. '+
+      (stable ? 'On peut descendre jusqu\'à θ_min = '+fmt(thetaMin*180/Math.PI,1)+'° avant glissement.'
+              : 'Il faut un angle ≥ '+fmt(thetaMin*180/Math.PI,1)+'° (ou plus d\'adhérence) pour l\'équilibre.');
+  }
+
+  const SLID={ 'stat-theta':v=>Math.round(v)+'°', 'stat-f':v=>fmt(+v,2), 'stat-s':v=>fmt(+v,2), 'stat-q':v=>fmt(+v,1) };
+  Object.keys(SLID).forEach(id=>{ const el=$(id); el.addEventListener('input',()=>{ $(id+'-val').textContent=SLID[id](el.value); render(); }); });
+  $('stat-cone').addEventListener('change',()=>{ $('stat-cone-val').textContent=$('stat-cone').checked?'affiché':'masqué'; render(); });
+
+  function drawStat(){ render(); }
+  window.drawStat = drawStat;
 })();
 
 /* ============================================== */
