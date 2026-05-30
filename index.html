@@ -1637,7 +1637,7 @@ section.panel.active{display:block;animation:fadeIn 0.4s ease}
 
 #sim-canvas, #opt-canvas, #osc-canvas, #ser-canvas, #lin-canvas, #oxr-canvas,
 #slci-canvas, #hach-canvas, #mcc-canvas, #th2-canvas, #cine-canvas, #int-canvas, #flt-canvas,
-#con-canvas, #crb-canvas, #tr-canvas, #stat-canvas, #s2-canvas, #dyn-canvas{
+#con-canvas, #crb-canvas, #tr-canvas, #stat-canvas, #s2-canvas, #dyn-canvas, #s1-canvas{
   width:100%;
   height:380px;
   background:var(--paper);
@@ -1648,6 +1648,7 @@ section.panel.active{display:block;animation:fadeIn 0.4s ease}
 #stat-canvas{height:480px}
 #s2-canvas{height:440px}
 #dyn-canvas{height:430px}
+#s1-canvas{height:430px}
 #con-canvas, #crb-canvas{height:440px}
 #opt-canvas{height:450px}
 #lin-canvas{height:450px}
@@ -34067,8 +34068,9 @@ occurrences("abba")   <span class="cmt"># {'a': 2, 'b': 2}</span></pre>
 <nav class="tabs">
   <button class="tab active" data-panel="s1-cours"><span class="num">01</span>Cours</button>
   <button class="tab" data-panel="s1-meth"><span class="num">02</span>Méthodes</button>
-  <button class="tab" data-panel="s1-flash"><span class="num">03</span>Flashcards</button>
-  <button class="tab" data-panel="s1-exos"><span class="num">04</span>Exercices</button>
+  <button class="tab" data-panel="s1-simu"><span class="num">03</span>Simulateur</button>
+  <button class="tab" data-panel="s1-flash"><span class="num">04</span>Flashcards</button>
+  <button class="tab" data-panel="s1-exos"><span class="num">05</span>Exercices</button>
 </nav>
 <section class="panel active" id="s1-cours">
 <div class="course-section">
@@ -34202,6 +34204,49 @@ occurrences("abba")   <span class="cmt"># {'a': 2, 'b': 2}</span></pre>
       <li>Le gain \(K\) est sans unité (rapport de grandeurs de même nature) ou avec unité si entrée ≠ sortie.</li>
       <li>À \(t = \tau\), le système n'est pas en régime permanent (seulement 63%). Attendre \(5\tau\).</li>
     </ul>
+  </div>
+</div>
+</section>
+<section class="panel" id="s1-simu">
+<div class="sim-wrapper">
+  <h2>Simulateur — Réponse indicielle du 1ᵉʳ ordre</h2>
+  <p class="lead">Système \(H(p) = \dfrac{K}{1 + \tau p}\) soumis à un échelon : réponse exponentielle \(s(t) = K\,(1 - e^{-t/\tau})\). Observe le rôle de la constante de temps \(\tau\) (tangente à l'origine, 63 %, temps de réponse) et du gain \(K\).</p>
+
+  <div id="s1-regime-display" class="regime-badge">—</div>
+
+  <div class="sim-controls">
+    <div class="control">
+      <label>Constante de temps τ (s)</label>
+      <input type="range" id="s1-tau" min="0.1" max="3" step="0.05" value="1">
+      <span class="value" id="s1-tau-val">1,00 s</span>
+    </div>
+    <div class="control">
+      <label>Gain statique K</label>
+      <input type="range" id="s1-k" min="0.5" max="3" step="0.1" value="1.5">
+      <span class="value" id="s1-k-val">1,5</span>
+    </div>
+    <div class="control">
+      <label>Tangente à l'origine</label>
+      <input type="checkbox" id="s1-tan" checked style="width:auto;align-self:start">
+      <span class="value" id="s1-tan-val">affichée</span>
+    </div>
+    <div class="control">
+      <label>Animer le tracé</label>
+      <input type="checkbox" id="s1-anim" style="width:auto;align-self:start">
+      <span class="value" id="s1-anim-val">non</span>
+    </div>
+  </div>
+
+  <canvas id="s1-canvas"></canvas>
+
+  <div class="sim-info">
+    <div><span class="lbl">Valeur finale</span><span id="s1-info-final">—</span></div>
+    <div><span class="lbl">À t = τ (63 %) / 3τ (95 %)</span><span id="s1-info-63">—</span></div>
+    <div><span class="lbl">Temps de réponse à 5 % · t₅ ≈ 3τ</span><span id="s1-info-tr">—</span></div>
+    <div><span class="lbl">Pôle</span><span id="s1-info-pole">—</span></div>
+  </div>
+  <div class="notice" style="margin-top:1rem">
+    <strong>Propriétés clés.</strong> La <strong>tangente à l'origine</strong> atteint la valeur finale \(K\) à \(t = \tau\). À \(t = \tau\) la réponse vaut \(63\%\) de \(K\) ; à \(3\tau\), \(95\%\) ; à \(5\tau\), \(99\%\). Le <strong>temps de réponse à 5 %</strong> vaut \(t_5 = 3\tau\). Le pôle unique \(p = -1/\tau\) est réel négatif → système toujours stable, sans dépassement. <span id="s1-info-detail"></span>
   </div>
 </div>
 </section>
@@ -38978,7 +39023,7 @@ const CHAPTERS = [
 
   { id:'sys1',     prefix:'s1',   name:'Systèmes du 1er ordre',
     matiere:'si', sub:'meca', subLabel:'Automatique', domain:'auto',
-    matiereLabel:'Automatique', panels:['cours','meth','flash','exos'], drawFn:null,
+    matiereLabel:'Automatique', panels:['cours','meth','simu','flash','exos'], drawFn:'drawSys1',
     mobLabel:'Sys. 1er ordre' },
 
   { id:'sys2',     prefix:'s2',   name:'Systèmes du 2e ordre',
@@ -39706,7 +39751,7 @@ function drawForced(W,H,padL,padR,padT,padB,y0,p){
   ctx.fillText('log(f)',W-padR-50,H-padB+22);
 }
 
-window.addEventListener('resize',()=>{drawSim();drawOpt();drawOsc();if(typeof drawSer==='function')drawSer();if(typeof drawLin==='function')drawLin();if(typeof drawOxred==='function')drawOxred();if(typeof drawConiques==='function')drawConiques();if(typeof drawCourbesParam==='function')drawCourbesParam();if(typeof drawTrain==='function')drawTrain();if(typeof drawStat==='function')drawStat();if(typeof drawSys2==='function')drawSys2();if(typeof drawPend==='function')drawPend()});
+window.addEventListener('resize',()=>{drawSim();drawOpt();drawOsc();if(typeof drawSer==='function')drawSer();if(typeof drawLin==='function')drawLin();if(typeof drawOxred==='function')drawOxred();if(typeof drawConiques==='function')drawConiques();if(typeof drawCourbesParam==='function')drawCourbesParam();if(typeof drawTrain==='function')drawTrain();if(typeof drawStat==='function')drawStat();if(typeof drawSys2==='function')drawSys2();if(typeof drawPend==='function')drawPend();if(typeof drawSys1==='function')drawSys1()});
 
 /* ============================================== */
 /* =========== OPTIQUE SIMULATEUR =============== */
@@ -47007,6 +47052,99 @@ document.addEventListener('keydown',e=>{
 
   function drawPend(){ if(theta===0 && omega===0) reset(); render(); start(); }
   window.drawPend = drawPend;
+})();
+
+/* ============================================== */
+/* ===== SYSTÈME 1er ORDRE — RÉPONSE INDICIELLE = */
+/* ============================================== */
+(function(){
+  const canvas = document.getElementById('s1-canvas');
+  if(!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  const $ = id => document.getElementById(id);
+  let animId=null, animFrac=0;
+
+  function fmt(x,n){ if(!isFinite(x)) return '∞'; return (Math.round(x*10**n)/10**n).toString().replace('.',','); }
+  function withA(hex,a){ const h=hex.replace('#',''); if(h.length<6)return hex; const n=parseInt(h,16); return `rgba(${(n>>16)&255},${(n>>8)&255},${n&255},${a})`; }
+
+  function render(){
+    const panel=$('s1-simu'); if(panel && !panel.classList.contains('active')) return;
+    const r=canvas.getBoundingClientRect();
+    canvas.width=r.width*dpr; canvas.height=r.height*dpr; ctx.setTransform(dpr,0,0,dpr,0,0);
+    const W=r.width, H=r.height, C=getCanvasColors();
+    const tau=+$('s1-tau').value, K=+$('s1-k').value;
+    ctx.clearRect(0,0,W,H);
+
+    const padL=46, padR=16, padT=18, padB=34;
+    const gx=padL, gy=padT, gw=W-padL-padR, gh=H-padT-padB;
+    const Tmax=5.5*tau, ymax=K*1.12;
+    const X=t=>gx+(t/Tmax)*gw, Y=s=>gy+gh-(s/ymax)*gh;
+
+    // grille + axes
+    ctx.strokeStyle=C.grid; ctx.lineWidth=1;
+    for(let i=0;i<=5;i++){ const y=gy+gh*i/5; ctx.beginPath(); ctx.moveTo(gx,y); ctx.lineTo(gx+gw,y); ctx.stroke(); }
+    ctx.strokeStyle=C.ink; ctx.lineWidth=1.4;
+    ctx.beginPath(); ctx.moveTo(gx,gy); ctx.lineTo(gx,gy+gh); ctx.lineTo(gx+gw,gy+gh); ctx.stroke();
+    ctx.fillStyle=C.muted; ctx.font='10px JetBrains Mono, monospace'; ctx.textAlign='right';
+    ctx.fillText(fmt(ymax,1),gx-4,gy+8); ctx.fillText('0',gx-4,gy+gh);
+    ctx.textAlign='center'; ctx.fillText('t (s)',gx+gw-14,gy+gh+22);
+    ctx.textAlign='left'; ctx.fillText('s(t)',gx+4,gy+10);
+
+    // asymptote K
+    ctx.strokeStyle=C.muted; ctx.setLineDash([6,4]); ctx.lineWidth=1.2;
+    ctx.beginPath(); ctx.moveTo(gx,Y(K)); ctx.lineTo(gx+gw,Y(K)); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle=C.muted; ctx.textAlign='left'; ctx.fillText('K='+fmt(K,1),gx+gw-52,Y(K)-4);
+    // bande ±5%
+    ctx.fillStyle=withA(C.green,0.10); ctx.fillRect(gx,Y(K*1.05),gw,Y(K*0.95)-Y(K*1.05));
+
+    // tangente à l'origine : pente K/τ → atteint K en t=τ
+    if($('s1-tan').checked){
+      ctx.strokeStyle=withA(C.accent2,0.8); ctx.lineWidth=1.4; ctx.setLineDash([5,3]);
+      ctx.beginPath(); ctx.moveTo(X(0),Y(0)); ctx.lineTo(X(tau),Y(K)); ctx.stroke(); ctx.setLineDash([]);
+      ctx.fillStyle=C.accent2; ctx.textAlign='left'; ctx.font='10px JetBrains Mono, monospace';
+      ctx.fillText('tangente → K à t=τ', X(tau)+4, Y(K)+14);
+    }
+
+    // courbe s(t)=K(1-e^{-t/τ})
+    ctx.strokeStyle=C.accent; ctx.lineWidth=2.4; ctx.beginPath();
+    for(let i=0;i<=400;i++){ const t=Tmax*i/400, s=K*(1-Math.exp(-t/tau)); const x=X(t),y=Y(s); if(i===0)ctx.moveTo(x,y); else ctx.lineTo(x,y); }
+    ctx.stroke();
+
+    // repères τ (63%), 3τ (95%)
+    const mark=(t,lab,frac)=>{ const s=K*frac;
+      ctx.strokeStyle=withA(C.ink,0.4); ctx.setLineDash([3,3]); ctx.lineWidth=1;
+      ctx.beginPath(); ctx.moveTo(X(t),gy+gh); ctx.lineTo(X(t),Y(s)); ctx.lineTo(gx,Y(s)); ctx.stroke(); ctx.setLineDash([]);
+      ctx.fillStyle=C.accent; ctx.beginPath(); ctx.arc(X(t),Y(s),3,0,2*Math.PI); ctx.fill();
+      ctx.fillStyle=C.ink; ctx.textAlign='center'; ctx.font='10px JetBrains Mono, monospace'; ctx.fillText(lab,X(t),gy+gh+22);
+    };
+    mark(tau,'τ',0.632); mark(3*tau,'3τ',0.95);
+
+    // curseur animé
+    if(animId!==null){ const tc=animFrac*Tmax, sc=K*(1-Math.exp(-tc/tau));
+      ctx.fillStyle=C.ink; ctx.beginPath(); ctx.arc(X(tc),Y(sc),4.5,0,2*Math.PI); ctx.fill(); }
+
+    // infos
+    $('s1-regime-display').textContent='1er ORDRE — réponse exponentielle, sans dépassement (pôle réel)';
+    $('s1-regime-display').className='regime-badge pseudo';
+    $('s1-info-final').textContent='s(∞) = K = '+fmt(K,2);
+    $('s1-info-63').textContent=fmt(0.632*K,2)+'  /  '+fmt(0.95*K,2);
+    $('s1-info-tr').textContent=fmt(3*tau,2)+' s';
+    $('s1-info-pole').textContent='p = −1/τ = '+fmt(-1/tau,2);
+    $('s1-info-detail').innerHTML='Réglages : τ = '+fmt(tau,2)+' s, K = '+fmt(K,1)+'. Plus τ est petit, plus le système est rapide (t₅ = '+fmt(3*tau,2)+' s).';
+  }
+
+  function loop(){ animFrac+=0.012; if(animFrac>1)animFrac=0; render(); animId=requestAnimationFrame(loop); }
+  function startAnim(){ if(animId===null){ animFrac=0; animId=requestAnimationFrame(loop); } }
+  function stopAnim(){ if(animId!==null){ cancelAnimationFrame(animId); animId=null; render(); } }
+
+  const SLID={ 's1-tau':v=>fmt(+v,2)+' s', 's1-k':v=>fmt(+v,1) };
+  Object.keys(SLID).forEach(id=>{ const el=$(id); el.addEventListener('input',()=>{ $(id+'-val').textContent=SLID[id](el.value); render(); }); });
+  $('s1-tan').addEventListener('change',()=>{ $('s1-tan-val').textContent=$('s1-tan').checked?'affichée':'masquée'; render(); });
+  $('s1-anim').addEventListener('change',()=>{ if($('s1-anim').checked){ $('s1-anim-val').textContent='oui'; startAnim(); } else { $('s1-anim-val').textContent='non'; stopAnim(); } });
+
+  function drawSys1(){ render(); if($('s1-anim').checked) startAnim(); }
+  window.drawSys1 = drawSys1;
 })();
 
 /* ============================================== */
