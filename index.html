@@ -1637,7 +1637,7 @@ section.panel.active{display:block;animation:fadeIn 0.4s ease}
 
 #sim-canvas, #opt-canvas, #osc-canvas, #ser-canvas, #lin-canvas, #oxr-canvas,
 #slci-canvas, #hach-canvas, #mcc-canvas, #th2-canvas, #cine-canvas, #int-canvas, #flt-canvas,
-#con-canvas, #crb-canvas, #tr-canvas, #stat-canvas, #s2-canvas, #dyn-canvas, #s1-canvas, #ond-canvas, #cc-canvas, #od-canvas{
+#con-canvas, #crb-canvas, #tr-canvas, #stat-canvas, #s2-canvas, #dyn-canvas, #s1-canvas, #ond-canvas, #cc-canvas, #od-canvas, #es-canvas{
   width:100%;
   height:380px;
   background:var(--paper);
@@ -1652,6 +1652,7 @@ section.panel.active{display:block;animation:fadeIn 0.4s ease}
 #ond-canvas{height:400px}
 #cc-canvas{height:480px}
 #od-canvas{height:430px}
+#es-canvas{height:480px}
 #con-canvas, #crb-canvas{height:440px}
 #opt-canvas{height:450px}
 #lin-canvas{height:450px}
@@ -3214,8 +3215,9 @@ figure.schema figcaption{
 <nav class="tabs">
   <button class="tab active" data-panel="es-cours"><span class="num">01</span>Cours</button>
   <button class="tab" data-panel="es-meth"><span class="num">02</span>Méthodes</button>
-  <button class="tab" data-panel="es-flash"><span class="num">03</span>Flashcards</button>
-  <button class="tab" data-panel="es-exos"><span class="num">04</span>Exercices</button>
+  <button class="tab" data-panel="es-simu"><span class="num">03</span>Simulateur</button>
+  <button class="tab" data-panel="es-flash"><span class="num">04</span>Flashcards</button>
+  <button class="tab" data-panel="es-exos"><span class="num">05</span>Exercices</button>
 </nav>
 <section class="panel active" id="es-cours">
 <div class="hors-prog">
@@ -3344,6 +3346,55 @@ figure.schema figcaption{
       <li>Gauss ne s'applique que si \(\vec{E}\) est uniforme sur la surface choisie — ne pas utiliser pour une distribution quelconque.</li>
       <li>Énergie d'un condensateur : \(\frac{1}{2}CU^2\) — le facteur ½ vient de la charge progressive.</li>
     </ul>
+  </div>
+</div>
+</section>
+<section class="panel" id="es-simu">
+<div class="sim-wrapper">
+  <h2>Simulateur — Champ et potentiel électrostatiques</h2>
+  <p class="lead">Visualise les <strong>lignes de champ</strong> \(\vec E\) (issues des charges +, vers les charges −) et la <strong>carte de potentiel</strong> \(V\) (rouge &gt; 0, bleu &lt; 0) pour quelques configurations de charges ponctuelles. Les lignes de champ sont perpendiculaires aux équipotentielles et orientées des hauts vers les bas potentiels.</p>
+
+  <div class="mode-switch">
+    <button class="active" data-es-mode="single">Charge seule</button>
+    <button data-es-mode="dipole">Dipôle (+ / −)</button>
+    <button data-es-mode="two">Deux charges +</button>
+  </div>
+
+  <div id="es-regime-display" class="regime-badge">—</div>
+
+  <div class="sim-controls">
+    <div class="control">
+      <label>Charge q₁ (u.a.)</label>
+      <input type="range" id="es-q1" min="-3" max="3" step="0.5" value="2">
+      <span class="value" id="es-q1-val">+2,0</span>
+    </div>
+    <div class="control" id="es-q2-ctrl">
+      <label>Charge q₂ (u.a.)</label>
+      <input type="range" id="es-q2" min="-3" max="3" step="0.5" value="-2">
+      <span class="value" id="es-q2-val">−2,0</span>
+    </div>
+    <div class="control">
+      <label>Carte de potentiel</label>
+      <input type="checkbox" id="es-pot" checked style="width:auto;align-self:start">
+      <span class="value" id="es-pot-val">affichée</span>
+    </div>
+    <div class="control">
+      <label>Lignes de champ</label>
+      <input type="checkbox" id="es-lines" checked style="width:auto;align-self:start">
+      <span class="value" id="es-lines-val">affichées</span>
+    </div>
+  </div>
+
+  <canvas id="es-canvas"></canvas>
+
+  <div class="sim-info">
+    <div><span class="lbl">Configuration</span><span id="es-info-cfg">—</span></div>
+    <div><span class="lbl">Champ E (charge ponctuelle)</span><span id="es-info-e">E = kq/r²</span></div>
+    <div><span class="lbl">Potentiel V (charge ponctuelle)</span><span id="es-info-v">V = kq/r</span></div>
+    <div><span class="lbl">Propriété</span><span id="es-info-prop">—</span></div>
+  </div>
+  <div class="notice" style="margin-top:1rem">
+    Les <strong>lignes de champ</strong> partent des charges positives et se terminent sur les négatives (ou à l'infini) ; elles ne se croisent jamais. Les <strong>équipotentielles</strong> (frontières de couleur) leur sont <strong>orthogonales</strong>. Le champ est intense là où les lignes se resserrent. <span id="es-info-detail"></span>
   </div>
 </div>
 </section>
@@ -38749,7 +38800,7 @@ const CHAPTERS = [
 
   { id:'estat',    prefix:'es',  name:'Électrostatique',
     matiere:'physique', sub:'emag', subLabel:'Électromagnétisme', domain:'ondes',
-    matiereLabel:'Électromagnétisme', panels:['cours','meth','flash','exos'], drawFn:null,
+    matiereLabel:'Électromagnétisme', panels:['cours','meth','simu','flash','exos'], drawFn:'drawEstat',
     mobLabel:'Électrostatique' },
   { id:'signaux',  prefix:'sig',  name:'Signaux périodiques et Fourier',
     matiere:'physique', sub:'ondes', subLabel:'Ondes & signaux', domain:'ondes',
@@ -39897,7 +39948,7 @@ function drawForced(W,H,padL,padR,padT,padB,y0,p){
   ctx.fillText('log(f)',W-padR-50,H-padB+22);
 }
 
-window.addEventListener('resize',()=>{drawSim();drawOpt();drawOsc();if(typeof drawSer==='function')drawSer();if(typeof drawLin==='function')drawLin();if(typeof drawOxred==='function')drawOxred();if(typeof drawConiques==='function')drawConiques();if(typeof drawCourbesParam==='function')drawCourbesParam();if(typeof drawTrain==='function')drawTrain();if(typeof drawStat==='function')drawStat();if(typeof drawSys2==='function')drawSys2();if(typeof drawPend==='function')drawPend();if(typeof drawSys1==='function')drawSys1();if(typeof drawWave==='function')drawWave();if(typeof drawOrbit==='function')drawOrbit();if(typeof drawYoung==='function')drawYoung()});
+window.addEventListener('resize',()=>{drawSim();drawOpt();drawOsc();if(typeof drawSer==='function')drawSer();if(typeof drawLin==='function')drawLin();if(typeof drawOxred==='function')drawOxred();if(typeof drawConiques==='function')drawConiques();if(typeof drawCourbesParam==='function')drawCourbesParam();if(typeof drawTrain==='function')drawTrain();if(typeof drawStat==='function')drawStat();if(typeof drawSys2==='function')drawSys2();if(typeof drawPend==='function')drawPend();if(typeof drawSys1==='function')drawSys1();if(typeof drawWave==='function')drawWave();if(typeof drawOrbit==='function')drawOrbit();if(typeof drawYoung==='function')drawYoung();if(typeof drawEstat==='function')drawEstat()});
 
 /* ============================================== */
 /* =========== OPTIQUE SIMULATEUR =============== */
@@ -47619,6 +47670,127 @@ document.addEventListener('keydown',e=>{
 
   function drawYoung(){ render(); }
   window.drawYoung = drawYoung;
+})();
+
+/* ============================================== */
+/* ===== ÉLECTROSTATIQUE — CHAMP & POTENTIEL ==== */
+/* ============================================== */
+(function(){
+  const canvas = document.getElementById('es-canvas');
+  if(!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  const $ = id => document.getElementById(id);
+  let mode='dipole';
+  const WORLD=4;  // demi-largeur monde
+
+  function fmt(x,n){ return (Math.round(x*10**n)/10**n).toString().replace('.',','); }
+
+  function charges(){
+    const q1=+$('es-q1').value, q2=+$('es-q2').value, d=1.3;
+    if(mode==='single') return [{x:0,y:0,q:q1}];
+    return [{x:-d,y:0,q:q1},{x:d,y:0,q:q2}];
+  }
+  function field(px,py,ch){ let ex=0,ey=0; for(const c of ch){ const dx=px-c.x, dy=py-c.y; let r2=dx*dx+dy*dy; if(r2<1e-3)r2=1e-3; const r=Math.sqrt(r2); const f=c.q/(r2*r); ex+=f*dx; ey+=f*dy; } return {ex,ey}; }
+  function pot(px,py,ch){ let v=0; for(const c of ch){ const r=Math.hypot(px-c.x,py-c.y); v+=c.q/Math.max(r,0.12); } return v; }
+
+  function render(){
+    const panel=$('es-simu'); if(panel && !panel.classList.contains('active')) return;
+    const r=canvas.getBoundingClientRect();
+    canvas.width=r.width*dpr; canvas.height=r.height*dpr; ctx.setTransform(dpr,0,0,dpr,0,0);
+    const W=r.width, H=r.height, C=getCanvasColors();
+    const ch=charges();
+    ctx.clearRect(0,0,W,H);
+    const sc=Math.min(W,H)/(2*WORLD), cx=W/2, cy=H/2;
+    const SX=wx=>cx+wx*sc, SY=wy=>cy-wy*sc;
+    const WX=px=>(px-cx)/sc, WY=py=>-(py-cy)/sc;
+
+    // carte de potentiel (grille coarse)
+    if($('es-pot').checked){
+      const cell=7;
+      for(let px=0;px<W;px+=cell) for(let py=0;py<H;py+=cell){
+        const v=pot(WX(px+cell/2),WY(py+cell/2),ch);
+        const t=Math.tanh(v/2.2);            // ∈(-1,1)
+        let col;
+        if(t>=0){ const a=t; col=`rgba(220,90,70,${0.10+0.55*a})`; }
+        else { const a=-t; col=`rgba(80,130,200,${0.10+0.55*a})`; }
+        ctx.fillStyle=col; ctx.fillRect(px,py,cell,cell);
+      }
+    }
+
+    // lignes de champ : seed autour de chaque charge
+    if($('es-lines').checked){
+      ctx.lineWidth=1.5;
+      for(const c of ch){
+        if(c.q===0) continue;
+        const N=Math.max(8, Math.round(Math.abs(c.q)*6));
+        for(let k=0;k<N;k++){
+          const a0=2*Math.PI*k/N + 0.15;
+          let x=c.x+0.18*Math.cos(a0), y=c.y+0.18*Math.sin(a0);
+          const dir=Math.sign(c.q);
+          ctx.strokeStyle=`rgba(${C.ink===('#e6e3d8')?'210,210,200':'70,80,95'},0.8)`;
+          ctx.beginPath(); ctx.moveTo(SX(x),SY(y));
+          let hit=false;
+          for(let s=0;s<480;s++){
+            const E=field(x,y,ch); const m=Math.hypot(E.ex,E.ey); if(m<1e-6)break;
+            x+=dir*0.035*E.ex/m; y+=dir*0.035*E.ey/m;
+            if(Math.abs(x)>WORLD+0.5||Math.abs(y)>WORLD+0.5){ break; }
+            // arrivée sur une charge opposée
+            let near=false; for(const c2 of ch){ if(Math.hypot(x-c2.x,y-c2.y)<0.16){ near=true; } }
+            ctx.lineTo(SX(x),SY(y));
+            if(near){ hit=true; break; }
+            // flèche au milieu
+            if(s===120){ const ang=Math.atan2(-(dir*E.ey/m),(dir*E.ex/m)); const ax=SX(x),ay=SY(y);
+              ctx.stroke();
+              ctx.beginPath(); ctx.moveTo(ax,ay); ctx.lineTo(ax-7*Math.cos(ang-0.4),ay-7*Math.sin(ang-0.4)); ctx.moveTo(ax,ay); ctx.lineTo(ax-7*Math.cos(ang+0.4),ay-7*Math.sin(ang+0.4)); ctx.stroke();
+              ctx.beginPath(); ctx.moveTo(ax,ay); }
+          }
+          ctx.stroke();
+        }
+      }
+    }
+
+    // charges
+    for(const c of ch){ if(c.q===0) continue;
+      const col=c.q>0?'#dc5a46':'#5082c8';
+      ctx.fillStyle=col; ctx.beginPath(); ctx.arc(SX(c.x),SY(c.y),11,0,2*Math.PI); ctx.fill();
+      ctx.fillStyle='#fff'; ctx.font='700 15px JetBrains Mono, monospace'; ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.fillText(c.q>0?'+':'−', SX(c.x), SY(c.y)+1);
+    }
+    ctx.textBaseline='alphabetic';
+
+    // infos
+    const lbl={single:'Charge ponctuelle seule',dipole:'Dipôle (+ et −)',two:'Deux charges de même signe'}[mode];
+    $('es-info-cfg').textContent=lbl;
+    $('es-info-prop').textContent = mode==='dipole'?'lignes du + vers le −' : (mode==='two'?'point neutre (E=0) entre les deux':'lignes radiales');
+    const badge=$('es-regime-display');
+    badge.textContent='ÉLECTROSTATIQUE — '+lbl+' · lignes de champ ⟂ équipotentielles';
+    badge.className='regime-badge '+(mode==='dipole'?'pseudo':(mode==='two'?'critique':'aperiodique'));
+    $('es-info-detail').innerHTML = mode==='dipole'
+      ? 'Le dipôle : les lignes partent du + et convergent vers le −, le plan médiateur est l\'équipotentielle V=0.'
+      : (mode==='two' ? 'Deux charges de même signe se repoussent : il existe un point neutre (champ nul) au milieu où aucune ligne ne passe.'
+      : 'Charge seule : lignes radiales, équipotentielles sphériques (cercles), V = kq/r.');
+  }
+
+  document.querySelectorAll('[data-es-mode]').forEach(b=>{ b.addEventListener('click',()=>{
+    document.querySelectorAll('[data-es-mode]').forEach(x=>x.classList.remove('active')); b.classList.add('active');
+    mode=b.dataset.esMode;
+    $('es-q2-ctrl').style.display = mode==='single'?'none':'flex';
+    // charges par défaut cohérentes avec le mode
+    if(mode==='dipole'){ $('es-q1').value=2; $('es-q2').value=-2; }
+    else if(mode==='two'){ $('es-q1').value=2; $('es-q2').value=2; }
+    else { $('es-q1').value=2; }
+    $('es-q1-val').textContent=lblQ($('es-q1').value);
+    $('es-q2-val').textContent=lblQ($('es-q2').value);
+    render();
+  }); });
+  function lblQ(v){ v=+v; return (v>0?'+':(v<0?'−':''))+fmt(Math.abs(v),1); }
+  ['es-q1','es-q2'].forEach(id=>{ $(id).addEventListener('input',()=>{ $(id+'-val').textContent=lblQ($(id).value); render(); }); });
+  $('es-pot').addEventListener('change',()=>{ $('es-pot-val').textContent=$('es-pot').checked?'affichée':'masquée'; render(); });
+  $('es-lines').addEventListener('change',()=>{ $('es-lines-val').textContent=$('es-lines').checked?'affichées':'masquées'; render(); });
+
+  function drawEstat(){ render(); }
+  window.drawEstat = drawEstat;
 })();
 
 /* ============================================== */
