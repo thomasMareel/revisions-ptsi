@@ -1633,13 +1633,14 @@ section.panel.active{display:block;animation:fadeIn 0.4s ease}
 
 #sim-canvas, #opt-canvas, #osc-canvas, #ser-canvas, #lin-canvas, #oxr-canvas,
 #slci-canvas, #hach-canvas, #mcc-canvas, #th2-canvas, #cine-canvas, #int-canvas, #flt-canvas,
-#con-canvas, #crb-canvas{
+#con-canvas, #crb-canvas, #tr-canvas{
   width:100%;
   height:380px;
   background:var(--paper);
   border:1px solid var(--ink);
   display:block;
 }
+#tr-canvas{height:560px}
 #con-canvas, #crb-canvas{height:440px}
 #opt-canvas{height:450px}
 #lin-canvas{height:450px}
@@ -32425,8 +32426,9 @@ occurrences("abba")   <span class="cmt"># {'a': 2, 'b': 2}</span></pre>
 <nav class="tabs">
   <button class="tab active" data-panel="tr-cours"><span class="num">01</span>Cours</button>
   <button class="tab" data-panel="tr-meth"><span class="num">02</span>Méthodes</button>
-  <button class="tab" data-panel="tr-flash"><span class="num">03</span>Flashcards</button>
-  <button class="tab" data-panel="tr-exos"><span class="num">04</span>Exercices</button>
+  <button class="tab" data-panel="tr-simu"><span class="num">03</span>Simulateur</button>
+  <button class="tab" data-panel="tr-flash"><span class="num">04</span>Flashcards</button>
+  <button class="tab" data-panel="tr-exos"><span class="num">05</span>Exercices</button>
 </nav>
 <section class="panel active" id="tr-cours">
 <div class="course-section">
@@ -32552,6 +32554,93 @@ occurrences("abba")   <span class="cmt"># {'a': 2, 'b': 2}</span></pre>
       <li>Rendement de la vis sans fin : faible, et souvent irréversible (la vis entraîne la roue, mais pas l'inverse).</li>
       <li>Le rendement global est le produit des rendements individuels : diminue rapidement avec le nombre d'étages.</li>
     </ul>
+  </div>
+</div>
+</section>
+<section class="panel" id="tr-simu">
+<div class="sim-wrapper">
+  <h2>Simulateur — Train épicycloïdal</h2>
+  <p class="lead">Visualise un train épicycloïdal animé (planétaire, satellites, couronne, porte-satellites). Choisis le nombre de dents, le nombre de satellites, et affecte le <strong>bâti</strong>, l'<strong>entrée</strong> et la <strong>sortie</strong> : le rapport de réduction est calculé en direct par la formule de Willis, et l'animation respecte la cinématique réelle.</p>
+
+  <div id="tr-regime-display" class="regime-badge">—</div>
+
+  <div class="sim-controls">
+    <div class="control">
+      <label>Planétaire — dents Z₁</label>
+      <input type="range" id="tr-zs" min="12" max="48" step="1" value="20">
+      <span class="value" id="tr-zs-val">20 dents</span>
+    </div>
+    <div class="control">
+      <label>Satellite — dents Z₂</label>
+      <input type="range" id="tr-zp" min="10" max="36" step="1" value="16">
+      <span class="value" id="tr-zp-val">16 dents</span>
+    </div>
+    <div class="control">
+      <label>Couronne Z₃ (= Z₁ + 2·Z₂)</label>
+      <input type="range" id="tr-zr" min="0" max="0" step="1" value="0" disabled style="opacity:.5">
+      <span class="value" id="tr-zr-val">52 dents</span>
+    </div>
+    <div class="control">
+      <label>Nombre de satellites</label>
+      <input type="range" id="tr-n" min="1" max="5" step="1" value="3">
+      <span class="value" id="tr-n-val">3</span>
+    </div>
+    <div class="control">
+      <label>Bâti (élément fixe)</label>
+      <select id="tr-bati">
+        <option value="couronne" selected>Couronne</option>
+        <option value="planetaire">Planétaire</option>
+        <option value="porte">Porte-satellites</option>
+      </select>
+      <span class="value" style="visibility:hidden">x</span>
+    </div>
+    <div class="control">
+      <label>Arbre d'entrée</label>
+      <select id="tr-in">
+        <option value="planetaire" selected>Planétaire</option>
+        <option value="couronne">Couronne</option>
+        <option value="porte">Porte-satellites</option>
+      </select>
+      <span class="value" style="visibility:hidden">x</span>
+    </div>
+    <div class="control">
+      <label>Arbre de sortie</label>
+      <select id="tr-out">
+        <option value="porte" selected>Porte-satellites</option>
+        <option value="planetaire">Planétaire</option>
+        <option value="couronne">Couronne</option>
+      </select>
+      <span class="value" style="visibility:hidden">x</span>
+    </div>
+    <div class="control">
+      <label>Vitesse d'animation</label>
+      <input type="range" id="tr-speed" min="0" max="200" step="1" value="80">
+      <span class="value" id="tr-speed-val">×0,80</span>
+    </div>
+    <div class="control">
+      <label>Animation</label>
+      <input type="checkbox" id="tr-anim" checked style="width:auto;align-self:start">
+      <span class="value" id="tr-anim-val">en cours</span>
+    </div>
+    <div class="control">
+      <label>Afficher les dents</label>
+      <input type="checkbox" id="tr-teeth" checked style="width:auto;align-self:start">
+      <span class="value" id="tr-teeth-val">oui</span>
+    </div>
+  </div>
+
+  <canvas id="tr-canvas"></canvas>
+
+  <div class="sim-info">
+    <div><span class="lbl">Rapport r = ω_sortie / ω_entrée</span><span id="tr-info-ratio">—</span></div>
+    <div><span class="lbl">Nature</span><span id="tr-info-nature">—</span></div>
+    <div><span class="lbl">Raison basique λ = −Z₃/Z₁</span><span id="tr-info-lambda">—</span></div>
+    <div><span class="lbl">ω planétaire / couronne / p.-sat.</span><span id="tr-info-omegas">—</span></div>
+  </div>
+  <div class="notice" style="margin-top:1rem">
+    <strong>Formule de Willis</strong> (raison basique, valable quel que soit l'élément fixe) :
+    $$\frac{\omega_{\text{planétaire}} - \omega_{\text{p.-sat.}}}{\omega_{\text{couronne}} - \omega_{\text{p.-sat.}}} = -\frac{Z_3}{Z_1} = \lambda$$
+    On impose \(\omega_{\text{bâti}} = 0\) et \(\omega_{\text{entrée}} = 1\), puis on résout pour les deux autres. <span id="tr-info-detail"></span>
   </div>
 </div>
 </section>
@@ -38585,7 +38674,7 @@ const CHAPTERS = [
     mobLabel:'Statique' },
   { id:'transm',   prefix:'tr',  name:'Transmission de puissance',
     matiere:'si', sub:'meca', subLabel:'Mécanique', domain:'meca',
-    matiereLabel:'Transmission', panels:['cours','meth','flash','exos'], drawFn:null,
+    matiereLabel:'Transmission', panels:['cours','meth','simu','flash','exos'], drawFn:'drawTrain',
     mobLabel:'Transmission' },
   { id:'dynsolide', prefix:'dyn',     name:'Dynamique du solide',
     matiere:'si',       sub:'meca',   subLabel:'Mécanique',         domain:'meca',
@@ -39331,7 +39420,7 @@ function drawForced(W,H,padL,padR,padT,padB,y0,p){
   ctx.fillText('log(f)',W-padR-50,H-padB+22);
 }
 
-window.addEventListener('resize',()=>{drawSim();drawOpt();drawOsc();if(typeof drawSer==='function')drawSer();if(typeof drawLin==='function')drawLin();if(typeof drawOxred==='function')drawOxred();if(typeof drawConiques==='function')drawConiques();if(typeof drawCourbesParam==='function')drawCourbesParam()});
+window.addEventListener('resize',()=>{drawSim();drawOpt();drawOsc();if(typeof drawSer==='function')drawSer();if(typeof drawLin==='function')drawLin();if(typeof drawOxred==='function')drawOxred();if(typeof drawConiques==='function')drawConiques();if(typeof drawCourbesParam==='function')drawCourbesParam();if(typeof drawTrain==='function')drawTrain()});
 
 /* ============================================== */
 /* =========== OPTIQUE SIMULATEUR =============== */
@@ -41281,7 +41370,12 @@ const trCards = [
   {q:"Puissance mécanique transmise sur un arbre.", a:"P = C·Ω (couple en N·m, vitesse angulaire en rad/s)."},
   {q:"Trois éléments d'un train épicycloïdal.", a:"Planétaire (central), satellites (planètes), couronne (anneau intérieur denté), porteur de satellites."},
   {q:"Pour quel rapport un train épicycloïdal donne-t-il la vitesse la plus élevée ?", a:"Quand le planétaire est bloqué et la couronne est l'entrée : ω_s/ω_c = Z_p/(Z_p+Z_c) > 1/(1+Z_p/Z_c) … non, c'est un multiplicateur. Calculer avec Willis selon le cas."},
-  {q:"Intérêt d'un réducteur pour un moteur électrique.", a:"Les moteurs électriques sont optimaux à haute vitesse/faible couple. Le réducteur adapte au besoin (basse vitesse/fort couple) tout en gardant un bon rendement."}
+  {q:"Intérêt d'un réducteur pour un moteur électrique.", a:"Les moteurs électriques sont optimaux à haute vitesse/faible couple. Le réducteur adapte au besoin (basse vitesse/fort couple) tout en gardant un bon rendement."},
+  {q:"Formule de Willis (train épicycloïdal) ?", a:"(ω_planétaire − ω_porte)/(ω_couronne − ω_porte) = −Z_couronne/Z_planétaire = λ (raison basique). Valable quel que soit l'élément fixe."},
+  {q:"Relation géométrique entre les dentures d'un train épicycloïdal simple ?", a:"Z_couronne = Z_planétaire + 2·Z_satellite (même module ; les rayons primitifs se referment)."},
+  {q:"Train épicycloïdal, couronne fixe, entrée planétaire, sortie porte-satellites : rapport ?", a:"ω_porte/ω_planétaire = Z₁/(Z₁+Z₃) (réducteur, même sens). Avec Willis et ω_couronne=0."},
+  {q:"Condition d'assemblage de n satellites régulièrement répartis ?", a:"(Z_planétaire + Z_couronne)/n doit être entier."},
+  {q:"Comment un train épicycloïdal peut-il être réducteur, multiplicateur ou inverseur ?", a:"Selon l'élément choisi comme bâti et l'affectation entrée/sortie : |r|<1 réducteur, |r|>1 multiplicateur, r<0 inverseur de sens (porte-satellites fixe)."}
 ];
 const trFlash = makeFlash(trCards,'tr','tr-flash-content','tr-flash-prog','tr-stats');
 
@@ -45899,6 +45993,303 @@ document.addEventListener('keydown',e=>{
   }
 
   window.drawCine = drawCine;
+})();
+
+/* ============================================== */
+/* ====== TRAIN ÉPICYCLOÏDAL — SIMULATEUR ======= */
+/* ============================================== */
+(function(){
+  const canvas = document.getElementById('tr-canvas');
+  if(!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  const $ = id => document.getElementById(id);
+  let t = 0, animId = null;
+
+  const NAME = { planetaire:'Planétaire', couronne:'Couronne', porte:'Porte-satellites' };
+  const SHORT = { planetaire:'planétaire', couronne:'couronne', porte:'p.-sat.' };
+
+  /* --- garder bâti / entrée / sortie distincts --- */
+  function normalizeRoles(changedId){
+    const ids = ['tr-bati','tr-in','tr-out'];
+    const all = ['planetaire','couronne','porte'];
+    const anchor = changedId || 'tr-bati';      // élément prioritaire (gardé tel quel)
+    const used = new Set([$(anchor).value]);
+    ids.forEach(id => {
+      if(id === anchor) return;
+      const el = $(id);
+      if(used.has(el.value)){
+        el.value = all.find(a => !used.has(a));
+      }
+      used.add(el.value);
+    });
+  }
+
+  /* --- cinématique : formule de Willis --- */
+  function kinematics(){
+    const Zs = +$('tr-zs').value, Zp = +$('tr-zp').value, Zr = Zs + 2*Zp;
+    const lambda = -Zr/Zs;                         // raison basique
+    const bati = $('tr-bati').value, inp = $('tr-in').value, out = $('tr-out').value;
+    const om = { planetaire:null, couronne:null, porte:null };
+    om[bati] = 0; om[inp] = 1;                      // bâti fixe, entrée normalisée
+    // Willis : ω_planétaire + (λ−1)·ω_porte − λ·ω_couronne = 0
+    if(out === 'planetaire')      om.planetaire = lambda*om.couronne - (lambda-1)*om.porte;
+    else if(out === 'couronne')   om.couronne   = (om.planetaire + (lambda-1)*om.porte)/lambda;
+    else                          om.porte      = (lambda*om.couronne - om.planetaire)/(lambda-1);
+    // rotation propre d'un satellite (référentiel fixe)
+    const omSat = om.porte - (Zs/Zp)*(om.planetaire - om.porte);
+    const ratio = om[out];                          // ω_sortie / ω_entrée (ω_entrée = 1)
+    return { Zs, Zp, Zr, lambda, om, omSat, bati, inp, out, ratio };
+  }
+
+  /* --- contour d'une roue dentée (trapèzes) --- */
+  function addCog(cx, cy, Rp, Z, ang, th, internal){
+    const p = 2*Math.PI/Z;
+    const Rtip  = internal ? Rp - th/2 : Rp + th/2;
+    const Rroot = internal ? Rp + th/2 : Rp - th/2;
+    for(let k=0;k<Z;k++){
+      const b = ang + k*p;
+      const seq = [[Rroot,b],[Rtip,b+0.12*p],[Rtip,b+0.40*p],[Rroot,b+0.52*p]];
+      seq.forEach((q,idx)=>{
+        const x = cx + q[0]*Math.cos(q[1]), y = cy + q[0]*Math.sin(q[1]);
+        if(k===0 && idx===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+      });
+    }
+    ctx.closePath();
+  }
+
+  function drawExtGear(cx, cy, Rp, Z, ang, th, fill, stroke){
+    ctx.beginPath(); addCog(cx,cy,Rp,Z,ang,th,false);
+    ctx.fillStyle = fill; ctx.fill();
+    ctx.lineWidth = 1.3; ctx.strokeStyle = stroke; ctx.stroke();
+    // moyeu
+    ctx.beginPath(); ctx.arc(cx,cy,Math.max(4,(Rp-th/2)*0.32),0,2*Math.PI);
+    ctx.fillStyle = stroke; ctx.fill();
+  }
+
+  function drawRing(cx, cy, Rp, Z, ang, th, rim, fill, stroke){
+    ctx.beginPath();
+    ctx.arc(cx,cy,Rp + th/2 + rim, 0, 2*Math.PI);   // bord extérieur
+    addCog(cx,cy,Rp,Z,ang,th,true);                 // bord intérieur denté (sous-chemin)
+    ctx.fillStyle = fill; ctx.fill('evenodd');
+    ctx.lineWidth = 1.3; ctx.strokeStyle = stroke;
+    ctx.beginPath(); ctx.arc(cx,cy,Rp + th/2 + rim, 0, 2*Math.PI); ctx.stroke();
+    ctx.beginPath(); addCog(cx,cy,Rp,Z,ang,th,true); ctx.stroke();
+  }
+
+  /* --- flèche courbe indiquant le sens de rotation --- */
+  function rotArrow(cx, cy, R, omega, color){
+    if(Math.abs(omega) < 1e-6) return;
+    const ccw = omega > 0;               // canvas y vers le bas : on dessine en cohérence visuelle
+    const a0 = -0.6, a1 = 0.6;
+    ctx.strokeStyle = color; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(cx, cy, R, a0, a1, false); ctx.stroke();
+    // tête de flèche à l'extrémité (sens dépend du signe)
+    const aEnd = ccw ? a1 : a0;
+    const dir = ccw ? 1 : -1;
+    const ex = cx + R*Math.cos(aEnd), ey = cy + R*Math.sin(aEnd);
+    const tx = -Math.sin(aEnd)*dir, ty = Math.cos(aEnd)*dir;   // tangente
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(ex, ey);
+    ctx.lineTo(ex - tx*8 - ty*4*dir, ey - ty*8 + tx*4*dir);
+    ctx.lineTo(ex - tx*8 + ty*4*dir, ey - ty*8 - tx*4*dir);
+    ctx.closePath(); ctx.fill();
+  }
+
+  /* --- symbole de bâti (hachures) --- */
+  function batiSymbol(x, y, color){
+    ctx.strokeStyle = color; ctx.lineWidth = 1.4;
+    ctx.beginPath(); ctx.moveTo(x-16,y); ctx.lineTo(x+16,y); ctx.stroke();
+    for(let i=-14;i<=14;i+=7){
+      ctx.beginPath(); ctx.moveTo(x+i,y); ctx.lineTo(x+i-6,y+8); ctx.stroke();
+    }
+  }
+
+  function render(){
+    if(!$('tr-canvas')) return;
+    const panel = $('tr-simu');
+    if(panel && !panel.classList.contains('active')) return;
+    const r = canvas.getBoundingClientRect();
+    canvas.width = r.width*dpr; canvas.height = r.height*dpr;
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+    const W = r.width, H = r.height;
+    const C = getCanvasColors();
+    const k = kinematics();
+    const N = +$('tr-n').value;
+    const showTeeth = $('tr-teeth').checked;
+
+    ctx.clearRect(0,0,W,H);
+
+    const cx = W/2, cy = H/2 + 8;
+    const minDim = Math.min(W, H-30);
+    const base = 0.40*minDim / k.Zr;
+    const Rs = base*k.Zs, Rp = base*k.Zp, Rr = base*k.Zr, Rc = base*(k.Zs+k.Zp);
+    const th = showTeeth ? base*2.0 : 0.0001;
+    const rim = Math.max(8, base*3);
+
+    const angP = t*k.om.planetaire;   // planétaire
+    const angR = t*k.om.couronne;     // couronne
+    const angC = t*k.om.porte;        // porte-satellites
+    const angSat = t*k.omSat;         // rotation propre satellite
+
+    const colFor = key => key === k.bati ? C.muted
+                        : (key === k.inp ? C.green : (key === k.out ? C.accent : C.accent2));
+
+    // --- couronne (fond) ---
+    drawRing(cx, cy, Rr, k.Zr, angR, th, rim, C.grid, colFor('couronne'));
+
+    // --- porte-satellites : bras + moyeu ---
+    const planets = [];
+    for(let i=0;i<N;i++){
+      const phi = angC + 2*Math.PI*i/N;
+      planets.push({ x: cx + Rc*Math.cos(phi), y: cy + Rc*Math.sin(phi), phi });
+    }
+    ctx.strokeStyle = colFor('porte'); ctx.lineWidth = Math.max(5, base*1.6);
+    ctx.lineCap = 'round';
+    planets.forEach(pl => { ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(pl.x,pl.y); ctx.stroke(); });
+    ctx.lineCap = 'butt';
+    ctx.beginPath(); ctx.arc(cx,cy,Math.max(7,Rs*0.5),0,2*Math.PI);
+    ctx.fillStyle = colFor('porte'); ctx.fill();
+
+    // --- planétaire (soleil) ---
+    drawExtGear(cx, cy, Rs, k.Zs, angP, th, withAlpha(colFor('planetaire'),0.85), colFor('planetaire'));
+
+    // --- satellites ---
+    planets.forEach((pl,i)=>{
+      drawExtGear(pl.x, pl.y, Rp, k.Zp, angSat, th, withAlpha(colFor('porte') === C.muted ? C.accent2 : C.accent2, 0.55), C.accent2);
+    });
+
+    // --- repères de rotation (sens) ---
+    rotArrow(cx, cy, Rs*0.62, k.om.planetaire, colFor('planetaire'));
+    if(planets[0]) rotArrow(planets[0].x, planets[0].y, Rp*0.6, k.omSat, C.accent2);
+
+    // --- étiquettes sur les éléments ---
+    ctx.textAlign = 'center'; ctx.font = '700 12px JetBrains Mono, monospace';
+    ctx.fillStyle = colFor('planetaire'); ctx.fillText('S', cx, cy-Rs-6);
+    ctx.fillStyle = colFor('couronne');
+    ctx.fillText('Couronne Z₃='+k.Zr, cx, cy - (Rr+th/2+rim) - 6);
+    if(planets[0]){ ctx.fillStyle = C.accent2; ctx.fillText('Z₂='+k.Zp, planets[0].x, planets[0].y - Rp - 5); }
+    ctx.font = '600 11px JetBrains Mono, monospace';
+    ctx.fillStyle = colFor('planetaire'); ctx.fillText('Z₁='+k.Zs, cx, cy+4);
+
+    // --- symbole bâti sur l'élément fixe ---
+    ctx.save();
+    if(k.bati === 'couronne') batiSymbol(cx, cy - (Rr+th/2+rim) - 18, C.muted);
+    else if(k.bati === 'planetaire') batiSymbol(cx, cy + Rs + 16, C.muted);
+    else batiSymbol(cx + Rc*0.5, cy, C.muted);
+    ctx.restore();
+
+    // --- légende (haut-gauche) ---
+    drawLegend(W, H, C, k);
+    updateInfo(k);
+  }
+
+  function withAlpha(hex, a){
+    // hex #rrggbb → rgba
+    const h = hex.replace('#','');
+    if(h.length < 6) return hex;
+    const n = parseInt(h,16);
+    return `rgba(${(n>>16)&255},${(n>>8)&255},${n&255},${a})`;
+  }
+
+  function drawLegend(W, H, C, k){
+    const rows = [
+      ['Bâti (fixe)', NAME[k.bati], C.muted],
+      ['Entrée (ω = 1)', NAME[k.inp], C.green],
+      ['Sortie', NAME[k.out], C.accent],
+    ];
+    // panneau translucide pour la lisibilité par-dessus les engrenages
+    ctx.save();
+    ctx.fillStyle = withAlpha(C.paper, 0.82);
+    ctx.strokeStyle = withAlpha(C.ink, 0.25); ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.rect(8, 8, 224, 84); ctx.fill(); ctx.stroke();
+    ctx.textAlign = 'left'; ctx.font = '600 11px JetBrains Mono, monospace';
+    let y = 26;
+    rows.forEach(rw => {
+      ctx.fillStyle = rw[2]; ctx.fillRect(16, y-9, 11, 11);
+      ctx.fillStyle = C.ink;
+      ctx.fillText(rw[0]+' : '+rw[1], 33, y);
+      y += 16;
+    });
+    ctx.font = '700 13px JetBrains Mono, monospace';
+    ctx.fillStyle = C.accent;
+    ctx.fillText('r = ω_s/ω_e = '+fmt(k.ratio, 3), 16, y+4);
+    ctx.restore();
+  }
+
+  function fmt(x, n){
+    if(!isFinite(x)) return '∞';
+    return (Math.round(x*10**n)/10**n).toString().replace('.', ',');
+  }
+
+  function nature(r){
+    if(!isFinite(r)) return 'indéterminé';
+    const sens = r < 0 ? 'inverseur' : 'même sens';
+    const a = Math.abs(r);
+    let type;
+    if(a < 0.999) type = 'réducteur';
+    else if(a > 1.001) type = 'multiplicateur';
+    else type = 'rapport unitaire';
+    return type + ' · ' + sens;
+  }
+
+  function updateInfo(k){
+    $('tr-info-ratio').textContent = fmt(k.ratio,4);
+    $('tr-info-nature').textContent = nature(k.ratio);
+    $('tr-info-lambda').textContent = fmt(k.lambda,3) + '  (Z₃/Z₁ = '+k.Zr+'/'+k.Zs+')';
+    $('tr-info-omegas').textContent =
+      fmt(k.om.planetaire,3)+' / '+fmt(k.om.couronne,3)+' / '+fmt(k.om.porte,3);
+    const badge = $('tr-regime-display');
+    badge.textContent = NAME[k.inp]+' → '+NAME[k.out]+'  |  r = '+fmt(k.ratio,3)+'  ('+nature(k.ratio)+')';
+    badge.className = 'regime-badge ' + (k.ratio<0 ? 'aperiodique' : (Math.abs(k.ratio)<1 ? 'pseudo' : 'critique'));
+    // condition d'assemblage des satellites
+    const N = +$('tr-n').value;
+    const okAssembly = ((k.Zs + k.Zr) % N === 0);
+    $('tr-info-detail').innerHTML = 'Ici : bâti = <strong>'+SHORT[k.bati]+'</strong>, entrée = <strong>'+
+      SHORT[k.inp]+'</strong>, sortie = <strong>'+SHORT[k.out]+'</strong>. '+
+      (okAssembly ? 'Condition d\'assemblage des '+N+' satellites vérifiée ((Z₁+Z₃)/n entier).'
+                  : '⚠ '+N+' satellites : (Z₁+Z₃)/n non entier → assemblage réel impossible avec un calage régulier (visuel indicatif).');
+  }
+
+  /* --- boucle d'animation --- */
+  function startLoop(){
+    if(animId !== null) return;
+    const tick = () => {
+      const speed = (+$('tr-speed').value)/100;
+      t += 0.016 * speed;
+      render();
+      animId = requestAnimationFrame(tick);
+    };
+    animId = requestAnimationFrame(tick);
+  }
+  function stopLoop(){ if(animId!==null){ cancelAnimationFrame(animId); animId=null; } }
+
+  function syncZr(){
+    const Zr = (+$('tr-zs').value) + 2*(+$('tr-zp').value);
+    $('tr-zr-val').textContent = Zr + ' dents';
+  }
+
+  /* --- wiring --- */
+  $('tr-zs').addEventListener('input', () => { $('tr-zs-val').textContent = $('tr-zs').value+' dents'; syncZr(); render(); });
+  $('tr-zp').addEventListener('input', () => { $('tr-zp-val').textContent = $('tr-zp').value+' dents'; syncZr(); render(); });
+  $('tr-n').addEventListener('input',  () => { $('tr-n-val').textContent  = $('tr-n').value; render(); });
+  $('tr-speed').addEventListener('input', () => { $('tr-speed-val').textContent = '×'+fmt((+$('tr-speed').value)/100,2); });
+  ['tr-bati','tr-in','tr-out'].forEach(id => $(id).addEventListener('change', () => { normalizeRoles(id); render(); }));
+  $('tr-teeth').addEventListener('change', () => { $('tr-teeth-val').textContent = $('tr-teeth').checked?'oui':'non'; render(); });
+  $('tr-anim').addEventListener('change', () => {
+    if($('tr-anim').checked){ $('tr-anim-val').textContent='en cours'; startLoop(); }
+    else { $('tr-anim-val').textContent='arrêtée'; stopLoop(); }
+  });
+
+  syncZr();
+  // drawTrain() : point d'entrée appelé par l'ouverture d'onglet et le resize
+  function drawTrain(){
+    normalizeRoles(null);
+    render();
+    if($('tr-anim').checked) startLoop(); else stopLoop();
+  }
+  window.drawTrain = drawTrain;
 })();
 
 /* ============================================== */
