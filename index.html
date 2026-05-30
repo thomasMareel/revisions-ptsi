@@ -1637,7 +1637,7 @@ section.panel.active{display:block;animation:fadeIn 0.4s ease}
 
 #sim-canvas, #opt-canvas, #osc-canvas, #ser-canvas, #lin-canvas, #oxr-canvas,
 #slci-canvas, #hach-canvas, #mcc-canvas, #th2-canvas, #cine-canvas, #int-canvas, #flt-canvas,
-#con-canvas, #crb-canvas, #tr-canvas, #stat-canvas, #s2-canvas{
+#con-canvas, #crb-canvas, #tr-canvas, #stat-canvas, #s2-canvas, #dyn-canvas{
   width:100%;
   height:380px;
   background:var(--paper);
@@ -1647,6 +1647,7 @@ section.panel.active{display:block;animation:fadeIn 0.4s ease}
 #tr-canvas{height:560px}
 #stat-canvas{height:480px}
 #s2-canvas{height:440px}
+#dyn-canvas{height:430px}
 #con-canvas, #crb-canvas{height:440px}
 #opt-canvas{height:450px}
 #lin-canvas{height:450px}
@@ -32982,8 +32983,9 @@ occurrences("abba")   <span class="cmt"># {'a': 2, 'b': 2}</span></pre>
 <nav class="tabs">
   <button class="tab active" data-panel="dyn-cours"><span class="num">01</span>Cours</button>
   <button class="tab" data-panel="dyn-meth"><span class="num">02</span>Méthodes</button>
-  <button class="tab" data-panel="dyn-flash"><span class="num">03</span>Flashcards</button>
-  <button class="tab" data-panel="dyn-exos"><span class="num">04</span>Exercices</button>
+  <button class="tab" data-panel="dyn-simu"><span class="num">03</span>Simulateur</button>
+  <button class="tab" data-panel="dyn-flash"><span class="num">04</span>Flashcards</button>
+  <button class="tab" data-panel="dyn-exos"><span class="num">05</span>Exercices</button>
 </nav>
 
 <!-- ============ DYNSOLIDE : COURS ============ -->
@@ -33211,6 +33213,51 @@ occurrences("abba")   <span class="cmt"># {'a': 2, 'b': 2}</span></pre>
   </div>
 </div>
 
+</section>
+
+<!-- ============ DYNSOLIDE : SIMULATEUR ============ -->
+<section class="panel" id="dyn-simu">
+<div class="sim-wrapper">
+  <h2>Simulateur — Pendule pesant</h2>
+  <p class="lead">Un solide pivote autour d'un axe horizontal sous l'effet de son poids : \(J\ddot\theta = -mgd\sin\theta\). Lance-le à une amplitude donnée et observe l'oscillation, les échanges énergie cinétique ↔ potentielle, le portrait de phase, et surtout le <strong>non-isochronisme</strong> : la période dépend de l'amplitude (contrairement à l'oscillateur harmonique).</p>
+
+  <div id="dyn-regime-display" class="regime-badge">—</div>
+
+  <div class="sim-controls">
+    <div class="control">
+      <label>Amplitude initiale θ₀</label>
+      <input type="range" id="dyn-a0" min="5" max="170" step="1" value="40">
+      <span class="value" id="dyn-a0-val">40°</span>
+    </div>
+    <div class="control">
+      <label>Pulsation propre ω₀ = √(mgd/J)</label>
+      <input type="range" id="dyn-w0" min="1" max="6" step="0.1" value="3">
+      <span class="value" id="dyn-w0-val">3,0 rad/s</span>
+    </div>
+    <div class="control">
+      <label>Amortissement (frottement visqueux)</label>
+      <input type="range" id="dyn-lam" min="0" max="0.4" step="0.005" value="0">
+      <span class="value" id="dyn-lam-val">0 (aucun)</span>
+    </div>
+    <div class="control">
+      <label>Lancer / Pause</label>
+      <input type="checkbox" id="dyn-run" checked style="width:auto;align-self:start">
+      <span class="value" id="dyn-run-val">en cours</span>
+    </div>
+  </div>
+
+  <canvas id="dyn-canvas"></canvas>
+
+  <div class="sim-info">
+    <div><span class="lbl">Période exacte T (intégrale elliptique)</span><span id="dyn-info-T">—</span></div>
+    <div><span class="lbl">Période petits angles T₀ = 2π/ω₀</span><span id="dyn-info-T0">—</span></div>
+    <div><span class="lbl">Non-isochronisme T / T₀</span><span id="dyn-info-ratio">—</span></div>
+    <div><span class="lbl">Énergie mécanique (normalisée)</span><span id="dyn-info-em">—</span></div>
+  </div>
+  <div class="notice" style="margin-top:1rem">
+    <strong>Non-isochronisme.</strong> Aux petits angles \(\sin\theta\approx\theta\) → oscillateur harmonique de période \(T_0 = 2\pi\sqrt{J/(mgd)}\), indépendante de l'amplitude. Aux grandes amplitudes, la période réelle vaut \(T = T_0\cdot\dfrac{2}{\pi}K\!\big(\sin\tfrac{\theta_0}{2}\big)\) (intégrale elliptique complète) : elle <strong>croît avec l'amplitude</strong>. <span id="dyn-info-detail"></span>
+  </div>
+</div>
 </section>
 
 <!-- ============ DYNSOLIDE : FLASHCARDS ============ -->
@@ -38918,7 +38965,7 @@ const CHAPTERS = [
   { id:'dynsolide', prefix:'dyn',     name:'Dynamique du solide',
     matiere:'si',       sub:'meca',   subLabel:'Mécanique',         domain:'meca',
     matiereLabel:'Mécanique des solides',
-    panels:['cours','meth','flash','exos'], drawFn:null,
+    panels:['cours','meth','simu','flash','exos'], drawFn:'drawPend',
     mobLabel:'Dyn. solide' },
   { id:'energsi', prefix:'ensi', name:'Énergétique des systèmes',
     matiere:'si', sub:'meca', subLabel:'Mécanique', domain:'meca',
@@ -39659,7 +39706,7 @@ function drawForced(W,H,padL,padR,padT,padB,y0,p){
   ctx.fillText('log(f)',W-padR-50,H-padB+22);
 }
 
-window.addEventListener('resize',()=>{drawSim();drawOpt();drawOsc();if(typeof drawSer==='function')drawSer();if(typeof drawLin==='function')drawLin();if(typeof drawOxred==='function')drawOxred();if(typeof drawConiques==='function')drawConiques();if(typeof drawCourbesParam==='function')drawCourbesParam();if(typeof drawTrain==='function')drawTrain();if(typeof drawStat==='function')drawStat();if(typeof drawSys2==='function')drawSys2()});
+window.addEventListener('resize',()=>{drawSim();drawOpt();drawOsc();if(typeof drawSer==='function')drawSer();if(typeof drawLin==='function')drawLin();if(typeof drawOxred==='function')drawOxred();if(typeof drawConiques==='function')drawConiques();if(typeof drawCourbesParam==='function')drawCourbesParam();if(typeof drawTrain==='function')drawTrain();if(typeof drawStat==='function')drawStat();if(typeof drawSys2==='function')drawSys2();if(typeof drawPend==='function')drawPend()});
 
 /* ============================================== */
 /* =========== OPTIQUE SIMULATEUR =============== */
@@ -46826,6 +46873,140 @@ document.addEventListener('keydown',e=>{
 
   function drawSys2(){ render(); if($('s2-anim').checked) startAnim(); }
   window.drawSys2 = drawSys2;
+})();
+
+/* ============================================== */
+/* ======= PENDULE PESANT — DYNAMIQUE SOLIDE ==== */
+/* ============================================== */
+(function(){
+  const canvas = document.getElementById('dyn-canvas');
+  if(!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  const $ = id => document.getElementById(id);
+  let animId=null, theta=0, omega=0, w0=3, lam=0, trail=[];
+
+  function fmt(x,n){ if(!isFinite(x)) return '∞'; return (Math.round(x*10**n)/10**n).toString().replace('.',','); }
+
+  // période exacte : T/T0 = (2/π)K(k), k=sin(θ0/2) ; K via moyenne arithmético-géométrique
+  function periodRatio(a0){
+    const k=Math.sin(a0/2); let a=1, b=Math.sqrt(Math.max(1e-9,1-k*k));
+    for(let i=0;i<40;i++){ const an=(a+b)/2, bn=Math.sqrt(a*b); a=an; b=bn; }
+    return 1/a; // = (2/π)K(k)
+  }
+
+  function reset(){
+    theta = (+$('dyn-a0').value)*Math.PI/180;
+    omega = 0; trail=[];
+  }
+
+  function render(){
+    const panel=$('dyn-simu'); if(panel && !panel.classList.contains('active')) return;
+    const r=canvas.getBoundingClientRect();
+    canvas.width=r.width*dpr; canvas.height=r.height*dpr; ctx.setTransform(dpr,0,0,dpr,0,0);
+    const W=r.width, H=r.height, C=getCanvasColors();
+    const a0=(+$('dyn-a0').value)*Math.PI/180;
+    ctx.clearRect(0,0,W,H);
+
+    // ----- panneau gauche : pendule -----
+    const LW=Math.min(W*0.42, 260);
+    const ox=LW/2, oy=70, Lr=Math.min(LW*0.42, H-150);
+    ctx.strokeStyle=C.muted; ctx.lineWidth=1.4;
+    // support
+    ctx.beginPath(); ctx.moveTo(ox-30,oy); ctx.lineTo(ox+30,oy); ctx.stroke();
+    for(let i=-26;i<=26;i+=10){ ctx.beginPath(); ctx.moveTo(ox+i,oy); ctx.lineTo(ox+i-7,oy-8); ctx.stroke(); }
+    // verticale de référence
+    ctx.strokeStyle=withA(C.ink,0.25); ctx.setLineDash([4,4]);
+    ctx.beginPath(); ctx.moveTo(ox,oy); ctx.lineTo(ox,oy+Lr+24); ctx.stroke(); ctx.setLineDash([]);
+    // tige + balourd
+    const bx=ox+Lr*Math.sin(theta), by=oy+Lr*Math.cos(theta);
+    ctx.strokeStyle=C.accent2; ctx.lineWidth=4; ctx.lineCap='round';
+    ctx.beginPath(); ctx.moveTo(ox,oy); ctx.lineTo(bx,by); ctx.stroke(); ctx.lineCap='butt';
+    ctx.fillStyle=C.accent; ctx.beginPath(); ctx.arc(bx,by,11,0,2*Math.PI); ctx.fill();
+    ctx.fillStyle=C.ink; ctx.beginPath(); ctx.arc(ox,oy,3.5,0,2*Math.PI); ctx.fill();
+    // arc d'angle
+    ctx.strokeStyle=withA(C.accent,0.6); ctx.lineWidth=1.4;
+    ctx.beginPath(); ctx.arc(ox,oy,26, Math.PI/2, Math.PI/2+theta, theta<0); ctx.stroke();
+    ctx.fillStyle=C.ink; ctx.font='12px JetBrains Mono, monospace'; ctx.textAlign='left';
+    ctx.fillText('θ = '+fmt(theta*180/Math.PI,0)+'°', ox+8, oy+44);
+
+    // ----- énergies (barres) -----
+    // Em normalisée : E = (1/2)(ω/ω0)² + (1-cosθ)  [potentiel (1-cosθ), cinétique]
+    const Ep = (1-Math.cos(theta));
+    const Ec = 0.5*(omega/w0)*(omega/w0);
+    const Emax = (1-Math.cos(a0)) + 1e-6;
+    const ebx=LW+24, eby=oy-20, ebw=26, ebh=Lr+30;
+    const bar=(x,frac,col,label)=>{
+      ctx.strokeStyle=withA(C.ink,0.3); ctx.strokeRect(x,eby,ebw,ebh);
+      const hh=Math.max(0,Math.min(1,frac))*ebh;
+      ctx.fillStyle=col; ctx.fillRect(x,eby+ebh-hh,ebw,hh);
+      ctx.fillStyle=C.muted; ctx.font='10px JetBrains Mono, monospace'; ctx.textAlign='center';
+      ctx.fillText(label,x+ebw/2,eby+ebh+14);
+    };
+    bar(ebx, Ec/Emax, C.accent, 'Ec');
+    bar(ebx+44, Ep/Emax, C.accent2, 'Ep');
+    bar(ebx+88, (Ec+Ep)/Emax, C.green, 'Em');
+
+    // ----- portrait de phase (droite) -----
+    const px=LW+170, py=oy-20, pw=W-px-20, ph=Lr+30;
+    if(pw>60){
+      ctx.fillStyle=withA(C.ink,0.04); ctx.fillRect(px,py,pw,ph);
+      ctx.strokeStyle=withA(C.ink,0.3); ctx.lineWidth=1;
+      ctx.beginPath(); ctx.moveTo(px,py+ph/2); ctx.lineTo(px+pw,py+ph/2); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(px+pw/2,py); ctx.lineTo(px+pw/2,py+ph); ctx.stroke();
+      ctx.fillStyle=C.muted; ctx.font='9px JetBrains Mono, monospace'; ctx.textAlign='left';
+      ctx.fillText('θ̇', px+pw/2+3, py+10); ctx.fillText('θ', px+pw-12, py+ph/2-4);
+      const sx=(pw/2)/(a0*1.15), sy=(ph/2)/(w0*a0*1.2);
+      ctx.strokeStyle=C.accent; ctx.lineWidth=1.6; ctx.beginPath();
+      trail.forEach((q,i)=>{ const x=px+pw/2+q.th*sx, y=py+ph/2-q.om*sy; if(i===0)ctx.moveTo(x,y); else ctx.lineTo(x,y); });
+      ctx.stroke();
+      const cx=px+pw/2+theta*sx, cy=py+ph/2-omega*sy;
+      ctx.fillStyle=C.accent; ctx.beginPath(); ctx.arc(cx,cy,3.5,0,2*Math.PI); ctx.fill();
+      ctx.fillStyle=C.muted; ctx.textAlign='center'; ctx.fillText('portrait de phase', px+pw/2, py+ph+14);
+    }
+
+    // ----- infos -----
+    const ratio=periodRatio(a0), T0=2*Math.PI/w0, T=T0*ratio;
+    $('dyn-info-T').textContent = fmt(T,3)+' s';
+    $('dyn-info-T0').textContent = fmt(T0,3)+' s';
+    $('dyn-info-ratio').textContent = fmt(ratio,4)+'  (+'+fmt((ratio-1)*100,1)+' % vs petits angles)';
+    $('dyn-info-em').textContent = fmt(Ec+Ep,3)+'  (Ec='+fmt(Ec,3)+', Ep='+fmt(Ep,3)+')';
+    const badge=$('dyn-regime-display');
+    if(lam>0.001){ badge.textContent='AMORTI — l\'énergie mécanique décroît, amplitude qui diminue'; badge.className='regime-badge critique'; }
+    else { badge.textContent='CONSERVATIF — Em constante, échange permanent Ec ↔ Ep'; badge.className='regime-badge pseudo'; }
+    $('dyn-info-detail').innerHTML = 'Amplitude θ₀ = '+fmt(a0*180/Math.PI,0)+'° → période '+fmt((ratio-1)*100,1)+
+      ' % plus longue qu\'aux petits angles. À 90° l\'écart atteint ~18 %, et il diverge quand θ₀→180°.';
+  }
+
+  function withA(hex,a){ const h=hex.replace('#',''); if(h.length<6)return hex; const n=parseInt(h,16); return `rgba(${(n>>16)&255},${(n>>8)&255},${n&255},${a})`; }
+
+  function stepPhysics(){
+    w0=+$('dyn-w0').value; lam=+$('dyn-lam').value;
+    const dt=0.02, sub=3, h=dt/sub;
+    for(let i=0;i<sub;i++){
+      // θ'' = -w0² sinθ - 2 λ w0 θ'   (RK4)
+      const f=(th,om)=>({dth:om, dom:-w0*w0*Math.sin(th)-2*lam*w0*om});
+      const k1=f(theta,omega);
+      const k2=f(theta+h/2*k1.dth, omega+h/2*k1.dom);
+      const k3=f(theta+h/2*k2.dth, omega+h/2*k2.dom);
+      const k4=f(theta+h*k3.dth, omega+h*k3.dom);
+      theta+=h/6*(k1.dth+2*k2.dth+2*k3.dth+k4.dth);
+      omega+=h/6*(k1.dom+2*k2.dom+2*k3.dom+k4.dom);
+    }
+    trail.push({th:theta,om:omega}); if(trail.length>900) trail.shift();
+  }
+
+  function loop(){ if($('dyn-run').checked) stepPhysics(); render(); animId=requestAnimationFrame(loop); }
+  function start(){ if(animId===null) animId=requestAnimationFrame(loop); }
+  function stop(){ if(animId!==null){ cancelAnimationFrame(animId); animId=null; } }
+
+  $('dyn-a0').addEventListener('input',()=>{ $('dyn-a0-val').textContent=Math.round($('dyn-a0').value)+'°'; reset(); render(); });
+  $('dyn-w0').addEventListener('input',()=>{ $('dyn-w0-val').textContent=fmt(+$('dyn-w0').value,1)+' rad/s'; render(); });
+  $('dyn-lam').addEventListener('input',()=>{ lam=+$('dyn-lam').value; $('dyn-lam-val').textContent=lam<0.001?'0 (aucun)':fmt(lam,3); render(); });
+  $('dyn-run').addEventListener('change',()=>{ $('dyn-run-val').textContent=$('dyn-run').checked?'en cours':'pause'; });
+
+  function drawPend(){ if(theta===0 && omega===0) reset(); render(); start(); }
+  window.drawPend = drawPend;
 })();
 
 /* ============================================== */
