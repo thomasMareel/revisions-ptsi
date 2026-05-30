@@ -1637,7 +1637,7 @@ section.panel.active{display:block;animation:fadeIn 0.4s ease}
 
 #sim-canvas, #opt-canvas, #osc-canvas, #ser-canvas, #lin-canvas, #oxr-canvas,
 #slci-canvas, #hach-canvas, #mcc-canvas, #th2-canvas, #cine-canvas, #int-canvas, #flt-canvas,
-#con-canvas, #crb-canvas, #tr-canvas, #stat-canvas, #s2-canvas, #dyn-canvas, #s1-canvas{
+#con-canvas, #crb-canvas, #tr-canvas, #stat-canvas, #s2-canvas, #dyn-canvas, #s1-canvas, #ond-canvas{
   width:100%;
   height:380px;
   background:var(--paper);
@@ -1649,6 +1649,7 @@ section.panel.active{display:block;animation:fadeIn 0.4s ease}
 #s2-canvas{height:440px}
 #dyn-canvas{height:430px}
 #s1-canvas{height:430px}
+#ond-canvas{height:400px}
 #con-canvas, #crb-canvas{height:440px}
 #opt-canvas{height:450px}
 #lin-canvas{height:450px}
@@ -2418,8 +2419,9 @@ figure.schema figcaption{
 <nav class="tabs">
   <button class="tab active" data-panel="ond-cours"><span class="num">01</span>Cours</button>
   <button class="tab" data-panel="ond-meth"><span class="num">02</span>Méthodes</button>
-  <button class="tab" data-panel="ond-flash"><span class="num">03</span>Flashcards</button>
-  <button class="tab" data-panel="ond-exos"><span class="num">04</span>Exercices</button>
+  <button class="tab" data-panel="ond-simu"><span class="num">03</span>Simulateur</button>
+  <button class="tab" data-panel="ond-flash"><span class="num">04</span>Flashcards</button>
+  <button class="tab" data-panel="ond-exos"><span class="num">05</span>Exercices</button>
 </nav>
 
 <section class="panel active" id="ond-cours">
@@ -2597,6 +2599,60 @@ figure.schema figcaption{
       <li>Dans l'effet Doppler, les signes dépendent du sens relatif : bien définir les conventions.</li>
       <li>La célérité dépend du milieu, pas de la fréquence (milieu non dispersif).</li>
     </ul>
+  </div>
+</div>
+</section>
+
+<section class="panel" id="ond-simu">
+<div class="sim-wrapper">
+  <h2>Simulateur — Ondes : progressive & stationnaire</h2>
+  <p class="lead">Visualise une onde qui se propage, ou la superposition de deux ondes contrapropagatives qui forme une <strong>onde stationnaire</strong> (nœuds et ventres) sur une corde fixée à ses deux extrémités. Fais varier la célérité, la longueur d'onde / le mode, et observe la relation \(c = \lambda f\).</p>
+
+  <div class="mode-switch">
+    <button class="active" data-wave-mode="prog">Onde progressive</button>
+    <button data-wave-mode="stat">Onde stationnaire (corde)</button>
+  </div>
+
+  <div id="ond-regime-display" class="regime-badge">—</div>
+
+  <div class="sim-controls">
+    <div class="control">
+      <label>Célérité c (m/s)</label>
+      <input type="range" id="ond-c" min="0.5" max="6" step="0.1" value="2">
+      <span class="value" id="ond-c-val">2,0 m/s</span>
+    </div>
+    <div class="control" id="ond-lambda-ctrl">
+      <label>Longueur d'onde λ (m)</label>
+      <input type="range" id="ond-lambda" min="0.4" max="3" step="0.05" value="1.2">
+      <span class="value" id="ond-lambda-val">1,20 m</span>
+    </div>
+    <div class="control" id="ond-mode-ctrl" style="display:none">
+      <label>Mode (harmonique n)</label>
+      <input type="range" id="ond-n" min="1" max="6" step="1" value="3">
+      <span class="value" id="ond-n-val">n = 3</span>
+    </div>
+    <div class="control">
+      <label>Amplitude</label>
+      <input type="range" id="ond-amp" min="0.2" max="1" step="0.05" value="0.7">
+      <span class="value" id="ond-amp-val">0,70</span>
+    </div>
+    <div class="control">
+      <label>Animation</label>
+      <input type="checkbox" id="ond-anim" checked style="width:auto;align-self:start">
+      <span class="value" id="ond-anim-val">en cours</span>
+    </div>
+  </div>
+
+  <canvas id="ond-canvas"></canvas>
+
+  <div class="sim-info">
+    <div><span class="lbl">Fréquence f = c/λ</span><span id="ond-info-f">—</span></div>
+    <div><span class="lbl">Période T = 1/f</span><span id="ond-info-T">—</span></div>
+    <div><span class="lbl">Nombre d'onde k = 2π/λ · pulsation ω</span><span id="ond-info-k">—</span></div>
+    <div><span class="lbl">Nœuds / ventres (mode)</span><span id="ond-info-nv">—</span></div>
+  </div>
+  <div class="notice" style="margin-top:1rem">
+    <strong>Progressive</strong> : \(y(x,t) = A\sin(kx - \omega t)\), se propage à \(c = \lambda f = \omega/k\). <strong>Stationnaire</strong> (corde de longueur \(L\) fixée aux deux bouts) : superposition d'ondes contrapropagatives, \(y(x,t) = A\sin(k x)\cos(\omega t)\). Modes propres \(\lambda_n = 2L/n\), \(f_n = n\,c/2L\) : \(n+1\) nœuds et \(n\) ventres. <span id="ond-info-detail"></span>
   </div>
 </div>
 </section>
@@ -38594,7 +38650,7 @@ function flashReset(prefix){
 const CHAPTERS = [
   { id:'ondes',     prefix:'ond', name:'Ondes mécaniques',
     matiere:'physique', sub:'ondes', subLabel:'Ondes', domain:'ondes',
-    matiereLabel:'Ondes & acoustique', panels:['cours','meth','flash','exos'], drawFn:null,
+    matiereLabel:'Ondes & acoustique', panels:['cours','meth','simu','flash','exos'], drawFn:'drawWave',
     mobLabel:'Ondes' },
   { id:'emag',     prefix:'emag', name:'Magnétostatique',
     matiere:'physique', sub:'emag', subLabel:'Électromagnétisme', domain:'ondes',
@@ -39751,7 +39807,7 @@ function drawForced(W,H,padL,padR,padT,padB,y0,p){
   ctx.fillText('log(f)',W-padR-50,H-padB+22);
 }
 
-window.addEventListener('resize',()=>{drawSim();drawOpt();drawOsc();if(typeof drawSer==='function')drawSer();if(typeof drawLin==='function')drawLin();if(typeof drawOxred==='function')drawOxred();if(typeof drawConiques==='function')drawConiques();if(typeof drawCourbesParam==='function')drawCourbesParam();if(typeof drawTrain==='function')drawTrain();if(typeof drawStat==='function')drawStat();if(typeof drawSys2==='function')drawSys2();if(typeof drawPend==='function')drawPend();if(typeof drawSys1==='function')drawSys1()});
+window.addEventListener('resize',()=>{drawSim();drawOpt();drawOsc();if(typeof drawSer==='function')drawSer();if(typeof drawLin==='function')drawLin();if(typeof drawOxred==='function')drawOxred();if(typeof drawConiques==='function')drawConiques();if(typeof drawCourbesParam==='function')drawCourbesParam();if(typeof drawTrain==='function')drawTrain();if(typeof drawStat==='function')drawStat();if(typeof drawSys2==='function')drawSys2();if(typeof drawPend==='function')drawPend();if(typeof drawSys1==='function')drawSys1();if(typeof drawWave==='function')drawWave()});
 
 /* ============================================== */
 /* =========== OPTIQUE SIMULATEUR =============== */
@@ -47145,6 +47201,110 @@ document.addEventListener('keydown',e=>{
 
   function drawSys1(){ render(); if($('s1-anim').checked) startAnim(); }
   window.drawSys1 = drawSys1;
+})();
+
+/* ============================================== */
+/* ====== ONDES — PROGRESSIVE / STATIONNAIRE ==== */
+/* ============================================== */
+(function(){
+  const canvas = document.getElementById('ond-canvas');
+  if(!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  const $ = id => document.getElementById(id);
+  let animId=null, phase=0, mode='prog';
+  const Lstring = 3;  // longueur de corde (m) pour le mode stationnaire
+
+  function fmt(x,n){ if(!isFinite(x)) return '∞'; return (Math.round(x*10**n)/10**n).toString().replace('.',','); }
+  function withA(hex,a){ const h=hex.replace('#',''); if(h.length<6)return hex; const n=parseInt(h,16); return `rgba(${(n>>16)&255},${(n>>8)&255},${n&255},${a})`; }
+
+  function render(){
+    const panel=$('ond-simu'); if(panel && !panel.classList.contains('active')) return;
+    const r=canvas.getBoundingClientRect();
+    canvas.width=r.width*dpr; canvas.height=r.height*dpr; ctx.setTransform(dpr,0,0,dpr,0,0);
+    const W=r.width, H=r.height, C=getCanvasColors();
+    const c=+$('ond-c').value, A=+$('ond-amp').value;
+    ctx.clearRect(0,0,W,H);
+
+    const padX=30, y0=H/2, amp=(H/2-40)*A;
+    const gx0=padX, gx1=W-padX, gw=gx1-gx0;
+    // axe horizontal
+    ctx.strokeStyle=withA(C.ink,0.35); ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(gx0,y0); ctx.lineTo(gx1,y0); ctx.stroke();
+
+    let f, T, k, w, lambda, info;
+    if(mode==='prog'){
+      lambda=+$('ond-lambda').value; const Lwin=6; // fenêtre physique 6 m
+      k=2*Math.PI/lambda; w=k*c; f=c/lambda; T=1/f;
+      const px=x=>gx0 + (x/Lwin)*gw;
+      // onde y(x,t)=A sin(kx - ωt)
+      ctx.strokeStyle=C.accent; ctx.lineWidth=2.6; ctx.beginPath();
+      for(let i=0;i<=600;i++){ const x=Lwin*i/600; const y=y0 - amp*Math.sin(k*x - phase); const X=px(x); if(i===0)ctx.moveTo(X,y); else ctx.lineTo(X,y); }
+      ctx.stroke();
+      // marqueur de longueur d'onde
+      const x1=( (phase/k)%lambda ); // un zéro montant approx
+      ctx.strokeStyle=withA(C.accent2,0.9); ctx.lineWidth=1.5; ctx.setLineDash([4,3]);
+      const xa=px(0.5), xb=px(0.5+lambda);
+      if(0.5+lambda<=Lwin){ ctx.beginPath(); ctx.moveTo(xa,y0-amp-14); ctx.lineTo(xb,y0-amp-14); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(xa,y0-amp-20); ctx.lineTo(xa,y0-amp-8); ctx.moveTo(xb,y0-amp-20); ctx.lineTo(xb,y0-amp-8); ctx.stroke(); }
+      ctx.setLineDash([]);
+      ctx.fillStyle=C.accent2; ctx.font='11px JetBrains Mono, monospace'; ctx.textAlign='center';
+      if(0.5+lambda<=Lwin) ctx.fillText('λ = '+fmt(lambda,2)+' m', (xa+xb)/2, y0-amp-24);
+      // flèche de propagation
+      ctx.fillStyle=C.muted; ctx.textAlign='left';
+      ctx.fillText('→ propagation à c = '+fmt(c,1)+' m/s', gx0+6, H-12);
+      info='Onde progressive : chaque point reproduit, avec un retard, le mouvement de la source. Vitesse de phase c = λf.';
+    } else {
+      const n=+$('ond-n').value; lambda=2*Lstring/n; k=n*Math.PI/Lstring; w=k*c; f=c/lambda; T=1/f;
+      const px=x=>gx0 + (x/Lstring)*gw;
+      // enveloppe ±A sin(kx)
+      ctx.strokeStyle=withA(C.accent2,0.45); ctx.lineWidth=1.2; ctx.setLineDash([5,4]);
+      for(const sgn of [1,-1]){ ctx.beginPath(); for(let i=0;i<=400;i++){ const x=Lstring*i/400; const y=y0 - sgn*amp*Math.abs(Math.sin(k*x)); const X=px(x); if(i===0)ctx.moveTo(X,y); else ctx.lineTo(X,y);} ctx.stroke(); }
+      ctx.setLineDash([]);
+      // corde y(x,t)=A sin(kx) cos(ωt)
+      const ct=Math.cos(phase);
+      ctx.strokeStyle=C.accent; ctx.lineWidth=2.6; ctx.beginPath();
+      for(let i=0;i<=400;i++){ const x=Lstring*i/400; const y=y0 - amp*Math.sin(k*x)*ct; const X=px(x); if(i===0)ctx.moveTo(X,y); else ctx.lineTo(X,y); }
+      ctx.stroke();
+      // extrémités fixées + nœuds + ventres
+      ctx.fillStyle=C.ink;
+      for(let m=0;m<=n;m++){ const xN=m*Lstring/n; ctx.beginPath(); ctx.arc(px(xN),y0,3.5,0,2*Math.PI); ctx.fill(); }
+      ctx.fillStyle=C.green;
+      for(let m=0;m<n;m++){ const xV=(m+0.5)*Lstring/n; ctx.beginPath(); ctx.arc(px(xV),y0,2.6,0,2*Math.PI); ctx.fill(); }
+      ctx.fillStyle=C.muted; ctx.font='10px JetBrains Mono, monospace'; ctx.textAlign='left';
+      ctx.fillText('nœuds (noir) · ventres (vert) — corde fixée, L = '+Lstring+' m', gx0+6, H-12);
+      info='Onde stationnaire : pas de propagation, des nœuds fixes et des ventres qui oscillent. Mode n → λ_n = 2L/n.';
+    }
+
+    // infos
+    $('ond-info-f').textContent = fmt(f,2)+' Hz';
+    $('ond-info-T').textContent = fmt(T,3)+' s';
+    $('ond-info-k').textContent = 'k = '+fmt(k,2)+' rad/m · ω = '+fmt(w,2)+' rad/s';
+    $('ond-info-nv').textContent = mode==='stat' ? ((+$('ond-n').value+1)+' nœuds / '+(+$('ond-n').value)+' ventres') : 'λ = '+fmt(lambda,2)+' m';
+    const badge=$('ond-regime-display');
+    badge.textContent = mode==='prog' ? 'ONDE PROGRESSIVE — y(x,t)=A·sin(kx−ωt), c = λf'
+                                      : 'ONDE STATIONNAIRE — mode n='+$('ond-n').value+', f_n = n·c/2L';
+    badge.className='regime-badge '+(mode==='prog'?'pseudo':'critique');
+    $('ond-info-detail').innerHTML = info+' Ici c = '+fmt(c,1)+' m/s, f = '+fmt(f,2)+' Hz, λ = '+fmt(lambda,2)+' m.';
+  }
+
+  function loop(){ const c=+$('ond-c').value; phase += 0.04*Math.max(0.6,c)*1.2; render(); animId=requestAnimationFrame(loop); }
+  function start(){ if(animId===null) animId=requestAnimationFrame(loop); }
+  function stop(){ if(animId!==null){ cancelAnimationFrame(animId); animId=null; } }
+
+  document.querySelectorAll('[data-wave-mode]').forEach(b=>{ b.addEventListener('click',()=>{
+    document.querySelectorAll('[data-wave-mode]').forEach(x=>x.classList.remove('active')); b.classList.add('active');
+    mode=b.dataset.waveMode;
+    $('ond-lambda-ctrl').style.display = mode==='prog'?'flex':'none';
+    $('ond-mode-ctrl').style.display = mode==='stat'?'flex':'none';
+    render();
+  }); });
+  const SLID={ 'ond-c':v=>fmt(+v,1)+' m/s', 'ond-lambda':v=>fmt(+v,2)+' m', 'ond-n':v=>'n = '+v, 'ond-amp':v=>fmt(+v,2) };
+  Object.keys(SLID).forEach(id=>{ const el=$(id); if(!el)return; el.addEventListener('input',()=>{ $(id+'-val').textContent=SLID[id](el.value); render(); }); });
+  $('ond-anim').addEventListener('change',()=>{ if($('ond-anim').checked){ $('ond-anim-val').textContent='en cours'; start(); } else { $('ond-anim-val').textContent='arrêtée'; stop(); } });
+
+  function drawWave(){ render(); if($('ond-anim').checked) start(); }
+  window.drawWave = drawWave;
 })();
 
 /* ============================================== */
