@@ -139,3 +139,5 @@ Le site est **100 % autonome** — aucune requête externe, fonctionne hors-lign
 ## Variables CSS de thème (`:root`)
 
 `--ink`, `--paper`, `--paper-dark`, `--accent` (#c8472e), `--accent2` (#2d5f8a), `--green`, `--amber`, `--grid`, `--shadow`. Thème sombre : `:root[data-theme="dark"]` avec overrides ciblés. Bascule via `applyTheme()` (~l.31354).
+
+**Couleurs dans les simulateurs/schémas** : toujours utiliser les variables de thème (ou `getCanvasColors()` côté canvas), **jamais une couleur codée en dur** — sinon le contraste casse en mode sombre. Les encadrés communs des simulateurs (`.sim-controls`, `.sim-info`, `.regime-badge` et ses variantes `.pseudo/.critique/.aperiodique`) ont un bloc d'overrides sombre **unique** (chercher « Contraste des encadrés de simulateur en thème sombre » dans le `<style>`) : il s'applique à tous les simulateurs existants et futurs. Toute nouvelle variante de badge doit y recevoir une couleur issue des variables.
