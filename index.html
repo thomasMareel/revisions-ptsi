@@ -1637,7 +1637,7 @@ section.panel.active{display:block;animation:fadeIn 0.4s ease}
 
 #sim-canvas, #opt-canvas, #osc-canvas, #ser-canvas, #lin-canvas, #oxr-canvas,
 #slci-canvas, #hach-canvas, #mcc-canvas, #th2-canvas, #cine-canvas, #int-canvas, #flt-canvas,
-#con-canvas, #crb-canvas, #tr-canvas, #stat-canvas, #s2-canvas, #dyn-canvas, #s1-canvas, #ond-canvas, #cc-canvas{
+#con-canvas, #crb-canvas, #tr-canvas, #stat-canvas, #s2-canvas, #dyn-canvas, #s1-canvas, #ond-canvas, #cc-canvas, #od-canvas{
   width:100%;
   height:380px;
   background:var(--paper);
@@ -1651,6 +1651,7 @@ section.panel.active{display:block;animation:fadeIn 0.4s ease}
 #s1-canvas{height:430px}
 #ond-canvas{height:400px}
 #cc-canvas{height:480px}
+#od-canvas{height:430px}
 #con-canvas, #crb-canvas{height:440px}
 #opt-canvas{height:450px}
 #lin-canvas{height:450px}
@@ -6324,8 +6325,9 @@ figure.schema figcaption{
 <nav class="tabs">
   <button class="tab active" data-panel="od-cours"><span class="num">01</span>Cours</button>
   <button class="tab" data-panel="od-meth"><span class="num">02</span>Méthodes</button>
-  <button class="tab" data-panel="od-flash"><span class="num">03</span>Flashcards</button>
-  <button class="tab" data-panel="od-exos"><span class="num">04</span>Exercices</button>
+  <button class="tab" data-panel="od-simu"><span class="num">03</span>Simulateur</button>
+  <button class="tab" data-panel="od-flash"><span class="num">04</span>Flashcards</button>
+  <button class="tab" data-panel="od-exos"><span class="num">05</span>Exercices</button>
 </nav>
 <section class="panel active" id="od-cours">
 <div class="hors-prog">
@@ -6491,6 +6493,49 @@ figure.schema figcaption{
       <li>Diffraction et interférences se combinent : les interférences se produisent dans l'enveloppe de diffraction.</li>
       <li>L'interfrange \(i = \lambda D/a\) est indépendant de l'ordre (franges équidistantes).</li>
     </ul>
+  </div>
+</div>
+</section>
+<section class="panel" id="od-simu">
+<div class="sim-wrapper">
+  <h2>Simulateur — Interférences des fentes d'Young</h2>
+  <p class="lead">Deux fentes distantes de \(a\) éclairées par une lumière monochromatique de longueur d'onde \(\lambda\) créent, sur un écran à distance \(D\), des franges régulières. Fais varier \(a\), \(\lambda\), \(D\) : l'<strong>interfrange</strong> \(i = \lambda D / a\) et la figure se mettent à jour, avec la courbe d'intensité \(I(x) = 2I_0\,[1 + \cos(2\pi a x / \lambda D)]\).</p>
+
+  <div id="od-regime-display" class="regime-badge">—</div>
+
+  <div class="sim-controls">
+    <div class="control">
+      <label>Écartement des fentes a (µm)</label>
+      <input type="range" id="od-a" min="50" max="500" step="5" value="200">
+      <span class="value" id="od-a-val">200 µm</span>
+    </div>
+    <div class="control">
+      <label>Longueur d'onde λ (nm)</label>
+      <input type="range" id="od-lam" min="400" max="700" step="5" value="550">
+      <span class="value" id="od-lam-val">550 nm</span>
+    </div>
+    <div class="control">
+      <label>Distance écran D (m)</label>
+      <input type="range" id="od-D" min="0.5" max="3" step="0.05" value="1.5">
+      <span class="value" id="od-D-val">1,50 m</span>
+    </div>
+    <div class="control">
+      <label>Couleur réaliste</label>
+      <input type="checkbox" id="od-color" checked style="width:auto;align-self:start">
+      <span class="value" id="od-color-val">oui</span>
+    </div>
+  </div>
+
+  <canvas id="od-canvas"></canvas>
+
+  <div class="sim-info">
+    <div><span class="lbl">Interfrange i = λD/a</span><span id="od-info-i">—</span></div>
+    <div><span class="lbl">Différence de marche par frange</span><span id="od-info-d">—</span></div>
+    <div><span class="lbl">Franges visibles sur l'écran</span><span id="od-info-n">—</span></div>
+    <div><span class="lbl">Ordre d'interférence p = δ/λ</span><span id="od-info-p">—</span></div>
+  </div>
+  <div class="notice" style="margin-top:1rem">
+    <strong>Franges brillantes</strong> : différence de marche \(\delta = a\,x/D = p\lambda\) (entier \(p\)) → interférence constructive. <strong>Sombres</strong> : \(\delta = (p+\tfrac12)\lambda\). L'<strong>interfrange</strong> \(i = \lambda D/a\) augmente si on écarte l'écran (\(D\)↑), rapproche les fentes (\(a\)↓) ou augmente \(\lambda\) (vers le rouge). <span id="od-info-detail"></span>
   </div>
 </div>
 </section>
@@ -38780,7 +38825,7 @@ const CHAPTERS = [
     mobLabel:'Statique fluides' },
   { id:'optiqued',  prefix:'od',  name:'Optique ondulatoire',
     matiere:'physique', sub:'ondes', subLabel:'Ondes & signaux', domain:'ondes',
-    matiereLabel:'Optique', panels:['cours','meth','flash','exos'], drawFn:null,
+    matiereLabel:'Optique', panels:['cours','meth','simu','flash','exos'], drawFn:'drawYoung',
     mobLabel:'Optique ondulat.' },{ id:'induction', prefix:'ind', name:'Induction électromagnétique',
     matiere:'physique', sub:'emag', subLabel:'Électromagnétisme', domain:'ondes',
     matiereLabel:'Électromagnétisme', panels:['cours','meth','flash','exos'], drawFn:null,
@@ -39852,7 +39897,7 @@ function drawForced(W,H,padL,padR,padT,padB,y0,p){
   ctx.fillText('log(f)',W-padR-50,H-padB+22);
 }
 
-window.addEventListener('resize',()=>{drawSim();drawOpt();drawOsc();if(typeof drawSer==='function')drawSer();if(typeof drawLin==='function')drawLin();if(typeof drawOxred==='function')drawOxred();if(typeof drawConiques==='function')drawConiques();if(typeof drawCourbesParam==='function')drawCourbesParam();if(typeof drawTrain==='function')drawTrain();if(typeof drawStat==='function')drawStat();if(typeof drawSys2==='function')drawSys2();if(typeof drawPend==='function')drawPend();if(typeof drawSys1==='function')drawSys1();if(typeof drawWave==='function')drawWave();if(typeof drawOrbit==='function')drawOrbit()});
+window.addEventListener('resize',()=>{drawSim();drawOpt();drawOsc();if(typeof drawSer==='function')drawSer();if(typeof drawLin==='function')drawLin();if(typeof drawOxred==='function')drawOxred();if(typeof drawConiques==='function')drawConiques();if(typeof drawCourbesParam==='function')drawCourbesParam();if(typeof drawTrain==='function')drawTrain();if(typeof drawStat==='function')drawStat();if(typeof drawSys2==='function')drawSys2();if(typeof drawPend==='function')drawPend();if(typeof drawSys1==='function')drawSys1();if(typeof drawWave==='function')drawWave();if(typeof drawOrbit==='function')drawOrbit();if(typeof drawYoung==='function')drawYoung()});
 
 /* ============================================== */
 /* =========== OPTIQUE SIMULATEUR =============== */
@@ -47480,6 +47525,100 @@ document.addEventListener('keydown',e=>{
 
   function drawOrbit(){ if(!st) reset(); render(); start(); }
   window.drawOrbit = drawOrbit;
+})();
+
+/* ============================================== */
+/* ===== INTERFÉRENCES D'YOUNG — OPTIQUE OND. === */
+/* ============================================== */
+(function(){
+  const canvas = document.getElementById('od-canvas');
+  if(!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  const $ = id => document.getElementById(id);
+  const WPHYS = 0.04;  // largeur d'écran montrée : 4 cm
+
+  function fmt(x,n){ if(!isFinite(x)) return '∞'; return (Math.round(x*10**n)/10**n).toString().replace('.',','); }
+
+  // longueur d'onde (nm) → RGB approximatif (spectre visible)
+  function wlRGB(wl){
+    let r=0,g=0,b=0;
+    if(wl<440){ r=-(wl-440)/(440-380); b=1; }
+    else if(wl<490){ g=(wl-440)/(490-440); b=1; }
+    else if(wl<510){ g=1; b=-(wl-510)/(510-490); }
+    else if(wl<580){ r=(wl-510)/(580-510); g=1; }
+    else if(wl<645){ r=1; g=-(wl-645)/(645-580); }
+    else { r=1; }
+    let f=1; if(wl<420) f=0.3+0.7*(wl-380)/(420-380); else if(wl>700) f=0.3+0.7*(780-wl)/(780-700);
+    return [Math.round(255*r*f), Math.round(255*g*f), Math.round(255*b*f)];
+  }
+
+  function render(){
+    const panel=$('od-simu'); if(panel && !panel.classList.contains('active')) return;
+    const r=canvas.getBoundingClientRect();
+    canvas.width=r.width*dpr; canvas.height=r.height*dpr; ctx.setTransform(dpr,0,0,dpr,0,0);
+    const W=r.width, H=r.height, C=getCanvasColors();
+    const a=(+$('od-a').value)*1e-6, lam=(+$('od-lam').value)*1e-9, D=+$('od-D').value;
+    const colorOn=$('od-color').checked;
+    const i = lam*D/a;                              // interfrange (m)
+    ctx.clearRect(0,0,W,H);
+
+    const padL=20, padR=20, gw=W-padL-padR;
+    const curveTop=24, curveH=H*0.42, bandTop=curveTop+curveH+24, bandH=H*0.30;
+    const xPix2phys = px => (px/gw - 0.5)*WPHYS;     // px in [0,gw] → x physique
+    const rgb = colorOn ? wlRGB(+$('od-lam').value) : [235,235,235];
+
+    // --- bande de franges ---
+    for(let p=0;p<gw;p++){
+      const x=xPix2phys(p);
+      const I=(1+Math.cos(2*Math.PI*x/i))/2;        // ∈[0,1]
+      ctx.fillStyle=`rgb(${Math.round(rgb[0]*I)},${Math.round(rgb[1]*I)},${Math.round(rgb[2]*I)})`;
+      ctx.fillRect(padL+p, bandTop, 1.5, bandH);
+    }
+    ctx.strokeStyle=C.ink; ctx.lineWidth=1; ctx.strokeRect(padL,bandTop,gw,bandH);
+    ctx.fillStyle=C.muted; ctx.font='10px JetBrains Mono, monospace'; ctx.textAlign='left';
+    ctx.fillText('écran — figure d\'interférences', padL+4, bandTop+bandH+16);
+
+    // --- courbe d'intensité ---
+    ctx.strokeStyle=C.grid; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(padL,curveTop+curveH); ctx.lineTo(padL+gw,curveTop+curveH); ctx.stroke();
+    const col = colorOn ? `rgb(${rgb[0]},${rgb[1]},${rgb[2]})` : C.accent;
+    ctx.strokeStyle=col; ctx.lineWidth=2.2; ctx.beginPath();
+    for(let p=0;p<=gw;p++){ const x=xPix2phys(p); const I=(1+Math.cos(2*Math.PI*x/i))/2;
+      const X=padL+p, Y=curveTop+curveH-(I)*curveH*0.92; if(p===0)ctx.moveTo(X,Y); else ctx.lineTo(X,Y); }
+    ctx.stroke();
+    ctx.fillStyle=C.muted; ctx.textAlign='left'; ctx.fillText('I(x)', padL+2, curveTop+10);
+    ctx.textAlign='center'; ctx.fillText('x = 0', padL+gw/2, curveTop+curveH+14);
+
+    // --- marqueur interfrange (entre centre et frange suivante) ---
+    const px0=padL+gw/2, pxi=padL+gw/2 + (i/WPHYS)*gw;
+    if(pxi<padL+gw-10){
+      ctx.strokeStyle=C.accent2; ctx.lineWidth=1.5;
+      ctx.beginPath(); ctx.moveTo(px0,curveTop+curveH+4); ctx.lineTo(px0,bandTop-4); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(pxi,curveTop+curveH+4); ctx.lineTo(pxi,bandTop-4); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(px0,bandTop-10); ctx.lineTo(pxi,bandTop-10); ctx.stroke();
+      ctx.fillStyle=C.accent2; ctx.textAlign='center'; ctx.font='11px JetBrains Mono, monospace';
+      ctx.fillText('i = '+fmt(i*1000,2)+' mm', (px0+pxi)/2, bandTop-14);
+    }
+
+    // infos
+    const nFr=WPHYS/i;
+    $('od-info-i').textContent=fmt(i*1000,3)+' mm';
+    $('od-info-d').textContent='δ = λ = '+(+$('od-lam').value)+' nm par frange brillante';
+    $('od-info-n').textContent='≈ '+Math.round(nFr)+' franges sur '+(WPHYS*100)+' cm';
+    $('od-info-p').textContent='ordre p entier (brillante) · p+½ (sombre)';
+    const badge=$('od-regime-display');
+    badge.textContent='INTERFÉRENCES À DEUX ONDES — interfrange i = λD/a = '+fmt(i*1000,2)+' mm';
+    badge.className='regime-badge pseudo';
+    $('od-info-detail').innerHTML='a = '+(+$('od-a').value)+' µm, λ = '+(+$('od-lam').value)+' nm, D = '+fmt(D,2)+' m → i = '+fmt(i*1000,2)+' mm. Rapproche les fentes ou augmente D pour élargir les franges.';
+  }
+
+  const SLID={ 'od-a':v=>v+' µm', 'od-lam':v=>v+' nm', 'od-D':v=>fmt(+v,2)+' m' };
+  Object.keys(SLID).forEach(id=>{ const el=$(id); el.addEventListener('input',()=>{ $(id+'-val').textContent=SLID[id](el.value); render(); }); });
+  $('od-color').addEventListener('change',()=>{ $('od-color-val').textContent=$('od-color').checked?'oui':'non'; render(); });
+
+  function drawYoung(){ render(); }
+  window.drawYoung = drawYoung;
 })();
 
 /* ============================================== */
