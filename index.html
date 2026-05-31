@@ -41220,7 +41220,7 @@ const FLASH_FR2 = new Set(['et','ou','ne','se','ce','si','au','en','on','il','le
 const FLASH_FUNC = /^(arccos|arcsin|arctan|sinh|cosh|tanh|cos|sin|tan|cot|ln|log|exp|lim|sup|inf|max|min|arg|det|dim|ker|Re|Im|Card|pgcd|ppcm)$/;
 const FLASH_MATHSIG = /[0-9=+*\/^_<>≤≥≠≈≅±∓−√∑∏∫∮∂∇∈∉⊂⊃⊆⊇∪∩∅∀∃∞≡≜∝∘→←↦⇒⇔↔⟶⟹\[\]ℝℂℤℕℚ𝕌𝔻²³¹⁰⁴⁵⁶⁷⁸⁹ⁿⁱ⁺⁻₀₁₂₃₄₅₆₇₈₉ₙₖᵢⱼℓ°|·×÷αβγδεζηθϑικλμνξοπρϱσςτυφϕχψωΓΔΘΛΞΠΣΦΨΩ]/;
 const FLASH_FCALL = /[A-Za-zℓ'’]\(/;
-const FLASH_COMB = /[̀-ͯ]/;
+const FLASH_COMB = /[̀-ͯ⃐-⃿]/;  // diacritiques (accents, points) ET marques de symboles (flèche vecteur ⃗ = U+20D7)
 // Convertit un fragment de maths Unicode en LaTeX (sans les délimiteurs \( \)).
 function flashConvertMath(m){
   const O = '', C = '';                                          // marque-place pour { } de groupement
@@ -41237,7 +41237,7 @@ function flashConvertMath(m){
   m = m.replace(/[²³¹⁰⁴⁵⁶⁷⁸⁹ⁿⁱ⁺⁻]+/g, r=>'^{'+[...r].map(c=>sup[c]||'').join('')+'}');
   const sub = {'₀':'0','₁':'1','₂':'2','₃':'3','₄':'4','₅':'5','₆':'6','₇':'7','₈':'8','₉':'9','ₙ':'n','ₖ':'k','ᵢ':'i','ⱼ':'j','₊':'+','₋':'-'};
   m = m.replace(/[₀₁₂₃₄₅₆₇₈₉ₙₖᵢⱼ₊₋]+/g, r=>'_{'+[...r].map(c=>sub[c]||'').join('')+'}');
-  m = m.replace(/([A-Za-zα-ωΑ-Ω])̄/g,'\\bar{$1}').replace(/([A-Za-zα-ωΑ-Ω])̇/g,'\\dot{$1}').replace(/([A-Za-zα-ωΑ-Ω])̈/g,'\\ddot{$1}').replace(/([A-Za-zα-ωΑ-Ω])⃗/g,'\\vec{$1}');
+  m = m.replace(/([A-Za-zα-ωΑ-Ω])̄/g,'\\bar{$1}').replace(/([A-Za-zα-ωΑ-Ω])̇/g,'\\dot{$1}').replace(/([A-Za-zα-ωΑ-Ω])̈/g,'\\ddot{$1}').replace(/([A-Za-zα-ωΑ-Ω]+)⃗/g,'\\vec{$1}');
   m = m.replace(/ü/g,'\\ddot{u}').replace(/ö/g,'\\ddot{o}');
   m = m.replace(/𝕌/g,'\\mathbb{U}').replace(/𝔻/g,'\\mathbb{D}').replace(/𝕂/g,'\\mathbb{K}');
   m = m.replace(/\b(arccos|arcsin|arctan|sinh|cosh|tanh|cos|sin|tan|cot|ln|log|exp|lim|sup|inf|max|min|arg|det|dim|ker|gcd)\b/g,'\\$1 ');
@@ -41315,6 +41315,7 @@ function flashPretty(s){
       let mm = flashConvertMath(toks.slice(i,lastM+1).join(''));
       mm = mm.replace(/ẋ/g,'\\dot{x}').replace(/ẍ/g,'\\ddot{x}').replace(/ẏ/g,'\\dot{y}').replace(/ṙ/g,'\\dot{r}').replace(/ṗ/g,'\\dot{p}').replace(/ṡ/g,'\\dot{s}').replace(/ṁ/g,'\\dot{m}').replace(/ṅ/g,'\\dot{n}').replace(/ḋ/g,'\\dot{d}').replace(/ġ/g,'\\dot{g}').replace(/ḣ/g,'\\dot{h}'); // dérivées précomposées
       mm = flashFrac(mm);                                                                      // divisions A/B -> \dfrac{A}{B}
+      mm = mm.replace(/\\sqrt\{([^{}]*\/[^{}]*)\}/g, (x,inn)=>'\\sqrt{'+flashFrac(inn)+'}');    // fraction SOUS la racine : √(L/C) -> empilée
       mm = mm.replace(/\b(rang|Vect|pgcd|ppcm|Card|Ker|diag|sgn)\b/g, '\\operatorname{$1}');   // opérateurs rendus droits
       mm = mm.replace(/(\^(?:\{[^{}]*\}|[A-Za-z0-9]))('+)/g, '$1{}$2');                       // évite « prime after exponent »
       mm = mm.replace(/(_\{[^{}]*\})(?=_)/g, '$1{}').replace(/(\^\{[^{}]*\})(?=\^)/g, '$1{}'); // évite doubles indices/exposants
@@ -50736,8 +50737,8 @@ ${bodyContent}
     // Carte (face question)
     const inner = document.getElementById('quiz-card-inner');
     inner.classList.remove('flipped');
-    document.getElementById('quiz-question-text').innerHTML = item.card.q;
-    document.getElementById('quiz-answer-text').innerHTML   = item.card.a;
+    document.getElementById('quiz-question-text').innerHTML = flashPretty(item.card.q);
+    document.getElementById('quiz-answer-text').innerHTML   = flashPretty(item.card.a);
 
     // Boutons
     document.getElementById('quiz-actions-reveal').style.display = '';
