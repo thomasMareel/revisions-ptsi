@@ -123,7 +123,8 @@ Le site est **100 % autonome** — aucune requête externe, fonctionne hors-lign
 
 - Servi par **GitHub Pages** depuis `main` (dossier `/`). URL : `https://thomasmareel.github.io/revisions-ptsi/`.
 - ⚠️ **`.nojekyll` à la racine est OBLIGATOIRE — ne jamais le supprimer.** Sans lui, GitHub lance **Jekyll**, dont le parseur **Liquid** bute sur le LaTeX (`{{…}}`), les gabarits JS `${…}` et la taille de `index.html` → le build **échoue** (« Page build failed ») et le site reste **figé au dernier build réussi** (les commits suivants ne se voient pas, alors que `git push` a réussi). `.nojekyll` fait servir les fichiers tels quels.
-- **Diagnostic déploiement** : `gh api repos/thomasMareel/revisions-ptsi/pages/builds/latest --jq '{status, commit: .commit[0:7], error: .error.message}'` → statut `built` (ok) / `errored` (échec) / `building` (en cours). Le binaire `gh` est à `C:\Program Files\GitHub CLI\gh.exe`.
+- **Le déploiement passe désormais par GitHub Actions** (workflow « Déploiement GitHub Pages (statique) »), pas par l'ancienne pipeline Jekyll. **Diagnostic** : `gh run list --repo thomasMareel/revisions-ptsi --limit 5` → chaque push doit afficher `completed success`. Le binaire `gh` est à `C:\Program Files\GitHub CLI\gh.exe`.
+  - ⚠️ **Ne PAS se fier à `gh api …/pages/builds/latest`** : cette API reflète l'ancienne pipeline Jekyll (restée bloquée sur un build `errored` de mai 2026, commit `47fa649`, antérieur au passage à Actions). Elle affiche donc un vieux commit en `built` et induit en erreur — le vrai état de déploiement est celui des **runs Actions** ci-dessus.
 
 ## Outils
 
