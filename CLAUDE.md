@@ -114,8 +114,9 @@ Le site est **100 % autonome** — aucune requête externe, fonctionne hors-lign
 ## PWA (installable + hors-ligne sur mobile)
 
 - `manifest.webmanifest` (nom, icônes `icons/`, `display:standalone`, `theme_color`) + `sw.js` (service worker). Enregistré dans `index.html` en fin de `<body>`, **uniquement en http/https** (pas en `file://`).
-- `sw.js` : précache toute la coquille (index.html, fonts.css, MathJax + toutes les polices, icônes) ; HTML en *réseau-d'abord* (frais en ligne, cache hors-ligne), assets en *cache-d'abord*.
-- ⚠️ **À chaque modification d'un asset mis en cache** (index.html inclus), **incrémenter `CACHE_VERSION`** en tête de `sw.js` (`ptsi-cache-v1` → `v2`…), sinon les utilisateurs déjà « installés » gardent l'ancienne version en cache. Le HTML étant en réseau-d'abord, il se rafraîchit seul en ligne ; mais bumper la version reste la garantie propre.
+- `sw.js` : précache toute la coquille (index.html, fonts.css, MathJax + toutes les polices, icônes) ; HTML en *cache-d'abord puis revalidation* (**stale-while-revalidate** : lancement instantané depuis le cache, mise à jour récupérée en arrière-plan), assets en *cache-d'abord*.
+- **Mise à jour & notification** : le SV ne fait plus de `skipWaiting()` automatique ; à chaque bump de `CACHE_VERSION`, le nouveau SV reste « en attente » et une **bannière « Nouvelle version disponible — Recharger »** (code dans `index.html`) propose d'appliquer la MAJ (clic → `postMessage(SKIP_WAITING)` → activation → `controllerchange` → reload). Re-vérification au retour sur l'app (`visibilitychange`).
+- ⚠️ **À chaque modification d'un asset mis en cache** (index.html inclus), **incrémenter `CACHE_VERSION`** en tête de `sw.js` (`ptsi-cache-v1` → `v2`…) : c'est ce bump qui déclenche la bannière de mise à jour chez les utilisateurs « installés ». Comme le HTML est désormais servi cache-d'abord, **sans bump l'utilisateur garde l'ancienne version** (le bump est donc obligatoire, plus seulement « propre »).
 - Si on ajoute/retire des polices, mettre à jour la liste `PRECACHE` de `sw.js`.
 - Le service worker ne s'active pas en ouverture locale `file://` (normal) ; le hors-ligne local reste assuré par les assets embarqués.
 

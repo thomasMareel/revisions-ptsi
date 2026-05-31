@@ -3,7 +3,7 @@
    IMPORTANT : à chaque modification d'un asset mis en cache (index.html, polices,
    MathJax…), incrémenter CACHE_VERSION pour forcer le rafraîchissement chez les
    utilisateurs déjà installés. */
-const CACHE_VERSION = 'ptsi-cache-v59';
+const CACHE_VERSION = 'ptsi-cache-v60';
 
 const PRECACHE = [
   './',
@@ -94,15 +94,19 @@ self.addEventListener('fetch', event => {
                 (req.headers.get('accept') || '').includes('text/html');
 
   if (isNav) {
-    // HTML : réseau d'abord (toujours frais en ligne), cache en secours hors-ligne
+    // HTML : « cache d'abord puis revalidation » (stale-while-revalidate).
+    // Lancement INSTANTANÉ depuis le cache (crucial en PWA), tout en récupérant
+    // la nouvelle version en arrière-plan ; la bannière de mise à jour (pilotée
+    // par le bump de CACHE_VERSION + skipWaiting) invite à recharger quand prêt.
     event.respondWith(
-      fetch(req)
-        .then(res => {
-          const copy = res.clone();
-          caches.open(CACHE_VERSION).then(c => c.put('index.html', copy));
-          return res;
+      caches.open(CACHE_VERSION).then(cache =>
+        cache.match('index.html').then(cached => {
+          const network = fetch(req)
+            .then(res => { if (res && res.ok) cache.put('index.html', res.clone()); return res; })
+            .catch(() => cached || cache.match('./'));
+          return cached || network;   // cache si présent (instantané), sinon réseau (1er chargement)
         })
-        .catch(() => caches.match('index.html').then(r => r || caches.match('./')))
+      )
     );
     return;
   }
