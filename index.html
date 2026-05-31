@@ -1657,6 +1657,9 @@ section.panel.active{display:block;animation:fadeIn 0.4s ease}
 #cpx-canvas{height:480px}
 #suit-canvas{height:470px}
 #con-canvas, #crb-canvas{height:440px}
+/* Simulateurs où l'on peut glisser un objet au doigt : on désactive le
+   défilement/zoom tactile par-dessus le canvas pour que le drag fonctionne. */
+#cpx-canvas, #es-canvas, #dyn-canvas{touch-action:none;cursor:grab}
 #opt-canvas{height:450px}
 #lin-canvas{height:450px}
 #oxr-canvas{height:450px}
@@ -47386,6 +47389,7 @@ document.addEventListener('keydown',e=>{
   const dpr = window.devicePixelRatio || 1;
   const $ = id => document.getElementById(id);
   let animId=null, theta=0, omega=0, w0=3, lam=0, trail=[];
+  let pend={ox:0, oy:0, Lr:1}, dragging=false;   // géométrie du pendule + état de glissement
 
   function fmt(x,n){ if(!isFinite(x)) return '∞'; return (Math.round(x*10**n)/10**n).toString().replace('.',','); }
 
@@ -47412,6 +47416,7 @@ document.addEventListener('keydown',e=>{
     // ----- panneau gauche : pendule -----
     const LW=Math.min(W*0.42, 260);
     const ox=LW/2, oy=70, Lr=Math.min(LW*0.42, H-150);
+    pend={ox,oy,Lr};   // mémorisé pour le glissement de la masse
     ctx.strokeStyle=C.muted; ctx.lineWidth=1.4;
     // support
     ctx.beginPath(); ctx.moveTo(ox-30,oy); ctx.lineTo(ox+30,oy); ctx.stroke();
@@ -47476,7 +47481,7 @@ document.addEventListener('keydown',e=>{
     if(lam>0.001){ badge.textContent='AMORTI — l\'énergie mécanique décroît, amplitude qui diminue'; badge.className='regime-badge critique'; }
     else { badge.textContent='CONSERVATIF — Em constante, échange permanent Ec ↔ Ep'; badge.className='regime-badge pseudo'; }
     $('dyn-info-detail').innerHTML = 'Amplitude θ₀ = '+fmt(a0*180/Math.PI,0)+'° → période '+fmt((ratio-1)*100,1)+
-      ' % plus longue qu\'aux petits angles. À 90° l\'écart atteint ~18 %, et il diverge quand θ₀→180°.';
+      ' % plus longue qu\'aux petits angles. À 90° l\'écart atteint ~18 %, et il diverge quand θ₀→180°. Glisse la masse pour fixer l\'angle.';
   }
 
   function withA(hex,a){ const h=hex.replace('#',''); if(h.length<6)return hex; const n=parseInt(h,16); return `rgba(${(n>>16)&255},${(n>>8)&255},${n&255},${a})`; }
@@ -47497,7 +47502,7 @@ document.addEventListener('keydown',e=>{
     trail.push({th:theta,om:omega}); if(trail.length>900) trail.shift();
   }
 
-  function loop(){ if(canvas.offsetParent===null){ animId=null; return; } if($('dyn-run').checked) stepPhysics(); render(); animId=requestAnimationFrame(loop); }
+  function loop(){ if(canvas.offsetParent===null){ animId=null; return; } if($('dyn-run').checked && !dragging) stepPhysics(); render(); animId=requestAnimationFrame(loop); }
   function start(){ if(animId===null) animId=requestAnimationFrame(loop); }
   function stop(){ if(animId!==null){ cancelAnimationFrame(animId); animId=null; } }
 
@@ -47505,6 +47510,29 @@ document.addEventListener('keydown',e=>{
   $('dyn-w0').addEventListener('input',()=>{ $('dyn-w0-val').textContent=fmt(+$('dyn-w0').value,1)+' rad/s'; render(); });
   $('dyn-lam').addEventListener('input',()=>{ lam=+$('dyn-lam').value; $('dyn-lam-val').textContent=lam<0.001?'0 (aucun)':fmt(lam,3); render(); });
   $('dyn-run').addEventListener('change',()=>{ $('dyn-run-val').textContent=$('dyn-run').checked?'en cours':'pause'; });
+
+  /* ── Glisser la masse pour fixer l'angle initial (souris + tactile) ── */
+  function pdPos(e){ const r=canvas.getBoundingClientRect(); return {x:e.clientX-r.left, y:e.clientY-r.top}; }
+  function bobXY(){ return {x:pend.ox+pend.Lr*Math.sin(theta), y:pend.oy+pend.Lr*Math.cos(theta)}; }
+  function nearBob(px,py){ const b=bobXY(); return Math.hypot(px-b.x, py-b.y)<=18; }
+  canvas.addEventListener('pointerdown', e=>{
+    const p=pdPos(e);
+    if(nearBob(p.x,p.y)){ dragging=true; try{canvas.setPointerCapture(e.pointerId);}catch(_){} canvas.style.cursor='grabbing'; e.preventDefault(); }
+  });
+  canvas.addEventListener('pointermove', e=>{
+    const p=pdPos(e);
+    if(!dragging){ canvas.style.cursor = nearBob(p.x,p.y)?'grab':'default'; return; }
+    let th=Math.atan2(p.x-pend.ox, p.y-pend.oy);     // θ mesuré depuis la verticale basse
+    const thMax=170*Math.PI/180, thMin=5*Math.PI/180;
+    const sgn = th<0?-1:1, mag=Math.max(thMin, Math.min(thMax, Math.abs(th)));
+    theta=sgn*mag; omega=0; trail=[];
+    const deg=Math.round(mag*180/Math.PI);
+    $('dyn-a0').value=deg; $('dyn-a0-val').textContent=deg+'°';
+    render(); e.preventDefault();
+  });
+  function pdEnd(e){ if(dragging){ dragging=false; canvas.style.cursor='grab'; try{canvas.releasePointerCapture(e.pointerId);}catch(_){} } }
+  canvas.addEventListener('pointerup', pdEnd);
+  canvas.addEventListener('pointercancel', pdEnd);
 
   function drawPend(){ if(theta===0 && omega===0) reset(); render(); start(); }
   window.drawPend = drawPend;
@@ -47943,13 +47971,15 @@ document.addEventListener('keydown',e=>{
   const $ = id => document.getElementById(id);
   let mode='dipole';
   const WORLD=4;  // demi-largeur monde
+  // positions des charges, déplaçables à la souris / au doigt
+  let cpos=[{x:-1.3,y:0},{x:1.3,y:0}];
 
   function fmt(x,n){ return (Math.round(x*10**n)/10**n).toString().replace('.',','); }
 
   function charges(){
-    const q1=+$('es-q1').value, q2=+$('es-q2').value, d=1.3;
-    if(mode==='single') return [{x:0,y:0,q:q1}];
-    return [{x:-d,y:0,q:q1},{x:d,y:0,q:q2}];
+    const q1=+$('es-q1').value, q2=+$('es-q2').value;
+    if(mode==='single') return [{x:cpos[0].x,y:cpos[0].y,q:q1}];
+    return [{x:cpos[0].x,y:cpos[0].y,q:q1},{x:cpos[1].x,y:cpos[1].y,q:q2}];
   }
   function field(px,py,ch){ let ex=0,ey=0; for(const c of ch){ const dx=px-c.x, dy=py-c.y; let r2=dx*dx+dy*dy; if(r2<1e-3)r2=1e-3; const r=Math.sqrt(r2); const f=c.q/(r2*r); ex+=f*dx; ey+=f*dy; } return {ex,ey}; }
   function pot(px,py,ch){ let v=0; for(const c of ch){ const r=Math.hypot(px-c.x,py-c.y); v+=c.q/Math.max(r,0.12); } return v; }
@@ -48030,6 +48060,7 @@ document.addEventListener('keydown',e=>{
       ? 'Le dipôle : les lignes partent du + et convergent vers le −, le plan médiateur est l\'équipotentielle V=0.'
       : (mode==='two' ? 'Deux charges de même signe se repoussent : il existe un point neutre (champ nul) au milieu où aucune ligne ne passe.'
       : 'Charge seule : lignes radiales, équipotentielles sphériques (cercles), V = kq/r.');
+    $('es-info-detail').innerHTML += ' <em>Glisse les charges sur le schéma pour explorer le champ.</em>';
   }
 
   document.querySelectorAll('[data-es-mode]').forEach(b=>{ b.addEventListener('click',()=>{
@@ -48037,9 +48068,9 @@ document.addEventListener('keydown',e=>{
     mode=b.dataset.esMode;
     $('es-q2-ctrl').style.display = mode==='single'?'none':'flex';
     // charges par défaut cohérentes avec le mode
-    if(mode==='dipole'){ $('es-q1').value=2; $('es-q2').value=-2; }
-    else if(mode==='two'){ $('es-q1').value=2; $('es-q2').value=2; }
-    else { $('es-q1').value=2; }
+    if(mode==='dipole'){ $('es-q1').value=2; $('es-q2').value=-2; cpos=[{x:-1.3,y:0},{x:1.3,y:0}]; }
+    else if(mode==='two'){ $('es-q1').value=2; $('es-q2').value=2; cpos=[{x:-1.3,y:0},{x:1.3,y:0}]; }
+    else { $('es-q1').value=2; cpos=[{x:0,y:0},{x:1.3,y:0}]; }
     $('es-q1-val').textContent=lblQ($('es-q1').value);
     $('es-q2-val').textContent=lblQ($('es-q2').value);
     render();
@@ -48048,6 +48079,33 @@ document.addEventListener('keydown',e=>{
   ['es-q1','es-q2'].forEach(id=>{ $(id).addEventListener('input',()=>{ $(id+'-val').textContent=lblQ($(id).value); render(); }); });
   $('es-pot').addEventListener('change',()=>{ $('es-pot-val').textContent=$('es-pot').checked?'affichée':'masquée'; render(); });
   $('es-lines').addEventListener('change',()=>{ $('es-lines-val').textContent=$('es-lines').checked?'affichées':'masquées'; render(); });
+
+  /* ── Glisser les charges directement sur le schéma (souris + tactile) ── */
+  let esDrag = null;
+  function esPos(e){ const r=canvas.getBoundingClientRect(); return {x:e.clientX-r.left, y:e.clientY-r.top, r}; }
+  function esXform(r){ const W=r.width, H=r.height, sc=Math.min(W,H)/(2*WORLD); return {sc, cx:W/2, cy:H/2}; }
+  function esPick(px,py,r){
+    const t=esXform(r), ch=charges(); let best=null;
+    for(let i=0;i<ch.length;i++){ if(ch[i].q===0) continue;
+      const d=Math.hypot(px-(t.cx+ch[i].x*t.sc), py-(t.cy-ch[i].y*t.sc));
+      if(d<=16 && (!best || d<best.d)) best={i,d}; }
+    return best ? best.i : null;
+  }
+  canvas.addEventListener('pointerdown', e=>{
+    const p=esPos(e), i=esPick(p.x,p.y,p.r);
+    if(i!==null){ esDrag=i; try{canvas.setPointerCapture(e.pointerId);}catch(_){} canvas.style.cursor='grabbing'; e.preventDefault(); }
+  });
+  canvas.addEventListener('pointermove', e=>{
+    const p=esPos(e);
+    if(esDrag===null){ canvas.style.cursor = esPick(p.x,p.y,p.r)!==null ? 'grab':'default'; return; }
+    const t=esXform(p.r), lim=WORLD-0.3;
+    let wx=(p.x-t.cx)/t.sc, wy=-(p.y-t.cy)/t.sc;
+    wx=Math.max(-lim,Math.min(lim,wx)); wy=Math.max(-lim,Math.min(lim,wy));
+    cpos[esDrag]={x:wx,y:wy}; render(); e.preventDefault();
+  });
+  function esEnd(e){ if(esDrag!==null){ esDrag=null; canvas.style.cursor='grab'; try{canvas.releasePointerCapture(e.pointerId);}catch(_){} } }
+  canvas.addEventListener('pointerup', esEnd);
+  canvas.addEventListener('pointercancel', esEnd);
 
   function drawEstat(){ render(); }
   window.drawEstat = drawEstat;
@@ -48202,6 +48260,9 @@ document.addEventListener('keydown',e=>{
             inv:u=>{const d=u.re*u.re+u.im*u.im; return {re:u.re/d, im:-u.im/d};} };
   function alg(z){ const a=fmt(z.re,2); const bn=Math.abs(z.im); const b=(Math.abs(bn-1)<5e-3)?'':fmt(bn,2); if(bn<5e-3) return a; if(Math.abs(z.re)<5e-3) return (z.im<0?'−':'')+b+'i'; return a+(z.im<0?' − ':' + ')+b+'i'; }
 
+  // transformation courante (pixel ↔ plan), figée pendant un glissement
+  let lastT = {cx:0, cy:0, sc:1}, frozen = null;
+
   function render(){
     const panel=$('cpx-simu'); if(panel && !panel.classList.contains('active')) return;
     const r=canvas.getBoundingClientRect();
@@ -48220,9 +48281,12 @@ document.addEventListener('keydown',e=>{
     else {res=C.inv(z1);opLabel='1/z₁';}
 
     ctx.clearRect(0,0,W,H);
-    // échelle : repère centré, unité adaptée
-    const maxv=Math.max(3, C.mod(z1), C.mod(z2), C.mod(res))*1.15;
-    const sc=Math.min(W,H)/(2*maxv), cx=W/2, cy=H/2;
+    // échelle : repère centré, unité adaptée (figée pendant un glissement
+    // pour que le point reste exactement sous le curseur)
+    let sc, cx, cy, maxv;
+    if(frozen){ sc=frozen.sc; cx=frozen.cx; cy=frozen.cy; maxv=Math.min(W,H)/(2*sc); }
+    else { maxv=Math.max(3, C.mod(z1), C.mod(z2), C.mod(res))*1.15; sc=Math.min(W,H)/(2*maxv); cx=W/2; cy=H/2; }
+    lastT={cx,cy,sc};
     const SX=x=>cx+x*sc, SY=y=>cy-y*sc;
     // grille
     ctx.strokeStyle=Co.grid; ctx.lineWidth=1;
@@ -48263,11 +48327,43 @@ document.addEventListener('keydown',e=>{
       ? 'Produit : module '+fmt(C.mod(z1),2)+'×'+fmt(C.mod(z2),2)+' = '+fmt(C.mod(res),2)+' ; argument '+fmt(C.arg(z1)*180/Math.PI,0)+'°+'+fmt(C.arg(z2)*180/Math.PI,0)+'° = '+fmt(C.arg(res)*180/Math.PI,0)+'°.'
       : (op==='conj'?'Le conjugué est le symétrique de z₁ par rapport à l\'axe réel (même module, argument opposé).'
       : (op==='sum'?'La somme se construit par la règle du parallélogramme.'
-      : 'Déplace les curseurs et change l\'opération pour visualiser la géométrie.'));
+      : 'Glisse z₁ ou z₂ directement sur le plan (ou via les curseurs), et change l\'opération pour visualiser la géométrie.'));
   }
 
   ['cpx-a1','cpx-b1','cpx-a2','cpx-b2'].forEach(id=>{ const e=$(id); e.addEventListener('input',()=>{ $(id+'-val').textContent=fmt(+e.value,1); render(); }); });
   $('cpx-op').addEventListener('change', render);
+
+  /* ── Glisser z₁ / z₂ directement sur le plan (souris + tactile) ── */
+  let dragTarget = null;
+  function evPos(e){ const r=canvas.getBoundingClientRect(); return {x:e.clientX-r.left, y:e.clientY-r.top}; }
+  function setZ(which, re, im){
+    re = Math.max(-3, Math.min(3, Math.round(re*10)/10));
+    im = Math.max(-3, Math.min(3, Math.round(im*10)/10));
+    const aId = which===1?'cpx-a1':'cpx-a2', bId = which===1?'cpx-b1':'cpx-b2';
+    $(aId).value=re; $(bId).value=im;
+    $(aId+'-val').textContent=fmt(re,1); $(bId+'-val').textContent=fmt(im,1);
+  }
+  function pickTarget(px,py){
+    const op=$('cpx-op').value, showZ2=(op==='sum'||op==='prod'||op==='quot');
+    const z1={re:+$('cpx-a1').value, im:+$('cpx-b1').value};
+    let best={t:1, d:Math.hypot(px-(lastT.cx+z1.re*lastT.sc), py-(lastT.cy-z1.im*lastT.sc))};
+    if(showZ2){ const z2={re:+$('cpx-a2').value, im:+$('cpx-b2').value};
+      const d2=Math.hypot(px-(lastT.cx+z2.re*lastT.sc), py-(lastT.cy-z2.im*lastT.sc));
+      if(d2<best.d) best={t:2, d:d2}; }
+    return best.d<=24 ? best.t : null;
+  }
+  canvas.addEventListener('pointerdown', e=>{
+    const p=evPos(e), t=pickTarget(p.x,p.y);
+    if(t){ dragTarget=t; frozen={...lastT}; try{canvas.setPointerCapture(e.pointerId);}catch(_){} canvas.style.cursor='grabbing'; e.preventDefault(); }
+  });
+  canvas.addEventListener('pointermove', e=>{
+    const p=evPos(e);
+    if(!dragTarget){ canvas.style.cursor = pickTarget(p.x,p.y)?'grab':'default'; return; }
+    setZ(dragTarget, (p.x-lastT.cx)/lastT.sc, (lastT.cy-p.y)/lastT.sc); render(); e.preventDefault();
+  });
+  function endDrag(e){ if(dragTarget){ dragTarget=null; frozen=null; canvas.style.cursor='grab'; try{canvas.releasePointerCapture(e.pointerId);}catch(_){} render(); } }
+  canvas.addEventListener('pointerup', endDrag);
+  canvas.addEventListener('pointercancel', endDrag);
 
   function drawCplx(){ render(); }
   window.drawCplx = drawCplx;
