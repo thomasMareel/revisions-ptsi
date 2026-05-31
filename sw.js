@@ -3,7 +3,7 @@
    IMPORTANT : à chaque modification d'un asset mis en cache (index.html, polices,
    MathJax…), incrémenter CACHE_VERSION pour forcer le rafraîchissement chez les
    utilisateurs déjà installés. */
-const CACHE_VERSION = 'ptsi-cache-v58';
+const CACHE_VERSION = 'ptsi-cache-v59';
 
 const PRECACHE = [
   './',
@@ -62,11 +62,18 @@ const PRECACHE = [
 ];
 
 self.addEventListener('install', event => {
+  // Pas de skipWaiting() automatique : le nouveau SW reste « en attente » jusqu'à
+  // ce que l'utilisateur clique « Recharger » (bannière de mise à jour côté page),
+  // qui envoie le message SKIP_WAITING ci-dessous. (Au tout premier install, sans
+  // SW préexistant, l'activation est immédiate de toute façon.)
   event.waitUntil(
-    caches.open(CACHE_VERSION)
-      .then(cache => cache.addAll(PRECACHE))
-      .then(() => self.skipWaiting())
+    caches.open(CACHE_VERSION).then(cache => cache.addAll(PRECACHE))
   );
+});
+
+// La page demande l'activation immédiate de la nouvelle version.
+self.addEventListener('message', event => {
+  if (event.data && event.data.type === 'SKIP_WAITING') self.skipWaiting();
 });
 
 self.addEventListener('activate', event => {

@@ -52046,10 +52046,62 @@ document.getElementById('skip-link')?.addEventListener('click', e => {
 </script>
 
 <script>
-/* Enregistrement du service worker (uniquement en http/https, pas en file://) */
+/* Enregistrement du service worker (uniquement en http/https, pas en file://)
+   + notification de mise à jour : quand une nouvelle version est installée
+   (CACHE_VERSION bumpé), on propose de recharger via une petite bannière. Garantit
+   que le SW et les assets en cache se rafraîchissent, même en PWA installée. */
 if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js').catch(() => {});
+    let refreshing = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (refreshing) return; refreshing = true; location.reload();
+    });
+
+    function showUpdateBanner(reg) {
+      if (document.getElementById('sw-update-banner')) return;
+      const bar = document.createElement('div');
+      bar.id = 'sw-update-banner';
+      bar.setAttribute('role', 'status');
+      bar.style.cssText = 'position:fixed;left:50%;bottom:1rem;transform:translateX(-50%);z-index:2000;'
+        + 'background:var(--ink,#1a1d24);color:var(--paper,#faf7f0);border:1.5px solid var(--accent,#c8472e);'
+        + 'box-shadow:0 6px 24px rgba(0,0,0,.35);border-radius:10px;padding:.65rem .9rem;display:flex;'
+        + 'align-items:center;gap:.7rem;font-family:\'Inter Tight\',system-ui,sans-serif;font-size:.9rem;max-width:92vw;';
+      const msg = document.createElement('span');
+      msg.textContent = '🔄 Nouvelle version disponible';
+      const btn = document.createElement('button');
+      btn.textContent = 'Recharger';
+      btn.style.cssText = 'background:var(--accent,#c8472e);color:#fff;border:none;border-radius:6px;'
+        + 'padding:.4rem .85rem;cursor:pointer;font-family:\'JetBrains Mono\',monospace;font-size:.8rem;';
+      btn.addEventListener('click', () => {
+        btn.disabled = true; btn.textContent = '…';
+        if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+        else location.reload();
+      });
+      const close = document.createElement('button');
+      close.textContent = '✕'; close.setAttribute('aria-label', 'Ignorer');
+      close.style.cssText = 'background:none;border:none;color:inherit;opacity:.65;cursor:pointer;font-size:1rem;line-height:1;';
+      close.addEventListener('click', () => bar.remove());
+      bar.appendChild(msg); bar.appendChild(btn); bar.appendChild(close);
+      document.body.appendChild(bar);
+    }
+
+    navigator.serviceWorker.register('sw.js').then(reg => {
+      function track(worker) {
+        if (!worker) return;
+        worker.addEventListener('statechange', () => {
+          if (worker.state === 'installed' && navigator.serviceWorker.controller) showUpdateBanner(reg);
+        });
+      }
+      if (reg.waiting && navigator.serviceWorker.controller) showUpdateBanner(reg);
+      reg.addEventListener('updatefound', () => track(reg.installing));
+      // Re-vérifier les mises à jour au retour sur l'onglet / l'app (throttlé).
+      let lastCheck = 0;
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState !== 'visible') return;
+        const now = Date.now();
+        if (now - lastCheck > 60000) { lastCheck = now; reg.update().catch(() => {}); }
+      });
+    }).catch(() => {});
   });
 }
 </script>
