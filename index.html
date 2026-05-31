@@ -2341,9 +2341,14 @@ figure.schema figcaption{
   </div>
   <div class="header-actions">
     <button id="search-btn" class="hdr-btn" title="Rechercher (Ctrl+K)" aria-label="Rechercher">⌕ <span class="hdr-btn-label">Rechercher</span> <kbd>Ctrl K</kbd></button>
-    <button id="quiz-btn" class="hdr-btn" title="Quiz global (toutes les flashcards)" aria-label="Quiz">⚡ <span class="hdr-btn-label">Quiz</span></button>
-    <button id="drill-btn" class="hdr-btn" title="Entraînement au calcul (automatismes)" aria-label="Calcul">∑ <span class="hdr-btn-label">Calcul</span></button>
-    <button id="revise-btn" class="hdr-btn" title="Révisions du jour (répétition espacée)" aria-label="Réviser">↻ <span class="hdr-btn-label">Réviser</span><span class="rev-badge" id="rev-badge" hidden>0</span></button>
+    <div class="hdr-more">
+      <button id="study-btn" class="hdr-btn" title="Réviser : quiz, calcul mental, révisions du jour" aria-label="Réviser" aria-haspopup="true" aria-expanded="false">↻ <span class="hdr-btn-label">Réviser</span><span class="rev-badge" id="rev-badge" hidden>0</span></button>
+      <div id="study-menu" class="hdr-more-menu" role="menu">
+        <button id="quiz-btn" class="hdr-more-item" role="menuitem" title="Quiz global (toutes les flashcards)">⚡ Quiz</button>
+        <button id="drill-btn" class="hdr-more-item" role="menuitem" title="Entraînement au calcul (automatismes)">∑ Calcul mental</button>
+        <button id="revise-btn" class="hdr-more-item" role="menuitem" title="Révisions du jour (répétition espacée)">↻ Révisions du jour <span class="rev-badge" id="rev-badge-study" hidden>0</span></button>
+      </div>
+    </div>
     <button id="dash-btn" class="hdr-btn" title="Bilan de révision" aria-label="Bilan de révision">▤ <span class="hdr-btn-label">Bilan</span></button>
     <button id="theme-btn" class="hdr-btn" title="Changer de thème" aria-label="Changer de thème">◐ <span class="hdr-btn-label" id="theme-label">Sombre</span></button>
     <div class="hdr-more">
@@ -50717,7 +50722,7 @@ document.getElementById('skip-link')?.addEventListener('click', e => {
   function updateBadge(){
     if(typeof srsCountDue !== 'function') return;
     const n = srsCountDue();
-    ['rev-badge','rev-badge-mob'].forEach(id=>{
+    ['rev-badge','rev-badge-mob','rev-badge-study'].forEach(id=>{
       const el=document.getElementById(id); if(!el) return;
       if(n>0){ el.textContent = n>99 ? '99+' : String(n); el.hidden=false; }
       else el.hidden=true;
@@ -50742,6 +50747,25 @@ document.getElementById('skip-link')?.addEventListener('click', e => {
     btn.classList.toggle('open', open);
     btn.setAttribute('aria-expanded', open ? 'true' : 'false');
   });
+  menu.querySelectorAll('.hdr-more-item').forEach(it => it.addEventListener('click', close));
+  document.addEventListener('click', e => { if(!menu.contains(e.target) && e.target !== btn) close(); });
+  document.addEventListener('keydown', e => { if(e.key === 'Escape') close(); });
+})();
+
+/* Menu « ↻ Réviser » de l'en-tête (regroupe Quiz · Calcul mental · Révisions du jour) */
+(function(){
+  const btn = document.getElementById('study-btn');
+  const menu = document.getElementById('study-menu');
+  if(!btn || !menu) return;
+  function close(){ menu.classList.remove('open'); btn.classList.remove('open'); btn.setAttribute('aria-expanded','false'); }
+  btn.addEventListener('click', e => {
+    e.stopPropagation();
+    const open = !menu.classList.contains('open');
+    menu.classList.toggle('open', open);
+    btn.classList.toggle('open', open);
+    btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+  });
+  // chaque item ferme le menu (les actions restent gérées par leurs propres handlers via leur id)
   menu.querySelectorAll('.hdr-more-item').forEach(it => it.addEventListener('click', close));
   document.addEventListener('click', e => { if(!menu.contains(e.target) && e.target !== btn) close(); });
   document.addEventListener('keydown', e => { if(e.key === 'Escape') close(); });
