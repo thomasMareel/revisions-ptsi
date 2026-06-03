@@ -227,6 +227,22 @@ header{
     transition:background 0.15s;
   }
   .mob-header-actions button:active{background:var(--paper-dark);}
+  /* Menu « ⋯ » regroupant les actions secondaires (désencombre la barre) */
+  #mob-more-wrap{ position:relative; display:flex; }
+  #mob-more-btn.open{ background:var(--paper-dark); }
+  #mob-more-menu{
+    display:none; position:absolute; right:0; top:calc(100% + 8px); z-index:300;
+    background:var(--paper); border:1.5px solid var(--ink); border-radius:9px;
+    box-shadow:0 8px 28px rgba(0,0,0,0.28); min-width:210px; overflow:hidden; padding:0.25rem 0;
+  }
+  #mob-more-menu.open{ display:block; }
+  #mob-more-menu button{
+    display:flex; align-items:center; gap:0.7rem; width:100%; text-align:left;
+    font-size:0.95rem; font-family:'Inter Tight',sans-serif; color:var(--ink);
+    padding:0.65rem 0.95rem; border-radius:0;
+  }
+  #mob-more-menu button > span{ flex:1; }
+  #mob-more-menu button:hover, #mob-more-menu button:active{ background:var(--accent); color:#fff; }
 
   
   
@@ -2423,13 +2439,18 @@ figure.schema figcaption{
   <span id="mob-chapter-title">Choisir un chapitre</span>
   <div class="mob-header-actions">
     <button id="mob-search-btn" aria-label="Rechercher">⌕</button>
-    <button id="mob-quiz-btn" aria-label="Quiz">⚡</button>
-    <button id="mob-drill-btn" aria-label="Calcul">∑</button>
     <button id="mob-revise-btn" aria-label="Réviser">↻<span class="rev-badge" id="rev-badge-mob" hidden>0</span></button>
-    <button id="mob-dash-btn" aria-label="Bilan de révision">▤</button>
-    <button id="mob-formula-btn" aria-label="Formulaire du chapitre">ƒ</button>
-    <button id="mob-backup-btn" aria-label="Sauvegarde">⤓</button>
     <button id="mob-theme-btn" aria-label="Thème">◐</button>
+    <div id="mob-more-wrap">
+      <button id="mob-more-btn" aria-label="Plus d'actions" aria-haspopup="true" aria-expanded="false">⋯</button>
+      <div id="mob-more-menu" role="menu">
+        <button id="mob-quiz-btn" role="menuitem">⚡ <span>Quiz</span></button>
+        <button id="mob-drill-btn" role="menuitem">∑ <span>Calcul mental</span></button>
+        <button id="mob-dash-btn" role="menuitem">▤ <span>Bilan de révision</span></button>
+        <button id="mob-formula-btn" role="menuitem">ƒ <span>Formulaire</span></button>
+        <button id="mob-backup-btn" role="menuitem">⤓ <span>Sauvegarde</span></button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -51445,6 +51466,24 @@ ${bodyContent}
   document.getElementById('mob-theme-btn').addEventListener('click', () => {
     document.getElementById('theme-btn').click();
   });
+
+  /* ── Menu « ⋯ » mobile : regroupe les actions secondaires (Quiz, Calcul,
+     Bilan, Formulaire, Sauvegarde) pour désencombrer la barre du haut. ── */
+  (function(){
+    const btn = document.getElementById('mob-more-btn');
+    const menu = document.getElementById('mob-more-menu');
+    if(!btn || !menu) return;
+    const close = () => { menu.classList.remove('open'); btn.classList.remove('open'); btn.setAttribute('aria-expanded','false'); };
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      const open = menu.classList.toggle('open');
+      btn.classList.toggle('open', open);
+      btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    });
+    menu.querySelectorAll('button').forEach(it => it.addEventListener('click', close));
+    document.addEventListener('click', e => { if(!menu.contains(e.target) && e.target !== btn) close(); });
+    document.addEventListener('keydown', e => { if(e.key === 'Escape') close(); });
+  })();
 
   /* ── Init ── */
   refreshYearButtons();
