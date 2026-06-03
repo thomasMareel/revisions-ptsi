@@ -28,7 +28,8 @@ Le tableau **`CHAPTERS`** (JS, vers la ligne ~24985) est la source de vérité :
   mobLabel:'Circuit RLC série' }
 ```
 
-- `matiere` ∈ `physique` | `maths` | `si` | `info`.
+- `matiere` ∈ `physique` | `maths` | `si` | `info` | `anglais`. **Ajouter une matière** = l'ajouter aux énumérations en dur : boutons `mob-mat-btn` (HTML), `.mat-content[data-mat-content="X"]` (zone sidebar), `buildSidebars` (`['physique',…]`), `buildChapData`/`MATS` du tiroir, `matLabel` (recherche). Les chapitres `physique/maths/info/anglais` vivent dans le grand `<main>` ; `si` a son propre `<main id="si-content">`.
+- **Anglais** : matière de langue, donc cartes en **texte brut** (pas de maths). `makeFlash` détecte `CHAPTERS_BY_PREFIX[prefix].matiere === 'anglais'` (`isPlainDeck`) et rend `card.q`/`card.a` en HTML brut sans `flashPretty` (sinon « I », « / » seraient mathématisés) ; idem côté quiz (`item.meta.mat === 'anglais'`). Les réponses peuvent contenir `<strong>`/`<em>`/`<br>`. Panels typiques : `['cours','flash']` (pas d'exos).
 - `drawFn` : nom de la fonction Canvas du simulateur, ou `null` si pas de simu.
 - `CHAPTERS_BY_ID` / `CHAPTERS_BY_PREFIX` sont dérivés automatiquement.
 - `validateChaptersCoherence()` (~l.25256) alerte dans la console si DOM ≠ `CHAPTERS` au chargement.
