@@ -2188,6 +2188,24 @@ figure.schema figcaption{
 .formula-empty{ color:#777; font-size:0.9rem; }
 :root[data-theme="dark"] .formula-empty{ color:#a8a496; }
 
+/* ===== Cartes signalées ===== */
+.flag-list{ list-style:none; margin:0.4rem 0 0; padding:0; max-height:46vh; overflow-y:auto; }
+.flag-list li{ display:flex; align-items:center; gap:0.6rem; padding:0.5rem 0; border-bottom:1px solid var(--grid); }
+.flag-list .flag-chap{ font-family:'JetBrains Mono',monospace; font-size:0.6rem; letter-spacing:0.08em; text-transform:uppercase; color:var(--accent); flex-shrink:0; max-width:30%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.flag-list .flag-q{ flex:1; font-size:0.85rem; line-height:1.35; }
+.flag-list .flag-rm{ background:none; border:1px solid var(--ink); border-radius:5px; padding:0.2rem 0.5rem; font-size:0.7rem; cursor:pointer; color:var(--ink); flex-shrink:0; }
+.flag-list .flag-rm:hover{ background:var(--accent); color:#fff; border-color:var(--accent); }
+.flag-empty{ color:#777; font-size:0.9rem; }
+:root[data-theme="dark"] .flag-empty{ color:#a8a496; }
+/* Bouton 🚩 actif (carte signalée) */
+.is-flagged{ color:var(--accent) !important; }
+/* Pastille de compteur dans les menus */
+.flag-badge{ display:inline-block; min-width:1.1em; padding:0 0.3em; margin-left:0.35em; border-radius:999px; background:var(--accent); color:#fff; font-size:0.7rem; font-family:'JetBrains Mono',monospace; text-align:center; vertical-align:middle; }
+/* Bouton « Signaler » sous une flashcard */
+.flash-flag-btn{ display:inline-block; margin-top:0.6rem; background:none; border:1px solid var(--grid); border-radius:6px; padding:0.3rem 0.7rem; font-size:0.78rem; cursor:pointer; color:#888; transition:all .15s; }
+.flash-flag-btn:hover{ border-color:var(--accent); color:var(--accent); }
+.flash-flag-btn.is-flagged{ border-color:var(--accent); color:var(--accent); background:rgba(200,71,46,0.08); }
+
 /* ============================================================ */
 /* ===== POLISH VISUEL (Phase C) ============================= */
 /* Affinages fidèles au style éditorial existant. Placé en fin de
@@ -2426,6 +2444,7 @@ figure.schema figcaption{
         <button class="hdr-more-item" role="menuitem" title="Raccourcis clavier" onclick="document.dispatchEvent(new KeyboardEvent('keydown',{key:'?',bubbles:true}))">⌨ Raccourcis</button>
         <button id="formula-btn" class="hdr-more-item" role="menuitem" title="Formulaire du chapitre actif (fiche de synthèse imprimable)">Σ Formulaire</button>
         <button id="print-btn" class="hdr-more-item" role="menuitem" title="Imprimer le chapitre actif" onclick="printChapter()">⎙ Imprimer</button>
+        <button id="flag-btn" class="hdr-more-item" role="menuitem" title="Cartes signalées comme fausses ou peu claires">🚩 Cartes signalées<span class="flag-badge" style="display:none">0</span></button>
       </div>
     </div>
   </div>
@@ -2449,6 +2468,7 @@ figure.schema figcaption{
         <button id="mob-dash-btn" role="menuitem">▤ <span>Bilan de révision</span></button>
         <button id="mob-formula-btn" role="menuitem">ƒ <span>Formulaire</span></button>
         <button id="mob-backup-btn" role="menuitem">⤓ <span>Sauvegarde</span></button>
+        <button id="mob-flag-btn" role="menuitem">🚩 <span>Cartes signalées<span class="flag-badge" style="display:none">0</span></span></button>
       </div>
     </div>
   </div>
@@ -39745,6 +39765,9 @@ const cstCards = [
         <button class="quiz-goto-btn" id="quiz-goto-btn" onclick="quizGotoChapter()">
           📖 Voir dans le cours
         </button>
+        <button class="quiz-goto-btn" id="quiz-flag-btn" onclick="quizFlagCurrent()" title="Signaler cette carte (fausse / peu claire)">
+          🚩 Signaler
+        </button>
       </div>
     </div>
 
@@ -39825,6 +39848,25 @@ const cstCards = [
       </div>
     </div>
     <div id="formula-body"></div>
+  </div>
+</div>
+
+<!-- ===== Cartes signalées (jugées fausses / peu claires) ===== -->
+<div id="flag-overlay" class="backup-overlay">
+  <div class="backup-modal" role="dialog" aria-modal="true" aria-label="Cartes signalées">
+    <h2>Cartes signalées 🚩</h2>
+    <div class="backup-intro">Les cartes que tu as marquées comme <strong>fausses ou peu claires</strong> (bouton 🚩 sur une carte, dans le quiz ou les flashcards). Copie ou télécharge la liste pour me la transmettre ; retire celles qui sont corrigées.</div>
+    <div id="flag-body"></div>
+    <div class="backup-actions" style="margin-top:1rem">
+      <button id="flag-copy-btn">⧉ Copier la liste
+        <span class="ba-desc">Dans le presse-papier (à coller dans le chat)</span>
+      </button>
+      <button id="flag-dl-btn">⤓ Télécharger (.txt)
+        <span class="ba-desc">Fichier texte des cartes signalées</span>
+      </button>
+    </div>
+    <div id="flag-feedback" class="backup-feedback"></div>
+    <button class="backup-close" id="flag-close-btn">Fermer</button>
   </div>
 </div>
 
@@ -41581,6 +41623,13 @@ function makeFlash(cards, idPrefix, contentId, progId, statsId){
   }
   let order = buildOrder();
   let idx = 0, flipped = false;
+  let flagBtnEl = null;
+  function setFlagState(){
+    if(!flagBtnEl || !window.flagIsFlagged) return;
+    const on = window.flagIsFlagged(idPrefix, order[idx]);
+    flagBtnEl.classList.toggle('is-flagged', !!on);
+    flagBtnEl.textContent = on ? '🚩 Signalée' : '🚩 Signaler cette carte';
+  }
 
   function show(){
     const card = cards[order[idx]];
@@ -41599,6 +41648,7 @@ function makeFlash(cards, idPrefix, contentId, progId, statsId){
       }
     } catch(e) { /* MathJax not ready, ignore */ }
     updateStats();
+    setFlagState();
   }
   function flip(){flipped = !flipped; show()}
   function rate(level){
@@ -41657,6 +41707,29 @@ function makeFlash(cards, idPrefix, contentId, progId, statsId){
       b.title = 'Aller au cours de ce chapitre';
       b.addEventListener('click', ()=> window.flashToCourse(idPrefix, cards[order[idx]]));
       fw.insertBefore(b, fw.firstChild);
+    }
+  } catch(e){ /* injection non bloquante */ }
+
+  // Bouton « Signaler » : marque la carte courante comme fausse / peu claire
+  try {
+    const fw = document.getElementById(contentId)?.closest('.flash-wrapper');
+    if(fw && !fw.querySelector('.flash-flag-btn')){
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'flash-flag-btn';
+      b.textContent = '🚩 Signaler cette carte';
+      b.addEventListener('click', (e)=>{
+        e.stopPropagation();
+        if(window.flagToggle) window.flagToggle(idPrefix, order[idx], cards[order[idx]].q, cards[order[idx]].a);
+        setFlagState();
+      });
+      const sw = fw.querySelector('.flash-stats-wrap') || fw;
+      sw.appendChild(b);
+      flagBtnEl = b;
+      setFlagState();
+      // Enregistre ce rafraîchisseur : le module global le rappellera pour fixer
+      // l'état initial (cartes déjà signalées) et à chaque signalement ailleurs.
+      (window.__flashFlagRefreshers = window.__flashFlagRefreshers || []).push(setFlagState);
     }
   } catch(e){ /* injection non bloquante */ }
 
@@ -50786,6 +50859,7 @@ ${bodyContent}
   /* État du quiz */
   let quizDeck = [];        // cartes sélectionnées pour la session
   let quizIdx  = 0;         // index courant
+  let quizCurrent = null;   // carte actuellement affichée (pour le signalement)
   let quizRevealed = false;
   let quizStats = { acquis:0, hes:0, rev:0, skip:0 };
   let quizSkipped = [];     // cartes passées, à repasser à la fin
@@ -50963,7 +51037,9 @@ ${bodyContent}
       }
     }
     const item = quizDeck[quizIdx];
+    quizCurrent = item;
     quizRevealed = false;
+    if(window.__refreshQuizFlag) window.__refreshQuizFlag();
 
     // Badge chapitre
     const badge = document.getElementById('quiz-chapter-badge');
@@ -51055,6 +51131,21 @@ ${bodyContent}
   document.getElementById('quiz-card').addEventListener('click', ()=>{ quizReveal(); });
 
   /* ---- Aller au chapitre — vers le panel cours, section pertinente ---- */
+  /* Signalement de la carte affichée (bouton 🚩 du quiz) */
+  function quizFlagBtnState(){
+    const btn = document.getElementById('quiz-flag-btn');
+    if(!btn || !quizCurrent || !window.flagIsFlagged) return;
+    const on = window.flagIsFlagged(quizCurrent.prefix, quizCurrent.idx);
+    btn.classList.toggle('is-flagged', !!on);
+    btn.textContent = on ? '🚩 Signalée' : '🚩 Signaler';
+  }
+  window.__refreshQuizFlag = quizFlagBtnState;
+  window.quizFlagCurrent = function(){
+    if(!quizCurrent || !window.flagToggle) return;
+    window.flagToggle(quizCurrent.prefix, quizCurrent.idx, quizCurrent.card.q, quizCurrent.card.a);
+    quizFlagBtnState();
+  };
+
   window.quizGotoChapter = function(){
     const item = quizDeck[quizIdx > 0 ? quizIdx-1 : 0];
     // Panel cours : préfixe du chapId + '-cours'
@@ -52290,6 +52381,78 @@ document.getElementById('skip-link')?.addEventListener('click', e => {
   // Réagir à un changement de préférence système en cours de session.
   function onMQ(e){ window.__reduceMotion = e.matches; if(e.matches) stopAutoMotion(); }
   if(mq){ try { mq.addEventListener('change', onMQ); } catch(_){ try { mq.addListener(onMQ); } catch(__){} } }
+})();
+</script>
+
+<script>
+/* ===== Signalement de cartes (flashcards jugées fausses / peu claires) =====
+   Stocke en local (clé 'flagged') la liste {prefix, index, q, a, t}. Boutons 🚩
+   dans le quiz et les flashcards ; overlay « Cartes signalées » avec copie/export
+   et retrait. Inclus automatiquement dans la sauvegarde (export de toutes les clés). */
+(function(){
+  function getList(){ return Store.getJSON('flagged', []) || []; }
+  function save(l){ Store.setJSON('flagged', l); refresh(); }
+  function stripHtml(s){ const d = document.createElement('div'); d.innerHTML = String(s||''); return (d.textContent||'').replace(/\s+/g,' ').trim(); }
+  function chapName(p){ try { return (CHAPTERS_BY_PREFIX[p]||{}).name || p; } catch(e){ return p; } }
+  function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+  window.flagIsFlagged = (p,i) => getList().some(x => x.p===p && +x.i===+i);
+  window.flagToggle = function(p,i,q,a){
+    const l = getList(); const pos = l.findIndex(x => x.p===p && +x.i===+i);
+    if(pos>=0) l.splice(pos,1); else l.push({p:p, i:+i, q:q||'', a:a||'', t:Date.now()});
+    save(l); return pos<0;
+  };
+  window.flaggedCount = () => getList().length;
+
+  function refresh(){
+    const n = getList().length;
+    document.querySelectorAll('.flag-badge').forEach(b => { b.textContent = n; b.style.display = n ? '' : 'none'; });
+    if(typeof window.__refreshQuizFlag === 'function') window.__refreshQuizFlag();
+    if(typeof window.__refreshFlashFlags === 'function') window.__refreshFlashFlags();
+  }
+  window.__refreshFlagUI = refresh;
+  // Met à jour l'état (texte/couleur) de TOUS les boutons 🚩 des panneaux flashcards.
+  window.__refreshFlashFlags = function(){ (window.__flashFlagRefreshers||[]).forEach(fn => { try{ fn(); }catch(e){} }); };
+
+  const ov = document.getElementById('flag-overlay');
+  const body = document.getElementById('flag-body');
+  const fb = document.getElementById('flag-feedback');
+  function render(){
+    const l = getList();
+    if(!l.length){ body.innerHTML = '<p class="flag-empty">Aucune carte signalée pour l\'instant. Sur une carte (quiz ou flashcards), touche 🚩 pour la marquer.</p>'; return; }
+    let h = '<ul class="flag-list">';
+    l.forEach(x => { h += `<li><span class="flag-chap">${esc(chapName(x.p))}</span><span class="flag-q">${esc(stripHtml(x.q))}</span><button class="flag-rm" data-p="${esc(x.p)}" data-i="${x.i}">retirer</button></li>`; });
+    body.innerHTML = h + '</ul>';
+    body.querySelectorAll('.flag-rm').forEach(btn => btn.addEventListener('click', () => { window.flagToggle(btn.dataset.p, btn.dataset.i); render(); }));
+  }
+  function asText(){
+    const l = getList();
+    if(!l.length) return 'Aucune carte signalée.';
+    return 'CARTES SIGNALÉES — Révisions PTSI\n\n' + l.map((x,n) => `${n+1}. [${chapName(x.p)}]\n   Q : ${stripHtml(x.q)}\n   R : ${stripHtml(x.a)}`).join('\n\n');
+  }
+  window.flaggedOpen = function(){ if(!ov) return; render(); if(fb){ fb.textContent=''; fb.className='backup-feedback'; } ov.classList.add('open'); };
+  function close(){ if(ov) ov.classList.remove('open'); }
+
+  document.getElementById('flag-close-btn')?.addEventListener('click', close);
+  ov?.addEventListener('click', e => { if(e.target === ov) close(); });
+  document.addEventListener('keydown', e => { if(e.key === 'Escape' && ov && ov.classList.contains('open')) close(); });
+  document.getElementById('flag-copy-btn')?.addEventListener('click', () => {
+    const t = asText();
+    (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject())
+      .then(() => { if(fb){ fb.className='backup-feedback ok'; fb.textContent='Liste copiée dans le presse-papier.'; } })
+      .catch(() => { if(fb){ fb.className='backup-feedback'; fb.textContent='Copie impossible — utilise « Télécharger ».'; } });
+  });
+  document.getElementById('flag-dl-btn')?.addEventListener('click', () => {
+    const blob = new Blob([asText()], {type:'text/plain;charset=utf-8'});
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+    a.download = 'cartes-signalees.txt'; document.body.appendChild(a); a.click();
+    setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 100);
+    if(fb){ fb.className='backup-feedback ok'; fb.textContent='Fichier téléchargé.'; }
+  });
+  document.getElementById('flag-btn')?.addEventListener('click', window.flaggedOpen);
+  document.getElementById('mob-flag-btn')?.addEventListener('click', window.flaggedOpen);
+
+  refresh();
 })();
 </script>
 
