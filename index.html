@@ -53,6 +53,7 @@ window.MathJax = {
   --accent2:#2d5f8a;
   --green:#5a7a3a;
   --amber:#b8801a;
+  --anglais:#8a5a9a; /* violet matière Anglais (badges, barres) */
   --grid:rgba(45,95,138,0.12);
   --shadow:0 1px 0 rgba(0,0,0,0.04), 0 2px 8px rgba(0,0,0,0.06);
 }
@@ -64,6 +65,7 @@ window.MathJax = {
   --accent2:#6ba3d6;
   --green:#9bc06f;
   --amber:#e0a83a;
+  --anglais:#c9a3d8;
   --grid:rgba(107,163,214,0.10);
   --shadow:0 1px 0 rgba(0,0,0,0.2), 0 2px 12px rgba(0,0,0,0.4);
 }
@@ -949,8 +951,7 @@ mjx-container svg, mjx-container > div {
 .quiz-chapter-badge.maths{ color:var(--accent);background:rgba(200,71,46,.10); }
 .quiz-chapter-badge.si{ color:var(--green);background:rgba(90,122,58,.10); }
 .quiz-chapter-badge.info{ color:var(--amber);background:rgba(184,128,26,.10); }
-.quiz-chapter-badge.anglais{ color:#8a5a9a;background:rgba(138,90,154,.10); }
-:root[data-theme="dark"] .quiz-chapter-badge.anglais{ color:#c9a3d8; }
+.quiz-chapter-badge.anglais{ color:var(--anglais);background:rgba(138,90,154,.10); }
 .quiz-progress-text{
   font-family:'JetBrains Mono',monospace;font-size:.72rem;
   color:var(--ink);opacity:.6;white-space:nowrap;
@@ -5713,8 +5714,6 @@ figure.schema figcaption{
 
 
 
-<!-- ========================================================== -->
-<!-- =================== CHAPITRE OPTIQUE ===================== -->
 <!-- ========================================================== -->
 <!-- ========================================================== -->
 <!-- ===== CHAPITRE OPTIQUE GÉOMÉTRIQUE — LES BASES (ch1) ===== -->
@@ -50982,7 +50981,9 @@ function navigateTo(chapId, panelId, onDone){
             index.push({
               title: (num?num.textContent.trim()+' — ':'')+h3.textContent.trim(),
               meta: chapName+' › Exercices',
-              text: exo.textContent.trim().slice(0,400),
+              // texte INTÉGRAL (pas de troncature) : un mot-clé situé dans la
+              // partie B/C d'un long exo concours doit aussi être trouvable
+              text: exo.textContent.trim(),
               chap: chapId, panel: panelId
             });
           }
@@ -51014,6 +51015,9 @@ function navigateTo(chapId, panelId, onDone){
         });
       }
     });
+    // Pré-normaliser UNE fois (perf : avec les exos en texte intégral, re-normaliser
+    // tout le corpus à chaque frappe coûterait trop cher)
+    index.forEach(it => { it.nTitle = normalize(it.title); it.nText = normalize(it.text); });
   }
 
   function normalize(s){
@@ -51034,8 +51038,8 @@ function navigateTo(chapId, panelId, onDone){
     const nq = normalize(q.trim());
     const scored = [];
     index.forEach(item=>{
-      const nTitle = normalize(item.title);
-      const nText = normalize(item.text);
+      const nTitle = item.nTitle != null ? item.nTitle : normalize(item.title);
+      const nText  = item.nText  != null ? item.nText  : normalize(item.text);
       let score = 0;
       if(nTitle.includes(nq)) score += 10;
       if(nTitle.startsWith(nq)) score += 5;
@@ -51051,6 +51055,15 @@ function navigateTo(chapId, panelId, onDone){
     render(q.trim());
   }
 
+  /* Extrait centré sur la 1re occurrence : les exos étant indexés en texte
+     intégral, l'occurrence peut être bien au-delà des 120 premiers caractères. */
+  function snippetFor(item, q){
+    const nText = item.nText != null ? item.nText : normalize(item.text);
+    const i = nText.indexOf(normalize(q));
+    if(i <= 60) return item.text.slice(0, 140);
+    return '… ' + item.text.slice(i - 50, i + 90);
+  }
+
   function render(q){
     if(currentResults.length===0){
       resultsEl.innerHTML = q.length>=2
@@ -51062,7 +51075,7 @@ function navigateTo(chapId, panelId, onDone){
       return '<div class="search-result'+(i===selIdx?' sel':'')+'" data-i="'+i+'">'
         + '<span class="sr-meta">'+r.meta.replace(/</g,'&lt;')+'</span>'
         + '<span class="sr-title">'+highlight(r.title,q)+'</span>'
-        + (r.text?'<span class="sr-snippet">'+highlight(r.text.slice(0,120),q)+'</span>':'')
+        + (r.text?'<span class="sr-snippet">'+highlight(snippetFor(r,q),q)+'</span>':'')
         + '</div>';
     }).join('');
     // clic
@@ -51858,8 +51871,6 @@ ${bodyContent}
       panelId: c.prefix + '-flash'
     }])
   );
-  const MAT_COLORS = { physique:'physique', maths:'maths', si:'si' };
-
   /* État du quiz */
   let quizDeck = [];        // cartes sélectionnées pour la session
   let quizIdx  = 0;         // index courant
@@ -52234,7 +52245,7 @@ ${bodyContent}
       .filter(([,v])=>v.tot>0)
       .sort(([,a],[,b])=>{ const pA=a.a/a.tot, pB=b.a/b.tot; return pA-pB; });
 
-    const colorsMap = { physique:'#2d5f8a', maths:'#c8472e', si:'#5a7a3a' };
+    const colorsMap = { physique:'var(--accent2)', maths:'var(--accent)', si:'var(--green)', info:'var(--amber)', anglais:'var(--anglais)' };
     let barsHtml = '<div style="font-family:\'JetBrains Mono\',monospace;font-size:.65rem;letter-spacing:.15em;text-transform:uppercase;color:var(--accent);margin-bottom:.5rem">Progression par chapitre</div>';
     sorted.forEach(([prefix, d])=>{
       const pct = Math.round(d.a/d.tot*100);
@@ -52629,21 +52640,16 @@ ${bodyContent}
     const input = document.getElementById('search-input');
     if(!input) return;
 
-    // Type badges : étiquette + couleur
-    const TYPE_STYLES = {
-      'Définition':  { bg:'rgba(224,168,58,0.15)',  color:'#a07010', border:'#e0a83a' },
-      'Propriété':   { bg:'rgba(90,122,58,0.15)',   color:'#3a6a1a', border:'#7ab04a' },
-      'Méthode':     { bg:'rgba(45,95,138,0.15)',   color:'#1a4a7a', border:'#2d5f8a' },
-      'Exercice':    { bg:'rgba(200,71,46,0.12)',   color:'#8a2c1a', border:'#c8472e' },
-      'Flashcard':   { bg:'rgba(128,64,192,0.12)',  color:'#5a2a8a', border:'#9060d0' },
-      'Cours':       { bg:'rgba(60,60,60,0.07)',    color:'#444',    border:'#888'    },
-      'Formule':     { bg:'rgba(45,95,138,0.08)',   color:'#2d5f8a', border:'#2d5f8a' },
+    // Type badges : classe CSS par type (couleurs en variables de thème →
+    // lisibles en clair COMME en sombre, contrairement aux anciens hex figés)
+    const TYPE_CLASS = {
+      'Définition': 'def', 'Propriété': 'prop', 'Méthode': 'meth',
+      'Exercice': 'exo', 'Flashcard': 'flash', 'Cours': 'cours', 'Formule': 'form',
     };
 
     // Fonction pour créer le badge HTML
     function badge(type){
-      const s = TYPE_STYLES[type] || TYPE_STYLES['Cours'];
-      return `<span class="sr-badge" style="background:${s.bg};color:${s.color};border-color:${s.border}">${type}</span>`;
+      return `<span class="sr-badge sr-b-${TYPE_CLASS[type] || 'cours'}">${type}</span>`;
     }
 
     // Injecter le CSS des badges (si pas déjà présent)
@@ -52661,6 +52667,13 @@ ${bodyContent}
           margin-right:0.4rem;vertical-align:middle;
           flex-shrink:0;
         }
+        .sr-b-def  { background:rgba(224,168,58,.15); color:var(--amber);   border-color:var(--amber); }
+        .sr-b-prop { background:rgba(90,122,58,.15);  color:var(--green);   border-color:var(--green); }
+        .sr-b-meth { background:rgba(45,95,138,.15);  color:var(--accent2); border-color:var(--accent2); }
+        .sr-b-exo  { background:rgba(200,71,46,.12);  color:var(--accent);  border-color:var(--accent); }
+        .sr-b-flash{ background:rgba(138,90,154,.12); color:var(--anglais); border-color:var(--anglais); }
+        .sr-b-cours{ background:rgba(128,128,128,.10);color:var(--ink);     border-color:var(--ink); opacity:.75; }
+        .sr-b-form { background:rgba(45,95,138,.08);  color:var(--accent2); border-color:var(--accent2); }
         .sr-type-row{
           display:flex;align-items:center;
           gap:0.2rem;margin-bottom:0.2rem;
