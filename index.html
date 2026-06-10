@@ -2221,6 +2221,25 @@ figure.schema figcaption{
 .flash-flag-btn:hover{ border-color:var(--accent); color:var(--accent); }
 .flash-flag-btn.is-flagged{ border-color:var(--accent); color:var(--accent); background:rgba(200,71,46,0.08); }
 
+/* ===== Bouton 🔊 « Écouter » (prononciation, matière Anglais) ===== */
+.flash-tts-btn{
+  position:absolute; top:0.5rem; right:0.6rem; z-index:2;
+  background:var(--paper); border:1px solid var(--grid); border-radius:7px;
+  font-size:1.05rem; padding:0.3rem 0.55rem; cursor:pointer;
+  color:var(--ink); opacity:0.65; transition:all .15s;
+  min-width:44px; min-height:40px;
+}
+.flash-tts-btn:hover{ opacity:1; border-color:var(--accent2); color:var(--accent2); }
+.flash-tts-btn.speaking,
+#quiz-tts-btn.speaking{
+  opacity:1; border-color:var(--accent2); color:var(--accent2);
+  animation:ttsPulse 1s ease-in-out infinite;
+}
+@keyframes ttsPulse{ 50%{ transform:scale(1.1); } }
+@media (prefers-reduced-motion: reduce){
+  .flash-tts-btn.speaking, #quiz-tts-btn.speaking{ animation:none; }
+}
+
 /* ============================================================ */
 /* ===== POLISH VISUEL (Phase C) ============================= */
 /* Affinages fidèles au style éditorial existant. Placé en fin de
@@ -40360,6 +40379,9 @@ const cstCards = [
         <button class="quiz-goto-btn" id="quiz-goto-btn" onclick="quizGotoChapter()">
           📖 Voir dans le cours
         </button>
+        <button class="quiz-goto-btn" id="quiz-tts-btn" onclick="quizSpeakCurrent()" title="Écouter (prononciation)" style="display:none">
+          🔊 Écouter
+        </button>
         <button class="quiz-goto-btn" id="quiz-flag-btn" onclick="quizFlagCurrent()" title="Signaler cette carte (fausse / peu claire)">
           🚩 Signaler
         </button>
@@ -41553,6 +41575,79 @@ function __CVA(name, alpha){
 new MutationObserver(() => { __CVcache = null; })
   .observe(document.documentElement, {attributes:true, attributeFilter:['data-theme']});
 
+/* ===== Lecture audio (TTS) — prononciation des cartes d'anglais =====
+   Web Speech API (synthèse vocale du navigateur, 100 % locale — aucune
+   dépendance). Lit la face VISIBLE d'une carte : détection de langue simple
+   (marqueurs français vs anglais) → voix en-GB pour les expressions anglaises,
+   fr-FR pour les questions en français. Les gloses françaises entre
+   parenthèses sont retirées de la lecture anglaise ; « (aussi : X) » est lu
+   comme une variante de plus. Si l'API est absente, les boutons 🔊
+   n'apparaissent pas. Défini ICI (avant les decks) car makeFlash teste
+   window.__TTS.ok au moment de l'injection des boutons. */
+window.__TTS = (function(){
+  const ok = (typeof window !== 'undefined') && ('speechSynthesis' in window) && ('SpeechSynthesisUtterance' in window);
+  let voices = [];
+  let currentU = null;   // référence gardée (bug GC Chrome : l'utterance peut être ramassée en cours de lecture)
+  function loadVoices(){ try{ voices = speechSynthesis.getVoices() || []; }catch(e){ voices = []; } }
+  if(ok){
+    loadVoices();
+    try{ speechSynthesis.addEventListener('voiceschanged', loadVoices); }
+    catch(e){ try{ speechSynthesis.onvoiceschanged = loadVoices; }catch(_){} }
+  }
+  function pickVoice(lang){
+    // anglais : préférer la voix britannique (usage colle), puis américaine, puis n'importe quel en*
+    const prefs = lang === 'en' ? ['en-gb','en-us','en'] : ['fr-fr','fr'];
+    for(const p of prefs){
+      const v = voices.find(v => (v.lang || '').replace('_','-').toLowerCase().startsWith(p));
+      if(v) return v;
+    }
+    return null;
+  }
+  function ttsStripHtml(s){ const d = document.createElement('div'); d.innerHTML = String(s || ''); return (d.textContent || '').replace(/\s+/g,' ').trim(); }
+  const FR_HINTS = /[àâçéèêëîïôùûœ«»]|\b(le|la|les|un|une|des|de|du|et|ou|que|qui|quoi|comment|pourquoi|dire|exprimer|signifie|aussi|exemple|nommer|citer|trois|donner)\b/i;
+  const EN_HINTS = /\b(the|to|of|and|in|for|with|that|this|you|it|is|are|an|on|at|by|from|one|might|would|could|should|what|how)\b/i;
+  function detectLang(text){
+    const fr = (text.match(new RegExp(FR_HINTS.source, 'gi')) || []).length;
+    const en = (text.match(new RegExp(EN_HINTS.source, 'gi')) || []).length;
+    return en >= fr ? 'en' : 'fr';
+  }
+  function cleanForSpeech(text, lang){
+    let t = text;
+    if(lang === 'en'){
+      // parenthèses : « (aussi : X) » → lire X comme variante ; gloses françaises → retirées
+      t = t.replace(/\(([^()]*)\)/g, (m, inn) => {
+        const i = inn.trim();
+        const alt = i.match(/^aussi\s*:?\s*(.*)$/i);
+        if(alt) return '. ' + alt[1];
+        return FR_HINTS.test(i) ? '' : m;
+      });
+    }
+    // séparateurs de variantes → pauses ; « / » → respiration courte
+    t = t.replace(/\s*·\s*/g, '. ').replace(/\s*\/\s*/g, ', ');
+    return t.replace(/\s+/g,' ').trim();
+  }
+  function speak(html, opts){
+    if(!ok) return false;
+    opts = opts || {};
+    try{ speechSynthesis.cancel(); }catch(e){}
+    const raw = ttsStripHtml(html);
+    if(!raw) return false;
+    const lang = opts.lang || detectLang(raw);
+    const u = new SpeechSynthesisUtterance(cleanForSpeech(raw, lang));
+    u.lang = lang === 'en' ? 'en-GB' : 'fr-FR';
+    const v = pickVoice(lang);
+    if(v) u.voice = v;
+    u.rate = 0.95;   // léger ralenti : meilleur pour l'apprentissage
+    const done = () => { if(opts.onend) opts.onend(); };
+    u.onend = done; u.onerror = done;
+    currentU = u;
+    try{ speechSynthesis.speak(u); }catch(e){ done(); return false; }
+    return true;
+  }
+  function stop(){ if(ok){ try{ speechSynthesis.cancel(); }catch(e){} } }
+  return { ok, speak, stop, detectLang, cleanForSpeech: (t, l) => cleanForSpeech(t, l) };
+})();
+
 function drawSim(){
   if(!document.getElementById('rlc-simu').classList.contains('active')) return;
   resizeCanvas(canvas);
@@ -42312,6 +42407,8 @@ function makeFlash(cards, idPrefix, contentId, progId, statsId){
     } catch(e) { /* MathJax not ready, ignore */ }
     updateStats();
     setFlagState();
+    // Carte ou face différente → toute lecture audio en cours devient obsolète
+    if(isPlainDeck && window.__TTS) window.__TTS.stop();
   }
   function flip(){flipped = !flipped; show()}
   function rate(level){
@@ -42393,6 +42490,31 @@ function makeFlash(cards, idPrefix, contentId, progId, statsId){
       // Enregistre ce rafraîchisseur : le module global le rappellera pour fixer
       // l'état initial (cartes déjà signalées) et à chaque signalement ailleurs.
       (window.__flashFlagRefreshers = window.__flashFlagRefreshers || []).push(setFlagState);
+    }
+  } catch(e){ /* injection non bloquante */ }
+
+  // Bouton 🔊 « Écouter » (matière anglaise uniquement) : lit la face visible
+  // avec la voix adaptée (anglaise/française). Web Speech API locale.
+  try {
+    if(isPlainDeck && window.__TTS && window.__TTS.ok){
+      const cardEl = document.getElementById(contentId)?.closest('.flash-card');
+      if(cardEl && !cardEl.querySelector('.flash-tts-btn')){
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'flash-tts-btn';
+        b.title = 'Écouter (prononciation)';
+        b.setAttribute('aria-label', 'Écouter la carte');
+        b.textContent = '🔊';
+        b.addEventListener('click', (e) => {
+          e.stopPropagation();   // ne pas retourner la carte
+          const card = cards[order[idx]];
+          b.classList.add('speaking');
+          const started = window.__TTS.speak(flipped ? card.a : card.q,
+            { onend: () => b.classList.remove('speaking') });
+          if(!started) b.classList.remove('speaking');
+        });
+        cardEl.appendChild(b);
+      }
     }
   } catch(e){ /* injection non bloquante */ }
 
@@ -52003,6 +52125,7 @@ ${bodyContent}
   };
   window.quizClose = function(){
     document.getElementById('quiz-overlay').classList.remove('open');
+    if(window.__TTS) window.__TTS.stop();
   };
   window.quizGoConfig = function(){
     showScreen('quiz-screen-config');
@@ -52057,6 +52180,8 @@ ${bodyContent}
     quizCurrent = item;
     quizRevealed = false;
     if(window.__refreshQuizFlag) window.__refreshQuizFlag();
+    if(window.__refreshQuizTts) window.__refreshQuizTts();
+    if(window.__TTS) window.__TTS.stop();   // nouvelle carte → lecture obsolète
 
     // Badge chapitre
     const badge = document.getElementById('quiz-chapter-badge');
@@ -52095,6 +52220,7 @@ ${bodyContent}
   }
 
   window.quizReveal = function(){
+    if(window.__TTS) window.__TTS.stop();   // la face visible change
     if(quizRevealed){
       // Retour à la question
       document.getElementById('quiz-card-inner').classList.remove('flipped');
@@ -52148,6 +52274,23 @@ ${bodyContent}
   document.getElementById('quiz-card').addEventListener('click', ()=>{ quizReveal(); });
 
   /* ---- Aller au chapitre — vers le panel cours, section pertinente ---- */
+  /* Lecture audio de la carte affichée (bouton 🔊, matière anglaise) */
+  function quizTtsBtnState(){
+    const btn = document.getElementById('quiz-tts-btn');
+    if(!btn) return;
+    const isAng = quizCurrent && quizCurrent.meta && quizCurrent.meta.mat === 'anglais';
+    btn.style.display = (isAng && window.__TTS && window.__TTS.ok) ? '' : 'none';
+  }
+  window.__refreshQuizTts = quizTtsBtnState;
+  window.quizSpeakCurrent = function(){
+    if(!quizCurrent || !window.__TTS) return;
+    const btn = document.getElementById('quiz-tts-btn');
+    if(btn) btn.classList.add('speaking');
+    const started = window.__TTS.speak(quizRevealed ? quizCurrent.card.a : quizCurrent.card.q,
+      { onend: () => { if(btn) btn.classList.remove('speaking'); } });
+    if(!started && btn) btn.classList.remove('speaking');
+  };
+
   /* Signalement de la carte affichée (bouton 🚩 du quiz) */
   function quizFlagBtnState(){
     const btn = document.getElementById('quiz-flag-btn');
