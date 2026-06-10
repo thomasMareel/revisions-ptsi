@@ -205,6 +205,9 @@ header{
     font-size:1.3rem;color:var(--ink);
     padding:0.3rem;flex-shrink:0;
     line-height:1;
+    /* Cible tactile ≥ 44px (WCAG) sans changer le visuel */
+    min-width:44px;min-height:44px;
+    display:inline-flex;align-items:center;justify-content:center;
   }
   #mob-chapter-title{
     flex:1;
@@ -225,6 +228,9 @@ header{
     padding:0.35rem 0.4rem;
     border-radius:4px;
     transition:background 0.15s;
+    /* Cible tactile ≥ 44px (WCAG) */
+    min-width:44px;min-height:44px;
+    display:inline-flex;align-items:center;justify-content:center;
   }
   .mob-header-actions button:active{background:var(--paper-dark);}
   /* Menu « ⋯ » regroupant les actions secondaires (désencombre la barre) */
@@ -240,6 +246,7 @@ header{
     display:flex; align-items:center; gap:0.7rem; width:100%; text-align:left;
     font-size:0.95rem; font-family:'Inter Tight',sans-serif; color:var(--ink);
     padding:0.65rem 0.95rem; border-radius:0;
+    min-height:44px;
   }
   #mob-more-menu button > span{ flex:1; }
   #mob-more-menu button:hover, #mob-more-menu button:active{ background:var(--accent); color:#fff; }
@@ -302,6 +309,7 @@ header{
     border-right:1px solid rgba(128,128,128,.2);
     transition:all 0.18s;
   }
+  .mob-mat-btn{ min-height:44px; }
   .mob-mat-btn:last-child{border-right:none;}
   .mob-mat-btn.active{
     opacity:1;font-weight:700;
@@ -332,6 +340,7 @@ header{
     transition:all 0.15s;
     border-bottom:1px solid rgba(128,128,128,.08);
   }
+  .mob-chap-item{ min-height:44px; }
   .mob-chap-item:active{background:var(--paper-dark);}
   .mob-chap-item.active{
     border-left-color:var(--accent);
@@ -363,6 +372,7 @@ header{
   .tab{
     padding:0.75rem 1rem !important;
     font-size:0.72rem !important;
+    min-height:44px;
   }
 
   /* ── Sections de cours ── */
@@ -935,9 +945,12 @@ mjx-container svg, mjx-container > div {
   letter-spacing:.1em;padding:.2rem .55rem;
   border-left:3px solid currentColor;flex:1;
 }
-.quiz-chapter-badge.physique{ color:#2d5f8a;background:rgba(45,95,138,.10); }
-.quiz-chapter-badge.maths{ color:#c8472e;background:rgba(200,71,46,.10); }
-.quiz-chapter-badge.si{ color:#5a7a3a;background:rgba(90,122,58,.10); }
+.quiz-chapter-badge.physique{ color:var(--accent2);background:rgba(45,95,138,.10); }
+.quiz-chapter-badge.maths{ color:var(--accent);background:rgba(200,71,46,.10); }
+.quiz-chapter-badge.si{ color:var(--green);background:rgba(90,122,58,.10); }
+.quiz-chapter-badge.info{ color:var(--amber);background:rgba(184,128,26,.10); }
+.quiz-chapter-badge.anglais{ color:#8a5a9a;background:rgba(138,90,154,.10); }
+:root[data-theme="dark"] .quiz-chapter-badge.anglais{ color:#c9a3d8; }
 .quiz-progress-text{
   font-family:'JetBrains Mono',monospace;font-size:.72rem;
   color:var(--ink);opacity:.6;white-space:nowrap;
@@ -1581,6 +1594,7 @@ section.panel.active{display:block;animation:fadeIn 0.4s ease}
   transition:background 0.2s;
 }
 .reveal:hover{background:rgba(200,71,46,0.1)}
+.reveal:focus-visible{ outline:2px solid var(--accent); outline-offset:3px; }
 .reveal .label{
   font-family:'JetBrains Mono',monospace;
   font-size:0.7rem;
@@ -2254,6 +2268,7 @@ figure.schema figcaption{
   font-size:0.95rem;
   font-weight:600;
   padding:0.6rem 0.3rem;
+  min-height:44px;
   background:none;
   border:none;
   border-right:1px solid rgba(128,128,128,0.25);
@@ -40235,6 +40250,14 @@ const cstCards = [
               <input type="checkbox" id="qc-si" checked>
               <span class="quiz-check-box"></span> Sciences de l'ingénieur
             </label>
+            <label class="quiz-check mat-info">
+              <input type="checkbox" id="qc-info" checked>
+              <span class="quiz-check-box"></span> Informatique
+            </label>
+            <label class="quiz-check mat-anglais">
+              <input type="checkbox" id="qc-anglais" checked>
+              <span class="quiz-check-box"></span> Anglais
+            </label>
           </div>
         </div>
 
@@ -41512,6 +41535,25 @@ function getCanvasColors(){
   };
 }
 
+/* Couleurs de thème pour les canvas — version MISE EN CACHE (perf des boucles rAF :
+   getComputedStyle est coûteux, on ne le rappelle qu'après un changement de thème).
+   __CV()  → objet de couleurs courant (mêmes clés que getCanvasColors).
+   __CVA(nom, alpha) → la couleur du thème en rgba() avec l'alpha demandé. */
+let __CVcache = null;
+function __CV(){ return __CVcache || (__CVcache = getCanvasColors()); }
+function __CVA(name, alpha){
+  let c = String(__CV()[name] || '#000').trim();
+  if(c.startsWith('rgba(')) return c; // déjà avec alpha (ex. grid)
+  if(c.startsWith('rgb(')) return c.replace('rgb(','rgba(').replace(')', ','+alpha+')');
+  let h = c.replace('#','');
+  if(h.length === 3) h = h.split('').map(x => x + x).join('');
+  const r = parseInt(h.slice(0,2),16), g = parseInt(h.slice(2,4),16), b = parseInt(h.slice(4,6),16);
+  return 'rgba('+r+','+g+','+b+','+alpha+')';
+}
+/* Invalidation du cache au changement de thème (attribut data-theme sur <html>) */
+new MutationObserver(() => { __CVcache = null; })
+  .observe(document.documentElement, {attributes:true, attributeFilter:['data-theme']});
+
 function drawSim(){
   if(!document.getElementById('rlc-simu').classList.contains('active')) return;
   resizeCanvas(canvas);
@@ -41586,7 +41628,7 @@ function drawLibre(W,H,padL,padR,padT,padB,y0,p){
   ctx.fillText('u_C / U₀',padL-40,padT+10);
   ctx.fillText('t',W-padR-10,y0+18);
   
-  ctx.strokeStyle = '#c8472e';
+  ctx.strokeStyle = __CV().accent;
   ctx.lineWidth = 2;
   ctx.beginPath();
   const N = 600;
@@ -41600,7 +41642,7 @@ function drawLibre(W,H,padL,padR,padT,padB,y0,p){
   ctx.stroke();
   
   if(Q > 0.5 + 1e-3){
-    ctx.strokeStyle = 'rgba(45,95,138,0.4)';
+    ctx.strokeStyle = __CVA('accent2',0.4);
     ctx.setLineDash([4,4]);
     ctx.lineWidth = 1;
     const alpha = w0/(2*Q);
@@ -41668,14 +41710,14 @@ function drawEchelon(W,H,padL,padR,padT,padB,y0,p){
   
   // Ligne asymptote E
   const yE = yBase - 1*yScale;
-  ctx.strokeStyle = 'rgba(45,95,138,0.4)';
+  ctx.strokeStyle = __CVA('accent2',0.4);
   ctx.setLineDash([3,3]);
   ctx.lineWidth = 1;
   ctx.beginPath();
   ctx.moveTo(padL,yE);ctx.lineTo(W-padR,yE);
   ctx.stroke();
   ctx.setLineDash([]);
-  ctx.fillStyle = '#2d5f8a';
+  ctx.fillStyle = __CV().accent2;
   ctx.fillText('E', padL-15, yE+4);
   
   // Ligne 0 (référence axe horizontal déjà à y0 mais ici on veut le 0 en bas)
@@ -41688,7 +41730,7 @@ function drawEchelon(W,H,padL,padR,padT,padB,y0,p){
   ctx.fillText('0', padL-15, yBase+4);
   
   // Courbe u_C(t)
-  ctx.strokeStyle = '#c8472e';
+  ctx.strokeStyle = __CV().accent;
   ctx.lineWidth = 2;
   ctx.beginPath();
   const N = 600;
@@ -41724,7 +41766,7 @@ function drawForced(W,H,padL,padR,padT,padB,y0,p){
   }
   const norm = Math.max(ampMax, 1.2);
   
-  ctx.strokeStyle = '#2d5f8a';
+  ctx.strokeStyle = __CV().accent2;
   ctx.lineWidth = 2;
   ctx.beginPath();
   amps.forEach((pt,i)=>{
@@ -41737,11 +41779,11 @@ function drawForced(W,H,padL,padR,padT,padB,y0,p){
   const idxF0 = Math.round(Math.log(p.w0/(2*Math.PI)/fmin)/Math.log(fmax/fmin)*N);
   if(idxF0 >= 0 && idxF0 <= N){
     const x = padL + (idxF0/N)*xRange;
-    ctx.strokeStyle = '#c8472e';
+    ctx.strokeStyle = __CV().accent;
     ctx.setLineDash([3,3]);
     ctx.beginPath();ctx.moveTo(x,padT);ctx.lineTo(x,H-padB);ctx.stroke();
     ctx.setLineDash([]);
-    ctx.fillStyle = '#c8472e';
+    ctx.fillStyle = __CV().accent;
     ctx.font = '11px JetBrains Mono';
     ctx.fillText('f₀',x+4,padT+14);
   }
@@ -41751,7 +41793,7 @@ function drawForced(W,H,padL,padR,padT,padB,y0,p){
     const x = padL + (idxF/N)*xRange;
     const A = amps[idxF].A;
     const y = (H-padB) - (A/norm)*(H-padB-padT);
-    ctx.fillStyle = '#5a7a3a';
+    ctx.fillStyle = __CV().green;
     ctx.beginPath();ctx.arc(x,y,5,0,2*Math.PI);ctx.fill();
     ctx.fillStyle = getCanvasColors().ink;
     ctx.font = '11px JetBrains Mono';
@@ -41837,7 +41879,7 @@ function drawOpt(){
   
   // Lens (vertical line with arrows)
   octx.lineWidth = 2;
-  octx.strokeStyle = '#2d5f8a';
+  octx.strokeStyle = __CV().accent2;
   octx.beginPath();
   octx.moveTo(cx,cy-100);octx.lineTo(cx,cy+100);octx.stroke();
   // arrows depending on type
@@ -41865,7 +41907,7 @@ function drawOpt(){
   const xFp = cx + f*scale;      // F'
   const xF = cx - f*scale;       // F
   
-  octx.fillStyle = '#c8472e';
+  octx.fillStyle = __CV().accent;
   octx.font = '600 13px JetBrains Mono';
   // F (objet)
   octx.beginPath();octx.arc(xF,cy,3,0,2*Math.PI);octx.fill();
@@ -41898,7 +41940,7 @@ function drawOpt(){
     const yBp = cy - ApBp*scale;
     const isReal = OAp > 0;
     
-    octx.strokeStyle = isReal ? '#5a7a3a' : '#5a7a3a';
+    octx.strokeStyle = __CV().green;
     octx.lineWidth = 2;
     if(!isReal) octx.setLineDash([4,4]);
     octx.beginPath();octx.moveTo(xAp,cy);octx.lineTo(xAp,yBp);octx.stroke();
@@ -41909,13 +41951,13 @@ function drawOpt(){
       octx.stroke();
     }
     octx.setLineDash([]);
-    octx.fillStyle = '#5a7a3a';
+    octx.fillStyle = __CV().green;
     octx.font = '11px JetBrains Mono';
     octx.fillText("A'",xAp+4,cy+14);
     octx.fillText("B'",xAp+4,yBp-5);
     
     // RAY TRACING (three rays from B)
-    octx.strokeStyle = 'rgba(200,71,46,0.7)';
+    octx.strokeStyle = __CVA('accent',0.7);
     octx.lineWidth = 1.5;
     
     // Ray 1: through O (undeviated)
@@ -41971,7 +42013,7 @@ function drawOpt(){
     
     // Virtual image: extend rays backward
     if(!isReal && optMode==='conv'){
-      octx.strokeStyle = 'rgba(200,71,46,0.3)';
+      octx.strokeStyle = __CVA('accent',0.3);
       octx.setLineDash([3,3]);
       octx.beginPath();
       octx.moveTo(cx,yB);
@@ -42262,7 +42304,7 @@ function makeFlash(cards, idPrefix, contentId, progId, statsId){
     if(!flipped){
       c.innerHTML = `<span class="tag">Question</span><div>${isPlainDeck ? card.q : flashPretty(card.q)}</div>`;
     } else {
-      c.innerHTML = `<span class="tag" style="color:#5a7a3a">Réponse</span><div>${isPlainDeck ? card.a : flashPretty(card.a)}</div>`;
+      c.innerHTML = `<span class="tag" style="color:var(--green)">Réponse</span><div>${isPlainDeck ? card.a : flashPretty(card.a)}</div>`;
     }
     try {
       if(window.MathJax && window.MathJax.typesetPromise){
@@ -42536,7 +42578,7 @@ function drawOscLibre(W,H,padL,padR,padT,padB,y0,p){
   oscCtx.fillText('t (s)', W-padR-30, y0+18);
   
   // curve
-  oscCtx.strokeStyle = '#c8472e';
+  oscCtx.strokeStyle = __CV().accent;
   oscCtx.lineWidth = 2;
   oscCtx.beginPath();
   const N = 600;
@@ -42551,7 +42593,7 @@ function drawOscLibre(W,H,padL,padR,padT,padB,y0,p){
   
   // envelope for pseudo-periodic
   if(p.a > 0 && Q > 0.5 + 1e-3 && Q < 1000){
-    oscCtx.strokeStyle = 'rgba(45,95,138,0.4)';
+    oscCtx.strokeStyle = __CVA('accent2',0.4);
     oscCtx.setLineDash([4,4]);
     oscCtx.lineWidth = 1;
     const alpha = w0/(2*Q);
@@ -42607,7 +42649,7 @@ function drawOscForced(W,H,padL,padR,padT,padB,y0,p){
   oscCtx.fillText('ω (rad/s)', W-padR-60, H-padB+22);
   
   // curve
-  oscCtx.strokeStyle = '#2d5f8a';
+  oscCtx.strokeStyle = __CV().accent2;
   oscCtx.lineWidth = 2;
   oscCtx.beginPath();
   amps.forEach((pt,i)=>{
@@ -42621,13 +42663,13 @@ function drawOscForced(W,H,padL,padR,padT,padB,y0,p){
   const idxW0 = Math.round((p.w0 - wmin)/(wmax - wmin)*N);
   if(idxW0 >= 0 && idxW0 <= N){
     const x = padL + (idxW0/N)*xRange;
-    oscCtx.strokeStyle = '#c8472e';
+    oscCtx.strokeStyle = __CV().accent;
     oscCtx.setLineDash([3,3]);
     oscCtx.beginPath();
     oscCtx.moveTo(x,padT);oscCtx.lineTo(x,H-padB);
     oscCtx.stroke();
     oscCtx.setLineDash([]);
-    oscCtx.fillStyle = '#c8472e';
+    oscCtx.fillStyle = __CV().accent;
     oscCtx.font = '11px JetBrains Mono';
     oscCtx.fillText('ω₀', x+4, padT+14);
   }
@@ -42638,7 +42680,7 @@ function drawOscForced(W,H,padL,padR,padT,padB,y0,p){
     const x = padL + (idxW/N)*xRange;
     const A = amps[idxW].A;
     const py = (H-padB) - (A/norm)*(H-padB-padT);
-    oscCtx.fillStyle = '#5a7a3a';
+    oscCtx.fillStyle = __CV().green;
     oscCtx.beginPath();oscCtx.arc(x,py,5,0,2*Math.PI);oscCtx.fill();
     oscCtx.fillStyle = getCanvasColors().ink;
     oscCtx.font = '11px JetBrains Mono';
@@ -42891,7 +42933,7 @@ function drawSer(){
   // Ligne y=0 si dans la plage
   if(yBotVal < 0 && yTopVal > 0){
     const y0px = toY(0);
-    c.strokeStyle = 'rgba(45,95,138,0.4)';
+    c.strokeStyle = __CVA('accent2',0.4);
     c.setLineDash([2,3]);
     c.beginPath();
     c.moveTo(padL, y0px); c.lineTo(W-padR, y0px);
@@ -42904,21 +42946,21 @@ function drawSer(){
   if(theo.converges && typeof theo.val === 'number'){
     const yTh = toY(theo.val);
     if(yTh >= padT && yTh <= H-padB){
-      c.strokeStyle = 'rgba(90,122,58,0.7)';
+      c.strokeStyle = __CVA('green',0.7);
       c.setLineDash([4,4]);
       c.lineWidth = 1.5;
       c.beginPath();
       c.moveTo(padL, yTh); c.lineTo(W-padR, yTh);
       c.stroke();
       c.setLineDash([]);
-      c.fillStyle = '#5a7a3a';
+      c.fillStyle = __CV().green;
       c.font = '11px JetBrains Mono';
       c.fillText('S = '+theo.val.toFixed(4), W-padR-100, yTh-6);
     }
   }
   
   // Courbe des sommes partielles : escalier
-  c.strokeStyle = '#c8472e';
+  c.strokeStyle = __CV().accent;
   c.lineWidth = 2;
   c.beginPath();
   sums.forEach((p,i)=>{
@@ -42928,7 +42970,7 @@ function drawSer(){
   c.stroke();
   
   // Points
-  c.fillStyle = '#c8472e';
+  c.fillStyle = __CV().accent;
   sums.forEach((p,i)=>{
     if(i % Math.max(1, Math.floor(sums.length/30)) === 0 || i === sums.length-1){
       const xPx = toX(i), yPx = toY(p.s);
@@ -42944,7 +42986,7 @@ function drawSer(){
   c.fillText('S_n', padL-40, padT+10);
   c.fillText('n', W-padR-10, H-padB+18);
   // graduations Y
-  c.fillStyle = '#888';
+  c.fillStyle = __CV().muted;
   c.font = '10px JetBrains Mono';
   c.fillText(yTopVal.toFixed(2), padL-45, padT+4);
   c.fillText(yBotVal.toFixed(2), padL-45, H-padB+4);
@@ -44993,7 +45035,7 @@ function drawLin(){
   const refSquare = [[0,0],[1,0],[1,1],[0,1]];
   
   // Carré avant transformation : tracé léger en pointillé
-  c.strokeStyle = 'rgba(45,95,138,0.35)';
+  c.strokeStyle = __CVA('accent2',0.35);
   c.setLineDash([3,3]);
   c.lineWidth = 1;
   c.beginPath();
@@ -45012,7 +45054,7 @@ function drawLin(){
   ]);
   
   // Remplissage léger
-  c.fillStyle = 'rgba(200,71,46,0.15)';
+  c.fillStyle = __CVA('accent',0.15);
   c.beginPath();
   transformed.forEach((p,i)=>{
     const X = toX(p[0]), Y = toY(p[1]);
@@ -45022,7 +45064,7 @@ function drawLin(){
   c.fill();
   
   // Contour
-  c.strokeStyle = '#c8472e';
+  c.strokeStyle = __CV().accent;
   c.lineWidth = 2;
   c.beginPath();
   transformed.forEach((p,i)=>{
@@ -45065,10 +45107,10 @@ function drawLin(){
   const fe1 = [mat[0][0], mat[1][0]];
   const fe2 = [mat[0][1], mat[1][1]];
   if(Math.hypot(fe1[0], fe1[1]) > 0.02){
-    drawArrow(toX(0), toY(0), toX(fe1[0]), toY(fe1[1]), '#2d5f8a', 2.5, 'f(e₁)');
+    drawArrow(toX(0), toY(0), toX(fe1[0]), toY(fe1[1]), __CV().accent2, 2.5, 'f(e₁)');
   }
   if(Math.hypot(fe2[0], fe2[1]) > 0.02){
-    drawArrow(toX(0), toY(0), toX(fe2[0]), toY(fe2[1]), '#5a7a3a', 2.5, 'f(e₂)');
+    drawArrow(toX(0), toY(0), toX(fe2[0]), toY(fe2[1]), __CV().green, 2.5, 'f(e₂)');
   }
   
   // Tracé du noyau si c'est une droite
@@ -45076,7 +45118,7 @@ function drawLin(){
     const v = ker.vec;
     // tracer une droite passant par 0 dirigée par v
     const ext = 10;
-    c.strokeStyle = 'rgba(200,71,46,0.6)';
+    c.strokeStyle = __CVA('accent',0.6);
     c.setLineDash([6,3]);
     c.lineWidth = 2;
     c.beginPath();
@@ -45084,7 +45126,7 @@ function drawLin(){
     c.lineTo(toX(ext*v[0]), toY(ext*v[1]));
     c.stroke();
     c.setLineDash([]);
-    c.fillStyle = '#c8472e';
+    c.fillStyle = __CV().accent;
     c.font = 'bold 11px JetBrains Mono';
     c.fillText('Ker f', toX(2*v[0]) + 4, toY(2*v[1]) - 4);
   }
@@ -45093,7 +45135,7 @@ function drawLin(){
   if(img.dim === 1){
     const v = img.vec;
     const ext = 10;
-    c.strokeStyle = 'rgba(90,122,58,0.5)';
+    c.strokeStyle = __CVA('green',0.5);
     c.setLineDash([8,2,2,2]);
     c.lineWidth = 1.5;
     c.beginPath();
@@ -45101,7 +45143,7 @@ function drawLin(){
     c.lineTo(toX(ext*v[0]), toY(ext*v[1]));
     c.stroke();
     c.setLineDash([]);
-    c.fillStyle = '#5a7a3a';
+    c.fillStyle = __CV().green;
     c.font = 'bold 11px JetBrains Mono';
     c.fillText('Im f', toX(-3*v[0]) + 4, toY(-3*v[1]) - 4);
   }
@@ -45400,7 +45442,7 @@ function drawOxred(){
   
   c.clearRect(0,0,W,H);
   // grille
-  c.strokeStyle = 'rgba(45,95,138,0.06)';
+  c.strokeStyle = __CVA('accent2',0.06);
   c.lineWidth = 1;
   for(let x=0;x<W;x+=24){c.beginPath();c.moveTo(x,0);c.lineTo(x,H);c.stroke()}
   for(let y=0;y<H;y+=24){c.beginPath();c.moveTo(0,y);c.lineTo(W,y);c.stroke()}
@@ -45432,10 +45474,10 @@ function drawOxred(){
   const toY = (e) => (H - padB) - ((e - eMin)/(eMax - eMin)) * (H - padT - padB);
   
   // Graduations
-  c.strokeStyle = '#888';
+  c.strokeStyle = __CV().muted;
   c.lineWidth = 1;
   c.font = '10px JetBrains Mono';
-  c.fillStyle = '#888';
+  c.fillStyle = __CV().muted;
   for(let e = -3; e <= 3; e++){
     const y = toY(e);
     c.beginPath();
@@ -45445,7 +45487,7 @@ function drawOxred(){
   }
   // 0V en gras
   const y0 = toY(0);
-  c.strokeStyle = 'rgba(0,0,0,0.3)';
+  c.strokeStyle = __CVA('ink',0.3);
   c.setLineDash([4,3]);
   c.beginPath();
   c.moveTo(40, y0); c.lineTo(W-40, y0);
@@ -45483,20 +45525,20 @@ function drawOxred(){
     c.fillText(couple.e.toFixed(2)+' V', xAxis+10, y+3);
   }
   
-  drawCouple(couple1, padL + 70, '#c8472e');
-  drawCouple(couple2, W - padR - 70, '#2d5f8a');
+  drawCouple(couple1, padL + 70, __CV().accent);
+  drawCouple(couple2, W - padR - 70, __CV().accent2);
   
   // Trace le gamma γ entre les deux couples
   // Le γ va de Ox du couple le plus haut → Red du couple le plus bas
   const high = couple1.e > couple2.e ? couple1 : couple2;
   const highX = couple1.e > couple2.e ? padL + 70 : W - padR - 70;
-  const highColor = couple1.e > couple2.e ? '#c8472e' : '#2d5f8a';
+  const highColor = couple1.e > couple2.e ? __CV().accent : __CV().accent2;
   const low = couple1.e > couple2.e ? couple2 : couple1;
   const lowX = couple1.e > couple2.e ? W - padR - 70 : padL + 70;
-  const lowColor = couple1.e > couple2.e ? '#2d5f8a' : '#c8472e';
+  const lowColor = couple1.e > couple2.e ? __CV().accent2 : __CV().accent;
   
   if(couple1.e !== couple2.e){
-    c.strokeStyle = '#5a7a3a';
+    c.strokeStyle = __CV().green;
     c.lineWidth = 2;
     c.setLineDash([6,4]);
     // Flèche descendante côté Ox du high : du label Ox de high vers le label Red de low
@@ -45509,7 +45551,7 @@ function drawOxred(){
     c.stroke();
     // Pointe de flèche
     c.setLineDash([]);
-    c.fillStyle = '#5a7a3a';
+    c.fillStyle = __CV().green;
     c.beginPath();
     c.moveTo(highX - 5, yHigh + 20);
     c.lineTo(highX, yHigh + 28);
@@ -45518,7 +45560,7 @@ function drawOxred(){
     c.fill();
     // Côté low : flèche vers le haut (oxydé)
     c.setLineDash([6,4]);
-    c.strokeStyle = '#5a7a3a';
+    c.strokeStyle = __CV().green;
     c.beginPath();
     c.moveTo(lowX, yLow + 25);
     c.lineTo(lowX, yLow - 25);
@@ -45531,7 +45573,7 @@ function drawOxred(){
     c.closePath();
     c.fill();
     // Annotation γ au milieu
-    c.fillStyle = '#5a7a3a';
+    c.fillStyle = __CV().green;
     c.font = 'bold 24px Fraunces, serif';
     c.fillText('γ', W/2 - 60, (yHigh + yLow)/2 + 5);
   }
@@ -46838,7 +46880,7 @@ document.addEventListener('keydown',e=>{
     const xRange = W - padL - padR, yRange = H - padT - padB;
 
     // Tracer s(t) = K(1 - e^(-t/tau))
-    ctx.strokeStyle = '#c8472e';
+    ctx.strokeStyle = __CV().accent;
     ctx.lineWidth = 2;
     ctx.beginPath();
     const N = 400;
@@ -46852,14 +46894,14 @@ document.addEventListener('keydown',e=>{
     ctx.stroke();
 
     // Asymptote
-    ctx.strokeStyle = 'rgba(45,95,138,0.5)';
+    ctx.strokeStyle = __CVA('accent2',0.5);
     ctx.setLineDash([4,4]);
     ctx.beginPath();
     const yAsym = (H - padB) - (sInf / yMax) * yRange;
     ctx.moveTo(padL, yAsym); ctx.lineTo(W - padR, yAsym);
     ctx.stroke();
     ctx.setLineDash([]);
-    ctx.fillStyle = '#2d5f8a';
+    ctx.fillStyle = __CV().accent2;
     ctx.font = '11px JetBrains Mono';
     ctx.fillText('K = ' + sInf.toFixed(2), W - padR - 80, yAsym - 6);
 
@@ -46867,20 +46909,20 @@ document.addEventListener('keydown',e=>{
     const xTau = padL + (p.tau / tMax) * xRange;
     const sTau = sInf * (1 - Math.exp(-1));
     const yTau = (H - padB) - (sTau / yMax) * yRange;
-    ctx.strokeStyle = 'rgba(90,122,58,0.6)';
+    ctx.strokeStyle = __CVA('green',0.6);
     ctx.setLineDash([3,3]);
     ctx.beginPath();
     ctx.moveTo(xTau, H - padB); ctx.lineTo(xTau, yTau);
     ctx.moveTo(padL, yTau); ctx.lineTo(xTau, yTau);
     ctx.stroke();
     ctx.setLineDash([]);
-    ctx.fillStyle = '#5a7a3a';
+    ctx.fillStyle = __CV().green;
     ctx.beginPath(); ctx.arc(xTau, yTau, 4, 0, 2*Math.PI); ctx.fill();
     ctx.fillText('τ', xTau + 6, H - padB - 6);
     ctx.fillText('63,2%', xTau + 6, yTau + 4);
 
     // Tangente à l'origine (pente K/τ)
-    ctx.strokeStyle = 'rgba(45,95,138,0.4)';
+    ctx.strokeStyle = __CVA('accent2',0.4);
     ctx.setLineDash([2,4]);
     ctx.beginPath();
     ctx.moveTo(padL, H - padB);
@@ -46956,19 +46998,19 @@ document.addEventListener('keydown',e=>{
     const xRange = W - padL - padR, yRange = H - padT - padB;
 
     // Asymptote
-    ctx.strokeStyle = 'rgba(45,95,138,0.5)';
+    ctx.strokeStyle = __CVA('accent2',0.5);
     ctx.setLineDash([4,4]);
     ctx.beginPath();
     const yAsym = (H - padB) - ((sInf - yMin) / (yMax - yMin)) * yRange;
     ctx.moveTo(padL, yAsym); ctx.lineTo(W - padR, yAsym);
     ctx.stroke();
     ctx.setLineDash([]);
-    ctx.fillStyle = '#2d5f8a';
+    ctx.fillStyle = __CV().accent2;
     ctx.font = '11px JetBrains Mono';
     ctx.fillText('K = ' + sInf.toFixed(2), W - padR - 80, yAsym - 6);
 
     // Courbe
-    ctx.strokeStyle = '#c8472e';
+    ctx.strokeStyle = __CV().accent;
     ctx.lineWidth = 2;
     ctx.beginPath();
     const N = 600;
@@ -47040,7 +47082,7 @@ document.addEventListener('keydown',e=>{
     ctx.fillText('Phase (°)', padL + 5, padT + yRange + 14);
 
     // Courbe Gain
-    ctx.strokeStyle = '#c8472e';
+    ctx.strokeStyle = __CV().accent;
     ctx.lineWidth = 2;
     ctx.beginPath();
     const N = 300;
@@ -47054,7 +47096,7 @@ document.addEventListener('keydown',e=>{
     ctx.stroke();
 
     // Asymptotes du gain
-    ctx.strokeStyle = 'rgba(45,95,138,0.5)';
+    ctx.strokeStyle = __CVA('accent2',0.5);
     ctx.setLineDash([4,4]);
     ctx.lineWidth = 1.2;
     // Horizontale à 20log(K)
@@ -47067,7 +47109,7 @@ document.addEventListener('keydown',e=>{
     ctx.setLineDash([]);
 
     // Courbe Phase
-    ctx.strokeStyle = '#2d5f8a';
+    ctx.strokeStyle = __CV().accent2;
     ctx.lineWidth = 2;
     ctx.beginPath();
     for(let i = 0; i <= N; i++){
@@ -47081,13 +47123,13 @@ document.addEventListener('keydown',e=>{
 
     // Marqueur pulsation de cassure
     const wc = 1/p.tau;
-    ctx.strokeStyle = 'rgba(90,122,58,0.6)';
+    ctx.strokeStyle = __CVA('green',0.6);
     ctx.setLineDash([3,3]);
     ctx.beginPath();
     ctx.moveTo(xLog(wc), padT); ctx.lineTo(xLog(wc), H - padB);
     ctx.stroke();
     ctx.setLineDash([]);
-    ctx.fillStyle = '#5a7a3a';
+    ctx.fillStyle = __CV().green;
     ctx.font = '10px JetBrains Mono';
     ctx.fillText('1/τ = ' + wc.toFixed(2), xLog(wc) + 4, padT + 12);
 
@@ -47128,7 +47170,7 @@ document.addEventListener('keydown',e=>{
     ctx.fillText('Phase (°)', padL + 5, padT + yRange + 14);
 
     // Gain
-    ctx.strokeStyle = '#c8472e';
+    ctx.strokeStyle = __CV().accent;
     ctx.lineWidth = 2;
     ctx.beginPath();
     const N = 400;
@@ -47144,7 +47186,7 @@ document.addEventListener('keydown',e=>{
     ctx.stroke();
 
     // Phase
-    ctx.strokeStyle = '#2d5f8a';
+    ctx.strokeStyle = __CV().accent2;
     ctx.lineWidth = 2;
     ctx.beginPath();
     for(let i = 0; i <= N; i++){
@@ -47158,13 +47200,13 @@ document.addEventListener('keydown',e=>{
     ctx.stroke();
 
     // Marqueur w0
-    ctx.strokeStyle = 'rgba(90,122,58,0.6)';
+    ctx.strokeStyle = __CVA('green',0.6);
     ctx.setLineDash([3,3]);
     ctx.beginPath();
     ctx.moveTo(xLog(w0), padT); ctx.lineTo(xLog(w0), H - padB);
     ctx.stroke();
     ctx.setLineDash([]);
-    ctx.fillStyle = '#5a7a3a';
+    ctx.fillStyle = __CV().green;
     ctx.font = '10px JetBrains Mono';
     ctx.fillText('ω₀ = ' + w0.toFixed(2), xLog(w0) + 4, padT + 12);
 
@@ -47382,7 +47424,7 @@ document.addEventListener('keydown',e=>{
     // Graduation -3 dB
     if(gdbMin < -3 && gdbMax > -3){
       const y3 = yGain(-3);
-      ctx.strokeStyle = 'rgba(200,71,46,0.3)';
+      ctx.strokeStyle = __CVA('accent',0.3);
       ctx.setLineDash([3,3]);
       ctx.beginPath();
       ctx.moveTo(padL, y3); ctx.lineTo(W - padR, y3);
@@ -47391,7 +47433,7 @@ document.addEventListener('keydown',e=>{
     }
 
     // Tracer gain
-    ctx.strokeStyle = '#c8472e';
+    ctx.strokeStyle = __CV().accent;
     ctx.lineWidth = 2;
     ctx.beginPath();
     data.forEach((d, i) => {
@@ -47401,7 +47443,7 @@ document.addEventListener('keydown',e=>{
     ctx.stroke();
 
     // Tracer phase
-    ctx.strokeStyle = '#2d5f8a';
+    ctx.strokeStyle = __CV().accent2;
     ctx.lineWidth = 2;
     ctx.beginPath();
     data.forEach((d, i) => {
@@ -47413,13 +47455,13 @@ document.addEventListener('keydown',e=>{
     // Marqueur pulsation caractéristique
     const wMark = (mode === 'pb1' || mode === 'ph1') ? p.wc : p.w0;
     const xMark = xLog(wMark);
-    ctx.strokeStyle = 'rgba(90,122,58,0.6)';
+    ctx.strokeStyle = __CVA('green',0.6);
     ctx.setLineDash([3,3]);
     ctx.beginPath();
     ctx.moveTo(xMark, padT); ctx.lineTo(xMark, Hpx - padB);
     ctx.stroke();
     ctx.setLineDash([]);
-    ctx.fillStyle = '#5a7a3a';
+    ctx.fillStyle = __CV().green;
     ctx.font = '10px JetBrains Mono';
     const wLabel = (mode === 'pb1' || mode === 'ph1') ? 'ω_c' : 'ω_0';
     ctx.fillText(wLabel + ' = ' + wMark.toFixed(1), xMark + 4, padT + 12);
@@ -47610,7 +47652,7 @@ document.addEventListener('keydown',e=>{
     const iHigh = iMax + 0.1*iRange;
 
     // Tracer u(t)
-    ctx.strokeStyle = '#2d5f8a';
+    ctx.strokeStyle = __CV().accent2;
     ctx.lineWidth = 2;
     ctx.beginPath();
     samples.forEach((s, idx) => {
@@ -47621,7 +47663,7 @@ document.addEventListener('keydown',e=>{
     ctx.stroke();
 
     // Tracer i(t)
-    ctx.strokeStyle = '#c8472e';
+    ctx.strokeStyle = __CV().accent;
     ctx.lineWidth = 2;
     ctx.beginPath();
     samples.forEach((s, idx) => {
@@ -47633,38 +47675,38 @@ document.addEventListener('keydown',e=>{
 
     // Moyenne courant
     const iMoy = samples.reduce((acc,s)=>acc+s.i, 0) / samples.length;
-    ctx.strokeStyle = 'rgba(90,122,58,0.6)';
+    ctx.strokeStyle = __CVA('green',0.6);
     ctx.setLineDash([4,4]);
     ctx.beginPath();
     const yIMoy = yIBot - ((iMoy - iLow)/(iHigh - iLow)) * (yIBot - yITop);
     ctx.moveTo(padL, yIMoy); ctx.lineTo(W - padR, yIMoy);
     ctx.stroke();
     ctx.setLineDash([]);
-    ctx.fillStyle = '#5a7a3a';
+    ctx.fillStyle = __CV().green;
     ctx.font = '10px JetBrains Mono';
     ctx.fillText('I moy = '+iMoy.toFixed(2)+' A', W - padR - 110, yIMoy - 4);
 
     // Marquer α·T sur la première période
-    ctx.strokeStyle = 'rgba(90,122,58,0.6)';
+    ctx.strokeStyle = __CVA('green',0.6);
     ctx.setLineDash([3,3]);
     ctx.beginPath();
     const xAlphaT = padL + (p.alpha * T / tMax) * xRange;
     ctx.moveTo(xAlphaT, yUTop); ctx.lineTo(xAlphaT, yIBot);
     ctx.stroke();
     ctx.setLineDash([]);
-    ctx.fillStyle = '#5a7a3a';
+    ctx.fillStyle = __CV().green;
     ctx.fillText('αT', xAlphaT + 4, yUTop + 14);
 
     // Moyenne tension
     const uMoy = p.alpha * p.E;
-    ctx.strokeStyle = 'rgba(45,95,138,0.5)';
+    ctx.strokeStyle = __CVA('accent2',0.5);
     ctx.setLineDash([4,4]);
     ctx.beginPath();
     const yUMoy = yUBot - (uMoy/uMax) * yRange;
     ctx.moveTo(padL, yUMoy); ctx.lineTo(W - padR, yUMoy);
     ctx.stroke();
     ctx.setLineDash([]);
-    ctx.fillStyle = '#2d5f8a';
+    ctx.fillStyle = __CV().accent2;
     ctx.fillText('U moy = αE = '+uMoy.toFixed(1)+' V', W - padR - 140, yUMoy - 4);
 
     // Badge
@@ -47722,7 +47764,7 @@ document.addEventListener('keydown',e=>{
     }
 
     // Droite U_moy / E = α
-    ctx.strokeStyle = '#c8472e';
+    ctx.strokeStyle = __CV().accent;
     ctx.lineWidth = 2;
     ctx.beginPath();
     ctx.moveTo(padL, H - padB);
@@ -47732,7 +47774,7 @@ document.addEventListener('keydown',e=>{
     // Point courant
     const xAlpha = padL + p.alpha * xRange;
     const yAlpha = (H - padB) - p.alpha * yRange;
-    ctx.fillStyle = '#5a7a3a';
+    ctx.fillStyle = __CV().green;
     ctx.beginPath(); ctx.arc(xAlpha, yAlpha, 6, 0, 2*Math.PI); ctx.fill();
     ctx.fillStyle = colors.ink;
     ctx.font = 'bold 12px JetBrains Mono';
@@ -47874,7 +47916,7 @@ document.addEventListener('keydown',e=>{
     }
 
     // Droite C_em(Ω)
-    ctx.strokeStyle = '#c8472e';
+    ctx.strokeStyle = __CV().accent;
     ctx.lineWidth = 2.5;
     ctx.beginPath();
     ctx.moveTo(xOf(0), yOf(Cdem));
@@ -47882,19 +47924,19 @@ document.addEventListener('keydown',e=>{
     ctx.stroke();
 
     // Marqueur Cr (droite horizontale)
-    ctx.strokeStyle = 'rgba(45,95,138,0.6)';
+    ctx.strokeStyle = __CVA('accent2',0.6);
     ctx.setLineDash([4,4]);
     ctx.beginPath();
     ctx.moveTo(padL, yOf(p.Cr)); ctx.lineTo(W - padR, yOf(p.Cr));
     ctx.stroke();
     ctx.setLineDash([]);
-    ctx.fillStyle = '#2d5f8a';
+    ctx.fillStyle = __CV().accent2;
     ctx.font = '11px JetBrains Mono';
     ctx.fillText('Cr = '+p.Cr.toFixed(1)+' N·m', W - padR - 110, yOf(p.Cr) - 6);
 
     // Point de fonctionnement
     if(Wp > 0 && Wp < xMax && p.Cr < Cdem){
-      ctx.fillStyle = '#5a7a3a';
+      ctx.fillStyle = __CV().green;
       ctx.beginPath(); ctx.arc(xOf(Wp), yOf(p.Cr), 7, 0, 2*Math.PI); ctx.fill();
       ctx.fillStyle = colors.ink;
       ctx.font = 'bold 11px JetBrains Mono';
@@ -47902,7 +47944,7 @@ document.addEventListener('keydown',e=>{
     }
 
     // Étiquettes des points spéciaux
-    ctx.fillStyle = '#c8472e';
+    ctx.fillStyle = __CV().accent;
     ctx.font = '10px JetBrains Mono';
     ctx.fillText('Ω₀ = '+W0.toFixed(1), xOf(W0) - 38, H - padB - 6);
     ctx.fillText('Cdém = '+Cdem.toFixed(1), padL + 6, yOf(Cdem) + 14);
@@ -47968,19 +48010,19 @@ document.addEventListener('keydown',e=>{
     }
 
     // Asymptote Winf
-    ctx.strokeStyle = 'rgba(45,95,138,0.5)';
+    ctx.strokeStyle = __CVA('accent2',0.5);
     ctx.setLineDash([4,4]);
     ctx.beginPath();
     const yAsym = (H - padB) - (Winf/yMax) * yRange;
     ctx.moveTo(padL, yAsym); ctx.lineTo(W - padR, yAsym);
     ctx.stroke();
     ctx.setLineDash([]);
-    ctx.fillStyle = '#2d5f8a';
+    ctx.fillStyle = __CV().accent2;
     ctx.font = '11px JetBrains Mono';
     ctx.fillText('Ω∞ = '+Winf.toFixed(1)+' rad/s', W - padR - 130, yAsym - 6);
 
     // Courbe Ω(t)
-    ctx.strokeStyle = '#c8472e';
+    ctx.strokeStyle = __CV().accent;
     ctx.lineWidth = 2;
     ctx.beginPath();
     const N = 400;
@@ -47997,14 +48039,14 @@ document.addEventListener('keydown',e=>{
     const xTau = padL + (tauEm/tMax) * xRange;
     const wAtTau = Winf * (1 - Math.exp(-1));
     const yTau = (H - padB) - (wAtTau/yMax) * yRange;
-    ctx.strokeStyle = 'rgba(90,122,58,0.6)';
+    ctx.strokeStyle = __CVA('green',0.6);
     ctx.setLineDash([3,3]);
     ctx.beginPath();
     ctx.moveTo(xTau, H - padB); ctx.lineTo(xTau, yTau);
     ctx.moveTo(padL, yTau); ctx.lineTo(xTau, yTau);
     ctx.stroke();
     ctx.setLineDash([]);
-    ctx.fillStyle = '#5a7a3a';
+    ctx.fillStyle = __CV().green;
     ctx.beginPath(); ctx.arc(xTau, yTau, 4, 0, 2*Math.PI); ctx.fill();
     ctx.fillText('τ_em', xTau + 6, H - padB - 6);
 
@@ -48187,7 +48229,7 @@ document.addEventListener('keydown',e=>{
 
     // Aire sous la courbe (= -W reçu, ou W fourni)
     if(p.type !== 'isochore'){
-      ctx.fillStyle = 'rgba(200,71,46,0.13)';
+      ctx.fillStyle = __CVA('accent',0.13);
       ctx.beginPath();
       ctx.moveTo(xOf(points[0].V), yOf(0));
       points.forEach(pt => ctx.lineTo(xOf(pt.V), yOf(pt.P)));
@@ -48197,7 +48239,7 @@ document.addEventListener('keydown',e=>{
     }
 
     // Courbe
-    ctx.strokeStyle = '#c8472e';
+    ctx.strokeStyle = __CV().accent;
     ctx.lineWidth = 2.5;
     ctx.beginPath();
     points.forEach((pt, i) => {
@@ -48207,9 +48249,9 @@ document.addEventListener('keydown',e=>{
     ctx.stroke();
 
     // Points 1 et 2
-    ctx.fillStyle = '#2d5f8a';
+    ctx.fillStyle = __CV().accent2;
     ctx.beginPath(); ctx.arc(xOf(p.V1), yOf(P1), 6, 0, 2*Math.PI); ctx.fill();
-    ctx.fillStyle = '#5a7a3a';
+    ctx.fillStyle = __CV().green;
     ctx.beginPath(); ctx.arc(xOf(V2), yOf(P2), 6, 0, 2*Math.PI); ctx.fill();
     ctx.fillStyle = colors.ink;
     ctx.font = 'bold 11px JetBrains Mono';
@@ -48281,10 +48323,10 @@ document.addEventListener('keydown',e=>{
     // Tracer les 4 branches
     const N = 80;
     const branches = [
-      { from:1, to:2, fn: V => p.n*R_GAS*T_h/V, V0: V1, Vf: V2, color: '#c8472e', label: 'iso T_h' }, // iso chaud
-      { from:2, to:3, fn: V => P2*Math.pow(V2/V, p.gamma), V0: V2, Vf: V3, color: '#b8801a', label: 'adiab' }, // adiab détente
-      { from:3, to:4, fn: V => p.n*R_GAS*T_c/V, V0: V3, Vf: V4, color: '#2d5f8a', label: 'iso T_c' }, // iso froid
-      { from:4, to:1, fn: V => P4*Math.pow(V4/V, p.gamma), V0: V4, Vf: V1, color: '#b8801a', label: 'adiab' }, // adiab compression
+      { from:1, to:2, fn: V => p.n*R_GAS*T_h/V, V0: V1, Vf: V2, color: __CV().accent, label: 'iso T_h' }, // iso chaud
+      { from:2, to:3, fn: V => P2*Math.pow(V2/V, p.gamma), V0: V2, Vf: V3, color: __CV().amber, label: 'adiab' }, // adiab détente
+      { from:3, to:4, fn: V => p.n*R_GAS*T_c/V, V0: V3, Vf: V4, color: __CV().accent2, label: 'iso T_c' }, // iso froid
+      { from:4, to:1, fn: V => P4*Math.pow(V4/V, p.gamma), V0: V4, Vf: V1, color: __CV().amber, label: 'adiab' }, // adiab compression
     ];
 
     // Plage
@@ -48311,7 +48353,7 @@ document.addEventListener('keydown',e=>{
     ctx.fillText('V (m³)', W - padR - 50, H - padB + 22);
 
     // Remplissage du cycle (aire)
-    ctx.fillStyle = 'rgba(90,122,58,0.15)';
+    ctx.fillStyle = __CVA('green',0.15);
     ctx.beginPath();
     branches.forEach((br, idx) => {
       for(let i = 0; i <= N; i++){
@@ -48341,7 +48383,7 @@ document.addEventListener('keydown',e=>{
     // Points
     const pts = [[V1,P1,'1'],[V2,P2,'2'],[V3,P3,'3'],[V4,P4,'4']];
     pts.forEach(([V,P,lbl]) => {
-      ctx.fillStyle = '#5a7a3a';
+      ctx.fillStyle = __CV().green;
       ctx.beginPath(); ctx.arc(xOf(V), yOf(P), 5, 0, 2*Math.PI); ctx.fill();
       ctx.fillStyle = colors.ink;
       ctx.font = 'bold 11px JetBrains Mono';
@@ -48566,7 +48608,7 @@ document.addEventListener('keydown',e=>{
     ctx.stroke();
 
     // Tracer la trajectoire
-    ctx.strokeStyle = '#c8472e';
+    ctx.strokeStyle = __CV().accent;
     ctx.lineWidth = 2;
     ctx.beginPath();
     pts.forEach((p, i) => {
@@ -48578,7 +48620,7 @@ document.addEventListener('keydown',e=>{
     // Point M(t)
     const pt = traj(trajName, t, A, B);
     const px = xOf(pt.x), py = yOf(pt.y);
-    ctx.fillStyle = '#5a7a3a';
+    ctx.fillStyle = __CV().green;
     ctx.beginPath(); ctx.arc(px, py, 7, 0, 2*Math.PI); ctx.fill();
     ctx.fillStyle = colors.ink;
     ctx.font = 'bold 11px JetBrains Mono';
@@ -48592,11 +48634,11 @@ document.addEventListener('keydown',e=>{
 
     if(mode === 'cart'){
       // Vecteurs vitesse (rouge) et accélération (bleu)
-      drawArrow(px, py, px + pt.vx*arrowScale, py - pt.vy*arrowScale, '#c8472e', '⃗v');
-      drawArrow(px, py, px + pt.ax*accScale, py - pt.ay*accScale, '#2d5f8a', '⃗a');
+      drawArrow(px, py, px + pt.vx*arrowScale, py - pt.vy*arrowScale, __CV().accent, '⃗v');
+      drawArrow(px, py, px + pt.ax*accScale, py - pt.ay*accScale, __CV().accent2, '⃗a');
       // Vecteur position depuis O
       if(xMin <= 0 && xMax >= 0 && yMin <= 0 && yMax >= 0){
-        ctx.strokeStyle = 'rgba(184,128,26,0.6)';
+        ctx.strokeStyle = __CVA('amber',0.6);
         ctx.setLineDash([5,3]);
         ctx.beginPath(); ctx.moveTo(xOf(0), yOf(0)); ctx.lineTo(px, py); ctx.stroke();
         ctx.setLineDash([]);
@@ -48609,17 +48651,17 @@ document.addEventListener('keydown',e=>{
         const cTheta = pt.x / r, sTheta = pt.y / r;
         const len = 0.18 * Math.min(xRange, yRange);
         // e_r
-        drawArrow(px, py, px + cTheta*len, py - sTheta*len, '#c8472e', '⃗e_r');
+        drawArrow(px, py, px + cTheta*len, py - sTheta*len, __CV().accent, '⃗e_r');
         // e_θ
-        drawArrow(px, py, px - sTheta*len, py - cTheta*len, '#2d5f8a', '⃗e_θ');
+        drawArrow(px, py, px - sTheta*len, py - cTheta*len, __CV().accent2, '⃗e_θ');
       }
       // Cercle au rayon r (en pointillés)
-      ctx.strokeStyle = 'rgba(184,128,26,0.4)';
+      ctx.strokeStyle = __CVA('amber',0.4);
       ctx.setLineDash([4,3]);
       ctx.beginPath(); ctx.arc(xOf(0), yOf(0), r*scale, 0, 2*Math.PI); ctx.stroke();
       ctx.setLineDash([]);
       // Vecteur OM
-      ctx.strokeStyle = 'rgba(184,128,26,0.7)';
+      ctx.strokeStyle = __CVA('amber',0.7);
       ctx.lineWidth = 1.5;
       ctx.beginPath(); ctx.moveTo(xOf(0), yOf(0)); ctx.lineTo(px, py); ctx.stroke();
     } else if(mode === 'frenet'){
@@ -48640,8 +48682,8 @@ document.addEventListener('keydown',e=>{
           nx = -ty; ny = tx;
         }
         const len = 0.18 * Math.min(xRange, yRange);
-        drawArrow(px, py, px + tx*len, py - ty*len, '#c8472e', '⃗T');
-        drawArrow(px, py, px + nx*len, py - ny*len, '#2d5f8a', '⃗N');
+        drawArrow(px, py, px + tx*len, py - ty*len, __CV().accent, '⃗T');
+        drawArrow(px, py, px + nx*len, py - ny*len, __CV().accent2, '⃗N');
         // Afficher aussi le vecteur accélération en décomposition
         drawArrow(px, py, px + pt.ax*accScale, py - pt.ay*accScale, 'rgba(90,122,58,0.6)', '⃗a');
       }
@@ -49977,7 +50019,7 @@ document.addEventListener('keydown',e=>{
     for(const c of ch){ if(c.q===0) continue;
       const col=c.q>0?'#dc5a46':'#5082c8';
       ctx.fillStyle=col; ctx.beginPath(); ctx.arc(SX(c.x),SY(c.y),11,0,2*Math.PI); ctx.fill();
-      ctx.fillStyle='#fff'; ctx.font='700 15px JetBrains Mono, monospace'; ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.fillStyle=__CV().paper; ctx.font='700 15px JetBrains Mono, monospace'; ctx.textAlign='center'; ctx.textBaseline='middle';
       ctx.fillText(c.q>0?'+':'−', SX(c.x), SY(c.y)+1);
     }
     ctx.textBaseline='alphabetic';
@@ -50620,7 +50662,7 @@ document.addEventListener('keydown',e=>{
     }
 
     // Tracer la fonction
-    ctx.strokeStyle = '#c8472e';
+    ctx.strokeStyle = __CV().accent;
     ctx.lineWidth = 2.5;
     ctx.beginPath();
     fxData.forEach((pt, i) => {
@@ -50630,14 +50672,14 @@ document.addEventListener('keydown',e=>{
     ctx.stroke();
 
     // Bornes a et b
-    ctx.strokeStyle = 'rgba(45,95,138,0.6)';
+    ctx.strokeStyle = __CVA('accent2',0.6);
     ctx.setLineDash([4,3]);
     ctx.beginPath();
     ctx.moveTo(xOf(a), padT); ctx.lineTo(xOf(a), H - padB);
     ctx.moveTo(xOf(b), padT); ctx.lineTo(xOf(b), H - padB);
     ctx.stroke();
     ctx.setLineDash([]);
-    ctx.fillStyle = '#2d5f8a';
+    ctx.fillStyle = __CV().accent2;
     ctx.font = 'bold 11px JetBrains Mono';
     ctx.fillText('a', xOf(a) - 5, padT + 12);
     ctx.fillText('b', xOf(b) - 5, padT + 12);
@@ -50679,7 +50721,7 @@ document.addEventListener('keydown',e=>{
 
   function drawAire(p, a, b, fxData, xOf, yOf, fn){
     // Hachurer l'aire entre f et l'axe x sur [a,b]
-    ctx.fillStyle = 'rgba(90,122,58,0.22)';
+    ctx.fillStyle = __CVA('green',0.22);
     ctx.beginPath();
     ctx.moveTo(xOf(a), yOf(0));
     // Suivre f de a à b
@@ -50705,8 +50747,8 @@ document.addEventListener('keydown',e=>{
       else xEval = (xl + xr) / 2;
       const y = f(xEval);
       // Couleur selon signe
-      ctx.fillStyle = y >= 0 ? 'rgba(90,122,58,0.35)' : 'rgba(200,71,46,0.30)';
-      ctx.strokeStyle = y >= 0 ? '#5a7a3a' : '#c8472e';
+      ctx.fillStyle = y >= 0 ? __CVA('green',0.35) : __CVA('accent',0.30);
+      ctx.strokeStyle = y >= 0 ? __CV().green : __CV().accent;
       ctx.lineWidth = 1;
       const x0 = xOf(xl), x1 = xOf(xr);
       const yV = yOf(y), y0 = yOf(0);
@@ -50718,8 +50760,8 @@ document.addEventListener('keydown',e=>{
   function drawTrap(p, a, b, fxData, xOf, yOf, fn){
     const h = (b - a) / p.N;
     const f = fn.f;
-    ctx.fillStyle = 'rgba(45,95,138,0.20)';
-    ctx.strokeStyle = '#2d5f8a';
+    ctx.fillStyle = __CVA('accent2',0.20);
+    ctx.strokeStyle = __CV().accent2;
     ctx.lineWidth = 1;
     for(let i = 0; i < p.N; i++){
       const xl = a + i*h, xr = a + (i+1)*h;
@@ -51481,15 +51523,59 @@ em{ font-style:italic; }
   font-weight:700; text-transform:uppercase;
 }
 /* ===== FORMULES ===== */
+/* NB : document d'impression autonome — pas de variables CSS ici,
+   uniquement des couleurs littérales (palette claire). */
 .formula{
-  background:var(--paper-dark);
-  border-left:2pt solid var(--ink);
+  background:#e8e3d3;
+  border-left:2pt solid #1a1d24;
   padding:.3cm .45cm;
   margin:.15cm 0;
   break-inside:avoid;
   page-break-inside:avoid;
   overflow:hidden;
 }
+
+/* ===== SCHÉMAS SVG ===== */
+figure.schema{
+  margin:.35cm auto;
+  max-width:12.5cm;
+  text-align:center;
+  break-inside:avoid;
+  page-break-inside:avoid;
+}
+figure.schema svg{ width:100%; height:auto; overflow:visible; display:block; }
+figure.schema figcaption{
+  margin-top:.15cm; font-size:8pt; font-style:italic;
+  color:#555; line-height:1.4;
+}
+.schema .sk-ink{ stroke:#1a1d24; fill:none; stroke-width:1.6; }
+.schema .sk-axis{ stroke:#1a1d24; fill:none; stroke-width:1; opacity:0.5; }
+.schema .sk-dash{ stroke:#1a1d24; fill:none; stroke-width:1.2; stroke-dasharray:4 4; opacity:0.7; }
+.schema .sk-accent{ stroke:#c8472e; fill:none; stroke-width:2.2; }
+.schema .sk-accent2{ stroke:#2d5f8a; fill:none; stroke-width:2.2; }
+.schema .sk-green{ stroke:#5a7a3a; fill:none; stroke-width:2.2; }
+.schema .sk-amber{ stroke:#b8801a; fill:none; stroke-width:2.2; }
+.schema .fl-ink{ fill:#1a1d24; }
+.schema .fl-accent{ fill:#c8472e; }
+.schema .fl-accent2{ fill:#2d5f8a; }
+.schema .fl-green{ fill:#5a7a3a; }
+.schema .fl-soft{ fill:#1a1d24; opacity:0.06; }
+.schema .fl-accent-soft{ fill:#c8472e; opacity:0.12; }
+.schema .fl-accent2-soft{ fill:#2d5f8a; opacity:0.12; }
+.schema .fl-green-soft{ fill:#5a7a3a; opacity:0.14; }
+.schema .fl-amber-soft{ fill:#b8801a; opacity:0.16; }
+.schema .fl-paper{ fill:#f4f1e8; }
+.schema text{ font-family:'Inter Tight',system-ui,sans-serif; fill:#1a1d24; font-size:13px; }
+.schema text.lab-accent{ fill:#c8472e; }
+.schema text.lab-accent2{ fill:#2d5f8a; }
+.schema text.lab-green{ fill:#5a7a3a; }
+.schema text.lab-muted{ fill:#1a1d24; opacity:0.62; font-size:11.5px; }
+.schema text.lab-it{ font-style:italic; }
+.schema text.lab-b{ font-weight:600; }
+#sk-arrow-ink path{ fill:#1a1d24; }
+#sk-arrow-accent path{ fill:#c8472e; }
+#sk-arrow-accent2 path{ fill:#2d5f8a; }
+#sk-arrow-green path{ fill:#5a7a3a; }
 /* ===== REVEAL (affiché à l'impression) ===== */
 .reveal{
   border:1pt dashed #bbb;
@@ -51576,14 +51662,14 @@ em{ font-style:italic; }
                     'DIV.formula','DIV.def-box','DIV.prop-box',
                     'DIV.method-box','DIV.notice','DIV.reveal',
                     'DIV.intro','DIV.formula'];
-    const atomicClasses = new Set(['formula','def-box','prop-box','method-box','notice','reveal','intro']);
-    const atomicTags    = new Set(['P','H3','H4','UL','OL','TABLE']);
+    const atomicClasses = new Set(['formula','def-box','prop-box','method-box','notice','reveal','intro','schema']);
+    const atomicTags    = new Set(['P','H3','H4','UL','OL','TABLE','FIGURE','SVG']);
 
     const atoms = [];
     function walk(el){
       const tag = el.tagName;
       const cls = el.className || '';
-      const isAtomic = atomicTags.has(tag) ||
+      const isAtomic = atomicTags.has((tag||'').toUpperCase()) ||
                        [...atomicClasses].some(c=>el.classList && el.classList.contains(c));
       if(isAtomic){
         atoms.push(el.cloneNode(true));
@@ -51679,6 +51765,13 @@ ${atomDivs}
   }
 
   /* ---- 6. Document complet ---- */
+  /* Pointes de flèche des schémas : reconstruites par boucle (mêmes ids que la
+     page, indispensables aux marker-end="url(#sk-arrow-…)" des SVG clonés).
+     Générées dynamiquement pour ne pas dupliquer les id dans le source. */
+  const ARROW_DEFS = ['ink','accent','accent2','green'].map(k =>
+    `<marker id="sk-arrow-${k}" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z"></path></marker>`
+  ).join('\n  ');
+
   const printDoc = `<!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -51693,6 +51786,11 @@ MathJax = { tex:{inlineMath:[['\\\\(','\\\\)']]}, options:{skipHtmlTags:['script
 <style>${CSS}</style>
 </head>
 <body>
+
+<!-- Pointes de flèche des schémas SVG (copie des defs de la page) -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs>
+  ${ARROW_DEFS}
+</defs></svg>
 
 <div class="cover">
   <div class="cover-eyebrow">PTSI · 1ère année · Révisions</div>
@@ -51862,6 +51960,8 @@ ${bodyContent}
     if(document.getElementById('qc-physique')?.checked) mats.push('physique');
     if(document.getElementById('qc-maths')?.checked)    mats.push('maths');
     if(document.getElementById('qc-si')?.checked)       mats.push('si');
+    if(document.getElementById('qc-info')?.checked)     mats.push('info');
+    if(document.getElementById('qc-anglais')?.checked)  mats.push('anglais');
     return mats;
   }
   function getSelectedMode(){
@@ -52185,7 +52285,7 @@ ${bodyContent}
   document.getElementById('quiz-btn')?.addEventListener('click', quizOpen);
 
   /* ---- Mise à jour compteur config quand on change les options ---- */
-  ['qc-physique','qc-maths','qc-si'].forEach(id=>{
+  ['qc-physique','qc-maths','qc-si','qc-info','qc-anglais'].forEach(id=>{
     document.getElementById(id)?.addEventListener('change', updateConfigInfo);
   });
   document.querySelectorAll('input[name="quiz-mode"],input[name="quiz-nb"],input[name="quiz-type"]').forEach(el=>{
@@ -52211,7 +52311,10 @@ ${bodyContent}
         const key = c.subLabel || '';
         if(!(key in groups)){ groups[key] = []; order.push(key); }
         groups[key].push({ id: 'chap-' + c.id, label: c.mobLabel,
-          year: (window.__YEAR2A && window.__YEAR2A.has(c.id)) ? 2 : 1 });
+          // year 0 = visible dans les DEUX années (langues + fiches de référence) ;
+          // sinon 2 si chapitre de 2ᵉ année (__YEAR2A), 1 par défaut.
+          year: (c.matiere === 'anglais' || c.id === 'constantes') ? 0
+              : (window.__YEAR2A && window.__YEAR2A.has(c.id)) ? 2 : 1 });
       });
       order.forEach(sub => out[mat].push({ sub, items: groups[sub] }));
     });
@@ -52225,12 +52328,12 @@ ${bodyContent}
   /* ── Filtre par année (1ʳᵉ / 2ᵉ année) ── */
   const MATS = ['physique','maths','si','info','anglais'];
   function chaptersInYear(mat, year){
-    return (CHAP_DATA[mat] || []).some(g => g.items.some(it => it.year === year));
+    return (CHAP_DATA[mat] || []).some(g => g.items.some(it => it.year === year || it.year === 0));
   }
   function matieresForYear(year){ return MATS.filter(m => chaptersInYear(m, year)); }
   function firstChapInYear(mat, year){
     for(const g of (CHAP_DATA[mat] || [])){
-      const it = g.items.find(x => x.year === year);
+      const it = g.items.find(x => x.year === year || x.year === 0);
       if(it) return it.id;
     }
     return null;
@@ -52255,7 +52358,7 @@ ${bodyContent}
     list.innerHTML = '';
     const activeChapId = (document.querySelector('.chapter.active') || {}).id || '';
     (CHAP_DATA[mat] || []).forEach(group => {
-      const items = group.items.filter(it => it.year === currentYear);
+      const items = group.items.filter(it => it.year === currentYear || it.year === 0);
       if(items.length === 0) return;          // groupe sans chapitre dans l'année courante
       const label = document.createElement('span');
       label.className = 'mob-subdomain-label';
@@ -52411,8 +52514,10 @@ ${bodyContent}
     if(activeChap){
       const c = CHAPTERS_BY_ID[activeChap.id.replace('chap-','')];
       if(c){
+        // Chapitres bi-annuels (anglais, constantes) : ne pas forcer l'année courante.
+        const bothYears = (c.matiere === 'anglais' || c.id === 'constantes');
         const y = (window.__YEAR2A && window.__YEAR2A.has(c.id)) ? 2 : 1;
-        if(y !== currentYear){ currentYear = y; Store.set('year', String(currentYear)); refreshYearButtons(); }
+        if(!bothYears && y !== currentYear){ currentYear = y; Store.set('year', String(currentYear)); refreshYearButtons(); }
         if(c.matiere !== currentMat){ currentMat = c.matiere; }
       }
     }
@@ -52959,7 +53064,7 @@ setTimeout(()=>{drawSim();},100);
       if(weak) weak.checked = true;
       const nbAll = document.querySelector('input[name="quiz-nb"][value="all"]');
       if(nbAll) nbAll.checked = true;
-      ['qc-physique','qc-maths','qc-si'].forEach(id => { const c = document.getElementById(id); if(c) c.checked = true; });
+      ['qc-physique','qc-maths','qc-si','qc-info','qc-anglais'].forEach(id => { const c = document.getElementById(id); if(c) c.checked = true; });
       quizStart();
     });
   }
@@ -53287,6 +53392,83 @@ document.getElementById('skip-link')?.addEventListener('click', e => {
   // Réagir à un changement de préférence système en cours de session.
   function onMQ(e){ window.__reduceMotion = e.matches; if(e.matches) stopAutoMotion(); }
   if(mq){ try { mq.addEventListener('change', onMQ); } catch(_){ try { mq.addListener(onMQ); } catch(__){} } }
+})();
+
+/* ===== Accessibilité clavier des blocs dépliables .reveal =====
+   Les .reveal se déplient au clic (onclick inline) : on les rend focusables
+   et activables au clavier (Entrée / Espace), avec état aria-expanded. */
+(function(){
+  function initReveals(){
+    document.querySelectorAll('.reveal').forEach(function(r){
+      if(r.__kbReady) return;
+      r.__kbReady = true;
+      r.setAttribute('tabindex','0');
+      r.setAttribute('role','button');
+      r.setAttribute('aria-expanded', r.classList.contains('open') ? 'true' : 'false');
+      // L'onclick inline (toggle .open) s'exécute d'abord ; on synchronise l'ARIA après.
+      r.addEventListener('click', function(){
+        r.setAttribute('aria-expanded', r.classList.contains('open') ? 'true' : 'false');
+      });
+      r.addEventListener('keydown', function(e){
+        if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); r.click(); }
+      });
+    });
+  }
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initReveals);
+  else initReveals();
+})();
+
+/* ===== Focus des overlays : mémorisation, déplacement, restitution, piège =====
+   À l'ouverture d'un overlay (classe .open) : on mémorise l'élément actif puis
+   on déplace le focus sur la boîte de dialogue elle-même (pas sur son premier
+   bouton — sinon « Espace » dans le quiz activerait le ✕). À la fermeture, le
+   focus revient à l'élément d'origine. Tab / Maj+Tab restent piégés dans
+   l'overlay ouvert. (La recherche gère déjà son propre focus.) */
+(function(){
+  var IDS = ['quiz-overlay','dash-overlay','drill-overlay','backup-overlay','formula-overlay','flag-overlay'];
+  var FOCUSABLE = 'button,[href],input,select,textarea,[tabindex]:not([tabindex="-1"])';
+  function visible(el){ return !!(el && el.offsetParent !== null); }
+
+  IDS.forEach(function(id){
+    var ov = document.getElementById(id);
+    if(!ov) return;
+    var obs = new MutationObserver(function(){
+      var open = ov.classList.contains('open');
+      if(open && !ov.__wasOpen){
+        ov.__wasOpen = true;
+        ov.__opener = document.activeElement;
+        setTimeout(function(){
+          if(!ov.classList.contains('open')) return;
+          var dlg = ov.querySelector('[role="dialog"]') || ov;
+          if(!dlg.hasAttribute('tabindex')) dlg.setAttribute('tabindex','-1');
+          try{ dlg.focus({preventScroll:true}); }catch(_){ try{ dlg.focus(); }catch(__){} }
+        }, 60);
+      } else if(!open && ov.__wasOpen){
+        ov.__wasOpen = false;
+        var op = ov.__opener; ov.__opener = null;
+        if(op && document.contains(op) && visible(op)){ try{ op.focus(); }catch(_){} }
+      }
+    });
+    obs.observe(ov, {attributes:true, attributeFilter:['class']});
+  });
+
+  /* Piège du focus : Tab boucle à l'intérieur de l'overlay ouvert */
+  document.addEventListener('keydown', function(e){
+    if(e.key !== 'Tab') return;
+    var ov = null;
+    for(var i = 0; i < IDS.length; i++){
+      var el = document.getElementById(IDS[i]);
+      if(el && el.classList.contains('open')){ ov = el; break; }
+    }
+    if(!ov) return;
+    var f = Array.prototype.filter.call(ov.querySelectorAll(FOCUSABLE), visible);
+    if(!f.length) return;
+    var first = f[0], last = f[f.length - 1];
+    var active = document.activeElement;
+    if(!ov.contains(active)){ e.preventDefault(); first.focus(); return; }
+    if(e.shiftKey && active === first){ e.preventDefault(); last.focus(); }
+    else if(!e.shiftKey && active === last){ e.preventDefault(); first.focus(); }
+  });
 })();
 </script>
 
