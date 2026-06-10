@@ -94,7 +94,13 @@ const <prefix>Flash = makeFlash(<prefix>Cards, '<prefix>',
 
 Objet `Store` (~l.24912) : wrapper `localStorage` avec **fallback en mémoire** si indisponible. API : `get/set`, `getJSON/setJSON`, `available()`. Utiliser `Store`, jamais `localStorage` directement.
 
-Clés utilisées : `flash:<prefix>` (progression par chapitre), `theme` (clair/sombre), `lastPos` (dernier chapitre/panneau vu), `year` (1 ou 2 — sélecteur d'année du tiroir).
+Clés utilisées : `flash:<prefix>` (progression par chapitre), `theme` (clair/sombre), `lastPos` (dernier chapitre/panneau vu), `year` (1 ou 2 — sélecteur d'année du tiroir), `recents` (8 derniers chapitres consultés, MRU — enregistrés par `syncSidebar`), `pinned` (chapitres épinglés ★ du tiroir), `drawerCollapsed` (sous-domaines repliés, clé `mat|subLabel`), `todayAtLaunch` (`'0'` = ne pas afficher l'écran « Aujourd'hui » au lancement), `flagged` (cartes signalées).
+
+**Tiroir « nouvelle génération »** : champ `#mob-filter` (filtre instantané TOUTES matières, accents ignorés, Entrée = 1ᵉʳ résultat, année ignorée volontairement) ; sections ★ Épinglés / ⌚ Récents en tête (hors mode filtre) ; sous-domaines repliables (`.mob-sub-toggle`, état mémorisé) ; chaque rangée `.mob-chap-row` = bouton chapitre (avec **anneau SVG de % acquis** `ringSVG`) + bouton épingle (frères, pas imbriqués). Tout est dans le module tiroir (`buildDrawerList`/`makeChapRow`/`CHAP_ITEM_BY_ID`).
+
+**Écran « Aujourd'hui »** (`#today-overlay`, module en fin de body) : affiché au lancement sauf deep-link `#hash` ou préférence désactivée ; contenu = cartes dues (`srsCountDue` → `quizStartDue`), « Reprendre » (`lastPos`), 3 récents, accès rapides ; rouvrable via « ◎ Aujourd'hui » (menus desktop `today-btn` + mobile `mob-today-btn`) ou `window.todayOpen()`. Inclus dans la liste `IDS` du module focus.
+
+**Sommaire mobile (chips)** : le `.toc` (construit en JS avec scroll-spy IntersectionObserver) est rendu en mobile sous forme de chips horizontales sticky (`top:52px` sous l'en-tête fixe) — même DOM que la sidebar desktop, seul le CSS change.
 
 **Répétition espacée (Leitner)** : l'état d'une carte est `{h,o,e,last,box,due}` — `box` = boîte de Leitner, `due` = timestamp de prochaine révision. `srsSchedule(state, level)` (global, ~avant `makeFlash`) met à jour `box`/`due` à chaque notation (intervalles `SRS_INTERVALS` = [0,1,3,7,16,35,75] jours) ; appelé dans `makeFlash.rate` **et** `quizRate`. `srsIsDue(s)`/`srsCountDue()` comptent les cartes dues. Bouton **« ↻ Réviser »** (en-tête + mobile, badge = nb de cartes dues via `window.__updateReviseBadge`) → `window.quizStartDue()` lance une session quiz limitée aux cartes dues de **toutes** les matières (`dueDeck()` dans le module quiz).
 
