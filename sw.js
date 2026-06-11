@@ -3,7 +3,7 @@
    IMPORTANT : à chaque modification d'un asset mis en cache (index.html, polices,
    MathJax…), incrémenter CACHE_VERSION pour forcer le rafraîchissement chez les
    utilisateurs déjà installés. */
-const CACHE_VERSION = 'ptsi-cache-v72';
+const CACHE_VERSION = 'ptsi-cache-v73';
 
 const PRECACHE = [
   './',
