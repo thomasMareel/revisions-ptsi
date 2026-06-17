@@ -139,6 +139,13 @@ Le site est **100 % autonome** — aucune requête externe, fonctionne hors-lign
 - `tools/validate.py` (Python stdlib, aucune dépendance) : vérifie cohérence `CHAPTERS` ↔ DOM, IDs HTML dupliqués, flashcards câblées (`makeFlash` par chapitre listant `flash`), `drawFn` existants. `python tools/validate.py` → `[OK]` / liste d'erreurs + exit ≠ 0. **À lancer avant chaque commit touchant `index.html`.**
 - `tools/pre-commit` + `tools/install-hooks.sh` : hook git qui lance `validate.py` automatiquement avant chaque commit (bloque si erreur). Installer une fois avec `sh tools/install-hooks.sh`. Contourner ponctuellement avec `git commit --no-verify`. (Le dossier `.git/hooks/` n'est pas versionné, d'où l'installeur.)
 
+## Identité visuelle (Lot 3)
+
+- **Icônes SVG maison** : sprite de `<symbol id="i-…">` (menu, search, refresh, theme, dots, calendar, bolt, calc, chart, function, download, printer, flag, volume, book, keyboard) en tête de `<body>`, trait `currentColor` via la classe `.ic`. Helper **`window.__icon(name)`** (défini AVANT les decks car `makeFlash` l'utilise) renvoie `<svg class="ic"><use href="#i-name"></use></svg>`. Tout le **chrome** (en-têtes desktop+mobile, menus, boutons quiz/flashcards/Aujourd'hui) utilise ces icônes ; les boutons à libellé variable (quiz « Signaler », flashcard) gardent l'icône et mettent à jour un `<span class="ic-lbl">`. Volontairement **non migrés** : les 134 boutons « ↺ Réinitialiser » (secondaires) et les boutons secondaires d'overlays (Copier/Télécharger).
+- **Flip 3D des flashcards** : demi-tour mono-face dans `makeFlash.flip` (rotateY 0→90°, échange de face au point mort, retour), `perspective` sur `.flash-wrapper`, garde `window.__reduceMotion`.
+- **Rails de couleur par matière** : `border-left` coloré sur `.chap-title-banner.mat-<matiere>` (classe posée par `injectChapterTitleBanners`).
+- **Branche de sauvegarde** `sauvegarde-avant-lot3` (commit `9e16255`) sur origin : rollback complet du Lot 3 si besoin (`git reset --hard sauvegarde-avant-lot3 && git push --force origin main`).
+
 ## Anomalies connues (à traiter avec validation utilisateur)
 
 1. ~~**ID dupliqué `int-meth`**~~ — **CORRIGÉ** : le `<select>` du simulateur des intégrales a été renommé `int-meth-sel` (le panneau garde `int-meth`). Avant, `getElementById('int-meth')` renvoyait la `<section>`, donc le choix de méthode d'intégration était ignoré.
