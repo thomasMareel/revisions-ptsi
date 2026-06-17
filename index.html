@@ -1478,6 +1478,13 @@ h1 em{
   color:var(--ink);
 }
 :root[data-theme="dark"] .chap-title-banner{border-bottom-color:rgba(255,255,255,0.12)}
+/* Rail de couleur par matière (identité visuelle, Lot 3) */
+.chap-title-banner{ border-left:5px solid transparent; }
+.chap-title-banner.mat-physique{ border-left-color:var(--accent2); }
+.chap-title-banner.mat-maths{    border-left-color:var(--accent);  }
+.chap-title-banner.mat-si{       border-left-color:var(--green);   }
+.chap-title-banner.mat-info{     border-left-color:var(--amber);   }
+.chap-title-banner.mat-anglais{  border-left-color:var(--anglais); }
 
 /* NAV TABS */
 nav.tabs{
@@ -1857,7 +1864,7 @@ section.panel.active{display:block;animation:fadeIn 0.4s ease}
 }
 
 /* FLASHCARDS */
-.flash-wrapper{max-width:600px;margin:2rem auto}
+.flash-wrapper{max-width:600px;margin:2rem auto;perspective:1500px}
 .flash-progress{
   font-family:'JetBrains Mono',monospace;
   font-size:0.8rem;
@@ -1880,7 +1887,12 @@ section.panel.active{display:block;animation:fadeIn 0.4s ease}
   position:relative;
   box-shadow:var(--shadow);
   user-select:none;
+  transform-style:preserve-3d;
+  transition:transform 0.2s ease, box-shadow 0.2s ease;
 }
+/* Retournement 3D (demi-tour mono-face : on pivote jusqu'au profil, le contenu
+   est échangé au point mort par makeFlash.flip, puis on revient). */
+.flash-card.flipping{ transform:rotateY(90deg); box-shadow:0 14px 40px rgba(0,0,0,0.18); }
 .flash-card::before{
   content:"";
   position:absolute;
@@ -41522,6 +41534,7 @@ function chaptersByMatiere(m)  { return CHAPTERS.filter(c => c.matiere === m); }
     if(!tabs || ch.querySelector(':scope > .chap-title-banner')) return;
     const banner = document.createElement('div');
     banner.className = 'chap-title-banner';
+    if(c.matiere) banner.classList.add('mat-' + c.matiere);  // rail de couleur par matière
     const sub = document.createElement('span');
     sub.className = 'ctb-sub';
     sub.textContent = c.subLabel || c.matiereLabel || '';
@@ -42672,7 +42685,19 @@ function makeFlash(cards, idPrefix, contentId, progId, statsId){
     // Carte ou face différente → toute lecture audio en cours devient obsolète
     if(isPlainDeck && window.__TTS) window.__TTS.stop();
   }
-  function flip(){flipped = !flipped; show()}
+  function flip(){
+    const card = (document.getElementById(contentId) || {}).closest
+      ? document.getElementById(contentId).closest('.flash-card') : null;
+    if(card && !window.__reduceMotion){
+      card.classList.add('flipping');                 // pivote jusqu'au profil (90°)
+      setTimeout(() => {                                // au point mort : on échange la face
+        flipped = !flipped; show();
+        card.classList.remove('flipping');             // puis retour à plat → nouvelle face
+      }, 200);
+    } else {
+      flipped = !flipped; show();                       // mouvement réduit : échange direct
+    }
+  }
   function rate(level){
     const cardIdx = order[idx];
     const s = cardState[cardIdx];
