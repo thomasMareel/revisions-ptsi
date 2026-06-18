@@ -99,7 +99,11 @@ textarea:focus-visible, [tabindex]:focus-visible{
   --radius-l:14px;  /* fenêtres modales, grandes cartes */
   --shadow-1:0 1px 2px rgba(0,0,0,0.05);
   --shadow-2:0 6px 24px rgba(0,0,0,0.12);
+  --read-scale:1;   /* S3 : zoom de lecture (1 / 1.1 / 1.2), piloté par A−/A+ */
 }
+/* Zoom proportionnel via la taille de police racine (les rem suivent ; les
+   media-queries en px restent stables → pas de casse de mise en page). */
+html{ font-size: calc(100% * var(--read-scale)); }
 :root[data-theme="dark"]{
   --shadow-1:0 1px 2px rgba(0,0,0,0.30);
   --shadow-2:0 8px 30px rgba(0,0,0,0.50);
@@ -147,6 +151,47 @@ textarea:focus-visible, [tabindex]:focus-visible{
 /* Boutons d'en-tête mobile (icône seule) : pictogramme un peu plus grand */
 #mob-menu-btn .ic, .mob-header-actions > button > .ic{ width:1.45em; height:1.45em; }
 .ic-lbl{ vertical-align:middle; }
+
+/* S6 — Pager Précédent / Suivant entre chapitres */
+#chap-pager{ display:flex; gap:0.8rem; justify-content:space-between; max-width:780px; margin:2.5rem auto 1.5rem; padding:0 1rem; }
+.chap-pager-btn{
+  flex:1 1 0; min-width:0; display:flex; align-items:center; gap:0.65rem;
+  background:var(--paper); border:1.5px solid var(--ink); border-radius:var(--radius-m);
+  padding:0.65rem 0.95rem; cursor:pointer; color:var(--ink); min-height:44px;
+  font-family:'Inter Tight',sans-serif; text-align:left;
+  transition:background 0.15s, color 0.15s, opacity 0.15s, box-shadow 0.15s;
+}
+.chap-pager-btn.cpg-next{ justify-content:flex-end; text-align:right; }
+.chap-pager-btn:hover:not(:disabled){ background:var(--ink); color:var(--paper); box-shadow:var(--shadow-2); }
+.chap-pager-btn:disabled{ opacity:0.3; cursor:default; }
+.cpg-arrow{ font-size:1.5rem; line-height:1; flex-shrink:0; }
+.cpg-txt{ display:flex; flex-direction:column; min-width:0; }
+.cpg-dir{ font-family:'JetBrains Mono',monospace; font-size:0.64rem; letter-spacing:0.14em; text-transform:uppercase; color:var(--muted); }
+.chap-pager-btn:hover:not(:disabled) .cpg-dir{ color:var(--paper); opacity:0.85; }
+.cpg-name{ font-size:0.92rem; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+@media print{ #chap-pager{ display:none; } }
+
+/* S5 — Ligne du jour sous le titre (date · cartes dues · chapitres maîtrisés) */
+.header-today{
+  font-size:0.84rem; color:var(--muted); margin-top:0.5rem;
+  display:flex; align-items:center; gap:0.4rem; flex-wrap:wrap;
+}
+.header-today .ic{ width:1em; height:1em; vertical-align:-0.1em; }
+.header-today strong{ font-weight:600; }
+
+/* S3 — Contrôle de taille du texte (A− / A+) dans les menus « Plus » */
+.read-size-ctrl{ display:flex; align-items:center; gap:0.5rem; padding:0.55rem 0.95rem; border-top:1px solid rgba(128,128,128,0.18); }
+.read-size-ctrl .rsc-label{ flex:1; font-size:0.85rem; color:var(--muted); font-family:'Inter Tight',sans-serif; white-space:nowrap; }
+/* surcharge le style « item de menu » (largeur pleine, flex) pour des carrés A−/A+ */
+#more-menu .read-size-ctrl .rsc-btn, #mob-more-menu .read-size-ctrl .rsc-btn{
+  flex:0 0 auto; width:38px; min-width:38px; height:38px; min-height:38px; padding:0;
+  display:flex; align-items:center; justify-content:center;
+  border:1.5px solid var(--ink); border-radius:var(--radius-s);
+  background:var(--paper); color:var(--ink); cursor:pointer;
+  font-weight:700; font-family:'Fraunces',serif; font-size:0.95rem;
+}
+#more-menu .read-size-ctrl .rsc-btn:hover, #mob-more-menu .read-size-ctrl .rsc-btn:hover{ background:var(--accent); color:#fff; border-color:var(--accent); }
+.read-size-ctrl .read-size-val{ font-family:'JetBrains Mono',monospace; font-size:0.7rem; color:var(--muted); min-width:3.2em; text-align:center; }
 /* Adoucir les fonds en mode sombre — les encadrés utilisent maintenant rgba() donc adaptatifs */
 :root[data-theme="dark"] .flash-controls .hard{background:rgba(200,71,46,0.22)}
 :root[data-theme="dark"] .flash-controls .ok{background:rgba(184,128,26,0.22)}
@@ -2755,11 +2800,18 @@ window.__icon = function(name){
         <button id="formula-btn" class="hdr-more-item" role="menuitem" title="Formulaire du chapitre actif (fiche de synthèse imprimable)"><svg class="ic" aria-hidden="true"><use href="#i-function"></use></svg> Formulaire</button>
         <button id="print-btn" class="hdr-more-item" role="menuitem" title="Imprimer le chapitre actif" onclick="printChapter()"><svg class="ic" aria-hidden="true"><use href="#i-printer"></use></svg> Imprimer</button>
         <button id="flag-btn" class="hdr-more-item" role="menuitem" title="Cartes signalées comme fausses ou peu claires"><svg class="ic" aria-hidden="true"><use href="#i-flag"></use></svg> Cartes signalées<span class="flag-badge" style="display:none">0</span></button>
+        <div class="read-size-ctrl" role="group" aria-label="Taille du texte">
+          <span class="rsc-label">Taille du texte</span>
+          <button type="button" class="rsc-btn" data-read="down" aria-label="Réduire le texte">A−</button>
+          <span class="read-size-val">100 %</span>
+          <button type="button" class="rsc-btn" data-read="up" aria-label="Agrandir le texte">A+</button>
+        </div>
       </div>
     </div>
   </div>
   <div class="eyebrow">PTSI · Programme officiel · 1ère année</div>
   <h1>Mes cours de <em>prépa</em></h1>
+  <div class="header-today" id="header-today" hidden></div>
 </header>
 
 <!-- ===== HEADER MOBILE (visible uniquement sur mobile) ===== -->
@@ -2780,6 +2832,12 @@ window.__icon = function(name){
         <button id="mob-formula-btn" role="menuitem"><svg class="ic" aria-hidden="true"><use href="#i-function"></use></svg> <span>Formulaire</span></button>
         <button id="mob-backup-btn" role="menuitem"><svg class="ic" aria-hidden="true"><use href="#i-download"></use></svg> <span>Sauvegarde</span></button>
         <button id="mob-flag-btn" role="menuitem"><svg class="ic" aria-hidden="true"><use href="#i-flag"></use></svg> <span>Cartes signalées<span class="flag-badge" style="display:none">0</span></span></button>
+        <div class="read-size-ctrl" role="group" aria-label="Taille du texte">
+          <span class="rsc-label">Taille du texte</span>
+          <button type="button" class="rsc-btn" data-read="down" aria-label="Réduire le texte">A−</button>
+          <span class="read-size-val">100 %</span>
+          <button type="button" class="rsc-btn" data-read="up" aria-label="Agrandir le texte">A+</button>
+        </div>
       </div>
     </div>
   </div>
@@ -40513,6 +40571,19 @@ const cstCards = [
 
 </main><!-- fin main si -->
 
+<!-- S6 : navigation Précédent / Suivant entre chapitres (paire unique ; la logique
+     goRelChapter + updateNavButtons + observer existe déjà plus bas). -->
+<nav id="chap-pager" aria-label="Chapitre précédent ou suivant">
+  <button id="prev-chap-btn" class="chap-pager-btn" type="button">
+    <span class="cpg-arrow" aria-hidden="true">‹</span>
+    <span class="cpg-txt"><span class="cpg-dir">Précédent</span><span class="cpg-name" id="prev-chap-name"></span></span>
+  </button>
+  <button id="next-chap-btn" class="chap-pager-btn cpg-next" type="button">
+    <span class="cpg-txt"><span class="cpg-dir">Suivant</span><span class="cpg-name" id="next-chap-name"></span></span>
+    <span class="cpg-arrow" aria-hidden="true">›</span>
+  </button>
+</nav>
+
 <footer>
   PTSI · Mes cours de physique · Programme officiel
 </footer>
@@ -40882,7 +40953,10 @@ function flashRate(prefix, level){
 }
 function flashReset(prefix){
   const inst = window.FLASH_INSTANCES && window.FLASH_INSTANCES[prefix];
-  if(inst) inst.resetProgress();
+  if(!inst) return;
+  // S2 : confirmation — l'action efface toute la progression du chapitre.
+  if(!window.confirm('Réinitialiser ta progression sur ce chapitre ?\nLes notations (acquis / hésitant / à revoir) seront effacées. Action irréversible.')) return;
+  inst.resetProgress();
 }
 
 /* ============================================== */
@@ -52437,6 +52511,22 @@ ${bodyContent}
     const el = document.querySelector('input[name="quiz-type"]:checked');
     return el ? el.value : 'all';
   }
+  /* S1 : mémoriser/restaurer la configuration du quiz (matières / mode / nombre / type) */
+  function saveQuizConfig(){
+    Store.setJSON('quizConfig', { mats:getSelectedMats(), mode:getSelectedMode(), nb:getSelectedNb(), type:getSelectedType() });
+  }
+  function restoreQuizConfig(){
+    const c = Store.getJSON('quizConfig', null);
+    if(!c) return;
+    if(Array.isArray(c.mats) && c.mats.length){   // ne pas tout décocher si vide
+      [['qc-physique','physique'],['qc-maths','maths'],['qc-si','si'],['qc-info','info'],['qc-anglais','anglais']]
+        .forEach(([id,m]) => { const el = document.getElementById(id); if(el) el.checked = c.mats.includes(m); });
+    }
+    const setRadio = (name,val) => { const el = document.querySelector('input[name="'+name+'"][value="'+val+'"]'); if(el) el.checked = true; };
+    if(c.mode) setRadio('quiz-mode', c.mode);
+    if(c.nb)   setRadio('quiz-nb', c.nb);
+    if(c.type) setRadio('quiz-type', c.type);
+  }
 
   /* ---- Écrans ---- */
   function showScreen(id){
@@ -52449,6 +52539,7 @@ ${bodyContent}
   window.quizOpen = function(){
     document.getElementById('quiz-overlay').classList.add('open');
     showScreen('quiz-screen-config');
+    restoreQuizConfig();      // S1 : recharger la dernière config choisie
     updateConfigInfo();
   };
   window.quizClose = function(){
@@ -52775,11 +52866,12 @@ ${bodyContent}
   document.getElementById('quiz-btn')?.addEventListener('click', quizOpen);
 
   /* ---- Mise à jour compteur config quand on change les options ---- */
+  const onConfigChange = () => { updateConfigInfo(); saveQuizConfig(); };   // S1
   ['qc-physique','qc-maths','qc-si','qc-info','qc-anglais'].forEach(id=>{
-    document.getElementById(id)?.addEventListener('change', updateConfigInfo);
+    document.getElementById(id)?.addEventListener('change', onConfigChange);
   });
   document.querySelectorAll('input[name="quiz-mode"],input[name="quiz-nb"],input[name="quiz-type"]').forEach(el=>{
-    el.addEventListener('change', updateConfigInfo);
+    el.addEventListener('change', onConfigChange);
   });
 
 })();
@@ -53113,15 +53205,9 @@ ${bodyContent}
     btn.addEventListener('click', () => {
       currentMat = btn.dataset.mat;
       document.querySelectorAll('.mob-mat-btn').forEach(b => b.classList.toggle('active', b === btn));
+      // S4 : afficher la liste de la matière SANS naviguer (la navigation se fait
+      // au choix d'un chapitre). On reste dans le tiroir pour parcourir.
       buildDrawerList(currentMat);
-      // Aller au 1er chapitre de la matière DANS l'année courante
-      const id = firstChapInYear(currentMat, currentYear);
-      if(id){
-        const cb = document.querySelector('.chap-btn[data-chap="'+id.replace('chap-','')+'"]');
-        if(cb) cb.click();
-        updateMobTitle();
-        buildDrawerList(currentMat);
-      }
     });
   });
 
@@ -53848,6 +53934,11 @@ setTimeout(()=>{drawSim();},100);
     const idx = CHAPTERS.findIndex(c => c.id === active.id.replace('chap-',''));
     prevB.disabled = (idx <= 0);
     nextB.disabled = (idx < 0 || idx >= CHAPTERS.length - 1);
+    // S6 : afficher le nom du chapitre voisin
+    const pn = document.getElementById('prev-chap-name');
+    const nn = document.getElementById('next-chap-name');
+    if(pn) pn.textContent = idx > 0 ? (CHAPTERS[idx-1].mobLabel || CHAPTERS[idx-1].name) : '';
+    if(nn) nn.textContent = (idx >= 0 && idx < CHAPTERS.length - 1) ? (CHAPTERS[idx+1].mobLabel || CHAPTERS[idx+1].name) : '';
   }
   const navObs = new MutationObserver(updateNavButtons);
   document.querySelectorAll('.chapter').forEach(ch => navObs.observe(ch, {attributes:true, attributeFilter:['class']}));
@@ -53933,9 +54024,54 @@ document.getElementById('skip-link')?.addEventListener('click', e => {
       if(n>0){ el.textContent = n>99 ? '99+' : String(n); el.hidden=false; }
       else el.hidden=true;
     });
+    updateHeaderToday();   // S5 : garder la ligne du jour synchrone
+  }
+  /* S5 — ligne du jour : date · cartes dues · chapitres maîtrisés (>=80 % acquis) */
+  function updateHeaderToday(){
+    const el = document.getElementById('header-today');
+    if(!el) return;
+    let date = '';
+    try { date = new Date().toLocaleDateString('fr-FR', {weekday:'long', day:'numeric', month:'long'}); }
+    catch(e){ date = new Date().toLocaleDateString(); }
+    date = date.charAt(0).toUpperCase() + date.slice(1);
+    const due = (typeof srsCountDue === 'function') ? srsCountDue() : 0;
+    const reg = window.FLASH_REGISTRY || {};
+    let mastered = 0;
+    Object.keys(reg).forEach(p => {
+      const cards = reg[p]; if(!cards || !cards.length) return;
+      const st = Store.getJSON('flash:' + p, null); if(!st) return;
+      let a = 0; st.forEach(s => { if(s && s.last === 2) a++; });
+      if(a / cards.length >= 0.8) mastered++;
+    });
+    const icon = window.__icon ? window.__icon('calendar') : '';
+    const dueHtml = due > 0
+      ? ' · <strong style="color:var(--accent)">' + due + ' carte' + (due > 1 ? 's' : '') + ' à revoir</strong>'
+      : ' · <strong style="color:var(--green)">tout est à jour</strong>';
+    const mastHtml = mastered > 0 ? ' · ' + mastered + ' chapitre' + (mastered > 1 ? 's' : '') + ' ≥ 80 %' : '';
+    el.innerHTML = icon + '<span>' + date + dueHtml + mastHtml + '</span>';
+    el.hidden = false;
   }
   window.__updateReviseBadge = updateBadge;
+  window.__updateHeaderToday = updateHeaderToday;
   setTimeout(updateBadge, 1500);   // laisser le registre de flashcards se peupler
+})();
+
+/* S3 — Réglage de la taille du texte (A− / A+), persistant. */
+(function(){
+  const LEVELS = [1, 1.1, 1.2], LBL = ['100 %', '110 %', '120 %'];
+  let i = parseInt(Store.get('readScale') || '0', 10);
+  if(!(i >= 0 && i < LEVELS.length)) i = 0;
+  function apply(){
+    document.documentElement.style.setProperty('--read-scale', LEVELS[i]);
+    document.querySelectorAll('.read-size-val').forEach(e => e.textContent = LBL[i]);
+  }
+  apply();
+  document.querySelectorAll('.rsc-btn[data-read]').forEach(b => b.addEventListener('click', e => {
+    e.stopPropagation();                 // ne pas fermer le menu en réglant
+    i = b.dataset.read === 'up' ? Math.min(LEVELS.length - 1, i + 1) : Math.max(0, i - 1);
+    Store.set('readScale', String(i));
+    apply();
+  }));
 })();
 </script>
 
