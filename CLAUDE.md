@@ -6,19 +6,19 @@ Notes destinées à Claude pour les sessions futures. Objectif du projet : rendr
 
 - **Tout en français** (réponses, commentaires, contenu).
 - **Ne rien casser** de ce qui marche (design + fonctionnalités). Pas de refonte non demandée.
-- **Demander confirmation avant toute modification du HTML.**
+- **Modifications du HTML autorisées sans confirmation préalable** (accord donné par l'utilisateur le 2026-09-26) : agir directement, puis expliquer ce qui a été fait.
 - L'utilisateur est étudiant en prépa, débutant en dev. Privilégier des explications claires et des changements incrémentaux.
 
 ## Architecture
 
-- **Un seul fichier servi : `index.html`** (~33 000 lignes, 2,1 Mo). HTML + CSS + JS tout inline.
-- `cours_ptsi-42.html` à la racine = **backup** d'origine (le temps du travail).
+- **Un seul fichier servi : `index.html`** (≈ 54 700 lignes, ≈ 3,6 Mo). HTML + CSS + JS tout inline : 15 blocs `<script>` : 4 petits avant (config MathJax, `__icon`, Lorentz, `cstCards`), **un grand script applicatif unique** (de `const Store = (function` au tiroir, puis `data-domain` et la recherche améliorée), puis 10 petits modules. Une exception non rattrapée dans le grand script coupe tout ce qui suit (decks, navigation, quiz, tiroir) : code de chargement défensif (`if(!el) return;`).
+- **Ne jamais lire `index.html` en entier** ni se fier à des numéros de ligne : chercher par **ancre grep** (`grep -n 'const CHAPTERS = \['`, puis `sed -n 'A,Bp'`). Titres de blocs CSS : `/* =====`.
 - `fichier de départ/` = original intact, **non versionné** (voir `.gitignore`).
-- Aucun build. Édition directe du fichier.
+- Aucun build. Édition directe du fichier. Autour : `sw.js` + `manifest.webmanifest` (PWA), `vendor/`, `tools/`, `tests/` + `package.json` (tests navigateur), `docs/audit-2026-09.md` (audit de référence : carte du fichier, anomalies, pistes).
 
 ### Pilotage data-driven
 
-Le tableau **`CHAPTERS`** (JS, vers la ligne ~24985) est la source de vérité : navigation, redraw des simulateurs, recherche en dérivent. Chaque entrée :
+Le tableau **`CHAPTERS`** (`grep -n 'const CHAPTERS = \['`) est la source de vérité : navigation, redraw des simulateurs, recherche, quiz, tiroir en dérivent. **134 chapitres** : physique 37, maths 46, SI 25, info 8, anglais 18. Chaque entrée (11 champs) :
 
 ```js
 { id:'rlc', prefix:'rlc', name:'Circuit RLC série',
@@ -28,30 +28,39 @@ Le tableau **`CHAPTERS`** (JS, vers la ligne ~24985) est la source de vérité :
   mobLabel:'Circuit RLC série' }
 ```
 
-- `matiere` ∈ `physique` | `maths` | `si` | `info` | `anglais`. **Ajouter une matière** = l'ajouter aux énumérations en dur : boutons `mob-mat-btn` (HTML), `.mat-content[data-mat-content="X"]` (zone sidebar), `buildSidebars` (`['physique',…]`), `buildChapData`/`MATS` du tiroir, `matLabel` (recherche). Les chapitres `physique/maths/info/anglais` vivent dans le grand `<main>` ; `si` a son propre `<main id="si-content">`.
-- **Anglais** : matière de langue, donc cartes en **texte brut** (pas de maths). `makeFlash` détecte `CHAPTERS_BY_PREFIX[prefix].matiere === 'anglais'` (`isPlainDeck`) et rend `card.q`/`card.a` en HTML brut sans `flashPretty` (sinon « I », « / » seraient mathématisés) ; idem côté quiz (`item.meta.mat === 'anglais'`). Les réponses peuvent contenir `<strong>`/`<em>`/`<br>`. Panels typiques : `['cours','flash']` (pas d'exos). **Lecture audio (TTS)** : module global `window.__TTS` (Web Speech API, défini AVANT les decks car `makeFlash` teste `__TTS.ok` à l'injection) — bouton 🔊 sur les flashcards anglaises (coin de la carte) et dans le quiz (`quiz-tts-btn`, visible si `meta.mat==='anglais'`) ; lit la face visible avec détection de langue (voix en-GB/fr-FR), retire les gloses françaises des lectures anglaises, lecture stoppée au flip/changement/fermeture.
-- `drawFn` : nom de la fonction Canvas du simulateur, ou `null` si pas de simu.
-- `CHAPTERS_BY_ID` / `CHAPTERS_BY_PREFIX` sont dérivés automatiquement.
-- `validateChaptersCoherence()` (~l.25256) alerte dans la console si DOM ≠ `CHAPTERS` au chargement.
+- `matiere` ∈ `physique` | `maths` | `si` | `info` | `anglais`. Les chapitres `physique/maths/info/anglais` vivent dans le grand `<main>` ; `si` a son propre `<main id="si-content">` (masqué au départ).
+- **Ajouter une matière** = l'ajouter aux énumérations en dur : boutons `.mob-mat-btn` du tiroir (HTML), zone `.mat-content[data-mat-content="X"]`, `buildSidebars` (`['physique',…]`), `buildChapData` + `const MATS` (tiroir), `const MAT_TAGS` (tiroir **et** Aujourd'hui), `colorsMap` et cases `qc-<matière>` du quiz (HTML + listes JS : `grep -n 'qc-physique'`), `perMat` + `matLabel` du **Bilan**, CSS `.flash-mat-*`, `.mt-*`, `.mob-mat-btn.active[data-mat]`, `.quiz-chapter-badge.*`, `.chap-title-banner.mat-*`, variable `--<matière>` si couleur propre.
+- **Anglais** : matière de langue, cartes en **texte brut**. `makeFlash` détecte `CHAPTERS_BY_PREFIX[prefix].matiere === 'anglais'` (`isPlainDeck`) et rend `card.q`/`card.a` en HTML brut sans `flashPretty` (sinon « I », « / » seraient mathématisés) ; idem quiz (`item.meta.mat === 'anglais'`). Réponses avec `<strong>`/`<em>`/`<br>` possibles. Panels typiques : `['cours','flash']`. **Lecture audio (TTS)** : `window.__TTS` (Web Speech API, défini AVANT les decks car `makeFlash` teste `__TTS.ok`) — bouton 🔊 sur les flashcards anglaises et dans le quiz (`#quiz-tts-btn`) ; lit la face visible (voix en-GB/fr-FR, gloses françaises retirées), stoppée au flip/changement/fermeture. Les decks **info**, eux, passent par `flashPretty` (anomalie connue).
+- `drawFn` : fonction du simulateur (27 chapitres), ou `null`. Le simulateur SVG de Lorentz (`lorDraw`, `lor-simu`) n'est **pas** déclaré dans `CHAPTERS`.
+- `CHAPTERS_BY_ID` / `CHAPTERS_BY_PREFIX` sont dérivés automatiquement (après le tri).
+- `validateChaptersCoherence()` (IIFE) alerte dans la console au chargement, mais ne compare que les ids de chapitre (`CHAPTERS` ↔ `div.chapter`).
 
 ### Ordre d'apprentissage (réorganisation centralisée)
 
-Juste après la définition de `CHAPTERS` (IIFE `reorderChapters`), le tableau **`CHAP_GROUPS`** = `[ [subCode, subLabel, [ids…]] , … ]` est la **source unique** de l'ordre des chapitres (ordre pédagogique conventionnel), des **sous-domaines** (`c.sub`) et de leurs **libellés** (`c.subLabel`). Il réordonne `CHAPTERS` en place et réécrit `c.sub`/`c.subLabel`. Un `subCode` à `null` = matière « à plat » (sans sous-domaines, ex. maths). Cela pilote **tout** : sidebars desktop (générées par l'IIFE `buildSidebars` à partir de `CHAPTERS` — plus de HTML de boutons à maintenir), tiroir mobile (`buildChapData`, groupé par `subLabel`), navigation précédent/suivant, tableau de bord. **Pour changer l'ordre, le sous-domaine ou le libellé d'un chapitre : éditer uniquement `CHAP_GROUPS`.** Un `id` absent est rejeté en fin de liste.
+Juste après `CHAPTERS`, l'IIFE `reorderChapters` déclare **`CHAP_GROUPS`** (`grep -n 'const CHAP_GROUPS'`) = `[ [subCode, subLabel, [ids…]] , … ]` (24 groupes) : **source unique** de l'ordre pédagogique, des **sous-domaines** (`c.sub`) et de leurs **libellés** (`c.subLabel`), qu'il réécrit en réordonnant `CHAPTERS` en place. `subCode` à `null` = pas de code de sous-domaine (maths ; le `subLabel` groupe quand même le tiroir). Un `id` absent est rejeté en fin de liste. **Pour changer l'ordre ou le sous-domaine : éditer `CHAP_GROUPS`**. ⚠️ `matiereLabel` (tag) et `domain` (couleurs via `data-domain`) ne sont **pas** réécrits : les tenir à la main en cohérence (ex. `lorentz` porte encore le tag « Mécanique » dans le groupe Électromagnétisme). Le code `'meca'` sert en physique ET en SI.
 
-Les `.mat-content` du HTML ne contiennent plus que des conteneurs vides `<div class="subdomain-bar"></div><div class="chapter-bar"></div>` ; `buildSidebars` les remplit (tag `.matiere` = `matiereLabel`, libellé = `mobLabel`). Elle tourne **avant** l'attachement des handlers de clic.
+**2ᵉ année** : dans la même IIFE, `window.__YEAR2A = new Set([...])` (26 ids, tous en maths) pilote le badge « 2ᵉ année » du bandeau (« 2A » dans le tag des `.chap-btn`, repris à l'impression), le `data-year` des `.chap-btn` et le filtre 1ʳᵉ/2ᵉ année du tiroir (clé `year`). Règle en dur (`buildChapData`, `syncSidebar`) : **anglais** et `constantes` sont visibles les deux années.
+
+### Navigation : barres invisibles = couche de commande
+
+Les `.mat-content` du HTML ne contiennent que des conteneurs vides `.subdomain-bar` / `.chapter-bar` (en maths, la div **est** `.chapter-bar mat-content` ; la zone SI précède `main#si-content`). `buildSidebars` les remplit de `.sub-btn` / `.chap-btn` depuis `CHAPTERS` (tag = `matiereLabel`, libellé = `mobLabel`), **avant** l'attachement des handlers. Ces barres sont **invisibles à toutes les largeurs** (`display:none !important`) : `.chap-btn`/`.tab` forment une **couche de commande cachée**, cliquée par `navigateTo`, le tiroir, le routage et préc./suiv. La seule navigation visible est le **tiroir `#mob-drawer`**, sur mobile (☰) comme sur desktop (« Chapitres » `#nav-toggle-btn`). **Seul le handler `.chap-btn`** (`grep -n 'CHAPTER SWITCHING'`) bascule entre le `<main>` principal et `#si-content`.
+
+→ Naviguer **toujours** via `navigateTo('chap-<id>','<prefix>-<onglet>', cb)` ou un clic sur `.chap-btn`/`.tab`, jamais en posant `.active` à la main. Ne pas supprimer ces barres, et **ne pas ajouter de `.chap-btn` dans le HTML** (effacés par `buildSidebars`).
+
+**Ajouter un chapitre = 5 endroits** (gabarit : `GABARIT-CHAPITRE.md`) : (1) entrée `CHAPTERS` ; (2) id dans `CHAP_GROUPS` ; (3) id dans `__YEAR2A` si 2ᵉ année ; (4) bloc DOM `chap-<id>` dans le bon `<main>` ; (5) `const <prefix>Cards` + `makeFlash(...)` **après** les constantes `FLASH_*` (`grep -n 'const FLASH_FR2'` ; avant, TDZ → plantage).
 
 ### Routage par URL (deep-link + bouton précédent)
 
-L'IIFE `urlRouting` synchronise `location.hash` (`#chapId/onglet`, ex. `#rlc/cours`) avec le chapitre/onglet actif, par **délégation** (écoute les clics sur `.chap-btn`/`.tab`/`.sub-btn`/`.mob-chap-item`/boutons matière, puis `syncHash`). `pushState` au changement de chapitre (le bouton « précédent » revient au chapitre précédent), `replaceState` au simple changement d'onglet. Au chargement, un `#hash` a priorité sur `lastPos` (`window.__navFromHash`). `popstate` rejoue la navigation.
+L'IIFE `urlRouting` synchronise `location.hash` (`#chapId/onglet`, ex. `#rlc/cours`) avec le chapitre/onglet actif, par **délégation** (clics sur `.chap-btn`/`.tab`/`.sub-btn`/`.mob-chap-item`/boutons matière, puis `syncHash`). `pushState` au changement de chapitre (le bouton « précédent » revient au chapitre précédent), `replaceState` au simple changement d'onglet. Au chargement (restauration à +120 ms), un `#hash` a priorité sur `lastPos` (`window.__navFromHash`). `popstate` rejoue la navigation.
 
 ## Conventions de nommage des IDs (IMPORTANT)
 
 - Le `<div>` du chapitre : `id="chap-<id>"` (ex. `chap-rlc`).
-- **`id` ≠ `prefix`** : le `prefix` sert aux panels et aux flashcards, et peut différer de l'`id`.
-  Ex. chapitre `id:'ondes'` → panels préfixés `ond-` ; chapitre `id:'rlc'` → panels `rlc-`.
+- **`id` ≠ `prefix`** pour **119 chapitres sur 134** : le `prefix` sert aux panels et aux flashcards.
+  Ex. chapitre `id:'ondes'` → panels `ond-` ; `id:'rlc'` → panels `rlc-`. **Construire un id de panneau avec `CHAPTERS_BY_ID[id].prefix`**, jamais `id+'-cours'`.
 - Panels : `<section class="panel" id="<prefix>-<panel>">` avec `<panel>` ∈ `cours` | `meth` | `simu` | `flash` | `exos`.
 - Onglets : `<button class="tab" data-panel="<prefix>-<panel>">`.
-- Bouton de navigation : `<button class="chap-btn" data-chap="<id>">`.
+- Bouton de commande (généré, invisible) : `<button class="chap-btn" data-chap="<id>">`.
 
 ## Structure d'un chapitre (DOM)
 
@@ -70,90 +79,123 @@ L'IIFE `urlRouting` synchronise `location.hash` (`#chapId/onglet`, ex. `#rlc/cou
 </div>
 ```
 
-Classes de contenu : `.course-section`, `.sec-num` (ex. « §1 · LES BASES »), `.intro`, `.formula` (formules MathJax `$$…$$`), `.def-box`, `.prop-box`, `.method-box`, `.notice`, `.reveal` (bloc dépliable au clic).
+Classes de contenu : `.course-section`, `.sec-num` (ex. « §1 · LES BASES »), `.intro`, `.formula` (formules MathJax `$$…$$`), `.def-box`, `.prop-box`, `.method-box`, `.notice`, `.reveal` (bloc dépliable au clic). Exercices : `.exo` **dans** `.exo-wrapper` (exo « CONCOURS PT » compris, sans `</div>` en plus). Bandeau `.chap-title-banner.mat-<matiere>` injecté par `injectChapterTitleBanners`.
+
+**Deux `.chapter.active` dans le HTML source** : `chap-rlc` et `chap-ingsys` (un par `<main>`), jusqu'au 1ᵉʳ clic `.chap-btn` (restauration à +120 ms s'il y a un `#hash` ou un `lastPos` ; sinon, à la 1ʳᵉ visite, jusqu'à la 1ʳᵉ navigation). Pour le chapitre **visible**, filtrer par `offsetParent` (cf. `function activeChapter` du formulaire).
 
 ## Formules : deux conventions distinctes
 
-- **Cours / méthodes** : LaTeX via MathJax. Inline `\( … \)`, bloc `$$ … $$`.
-- **Flashcards** : contenu écrit en **caractères Unicode** (ex. `ω₀`, `√(LC)`, `e^(iθ)`, `ω_k`, `≤`, `∫`, `z̄`, `ü`). À l'affichage, `makeFlash` applique `flashPretty()` qui **repère les fragments mathématiques, les convertit en LaTeX et les enrobe dans `\( … \)`** ; MathJax (déjà appelé dans `show()`) les rend alors **dans la même police que le cours**. Le texte français reste hors maths. Le helper `flashConvertMath()` fait la conversion Unicode→LaTeX (exposants `^(…)`/`^x`, indices `_(…)`/`_x`, `√(…)`→`\sqrt{}`, accolades d'ensembles `{…}`→`\{…\}`, fonctions `cos`→`\cos`, accents `z̄`→`\bar{z}`, `u̇`→`\dot{u}`, `ü`→`\ddot{u}`, exposants/indices Unicode `²`/`ₙ`…). Une carte déjà écrite en LaTeX `\( … \)` est laissée intacte. ⚠️ La séparation maths/texte est **heuristique** : quelques cartes mêlant phrase et formule peuvent demander un affinage manuel (réécriture directe en `\( … \)` dans la carte).
+- **Cours / méthodes** : LaTeX via MathJax. Inline `\( … \)`, bloc `$$ … $$` (**pas** `\[ … \]`). Pas de « < » collé à une lettre dans une formule (lu comme une balise : `\lt`, contrôlé par `validate.py`). Pas de macro d'extension absente (`\cancel`, `\ce`, `physics`…). Éviter les longues formules en ligne (débordement mobile) : `$$` dans `.formula`.
+- **Flashcards** : **par défaut** en **caractères Unicode** (ex. `ω₀`, `√(LC)`, `e^(iθ)`, `ω_k`, `≤`, `∫`, `z̄`, `ü`). À l'affichage, `makeFlash` applique `flashPretty()` qui **repère les fragments mathématiques, les convertit en LaTeX (`flashConvertMath()` : `^(…)`, `_(…)`, `√(…)`, `{…}`, `cos`, `z̄`, `ü`, `²`/`ₙ`…) et les enrobe dans `\( … \)`** ; MathJax (appelé dans `show()`) les rend **dans la police du cours**. Le texte français reste hors maths. Une carte écrite directement en `\( … \)` est **admise** et laissée intacte (77 cartes : decks cst, cine, stat, slci) — dans la chaîne JS, doubler l'antislash (`\\(`). ⚠️ Séparation maths/texte **heuristique** : une carte mêlant phrase et formule peut demander une réécriture directe en `\( … \)`.
 
 ## Flashcards
 
 ```js
 const <prefix>Cards = [
   {q:"Question ?", a:"Réponse."},
+  {q:"Loi d'Ohm ?", a:"U = R·I", cat:'form'},   // cat facultatif
   …
 ];
 const <prefix>Flash = makeFlash(<prefix>Cards, '<prefix>',
   '<prefix>-flash-content', '<prefix>-flash-prog', '<prefix>-stats');
 ```
 
-`makeFlash` (~l.25998) gère flip / notation (à revoir / hésitant / acquis) / progression, persistée via l'objet `Store`.
+- 134 decks, 2 717 cartes. `makeFlash` (`grep -n 'function makeFlash'`) gère flip 3D / notation (à revoir / hésitant / acquis) / progression / Leitner ; il range le deck dans `window.FLASH_REGISTRY[prefix]` et l'instance dans `window.FLASH_INSTANCES[prefix]` (`flip, rate, prev, next, resetProgress, getProgress, reload`).
+- Champ facultatif **`cat:'form'|'val'`** (359 cartes) : filtre « Formules / Grandeurs usuelles » du quiz.
+- **État et identifiants de cartes** (`grep -n 'ÉTAT DES FLASHCARDS'`) : `flash:<prefix>` reste un tableau d'états `{h,o,e,last,box,due}` **aligné par position** (Bilan, `srsCountDue`, quiz, badge le lisent par index) ; `flashids:<prefix>` mémorise l'identifiant de chaque position, `flashCardIds(cards)` = `'Q|R'` (empreintes FNV-1a de la question et de la réponse). `flashLoadState(prefix, cards)` **réaligne l'état par identifiant** ; `flashSaveState(prefix, cards, state)` écrit toujours les deux clés ensemble. **Migration au chargement** : chaque `makeFlash` réécrit l'état si l'ordre ou les identifiants ont changé (état « hérité » sans identifiants : conservé par position). `rate()`/`getProgress()` relisent le Store, et `quizRate` appelle `FLASH_INSTANCES[prefix].reload()` : quiz et onglet Flashcards ne s'écrasent plus.
+- **Règle d'édition des decks** (règle exacte : en-tête de `flashLoadState`). **Sans perte** : ajouter/retirer/réordonner des cartes ; **toute retouche de texte** (question et/ou réponse, remplacement global compris) à longueur et ordre inchangés (repli par rang : jamais pire que l'ancien appariement par position), **sauf** pour une question présente en double dans le paquet (n'en retoucher qu'une copie par mise à jour) et une réponse passée d'une carte à une autre dont les questions sont aussi retouchées ; question reformulée, réponse inchangée, gardant son rang depuis sa voisine reconnue précédente **ou** suivante (même si cette voisine a été déplacée), ou entourée d'autant de cartes retirées que de cartes ajoutées. **Carte remise à zéro** : question retouchée hors de ces cas (réponse aussi changée alors que des cartes sont ajoutées/retirées entre ses voisines — sauf autant d'ajouts que de retraits, voir la contrepartie —, carte retouchée **et** déplacée, rang changé des deux côtés), ou ambiguïté (deux candidates de même réponse). **Contrepartie** : entre deux voisines reconnues, autant de cartes nouvelles/retouchées que de cartes disparues → celles dont la réponse ne désigne pas une seule entrée prennent l'entrée de même rang : une carte ajoutée (ou retouchée et déplacée) à la place d'une disparue hérite de son état, et une carte à question **et** réponse retouchées côtoyant un retrait + un ajout peut recevoir l'état de la carte retirée (et la carte ajoutée, le sien). Prévenir l'utilisateur. `flagged` : réaligné par question **et** réponse, puis question seule ; question introuvable : garde son index, orpheline (`i:-1`, listée mais ne marque aucune carte) si cet index est pris par un autre signalement.
 
 ## Stockage
 
-Objet `Store` (~l.24912) : wrapper `localStorage` avec **fallback en mémoire** si indisponible. API : `get/set`, `getJSON/setJSON`, `available()`. Utiliser `Store`, jamais `localStorage` directement.
+Objet `Store` (`grep -n 'const Store = (function'`) : wrapper `localStorage` avec **fallback en mémoire** (`memBackend`) ; si une écriture échoue en cours de session (quota), la valeur part en mémoire et `get` la relit en priorité. API : `get/set`, `getJSON/setJSON`, `available()` (pas de `remove`). Utiliser `Store`, jamais `localStorage` directement — seule exception : la Sauvegarde.
 
-Clés utilisées : `flash:<prefix>` (progression par chapitre), `theme` (clair/sombre), `lastPos` (dernier chapitre/panneau vu), `year` (1 ou 2 — sélecteur d'année du tiroir), `recents` (8 derniers chapitres consultés, MRU — enregistrés par `syncSidebar`), `pinned` (chapitres épinglés ★ du tiroir), `drawerCollapsed` (sous-domaines repliés, clé `mat|subLabel`), `todayAtLaunch` (`'0'` = ne pas afficher l'écran « Aujourd'hui » au lancement), `flagged` (cartes signalées).
+Clés : `flash:<prefix>` (progression par chapitre), `flashids:<prefix>` (identifiants de cartes), `theme`, `lastPos` (dernier chapitre/panneau vu), `year` (1 ou 2, tiroir), `recents` (8 derniers chapitres, MRU, par `syncSidebar`), `pinned` (épinglés ★, 8 au plus), `drawerCollapsed` (sous-domaines repliés, clé `mat|subLabel`), `todayAtLaunch` (`'0'` = pas d'écran « Aujourd'hui » au lancement), `flagged` (cartes signalées `{p,i,q,a,t}`), `quizConfig` (dernier réglage du quiz `{mats,mode,nb,type}`), `readScale` (taille du texte A−/A+, index 0-2 → `--read-scale`). Toute nouvelle clé est exportée par la Sauvegarde : l'ajouter ici, et **ne pas la faire commencer par `flash:`** (préfixe qui compte les chapitres avec progression ; d'où le nom `flashids:`).
 
-**Tiroir « nouvelle génération »** : champ `#mob-filter` (filtre instantané TOUTES matières, accents ignorés, Entrée = 1ᵉʳ résultat, année ignorée volontairement) ; sections ★ Épinglés / ⌚ Récents en tête (hors mode filtre) ; sous-domaines repliables (`.mob-sub-toggle`, état mémorisé) ; chaque rangée `.mob-chap-row` = bouton chapitre + bouton épingle (frères, pas imbriqués). Tout est dans le module tiroir (`buildDrawerList`/`makeChapRow`/`CHAP_ITEM_BY_ID`). L'**anneau SVG de % acquis** (`ringSVG`, exposé en `window.__ringSVG`) ne s'affiche PAS dans le tiroir (retiré à la demande) : il est rendu dans les lignes par chapitre du **Bilan** (remplace l'ancienne mini-barre `.c-mini`).
+**Tiroir « nouvelle génération »** : `#mob-filter` (filtre instantané TOUTES matières, accents ignorés, Entrée = 1ᵉʳ résultat, année ignorée volontairement) ; sections ★ Épinglés / ⌚ Récents en tête (hors filtre) ; sous-domaines repliables (`.mob-sub-toggle`) ; rangée `.mob-chap-row` = bouton chapitre + bouton épingle (frères, pas imbriqués). Module : `buildDrawerList`/`makeChapRow`/`CHAP_ITEM_BY_ID`. L'**anneau SVG de % acquis** (`ringSVG` → `window.__ringSVG`) n'est PAS dans le tiroir (retiré à la demande) : il est rendu dans les lignes par chapitre du **Bilan**.
 
-**Écran « Aujourd'hui »** (`#today-overlay`, module en fin de body) : affiché au lancement sauf deep-link `#hash` ou préférence désactivée ; contenu = cartes dues (`srsCountDue` → `quizStartDue`), « Reprendre » (`lastPos`), 3 récents, accès rapides ; rouvrable via « ◎ Aujourd'hui » (menus desktop `today-btn` + mobile `mob-today-btn`) ou `window.todayOpen()`. Inclus dans la liste `IDS` du module focus.
+**Écran « Aujourd'hui »** (`#today-overlay`, module en fin de body) : affiché au lancement (+250 ms) sauf deep-link `#hash` ou préférence désactivée ; cartes dues (`srsCountDue` → `quizStartDue`), « Reprendre » (`lastPos`), 3 récents, accès rapides ; rouvrable par « Aujourd'hui » (menu **Plus** `#today-btn`, menu ⋯ mobile `#mob-today-btn`) ou `window.todayOpen()`. Inclus dans la liste `IDS` du module focus (`grep -n 'var IDS = \['`).
 
-**Sommaire** : le `.toc` (construit en JS avec scroll-spy IntersectionObserver) n'est affiché qu'en **desktop ≥ 1100 px** (sidebar verticale sticky). En mobile il est masqué (`display:none !important`) — une version « chips horizontales » a été essayée puis **retirée à la demande de l'utilisateur** (jugée envahissante) : ne pas la réintroduire sans accord.
+**Sommaire** : le `.toc` (construit en JS, scroll-spy IntersectionObserver) n'est affiché qu'en **desktop ≥ 1100 px** (sidebar sticky). En mobile il est masqué (`display:none !important`) — une version « chips horizontales » a été essayée puis **retirée à la demande de l'utilisateur** (jugée envahissante) : ne pas la réintroduire sans accord.
 
-**Répétition espacée (Leitner)** : l'état d'une carte est `{h,o,e,last,box,due}` — `box` = boîte de Leitner, `due` = timestamp de prochaine révision. `srsSchedule(state, level)` (global, ~avant `makeFlash`) met à jour `box`/`due` à chaque notation (intervalles `SRS_INTERVALS` = [0,1,3,7,16,35,75] jours) ; appelé dans `makeFlash.rate` **et** `quizRate`. `srsIsDue(s)`/`srsCountDue()` comptent les cartes dues. Bouton **« ↻ Réviser »** (en-tête + mobile, badge = nb de cartes dues via `window.__updateReviseBadge`) → `window.quizStartDue()` lance une session quiz limitée aux cartes dues de **toutes** les matières (`dueDeck()` dans le module quiz).
+**Répétition espacée (Leitner)** : `box` = boîte, `due` = timestamp de prochaine révision. `srsSchedule(state, level)` (global, avant `makeFlash`) les met à jour à chaque notation (`SRS_INTERVALS` = [0,1,3,7,16,35,75] jours), dans `makeFlash.rate` **et** `quizRate`. `srsIsDue(s)`/`srsCountDue()` comptent les cartes dues. **Boutons** : desktop, `#study-btn` « Réviser » ouvre un menu (`#quiz-btn` Quiz, `#drill-btn` Calcul mental, `#revise-btn` Révisions du jour) ; mobile, `#mob-revise-btn` lance directement. `#revise-btn`/`#mob-revise-btn` → `window.quizStartDue()` : quiz limité aux cartes dues de **toutes** les matières (`dueDeck()`). 3 badges (`#rev-badge`, `#rev-badge-study`, `#rev-badge-mob`) : `window.__updateReviseBadge`.
 
-**Tableau de bord** : bouton « Bilan » → overlay `#dash-overlay` qui agrège `flash:*` (via `FLASH_REGISTRY` pour le total de cartes + `Store.getJSON('flash:'+prefix)` pour les états) : % acquis global/par matière/par chapitre, tri par priorité, clic → `navigateTo` vers les flashcards du chapitre.
+**Tableau de bord** : « Bilan » (`#dash-btn`, `#mob-dash-btn`) → `#dash-overlay`, qui agrège `flash:*` (`FLASH_REGISTRY` pour le total + `Store.getJSON('flash:'+prefix)`) : % acquis global/par matière (`perMat` : physique, maths, SI seulement)/par chapitre, tri par priorité, clic → `navigateTo` vers les flashcards.
 
-**Sauvegarde / restauration** : bouton « Sauvegarde » dans l'en-tête (et mobile) → fenêtre `#backup-overlay`. Export = télécharge toutes les clés du `localStorage` dans un JSON `{app,version,exportedAt,data}`. Import = relit le JSON (vérifie `obj.data`), réécrit les clés, recharge la page. Protège la progression et permet le transfert entre appareils.
+**Sauvegarde / restauration** : « Sauvegarde » dans le menu **Plus** (`#backup-btn`, mobile `#mob-backup-btn`) → `#backup-overlay`. Export = toutes les clés du `localStorage` (origine `thomasmareel.github.io` partagée) dans un JSON `{app,version,exportedAt,data}`. Import = vérifie `obj.data` (pas `obj.app`), réécrit les clés en **fusion**, traite `flash:X`/`flashids:X` par paire (ancienne sauvegarde sans `flashids:` → relue par position), puis recharge.
 
 ## Dépendances : tout en local (aucun CDN)
 
-Le site est **100 % autonome** — aucune requête externe, fonctionne hors-ligne.
+Le site est **100 % autonome** — aucune requête externe, fonctionne hors-ligne (vérifié par les suites `site` et `pwa`).
 
-- **MathJax 3.2.2** : `vendor/mathjax/tex-mml-chtml.js` + polices CHTML dans `vendor/mathjax/output/chtml/fonts/woff-v2/`. Référencé dans l'en-tête ET dans le template d'impression. Ne pas spécifier de `fontPath` dans la config MathJax : le chemin par défaut (relatif au script) trouve les polices.
-- **Typeset paresseux par panneau** : pour accélérer le premier affichage, on ne typesette que le **panneau visible** (au démarrage, au changement de chapitre via `chap-btn`/`sub-btn`). Les autres panneaux sont rendus à l'ouverture de leur onglet. Helper `typesetPanel(panel)` (idempotent : ne fait rien si le panneau contient déjà des `mjx-container`). En ajoutant un panneau qui contient des formules, s'assurer qu'il est bien atteint par un onglet (sinon ajouter un appel à `typesetPanel`).
-- **Polices** : Fraunces, Inter Tight, JetBrains Mono dans `vendor/fonts/` (woff2 latin + latin-ext), déclarées dans `vendor/fonts/fonts.css`. Référencé via `<link rel="stylesheet" href="vendor/fonts/fonts.css">`.
-- **Template d'impression** (`printChapter()`) : le document généré est écrit dans un iframe (`about:blank`), donc une balise `<base href="${location.href}">` est injectée pour que les chemins relatifs `vendor/...` résolvent correctement.
-- Pour mettre à jour MathJax : `npm pack mathjax@3`, extraire, recopier `es5/tex-mml-chtml.js` + `es5/output/chtml/fonts/woff-v2/`. Pour les polices : refetch du CSS Google avec un User-Agent Chrome, filtrer les subsets latin/latin-ext.
+- **MathJax 3.2.2** : `vendor/mathjax/tex-mml-chtml.js` (composant combiné, sans extensions) + polices CHTML dans `vendor/mathjax/output/chtml/fonts/woff-v2/`. Référencé dans l'en-tête ET dans le template d'impression. Ne pas spécifier de `fontPath` (le chemin par défaut, relatif au script, trouve les polices).
+- **Typeset paresseux par panneau** : on ne typesette que le **panneau visible** (démarrage, changement de chapitre via `chap-btn`/`sub-btn`) ; les autres à l'ouverture de leur onglet. Helper `typesetPanel(panel)` (idempotent : rien si le panneau contient déjà des `mjx-container`). Tout panneau à formules doit être atteint par un onglet, sinon appeler `typesetPanel`.
+- **Polices** : Fraunces, Inter Tight, JetBrains Mono dans `vendor/fonts/` (woff2 latin + latin-ext ; 22 fichiers, 8 binaires distincts), déclarées dans `vendor/fonts/fonts.css` (`<link rel="stylesheet" href="vendor/fonts/fonts.css">`).
+- **Template d'impression** (`printChapter()`) : document écrit dans un iframe caché `#print-iframe` (`about:blank`), d'où une balise `<base href="${location.href}">` injectée pour résoudre les chemins `vendor/...`.
+- Mettre à jour MathJax : `npm pack mathjax@3`, recopier `es5/tex-mml-chtml.js` + `es5/output/chtml/fonts/woff-v2/`. Polices : refetch du CSS Google avec un User-Agent Chrome, subsets latin/latin-ext.
 
 ## PWA (installable + hors-ligne sur mobile)
 
-- `manifest.webmanifest` (nom, icônes `icons/`, `display:standalone`, `theme_color`) + `sw.js` (service worker). Enregistré dans `index.html` en fin de `<body>`, **uniquement en http/https** (pas en `file://`).
-- `sw.js` : précache toute la coquille (index.html, fonts.css, MathJax + toutes les polices, icônes) ; HTML en *cache-d'abord puis revalidation* (**stale-while-revalidate** : lancement instantané depuis le cache, mise à jour récupérée en arrière-plan), assets en *cache-d'abord*.
-- **Mise à jour & notification** : le SV ne fait plus de `skipWaiting()` automatique ; à chaque bump de `CACHE_VERSION`, le nouveau SV reste « en attente » et une **bannière « Nouvelle version disponible — Recharger »** (code dans `index.html`) propose d'appliquer la MAJ (clic → `postMessage(SKIP_WAITING)` → activation → `controllerchange` → reload). Re-vérification au retour sur l'app (`visibilitychange`).
-- ⚠️ **À chaque modification d'un asset mis en cache** (index.html inclus), **incrémenter `CACHE_VERSION`** en tête de `sw.js` (`ptsi-cache-v1` → `v2`…) : c'est ce bump qui déclenche la bannière de mise à jour chez les utilisateurs « installés ». Comme le HTML est désormais servi cache-d'abord, **sans bump l'utilisateur garde l'ancienne version** (le bump est donc obligatoire, plus seulement « propre »).
-- Si on ajoute/retire des polices, mettre à jour la liste `PRECACHE` de `sw.js`.
-- Le service worker ne s'active pas en ouverture locale `file://` (normal) ; le hors-ligne local reste assuré par les assets embarqués.
+- `manifest.webmanifest` (nom, icônes `icons/`, `display:standalone`, `theme_color`) + `sw.js`. Enregistré en fin de `<body>` (`grep -n 'serviceWorker.register'`), **uniquement en http/https** (pas en `file://`, où le hors-ligne reste assuré par les assets embarqués).
+- `sw.js` précache la coquille (`PRECACHE`, 53 entrées). **HTML en stale-while-revalidate** : le SW sert le `index.html` en cache, récupère le réseau en arrière-plan et **réécrit `'index.html'` dans le cache courant** → nouvelle page au lancement **suivant**, même sans bump, mais sans bannière. **Assets en cache-d'abord** : jamais rafraîchis sans bump.
+- **Mise à jour** : pas de `skipWaiting()` automatique ; après un bump de `CACHE_VERSION`, le nouveau SW attend et une **bannière « Nouvelle version disponible — Recharger »** (dans `index.html`) propose la MAJ (clic → `postMessage(SKIP_WAITING)` → activation : purge de tous les autres caches de l'origine + `clients.claim()` → `controllerchange` → reload). Re-vérification au retour sur l'app (`visibilitychange`, au plus 1×/min).
+- ⚠️ **Bump OBLIGATOIRE** : à chaque commit modifiant un asset mis en cache (index.html inclus), **incrémenter `CACHE_VERSION`** en tête de `sw.js` (`ptsi-cache-v81` → `v82`…) **dans le même commit** : bannière, rafraîchissement des assets, purge des anciens caches, cohérence HTML/assets.
+- Ajout/retrait d'un fichier de `vendor/` ou `icons/` → mettre à jour `PRECACHE` (la suite `pwa` vérifie que chaque fichier listé existe).
+- **Anomalie connue** : **rechargement automatique à la 1ʳᵉ visite** (`clients.claim()` déclenche `controllerchange`, qui recharge sans vérifier qu'un SW contrôlait déjà la page). D'où, dans les tests, `serviceWorkers:'block'`.
 
 ## Déploiement (GitHub Pages)
 
-- Servi par **GitHub Pages** depuis `main` (dossier `/`). URL : `https://thomasmareel.github.io/revisions-ptsi/`.
-- ⚠️ **`.nojekyll` à la racine est OBLIGATOIRE — ne jamais le supprimer.** Sans lui, GitHub lance **Jekyll**, dont le parseur **Liquid** bute sur le LaTeX (`{{…}}`), les gabarits JS `${…}` et la taille de `index.html` → le build **échoue** (« Page build failed ») et le site reste **figé au dernier build réussi** (les commits suivants ne se voient pas, alors que `git push` a réussi). `.nojekyll` fait servir les fichiers tels quels.
-- **Le déploiement passe désormais par GitHub Actions** (workflow « Déploiement GitHub Pages (statique) »), pas par l'ancienne pipeline Jekyll. **Diagnostic** : `gh run list --repo thomasMareel/revisions-ptsi --limit 5` → chaque push doit afficher `completed success`. Le binaire `gh` est à `C:\Program Files\GitHub CLI\gh.exe`.
-  - ⚠️ **Ne PAS se fier à `gh api …/pages/builds/latest`** : cette API reflète l'ancienne pipeline Jekyll (restée bloquée sur un build `errored` de mai 2026, commit `47fa649`, antérieur au passage à Actions). Elle affiche donc un vieux commit en `built` et induit en erreur — le vrai état de déploiement est celui des **runs Actions** ci-dessus.
+- Servi par **GitHub Pages** depuis `main`. URL : `https://thomasmareel.github.io/revisions-ptsi/`.
+- **Déploiement par GitHub Actions** : workflow « Déploiement GitHub Pages (statique) » (`.github/workflows/deploy-pages.yml`, à chaque push sur `main`), qui publie le dépôt tel quel (`tests/`, `docs/` compris, sans effet sur le site). Chaque push doit donner un run `completed success`.
+  - **Dans le cloud (Claude Code web)** : pas de `gh` ; outils GitHub MCP (`actions_list`, owner `thomasMareel`, repo `revisions-ptsi`, workflow id `283713397`).
+  - **Sur le poste Windows de l'utilisateur** : `gh run list --repo thomasMareel/revisions-ptsi --limit 5` (`C:\Program Files\GitHub CLI\gh.exe`).
+  - ⚠️ **Ne PAS se fier à `pages/builds/latest` ni à `pages-build-deployment`** (id 282516546) : ancienne pipeline Jekyll figée sur un build `errored` de mai 2026 (commit `47fa649`). Le vrai état = les **runs Actions**.
+- ⚠️ **`.nojekyll` à la racine : le garder, ne jamais le supprimer.** Avec la source Actions, Jekyll ne tourne plus ; mais si Pages repassait en « Deploy from a branch », son parseur **Liquid** buterait sur le LaTeX (`{{…}}`), les `${…}` et la taille de `index.html` → build en échec, site **figé au dernier build réussi**. C'est le filet de sécurité.
 
 ## Outils
 
-- `tools/validate.py` (Python stdlib, aucune dépendance) : vérifie cohérence `CHAPTERS` ↔ DOM, IDs HTML dupliqués, flashcards câblées (`makeFlash` par chapitre listant `flash`), `drawFn` existants. `python tools/validate.py` → `[OK]` / liste d'erreurs + exit ≠ 0. **À lancer avant chaque commit touchant `index.html`.**
-- `tools/pre-commit` + `tools/install-hooks.sh` : hook git qui lance `validate.py` automatiquement avant chaque commit (bloque si erreur). Installer une fois avec `sh tools/install-hooks.sh`. Contourner ponctuellement avec `git commit --no-verify`. (Le dossier `.git/hooks/` n'est pas versionné, d'où l'installeur.)
+- `tools/validate.py` (stdlib) : 5 contrôles — ids `CHAPTERS` ↔ `div.chapter`, IDs HTML dupliqués, `makeFlash` pour chaque chapitre listant `flash`, `drawFn` existants, « < » collé à une lettre dans une formule. `python3 tools/validate.py` (ou `npm run valider`) → `[OK]` ou erreurs + exit ≠ 0 (l'info « MathJax-script ×2 » est bénigne). **Angles morts** : équilibre des balises, couverture de `CHAP_GROUPS`/`__YEAR2A`, export `window.drawX`, ids des simulateurs (panels ↔ onglets ↔ sections : couvert par la suite `site`).
+- `tools/check_js.py` : `node --check` sur chaque bloc `<script>` inline (depuis la racine du dépôt) → `blocs en erreur: 0`.
+- `tools/tag_formulas.py` et `tools/migrate_canvas_colors.py` : migrations déjà appliquées **qui réécrivent `index.html` en place**. **Ne pas les lancer sans raison ni accord** (`tag_formulas` étiquetterait des cartes d'anglais en `cat:'form'`).
+- `tools/pre-commit` + `tools/install-hooks.sh` : hook git lançant `validate.py` avant chaque commit. **Non installé par défaut** : le proposer (`sh tools/install-hooks.sh`), pas d'office. Limites : il cherche `python` puis `py` (pas `python3`) et laisse passer si Python est introuvable. Contournement : `git commit --no-verify`.
+
+## Tests navigateur (`tests/`)
+
+Batterie Playwright + Chromium : sert le site sur un petit serveur local et le parcourt comme un utilisateur, sans jamais modifier `index.html`. Mode d'emploi (installation Windows/Linux, options, rapport, ajout d'un test) : **`tests/README.md`**.
+
+- `npm test` = toute la batterie (≈ 12 min) ; `npm run test:rapide` = une dizaine de chapitres (5 matières) + tous les simulateurs en clair (≈ 4 min 30 s). Options de `node tests/run.js` : `--suite=site,mobile,interactions,pwa,regressions`, `--chapitres=rlc,slci`, `--racine=`, `--sortie=`, `--visible`, `--aide`. Sortie 0 = OK, 1 = échec, 2 = non démarré, 130 = interrompu par Ctrl+C (aucun rapport écrit). Captures + `rapport.json` dans `tests/sortie/` (ignoré).
+- Suites : **site** (0 erreur JS, 0 requête externe, `CHAPTERS` ↔ DOM avec onglets/panneaux, chapitres × onglets avec MathJax, flashcards, simulateurs en clair et sombre) ; **mobile** (390 px) ; **interactions** (routage, navigation, recherche, flashcards + SRS, quiz, Bilan, Aujourd'hui, formulaire, impression, thème, export/import…) ; **pwa** ; **regressions** (un test par correctif B1 à B4 ; chaque règle d'appariement B2 et chaque volet des correctifs B1/B3 sont couverts, preuve par mutation : audit §6).
+- **Quand les lancer** : **avant chaque commit touchant `index.html`**, en plus de `validate.py` et `check_js.py` — au minimum `npm run test:rapide` + la suite concernée ; la batterie complète avant un commit important. `regressions` doit rester verte.
+- **Anomalies tolérées** : `DEBORDEMENTS_CONNUS` (`tests/suites/mobile.js`), `TEX_EN_CLAIR_CONNUS` et `ONGLETS_HORS_CHAPTERS_CONNUS` (`tests/suites/site.js`), avertissement de rechargement de 1ʳᵉ visite (`pwa`). Une anomalie corrigée doit être retirée de sa liste (un avertissement `!` le rappelle).
+- **Conteneur Claude Code** : Playwright 1.56.1 global, Chromium dans `/opt/pw-browsers` ; **ne pas lancer `npm install` ni `npx playwright install`**. L'outil Bash coupe à 10 min : batterie complète en arrière-plan, sortie dans un fichier.
+- **Écrire un test** : service workers bloqués par défaut ; `CHAPTERS` et `CHAPTERS_BY_ID/PREFIX` sont des `const` globales **lexicales** (`CHAPTERS.length` ; `window.CHAPTERS` vaut `undefined`), `Store`, `navigateTo`, `getCanvasColors`, `flashPretty` s'appellent aussi par leur nom ; `applyTheme` inaccessible (cliquer `#theme-btn`) ; naviguer par `location.hash = '#<id>/<onglet>'` puis attendre ≥ 300 ms.
 
 ## Identité visuelle (Lot 3)
 
-- **Icônes SVG maison** : sprite de `<symbol id="i-…">` (menu, search, refresh, theme, dots, calendar, bolt, calc, chart, function, download, printer, flag, volume, book, keyboard) en tête de `<body>`, trait `currentColor` via la classe `.ic`. Helper **`window.__icon(name)`** (défini AVANT les decks car `makeFlash` l'utilise) renvoie `<svg class="ic"><use href="#i-name"></use></svg>`. Tout le **chrome** (en-têtes desktop+mobile, menus, boutons quiz/flashcards/Aujourd'hui) utilise ces icônes ; les boutons à libellé variable (quiz « Signaler », flashcard) gardent l'icône et mettent à jour un `<span class="ic-lbl">`. Volontairement **non migrés** : les 134 boutons « ↺ Réinitialiser » (secondaires) et les boutons secondaires d'overlays (Copier/Télécharger).
-- **Flip 3D des flashcards** : demi-tour mono-face dans `makeFlash.flip` (rotateY 0→90°, échange de face au point mort, retour), `perspective` sur `.flash-wrapper`, garde `window.__reduceMotion`.
-- **Rails de couleur par matière** : `border-left` coloré sur `.chap-title-banner.mat-<matiere>` (classe posée par `injectChapterTitleBanners`).
-- **Branche de sauvegarde** `sauvegarde-avant-lot3` (commit `9e16255`) sur origin : rollback complet du Lot 3 si besoin (`git reset --hard sauvegarde-avant-lot3 && git push --force origin main`).
+- **Icônes SVG maison** : sprite de **18** `<symbol id="i-…">` (menu, search, refresh, theme, dots, calendar, bolt, calc, chart, function, download, printer, flag, volume, book, keyboard, check, inbox) + 4 `<marker>` `sk-arrow-*` des schémas, en tête de `<body>`, trait `currentColor` (classe `.ic`). **`window.__icon(name)`** (petit script juste après le sprite, donc AVANT les decks, car `makeFlash` l'utilise) renvoie `<svg class="ic"><use href="#i-name"></use></svg>`. Tout le **chrome** utilise ces icônes ; les boutons à libellé variable gardent l'icône et mettent à jour un `<span class="ic-lbl">`. Volontairement **non migrés** : les 134 boutons « ↺ Réinitialiser » et les boutons secondaires d'overlays (Copier/Télécharger).
+- **En-tête desktop** : `.header-nav` (« Chapitres ») + `.header-actions` (Rechercher, menu Réviser, Bilan, Thème, menu **Plus** `#more-menu` : Aujourd'hui, Sauvegarde, Raccourcis, Formulaire, Imprimer, Cartes signalées, taille du texte). **Mobile** : `#mob-header` (☰, recherche, Réviser, thème, menu ⋯ sans Imprimer ni Raccourcis).
+- **Flip 3D des flashcards** : demi-tour mono-face dans `makeFlash.flip` (rotateY 0→90°, échange de face, retour), `perspective` sur `.flash-wrapper`, garde `window.__reduceMotion`.
+- **Rails de couleur par matière** : `border-left` sur `.chap-title-banner.mat-<matiere>`.
+- **Points de retour** sur origin : branches `sauvegarde-avant-lot3` (`9e16255`) et `sauvegarde-avant-finitions2` (`b1d2a25`), tag `v1.0`. Rollback (uniquement sur demande explicite) : `git reset --hard <branche> && git push --force origin main`.
 
 ## Anomalies connues (à traiter avec validation utilisateur)
 
-1. ~~**ID dupliqué `int-meth`**~~ — **CORRIGÉ** : le `<select>` du simulateur des intégrales a été renommé `int-meth-sel` (le panneau garde `int-meth`). Avant, `getElementById('int-meth')` renvoyait la `<section>`, donc le choix de méthode d'intégration était ignoré.
-2. ~~**Commentaires de bannière obsolètes**~~ — **CORRIGÉ** : toutes les bannières `<!-- CHAPITRE X -->` correspondent au chapitre qui suit (audit complet ; doublon « OPTIQUE » résiduel supprimé devant `chap-optgeo`).
-3. Deux chapitres ont `class="chapter active"` au chargement (`chap-rlc`, `chap-mcc`) — **non bug** : ils sont dans deux `<main>` séparés (physique vs SI), un seul affiché à la fois.
+Liste complète par gravité, avec ancres et pistes : **`docs/audit-2026-09.md`**. Corrigés le 2026-09-26 (suite `regressions`) : B1 quiz → flashcards, B2 état indexé par position, B3 formule SLCI apériodique, B4 `getCanvasColors` en sombre. Principales restantes :
+
+1. **SLCI, Bode 1ᵉʳ ordre** (`function drawSlciB1`) : asymptote HF à −40 dB/déc, l'info affiche −20.
+2. **`.notice` illisible en sombre** (texte `#7a5a0e`, ≈ 2:1, 171 encadrés).
+3. **Simulateur de Lorentz** (`function lorDraw`) : faux dans 3 modes sur 4, absent de `CHAPTERS.panels`.
+4. **Clavier** : raccourcis des flashcards sur 18 decks/134, sans garde de saisie ; raccourcis globaux actifs derrière le quiz.
+5. **Quiz** : mode « Ciblé » incluant les cartes jamais vues ; `quizGotoChapter` (carte précédente, `id` au lieu du `prefix`).
+6. **Rechargement automatique à la 1ʳᵉ visite** (voir PWA).
+7. **Débordement horizontal à 390 px** sur 14 panneaux, dont `rlc-cours` (chapitre par défaut).
+8. **73 exos « CONCOURS PT » hors `.exo-wrapper`** (63 chapitres, `</div>` orphelin).
+9. **`--border` / `--surface` n'existent pas** (97 usages).
+10. **`navigateTo` ne remonte pas en haut en SI** ; simulateur Suites (`steps` fractionnaire).
+
+Non-bug : les deux `.chapter.active` du HTML source (`chap-rlc`, `chap-ingsys`), un par `<main>`.
 
 ## Variables CSS de thème (`:root`)
 
-`--ink`, `--paper`, `--paper-dark`, `--accent` (#c8472e), `--accent2` (#2d5f8a), `--green`, `--amber`, `--grid`, `--shadow`. Thème sombre : `:root[data-theme="dark"]` avec overrides ciblés. Bascule via `applyTheme()` (~l.31354).
+`--ink`, `--paper`, `--paper-dark`, `--accent` (#c8472e), `--accent-deep`, `--accent2` (#2d5f8a), `--green`, `--amber`, `--grid`, `--muted`, `--shadow`, `--shadow-1/2`, `--radius-s/m/l`, `--anglais`, `--read-scale`, `--dom-*` (couleurs par domaine, via `data-domain` posé en JS sur chaque `.chapter`). ⚠️ **`--border` et `--surface` n'existent pas** (utilisées 97 fois) : ne pas les employer (`--grid`, `--muted`, `--paper-dark`). Thème sombre : `:root[data-theme="dark"]` avec overrides ciblés. `applyTheme()` (`grep -n 'function applyTheme'`) est **locale** à une IIFE : c'est le handler de `#theme-btn` (relayé par `#mob-theme-btn`) qui applique le thème, le mémorise (`theme`) et redessine le chapitre actif. Le thème n'est posé qu'à cet endroit du grand script (flash clair au chargement, connu).
 
-**Couleurs dans les simulateurs/schémas** : toujours utiliser les variables de thème (ou `getCanvasColors()` côté canvas), **jamais une couleur codée en dur** — sinon le contraste casse en mode sombre. Côté canvas, préférer **`__CV()`** (cache de `getCanvasColors()`, invalidé au changement de thème — sûr dans les boucles rAF) et **`__CVA('accent', 0.4)`** pour une couleur de thème avec alpha (au lieu d'un `rgba(...)` en dur). Tout le code de dessin a été migré (aucun hex de palette en dur sur les lignes `fillStyle`/`strokeStyle` ; `applyTheme` redessine le chapitre actif au basculement). Outil d'appoint : `tools/migrate_canvas_colors.py`. Les encadrés communs des simulateurs (`.sim-controls`, `.sim-info`, `.regime-badge` et ses variantes `.pseudo/.critique/.aperiodique`) ont un bloc d'overrides sombre **unique** (chercher « Contraste des encadrés de simulateur en thème sombre » dans le `<style>`) : il s'applique à tous les simulateurs existants et futurs. Toute nouvelle variante de badge doit y recevoir une couleur issue des variables.
+**Couleurs dans les simulateurs/schémas** : toujours les variables de thème (ou `getCanvasColors()` côté canvas), **jamais une couleur codée en dur** — sinon le contraste casse en sombre. Sur fond accent, `var(--paper)` plutôt que `#fff`. `getCanvasColors()` détecte le sombre par `data-theme="dark"` sur `<html>` (correctif B4). Côté canvas, préférer **`__CV()`** (cache de `getCanvasColors()` invalidé par un MutationObserver au changement de thème — sûr dans les boucles rAF) et **`__CVA('accent', 0.4)`** pour une couleur avec alpha (au lieu d'un `rgba(...)` en dur). Le dessin a été migré (reste : quelques rgba de la palette claire, les hex de Lorentz). Les encadrés communs (`.sim-controls`, `.sim-info`, `.regime-badge` et `.pseudo/.critique/.aperiodique`) ont un bloc d'overrides sombre **unique** (« Contraste des encadrés de simulateur en thème sombre » dans le `<style>`), valable pour tous les simulateurs : toute nouvelle variante de badge y reçoit une couleur issue des variables. Nouveau simulateur : voir `GABARIT-CHAPITRE.md`.
