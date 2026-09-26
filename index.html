@@ -622,10 +622,11 @@ header{
 /* ====== AMÉLIORATION 9 — TYPOGRAPHIE ET COULEURS DOMAINES == */
 /* ============================================================ */
 
-/* Couleurs d'accent par sous-domaine, appliquées via data-attr sur le body */
-/* Domaines : ondes=#2d5f8a(bleu), meca=#5a7a3a(vert), thermo=#c27b2a(orange),
-              chimie=#7a3a8a(violet), maths=#c8472e(rouge),
-              elec=#2d5f8a, meca-si=#5a7a3a, automatique=#2a6b8a */
+/* Couleurs d'accent par domaine, appliquées via l'attribut data-domain posé
+   par JS sur chaque .chapter et .chap-btn (valeur = CHAPTERS[].domain) */
+/* Domaines (valeurs des variables --dom-* ci-dessous) : ondes=#2d5f8a (bleu),
+              meca=#4a7a3a (vert), thermo=#c27b2a (orange), chimie=#7a3a8a (violet),
+              maths=#c8472e (rouge), elec=#2d5f8a, mecasi=#4a7a3a, auto=#1a6a8a */
 
 /* Variables de couleur par domaine */
 :root{
@@ -694,7 +695,10 @@ header{
 /* ======= AMÉLIORATION 10 — ANIMATIONS LÉGÈRES ============== */
 /* ============================================================ */
 
-/* Transition des panels (remplacement du fadeIn brutal) */
+/* Transition des panels. NB : la règle « section.panel.active » ci-dessous est
+   écrasée plus loin par « section.panel.active{display:block;animation:fadeIn 0.4s
+   ease} » (même spécificité, déclarée après) : c'est fadeIn qui s'applique, et
+   panelIn / panelInLeft / panelInRight ne servent pas. */
 @keyframes panelIn {
   from { opacity: 0; transform: translateY(6px); }
   to   { opacity: 1; transform: none; }
@@ -856,7 +860,7 @@ section.panel.active {
     font-weight:600;
   }
 }
-/* Le bouton ☰ « Chapitres » est dans l'en-tête desktop (.header-actions),
+/* Le bouton ☰ « Chapitres » est dans l'en-tête desktop (.header-nav),
    lui-même masqué sur mobile — donc visible uniquement sur desktop, sans
    règle d'affichage dédiée. */
 
@@ -964,8 +968,10 @@ mjx-container svg, mjx-container > div {
 
 /* ===== BOUTON IMPRESSION ===== */
 @media print{
-  /* La page d'impression est générée par JS dans une fenêtre séparée.
-     Ce bloc masque juste la page principale si quelqu'un imprime sans passer par le bouton. */
+  /* La page d'impression est générée par JS (printChapter) dans un iframe caché
+     #print-iframe, qui imprime son propre document : ces règles ne le concernent pas.
+     Ce bloc masque juste la page principale si quelqu'un imprime sans passer par le
+     bouton (Ctrl+P). L'exception « :not(#print-frame) » vise un id inexistant (reste). */
   body > *:not(#print-frame){ display:none !important; }
   header .header-actions{ display:none !important; }
   /* Impression du formulaire : n'afficher QUE l'overlay du formulaire */
@@ -31031,7 +31037,7 @@ const cstCards = [
    jeux de cartes (cstCards reste accessible, déclaré au niveau global). */
 </script>
 
-</main><!-- fin main maths -->
+</main><!-- fin du main principal (physique, maths, info, anglais) ; la SI suit dans main#si-content -->
 
 <!-- ======================================================= -->
 <!-- ========= SCIENCES DE L'INGÉNIEUR ==================== -->
@@ -40959,16 +40965,22 @@ const Store = (function(){
     window.localStorage.removeItem(k);
     useLS = true;
   } catch(e){ useLS = false; }
+  // Si localStorage refuse une écriture en cours de session (quota plein…),
+  // la valeur part dans memBackend : get() doit alors la relire EN PRIORITÉ,
+  // sinon il renverrait l'ancienne valeur de localStorage (écriture « perdue »).
   return {
     get(key){
       try {
-        if(useLS){ const v = window.localStorage.getItem(key); return v===null?null:v; }
+        if(useLS){
+          if(key in memBackend) return memBackend[key];
+          const v = window.localStorage.getItem(key); return v===null?null:v;
+        }
         return (key in memBackend) ? memBackend[key] : null;
       } catch(e){ return (key in memBackend) ? memBackend[key] : null; }
     },
     set(key, value){
       try {
-        if(useLS){ window.localStorage.setItem(key, value); return; }
+        if(useLS){ window.localStorage.setItem(key, value); delete memBackend[key]; return; }
         memBackend[key] = value;
       } catch(e){ memBackend[key] = value; }
     },
@@ -41008,9 +41020,11 @@ function flashReset(prefix){
 /* ============================================== */
 /* === CHAPTERS — SOURCE UNIQUE DE VÉRITÉ ======= */
 /* ============================================== */
-/* Toute info sur un chapitre est ici. Les tables dérivées (flashMap, CHAPTER_META,
-   CHAP_DATA, DOMAIN_MAP) sont construites à partir de cet objet.
-   Ajouter un chapitre = ajouter une entrée ici + le HTML correspondant. */
+/* Toute info sur un chapitre est ici. Les tables dérivées (CHAPTERS_BY_ID/PREFIX,
+   flashMap de la recherche, CHAPTER_META du quiz, CHAP_DATA du tiroir) sont
+   construites à partir de cet objet. Ajouter un chapitre = une entrée ici + son id
+   dans CHAP_GROUPS (+ __YEAR2A si 2ᵉ année) + le bloc HTML chap-<id> + le deck et
+   son makeFlash (voir GABARIT-CHAPITRE.md). */
 const CHAPTERS = [
   { id:'constantes', prefix:'cst', name:'Grandeurs & constantes usuelles',
     matiere:'physique', sub:'ref', subLabel:'Référence', domain:'ondes',
@@ -41616,16 +41630,17 @@ const CHAPTERS = [
    ORDRE D'APPRENTISSAGE CONVENTIONNEL (réorganisation centralisée)
    --------------------------------------------------------------
    Source unique de l'ordre des chapitres par matière et par sous-domaine.
-   On réordonne CHAPTERS et on normalise les libellés de sous-domaine
-   (subLabel) pour que le tiroir mobile affiche des groupes propres.
-   Les boutons de la sidebar desktop suivent le même ordre dans le HTML.
-   Modifier l'ordre = éditer CHAP_GROUPS ci-dessous (et le HTML des sidebars). */
+   On réordonne CHAPTERS et on normalise les sous-domaines (sub/subLabel)
+   pour que le tiroir affiche des groupes propres. Les boutons .chap-btn
+   (générés par buildSidebars) et le tiroir suivent cet ordre.
+   Modifier l'ordre = éditer CHAP_GROUPS ci-dessous, rien d'autre. NB :
+   matiereLabel (tag) et domain (couleurs) de CHAPTERS ne sont PAS réécrits. */
 (function reorderChapters(){
   // [ code de sous-domaine , libellé , [ ids dans l'ordre pédagogique ] ]
   // code = null → matière "à plat" (pas de sous-domaines, ex. maths).
   // Cet objet est la SOURCE UNIQUE de l'ordre, des sous-domaines (c.sub) et
-  // de leurs libellés (c.subLabel). Les sidebars desktop et le tiroir mobile
-  // en sont entièrement dérivés (cf. buildSidebars / buildChapData).
+  // de leurs libellés (c.subLabel). Les barres .chap-btn invisibles et le
+  // tiroir en sont entièrement dérivés (cf. buildSidebars / buildChapData).
   const CHAP_GROUPS = [
     // ---- PHYSIQUE ----
     ['ondes',  'Ondes & signaux',   ['regimecontinu','premierordre','rlc','signaux','filtres','ondes','optgeo','optique','optiqued']],
@@ -41657,7 +41672,7 @@ const CHAPTERS = [
     ['enciv', 'Civilisation', ['encivuk','encivus','encivhist']],
     ['enidi', 'Idiomes & expressions', ['enidiom','enidicol']]
   ];
-  // Chapitres de 2ᵉ année (badge « 2A » dans la sidebar et le bandeau)
+  // Chapitres de 2ᵉ année (badge « 2ᵉ année » du bandeau de titre, filtre d'année du tiroir)
   window.__YEAR2A = new Set(['serient','fxvect','intgene','intparam','fpv',
     'projsym','elempropres','reduction','prehilb','isometries',
     'tribus','espproba','vadisc1','vadisc2',
@@ -41685,7 +41700,7 @@ function chapterForPrefix(p)   { return CHAPTERS_BY_PREFIX[p] || null; }
 function chaptersByMatiere(m)  { return CHAPTERS.filter(c => c.matiere === m); }
 
 /* Bandeau de titre en haut de chaque chapitre (sous-domaine + titre).
-   Injecté dynamiquement pour ne pas dupliquer le HTML des 89 chapitres. */
+   Injecté dynamiquement pour ne pas dupliquer ce HTML dans chaque chapitre. */
 (function injectChapterTitleBanners(){
   document.querySelectorAll('.chapter').forEach(ch => {
     const c = CHAPTERS_BY_ID[ch.id.replace('chap-','')];
@@ -41738,11 +41753,14 @@ function chaptersByMatiere(m)  { return CHAPTERS.filter(c => c.matiere === m); }
 
 
 
-/* ========== GÉNÉRATION DES SIDEBARS DESKTOP DEPUIS CHAPTERS ==========
-   Les barres de sous-domaines et de chapitres du bureau sont reconstruites
-   à partir de CHAPTERS (source unique) : fini le doublon HTML à maintenir en
-   parallèle de l'array. Tag = matiereLabel, libellé = mobLabel, ordre = ordre
-   pédagogique de CHAPTERS. Doit tourner AVANT l'attachement des handlers. */
+/* ========== GÉNÉRATION DES BARRES .sub-btn / .chap-btn DEPUIS CHAPTERS ==========
+   Les barres de sous-domaines et de chapitres (.subdomain-bar / .chapter-bar)
+   sont reconstruites à partir de CHAPTERS (source unique). Elles sont
+   INVISIBLES à toutes les largeurs (display:none !important) : leurs boutons
+   forment la couche de commande cliquée par navigateTo, le tiroir et le
+   routage ; la navigation visible est le tiroir #mob-drawer (mobile ET desktop).
+   Tag = matiereLabel, libellé = mobLabel, ordre = ordre pédagogique de
+   CHAPTERS. Doit tourner AVANT l'attachement des handlers. */
 (function buildSidebars(){
   ['physique','maths','si','info','anglais'].forEach(mat=>{
     const matContent = document.querySelector('.mat-content[data-mat-content="'+mat+'"]');
@@ -41973,6 +41991,10 @@ function getParams(){
 /* ── Couleurs canvas dynamiques (suit le thème clair/sombre) ── */
 function getCanvasColors(){
   const s = getComputedStyle(document.documentElement);
+  // Thème sombre = attribut data-theme="dark" sur <html> (posé par applyTheme ;
+  // c'est aussi lui qu'observe l'invalidation du cache __CV ci-dessous).
+  // L'ancien test « --ink === '#f4f1e8' » ne se vérifiait jamais (--ink sombre = #e6e3d8).
+  const dark = document.documentElement.getAttribute('data-theme') === 'dark';
   return {
     ink:    s.getPropertyValue('--ink').trim()    || '#1a1d24',
     paper:  s.getPropertyValue('--paper').trim()  || '#f4f1e8',
@@ -41980,9 +42002,8 @@ function getCanvasColors(){
     accent2:s.getPropertyValue('--accent2').trim()|| '#2d5f8a',
     green:  s.getPropertyValue('--green').trim()  || '#5a7a3a',
     amber:  s.getPropertyValue('--amber').trim()  || '#b8801a',
-    muted:  s.getPropertyValue('--ink').trim() === '#f4f1e8' ? '#a8a496' : '#666666',
-    grid:   s.getPropertyValue('--ink').trim() === '#f4f1e8'
-              ? 'rgba(200,200,180,0.12)' : 'rgba(45,95,138,0.08)',
+    muted:  dark ? '#a8a496' : '#666666',
+    grid:   dark ? 'rgba(200,200,180,0.12)' : 'rgba(45,95,138,0.08)',
   };
 }
 
@@ -42776,8 +42797,139 @@ function srsCountDue(){
   return n;
 }
 
+/* ============================================== */
+/* === ÉTAT DES FLASHCARDS : identifiants stables = */
+/* ============================================== */
+/* 'flash:<prefix>' reste un tableau d'états {h,o,e,last,box,due} aligné PAR
+   POSITION sur le deck (le Bilan, srsCountDue, le quiz et le badge le lisent par
+   index). En parallèle, 'flashids:<prefix>' mémorise l'identifiant de la carte
+   de chaque position. À la lecture, l'état est réaligné par identifiant :
+   insérer, retirer ou réordonner des cartes ne décale plus (ni n'efface) la
+   progression. NB : 'flashids:' ne commence PAS par 'flash:' (la Sauvegarde
+   compte les chapitres avec progression par ce préfixe). */
+function flashBlankState(){ return {h:0,o:0,e:0,last:null}; }
+/* Identifiant d'une carte = 'Q|R' : empreintes FNV-1a (base 36) de sa question
+   et de sa réponse normalisées (espaces). La carte est identifiée par Q ; R sert
+   à départager les copies d'une même question (même Q) et à reconnaître une
+   question reformulée (voir flashLoadState). */
+function flashCardIds(cards){
+  const fnv = v => {
+    const t = String(v != null ? v : '').trim().replace(/\s+/g, ' ');
+    if(!t) return '';
+    let h = 0x811c9dc5;
+    for(let i = 0; i < t.length; i++){ h ^= t.charCodeAt(i); h = Math.imul(h, 0x01000193); }
+    return (h >>> 0).toString(36);
+  };
+  return (Array.isArray(cards) ? cards : []).map(c => fnv(c && c.q) + '|' + fnv(c && c.a));
+}
+/* Lit l'état stocké d'un deck et le réaligne sur les cartes actuelles.
+   Renvoie {state, migrated} : state = tableau aligné par position sur
+   cards (cartes inconnues = état vierge) ; migrated = vrai s'il faut réécrire
+   le Store (ordre/identifiants changés, ou état « hérité » de l'ancienne
+   version, sans table d'identifiants : conservé alors par position, au mieux).
+   Appariement carte actuelle ↔ entrée stockée (chaque entrée sert une fois) :
+   1) même question, présente une seule fois de chaque côté → appariement direct ;
+   2) question en double dans le deck : chaque copie reprend la copie stockée de
+      même réponse, sinon la plus proche de sa position attendue (d'après le
+      décalage de la voisine appariée la plus proche). Limite : retoucher la
+      question d'une copie ET donner son ancienne réponse à l'autre dans la même
+      mise à jour fait reprendre l'entrée de la 1re par la 2de (la 1re repart
+      vierge) → n'en retoucher qu'une copie par mise à jour ;
+   3) carte restée sans entrée (question retouchée : faute corrigée, passage en
+      \( … \), rechercher/remplacer… ; ou carte nouvelle). Soit p et n ses voisines
+      appariées les plus proches (y compris par cette passe, qui suit l'ordre du
+      deck), stockées aux index lo et hi :
+      a) autant de cartes que d'entrées entre les deux voisines (n − p = hi − lo ;
+         partout vrai si le deck garde sa longueur et l'ordre de ses cartes) → tout
+         l'intervalle est traité d'un coup : dans l'ordre du deck, chaque carte dont
+         la réponse n'est celle que d'UNE entrée libre de l'intervalle la reprend
+         (question reformulée à côté d'une carte retirée ET d'une carte ajoutée) ;
+         les autres reprennent l'entrée libre de MÊME RANG, même si leur réponse a
+         changé, comme l'ancien appariement par position : question ET réponse
+         retouchées → état conservé ; contrepartie : une carte nouvelle (ou retouchée
+         et déplacée) mise à la place d'une carte disparue lui prend son état, et
+         deux cartes retouchées dont une réponse est passée de l'une à l'autre
+         (réponses échangées…) peuvent échanger leurs états ;
+      b) sinon (cartes insérées ou retirées entre les voisines) : des deux entrées
+         de même rang, comptée depuis p (a = lo + j − p) et depuis n
+         (b = hi − (n − j)), la carte reprend celle qui est libre, entre lo et hi, et
+         de MÊME RÉPONSE ; si les voisines sont dans le désordre (lo > hi : l'une a
+         été déplacée), a est cherchée au-delà de lo, b en deçà de hi. Si les deux
+         conviennent (réponses identiques, ex. « x. » dans dl), c'est ambigu : aucune.
+      Sans entrée reprise, la carte repart vierge : carte nouvelle ou carte retouchée
+      ET déplacée (hors contrepartie du cas a) ; en cas b, question ET réponse
+      retouchées, rang changé des deux côtés (depuis p et depuis n), ou ambiguïté ;
+      en cas a, entrée de même rang déjà reprise par une autre carte de l'intervalle. */
+function flashLoadState(prefix, cards){
+  const list = Array.isArray(cards) ? cards : [];
+  const valid = s => !!s && typeof s === 'object' && !Array.isArray(s);   // entrée d'état exploitable
+  const stored = Store.getJSON('flash:' + prefix, null);
+  const storedIds = Store.getJSON('flashids:' + prefix, null);
+  if(!Array.isArray(stored)) return {state: list.map(() => flashBlankState()), migrated:false};
+  if(Array.isArray(storedIds) && storedIds.length === stored.length){
+    const ids = flashCardIds(list);   // (calculés seulement ici : chapitres jamais notés = rien à hacher)
+    const Q = id => typeof id === 'string' ? id.split('|')[0] : null;           // empreinte de la question
+    const R = id => typeof id === 'string' ? (id.split('|')[1] || '') : '';     // empreinte de la réponse ('' = inconnue)
+    const src = ids.map(() => -1);   // src[j] = index de l'entrée stockée reprise par la carte j (−1 : aucune)
+    const used = new Set();
+    const take = (j, i) => { src[j] = i; used.add(i); };
+    const where = new Map(), nCur = new Map();   // question → positions stockées ; question → nb de copies actuelles
+    storedIds.forEach((id, i) => { const q = Q(id); if(q !== null){ if(!where.has(q)) where.set(q, []); where.get(q).push(i); } });
+    ids.forEach(id => nCur.set(Q(id), (nCur.get(Q(id)) || 0) + 1));
+    // 1) question unique des deux côtés
+    ids.forEach((id, j) => { const l = where.get(Q(id)); if(l && l.length === 1 && nCur.get(Q(id)) === 1) take(j, l[0]); });
+    // 2) questions en double : couples (copie actuelle j, copie stockée i) retenus
+    //    même réponse d'abord, puis par écart croissant à la position attendue
+    //    (j + décalage de la voisine appariée la plus proche)
+    const shift = j => { for(let d = 1; d < ids.length; d++) for(const k of [j - d, j + d]) if(src[k] >= 0) return src[k] - k; return 0; };
+    const pairs = [];
+    ids.forEach((id, j) => { if(src[j] < 0) (where.get(Q(id)) || []).forEach(i => {
+      if(!used.has(i)) pairs.push([(R(storedIds[i]) === R(id) ? 0 : 1e6) + Math.abs(i - j - shift(j)), j, i]);
+    }); });
+    pairs.sort((a, b) => a[0] - b[0]).forEach(([, j, i]) => { if(src[j] < 0 && !used.has(i)) take(j, i); });
+    // 3) carte restée sans entrée (retouchée ou nouvelle) : entrée libre entre ses
+    //    voisines appariées p et n (stockées en lo et hi). Intervalle de même taille des
+    //    deux côtés : l'entrée de réponse univoque, sinon celle de même rang, même si la
+    //    réponse a changé (comme l'ancien appariement par position). Sinon : l'entrée de
+    //    même rang comptée depuis p (a) ou depuis n (b), si elle seule a la même réponse
+    //    (a et b toutes deux de même réponse : ambigu → rien)
+    ids.forEach((id, j) => {
+      if(src[j] >= 0) return;
+      let p = j - 1; while(p >= 0 && src[p] < 0) p--;
+      let n = j + 1; while(n < ids.length && src[n] < 0) n++;
+      const lo = p >= 0 ? src[p] : -1, hi = n < ids.length ? src[n] : stored.length;
+      const free = i => i > lo && i < hi && !used.has(i);
+      const same = i => !!R(id) && R(storedIds[i]) === R(id);                 // même réponse
+      // Voisines dans le désordre (l'une a été déplacée : lo > hi, intervalle vide) :
+      // chaque candidat n'est borné que du côté de la voisine dont il est compté
+      const okA = i => (lo > hi ? i > lo && i < stored.length && !used.has(i) : free(i)) && same(i);
+      const okB = i => (lo > hi ? i >= 0 && i < hi && !used.has(i) : free(i)) && same(i);
+      const a = lo + (j - p), b = hi - (n - j);   // a === b ⇔ intervalle de même taille
+      if(n - p === hi - lo){
+        // Tout l'intervalle d'un coup (cartes j … n−1) : d'abord, dans l'ordre du deck, chaque
+        // carte dont la réponse n'est celle que d'UNE entrée libre de l'intervalle la reprend ;
+        // les autres, l'entrée libre de MÊME RANG (comme l'ancien appariement par position)
+        const libres = new Map();   // réponse → entrées libres de l'intervalle
+        for(let i = lo + 1; i < hi; i++) if(!used.has(i)){ const r = R(storedIds[i]); if(!libres.has(r)) libres.set(r, []); libres.get(r).push(i); }
+        for(let k = j; k < n; k++){ const r = R(ids[k]), l = libres.get(r); if(r && l && l.length === 1 && !used.has(l[0])) take(k, l[0]); }
+        for(let k = j; k < n; k++){ const ak = lo + (k - p); if(src[k] < 0 && free(ak)) take(k, ak); }
+      }
+      else if(okA(a) !== okB(b)) take(j, okA(a) ? a : b);
+    });
+    const state = src.map(i => (i >= 0 && valid(stored[i])) ? stored[i] : flashBlankState());
+    const migrated = ids.length !== storedIds.length || ids.some((id, i) => id !== storedIds[i]);
+    return {state, migrated};
+  }
+  // État hérité (ou table d'identifiants incohérente) : par position, surplus tronqué
+  return {state: list.map((_, i) => valid(stored[i]) ? stored[i] : flashBlankState()), migrated:true};
+}
+/* Écrit l'état d'un deck ET sa table d'identifiants (toujours ensemble). */
+function flashSaveState(prefix, cards, state){
+  Store.setJSON('flash:' + prefix, state);
+  Store.setJSON('flashids:' + prefix, flashCardIds(cards));
+}
+
 function makeFlash(cards, idPrefix, contentId, progId, statsId){
-  const storeKey = 'flash:'+idPrefix;
   // Enregistrer ce jeu de cartes dans le registre global (pour la recherche)
   if(!window.FLASH_REGISTRY) window.FLASH_REGISTRY = {};
   window.FLASH_REGISTRY[idPrefix] = cards;
@@ -42790,12 +42942,20 @@ function makeFlash(cards, idPrefix, contentId, progId, statsId){
     const _fc = document.getElementById(contentId) && document.getElementById(contentId).closest('.flash-card');
     if(_mat && _fc) _fc.classList.add('flash-mat-' + _mat);
   } catch(e){}
-  // état persistant par carte : {h, o, e, last} (hard, ok, easy, dernier niveau 0/1/2)
-  let cardState = Store.getJSON(storeKey, null);
-  if(!cardState || cardState.length !== cards.length){
-    cardState = cards.map(()=>({h:0,o:0,e:0,last:null}));
-  }
-  function persist(){ Store.setJSON(storeKey, cardState); }
+  // état persistant par carte : {h, o, e, last, box, due} (hard, ok, easy, dernier
+  // niveau 0/1/2, Leitner), réaligné par identifiant de carte (flashLoadState).
+  // Migration écrite tout de suite : les lecteurs par index (Bilan, quiz, badge)
+  // voient ainsi un tableau aligné sur le deck actuel.
+  let cardState;
+  try {
+    const ld = flashLoadState(idPrefix, cards);
+    cardState = ld.state;
+    if(ld.migrated) flashSaveState(idPrefix, cards, cardState);
+  } catch(e){ cardState = cards.map(()=>flashBlankState()); }
+  function persist(){ flashSaveState(idPrefix, cards, cardState); }
+  // Relit l'état du Store : le quiz (quizRate) a pu noter des cartes de ce deck
+  // depuis le chargement ; sans ça, persist() écraserait ses notes.
+  function sync(){ try { cardState = flashLoadState(idPrefix, cards).state; } catch(e){} }
 
   // Poids de priorité : cartes jamais vues ou "à revoir" passent en premier
   function weight(i){
@@ -42866,6 +43026,7 @@ function makeFlash(cards, idPrefix, contentId, progId, statsId){
     }
   }
   function rate(level){
+    sync();                   // repart de l'état stocké (notes du quiz incluses)
     const cardIdx = order[idx];
     const s = cardState[cardIdx];
     if(level===0) s.h++;
@@ -42883,7 +43044,7 @@ function makeFlash(cards, idPrefix, contentId, progId, statsId){
   function prev(){idx=(idx-1+cards.length)%cards.length;flipped=false;show()}
   function next(){idx=(idx+1)%cards.length;flipped=false;show()}
   function resetProgress(){
-    cardState = cards.map(()=>({h:0,o:0,e:0,last:null}));
+    cardState = cards.map(()=>flashBlankState());
     persist();
     order = buildOrder();
     idx = 0; flipped = false;
@@ -42974,9 +43135,12 @@ function makeFlash(cards, idPrefix, contentId, progId, statsId){
 
   const api = {flip,rate,prev,next,resetProgress,
     getProgress(){
+      sync();
       let acquis=0; cardState.forEach(s=>{ if(s.last===2) acquis++; });
       return {acquis, total:cards.length};
-    }
+    },
+    // Relit l'état stocké et rafraîchit l'affichage (appelé par quizRate)
+    reload(){ sync(); updateStats(); setFlagState(); }
   };
   if(!window.FLASH_INSTANCES) window.FLASH_INSTANCES = {};
   window.FLASH_INSTANCES[idPrefix] = api;
@@ -43263,7 +43427,7 @@ function drawOscForced(W,H,padL,padR,padT,padB,y0,p){
   }
 }
 
-/* OSC FLASHCARDS */
+/* FILTRES (flt) FLASHCARDS */
 
 
 const fltCards = [
@@ -47523,19 +47687,23 @@ document.addEventListener('keydown',e=>{
   function drawSlciT2(W, H, p, colors){
     const { padL, padR, padT, padB } = setupAxes(W, H, colors, 't (s)', 's(t)');
     const w0 = p.w0, z = p.z;
-    // Échelle de temps : 6 / (z*w0) si z>0.05, sinon 10/w0
-    const decay = Math.max(0.1, z * w0);
+    // Échelle de temps : tMax = 8 / (taux de décroissance), borné à 80 s.
+    // Taux = ξ·ω0 (pseudo-périodique / critique) ; en apériodique, c'est le pôle
+    // LENT |r1| = ω0(ξ − √(ξ²−1)) qui fixe la durée (sinon la courbe est coupée
+    // bien avant d'atteindre K). Continu en ξ = 1 (|r1| → ω0).
+    const decay = Math.max(0.1, z > 1 ? w0 * (z - Math.sqrt(z*z - 1)) : z * w0);
     const tMax = 8 / decay;
     const sInf = p.K;
 
     // Calcul de s(t) selon les 3 régimes
     let sFn, regime, regimeClass, dep;
     if(z > 1.0 + 1e-6){
-      // Apériodique
+      // Apériodique : s(t) = K·[1 + (r2·e^(r1·t) − r1·e^(r2·t)) / (r1 − r2)]
+      // → s(0) = 0 et s'(0) = 0 (A + B = −1, A·r1 + B·r2 = 0).
       const r1 = -w0*(z - Math.sqrt(z*z - 1));
       const r2 = -w0*(z + Math.sqrt(z*z - 1));
-      const A = r2 / (r2 - r1);
-      const B = -r1 / (r2 - r1);
+      const A = r2 / (r1 - r2);
+      const B = -r1 / (r1 - r2);
       sFn = t => sInf * (1 + A*Math.exp(r1*t) + B*Math.exp(r2*t));
       regime = 'Apériodique · ξ = ' + z.toFixed(3) + ' > 1';
       regimeClass = 'aperiodique';
@@ -47605,26 +47773,33 @@ document.addEventListener('keydown',e=>{
     // Temps de réponse à 5%
     let t5 = NaN;
     if(z >= 1 - 1e-6){
-      // Cherche numériquement
-      for(let i=0; i<N; i++){
-        const t = (i/N) * tMax;
-        if(Math.abs(sFn(t) - sInf) / sInf < 0.05 &&
-           Math.abs(sFn(((i+10)/N)*tMax) - sInf) / sInf < 0.05){
-          t5 = t; break;
+      // Critique / apériodique : s(t)/K croît de 0 à 1 sans dépassement →
+      // t₅% = racine de s(t) = 0,95·K, par dichotomie sur la formule exacte
+      // (précis, indépendant du pas d'échantillonnage de la courbe).
+      if(sInf !== 0){
+        let lo = 0, hi = tMax;
+        while(sFn(hi) / sInf < 0.95 && hi < 1e6) hi *= 2;   // borne haute si la fenêtre est trop courte
+        for(let k = 0; k < 60; k++){
+          const m = (lo + hi) / 2;
+          if(sFn(m) / sInf < 0.95) lo = m; else hi = m;
         }
+        t5 = hi;
       }
     } else {
-      // Abaque approchée
-      // Pour z=0.69 → t5 ≈ 3/(z*w0) minimum
-      // Sinon recherche numérique
-      for(let i = N-1; i >= 0; i--){
-        const t = (i/N) * tMax;
+      // Pseudo-périodique : recherche numérique, à rebours, du dernier instant où
+      // |s − K| > 5 %·K. Au-delà de T = ln(20/√(1−ξ²))/(ξω0), l'enveloppe garantit
+      // un écart < 5 % : on balaie [0, max(tMax, T)] au pas du tracé (la fenêtre
+      // tracée, bornée à 80 s, est plus courte que t₅% quand ξ·ω0 est petit).
+      const tFin = Math.max(tMax, Math.log(20 / Math.sqrt(1 - z*z)) / Math.max(z * w0, 1e-3));
+      const n5 = Math.min(Math.ceil(N * tFin / tMax), 20 * N);
+      for(let i = n5-1; i >= 0; i--){
+        const t = (i/n5) * tFin;
         if(Math.abs(sFn(t) - sInf) / sInf > 0.05){ t5 = t; break; }
       }
     }
 
     setInfo('ω₀', w0.toFixed(2)+' rad/s',
-            't₅%', isNaN(t5) ? '—' : t5.toFixed(2)+' s',
+            't₅%', isNaN(t5) ? '—' : t5.toFixed(t5 < 1 ? 3 : 2)+' s',   // 3 décimales sous 1 s (ω0 élevé)
             'Dépassement', dep,
             'Valeur finale', sInf.toFixed(2));
   }
@@ -52720,15 +52895,22 @@ ${bodyContent}
     if(!quizRevealed) return;
     const item = quizDeck[quizIdx];
 
-    // Persister dans le Store (même système que les flashcards individuelles)
-    const key = 'flash:'+item.prefix;
-    const stateArr = Store.getJSON(key, null) || Array(window.FLASH_REGISTRY[item.prefix].length).fill(null).map(()=>({h:0,o:0,e:0,last:null}));
-    if(level===0){ stateArr[item.idx].h++; }
-    else if(level===1){ stateArr[item.idx].o++; }
-    else { stateArr[item.idx].e++; }
-    stateArr[item.idx].last = level;
-    srsSchedule(stateArr[item.idx], level);   // planification espacée (Leitner)
-    Store.setJSON(key, stateArr);
+    // Persister dans le Store (même système que les flashcards individuelles) :
+    // lecture réalignée par identifiant de carte, écriture état + identifiants,
+    // puis l'instance flashcards du chapitre relit l'état (sinon sa prochaine
+    // notation écraserait celles du quiz).
+    const cards = (window.FLASH_REGISTRY || {})[item.prefix] || [];
+    const stateArr = flashLoadState(item.prefix, cards).state;
+    const s = stateArr[item.idx];
+    if(s){                                    // garde : carte absente du deck → rien à noter
+      if(level===0){ s.h++; }
+      else if(level===1){ s.o++; }
+      else { s.e++; }
+      s.last = level;
+      srsSchedule(s, level);                  // planification espacée (Leitner)
+      flashSaveState(item.prefix, cards, stateArr);
+      window.FLASH_INSTANCES?.[item.prefix]?.reload?.();
+    }
     if(window.__updateReviseBadge) window.__updateReviseBadge();
 
     // Stats de session
@@ -52932,11 +53114,11 @@ ${bodyContent}
 })();
 
 /* ============================================================ */
-/* ===== NAVIGATION : tiroir (mobile) + sidebar (desktop) ===== */
+/* ===== NAVIGATION : tiroir #mob-drawer (mobile + desktop) == */
 /* ============================================================ */
 (function(){
-  // Ce module pilote la navigation par matière/chapitre. Il fonctionne sur
-  // mobile (tiroir coulissant) ET desktop (barre latérale permanente).
+  // Ce module pilote la navigation par matière/chapitre. C'est le même tiroir
+  // coulissant sur mobile (bouton ☰) ET sur desktop (bouton « Chapitres »).
 
   /* ── Données chapitres pour le drawer (dérivées de CHAPTERS) ── */
   const CHAP_DATA = (function buildChapData(){
@@ -52993,7 +53175,8 @@ ${bodyContent}
      - Récents (clé 'recents') : 8 derniers chapitres consultés (MRU).
      - Épinglés (clé 'pinned') : favoris ★ affichés en tête.
      - Repli des sous-domaines (clé 'drawerCollapsed') : accordéon mémorisé.
-     - Anneau de progression : % de cartes « acquises » (flash:<prefix>). */
+     - Anneau de progression (ringSVG) : % de cartes « acquises » (flash:<prefix>) ;
+       affiché seulement dans le Bilan (window.__ringSVG), plus dans le tiroir. */
   const MAT_TAGS = { physique:'PHY', maths:'MATH', si:'SI', info:'INFO', anglais:'ANG' };
   const escDrawer = s => String(s || '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
   /* 'chap-x' → {item, mat} (pour retrouver libellé/matière des récents & épinglés) */
@@ -53130,7 +53313,7 @@ ${bodyContent}
       list.appendChild(lbl);
       if(!collapsed) items.forEach(item => list.appendChild(makeChapRow(item)));
     });
-    // Faire défiler le chapitre actif au centre de la liste (utile sur 61 chapitres)
+    // Faire défiler le chapitre actif au centre de la liste (utile avec plus de cent chapitres)
     const act = list.querySelector('.mob-chap-item.active');
     if(act){
       const row = act.closest('.mob-chap-row') || act;
@@ -53702,7 +53885,9 @@ setTimeout(()=>{drawSim();},100);
     if(e.key==='Escape' && overlay.classList.contains('open')) close();
   });
 
-  /* Récupère toutes les clés du localStorage (même origine = tout est à nous) */
+  /* Récupère toutes les clés du localStorage. NB : l'origine thomasmareel.github.io
+     est partagée par tous les dépôts Pages du compte : l'export prend donc toutes
+     les clés de l'origine, pas seulement celles de ce site. */
   function collect(){
     const data={};
     try {
@@ -53745,7 +53930,17 @@ setTimeout(()=>{drawSim();},100);
         if(!confirm('Importer cette sauvegarde ?\n'+flashKeys.length+' chapitre(s) avec progression.\nCela remplacera la progression actuelle de ce navigateur.')){
           fileInput.value=''; return;
         }
-        keys.forEach(k=>{ try{ localStorage.setItem(k, data[k]); }catch(e){} });
+        // L'état 'flash:X' et sa table d'identifiants 'flashids:X' vont par paire :
+        // une table sans son état dans le fichier est ignorée ; un état sans table
+        // (sauvegarde d'une version antérieure) fait retirer la table locale, qui
+        // décrirait un autre ordre de cartes → l'état importé est relu « hérité »
+        // (par position) au rechargement, au lieu d'être mal réaligné.
+        const has=k=>Object.prototype.hasOwnProperty.call(data,k);
+        keys.forEach(k=>{
+          if(k.indexOf('flashids:')===0 && !has('flash:'+k.slice(9))) return;
+          try{ localStorage.setItem(k, data[k]); }catch(e){}
+        });
+        flashKeys.forEach(k=>{ const idk='flashids:'+k.slice(6); if(!has(idk)){ try{ localStorage.removeItem(idk); }catch(e){} } });
         fb.className='backup-feedback ok';
         fb.textContent='Import réussi. Rechargement…';
         setTimeout(()=>location.reload(),900);
@@ -54371,6 +54566,49 @@ document.getElementById('skip-link')?.addEventListener('click', e => {
   });
   document.getElementById('flag-btn')?.addEventListener('click', window.flaggedOpen);
   document.getElementById('mob-flag-btn')?.addEventListener('click', window.flaggedOpen);
+
+  // Une carte signalée est repérée par son index {p, i} : si le deck a changé
+  // (carte insérée / retirée / déplacée), on retrouve son nouvel index d'après la
+  // question (q) et la réponse (a) mémorisées. Entrées déjà en place (même q ET
+  // même a) d'abord : elles « réservent » leur index. Puis, pour les autres : carte
+  // de même q ET même a (départage les copies d'une question en double) ; à défaut,
+  // même q seule (réponse corrigée depuis) : son index actuel s'il convient, sinon
+  // la 1re libre. Une question introuvable (question corrigée depuis) garde son
+  // index, sauf s'il est pris par un autre signalement : elle devient alors
+  // orpheline (i = −1 : listée dans l'overlay, retirable, sans marquer de carte).
+  try {
+    const reg = window.FLASH_REGISTRY || {}, l = getList();
+    if(Array.isArray(l) && l.length){
+      const taken = new Set(), stale = [];
+      const same = (c, x, avecA) => !!c && c.q === x.q && (!avecA || c.a === x.a);
+      l.forEach(x => {
+        const cards = x && reg[x.p];
+        if(!Array.isArray(cards) || typeof x.q !== 'string') return;
+        if(same(cards[+x.i], x, true)) taken.add(x.p + '|' + (+x.i)); else stale.push(x);
+      });
+      let changed = false;
+      const place = (x, j) => { if(j !== +x.i){ x.i = j; changed = true; } taken.add(x.p + '|' + j); };
+      const free = (x, k) => !taken.has(x.p + '|' + k);
+      // 1) même question ET même réponse (pour toutes, avant tout repli sur q seule)
+      const rest = stale.filter(x => {
+        const j = reg[x.p].findIndex((c, k) => same(c, x, true) && free(x, k));
+        if(j >= 0){ place(x, j); return false; }
+        return true;
+      });
+      // 2) même question seule : index actuel s'il convient, sinon la 1re copie libre
+      const introuvables = rest.filter(x => {
+        const cards = reg[x.p];
+        const j = (same(cards[+x.i], x, false) && free(x, +x.i)) ? +x.i
+          : cards.findIndex((c, k) => same(c, x, false) && free(x, k));
+        if(j >= 0){ place(x, j); return false; }
+        return true;
+      });
+      // 3) question introuvable : garde son index, sauf s'il est désormais celui d'un autre
+      //    signalement → orphelin (reste listé, ne marque plus aucune carte)
+      introuvables.forEach(x => { if(taken.has(x.p + '|' + (+x.i))){ x.i = -1; changed = true; } });
+      if(changed) Store.setJSON('flagged', l);
+    }
+  } catch(e){ /* réalignement non bloquant */ }
 
   refresh();
 })();
