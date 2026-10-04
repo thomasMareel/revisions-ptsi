@@ -1,14 +1,14 @@
 # Révisions PTSI
 
-Site de révisions personnel pour la prépa **PTSI** (Physique–Chimie, Maths, Sciences de l'ingénieur, Informatique, Anglais), avec quelques chapitres de maths de 2ᵉ année (PT).
+Site de révisions personnel pour la prépa **PTSI → PT** (Physique–Chimie, Maths, Sciences de l'ingénieur, Informatique, Anglais) : le programme de 1ʳᵉ année (PTSI) et des chapitres de 2ᵉ année (**PT spé**) en maths, physique et SI.
 
 Application web statique, **mono-fichier** (`index.html`) : tout le HTML, le CSS et le JavaScript sont inline. Aucune étape de build, aucune dépendance à installer pour utiliser le site — il suffit d'ouvrir le fichier dans un navigateur.
 
 ## Fonctionnalités
 
-- **134 chapitres** en 5 matières, rangés par sous-domaine dans l'ordre pédagogique ; filtre 1ʳᵉ / 2ᵉ année.
+- **160 chapitres** en 5 matières (dont 52 de 2ᵉ année), rangés par sous-domaine dans l'ordre pédagogique ; filtre 1ʳᵉ / 2ᵉ année.
 - Onglets par chapitre : **Cours**, **Méthodes**, **Simulateur** (27 chapitres, plus le simulateur de la force de Lorentz), **Flashcards**, **Exercices** corrigés (le plus souvent avec un exercice type « CONCOURS PT »).
-- **Flashcards** (134 paquets, 2 717 cartes) avec suivi de progression (acquis / hésitant / à revoir), sauvegardé localement. Tu peux ajouter, retirer ou réordonner des cartes sans perdre ta progression.
+- **Flashcards** (160 paquets, 3 749 cartes) avec suivi de progression (acquis / hésitant / à revoir), sauvegardé localement. Tu peux ajouter, retirer ou réordonner des cartes sans perdre ta progression.
 - **Répétition espacée** (boîtes de Leitner) : menu « Réviser » → « Révisions du jour », avec un badge du nombre de cartes à revoir.
 - **Écran « Aujourd'hui »** au lancement : cartes dues, reprendre là où tu t'étais arrêté, chapitres récents.
 - **Quiz** global multi-chapitres (filtrable par matière, par mode, par type de carte : formules / grandeurs usuelles) et **calcul mental**.
@@ -23,20 +23,31 @@ Application web statique, **mono-fichier** (`index.html`) : tout le HTML, le CSS
 
 ## Chapitres présents
 
-### Physique–Chimie (37)
-Ondes & signaux (régime continu, 1er ordre, RLC, signaux, filtres, ondes, optique géométrique et ondulatoire), mécanique (cinématique, dynamique, énergie, oscillateurs, moment cinétique, champ central, solide), thermodynamique (introduction, 1er et 2e principes, machines, changements d'état, fluides), électromagnétisme (électrostatique, magnétostatique, induction, Lorentz), chimie (architecture de la matière, molécules, cristaux, cinétique, équilibres, acido-basique, précipitation, oxydoréduction, diagrammes E-pH), fiche des constantes usuelles.
+Le tiroir « Chapitres » propose un filtre **1ʳᵉ année / 2ᵉ année** ; l'anglais et la fiche des constantes sont visibles les deux années.
 
-### Maths (46, dont 26 de 2ᵉ année)
-Logique ; algèbre (complexes, polynômes) ; analyse (fonctions, suites, continuité, dérivation & DL, asymptotique, primitives, intégrales, équations différentielles, séries ; en 2ᵉ année : fonctions vectorielles, intégrales généralisées, séries entières, intégrales à paramètre, plusieurs variables…) ; algèbre linéaire (matrices, déterminants, espaces vectoriels, applications linéaires ; en 2ᵉ année : projecteurs, éléments propres, réduction, préhilbertiens, isométries) ; géométrie (dont coniques, courbes paramétrées, géométrie 3D) ; probabilités (dénombrement, probabilités, variables aléatoires, tribus, VA discrètes).
+### Physique–Chimie (50, dont 13 de 2ᵉ année)
+Ondes & signaux (régime continu, 1er ordre, RLC, signaux, filtres, ondes, optique géométrique et ondulatoire), mécanique (cinématique, dynamique, énergie, oscillateurs, moment cinétique, champ central, solide), thermodynamique (introduction, 1er et 2e principes, machines, changements d'état, fluides), électromagnétisme (électrostatique, magnétostatique, induction, Lorentz), chimie (architecture de la matière, molécules, cristaux, cinétique, équilibres, acido-basique, précipitation, oxydoréduction, diagrammes E-pH), fiche des constantes usuelles. Chapitres de 2ᵉ année : voir « PT spé » ci-dessous.
 
-### Sciences de l'ingénieur (25)
-Analyse fonctionnelle ; mécanique (cinématique, statique, transmission, dynamique du solide, énergétique) ; automatique (schéma-blocs, systèmes 1er/2e ordre, stabilité, précision/PID, SLCI) ; électrotechnique (machine à courant continu, convertisseurs statiques, hacheurs) ; capteurs ; fabrication (cotation, moulage, déformation plastique, usinage, assemblage, fabrication additive, traitements thermiques et de surface, contrôle non destructif).
+### Maths (48, dont 28 de 2ᵉ année)
+Logique ; algèbre (complexes, polynômes) ; analyse (fonctions, suites, continuité, dérivation & DL, asymptotique, primitives, intégrales, équations différentielles, séries ; en 2ᵉ année : fonctions vectorielles, intégrales généralisées, séries entières, intégrales à paramètre, plusieurs variables…) ; algèbre linéaire (matrices, déterminants, espaces vectoriels, applications linéaires ; en 2ᵉ année : projecteurs, éléments propres, réduction, préhilbertiens, isométries) ; géométrie (dont coniques, courbes paramétrées, géométrie 3D, réduction des coniques, surfaces de l'espace) ; probabilités (dénombrement, probabilités, variables aléatoires, tribus, VA discrètes).
+
+### Sciences de l'ingénieur (36, dont 11 de 2ᵉ année)
+Analyse fonctionnelle ; mécanique (cinématique, statique, transmission, dynamique du solide, énergétique) ; automatique (schéma-blocs, systèmes 1er/2e ordre, stabilité, précision/PID, SLCI) ; électrotechnique (machine à courant continu, convertisseurs statiques, hacheurs) ; capteurs ; fabrication (cotation, moulage, déformation plastique, usinage, assemblage, fabrication additive, traitements thermiques et de surface, contrôle non destructif). Chapitres de 2ᵉ année : voir « PT spé » ci-dessous.
 
 ### Informatique (8)
 Python : bases, représentation des nombres, conditions & boucles, fonctions, types construits, tris, récursivité, méthodes numériques.
 
 ### Anglais (18)
 Colle / oral (usuels, présenter un document, donner son avis, connecteurs, réagir), vocabulaire thématique, grammaire & traduction (faux-amis, temps, modaux, phrasal verbs), civilisation (UK, US, histoire), idiomes & collocations.
+
+### PT spé (2ᵉ année)
+52 chapitres, chacun avec cours, méthodes, flashcards et exercices corrigés (dont un exercice type « CONCOURS PT ») ; ils portent le badge « 2ᵉ année » et apparaissent quand « 2ᵉ année » est choisie dans le tiroir.
+
+- **Physique (13)** : électronique (amplificateur linéaire intégré et rétroaction, oscillateurs électroniques, échantillonnage et traitement numérique du signal) ; optique ondulatoire (ondes lumineuses et interférences, dispositifs de Young et de Michelson) ; thermodynamique et fluides (diffusion thermique, description d'un fluide en écoulement, écoulements visqueux et bilans en conduite, systèmes ouverts et thermodynamique industrielle) ; électromagnétisme (électrostatique approfondie, équations de Maxwell et ARQS, ondes électromagnétiques dans le vide, ondes électromagnétiques et conducteurs).
+- **Maths (28)** : suites, intégration, équations différentielles et séries (compléments) ; fonctions vectorielles, intégrales généralisées, séries entières, intégrales à paramètre, fonctions de plusieurs variables ; algèbre linéaire (compléments sur matrices, déterminants, espaces vectoriels et applications linéaires ; projecteurs et symétries, éléments propres, réduction, espaces préhilbertiens, isométries) ; géométrie (coniques, courbes paramétrées, géométrie plane et dans l'espace, réduction des coniques et matrices symétriques, courbes et surfaces de l'espace) ; probabilités (tribus, espaces probabilisés, variables aléatoires discrètes).
+- **Sciences de l'ingénieur (11)** : modélisation multiphysique ; mécanique (chaînes de solides : mobilité et hyperstatisme, conception des liaisons : assemblages et guidages, cinétique et dynamique du solide en 3D, résistance des matériaux) ; automatique (réglage des correcteurs, systèmes numériques : acquisition, filtrage et commande) ; électrotechnique (régimes alternatifs et triphasé, redresseurs et onduleurs ; machines synchrone et asynchrone) ; intelligence artificielle (apprentissage automatique) ; fabrication (triptyque produit–procédé–matériau).
+
+> Les contenus de 2ᵉ année sont **rédigés de façon originale** : les manuels de PT spé de l'étudiant n'ont servi qu'à cerner le programme et les notations (aucun texte, exercice ni schéma n'en est repris).
 
 ## Lancer le site
 
