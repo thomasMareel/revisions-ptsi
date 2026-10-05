@@ -8,6 +8,7 @@ Notes destinées à Claude pour les sessions futures. Objectif du projet : rendr
 - **Ne rien casser** de ce qui marche (design + fonctionnalités). Pas de refonte non demandée.
 - **Modifications du HTML autorisées sans confirmation préalable** (accord donné par l'utilisateur le 2026-09-26) : agir directement, puis expliquer ce qui a été fait.
 - L'utilisateur est étudiant en prépa, débutant en dev. Privilégier des explications claires et des changements incrémentaux.
+- **Mise en ligne (accord du 2026-10-05)** : les **petits correctifs** que l'utilisateur signale sont poussés **directement sur `main`** (donc publiés) une fois validés (`validate.py`, `check_js.py`, suites de tests concernées, bump de `CACHE_VERSION`), puis on vérifie le run Actions. Pour un gros changement (nouveaux chapitres, refonte, comportement modifié), demander avant de fusionner dans `main`. Avant une fusion importante, garder un point de retour (branche `sauvegarde-avant-…`).
 - **Contenus de 2ᵉ année (PT spé)** : rédigés à partir des manuels privés du dépôt `thomasMareel/cours-pt-spe` (release v1), qui ne servent qu'à cerner le programme et les notations. **Rédaction originale obligatoire** (site public, droit d'auteur) : ne jamais recopier ni paraphraser de près leurs phrases, énoncés, corrigés, exemples chiffrés, schémas ou plans ; exercices inventés.
 
 ## Architecture
@@ -193,7 +194,9 @@ Liste complète par gravité, avec ancres et pistes : **`docs/audit-2026-09.md`*
 7. **Débordement horizontal à 390 px** sur 13 panneaux, dont `rlc-cours` (chapitre par défaut). Angle mort de la suite `mobile` (mesure à l'état replié) : solutions dépliées débordant aussi dans `rlc-exos`, `mth-exos` (machines), `mcc-exos`, `slci-exos`, `reduction-exos` (aucun des 26 chapitres de PT spé).
 8. **73 exos « CONCOURS PT » hors `.exo-wrapper`** (63 chapitres, `</div>` orphelin).
 9. **`--border` / `--surface` n'existent pas** (97 usages).
-10. **Simulateur Suites** (`steps` fractionnaire). *(Corrigé le 2026-10-05 : tout changement de chapitre — tiroir, préc./suiv., `navigateTo`, retour du navigateur — remonte en haut de page via `scrollPageTop()` dans le handler `.chap-btn` ; un changement d'onglet garde le défilement ; une navigation avec rappel peut ensuite défiler vers sa cible.)*
+10. **Simulateur Suites** (`steps` fractionnaire).
+
+Corrigé le 2026-10-05 (signalé par l'utilisateur) : tout changement de chapitre — tiroir, préc./suiv., `navigateTo`, retour du navigateur — remonte en haut de page via `scrollPageTop()` (handler `.chap-btn`, et `navigateTo` sans rappel) ; un changement d'onglet garde le défilement ; une navigation avec rappel (recherche, Bilan…) défile ensuite vers sa cible.
 
 Non-bug : les deux `.chapter.active` du HTML source (`chap-rlc`, `chap-ingsys`), un par `<main>`.
 
