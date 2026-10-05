@@ -193,7 +193,7 @@ Liste complète par gravité, avec ancres et pistes : **`docs/audit-2026-09.md`*
 7. **Débordement horizontal à 390 px** sur 13 panneaux, dont `rlc-cours` (chapitre par défaut). Angle mort de la suite `mobile` (mesure à l'état replié) : solutions dépliées débordant aussi dans `rlc-exos`, `mth-exos` (machines), `mcc-exos`, `slci-exos`, `reduction-exos` (aucun des 26 chapitres de PT spé).
 8. **73 exos « CONCOURS PT » hors `.exo-wrapper`** (63 chapitres, `</div>` orphelin).
 9. **`--border` / `--surface` n'existent pas** (97 usages).
-10. **`navigateTo` ne remonte pas en haut en SI** ; simulateur Suites (`steps` fractionnaire).
+10. **Simulateur Suites** (`steps` fractionnaire). *(Corrigé le 2026-10-05 : tout changement de chapitre — tiroir, préc./suiv., `navigateTo`, retour du navigateur — remonte en haut de page via `scrollPageTop()` dans le handler `.chap-btn` ; un changement d'onglet garde le défilement ; une navigation avec rappel peut ensuite défiler vers sa cible.)*
 
 Non-bug : les deux `.chapter.active` du HTML source (`chap-rlc`, `chap-ingsys`), un par `<main>`.
 

@@ -62367,9 +62367,18 @@ function typesetPanel(panel){
   }
 }
 
+/* Haut de page instantané : html a « scroll-behavior:smooth », on force 'instant'
+   (repli : scrollTo(0, 0) pour les navigateurs qui refusent l'objet d'options). */
+function scrollPageTop(){
+  try { window.scrollTo({ top: 0, left: 0, behavior: 'instant' }); }
+  catch(e){ window.scrollTo(0, 0); }
+}
+
 /* ========== CHAPTER SWITCHING ========== */
 document.querySelectorAll('.chap-btn').forEach(b=>{
   b.addEventListener('click',()=>{
+    // Chapitre visible AVANT le clic (deux .chapter.active au chargement : filtre offsetParent)
+    const avant = Array.from(document.querySelectorAll('.chapter.active')).find(x => x.offsetParent !== null);
     const bar = b.closest('.chapter-bar');
     if(bar) bar.querySelectorAll('.chap-btn').forEach(x=>x.classList.remove('active'));
     document.querySelectorAll('.chapter').forEach(x=>x.classList.remove('active'));
@@ -62385,6 +62394,8 @@ document.querySelectorAll('.chap-btn').forEach(b=>{
     }
     const chapEl = document.getElementById('chap-'+b.dataset.chap);
     if(chapEl) chapEl.classList.add('active');
+    // Nouveau chapitre : on repart du haut de la page (et non du défilement du précédent)
+    if(!avant || avant !== chapEl) scrollPageTop();
     setTimeout(()=>{ redrawChapter(b.dataset.chap); }, 50);
     // Rendu MathJax à la demande : seulement le panneau visible (le reste suit à l'ouverture des onglets)
     if(chapEl) typesetPanel(chapEl.querySelector('.panel.active'));
@@ -73198,10 +73209,9 @@ function navigateTo(chapId, panelId, onDone){
     }
     // sauvegarder la position
     Store.setJSON('lastPos', {chap:chapId, panel:panelId||null});
-    // Si pas de callback custom, scroll en haut du chapitre
+    // Si pas de callback custom : haut de la page (le 1er <main> visé avant est masqué en SI)
     if(!onDone){
-      const main = document.querySelector('main');
-      if(main && main.scrollIntoView) main.scrollIntoView({behavior:'smooth',block:'start'});
+      scrollPageTop();
     } else {
       // Laisser le DOM se stabiliser avant le callback
       setTimeout(onDone, 120);
