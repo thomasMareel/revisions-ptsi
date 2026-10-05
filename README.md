@@ -92,7 +92,7 @@ Une batterie de tests ouvre le site dans un vrai navigateur (Chromium, piloté p
 npm install                    # une seule fois
 npx playwright install chromium  # une seule fois
 npm run test:rapide            # version courte (≈ 4 min 30 s)
-npm test                       # batterie complète (≈ 12 min)
+npm test                       # batterie complète (≈ 18 min)
 ```
 
 👉 Mode d'emploi complet (installation sous Windows, options, lecture des résultats, que faire en cas d'échec) : **[`tests/README.md`](tests/README.md)**.

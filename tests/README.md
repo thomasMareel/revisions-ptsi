@@ -24,7 +24,7 @@ serveur local le temps du test, puis s'arrête.
 | `regressions` | un test par correctif **B1 à B4** : notes du quiz conservées par les flashcards, même localStorage plein (puis de nouveau disponible) et même quand le quiz tourne dans un autre onglet (B1) ; progression qui suit ses cartes quand un deck change (B2 : un état distinct pour **chaque** carte, contrôlé carte par carte) — carte insérée, retirée, déplacée ; question reformulée (sur place, suivie d'une insertion, après retrait de la précédente, à côté d'une carte déplacée, entre une carte retirée et une carte ajoutée) ; cas ambigu (deux entrées candidates de même réponse → carte vierge) ; question **et** réponse retouchées sur place, deck entier réécrit (état conservé) ; carte remplacée sur place (hérite de l'état de l'ancienne) ; question en double (réponses différentes ou doublon exact) —, `quizRate` sur un état ancien non migré, import d'une ancienne sauvegarde, cartes signalées (y compris sur une question en double, et signalement devenu orphelin) ; t₅% et palier du simulateur SLCI (B3) ; couleurs des simulateurs en thème sombre (B4) | ≈ 3 min |
 
 Les durées sont indicatives (mesurées dans un conteneur Linux à 4 cœurs : batterie
-complète ≈ 12 min, `--rapide` ≈ 4 min 30 s).
+complète ≈ 18 min, `--rapide` ≈ 4 min 30 s).
 
 ---
 
@@ -67,7 +67,7 @@ Toujours depuis le dossier du dépôt :
 
 | Commande | Effet |
 |---|---|
-| `npm test` | **toute** la batterie (≈ 12 min) |
+| `npm test` | **toute** la batterie (≈ 18 min) |
 | `npm run test:rapide` | version courte : une dizaine de chapitres couvrant les 5 matières + tous les simulateurs dans un seul thème (≈ 4 min 30 s) |
 | `npm run valider` | le validateur Python `tools/validate.py` (quelques secondes, sans navigateur) |
 
@@ -145,7 +145,7 @@ Dans `tests/sortie/` (ignoré par git) :
 
 **Anomalies connues tolérées** (elles ne font pas échouer les tests, en
 attendant d'être corrigées avec l'accord de l'utilisateur) :
-- `tests/suites/mobile.js` → `DEBORDEMENTS_CONNUS` : 14 panneaux trop larges à 390 px (longues formules en ligne) ;
+- `tests/suites/mobile.js` → `DEBORDEMENTS_CONNUS` : 13 panneaux trop larges à 390 px (longues formules en ligne) ;
 - `tests/suites/site.js` → `TEX_EN_CLAIR_CONNUS` (tableau de Routh en `\[ … \]`) et `ONGLETS_HORS_CHAPTERS_CONNUS` (simulateur de Lorentz non déclaré) ;
 - suite `pwa` : le rechargement automatique à la 1re visite est signalé par un avertissement
   (l'écouteur `controllerchange` d'`index.html` recharge la page sans vérifier qu'un service
@@ -242,7 +242,7 @@ ainsi (tableau « mutant → contrôle qui l'attrape » : `docs/audit-2026-09.md
   trouve le Playwright global tout seul (via `npm root -g`) : `NODE_PATH` est facultatif.
 - **Ne pas lancer** `npx playwright install` ni `npm install` dans le dépôt
   (une autre version de Playwright réclamerait un Chromium absent du conteneur).
-- Commandes : `node tests/run.js --rapide` (≈ 4 min 30 s), `node tests/run.js` (≈ 12 min).
+- Commandes : `node tests/run.js --rapide` (≈ 4 min 30 s), `node tests/run.js` (≈ 18 min).
   L'outil Bash coupe au bout de 10 min : lancer la batterie complète **en arrière-plan**
   en redirigeant la sortie vers un fichier temporaire hors du dépôt, puis suivre ce fichier.
 - Tester le **dernier commit** (par exemple pour comparer avec l'ancienne version) :

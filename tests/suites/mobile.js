@@ -29,7 +29,6 @@ const DEBORDEMENTS_CONNUS = {
   'prim-meth': { largeur: 450, formule: '\\int \\dfrac{2\\,du}{4u^2 + 4} = …' },
   'va-cours': { largeur: 444, formule: '\\mathrm{Cov}(X,Y) = E(XY) - E(X)E(Y) = …' },
   'ensi-meth': { largeur: 400, formule: 'J_{eq,\\text{ramené}} = J_{moteur} + …' },
-  's1-cours': { largeur: 405, formule: '-20\\ \\text{dB/décade}' },
   'repn-cours': { largeur: 607, formule: '2^0=1,\\ 2^1=2,\\ … 2^{10}=1024' },
 };
 
