@@ -22,9 +22,11 @@ serveur local le temps du test, puis s'arrête.
 | `interactions` | lien direct `#chapitre/onglet`, boutons précédent/suivant du navigateur, boutons ‹ ›, passage vers la SI, recherche, flashcards + répétition espacée, quiz, « Réviser », Bilan, Aujourd'hui, formulaire, cartes signalées, calcul mental, impression, thème, **sauvegarde export puis import** | ≈ 30 s |
 | `pwa` | `sw.js` (fichiers du précache présents), manifeste, service worker activé, cache rempli, **rechargement hors-ligne** | ≈ 10 s |
 | `regressions` | un test par correctif **B1 à B4** : notes du quiz conservées par les flashcards, même localStorage plein (puis de nouveau disponible) et même quand le quiz tourne dans un autre onglet (B1) ; progression qui suit ses cartes quand un deck change (B2 : un état distinct pour **chaque** carte, contrôlé carte par carte) — carte insérée, retirée, déplacée ; question reformulée (sur place, suivie d'une insertion, après retrait de la précédente, à côté d'une carte déplacée, entre une carte retirée et une carte ajoutée) ; cas ambigu (deux entrées candidates de même réponse → carte vierge) ; question **et** réponse retouchées sur place, deck entier réécrit (état conservé) ; carte remplacée sur place (hérite de l'état de l'ancienne) ; question en double (réponses différentes ou doublon exact) —, `quizRate` sur un état ancien non migré, import d'une ancienne sauvegarde, cartes signalées (y compris sur une question en double, et signalement devenu orphelin) ; t₅% et palier du simulateur SLCI (B3) ; couleurs des simulateurs en thème sombre (B4) | ≈ 3 min |
+| `visuel` | **mesures visuelles**, garde-fou de la refonte graphique, sur 14 écrans (rlc cours / méthodes / simulateur / flashcards / exercices avec une solution dépliée, maxwell cours, slci cours, flashcards d'anglais, tiroir, recherche, quiz, Bilan, Aujourd'hui, menu Plus), en thème clair **et** sombre, sur ordinateur 1440×900 **et** téléphone 390×844 : **contraste** réel du texte (≥ 4,5:1, 3:1 en grand texte), **taille** du texte (≥ 12 px), **débordement** horizontal, **cibles tactiles** sur téléphone (≥ 24 px ou assez espacées, WCAG 2.5.8 ; ≥ 44 px, signalé à part) ; une liste d'anomalies *déjà connues* est tolérée (sauf avec `--strict`) ; détail dans `visuel.json` + `visuel.md` et une capture par écran (voir §4) | ≈ 2 min (identique en `--rapide`) |
 
 Les durées sont indicatives (mesurées dans un conteneur Linux à 4 cœurs : batterie
-complète ≈ 18 min, `--rapide` ≈ 4 min 30 s).
+complète ≈ 20 min, `--rapide` ≈ 6 min 30 s, dont 2 min pour `visuel` ; jusqu'à
+≈ 8 min 30 s quand la machine est chargée).
 
 ---
 
@@ -67,8 +69,8 @@ Toujours depuis le dossier du dépôt :
 
 | Commande | Effet |
 |---|---|
-| `npm test` | **toute** la batterie (≈ 18 min) |
-| `npm run test:rapide` | version courte : une dizaine de chapitres couvrant les 5 matières + tous les simulateurs dans un seul thème (≈ 4 min 30 s) |
+| `npm test` | **toute** la batterie (≈ 20 min) |
+| `npm run test:rapide` | version courte : une dizaine de chapitres couvrant les 5 matières + tous les simulateurs dans un seul thème, et la suite `visuel` complète (≈ 6 min 30 s) |
 | `npm run valider` | le validateur Python `tools/validate.py` (quelques secondes, sans navigateur) |
 
 Pour passer des options, soit `node tests/run.js <options>`, soit
@@ -82,6 +84,7 @@ Pour passer des options, soit `node tests/run.js <options>`, soit
 | `--racine=dossier` | tester un autre dossier que le dépôt (ex. une ancienne version) | `node tests/run.js --racine=../copie` |
 | `--sortie=dossier` | où écrire captures et rapport (défaut `tests/sortie/`) | |
 | `--visible` | ouvre une vraie fenêtre Chromium pour **voir** le test se dérouler | `node tests/run.js --suite=interactions --visible` |
+| `--strict` | suite `visuel` : ignore la liste des anomalies tolérées (`TOLERES`) ; **tout** constat fait échouer (utile pendant la refonte graphique, pour voir ce qu'il reste à corriger) | `node tests/run.js --suite=visuel --strict` |
 | `--aide` | liste des options | |
 
 ---
@@ -117,7 +120,38 @@ cours ne sont pas comptés en échec.
 
 Dans `tests/sortie/` (ignoré par git) :
 - `rapport.json` : tous les détails (chaque contrôle, chaque message, mesures) ;
-- des **captures d'écran** (`site-accueil.png`, `mobile-tiroir.png`, `regressions-b3-slci-aperiodique.png`…).
+- des **captures d'écran** (`site-accueil.png`, `mobile-tiroir.png`, `regressions-b3-slci-aperiodique.png`…) ;
+- pour la suite `visuel` : `visuel.json` (**tous** les constats, écran par écran, avec
+  exemples, couleurs, dimensions), `visuel.md` (récapitulatif lisible : un tableau par
+  mesure, les fonds non évalués, les entrées tolérées devenues inutiles et une
+  **proposition de liste `TOLERES`** correspondant au lancement) et une capture par
+  écran : `visuel-<appareil>-<thème>-<écran>.png` (ex. `visuel-tel-sombre-quiz.png`).
+
+### La suite `visuel` en détail
+
+Chaque **constat** = `{ ecran, theme, appareil, selecteur, valeur, seuil }`, regroupé par
+sélecteur lisible dans un écran (pire valeur, nombre d'occurrences, exemples).
+
+- **Contraste** : couleur calculée de chaque texte visible (et de chaque formule MathJax,
+  prise en bloc) contre son fond effectif, en peignant la chaîne des ancêtres comme le
+  navigateur (fonds semi-transparents et opacité des ancêtres compris). Seuil 4,5:1, ou
+  3:1 pour un texte ≥ 24 px (≥ 18,66 px en gras). Un texte sur une **image**, un
+  **dégradé** ou des **formes SVG** n'est pas évalué : il est listé à part dans
+  `visuel.md`. Le quadrillage de la page (lignes de 1 px) est négligé. Les commandes
+  désactivées sont exclues (exemption WCAG).
+- **Taille** : police rendue < 12 px (formule MathJax : taille de base, exposants exclus ;
+  texte SVG : taille × échelle du dessin).
+- **Débordement** : page plus large que l'écran (`scrollWidth`), et le plus haut élément
+  visible qui dépasse à droite (un élément rogné par une zone défilante ne compte pas).
+- **Cibles tactiles** (téléphone) : boutons, liens, champs, éléments cliquables (curseur
+  « main »). Règle **`cible24`** (WCAG 2.5.8) : moins de 24 px de côté **et** trop près
+  d'une autre cible (le disque de 24 px centré sur elle touche une autre cible ou le disque
+  d'une autre petite cible). Règle **`cible44`** (confort au doigt, WCAG 2.5.5) : moins de
+  44 px de côté, signalé à part. Exemptés : liens dans une phrase, commandes désactivées.
+
+Le **hasard est figé** (graine fixe pour l'ordre des flashcards et le tirage du quiz), une
+progression est **semée** dans le Store (Bilan, Aujourd'hui), les écrans sont visités dans
+un ordre fixe : deux lancements donnent les mêmes constats.
 
 ---
 
@@ -137,16 +171,27 @@ Dans `tests/sortie/` (ignoré par git) :
    le message dit lequel. Les contrôles B2 suivent la règle d'appariement décrite
    en tête de `flashLoadState` (dans `index.html`) : si cette règle a été changée
    **volontairement**, adapter les scénarios B2a (`scenarios`), B2e et B2f.
-7. Messages d'installation :
+7. Suite `visuel` en échec : un texte est devenu peu lisible ou trop petit, un élément
+   déborde ou une cible est trop petite. Le message donne le sélecteur, la valeur, l'écran,
+   le thème et l'appareil ; ouvrir `visuel.md` et la capture `visuel-<appareil>-<thème>-<écran>.png`.
+   Si le changement est **voulu** (refonte), mettre à jour `TOLERES` (voir plus bas).
+8. Messages d'installation :
    - « Playwright est introuvable » → refaire `npm install` dans le dossier du dépôt ;
    - « Impossible de lancer Chromium » → `npx playwright install chromium`.
-8. Sous Windows, si les accents s'affichent mal dans le terminal : utiliser
+9. Sous Windows, si les accents s'affichent mal dans le terminal : utiliser
    « Terminal Windows » (ou taper `chcp 65001` avant de lancer les tests).
 
 **Anomalies connues tolérées** (elles ne font pas échouer les tests, en
 attendant d'être corrigées avec l'accord de l'utilisateur) :
 - `tests/suites/mobile.js` → `DEBORDEMENTS_CONNUS` : 13 panneaux trop larges à 390 px (longues formules en ligne) ;
 - `tests/suites/site.js` → `TEX_EN_CLAIR_CONNUS` (tableau de Routh en `\[ … \]`) et `ONGLETS_HORS_CHAPTERS_CONNUS` (simulateur de Lorentz non déclaré) ;
+- `tests/suites/visuel.js` → `TOLERES` : une ligne par mesure et par lieu
+  `[mesure, écrans, thèmes, appareils, { sélecteur: pire valeur }]` (écrans : noms, alias
+  `chapitres` / `fenetres`, ou `*`). Un constat toléré échoue quand même s'il **s'aggrave**
+  (contraste plus faible, élément plus large… au-delà de `MARGES`) ; un sélecteur qui n'est
+  plus constaté donne un avertissement `!` (le retirer). Après une correction voulue, la
+  section « Proposition de liste TOLERES » de `visuel.md` donne la nouvelle liste à recopier
+  (à relire). `--strict` ignore cette liste ;
 - suite `pwa` : le rechargement automatique à la 1re visite est signalé par un avertissement
   (l'écouteur `controllerchange` d'`index.html` recharge la page sans vérifier qu'un service
   worker contrôlait DÉJÀ la page ; or `clients.claim()` de `sw.js` déclenche cet événement dès
@@ -242,9 +287,11 @@ ainsi (tableau « mutant → contrôle qui l'attrape » : `docs/audit-2026-09.md
   trouve le Playwright global tout seul (via `npm root -g`) : `NODE_PATH` est facultatif.
 - **Ne pas lancer** `npx playwright install` ni `npm install` dans le dépôt
   (une autre version de Playwright réclamerait un Chromium absent du conteneur).
-- Commandes : `node tests/run.js --rapide` (≈ 4 min 30 s), `node tests/run.js` (≈ 18 min).
-  L'outil Bash coupe au bout de 10 min : lancer la batterie complète **en arrière-plan**
-  en redirigeant la sortie vers un fichier temporaire hors du dépôt, puis suivre ce fichier.
+- Commandes : `node tests/run.js --rapide` (≈ 6 min 30 s, jusqu'à 8 min 30 s), `node tests/run.js` (≈ 20 min),
+  `node tests/run.js --suite=visuel` (≈ 2 min).
+  L'outil Bash coupe au bout de 10 min : lancer la batterie complète (et `--rapide`, qui
+  s'en approche) **en arrière-plan** en redirigeant la sortie vers un fichier temporaire
+  hors du dépôt, puis suivre ce fichier.
 - Tester le **dernier commit** (par exemple pour comparer avec l'ancienne version) :
   ```
   mkdir -p <dossier-temporaire>/orig
@@ -273,7 +320,7 @@ package.json          scripts npm (test, test:rapide, valider) + dépendance Pla
 tests/run.js          point d'entrée : options, serveur, lancement des suites, résumé
 tests/lib/serveur.js  petit serveur statique (module http de node) + variantes d'index.html
 tests/lib/outils.js   fonctions partagées (attente du site, navigation, MathJax, decks…)
-tests/suites/*.js     les suites : site, mobile, interactions, pwa, regressions
+tests/suites/*.js     les suites : site, mobile, interactions, pwa, regressions, visuel
 tests/sortie/         captures + rapport.json du dernier lancement (ignoré par git)
 ```
 
