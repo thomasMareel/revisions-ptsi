@@ -3185,9 +3185,7 @@ figure.schema figcaption{
 /* Formules consécutives d'une section : un seul bloc creux, séparées par un filet pointillé */
 .fsheet-formulas{ border-radius:var(--r-m); background:var(--formule-fond); overflow:hidden; }
 .fsheet-f{ position:relative; padding:.85em 1.1em; text-align:center; overflow-x:auto; overflow-y:hidden; scrollbar-width:thin; font-size:var(--fs-body); color:var(--text); }
-.fsheet-f + .fsheet-f{
-  background-image:linear-gradient(90deg, var(--line-2) 50%, transparent 0); background-size:8px 1px; background-repeat:repeat-x; background-position:top;
-}
+.fsheet-f + .fsheet-f{ border-top:1px dashed var(--line-2); }
 .fsheet-f mjx-container[display="true"]{ margin:0 !important; }
 .fsheet-nom{ display:block; margin:0 0 .35em; text-align:left; font:italic var(--w-regular) var(--fs-small)/1.25 var(--font-text); color:var(--text-3); }
 .formula-empty{ margin:1.5rem auto; max-width:var(--measure-ui); text-align:center; font:var(--w-regular) var(--fs-ui)/1.5 var(--font-ui); color:var(--text-2); }
@@ -3199,14 +3197,15 @@ figure.schema figcaption{
 
 /* --- 4. Sauvegarde, Cartes signalées (SPEC §5.11) ---------------------------------- */
 .backup-actions{ display:flex; flex-direction:column; gap:.6rem; }
-#flag-overlay .flag-list{ list-style:none; margin:0; padding:0; border-top:1px solid var(--line); }
+#flag-overlay .flag-list{ list-style:none; margin:0; padding:0; max-height:none; overflow:visible; border-top:1px solid var(--line); }
 #flag-overlay .flag-list li{
   display:grid; grid-template-columns:minmax(0,1fr) auto; grid-template-areas:"q rm" "chap rm"; column-gap:.75rem; row-gap:.2rem;
   align-items:center; padding:.75rem 0; border-bottom:1px solid var(--line);
 }
 #flag-overlay .flag-q{ grid-area:q; font:var(--w-regular) 1rem/1.4 var(--font-text); color:var(--text); overflow-wrap:anywhere; }
 #flag-overlay .flag-chap{
-  grid-area:chap; display:flex; align-items:center; gap:.4rem; min-width:0;
+  grid-area:chap; display:flex; align-items:center; gap:.4rem; min-width:0; max-width:none;
+  overflow:visible; white-space:normal; text-overflow:clip;
   font:var(--w-regular) var(--fs-ui-xs)/1.3 var(--font-ui); color:var(--text-3); text-transform:none; letter-spacing:0;
 }
 #flag-overlay .flag-rm{
@@ -3227,6 +3226,7 @@ figure.schema figcaption{
   height:2.5rem; padding:0 2rem 0 .75rem; border:1px solid var(--field); border-radius:var(--r-m);
   background-color:var(--raise); color:var(--text); font:var(--w-medium) var(--fs-ui-s)/1 var(--font-ui); cursor:pointer;
 }
+@media (pointer:coarse){ #drill-overlay #drill-cat{ height:var(--tap); font-size:1rem; } }
 #drill-overlay .drill-score b{ font:var(--w-bold) var(--fs-ui-s)/1 var(--font-ui); color:var(--text); font-variant-numeric:tabular-nums; }
 #drill-overlay .drill-question{
   display:flex; align-items:center; justify-content:center; min-height:6.5rem; margin:0 0 1rem; padding:1.25rem 1rem;
@@ -3239,7 +3239,14 @@ figure.schema figcaption{
   background:var(--raise); color:var(--text); font:var(--w-semi) 1.5rem/1 var(--font-ui); font-variant-numeric:tabular-nums;
 }
 #drill-overlay #drill-input::placeholder{ color:var(--text-3); opacity:1; font-weight:var(--w-regular); }
-#drill-overlay .drill-check{ height:3.5rem; padding:0 1.25rem; font-size:var(--fs-ui); }
+#drill-overlay .drill-check, #drill-overlay .drill-next{
+  height:2.375rem; padding:0 .9rem; border:1px solid var(--line-2); border-radius:var(--r-m);
+  background:var(--raise); color:var(--text); font:var(--w-semi) var(--fs-ui-s)/1 var(--font-ui); letter-spacing:.005em; cursor:pointer;
+}
+#drill-overlay .drill-check{ height:3.5rem; padding:0 1.25rem; border-color:transparent; background:var(--primary); color:var(--on-primary); font-size:var(--fs-ui); }
+#drill-overlay .drill-check:hover{ background:var(--primary-hover); border-color:transparent; color:var(--on-primary); }
+#drill-overlay .drill-next:hover{ background:var(--sunk); border-color:var(--field); color:var(--text); }
+@media (pointer:coarse){ #drill-overlay .drill-next{ height:var(--tap); } }
 #drill-overlay .drill-feedback{
   display:flex; align-items:center; gap:.5rem; min-height:1.6em; margin:.9rem 0;
   font:var(--w-semi) var(--fs-ui)/1.35 var(--font-ui); color:var(--text-2);
@@ -61829,7 +61836,7 @@ print(confusion_matrix(y_test, y_pred))   <span class="cmt"># [[VN, FP], [FN, VP
 <div id="drill-overlay" class="drill-overlay fen fen-etroite">
   <div class="fen-boite" role="dialog" aria-modal="true" aria-labelledby="drill-titre">
     <div class="fen-tete">
-      <h2 class="fen-titre" id="drill-titre">Calcul mental <span class="fen-titre-2">automatismes</span></h2>
+      <h2 class="fen-titre" id="drill-titre">Calcul mental</h2>
       <button type="button" class="btn btn-ghost btn-icon fen-x" id="drill-close-btn" aria-label="Fermer"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
     </div>
     <div id="drill-body" class="fen-corps">
@@ -73962,12 +73969,16 @@ function navigateTo(chapId, panelId, onDone){
     index.forEach(it => { it.nTitle = normalize(it.title); it.nText = normalize(it.text); });
   }
 
+  // Espace insécable avant ? ! : ; » et après « (hors formules) : pas de « ? » seul en début de ligne
+  const fr = s => s.replace(/ ([?!:;»])/g, ' $1').replace(/« /g, '« ');
   // Surligne la 1ʳᵉ occurrence HORS formules TeX (\( … \), $$ … $$ : rendues par MathJax ensuite)
   function marquer(text, q){
     const nq = normalize(String(q || '').trim());
     let fait = !nq;
     return String(text || '').split(/(\\\([\s\S]*?\\\)|\$\$[\s\S]*?\$\$)/).map((p, k) => {
-      if(k % 2 || fait) return esc(p);
+      if(k % 2) return esc(p);
+      p = fr(p);
+      if(fait) return esc(p);
       const i = normalize(p).indexOf(nq);
       if(i < 0) return esc(p);
       fait = true;
@@ -76524,7 +76535,7 @@ document.getElementById('skip-link')?.addEventListener('click', e => {
     let h = '<ul class="flag-list">';
     l.forEach(x => {
       const m = chapMat(x.p);
-      h += `<li${m ? ` data-mat="${m}"` : ''}><span class="flag-q">${esc(stripHtml(x.q))}</span>`
+      h += `<li${m ? ` data-mat="${m}"` : ''}><span class="flag-q">${esc(stripHtml(x.q).replace(/ ([?!:;»])/g, "\u00a0$1"))}</span>`
         + `<span class="flag-chap"><span class="dot" aria-hidden="true"></span>${esc([MAT_LBL[m] || '', chapName(x.p)].filter(Boolean).join(' · '))}</span>`
         + `<button type="button" class="flag-rm" data-p="${esc(x.p)}" data-i="${x.i}" aria-label="Retirer cette carte de la liste">Retirer</button></li>`;
     });
