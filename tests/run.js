@@ -7,6 +7,7 @@
      node tests/run.js                 → toutes les suites
      node tests/run.js --rapide        → échantillon (~10 chapitres, 5 matières)
      node tests/run.js --suite=site,mobile --chapitres=rlc,optgeo
+     node tests/run.js --suite=visuel --strict   → mesures visuelles sans listes tolérées
      node tests/run.js --aide          → toutes les options
    Le script démarre son propre petit serveur (tests/lib/serveur.js) sur un
    port libre, pilote Chromium via Playwright, écrit captures + rapport JSON
@@ -19,7 +20,7 @@ const { demarrerServeur } = require('./lib/serveur');
 const { suivreErreurs, pause } = require('./lib/outils');
 
 const RACINE_DEPOT = path.resolve(__dirname, '..');
-const SUITES = ['site', 'mobile', 'interactions', 'pwa', 'regressions'];
+const SUITES = ['site', 'mobile', 'interactions', 'pwa', 'regressions', 'visuel'];
 
 /* Échantillon du mode --rapide : une dizaine de chapitres couvrant les 5
    matières (dont le chapitre par défaut, des simulateurs, des formules longues).
@@ -38,7 +39,7 @@ const vert = teinte('32'), rouge = teinte('31'), jaune = teinte('33'), gras = te
 /* ---------- Options de la ligne de commande ---------- */
 function lireOptions(argv) {
   const o = { rapide: false, suites: SUITES.slice(), chapitres: null, racine: RACINE_DEPOT,
-    sortie: path.join(__dirname, 'sortie'), visible: false, aide: false };
+    sortie: path.join(__dirname, 'sortie'), visible: false, strict: false, aide: false };
   for (const arg of argv) {
     const [cle, ...reste] = arg.replace(/^--?/, '').split('=');
     const val = reste.join('=');
@@ -55,6 +56,7 @@ function lireOptions(argv) {
       case 'racine': o.racine = path.resolve(val); break;
       case 'sortie': o.sortie = path.resolve(val); break;
       case 'visible': o.visible = true; break;
+      case 'strict': o.strict = true; break;
       case 'aide': case 'help': case 'h': o.aide = true; break;
       default: throw new Error('option inconnue : ' + arg + ' (voir --aide)');
     }
@@ -72,13 +74,16 @@ Usage :  node tests/run.js [options]      (ou : npm test, npm run test:rapide)
 
 Options :
   --rapide               échantillon d'une dizaine de chapitres (5 matières)
-                         + tous les simulateurs dans un seul thème (clair)
+                         + tous les simulateurs dans un seul thème (clair) ;
+                         la suite visuel, elle, reste complète (≈ 2 min)
   --suite=nom[,nom]      suites à lancer parmi : ${SUITES.join(', ')}
   --chapitres=id[,id]    limite les boucles de chapitres à ces ids (ex. rlc,optgeo) ;
                          un prefix est accepté (og = optgeo) ; nom inconnu → arrêt (code 2)
   --racine=dossier       dossier du site à tester (défaut : racine du dépôt)
   --sortie=dossier       captures + rapport.json (défaut : tests/sortie/)
   --visible              ouvre une vraie fenêtre Chromium (pour observer / déboguer)
+  --strict               suite visuel : ignore les listes d'anomalies tolérées (tout
+                         constat fait échouer ; utile pendant la refonte graphique)
   --aide                 affiche cette aide
 
 Code de sortie : 0 si tout passe, 1 si au moins un test échoue, 2 si le
@@ -278,8 +283,9 @@ async function main() {
   }
   const pw = chargerPlaywright();
   fs.mkdirSync(options.sortie, { recursive: true });
-  // On efface les fichiers d'un run précédent (uniquement ceux que le harnais produit)
-  const produits = new RegExp('^((' + SUITES.join('|') + ')-[\\w.-]+\\.(png|json)|rapport\\.json)$', 'i');
+  // On efface les fichiers d'un run précédent (uniquement ceux que le harnais produit :
+  // <suite>-*.png|json, rapport.json, et le détail de la suite visuel, visuel.json + visuel.md)
+  const produits = new RegExp('^((' + SUITES.join('|') + ')-[\\w.-]+\\.(png|json)|rapport\\.json|visuel\\.(json|md))$', 'i');
   for (const f of fs.readdirSync(options.sortie)) {
     if (produits.test(f)) { try { fs.unlinkSync(path.join(options.sortie, f)); } catch (e) { /* ignoré */ } }
   }
@@ -321,7 +327,8 @@ PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers et ne pas faire « npm install ».)
   console.log(gras('\nTests navigateur — Révisions PTSI'));
   console.log(gris('  site     : ' + rel(options.racine) + '  (servi sur ' + serveur.url + ')'));
   console.log(gris('  Chromium : ' + navigateur.version() + (options.rapide ? '   · mode RAPIDE' : '')
-    + (options.chapitres ? '   · chapitres : ' + options.chapitres.join(',') : '')));
+    + (options.chapitres ? '   · chapitres : ' + options.chapitres.join(',') : '')
+    + (options.strict ? '   · mode STRICT (aucune anomalie tolérée)' : '')));
 
   const resultats = [];
   let arretHarnais = null;   // erreur d'utilisation (code 2)
@@ -360,7 +367,7 @@ PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers et ne pas faire « npm install ».)
 
   /* Rapport JSON détaillé */
   const rapport = {
-    date: new Date().toISOString(), racine: options.racine, rapide: options.rapide, chapitres: options.chapitres,
+    date: new Date().toISOString(), racine: options.racine, rapide: options.rapide, chapitres: options.chapitres, strict: options.strict,
     chromium: navigateur.version(), dureeMs: Date.now() - t0,
     suites: resultats.map(r => ({ nom: r.nom, ok: !r.enEchec.length, dureeMs: r.duree, controles: r.controles,
       avertissements: r.avertissements, infos: r.infos })),
