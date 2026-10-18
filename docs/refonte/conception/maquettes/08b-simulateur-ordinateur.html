@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="fr" data-theme-pref="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Simulateur — ordinateur</title>
+<link rel="stylesheet" href="../polices/polices.css">
+<link rel="stylesheet" href="../tokens.css">
+<link rel="stylesheet" href="../composants.css">
+<script>
+window.MathJax = {
+  tex: {inlineMath: [['\\(', '\\)']], displayMath: [['$$', '$$']]},
+  options: {renderActions: {addMenu: []}},
+  chtml: {scale: 1.07, minScale: 0.5, matchFontHeight: false, mtextInheritFont: true}
+};
+</script>
+<script defer src="../mathjax/tex-mml-chtml.js"></script>
+<script>
+// (SPEC §7.3) Typographie française et ponctuation collée aux formules, lancée
+// après le rendu MathJax d'un panneau : espace fine insécable avant ; ! ? et
+// insécable avant : » / après « ; une ponctuation qui suit une formule en ligne
+// ne part plus seule à la ligne ; formule en ligne trop large → .mj-large.
+document.addEventListener('DOMContentLoaded', () => MathJax.startup.promise.then(() => {
+  const w = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, { acceptNode: n =>
+    n.parentElement.closest('script,style,mjx-container,code,pre,kbd') ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT });
+  const ns = []; while (w.nextNode()) ns.push(w.currentNode);
+  ns.forEach(t => { t.data = t.data.replace(/ ([;!?])/g, ' $1').replace(/ ([:»])/g, ' $1').replace(/« /g, '« '); });
+  document.querySelectorAll('mjx-container:not([display="true"])').forEach(m => {
+    const t = m.nextSibling;
+    if (t && t.nodeType === 3) {
+      const k = t.data.match(/^[   ]?[.,;:!?)\]…»]+/);
+      if (k) { const s = document.createElement('span'); s.style.whiteSpace = 'nowrap';
+        m.parentNode.insertBefore(s, m); s.appendChild(m); s.appendChild(document.createTextNode(k[0])); t.data = t.data.slice(k[0].length); }
+    }
+    const box = m.closest('p,li,div'); if (box && m.getBoundingClientRect().width > box.clientWidth) m.classList.add('mj-large');
+  });
+  document.querySelectorAll('.control input[type=range]').forEach(r => { const f = () => r.style.setProperty('--p', ((r.value - r.min) / (r.max - r.min) * 100) + '%'); f(); r.addEventListener('input', f); });
+}));
+</script>
+<style>.chap-head{ grid-template-columns:2.5rem minmax(0,1fr) 0; }</style>
+</head>
+<body class="desk">
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs>
+  <symbol id="i-menu" viewBox="0 0 24 24"><line x1="3.5" y1="7" x2="20.5" y2="7"/><line x1="3.5" y1="12" x2="20.5" y2="12"/><line x1="3.5" y1="17" x2="20.5" y2="17"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><line x1="15.8" y1="15.8" x2="21" y2="21"/></symbol>
+  <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M3.7 12a8.3 8.3 0 0 1 14.1-6L20 8"/><path d="M20 3v5h-5"/><path d="M20.3 12a8.3 8.3 0 0 1-14.1 6L4 16"/><path d="M4 21v-5h5"/></symbol>
+  <symbol id="i-theme" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 3.5a8.5 8.5 0 0 0 0 17z" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="i-dots" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.7" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.7" fill="currentColor" stroke="none"/><circle cx="19" cy="12" r="1.7" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="i-calendar" viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="16" rx="2.5"/><line x1="3.5" y1="9.5" x2="20.5" y2="9.5"/><line x1="8" y1="3" x2="8" y2="6.5"/><line x1="16" y1="3" x2="16" y2="6.5"/></symbol>
+  <symbol id="i-bolt" viewBox="0 0 24 24"><path d="M13 3 5 13.5h6L11 21l8-10.5h-6z"/></symbol>
+  <symbol id="i-calc" viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2.5"/><line x1="8.5" y1="7" x2="15.5" y2="7"/><circle cx="9" cy="12" r="1" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1" fill="currentColor" stroke="none"/><circle cx="15" cy="12" r="1" fill="currentColor" stroke="none"/><circle cx="9" cy="16" r="1" fill="currentColor" stroke="none"/><circle cx="12" cy="16" r="1" fill="currentColor" stroke="none"/><circle cx="15" cy="16" r="1" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="i-chart" viewBox="0 0 24 24"><line x1="4" y1="20.5" x2="20.5" y2="20.5"/><rect x="5.5" y="11" width="3.4" height="8" rx="0.8"/><rect x="10.3" y="6.5" width="3.4" height="12.5" rx="0.8"/><rect x="15.1" y="14" width="3.4" height="5" rx="0.8"/></symbol>
+  <symbol id="i-function" viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2.5"/><path d="M14.6 8.2H9.4l3 3.8-3 3.8h5.2"/></symbol>
+  <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 3.5v11"/><path d="M7.5 10.5 12 15l4.5-4.5"/><path d="M5 20.5h14"/></symbol>
+  <symbol id="i-printer" viewBox="0 0 24 24"><path d="M7 9.5V4.5h10v5"/><path d="M7 18.5H5.5a2 2 0 0 1-2-2v-3.5a2 2 0 0 1 2-2h13a2 2 0 0 1 2 2v3.5a2 2 0 0 1-2 2H17"/><rect x="7" y="15" width="10" height="5.5" rx="1"/></symbol>
+  <symbol id="i-flag" viewBox="0 0 24 24"><path d="M5.5 21V4"/><path d="M5.5 4.5h11l-2.2 3.8 2.2 3.8h-11"/></symbol>
+  <symbol id="i-volume" viewBox="0 0 24 24"><path d="M5 9.5v5h3.5l4.5 3.5V6L8.5 9.5H5z"/><path d="M16 9.5a3.5 3.5 0 0 1 0 5"/><path d="M18.6 7a7 7 0 0 1 0 10"/></symbol>
+  <symbol id="i-book" viewBox="0 0 24 24"><rect x="5" y="4" width="14" height="16" rx="1.5"/><line x1="9" y1="4" x2="9" y2="20"/></symbol>
+  <symbol id="i-keyboard" viewBox="0 0 24 24"><rect x="3" y="6.5" width="18" height="11" rx="2"/><line x1="8" y1="14" x2="16" y2="14"/><circle cx="7" cy="10.5" r="0.9" fill="currentColor" stroke="none"/><circle cx="11" cy="10.5" r="0.9" fill="currentColor" stroke="none"/><circle cx="15" cy="10.5" r="0.9" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19.5 6.5"/></symbol>
+  <symbol id="i-inbox" viewBox="0 0 24 24"><path d="M4 13l2.6-7.2a1.5 1.5 0 0 1 1.4-1h8a1.5 1.5 0 0 1 1.4 1L20 13v4.5a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 17.5z"/><path d="M4 13h4l1.3 2.2h5.4L16 13h4"/></symbol>
+
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></symbol>
+  <symbol id="i-chev-down" viewBox="0 0 24 24"><path d="M6.5 9.5 12 15l5.5-5.5"/></symbol>
+  <symbol id="i-chev-right" viewBox="0 0 24 24"><path d="M9.5 6.5 15 12l-5.5 5.5"/></symbol>
+  <symbol id="i-chev-left" viewBox="0 0 24 24"><path d="M14.5 6.5 9 12l5.5 5.5"/></symbol>
+  <symbol id="i-star" viewBox="0 0 24 24"><path d="m12 3.6 2.5 5.3 5.8.7-4.3 4 1.1 5.7L12 16.5l-5.1 2.8L8 13.6l-4.3-4 5.8-.7z"/></symbol>
+  <symbol id="i-star-fill" viewBox="0 0 24 24"><path d="m12 3.6 2.5 5.3 5.8.7-4.3 4 1.1 5.7L12 16.5l-5.1 2.8L8 13.6l-4.3-4 5.8-.7z" fill="currentColor"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2.8v2.4M12 18.8v2.4M2.8 12h2.4M18.8 12h2.4M5.5 5.5l1.7 1.7M16.8 16.8l1.7 1.7M5.5 18.5l1.7-1.7M16.8 7.2l1.7-1.7"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M19.5 14.5A8 8 0 0 1 9.5 4.5a8 8 0 1 0 10 10z"/></symbol>
+  <symbol id="i-auto" viewBox="0 0 24 24"><rect x="3" y="4.5" width="18" height="12.5" rx="2"/><path d="M8.5 20.5h7M12 17v3.5"/><path d="M12 7.5a3.2 3.2 0 0 0 0 6.4z" fill="currentColor" stroke="none"/><circle cx="12" cy="10.7" r="3.2"/></symbol>
+  <symbol id="i-sidebar" viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><path d="M9.5 4.5v15"/></symbol>
+  <symbol id="i-arrow-right" viewBox="0 0 24 24"><path d="M4.5 12h15M14 6.5l5.5 5.5-5.5 5.5"/></symbol>
+  <symbol id="i-filter" viewBox="0 0 24 24"><path d="M4 6.5h16M7 12h10M10 17.5h4"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></symbol>
+  <symbol id="i-flip" viewBox="0 0 24 24"><path d="M4 9a8 8 0 0 1 14-3.5L20 7.5"/><path d="M20 3.5v4h-4"/><path d="M20 15a8 8 0 0 1-14 3.5L4 16.5"/><path d="M4 20.5v-4h4"/></symbol>
+  <symbol id="i-skip" viewBox="0 0 24 24"><path d="M6 6.5 12 12l-6 5.5M13 6.5l6 5.5-6 5.5"/></symbol>
+  <symbol id="i-text" viewBox="0 0 24 24"><path d="M4 18 9 6l5 12M5.8 14h6.4"/><path d="M15.5 18l3-7 3 7M16.4 16h4.2"/></symbol>
+  <symbol id="i-pin" viewBox="0 0 24 24"><path d="M9 3.5h6l-1 5.5 3.5 3.5h-11L10 9z"/><path d="M12 12.5v8"/></symbol>
+  <symbol id="i-play" viewBox="0 0 24 24"><path d="M8 5.5v13l10.5-6.5z"/></symbol>
+  <symbol id="i-target" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1" fill="currentColor"/></symbol>
+  <symbol id="i-undo" viewBox="0 0 24 24"><path d="M9 7.5 4.5 12 9 16.5"/><path d="M4.5 12H15a4.5 4.5 0 0 1 0 9h-2"/></symbol>
+  <symbol id="i-wave" viewBox="0 0 24 24"><path d="M2.5 12c2-6 4-6 6 0s4 6 6 0 4-6 7-1"/></symbol>
+</defs></svg>
+
+
+<header class="hdr">
+  <button class="btn btn-ghost btn-icon" aria-label="Masquer la navigation"><svg class="ic " aria-hidden="true"><use href="#i-sidebar"/></svg></button>
+  <a class="brand" href="#"><span class="brand-mark" aria-hidden="true"></span><span class="brand-name">Mes cours de <em>prépa</em></span></a>
+  <label class="field field-soft"><svg class="ic " aria-hidden="true"><use href="#i-search"/></svg><input placeholder="Rechercher chapitre, formule, carte…"><span class="kbd kbd-hint">Ctrl K</span></label>
+  <span class="spacer"></span>
+  <button class="btn btn-ghost"><svg class="ic " aria-hidden="true"><use href="#i-calendar"/></svg>Aujourd'hui</button>
+  <button class="btn btn-ghost"><svg class="ic " aria-hidden="true"><use href="#i-chart"/></svg>Bilan</button>
+  <button class="btn btn-primary"><svg class="ic " aria-hidden="true"><use href="#i-refresh"/></svg>Réviser<span class="count">37</span><svg class="ic ic-s" aria-hidden="true"><use href="#i-chev-down"/></svg></button>
+  <span class="vsep"></span>
+  <button class="btn btn-ghost btn-icon" aria-label="Thème : Auto (actuellement clair)" aria-haspopup="dialog" ><svg class="ic " aria-hidden="true"><use href="#i-theme"/></svg></button>
+  <button class="btn btn-ghost btn-icon" aria-label="Plus"><svg class="ic " aria-hidden="true"><use href="#i-dots"/></svg></button>
+</header>
+<div class="app no-rail">
+<aside class="side" aria-label="Chapitres">
+  <div class="seg seg-block" role="group" aria-label="Année"><button aria-pressed="true">1ʳᵉ&nbsp;année</button><button aria-pressed="false">2ᵉ&nbsp;année</button></div>
+  <label class="field field-soft" style="margin-top:.75rem"><svg class="ic " aria-hidden="true"><use href="#i-filter"/></svg><input placeholder="Filtrer les 160 chapitres"></label>
+  <div class="nav-block"><div class="kicker">Épinglés</div><div class="chips"><a class="chip" href="#" data-mat="physique"><span class="dot"></span>Filtres</a><a class="chip" href="#" data-mat="physique"><span class="dot"></span>Maxwell & ARQS<span class="tag2a">2A</span></a></div></div>
+  <div class="nav-block"><div class="kicker">Récents</div><a class="recent-row" href="#" data-mat="physique"><span class="dot"></span>Circuit RLC série<span class="where">Cours · §3</span></a><a class="recent-row" href="#" data-mat="si"><span class="dot"></span>Cinématique<span class="where">Exercices</span></a><a class="recent-row" href="#" data-mat="si"><span class="dot"></span>SLCI — Systèmes asservis<span class="where">Cartes</span></a></div>
+  <div class="nav-block" style="margin-top:1.1rem"><div class="mat-tabs" role="tablist" data-mat="physique"><button class="mat-tab on" data-mat="physique" role="tab" aria-selected="true">Physique<span class="n">37</span></button><button class="mat-tab" data-mat="maths" role="tab" aria-selected="false">Maths<span class="n">20</span></button><button class="mat-tab" data-mat="si" role="tab" aria-selected="false">SI<span class="n">25</span></button><button class="mat-tab" data-mat="info" role="tab" aria-selected="false">Info<span class="n">8</span></button><button class="mat-tab" data-mat="anglais" role="tab" aria-selected="false">Anglais<span class="n">18</span></button></div></div>
+  <div data-mat="physique" style="margin-top:.5rem"><div class="nav-part"><button class="nav-part-h" aria-expanded="true"><svg class="ic " aria-hidden="true"><use href="#i-chev-down"/></svg>Ondes & signaux<span class="n">9</span></button><ul class="nav-list"><li><a class="nav-item" href="#" data-mat="physique">Lois — régime continu<span class="end"><svg class="ic ic-s pin" aria-hidden="true"><use href="#i-star"/></svg></span></a></li><li><a class="nav-item" href="#" data-mat="physique">Circuit du 1er ordre<span class="end"><span class="count count-soft" aria-label="1 cartes dues">1</span><svg class="ic ic-s pin" aria-hidden="true"><use href="#i-star"/></svg></span></a></li><li><a class="nav-item cur" href="#" data-mat="physique" aria-current="page">Circuit RLC série<span class="end"><span class="count count-soft" aria-label="3 cartes dues">3</span><svg class="ic ic-s pin" aria-hidden="true"><use href="#i-star"/></svg></span></a></li><li><a class="nav-item" href="#" data-mat="physique">Signaux<span class="end"><span class="count count-soft" aria-label="2 cartes dues">2</span><svg class="ic ic-s pin" aria-hidden="true"><use href="#i-star"/></svg></span></a></li><li><a class="nav-item" href="#" data-mat="physique">Filtres<span class="end"><span class="count count-soft" aria-label="5 cartes dues">5</span><svg class="ic ic-s pin on" aria-hidden="true"><use href="#i-star-fill"/></svg></span></a></li><li><a class="nav-item" href="#" data-mat="physique">Ondes<span class="end"><svg class="ic ic-s pin" aria-hidden="true"><use href="#i-star"/></svg></span></a></li><li><a class="nav-item" href="#" data-mat="physique">Optique — bases<span class="end"><svg class="ic ic-s pin" aria-hidden="true"><use href="#i-star"/></svg></span></a></li><li><a class="nav-item" href="#" data-mat="physique">Optique — lentilles<span class="end"><svg class="ic ic-s pin" aria-hidden="true"><use href="#i-star"/></svg></span></a></li><li><a class="nav-item" href="#" data-mat="physique">Optique ondulat.<span class="end"><svg class="ic ic-s pin" aria-hidden="true"><use href="#i-star"/></svg></span></a></li></ul></div><div class="nav-part"><button class="nav-part-h" aria-expanded="false"><svg class="ic " aria-hidden="true"><use href="#i-chev-down"/></svg>Mécanique<span class="n">7</span></button></div><div class="nav-part"><button class="nav-part-h" aria-expanded="false"><svg class="ic " aria-hidden="true"><use href="#i-chev-down"/></svg>Thermodynamique<span class="n">7</span></button></div><div class="nav-part"><button class="nav-part-h" aria-expanded="false"><svg class="ic " aria-hidden="true"><use href="#i-chev-down"/></svg>Électromagnétisme<span class="n">4</span></button></div><div class="nav-part"><button class="nav-part-h" aria-expanded="false"><svg class="ic " aria-hidden="true"><use href="#i-chev-down"/></svg>Chimie<span class="n">9</span></button></div><div class="nav-part"><button class="nav-part-h" aria-expanded="false"><svg class="ic " aria-hidden="true"><use href="#i-chev-down"/></svg>Référence<span class="n">1</span></button></div></div>
+</aside><main class="main"><article class="sheet chapter" data-mat="physique" style="max-width:66rem">
+<header class="chap-head">
+  <div class="crumb"><span class="dot"></span><a href="#"><b>Physique</b></a><svg class="ic " aria-hidden="true"><use href="#i-chev-right"/></svg><a href="#">Ondes &amp; signaux</a><span class="sep" style="color:var(--text-3)">·</span>Électrocinétique</div>
+  <div class="chap-title-row"><h1 class="chap-h1">Circuit RLC série</h1>
+    <div class="chap-actions"><button class="btn"><svg class="ic " aria-hidden="true"><use href="#i-function"/></svg>Formulaire</button><button class="btn btn-icon" aria-label="Imprimer le chapitre"><svg class="ic " aria-hidden="true"><use href="#i-printer"/></svg></button><button class="btn btn-icon" aria-label="Épingler le chapitre"><svg class="ic " aria-hidden="true"><use href="#i-star"/></svg></button></div></div>
+  <div class="chap-meta"><span class="badge badge-out">1ʳᵉ&nbsp;année</span><span>7 sections</span><span class="sep">·</span><span>26 cartes</span><span class="sep">·</span><span>8 exercices</span><span class="sep">·</span><span>1 simulateur</span></div>
+  <nav class="tabs" role="tablist"><button class="tab" data-panel="rlc-cours" role="tab" aria-selected="false"><span class="num">01</span>Cours</button><button class="tab" data-panel="rlc-meth" role="tab" aria-selected="false"><span class="num">02</span>Méthodes <span class="cnt">4</span></button><button class="tab active" data-panel="rlc-simu" role="tab" aria-selected="true"><span class="num">03</span>Simulateur</button><button class="tab" data-panel="rlc-flash" role="tab" aria-selected="false"><span class="num">04</span>Cartes <span class="cnt">26</span><span class="count" aria-label="3 cartes dues">3</span></button><button class="tab" data-panel="rlc-exos" role="tab" aria-selected="false"><span class="num">05</span>Exercices <span class="cnt">8</span></button></nav>
+</header><section class="panel active" id="rlc-simu"><div class="panel-body" style="padding-left:2.5rem">
+<div class="sim-wrapper">
+  <h2>Simulateur RLC</h2>
+  <p class="lead">Manipule \(R\), \(L\), \(C\) et observe les régimes. Le badge de couleur t'indique le régime en cours.</p>
+  
+  <div class="mode-switch">
+    <button class="active" data-mode="libre">Régime libre</button>
+    <button data-mode="echelon">Réponse à un échelon</button>
+    <button data-mode="forced">Régime forcé (Bode)</button>
+  </div>
+  
+  <div id="regime-display" class="regime-badge pseudo">Pseudo-périodique · Q &gt; 1/2</div>
+  
+  <div class="sim-controls">
+    <div class="control">
+      <label>R — résistance (Ω)</label>
+      <input type="range" id="R" min="0.5" max="200" step="0.5" value="20">
+      <span class="value" id="R-val">20 Ω</span>
+    </div>
+    <div class="control">
+      <label>L — inductance (mH)</label>
+      <input type="range" id="L" min="1" max="200" step="1" value="50">
+      <span class="value" id="L-val">50 mH</span>
+    </div>
+    <div class="control">
+      <label>C — capacité (µF)</label>
+      <input type="range" id="C" min="0.1" max="100" step="0.1" value="10">
+      <span class="value" id="C-val">10 µF</span>
+    </div>
+    <div class="control" id="freq-ctrl" style="display:none">
+      <label>f excitation (Hz)</label>
+      <input type="range" id="F" min="10" max="2000" step="5" value="225">
+      <span class="value" id="F-val">225 Hz</span>
+    </div>
+  <button class="btn btn-ghost sim-reset">↺ Valeurs par défaut</button></div>
+  <canvas id="sim-canvas" aria-label="Tension aux bornes du condensateur en fonction du temps"></canvas>
+  
+  <div class="sim-info">
+    <div><span class="lbl">Pulsation propre \(\omega_0\)</span><span id="info-w0">1 414 rad/s</span></div>
+    <div><span class="lbl">Fréquence propre \(f_0\)</span><span id="info-f0">225 Hz</span></div>
+    <div><span class="lbl">Facteur de qualité \(Q\)</span><span id="info-Q">3,54</span></div>
+    <div><span class="lbl">Constante de temps \(\tau\)</span><span id="info-tau">5,0 ms</span></div>
+  </div>
+</div></div></section></article></main></div>
+<script>document.fonts.ready.then(()=>{const s=document.createElement('script');s.textContent="\n// Canvas dessiné avec les jetons (même principe que __CV() dans le site)\n(function(){\n  const cv=document.getElementById('sim-canvas'), g=cv.getContext('2d'), cs=getComputedStyle(cv);\n  const v=n=>cs.getPropertyValue(n).trim();\n  const dpr=window.devicePixelRatio||1, cw=cv.clientWidth, chh=Math.round(cw*(cw<500?0.62:0.5)); cv.width=cw*dpr; cv.height=chh*dpr; cv.style.height=chh+'px'; g.scale(dpr,dpr);\n  const W=cw, H=chh, L=44, Rr=24, T=34, B=34, x0=L, x1=W-Rr, yc=T+(H-T-B)/2, A=(H-T-B)/2-10;\n  g.lineWidth=1; g.strokeStyle=v('--line'); g.beginPath();\n  for(let i=0;i<=10;i++){const x=x0+(x1-x0)*i/10; g.moveTo(x,T); g.lineTo(x,H-B);} for(let j=-2;j<=2;j++){const y=yc-j*A/2; g.moveTo(x0,y); g.lineTo(x1,y);} g.stroke();\n  g.strokeStyle=v('--text-3'); g.lineWidth=1.25; g.beginPath(); g.moveTo(x0,yc); g.lineTo(x1,yc); g.moveTo(x0,T); g.lineTo(x0,H-B); g.stroke();\n  g.font='500 12px \"JetBrains Mono\", monospace'; g.fillStyle=v('--text-2'); g.textAlign='right'; g.textBaseline='middle';\n  [['1',yc-A],['0',yc],['−1',yc+A]].forEach(([t,y])=>g.fillText(t,x0-8,y));\n  g.textAlign='center'; g.textBaseline='top';\n  for(let i=1;i<=5;i++){ if(cw<500 && i%2===0) continue; g.fillText((i*5)+' ms', x0+(x1-x0)*i/5 - (i===5?16:0), H-B+8); }\n  const tau=5, w=1414*Math.sqrt(1-1/(4*3.54*3.54))/1000, tmax=25, X=t=>x0+(x1-x0)*t/tmax, Y=u=>yc-u*A;\n  g.setLineDash([4,4]); g.strokeStyle=v('--text-3'); g.lineWidth=1; g.beginPath();\n  for(let t=0;t<=tmax;t+=.1){ const e=Math.exp(-t/tau); t?g.lineTo(X(t),Y(e)):g.moveTo(X(t),Y(e)); } g.stroke();\n  g.beginPath(); for(let t=0;t<=tmax;t+=.1){ const e=-Math.exp(-t/tau); t?g.lineTo(X(t),Y(e)):g.moveTo(X(t),Y(e)); } g.stroke(); g.setLineDash([]);\n  g.strokeStyle=v('--chap-vif'); g.lineWidth=2.25; g.lineJoin='round'; g.beginPath();\n  for(let t=0;t<=tmax;t+=.02){ const u=Math.exp(-t/tau)*(Math.cos(w*t)+Math.sin(w*t)/(w*tau)); t?g.lineTo(X(t),Y(u)):g.moveTo(X(t),Y(u)); } g.stroke();\n  g.fillStyle=v('--text'); g.textAlign='left'; g.textBaseline='alphabetic';\n  g.font='italic 500 16px \"Source Serif 4\", serif'; g.fillText('u', x0+10, T-12); g.font='italic 500 11px \"Source Serif 4\", serif'; g.fillText('C', x0+19, T-8);\n  g.font='500 15px \"Source Serif 4\", serif'; g.fillText('/', x0+28, T-12); g.font='italic 500 16px \"Source Serif 4\", serif'; g.fillText('U', x0+35, T-12);\n  g.font='500 11px \"Source Serif 4\", serif'; g.fillText('0', x0+47, T-8);\n  g.font='500 13px \"Source Sans 3\", sans-serif'; g.fillStyle=v('--text-2'); g.textAlign='right'; g.fillText('– – enveloppe e^(−t/τ)', x1, T-12);\n})();\n";document.body.appendChild(s);});</script>
+</body>
+</html>

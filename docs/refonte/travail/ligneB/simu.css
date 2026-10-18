@@ -1,0 +1,160 @@
+/* --- Simulateur (SPEC §5.5 ; composants.css §7) ----------------------------------------------
+   DOM réel (inchangé) des 26 simulateurs canvas :
+   .sim-wrapper > h2, .lead, .mode-switch?, .regime-badge?, .sim-controls, canvas, .sim-info, .notice?
+   Disposition par une grille à zones nommées : courbe à gauche, réglages à droite ; une zone dont
+   l'élément n'existe pas reste vide. Couleurs : variables de thème uniquement (les anciens
+   overrides sombres des encadrés sont remplacés par ces règles). */
+.sim-wrapper{
+  display:grid; grid-template-columns:minmax(0, 1fr) 19rem; column-gap:1.5rem; row-gap:.9rem; align-items:start;
+  grid-template-areas:"titre titre" "lead lead" "badge mode" "scene reglages" "info reglages" "note note";
+  font-family:var(--font-ui); color:var(--text);
+}
+.sim-wrapper > h2{
+  grid-area:titre; margin:0; font:var(--w-semi) var(--fs-h2)/var(--lh-head) var(--font-text);
+  letter-spacing:var(--track-head); text-wrap:balance; color:var(--text);
+}
+.sim-wrapper > .lead{
+  grid-area:lead; margin:0; max-width:var(--measure);
+  font:var(--w-regular) var(--fs-body)/var(--lh-text) var(--font-text); color:var(--text-2); text-wrap:pretty;
+}
+.sim-wrapper > .mode-switch{
+  grid-area:mode; display:grid; width:100%; align-self:center;
+  grid-auto-flow:row; grid-template-columns:repeat(auto-fit, minmax(5.75rem, 1fr));   /* 4-5 modes : sur deux rangées */
+}
+.sim-wrapper > .mode-switch > button{ padding:.35rem .4rem; line-height:1.15; }
+.sim-wrapper > .regime-badge{ grid-area:badge; justify-self:start; align-self:center; }
+.sim-wrapper > .sim-controls{ grid-area:reglages; }
+.sim-wrapper > .sim-info{ grid-area:info; }
+.sim-wrapper > .notice{ grid-area:note; margin:.4rem 0 0; max-width:calc(var(--measure) + 4rem); font-family:var(--font-text); }
+
+/* Scène : feuille à contour, rayon 16 px. Hauteur propre à chaque simulateur (--h) : le dessin
+   lit getBoundingClientRect() et redimensionne la toile (devicePixelRatio). */
+.sim-wrapper > canvas{
+  grid-area:scene; display:block; width:100%; height:var(--h, 380px);
+  border:1px solid var(--line); border-radius:var(--r-l); background:var(--sheet);
+}
+#tr-canvas{ --h:560px; }
+#stat-canvas, #cc-canvas, #es-canvas, #cpx-canvas, #cine-canvas{ --h:480px; }
+#suit-canvas{ --h:470px; }
+#mth-canvas{ --h:460px; }
+#opt-canvas, #lin-canvas, #oxr-canvas, #slci-canvas, #th2-canvas, #hach-canvas, #flt-canvas{ --h:450px; }
+#s2-canvas, #con-canvas, #crb-canvas{ --h:440px; }
+#dyn-canvas, #s1-canvas, #od-canvas, #int-canvas{ --h:430px; }
+#ond-canvas{ --h:400px; }
+/* Simulateurs où l'on glisse un objet au doigt : pas de défilement/zoom tactile sur la toile */
+#cpx-canvas, #es-canvas, #dyn-canvas{ touch-action:none; cursor:grab; }
+
+/* Régime : information, pas notation → matière / ambre (seuil) / neutre ; jamais rouge ni vert */
+.regime-badge{
+  display:inline-flex; align-items:center; gap:.45rem; min-height:1.875rem; padding:.2rem .75rem;
+  border-radius:var(--r-full); background:var(--chap-fond); color:var(--chap);
+  font:var(--w-semi) var(--fs-ui-s)/1.2 var(--font-ui); font-variant-numeric:tabular-nums;
+}
+.regime-badge::before{ content:""; flex:none; width:.5rem; height:.5rem; border-radius:50%; background:currentColor; }
+.regime-badge.pseudo{ background:var(--chap-fond); color:var(--chap); }
+.regime-badge.critique{ background:var(--ambre-fond); color:var(--ambre); }
+.regime-badge.aperiodique{ background:var(--sunk); color:var(--text-2); box-shadow:inset 0 0 0 1px var(--line-2); }
+
+/* Réglages : panneau feuille à contour, intitulé « Paramètres » généré */
+.sim-controls{
+  display:flex; flex-direction:column; gap:1.05rem; padding:1.1rem;
+  border:1px solid var(--line); border-radius:var(--r-l); background:var(--sheet);
+}
+.sim-controls::before{
+  content:"Paramètres"; font:var(--w-semi) var(--fs-kicker)/1.2 var(--font-ui);
+  letter-spacing:var(--track-kicker); text-transform:uppercase; color:var(--text-3);
+}
+.control{ display:grid; grid-template-columns:minmax(0, 1fr) auto; align-items:baseline; column-gap:.6rem; row-gap:.4rem; }
+/* Contrôle ré-affiché par un simulateur (style="display:flex" posé en JS) : même grille */
+.sim-controls .control[style*="flex"]{ display:grid !important; }
+.control label{
+  font:var(--w-medium) var(--fs-ui-s)/1.25 var(--font-ui); color:var(--text-2);
+  text-transform:none !important; letter-spacing:0 !important;
+}
+.control .value{
+  justify-self:end; padding:.25rem .45rem; border-radius:var(--r-s); background:var(--sunk);
+  font:var(--w-semi) var(--fs-ui-s)/1 var(--font-ui); font-variant-numeric:tabular-nums; color:var(--text);
+  text-transform:none !important; white-space:nowrap;
+}
+.control input, .control select{ grid-column:1 / -1; grid-row:2; }
+/* Case à cocher (afficher la tangente, animer…) : sur la même ligne que son libellé */
+.control:has(> input[type="checkbox"]){ grid-template-columns:auto minmax(0, 1fr) auto; align-items:center; }
+.control:has(> input[type="checkbox"]) > input[type="checkbox"]{ grid-column:1; grid-row:1; }
+.control:has(> input[type="checkbox"]) > label{ grid-column:2; grid-row:1; }
+.control:has(> input[type="checkbox"]) > .value{ grid-column:3; grid-row:1; }
+.control input[type="checkbox"]{ width:1.125rem; height:1.125rem; margin:0; accent-color:var(--chap-vif); cursor:pointer; }
+.control select, .control input[type="number"], #lor-simu select{
+  height:2.375rem; width:100%; padding:0 .6rem; border:1px solid var(--field); border-radius:var(--r-m);
+  background:var(--raise); color:var(--text); font:var(--w-medium) var(--fs-ui-s)/1.2 var(--font-ui);
+}
+#lor-simu select{ width:auto; }
+/* Menu déroulant ouvert : fond et texte lisibles (les <option> n'héritent pas toujours) */
+.control select option, #lor-simu select option{ background:var(--raise); color:var(--text); }
+/* Curseurs : piste de 4 px, partie remplie à l'encre vive de la matière (--p posé par le
+   script « CONTENU »), poignée de 18 px à contour vif ; 44 px de haut au doigt */
+.control input[type="range"], #lor-simu input[type="range"]{
+  width:100%; margin:0; height:1.5rem; background:transparent; accent-color:var(--chap-vif);
+  -webkit-appearance:none; appearance:none; touch-action:pan-y; cursor:pointer;
+}
+.control input[type="range"]::-webkit-slider-runnable-track, #lor-simu input[type="range"]::-webkit-slider-runnable-track{
+  height:4px; border-radius:4px; background:linear-gradient(90deg, var(--chap-vif) var(--p, 50%), var(--line-2) var(--p, 50%));
+}
+.control input[type="range"]::-moz-range-track, #lor-simu input[type="range"]::-moz-range-track{ height:4px; border-radius:4px; background:var(--line-2); }
+.control input[type="range"]::-moz-range-progress, #lor-simu input[type="range"]::-moz-range-progress{ height:4px; border-radius:4px; background:var(--chap-vif); }
+.control input[type="range"]::-webkit-slider-thumb, #lor-simu input[type="range"]::-webkit-slider-thumb{
+  -webkit-appearance:none; width:1.125rem; height:1.125rem; margin-top:-7px; border-radius:50%;
+  background:var(--raise); border:2px solid var(--chap-vif); box-shadow:var(--sh-1);
+}
+.control input[type="range"]::-moz-range-thumb, #lor-simu input[type="range"]::-moz-range-thumb{
+  width:1rem; height:1rem; border-radius:50%; background:var(--raise); border:2px solid var(--chap-vif);
+}
+.control input[type="range"]:focus-visible, #lor-simu input[type="range"]:focus-visible{ outline:2px solid var(--focus); outline-offset:2px; border-radius:4px; }
+/* Bouton « ↺ Valeurs par défaut » (ajouté par le script) : discret, en bas du panneau */
+.sim-reset{
+  align-self:flex-start; display:inline-flex; align-items:center; gap:.4rem; height:2.25rem; padding:0 .7rem;
+  border:1px solid transparent; border-radius:var(--r-m); background:transparent; color:var(--text-2);
+  font:var(--w-semi) var(--fs-ui-s)/1 var(--font-ui); cursor:pointer;
+}
+.sim-reset:hover{ background:var(--hover); color:var(--text); }
+@media (pointer:coarse){
+  .control input[type="range"], #lor-simu input[type="range"]{ height:var(--tap); }
+  .control select, .control input[type="number"], #lor-simu select{ height:var(--tap); font-size:1rem; }
+  .sim-reset{ height:var(--tap); }
+  .control input[type="checkbox"]{ width:1.5rem; height:1.5rem; }
+}
+
+/* Mesures : tuiles en creux, libellé en sans 13 px, valeur en serif 600 de 20 px tabulaire */
+.sim-info{ display:grid; grid-template-columns:repeat(auto-fit, minmax(8.5rem, 1fr)); gap:.75rem; }
+.sim-info > div{
+  min-width:0; padding:.7rem .85rem; border-radius:var(--r-m); background:var(--sunk);
+  font:var(--w-semi) 1.25rem/1.15 var(--font-text); font-variant-numeric:lining-nums tabular-nums; color:var(--text);
+  overflow-wrap:anywhere;
+}
+.sim-info .lbl{ display:block; margin-bottom:.3rem; font:var(--w-medium) var(--fs-ui-xs)/1.2 var(--font-ui); color:var(--text-3); }
+
+/* Simulateur SVG de Lorentz (hors CHAPTERS, DOM et styles inline gardés) : lisible dans les deux thèmes */
+#lor-simu label{ color:var(--text-2); font-family:var(--font-ui); }
+#lor-simu label > span:first-child{ font-weight:var(--w-medium); }
+#lor-params{ color:var(--text-2) !important; opacity:1 !important; }
+/* Libellés du tracé (couleurs et opacités en attributs, posés par lorDraw) : encres du thème */
+#lor-svg text{ opacity:1 !important; font-size:11px; }   /* 10-11 en attribut : 13 px à l'écran (échelle 1,2) */
+#lor-svg text[fill="var(--ink)"]{ fill:var(--text-3); }
+#lor-svg [fill="#e74c3c"]{ fill:var(--rouge); } #lor-svg [stroke="#e74c3c"]{ stroke:var(--rouge-vif); }
+#lor-svg [fill="#2ecc71"]{ fill:var(--vert); } #lor-svg [stroke="#2ecc71"]{ stroke:var(--vert-vif); }
+#lor-svg [fill="#3498db"]{ fill:var(--physique); } #lor-svg [stroke="#3498db"]{ stroke:var(--physique-vif); }
+
+/* Téléphone : une colonne ; la courbe d'abord, collante sous la barre et les onglets
+   (on la voit en bougeant un curseur), puis mesures, mode et réglages */
+@media (max-width:767px){
+  .sim-wrapper{
+    grid-template-columns:minmax(0, 1fr);
+    grid-template-areas:"titre" "lead" "badge" "scene" "info" "mode" "reglages" "note";
+  }
+  .sim-wrapper > canvas{
+    position:sticky; top:calc(var(--bar-h) + var(--tabs-h)); z-index:2; box-shadow:var(--sh-2);
+    height:min(calc(var(--h, 380px) * .72), 48vh); height:min(calc(var(--h, 380px) * .72), 48svh);
+  }
+  .sim-wrapper > .sim-info{ grid-template-columns:repeat(2, minmax(0, 1fr)); }
+  .sim-controls{ padding:1rem; }
+  #lor-svg text{ font-size:19px; }   /* tracé réduit à ~65 % : libellés ≥ 12 px à l'écran */
+}

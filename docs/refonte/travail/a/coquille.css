@@ -1,0 +1,520 @@
+/* Plan de la région :
+   1. Grille de la coquille (points de rupture SPEC §4.1) et couche de commande cachée
+   2. En-tête ordinateur .hdr (SPEC §5.12) et menus Réviser / Plus (SPEC §5.1)
+   3. Navigation des chapitres #mob-drawer : barre latérale ≥ 1200 px, tiroir 768–1199 px,
+      page « Chapitres » plein écran ≤ 767 px (SPEC §4.3, §5.13)
+   4. Sommaire de la matière #sommaire-matiere (SPEC §4.3 point 8)
+   5. Barre du téléphone .mbar et feuille ⋯ (SPEC §4.2)
+   6. Retour en haut, lien d'évitement, pied, bannière de mise à jour
+   7. Mouvement réduit (SPEC §6.4)
+   8. Sélecteur de thème (SPEC §4.6) — sous-bloc en fin de région */
+
+/* ===================================================================
+   1. GRILLE DE LA COQUILLE
+   =================================================================== */
+/* Couche de commande cachée (.sub-btn / .chap-btn, cliquée par navigateTo, le tiroir,
+   le routage) : invisible à TOUTES les largeurs — ne jamais l'afficher. */
+.subdomain-bar, .chapter-bar{ display:none !important; }
+.chap-btn, .sub-btn, .mat-btn{ font:inherit; }
+
+/* Masquer l'attribut hidden même sur les composants en display:flex (compteurs…) */
+.hdr [hidden], .mbar [hidden], .bsheet [hidden], #mob-drawer [hidden], .sommaire[hidden]{ display:none !important; }
+
+/* Colonne de lecture : décalée par la barre latérale permanente (≥ 1200 px, sauf repliée) */
+#app-main{ min-width:0; }
+@media (min-width:1200px){
+  html:not(.nav-replie) #app-main{ margin-left:var(--sidebar-w); }
+}
+/* En-tête collant (56 px) : les onglets du chapitre collent juste dessous */
+@media (min-width:768px){
+  #app-main nav.tabs{ top:var(--header-h); }
+}
+/* Téléphone : la barre est collante (dans le flux) → plus de marge haute sous elle ;
+   les onglets collent sous la barre (56 px), ou tout en haut quand elle s'efface. */
+@media (max-width:767px){
+  #app-main > main, #app-main > main#si-content{ margin-top:0 !important; }
+  #app-main nav.tabs{ top:var(--bar-h) !important; z-index:var(--z-sticky) !important;
+    transition:top var(--dur-2) var(--ease), box-shadow var(--dur-2) var(--ease); }
+  html.mbar-cachee #app-main nav.tabs{ top:0 !important; box-shadow:var(--sh-1); }
+}
+
+/* ===================================================================
+   2. EN-TÊTE ORDINATEUR (≥ 768 px) — SPEC §5.12
+   =================================================================== */
+.hdr{
+  position:sticky; top:0; z-index:var(--z-header); height:var(--header-h);
+  display:flex; align-items:center; gap:.75rem; padding:0 1rem;
+  background:color-mix(in srgb, var(--sheet) 92%, transparent);
+  -webkit-backdrop-filter:saturate(1.4) blur(10px); backdrop-filter:saturate(1.4) blur(10px);
+  border-bottom:1px solid var(--line);
+}
+@media (max-width:767px){ .hdr{ display:none !important; } }
+.hdr .spacer{ flex:1 1 0; min-width:0; }
+.hdr .vsep{ width:1px; height:1.5rem; background:var(--line); margin:0 .25rem; flex:none; }
+.hdr .btn{ flex:none; }
+.hdr .btn-ghost .ic{ width:1.15rem; height:1.15rem; }
+
+/* Bouton de la navigation : barre latérale (≥ 1200) ou tiroir (en dessous) */
+#nav-toggle-btn .ic-nav-menu{ display:none; }
+@media (max-width:1199px){
+  #nav-toggle-btn .ic-nav-side{ display:none; }
+  #nav-toggle-btn .ic-nav-menu{ display:inline-block; }
+}
+
+/* Marque : carré « § » à l'encre, « prépa » en italique (l'unique h1 de la page) */
+.brand{ display:flex; align-items:center; gap:.6rem; color:var(--text); white-space:nowrap; flex:none; }
+.brand-mark{ width:1.75rem; height:1.75rem; border-radius:7px; flex:none; display:grid; place-items:center;
+  background:var(--primary); color:var(--on-primary); font:italic var(--w-semi) 1.125rem/1 var(--font-text); }
+.brand-mark::before{ content:"§"; transform:translateY(.02em); }
+.brand-name{ margin:0; font:var(--w-semi) 1.1875rem/1 var(--font-text); letter-spacing:-.01em; color:var(--text); }
+.brand-name em{ font-style:italic; font-weight:var(--w-medium); color:inherit; }
+
+/* Recherche visible : un bouton qui a l'allure d'un champ creux (le clic ou Ctrl K
+   ouvre la fenêtre de recherche) */
+.hdr-search{
+  position:relative; display:flex; align-items:center; gap:.6rem; flex:0 1 26rem; min-width:10rem;
+  height:2.5rem; margin-left:1.25rem; padding:0 .6rem 0 .75rem; border-radius:var(--r-m);
+  border:1px solid var(--field); background:var(--sunk); color:var(--text-3); cursor:text;
+  font:var(--w-regular) var(--fs-ui)/1 var(--font-ui); text-align:left;
+  transition:background var(--dur-1) var(--ease), border-color var(--dur-1) var(--ease);
+}
+.hdr-search:hover{ background:var(--raise); }
+.hdr-search > .ic{ width:1.1rem; height:1.1rem; flex:none; color:var(--text-3); }
+.hdr-search-ph{ flex:1 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.hdr-search .kbd{ flex:none; }
+
+/* Actions : Aujourd'hui, Bilan (discrets), Réviser (primaire + compteur), Thème, Plus */
+.hdr-act{ padding:0 .7rem; }
+.hdr .btn-primary .ic-chev{ width:1rem; height:1rem; margin-left:-.1rem; opacity:.8; }
+.hdr .btn-primary .count{ margin-left:-.1rem; box-shadow:0 0 0 1.5px var(--primary); }
+@media (max-width:1099px){
+  .hdr-act{ width:2.375rem; padding:0; }
+  .hdr-act .ic-lbl{ position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; }
+  .hdr-search{ margin-left:.5rem; }
+}
+@media (max-width:899px){
+  .brand-name{ display:none; }
+  .hdr{ gap:.5rem; padding:0 .75rem; }
+}
+#theme-btn[aria-expanded="true"], #more-btn[aria-expanded="true"]{ background:var(--hover); color:var(--text); }
+
+/* Menus déroulants Réviser et Plus (SPEC §5.1) : gabarit .menu de la base */
+.hdr-more{ position:relative; display:inline-flex; flex:none; }
+.hdr-more-menu{
+  display:none; position:absolute; top:calc(100% + .5rem); right:0; z-index:var(--z-menu);
+  min-width:15.5rem;
+}
+.hdr-more-menu.open{ display:block; animation:menuIn var(--dur-2) var(--ease); }
+@keyframes menuIn{ from{ opacity:0; transform:translateY(-4px); } to{ opacity:1; transform:none; } }
+.hdr-more-item{ white-space:nowrap; }
+.hdr-more-item .end .count{ margin:0; }
+.hdr-more-item .end kbd{ height:1.375rem; }
+#study-menu{ min-width:15rem; }
+/* « Dans ce chapitre » (menu Plus, 1200–1359 px : le rail du sommaire n'a pas la place) */
+.more-toc-list{ max-height:min(18rem, 50vh); overflow:auto; }
+.more-toc-list .menu-item{ display:grid; grid-template-columns:2rem 1fr; gap:.25rem; min-height:2.25rem;
+  white-space:normal; font-size:var(--fs-ui-s); line-height:1.3; padding:.35rem .7rem; }
+.more-toc-list .menu-item .n{ font:italic var(--w-medium) var(--fs-ui-s)/1.3 var(--font-text); color:var(--text-3); }
+
+/* ===================================================================
+   3. NAVIGATION DES CHAPITRES (#mob-drawer) — SPEC §4.3, §5.13
+   =================================================================== */
+#mob-drawer{
+  display:flex; flex-direction:column; background:var(--desk); color:var(--text);
+  font-family:var(--font-ui); overflow:hidden;
+}
+#mob-drawer-scroll{ flex:1 1 auto; min-height:0; overflow-y:auto; overscroll-behavior:contain;
+  padding:.25rem .75rem 2rem 1rem; scrollbar-width:thin; }
+#mob-drawer-overlay{ display:none; position:fixed; inset:0; background:var(--scrim); z-index:calc(var(--z-drawer) - 1); }
+#mob-drawer-overlay.open{ display:block; animation:voileIn var(--dur-2) var(--ease); }
+@keyframes voileIn{ from{ opacity:0; } to{ opacity:1; } }
+
+/* En-tête du tiroir / de la page : « Chapitres » + × */
+.dr-top{ display:flex; align-items:center; gap:.5rem; flex:none; padding:.5rem .5rem .25rem 1rem; }
+.dr-titre{ margin:0; font:var(--w-semi) 1.625rem/1.1 var(--font-text); letter-spacing:-.015em; color:var(--text); }
+.dr-top .btn{ margin-left:auto; }
+
+/* Tuiles riches (page Chapitres du téléphone) : Aujourd'hui · Bilan */
+.dr-rich{ display:grid; grid-template-columns:1fr 1fr; gap:.5rem; margin:.25rem 0 0; }
+.dr-tuile{ display:flex; flex-direction:column; align-items:flex-start; gap:.3rem; min-height:4rem; padding:.65rem .8rem;
+  border:0; border-radius:var(--r-m); background:var(--sunk); color:var(--text); text-align:left; cursor:pointer; }
+.dr-tuile:hover{ background:var(--hover); }
+.dr-tuile .t{ display:flex; align-items:center; gap:.45rem; width:100%; font:var(--w-semi) var(--fs-ui)/1.1 var(--font-ui); }
+.dr-tuile .t .ic{ color:var(--text-2); }
+.dr-tuile .t .count{ margin-left:auto; }
+.dr-tuile .s{ font:var(--w-regular) var(--fs-ui-xs)/1.25 var(--font-ui); color:var(--text-2); }
+
+/* Année + filtre */
+.dr-row{ display:grid; grid-template-columns:minmax(0,1fr); gap:.75rem; margin-top:.75rem; }
+#mob-year-bar{ display:grid; width:100%; }
+#mob-year-bar .yr-c{ display:none; }
+.mob-year-btn{ white-space:nowrap; }
+#mob-filter-wrap{ width:100%; }
+#mob-filter{ -webkit-appearance:none; appearance:none; }
+#mob-filter::-webkit-search-cancel-button{ -webkit-appearance:none; display:none; }
+#mob-filter-wrap:has(#mob-filter-clear:not([hidden])) #mob-filter{ padding-right:2.6rem; }
+#mob-filter-clear{ position:absolute; right:.2rem; top:50%; transform:translateY(-50%);
+  display:grid; place-items:center; width:2.25rem; height:2.25rem; border:0; border-radius:8px;
+  background:transparent; color:var(--text-3); cursor:pointer; }
+#mob-filter-clear .ic{ position:static; width:1rem; height:1rem; color:inherit; }
+#mob-filter-clear:hover{ background:var(--hover); color:var(--text); }
+
+/* Blocs Épinglés / Récents (jamais filtrés) */
+.nav-block{ margin-top:1.1rem; }
+.nav-block > .kicker{ display:flex; align-items:center; justify-content:space-between; padding:0 .5rem .45rem; }
+.chips{ display:flex; flex-wrap:wrap; gap:.4rem; padding:0 .25rem; }
+.chip .dot{ width:.5rem; height:.5rem; }
+.chip-lbl{ overflow:hidden; text-overflow:ellipsis; max-width:14rem; }
+.recent-row{ display:flex; align-items:center; gap:.55rem; width:100%; min-height:2.125rem; padding:.2rem .5rem;
+  border:0; border-radius:8px; background:transparent; text-align:left; cursor:pointer;
+  font:var(--w-regular) var(--fs-ui-s)/1.25 var(--font-ui); color:var(--text-2); }
+.recent-row:hover{ background:var(--hover); color:var(--text); }
+.recent-row .nm{ min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.recent-row .where{ margin-left:auto; flex:none; color:var(--text-3); font-size:var(--fs-ui-xs); }
+.recent-row .dot{ width:.5rem; height:.5rem; }
+
+/* Intercalaires de matière : filet vif en haut, nom + effectif, l'actif prend la teinte */
+.mat-tabs{ display:flex; gap:3px; margin-top:1.1rem; border-bottom:2px solid var(--chap-vif); }
+.mat-tab{
+  position:relative; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:.2rem;
+  flex:1 1 auto; min-width:2.25rem; min-height:3.25rem; padding:.55rem .35rem .4rem; border:0; border-radius:8px 8px 0 0; cursor:pointer;
+  background:var(--sunk); color:var(--text-2); box-shadow:inset 0 3px 0 var(--chap-vif);
+  font:var(--w-semi) var(--fs-ui-s)/1.1 var(--font-ui);
+}
+.mat-tab .n{ font:var(--w-bold) var(--fs-count)/1 var(--font-ui); color:var(--text-2); font-variant-numeric:tabular-nums; }
+.mat-tab:hover{ color:var(--text); background:color-mix(in srgb, var(--chap-fond) 55%, var(--sunk)); }
+.mat-tab.active, .mat-tab[aria-selected="true"]{ background:var(--chap-fond); color:var(--chap);
+  box-shadow:inset 0 4px 0 var(--chap-vif); font-weight:var(--w-bold); }
+.mat-tab.active .n{ color:var(--chap); }
+.mat-tab:focus-visible{ outline-offset:-2px; }
+#mob-drawer.filtre-actif .mat-tabs, #mob-drawer.filtre-actif #mob-quick{ display:none; }
+
+/* Parties repliables (sous-domaines de CHAP_GROUPS) */
+#mob-chap-list{ margin-top:.5rem; }
+.nav-part{ margin-top:.35rem; }
+.nav-part-h{
+  display:flex; align-items:center; gap:.5rem; width:100%; min-height:2.25rem; padding:0 .5rem;
+  border:0; background:none; cursor:pointer; border-radius:8px; text-align:left;
+  font:var(--w-semi) var(--fs-ui-s)/1.2 var(--font-ui); color:var(--text);
+}
+.nav-part-h .n{ margin-left:auto; color:var(--text-2); font-weight:var(--w-medium); font-variant-numeric:tabular-nums; }
+.nav-part-h .ic{ width:1rem; height:1rem; color:var(--text-3); transition:transform var(--dur-2) var(--ease); }
+.nav-part-h[aria-expanded="false"] .ic{ transform:rotate(-90deg); }
+.nav-part-h:hover{ background:var(--hover); }
+.nav-list{ list-style:none; margin:.1rem 0 .4rem 1rem; padding:0 0 0 .75rem; border-left:1px solid var(--line-2); }
+
+/* Rangée de chapitre = bouton du chapitre + épingle (frères, jamais imbriqués) */
+.mob-chap-row{ position:relative; display:flex; align-items:center; border-radius:8px; color:var(--text-2); }
+.mob-chap-row:hover{ background:var(--hover); color:var(--text); }
+.mob-chap-item{
+  flex:1 1 auto; min-width:0; display:flex; align-items:center; gap:.5rem; min-height:2.125rem; padding:.3rem .25rem .3rem .65rem;
+  border:0; border-radius:8px; background:transparent; color:inherit; text-align:left; cursor:pointer;
+  font:var(--w-regular) var(--fs-ui)/1.25 var(--font-ui);
+}
+.mob-chap-item:focus-visible{ outline-offset:-2px; }
+.mob-chap-label{ flex:1 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.mob-chap-item .end{ margin-left:auto; display:flex; align-items:center; gap:.35rem; flex:none; }
+.tag2a{ font:var(--w-bold) var(--fs-count)/1 var(--font-ui); color:var(--text-2); letter-spacing:.02em; }
+.mob-pin{
+  flex:none; display:grid; place-items:center; width:2rem; height:2rem; margin-right:.15rem;
+  border:0; border-radius:8px; background:transparent; color:var(--text-3); cursor:pointer; opacity:0;
+}
+.mob-pin .ic{ width:1rem; height:1rem; }
+.mob-chap-row:hover .mob-pin, .mob-chap-row:focus-within .mob-pin, .mob-pin.pinned{ opacity:1; }
+.mob-pin:hover{ background:var(--hover); color:var(--text); }
+.mob-pin.pinned{ color:var(--ambre-vif); }
+.mob-chap-row.cur{ background:var(--chap-fond); color:var(--chap); }
+.mob-chap-row.cur .mob-chap-item{ font-weight:var(--w-semi); }
+.mob-chap-row.cur::before{ content:""; position:absolute; left:-.8rem; top:.35rem; bottom:.35rem; width:3px; border-radius:3px; background:var(--chap-vif); }
+.mob-chap-row.cur .mob-pin:not(.pinned){ color:var(--chap); }
+/* « + N chapitres de 1ʳᵉ année » (2ᵉ année) */
+.nav-more{ display:flex; align-items:center; gap:.5rem; width:100%; min-height:2.125rem; padding:.2rem .5rem .2rem .65rem;
+  border:0; border-radius:8px; background:transparent; color:var(--text-2); cursor:pointer; text-align:left;
+  font:var(--w-medium) var(--fs-ui-s)/1.25 var(--font-ui); }
+.nav-more:hover{ background:var(--hover); color:var(--text); }
+.nav-more .ic{ width:.9rem; height:.9rem; color:var(--text-3); }
+
+/* Résultats du filtre : groupés par matière, correspondance surlignée, année indiquée */
+.nav-results > .kicker{ margin:1rem .5rem .25rem; }
+.nav-results .grp{ margin-top:.9rem; }
+.nav-results .grp-h{ display:flex; align-items:center; gap:.45rem; padding:0 .5rem .35rem;
+  font:var(--w-bold) var(--fs-kicker)/1.2 var(--font-ui); letter-spacing:var(--track-kicker); text-transform:uppercase; color:var(--chap); }
+.nav-results .grp-h .n{ margin-left:auto; color:var(--text-2); letter-spacing:0; }
+.nav-results .grp-h .dot{ width:.55rem; height:.55rem; }
+.nav-results .nav-list{ margin:0; padding:0; border:0; }
+.nav-results .mob-chap-item{ flex-wrap:wrap; row-gap:.1rem; padding-top:.4rem; padding-bottom:.4rem; }
+.nav-results .mob-chap-label{ flex:1 1 0; white-space:normal; }
+.nav-results .mob-chap-item .sub{ flex-basis:100%; font-size:var(--fs-ui-xs); color:var(--text-2); }
+.nav-results .mob-chap-item .end .ic{ width:1rem; height:1rem; color:var(--text-3); }
+.nav-results .badge-2a{ height:1.25rem; }
+#mob-drawer mark{ background:var(--chap-fond); color:var(--chap); font-weight:var(--w-semi); border-radius:3px; padding:0 .08em;
+  box-shadow:0 0 0 1px color-mix(in srgb, var(--chap-vif) 35%, transparent); }
+.mob-filter-empty{ padding:1rem .5rem; font:var(--w-regular) var(--fs-ui-s)/1.4 var(--font-ui); color:var(--text-2); }
+
+/* --- ≥ 1200 px : barre latérale permanente de 288 px, sous l'en-tête --- */
+@media (min-width:1200px){
+  #mob-drawer{
+    position:fixed; top:var(--header-h); left:0; bottom:0; z-index:calc(var(--z-header) - 1);
+    width:var(--sidebar-w); border-right:1px solid var(--line);
+  }
+  #mob-drawer-scroll{ padding-top:1rem; }
+  html.nav-replie #mob-drawer{ display:none; }
+  #mob-drawer-header, #dr-tuiles, #mob-drawer-overlay, #mob-drawer-overlay.open{ display:none !important; }
+}
+/* --- 768–1199 px : tiroir de 320 px qui glisse depuis la gauche, avec le voile --- */
+@media (min-width:768px) and (max-width:1199px){
+  #mob-drawer{
+    position:fixed; top:0; left:0; bottom:0; z-index:var(--z-drawer); width:min(20rem, 88vw);
+    border-right:1px solid var(--line); box-shadow:var(--sh-3);
+    transform:translateX(-100%); visibility:hidden;
+    transition:transform var(--dur-3) var(--ease), visibility 0s linear var(--dur-3);
+  }
+  #mob-drawer.open{ transform:none; visibility:visible; transition:transform var(--dur-3) var(--ease), visibility 0s; }
+  #dr-tuiles{ display:none; }
+  .dr-titre{ font-size:1.375rem; }
+}
+/* --- ≤ 767 px : page plein écran « Chapitres » (☰), ouvrir un chapitre = 2 gestes --- */
+@media (max-width:767px){
+  #mob-drawer{
+    position:fixed; inset:0; z-index:var(--z-drawer); width:100%; background:var(--sheet);
+    transform:translateX(-100%); visibility:hidden;
+    transition:transform var(--dur-3) var(--ease), visibility 0s linear var(--dur-3);
+  }
+  #mob-drawer.open{ transform:none; visibility:visible; transition:transform var(--dur-3) var(--ease), visibility 0s; }
+  #mob-drawer-overlay, #mob-drawer-overlay.open{ display:none !important; }
+  #mob-drawer-scroll{ padding:.25rem 1rem 2.5rem; }
+  .dr-top{ padding:.5rem .25rem .25rem 1rem; }
+  .dr-row{ grid-template-columns:auto minmax(0,1fr); gap:.5rem; }
+  #mob-year-bar{ width:auto; }
+  #mob-year-bar .yr-l{ display:none; }
+  #mob-year-bar .yr-c{ display:inline; }
+  .mob-year-btn{ min-width:2.75rem; }
+  #mob-quick{ margin-top:1rem; }
+  #mob-quick .nav-block{ margin-top:0; }
+  #mob-quick .chips{ padding:0; }
+  #mob-quick .kicker{ padding:0 0 .5rem; }
+  .mat-tabs{ margin-top:1rem; }
+  .mat-tab{ min-height:3.5rem; font-size:var(--fs-ui); }
+  .nav-part-h{ min-height:var(--tap); font-size:.9375rem; padding:0 .25rem; }
+  .nav-list{ margin-left:.5rem; padding-left:.5rem; }
+  .mob-chap-item{ min-height:3rem; font-size:1rem; }
+  .mob-pin{ width:var(--tap); height:var(--tap); opacity:1; margin-right:0; }
+  .mob-chap-row.cur::before{ left:-.55rem; }
+  .nav-more{ min-height:var(--tap); }
+  .nav-results .mob-chap-item{ min-height:var(--tap); }
+}
+@media (pointer:coarse){
+  .mob-pin{ opacity:1; }
+  .recent-row{ min-height:var(--tap); }
+  #mob-filter-clear{ width:var(--tap); height:var(--tap); right:0; }
+}
+
+/* ===================================================================
+   4. SOMMAIRE DE LA MATIÈRE (#sommaire/<matière>) — SPEC §4.3 point 8
+   Rendu dans la zone de la feuille ; ouvert par un 2ᵉ clic sur l'intercalaire actif,
+   le nom de la matière (window.__ouvrirSommaire) ou le lien profond.
+   =================================================================== */
+html.sommaire-ouvert #app-main > main, html.sommaire-ouvert #chap-pager{ display:none !important; }
+.sommaire{ max-width:var(--sheet-max); margin:1.5rem auto 3rem; padding:0 1.5rem; }
+.sommaire-feuille{ background:var(--sheet); border-radius:var(--r-l); box-shadow:var(--sh-sheet);
+  border-top:4px solid var(--chap-vif); overflow:clip; padding:0 2.5rem 2.5rem; }
+.ov-head{ position:relative; margin:0 -2.5rem; padding:2rem 2.5rem 1.5rem; background:var(--chap-fond); border-bottom:1px solid var(--line); }
+.ov-head::before{ content:""; position:absolute; inset:0; pointer-events:none;
+  background-image:linear-gradient(var(--mill-cm) 1px, transparent 1px), linear-gradient(90deg, var(--mill-cm) 1px, transparent 1px),
+    linear-gradient(var(--mill-fin) 1px, transparent 1px), linear-gradient(90deg, var(--mill-fin) 1px, transparent 1px);
+  background-size:40px 40px, 40px 40px, 8px 8px, 8px 8px; background-position:-1px -1px;
+  -webkit-mask-image:linear-gradient(180deg, #000, transparent); mask-image:linear-gradient(180deg, #000, transparent); }
+.ov-head > *{ position:relative; }
+.ov-crumb{ display:flex; align-items:center; flex-wrap:wrap; gap:.45rem; font:var(--w-medium) var(--fs-ui-s)/1.2 var(--font-ui); color:var(--text-2); }
+.ov-crumb b{ color:var(--chap); font-weight:var(--w-bold); }
+.ov-crumb .dot{ width:.55rem; height:.55rem; }
+.ov-h{ margin:.4rem 0 0; font:italic var(--w-semi) var(--fs-h1)/1.05 var(--font-text); letter-spacing:var(--track-h1); color:var(--chap); }
+.ov-meta{ margin-top:.6rem; font:var(--w-regular) var(--fs-ui)/1.4 var(--font-ui); color:var(--text-2); }
+.ov-meta b{ color:var(--rouge); font-weight:var(--w-semi); }
+.ov-resume{ display:flex; align-items:center; gap:.9rem; width:100%; max-width:34rem; margin-top:1.1rem; padding:.75rem 1rem;
+  border-radius:var(--r-m); background:var(--raise); border:1px solid var(--line); color:var(--text); text-align:left; cursor:pointer; }
+.ov-resume:hover{ border-color:var(--field); }
+.ov-resume .pic{ flex:none; width:2.5rem; height:2.5rem; border-radius:10px; display:grid; place-items:center;
+  background:var(--chap-fond); color:var(--chap); font:italic var(--w-semi) 1.15rem/1 var(--font-text); }
+.ov-resume .tx{ min-width:0; display:flex; flex-direction:column; gap:.2rem; }
+.ov-resume .t{ font:var(--w-semi) 1.0625rem/1.2 var(--font-text); }
+.ov-resume .s{ font:var(--w-regular) var(--fs-ui-s)/1.3 var(--font-ui); color:var(--text-2); }
+.ov-resume > .ic{ margin-left:auto; flex:none; color:var(--text-3); }
+.ov-grid{ columns:2; column-gap:1rem; margin-top:1.5rem; }
+.ov-grid .pcard{ break-inside:avoid; margin-bottom:1rem; }
+.pcard{ border:1px solid var(--line); border-radius:var(--r-l); padding:1rem 1rem .5rem; background:var(--sheet); }
+.pcard-h{ display:flex; align-items:baseline; gap:.5rem; }
+.pcard-h h3{ margin:0; font:var(--w-semi) 1.1875rem/1.2 var(--font-text); color:var(--text); }
+.pcard-n{ margin-left:auto; flex:none; font:var(--w-medium) var(--fs-ui-xs)/1 var(--font-ui); color:var(--text-2); }
+.pcard-p{ display:grid; grid-template-columns:4.5rem 1fr; align-items:center; gap:.6rem; margin:.65rem 0 .5rem;
+  font:var(--w-regular) var(--fs-ui-xs)/1.2 var(--font-ui); color:var(--text-2); }
+.pcard-p b{ color:var(--rouge); font-weight:var(--w-semi); }
+.pcard-p .stack{ height:.375rem; }
+.pcard-list{ list-style:none; margin:0; padding:0; counter-reset:c; }
+.pcard-list li{ display:flex; align-items:center; gap:.5rem; border-top:1px solid var(--line); counter-increment:c; }
+.pcard-list button{ flex:1 1 auto; min-width:0; display:flex; gap:.6rem; padding:.5rem 0; border:0; background:none; cursor:pointer; text-align:left;
+  font:var(--w-regular) var(--fs-ui)/1.25 var(--font-ui); color:var(--text); }
+.pcard-list button::before{ content:counter(c); min-width:1.1rem; font:italic var(--w-semi) 1rem/1.25 var(--font-text); color:var(--chap); }
+.pcard-list button:hover{ color:var(--chap); text-decoration:underline; text-underline-offset:.18em; }
+.pcard-list button.cur{ font-weight:var(--w-semi); color:var(--chap); }
+.pcard-list .simu{ color:var(--text-3); display:inline-flex; flex:none; }
+.pcard-list .simu .ic{ width:1rem; height:1rem; }
+.pcard-list .badge-2a{ height:1.25rem; flex:none; }
+.ov-2a{ display:flex; align-items:center; gap:.75rem; margin-top:.5rem; padding:.85rem 1rem; border-radius:var(--r-m);
+  background:var(--sunk); font:var(--w-regular) var(--fs-ui-s)/1.35 var(--font-ui); color:var(--text-2); }
+.ov-2a .btn{ margin-left:auto; }
+@media (max-width:1023px){ .ov-grid{ columns:1; } }
+@media (max-width:767px){
+  .sommaire{ margin:0 0 2rem; padding:0; }
+  .sommaire-feuille{ border-radius:0; box-shadow:none; border-top-width:3px; padding:0 var(--gutter) 2rem; }
+  .ov-head{ margin:0 calc(var(--gutter) * -1); padding:1.25rem var(--gutter) 1.25rem; }
+  .ov-2a{ flex-wrap:wrap; }
+  .pcard-list button, .ov-resume, .ov-2a .btn{ min-height:var(--tap); }
+}
+
+/* ===================================================================
+   5. TÉLÉPHONE (≤ 767 px) : barre haute .mbar + feuille ⋯ — SPEC §4.2
+   AUCUNE barre fixe en bas.
+   =================================================================== */
+#mob-header{ display:none; }
+#mob-more-menu, #mob-more-scrim{ display:none; }
+@media (max-width:767px){
+  /* Barre collante : ☰ · titre sur 2 lignes · loupe · Réviser · ⋯ (4 cibles de 44 px) */
+  #mob-header.mbar{
+    position:sticky; top:0; z-index:var(--z-header);
+    display:grid; grid-template-columns:var(--tap) minmax(0,1fr) var(--tap) var(--tap) var(--tap);
+    align-items:center; min-height:var(--bar-h); padding:.25rem .25rem .25rem .25rem;
+    background:var(--sheet); box-shadow:inset 0 3px 0 var(--chap-vif);
+    transition:transform var(--dur-2) var(--ease);
+  }
+  #mob-header.mbar.cachee{ transform:translateY(-100%); }
+  .mbar .btn-icon{ width:var(--tap); height:var(--tap); border-radius:12px; color:var(--text-2); position:relative; }
+  .mbar .btn-icon .ic{ width:1.45rem; height:1.45rem; }
+  .mbar .btn-icon .count{ position:absolute; top:.15rem; right:.05rem; min-width:1.25rem; height:1.25rem; padding:0 .3rem; box-shadow:0 0 0 2px var(--sheet); }
+  .mbar-t{ min-width:0; padding:.2rem .25rem 0 .25rem; }
+  .mbar-k{ display:flex; align-items:center; gap:.35rem; font:var(--w-semi) var(--fs-ui-xs)/1.25 var(--font-ui); color:var(--text-2); white-space:nowrap; overflow:hidden; }
+  .mbar-k > *{ flex:none; }
+  .mbar-k .part{ flex:0 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis; }   /* la partie s'abrège, jamais l'année */
+  .mbar-k .chap{ flex:0 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis; }
+  .mbar-k b{ color:var(--chap); font-weight:var(--w-bold); }
+  .mbar-k .dot{ width:.55rem; height:.55rem; }
+  .mbar-h{ font:var(--w-semi) var(--fs-bar-title)/1.2 var(--font-text); color:var(--text); letter-spacing:-.005em;
+    display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; overflow-wrap:anywhere; }
+  .mbar-h .sn{ font-style:italic; color:var(--chap); margin-right:.2em; }
+
+  /* Feuille « ⋯ » qui monte du bas : une modale ouverte à la demande */
+  #mob-more-scrim{ display:block; position:fixed; inset:0; z-index:var(--z-overlay); background:var(--scrim);
+    opacity:0; visibility:hidden; transition:opacity var(--dur-3) var(--ease), visibility 0s linear var(--dur-3); }
+  #mob-more-scrim.open{ opacity:1; visibility:visible; transition:opacity var(--dur-3) var(--ease), visibility 0s; }
+  #mob-more-menu.bsheet{
+    display:block; position:fixed; left:0; right:0; bottom:0; z-index:calc(var(--z-overlay) + 1);
+    max-height:85dvh; overflow:auto; overscroll-behavior:contain;
+    padding:.5rem 1rem calc(1rem + env(safe-area-inset-bottom));
+    background:var(--raise); color:var(--text); border-radius:var(--r-xl) var(--r-xl) 0 0; box-shadow:var(--sh-3);
+    transform:translateY(100%); visibility:hidden;
+    transition:transform var(--dur-3) var(--ease), visibility 0s linear var(--dur-3);
+  }
+  #mob-more-menu.bsheet.open{ transform:none; visibility:visible; transition:transform var(--dur-3) var(--ease), visibility 0s; }
+  .bsheet .grab{ width:2.5rem; height:4px; border-radius:4px; background:var(--line-2); margin:.25rem auto .5rem; }
+  .bsheet .menu-item{ min-height:3rem; padding:0 .25rem; gap:.85rem; font-size:var(--fs-ui); }
+  .bsheet .menu-item > .count{ margin-left:auto; }
+  .bsheet .menu-item .end{ margin-left:auto; font-size:var(--fs-ui-s); color:var(--text-2); font-weight:var(--w-regular); }
+  .bsheet .menu-item .flag-badge{ font:var(--w-medium) var(--fs-ui-s)/1 var(--font-ui); color:var(--text-2); }
+  .bsheet .menu-item[aria-pressed="true"] .ic{ color:var(--ambre-vif); fill:var(--ambre-vif); }
+  .bsheet-theme{ margin-top:.25rem; padding:.85rem .25rem .25rem; border-top:1px solid var(--line); }
+  .bsheet-theme .row{ display:flex; align-items:center; gap:.75rem; min-height:3rem; }
+  .bsheet-theme .lab{ width:3.75rem; flex:none; font:var(--w-semi) var(--fs-ui)/1.2 var(--font-ui); }
+  .bsheet-theme .seg{ flex:1 1 auto; min-width:0; }
+  .bsheet-theme .seg > button{ padding:0 .4rem; min-height:var(--tap); }
+  .bsheet-theme .help{ margin:.15rem 0 .5rem 4.5rem; font:var(--w-regular) var(--fs-ui-xs)/1.4 var(--font-ui); color:var(--text-2); }
+  .bsheet-theme .help b{ color:var(--text); font-weight:var(--w-semi); }
+}
+
+/* ===================================================================
+   6. RETOUR EN HAUT, LIEN D'ÉVITEMENT, PIED, BANNIÈRE DE MISE À JOUR
+   =================================================================== */
+#back-to-top{
+  position:fixed; right:1.5rem; bottom:1.5rem; z-index:var(--z-sticky);
+  width:2.75rem; height:2.75rem; border-radius:var(--r-full); box-shadow:var(--sh-2);
+  opacity:0; pointer-events:none; transition:opacity var(--dur-2) var(--ease), background var(--dur-1) var(--ease);
+}
+#back-to-top .ic{ transform:rotate(-90deg); }
+#back-to-top.visible{ opacity:1; pointer-events:auto; }
+@media (max-width:767px){ #back-to-top{ display:none !important; } }   /* aucune commande flottante en bas au téléphone */
+
+.skip-link{
+  position:absolute; left:-9999px; top:.5rem; z-index:calc(var(--z-toast) + 1);
+  padding:.55rem 1rem; border-radius:0 var(--r-m) var(--r-m) 0;
+  background:var(--primary); color:var(--on-primary); text-decoration:none;
+  font:var(--w-semi) var(--fs-ui-s)/1.2 var(--font-ui);
+}
+.skip-link:focus{ left:0; }
+
+footer.pied{
+  display:flex; align-items:center; justify-content:center; gap:.6rem; flex-wrap:wrap;
+  margin:3rem auto 0; padding:1.5rem 1rem 2.5rem; border-top:1px solid var(--line);
+  font:var(--w-regular) var(--fs-ui-xs)/1.4 var(--font-ui); color:var(--text-2); text-align:center;
+}
+footer.pied .brand-mark{ width:1.375rem; height:1.375rem; border-radius:6px; font-size:.875rem; }
+
+/* Compteur des cartes signalées (menus) */
+.flag-badge{ font-variant-numeric:tabular-nums; }
+
+/* Bannière « Nouvelle version disponible — Recharger » (un toast, pas une barre) */
+.maj-banniere{
+  position:fixed; left:50%; bottom:1rem; transform:translateX(-50%); z-index:var(--z-toast);
+  display:flex; align-items:center; gap:.75rem; max-width:min(32rem, calc(100vw - 2rem));
+  padding:.6rem .6rem .6rem 1rem; border-radius:12px; box-shadow:var(--sh-3);
+  background:var(--primary); color:var(--on-primary); font:var(--w-medium) var(--fs-ui)/1.3 var(--font-ui);
+}
+.maj-banniere .ic{ flex:none; }
+.maj-banniere .maj-recharger{ height:2.25rem; padding:0 .9rem; border:0; border-radius:var(--r-m); cursor:pointer;
+  background:var(--sheet); color:var(--text); font:var(--w-semi) var(--fs-ui-s)/1 var(--font-ui); }
+.maj-banniere .maj-ignorer{ display:grid; place-items:center; width:2.25rem; height:2.25rem; border:0; border-radius:var(--r-m);
+  background:transparent; color:inherit; cursor:pointer; }
+.maj-banniere .maj-ignorer:hover{ background:color-mix(in srgb, var(--on-primary) 14%, transparent); }
+@media (max-width:767px){
+  .maj-banniere{ left:.5rem; right:.5rem; transform:none; max-width:none; bottom:calc(.5rem + env(safe-area-inset-bottom)); }
+  .maj-banniere .maj-recharger, .maj-banniere .maj-ignorer{ height:var(--tap); min-width:var(--tap); }
+}
+
+/* ===================================================================
+   7. MOUVEMENT RÉDUIT : la barre se masque sans glisser, feuilles et tiroir sans glissement
+   =================================================================== */
+@media (prefers-reduced-motion: reduce){
+  #mob-header.mbar.cachee{ transform:none; visibility:hidden; }
+  #mob-drawer, #mob-more-menu.bsheet, #mob-more-scrim, .hdr-more-menu.open, #theme-pop{ transition:none !important; animation:none !important; }
+}
+
+/* --- Sélecteur de thème (SPEC §4.6) --- */
+/* Popover de l'en-tête (352 px) : 3 cartes à mini-vue + taille du texte */
+.theme-pop{ position:absolute; top:calc(100% + .5rem); right:0; z-index:var(--z-menu); width:22rem; max-width:calc(100vw - 1.5rem); padding:1rem; }
+.theme-pop:not([hidden]){ animation:menuIn var(--dur-2) var(--ease); }
+.theme-pop h3{ margin:0; font:var(--w-semi) var(--fs-ui-l)/1.2 var(--font-ui); color:var(--text); }
+.theme-now{ margin:.3rem 0 .85rem; font:var(--w-regular) var(--fs-ui-xs)/1.4 var(--font-ui); color:var(--text-2); }
+.theme-now b{ color:var(--text); font-weight:var(--w-semi); }
+.theme-opts{ display:grid; grid-template-columns:repeat(3, 1fr); gap:.5rem; }
+.theme-opt{ display:flex; flex-direction:column; align-items:stretch; gap:.45rem; padding:.45rem .45rem .55rem; border-radius:12px;
+  border:1px solid var(--line-2); background:var(--raise); cursor:pointer; color:var(--text-2); text-align:left;
+  font:var(--w-semi) var(--fs-ui-s)/1 var(--font-ui); }
+.theme-opt .nm{ display:flex; align-items:center; gap:.35rem; padding:0 .1rem; }
+.theme-opt:hover{ border-color:var(--field); color:var(--text); }
+.theme-opt[aria-checked="true"]{ border:2px solid var(--text); padding:calc(.45rem - 1px) calc(.45rem - 1px) calc(.55rem - 1px); color:var(--text); }
+.theme-sub{ display:flex; align-items:center; gap:.75rem; margin-top:.9rem; padding-top:.85rem; border-top:1px solid var(--line); }
+.theme-sub .lab{ font:var(--w-semi) var(--fs-ui-s)/1.2 var(--font-ui); color:var(--text); }
+.theme-sub .lab small{ display:block; margin-top:.15rem; font-weight:var(--w-regular); font-size:var(--fs-ui-xs); color:var(--text-2); }
+.theme-sub .seg{ margin-left:auto; }
+.read-size-seg > button{ min-width:2.75rem; font-family:var(--font-text); font-weight:var(--w-semi); }
+/* Mini-vues : couleurs littérales VOLONTAIRES (elles montrent chaque thème, quel que
+   soit le thème courant — seule exception à la règle « aucune couleur codée en dur ») */
+.theme-prev{ position:relative; width:100%; aspect-ratio:4/3; border-radius:8px; overflow:hidden; border:1px solid var(--line); }
+.theme-prev .pl, .theme-prev .pd, .theme-prev .layer{ position:absolute; inset:0; }
+.theme-prev .pl{ background:#fffdf9; }
+.theme-prev .pd{ background:#191b20; }
+.theme-prev .layer.diag{ clip-path:polygon(100% 0, 100% 100%, 0 100%); }
+.theme-prev .ln{ position:absolute; left:14%; height:7%; border-radius:4px; }
+.theme-prev .l1{ top:18%; width:52%; } .theme-prev .l2{ top:36%; width:72%; }
+.theme-prev .l3{ top:50%; width:64%; } .theme-prev .l4{ top:66%; width:40%; }
+.theme-prev .lc.l1{ background:#1c1d21; } .theme-prev .lc.l2, .theme-prev .lc.l3{ background:#d6cfc3; } .theme-prev .lc.l4{ background:#547add; }
+.theme-prev .ld.l1{ background:#e8e6e1; } .theme-prev .ld.l2, .theme-prev .ld.l3{ background:#3a3e47; } .theme-prev .ld.l4{ background:#6f94ee; }
+/* --- fin sélecteur de thème --- */

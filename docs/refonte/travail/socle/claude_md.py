@@ -1,0 +1,39 @@
+#!/usr/bin/env python3
+"""Mise à jour de CLAUDE.md pour le socle de la refonte."""
+import sys
+p = sys.argv[1]
+s = open(p, encoding='utf-8').read()
+rep = [
+# MathJax
+("""Référencé dans l'en-tête ET dans le template d'impression. Ne pas spécifier de `fontPath` (le chemin par défaut, relatif au script, trouve les polices).""",
+ """Référencé dans l'en-tête ET dans le template d'impression. Ne pas spécifier de `fontPath` (le chemin par défaut, relatif au script, trouve les polices). **`chtml.scale: 1.07`** (page ET gabarit d'impression) : hauteur d'x des formules ≈ celle de Source Serif 4, texte et formules font un seul gris."""),
+# Polices
+("""- **Polices** : Fraunces, Inter Tight, JetBrains Mono dans `vendor/fonts/` (woff2 latin + latin-ext ; 22 fichiers, 8 binaires distincts), déclarées dans `vendor/fonts/fonts.css` (`<link rel="stylesheet" href="vendor/fonts/fonts.css">`).""",
+ """- **Polices** (refonte « Cahier de prépa ») : **Source Serif 4** (texte, titres, cartes ; variable, taille optique sur le romain), **Source Sans 3** (interface), **JetBrains Mono** (code, `kbd`, étiquettes des canvas, ligatures coupées) dans `vendor/fonts/` : 14 woff2 variables (latin, latin-ext, grec + 2 sous-ensembles « symboles » : indices/exposants Unicode, flèches, ≈ ≤ ≥ √, « ʳᵉ »), licences OFL `LICENCE-*.txt`, déclarées dans `vendor/fonts/polices.css` (`<link rel="stylesheet" href="vendor/fonts/polices.css">`, page ET gabarit d'impression), avec la famille « Symboles TeX » (fontes MathJax Main/AMS limitées par `unicode-range` : ⟹ ↔ ∈ ∀ ↺ ★…). Chaque fichier n'est téléchargé que si la page contient un caractère de sa plage. Dans le CSS et les `style="…"`, **toujours** `var(--font-text)`, `var(--font-ui)`, `var(--font-code)` ; noms réels seulement dans les `ctx.font` des canvas (`"Source Sans 3"`, `"Source Serif 4"` entre guillemets, `JetBrains Mono`) et les règles visant du texte SVG. Plus aucune mention de Fraunces ni d'Inter Tight."""),
+("""Polices : refetch du CSS Google avec un User-Agent Chrome, subsets latin/latin-ext.""",
+ """Polices : les 12 fichiers fontsource se reprennent avec `npm pack @fontsource-variable/source-serif-4` (`source-sans-3`, `jetbrains-mono`) ; les 2 « symboles » sont construits par un script fontTools de la conception (SPEC §2.6) — sinon, garder ceux du dépôt."""),
+# PRECACHE
+("""- `sw.js` précache la coquille (`PRECACHE`, 53 entrées).""",
+ """- `sw.js` précache la coquille (`PRECACHE`, 45 entrées, dont `vendor/fonts/polices.css` et les 14 woff2)."""),
+]
+for a, b in rep:
+    assert s.count(a) == 1, a[:70]
+    s = s.replace(a, b)
+
+# Section « Variables CSS de thème » : premier paragraphe réécrit
+debut = "## Variables CSS de thème (`:root`)\n\n"
+i = s.index(debut) + len(debut)
+j = s.index("\n\n**Couleurs dans les simulateurs/schémas**", i)
+neuf = """**Régions du CSS.** Le grand `<style>` est rangé en **régions balisées** `/* ===== RÉGION X ===== */ … /* ===== FIN RÉGION X ===== */` (`grep -n 'RÉGION' index.html`), dans l'ordre de la cascade : **JETONS** (jetons de design), **BASE** (reset, typo de base, icônes, focus, composants de base `.btn`, `.count`, `.badge`, `.chip`, `kbd`, `.seg`, `.field`, `.menu`, `.kicker`, `.stack`), **COQUILLE** (en-tête, tiroir et couche de commande `.chap-btn`, barre téléphone, menus, thème, A−/A+, retour en haut, pied de site), **PAGE** (`main`, `.chapter`, panneaux, `.chap-title-banner`, onglets `.tabs`, sommaire `.toc`, `#chap-pager`), **CONTENU** (cours, encadrés, formules, schémas, code, exercices), **SIMU** (simulateurs, Lorentz compris), **REVISION** (flashcards, quiz, calcul mental, Aujourd'hui, Bilan, cartes signalées), **FENETRES** (recherche, formulaire, sauvegarde, raccourcis, autres overlays), **IMPRESSION** (`@media print` de la page ; le gabarit de `printChapter` a son propre CSS). Chaque règle va dans **une seule** région, celle de son sujet (composante la plus à droite du sélecteur ; `:root[data-theme="dark"] X` va avec X) ; chaque région a ses propres blocs `@media`. Petits `<style>` hors du grand bloc : schémas des exos de cinématique (dans `#cine-exos`, CONTENU) et `#sr-badge-style` injecté par la recherche améliorée (FENETRES).
+
+**Jetons** (région JETONS, copie du `tokens.css` de la refonte) : polices `--font-text|ui|code`, graisses `--w-*`, échelle fluide `--fs-*` (en rem : suit A−/A+), interlignes `--lh-*`, espacements `--sp-*`, rayons `--r-*`, ombres `--sh-*`, durées `--dur-1/2/3`, plans `--z-*` ; neutres `--desk` (bureau), `--sheet` (feuille), `--sunk` (creux), `--raise` (menus), `--text`, `--text-2`, `--text-3`, `--line`, `--line-2`, `--field`, `--primary`/`--on-primary`, `--focus`, `--link`, `--hover`, `--press`, `--scrim` ; matières `--physique`, `--maths`, `--si`, `--info`, `--anglais` (+ `-fond`, `-vif`) ; sémantique `--rouge`, `--ambre`, `--vert` (+ `-fond`, `-vif`), notation `--note-0/1/2/nv` ; décor `--marge`, `--reglure`, `--bristol`. **`data-mat="<matière>"`** (posé en JS sur chaque `.chapter`, chaque rangée `.mob-chap-row` du tiroir et chaque `.chap-title-banner`) définit l'encre du chapitre `--chap`, `--chap-fond`, `--chap-vif` (et `--def-*`, `--prop-*`, `--meth-*`, `--mill-*`) ; hors `data-mat`, `--chap` = encre 2. **Anciens noms gardés comme alias** (le contenu des chapitres les emploie) : `--ink`→`--text`, `--paper`→`--sheet`, `--paper-dark`→`--sunk`, `--accent`/`--accent-deep`→`--rouge`, `--accent2`→`--physique`, `--green`→`--vert`, `--amber`→`--ambre`, `--muted`→`--text-3`, `--grid`→`--line-2` (ce n'est plus un quadrillage : filet de tableau), `--border`→`--line-2` et `--surface`→`--sunk` (enfin définies), `--dom-*`→encre de la matière, `--radius-s/m/l`, `--shadow*`, `--read-scale`. Nouveau code : les nouveaux noms (jamais `--border`/`--surface`). Les blocs JETONS et BASE sont le socle : ne pas y redéfinir de jeton depuis une autre région.
+
+**Thème sombre** : `:root[data-theme="dark"]` (thème **effectif**) est le seul sélecteur du sombre pour les règles de composant (lu aussi par `getCanvasColors`/`__CV`). **Seule exception : le filet de sécurité des jetons** — le bloc sombre des jetons est recopié **à l'identique** sous `@media (prefers-color-scheme: dark)` pour `:root[data-theme-pref="auto"]` et `:root` sans attribut (avant le JS, maquettes) ; une préférence « Clair » n'est visée par aucun sélecteur et reste claire. Ne pas écrire d'autre `@media (prefers-color-scheme)` ; retoucher les deux copies ensemble. **Trois préférences** (clé `theme`) : Clair, Sombre, **Auto** (défaut : suit le réglage de l'appareil **en continu**, via `matchMedia`). Un petit script dans le `<head>` pose `data-theme-pref` **et** `data-theme="dark"` **avant le premier affichage** (plus de flash clair ; sans `data-theme-pref`, le filet de sécurité rendrait sombre un « Clair » sur appareil sombre). Le module THÈME du grand script (`grep -n 'function applyTheme'`, **local** à une IIFE) porte la préférence dans `data-theme-pref`, aligne les deux `<meta name="theme-color">` (couleur de `--sheet` : #fffdf9 en clair, #191b20 en sombre, chacune pour son media système) sur une préférence explicite, met à jour libellé/titre des boutons, suit le système en mode Auto et redessine le chapitre visible quand le thème effectif change. `#theme-btn` (relayé par `#mob-theme-btn`) fait tourner Auto → l'inverse du thème affiché → l'autre → Auto. API : `window.__themePref()`, `window.__setTheme('light'|'dark'|'auto')`."""
+s = s[:i] + neuf + s[j:]
+
+a = """`getCanvasColors()` détecte le sombre par `data-theme="dark"` sur `<html>` (correctif B4)."""
+b = """`getCanvasColors()` détecte le sombre par `data-theme="dark"` sur `<html>` (correctif B4) ; ses `muted` (= `--text-3`) et `grid` (= encre du thème à 8 % en clair, 12 % en sombre) viennent des jetons."""
+assert s.count(a) == 1
+s = s.replace(a, b)
+open(p, 'w', encoding='utf-8').write(s)
+print('ok')

@@ -1,0 +1,404 @@
+/* --- 1. Texte de cours (SPEC §2.4, §2.5, §5.2 ; composants.css §5) -------------------------
+   La typographie du contenu est posée sur .panel (seulement police, corps, interligne, encre :
+   la mise en page du panneau — fond, marges — relève de la région PAGE). Les cartes, le quiz
+   et les simulateurs redéfinissent leur propre police (interface). */
+.panel{
+  font-family:var(--font-text); font-size:var(--fs-body); line-height:var(--lh-text); color:var(--text);
+  font-variant-numeric:lining-nums; hanging-punctuation:first; overflow-wrap:break-word;
+  font-kerning:normal; font-optical-sizing:auto;
+}
+
+/* Section § : grille marge 112 px | colonne de 34 em (≥ 1024 px) ; un seul bloc en dessous.
+   Entre deux sections : 3,2 em + filet sur la largeur du texte. */
+.course-section{ position:relative; display:grid; grid-template-columns:var(--margin-col) minmax(0, var(--measure)); }
+.course-section > *{ grid-column:2; min-width:0; }
+.course-section + .course-section{ margin-top:var(--flow-section); padding-top:var(--flow-section); }
+.course-section + .course-section::before{
+  content:""; position:absolute; top:0; left:var(--margin-col); height:1px; background:var(--line);
+  width:calc(min(100%, var(--margin-col) + var(--measure)) - var(--margin-col));
+}
+
+/* Surtitre de section. Brut (« §1 · LES BASES », ou « MÉTHODES · RLC ») : surtitre de la colonne.
+   Découpé au premier affichage (script « CONTENU ») en
+   <span class="sec-n">§1</span><span class="sr"> · </span><span class="sec-t">LES BASES</span> :
+   le « §1 » passe dans la marge, en serif italique, à l'encre de la matière. */
+.sec-num{
+  display:block; margin:0 0 .55rem; font:var(--w-bold) var(--fs-kicker)/1.2 var(--font-ui);
+  letter-spacing:var(--track-kicker); text-transform:uppercase; color:var(--chap);
+}
+.sec-num.coupe{ display:contents; }
+.sec-n{
+  grid-column:1; grid-row:1 / span 2; align-self:start; justify-self:end; padding-right:2rem; margin-top:.95em;
+  font:italic var(--w-medium) 2.125rem/1 var(--font-text); color:var(--chap); letter-spacing:-.02em;
+  text-transform:none;
+}
+.sec-t{
+  grid-column:2; grid-row:1; margin-bottom:.55rem; font:var(--w-bold) var(--fs-kicker)/1.2 var(--font-ui);
+  letter-spacing:var(--track-kicker); text-transform:uppercase; color:var(--chap);
+}
+
+/* Titres (plus jamais colorés par domaine) */
+.course-section h2{
+  margin:0 0 .55em; font:var(--w-semi) var(--fs-h2)/var(--lh-head) var(--font-text);
+  letter-spacing:var(--track-head); text-wrap:balance; color:var(--text);
+}
+.course-section h3{
+  margin:var(--flow-h3) 0 .5em; font:var(--w-semi) var(--fs-h3)/1.25 var(--font-text);
+  letter-spacing:-.005em; color:var(--text); text-wrap:balance;
+}
+.course-section h4{ margin:1.4em 0 .4em; font:var(--w-semi) var(--fs-h4)/1.3 var(--font-text); color:var(--text); }
+.course-section h2 + h3, .course-section .intro + h3, .course-section .sec-num + h3{ margin-top:1.1em; }
+
+/* Chapô : romain, encre 2, sans italique ni filet */
+.intro{
+  margin:0 0 1.1em; font-size:var(--fs-lead); line-height:var(--lh-lead); font-style:normal;
+  color:var(--text-2); text-wrap:pretty;
+}
+
+/* Paragraphes, gras, listes */
+.panel p{ margin:0 0 var(--flow-p); text-wrap:pretty; }
+.panel strong, .panel b{ font-weight:var(--w-strong); }
+.panel ul, .panel ol{ margin:0 0 var(--flow-p); padding-left:1.35em; }
+.panel li{ margin:.3em 0; padding-left:.15em; }
+.panel li::marker{ color:var(--chap-vif); }
+.panel ol > li::marker{ font:var(--w-bold) .85em var(--font-ui); color:var(--chap); }
+.panel a{ color:var(--link); text-underline-offset:.18em; text-decoration-thickness:1px; }
+.panel sub, .panel sup{ line-height:0; }
+
+/* Cible du saut carte → cours : décalage sous l'en-tête et les onglets + surbrillance */
+.panel h2, .panel h3, .panel .sec-num{ scroll-margin-top:7.5rem; }
+.cours-target-flash{ animation:coursTargetFlash 2.6s var(--ease); border-radius:var(--r-xs); }
+@keyframes coursTargetFlash{
+  0%, 12% { background:var(--selection); box-shadow:0 0 0 8px var(--selection); }
+  100%    { background:transparent; box-shadow:0 0 0 8px transparent; }
+}
+
+/* --- 2. Formules (MathJax CHTML) ----------------------------------------------------------
+   En ligne : dans le flux du texte (MathJax pose line-height:0 : on garde l'interligne).
+   Trop large pour sa ligne : classe .mj-large posée par le script (défile dans la ligne).
+   En bloc : bloc à défilement horizontal, la page ne déborde jamais. */
+mjx-container:not([display="true"]){
+  display:inline !important; line-height:inherit !important; white-space:normal !important;
+}
+mjx-container.mj-large:not([display="true"]){
+  display:inline-block !important; max-width:100%; overflow-x:auto; overflow-y:hidden;
+  vertical-align:middle; padding:.2em 0; scrollbar-width:thin;
+}
+mjx-container[display="true"]{ display:block !important; overflow-x:auto; overflow-y:hidden; max-width:100%; margin:.5em 0; scrollbar-width:thin; }
+/* MathML d'accessibilité (masqué par clip mais aussi large que la formule native) : il ne doit
+   pas élargir la page quand une formule en ligne finit près du bord droit */
+mjx-container.MathJax[jax] > mjx-assistive-mml:not([display="block"]){ width:1px !important; }
+/* Formule suivie de sa ponctuation (« … \(x\). ») : jamais séparées en fin de ligne ; une formule
+   trop large y laisse la place de sa ponctuation */
+.mj-colle{ white-space:nowrap; }
+.mj-colle > mjx-container.mj-large:not([display="true"]){ max-width:calc(100% - 1em); }
+
+/* Formules en bloc : creux discret, centré, défilement horizontal si trop long ; ni rail ni cadre */
+.formula{
+  position:relative; margin:var(--flow-box) 0; padding:.85em 1.1em; border-radius:var(--r-m);
+  background:var(--formule-fond); text-align:center; overflow-x:auto; overflow-y:hidden; scrollbar-width:thin;
+}
+.formula mjx-container[display="true"]{ margin:0 !important; }
+.solution .formula{ background:var(--sheet); }
+/* Formules consécutives : un seul bloc (coins intérieurs carrés, filet pointillé entre elles) */
+.formula:has(+ .formula){ margin-bottom:0; border-bottom-left-radius:0; border-bottom-right-radius:0; padding-bottom:.6em; }
+.formula + .formula{
+  margin-top:0; border-top-left-radius:0; border-top-right-radius:0; padding-top:.6em;
+  background-image:linear-gradient(90deg, var(--line-2) 50%, transparent 0); background-size:8px 1px;
+  background-repeat:repeat-x; background-position:top;
+}
+/* Nom de formule (attribut facultatif data-nom) : dans la marge sur ordinateur, au-dessus du
+   bloc en dessous de 1024 px. Placé par rapport à .course-section (l'overflow de .formula le rognerait). */
+.course-section > .formula[data-nom]{ position:static; }
+.course-section > .formula[data-nom]::before{
+  content:attr(data-nom); position:absolute; left:0; width:var(--margin-col); padding:.15em 1.85rem 0 .25rem;
+  text-align:right; font:italic 400 var(--fs-small)/1.25 var(--font-text); color:var(--text-3);
+}
+
+/* --- 3. Encadrés : une forme et un intitulé par rôle (intitulés générés en CSS) ------------ */
+.def-box, .prop-box, .method-box, .notice{
+  margin:var(--flow-box) 0 1.2em; padding:.95em 1.2em 1em; border-radius:4px var(--r-m) var(--r-m) 4px;
+}
+.def-box > :last-child, .prop-box > :last-child, .method-box > :last-child, .notice > :last-child{ margin-bottom:0; }
+.def-box::before, .prop-box::before, .notice::before{
+  display:block; margin-bottom:.45rem; font:var(--w-bold) var(--fs-kicker)/1.2 var(--font-ui);
+  letter-spacing:var(--track-kicker); text-transform:uppercase;
+}
+.def-box p, .prop-box p, .notice p{ margin-bottom:.55em; }
+.def-box li, .prop-box li, .method-box li, .notice li{ margin:.35em 0; }
+.def-box ul, .def-box ol, .prop-box ul, .prop-box ol, .method-box ul, .method-box ol, .notice ul, .notice ol{ margin-top:.4em; }
+/* Définition : teinte de la matière, filet vif */
+.def-box{ background:var(--def-fond); border-left:3px solid var(--def-trait); }
+.def-box::before{ content:"Définition"; color:var(--def-titre); }
+/* À retenir : feuille, contour, filet vif ; le gras d'ouverture à l'encre de la matière */
+.prop-box{ background:var(--sheet); border:1px solid var(--line-2); border-left:3px solid var(--prop-trait); }
+.prop-box::before{ content:"À retenir"; color:var(--prop-titre); }
+.prop-box > strong:first-child{ color:var(--prop-titre); }
+/* Méthode : creux neutre ; titre (gras d'ouverture) en serif ; étapes en pastilles numérotées */
+.method-box{ background:var(--meth-fond); border-radius:var(--r-m); padding:1.1em 1.3em; }
+.method-box > strong:first-child{
+  display:block; margin-bottom:.5em; font:var(--w-semi) var(--fs-h4)/1.3 var(--font-text); color:var(--meth-titre);
+}
+.method-box ol:has(> li > .step){ list-style:none; padding-left:0; counter-reset:etape; }
+.method-box li:has(> .step){ position:relative; counter-increment:etape; padding-left:2.25em; margin:.55em 0; }
+.method-box li:has(> .step)::before{
+  content:counter(etape); position:absolute; left:0; top:.1em; width:1.75em; height:1.75em; border-radius:50%;
+  display:grid; place-items:center; background:var(--chap); color:var(--sheet);
+  font:var(--w-bold) .8em/1 var(--font-ui); font-variant-numeric:tabular-nums;
+}
+/* « Étape n. » : gardé pour les lecteurs d'écran, masqué à l'écran (la pastille le remplace) */
+.method-box li:has(> .step) > .step{
+  position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap;
+}
+.step{ font:var(--w-bold) var(--fs-kicker)/1.2 var(--font-ui); letter-spacing:var(--track-kicker); text-transform:uppercase; color:var(--chap); }
+/* À noter : teinte ambre, filet ambre vif, texte à l'encre normale */
+.notice{ background:var(--notice-fond); border-left:3px solid var(--notice-trait); color:var(--text); }
+.notice::before{ content:"À noter"; color:var(--notice-titre); }
+@media (prefers-contrast: more){
+  .def-box, .prop-box, .notice{ border-left-width:4px; }
+  .method-box{ box-shadow:inset 0 0 0 1px var(--line-2); }
+}
+
+/* Mémo à dévoiler : tout le bloc est la cible (role=button, tabindex) ; « Afficher ▾ » = repère */
+.reveal{
+  position:relative; margin:1.2em 0; padding:.9em 1.2em; min-height:var(--tap);
+  border:1.5px dashed var(--reveal-trait); border-radius:var(--r-m); cursor:pointer; background:transparent;
+  transition:background var(--dur-1) var(--ease);
+}
+.reveal:hover{ background:var(--hover); }
+.reveal:focus-visible{ outline:2px solid var(--focus); outline-offset:2px; }
+.reveal .label{
+  display:block; padding-right:7.5rem; font:var(--w-bold) var(--fs-kicker)/1.2 var(--font-ui);
+  letter-spacing:var(--track-kicker); text-transform:uppercase; color:var(--text-3);
+}
+.reveal .prompt{ display:block; margin-top:.35em; padding-right:6.5rem; font-weight:var(--w-semi); }
+.reveal::after{
+  content:"Afficher ▾"; position:absolute; right:.75rem; top:.7em; display:inline-flex; align-items:center;
+  height:2rem; padding:0 .8rem; border-radius:var(--r-full); border:1px solid var(--line-2);
+  background:var(--raise); color:var(--text); font:var(--w-semi) var(--fs-ui-s)/1 var(--font-ui);
+}
+.reveal .content{ display:none; }
+.reveal.open{ border-style:solid; border-color:var(--line-2); background:var(--sheet); }
+.reveal.open::after{ content:"Masquer ▴"; }
+.reveal.open .content{ display:block; margin-top:.8em; padding-top:.8em; border-top:1px solid var(--line); cursor:auto; }
+.reveal .content > :last-child{ margin-bottom:0; }
+
+/* Bandeau « hors programme » et ressources vidéo (en tête de quelques panneaux) */
+.hors-prog{
+  margin:0 0 1.2rem; padding:.8rem 1rem; border-radius:4px var(--r-m) var(--r-m) 4px;
+  background:var(--rouge-fond); border-left:3px solid var(--rouge-vif); color:var(--text);
+  font:var(--w-regular) var(--fs-ui-s)/1.5 var(--font-ui);
+}
+.hors-prog .hp-tag{
+  display:inline-flex; align-items:center; height:1.375rem; margin-right:.45rem; padding:0 .5rem; border-radius:var(--r-s);
+  background:var(--rouge-plein); color:var(--on-rouge-plein);
+  font:var(--w-bold) var(--fs-count)/1 var(--font-ui); letter-spacing:.04em; text-transform:uppercase;
+}
+.hors-prog strong{ color:var(--rouge); }
+.video-resources{
+  margin:0 0 1.5rem; padding:.85rem 1.1rem; border-radius:var(--r-m); background:var(--sunk);
+  border:1px solid var(--line); font:var(--w-regular) var(--fs-ui-s)/1.5 var(--font-ui); color:var(--text-2);
+}
+.video-resources .vr-label{
+  display:block; margin-bottom:.35rem; font:var(--w-bold) var(--fs-kicker)/1.2 var(--font-ui);
+  letter-spacing:var(--track-kicker); text-transform:uppercase; color:var(--text-3);
+}
+.video-resources p{ margin:0; font-size:var(--fs-ui-s); line-height:1.5; }
+.video-resources a{ color:var(--link); font-weight:var(--w-semi); }
+.video-resources .vr-src{ display:block; margin-top:.4rem; font-size:var(--fs-ui-xs); color:var(--text-3); }
+/* Sur ordinateur, alignés sur la colonne de texte (après la marge « § ») */
+@media (min-width:1024px){
+  .hors-prog, .video-resources{ margin-left:var(--margin-col); max-width:40rem; }   /* ≈ 34 em du corps */
+}
+
+/* --- 4. Tableaux, figures, schémas, code --------------------------------------------------- */
+/* Tableaux : styles inline du contenu (font-size .82rem, padding, bordures) neutralisés */
+.panel table{
+  border-collapse:collapse; width:100%; margin:var(--flow-box) 0;
+  font:var(--w-regular) var(--fs-small)/var(--lh-snug) var(--font-ui) !important;
+  font-variant-numeric:tabular-nums; background:var(--sheet); color:var(--text);
+}
+.panel th, .panel td{ padding:.55em .8em !important; border:1px solid var(--line-2) !important; vertical-align:top; }
+.panel th{ text-align:inherit; }
+.panel th, .panel tr[style*="background"] > *{ background:var(--sunk) !important; font-weight:var(--w-semi); color:var(--text); }
+.panel table tr:first-child > th, .panel table tr:first-child[style*="background"] > *{ border-bottom:2px solid var(--field) !important; }
+.panel div:has(> table){ overflow-x:auto; }
+/* Tableau posé directement dans un encadré (sans conteneur défilant) : il défile lui-même */
+.def-box > table, .prop-box > table, .method-box > table, .notice > table{ display:block; max-width:100%; overflow-x:auto; }
+
+/* Figures et schémas SVG (couleurs = variables de thème ; libellés en Unicode) */
+.panel figure{ margin:var(--flow-box) 0; text-align:center; }
+figure.schema{ margin:1.3em auto; max-width:540px; text-align:center; }
+figure.schema svg{ width:100%; height:auto; overflow:visible; display:block; }
+.panel figure svg{ max-width:100%; height:auto; }
+.panel figcaption, figure.schema figcaption{
+  margin-top:.5em; font:italic 400 var(--fs-small)/1.4 var(--font-text); color:var(--text-3); text-wrap:pretty;
+}
+/* Traits */
+.schema .sk-ink{ stroke:var(--ink); fill:none; stroke-width:1.6; }
+.schema .sk-axis{ stroke:var(--text-3); fill:none; stroke-width:1; }
+.schema .sk-dash{ stroke:var(--text-2); fill:none; stroke-width:1.2; stroke-dasharray:4 4; }
+.schema .sk-accent{ stroke:var(--accent); fill:none; stroke-width:2.2; }
+.schema .sk-accent2{ stroke:var(--accent2); fill:none; stroke-width:2.2; }
+.schema .sk-green{ stroke:var(--green); fill:none; stroke-width:2.2; }
+.schema .sk-amber{ stroke:var(--amber); fill:none; stroke-width:2.2; }
+/* Remplissages */
+.schema .fl-ink{ fill:var(--ink); }
+.schema .fl-accent{ fill:var(--accent); }
+.schema .fl-accent2{ fill:var(--accent2); }
+.schema .fl-green{ fill:var(--green); }
+.schema .fl-soft{ fill:var(--ink); opacity:.06; }
+.schema .fl-accent-soft{ fill:var(--accent); opacity:.12; }
+.schema .fl-accent2-soft{ fill:var(--accent2); opacity:.12; }
+.schema .fl-green-soft{ fill:var(--green); opacity:.14; }
+.schema .fl-amber-soft{ fill:var(--amber); opacity:.16; }
+.schema .fl-amber{ fill:var(--amber); }
+.schema .fl-muted-soft{ fill:var(--text-3); opacity:.14; }
+.schema .fl-paper{ fill:var(--paper); }
+/* Textes */
+.schema text{ font-family:'Source Sans 3', system-ui, sans-serif; fill:var(--ink); font-size:13px; }
+.schema text.lab-accent{ fill:var(--accent); }
+.schema text.lab-accent2{ fill:var(--accent2); }
+.schema text.lab-green{ fill:var(--green); }
+.schema text.lab-amber{ fill:var(--amber); }
+.schema text.lab-muted{ fill:var(--text-3); font-size:12px; }
+.schema text.lab-it{ font-style:italic; }
+.schema text.lab-b{ font-weight:600; }
+/* Pointes de flèche réutilisables (sprite en tête de <body>) : colorées par le thème */
+#sk-arrow-ink path{ fill:var(--ink); }
+#sk-arrow-accent path{ fill:var(--accent); }
+#sk-arrow-accent2 path{ fill:var(--accent2); }
+#sk-arrow-green path{ fill:var(--green); }
+/* Schéma dont un libellé passerait sous 12 px : le script lui donne une largeur minimale
+   (--svg-min, .lisible) ; la figure s'élargit jusqu'à la colonne (au téléphone, jusque dans la
+   gouttière), puis défile en largeur si cela ne suffit pas (.defile). */
+figure.schema.lisible{ max-width:max(540px, var(--svg-min, 0px)); }
+figure.schema.lisible svg, .cine-svg-wrap.lisible svg{ min-width:var(--svg-min, 0px); }
+figure.schema.defile, .cine-svg-wrap.defile{ overflow-x:auto; overflow-y:hidden; padding-block:.25rem; scrollbar-width:thin; }
+.cine-svg-wrap.defile{ justify-content:safe center; }
+/* Libellés blancs posés sur une pastille colorée (molécules, ions) : couleur de la feuille, lisible
+   dans les deux thèmes (la pastille s'éclaircit en sombre) */
+.schema text[style*="fill:#fff"]{ fill:var(--sheet) !important; }
+
+/* Code (informatique) : JetBrains Mono, sans ligatures */
+.codeblock{
+  margin:var(--flow-box) 0; padding:.9em 1.1em; border-radius:var(--r-m);
+  background:var(--sunk); border:1px solid var(--line); color:var(--text);
+  font-family:var(--font-code); font-size:.84em; line-height:1.55; font-variant-ligatures:none;
+  overflow-x:auto; white-space:pre; tab-size:4; scrollbar-width:thin;
+}
+.codeblock .cmt{ color:var(--text-3); font-style:italic; }
+.codeblock .kw{ color:var(--chap); font-weight:var(--w-semi); }
+.codeblock .str{ color:var(--vert); }
+.code-inline, .panel :not(pre) > code{
+  font-family:var(--font-code); font-size:.84em; font-variant-ligatures:none;
+  background:var(--sunk); padding:.1em .35em; border-radius:var(--r-xs); color:var(--text);
+}
+.panel pre code{ font-size:1em; background:none; padding:0; }
+
+/* --- 5. Exercices (SPEC §5.3 ; composants.css §6) ----------------------------------------- */
+/* Outils en tête de l'onglet (construits par le script) : difficulté, Concours PT, effectif */
+.exo-tools{ display:flex; align-items:center; gap:.75rem; flex-wrap:wrap; margin:0 0 1.4rem; font-family:var(--font-ui); max-width:54rem; }
+.exo-tools .seg > button{ font-variant-numeric:tabular-nums; }
+.exo-tools .chip[aria-pressed="true"]{ background:var(--primary); color:var(--on-primary); border-color:transparent; }
+.exo-tools .info{ margin-left:auto; font-size:var(--fs-ui-s); color:var(--text-3); }
+.exo-tools .vide{ flex-basis:100%; margin:0; font-size:var(--fs-ui-s); color:var(--text-2); }
+.exo-wrapper{ display:flex; flex-direction:column; gap:1.25rem; max-width:54rem; }
+.exo-wrapper ~ .exo, .panel > .exo{ margin-top:1.25rem; max-width:54rem; }
+.exo.filtre-masque{ display:none !important; }   /* filtre de l'onglet (classe, pas hidden : l'impression garde tout) */
+.exo{ position:relative; padding:1.3rem 1.5rem 1.4rem; border:1px solid var(--line); border-radius:var(--r-l); background:var(--sheet); }
+.exo > .num{
+  display:inline-flex; align-items:center; height:1.5rem; vertical-align:middle;
+  font:var(--w-bold) var(--fs-kicker)/1 var(--font-ui); letter-spacing:var(--track-kicker); text-transform:uppercase; color:var(--chap);
+}
+/* Difficulté (enrichie par le script) : 3 barres + niveau en toutes lettres, à côté du numéro */
+.exo > .diff{
+  display:inline-flex; align-items:center; gap:.45rem; margin-left:.85rem; vertical-align:middle;
+  font:var(--w-semi) var(--fs-ui-xs)/1 var(--font-ui); color:var(--text-2); letter-spacing:.02em;
+}
+.diff .bars{ display:inline-flex; align-items:flex-end; gap:2px; height:.9rem; }
+.diff .bars i{ display:block; width:4px; border-radius:1px; background:var(--line-2); }
+.diff .bars i:nth-child(1){ height:40%; } .diff .bars i:nth-child(2){ height:70%; } .diff .bars i:nth-child(3){ height:100%; }
+.diff[data-niveau="1"] .bars i:nth-child(-n+1), .diff[data-niveau="2"] .bars i:nth-child(-n+2), .diff[data-niveau="3"] .bars i{ background:var(--chap-vif); }
+.exo h3{ margin:.55rem 0 .7rem; font:var(--w-semi) var(--fs-h3)/1.25 var(--font-text); color:var(--text); text-wrap:balance; }
+.exo .statement{ margin:0 0 .8em; }
+.exo .statement > :last-child{ margin-bottom:0; }
+/* Questions : « Q1. » en retrait suspendu, sans gras, à l'encre de la matière */
+.exo .q{ display:block; margin:.45em 0; padding-left:2.5rem; text-indent:-2.5rem; }
+.exo .q *{ text-indent:0; }
+.exo .q > strong:first-child{
+  display:inline-block; min-width:2.5rem; padding-right:.3rem; font:var(--w-bold) .8em/1 var(--font-ui);
+  color:var(--chap); letter-spacing:.02em;
+  margin-right:-.265em;   /* rattrape l'espace qui suit « Q1. » : la 1re ligne s'aligne sur les suivantes */
+}
+.exo .q:not(:has(> strong:first-child)){ padding-left:0; text-indent:0; }
+.exo .exo-part{
+  margin:1.1em 0 .3em; font:var(--w-bold) var(--fs-kicker)/1.2 var(--font-ui);
+  letter-spacing:var(--track-kicker); text-transform:uppercase; color:var(--text-2);
+}
+.exo-source{
+  margin:.2rem 0 .9rem; padding:.7rem .9rem; border-radius:var(--r-m); background:var(--sunk);
+  font:var(--w-regular) var(--fs-ui-s)/1.45 var(--font-ui); color:var(--text-2);
+}
+.exo-source a{ color:var(--link); font-weight:var(--w-semi); }
+/* Exercice de type concours : liseré intérieur à l'encre en haut, badge en aplat d'encre */
+.exo.concours{ border-color:var(--line-2); box-shadow:inset 0 3px 0 var(--primary); }
+.exo.concours > .num{ padding:0 .55rem; border-radius:var(--r-s); background:var(--primary); color:var(--on-primary); }
+/* Solution : bouton secondaire « Voir la solution ▾ / Masquer la solution ▴ » */
+.toggle-sol{
+  display:inline-flex; align-items:center; gap:.45rem; margin-top:.9rem; height:2.375rem; padding:0 .9rem;
+  border-radius:var(--r-m); border:1px solid var(--line-2); background:var(--raise); color:var(--text);
+  font:var(--w-semi) var(--fs-ui-s)/1 var(--font-ui); cursor:pointer;
+  transition:background var(--dur-1) var(--ease), border-color var(--dur-1);
+}
+.toggle-sol:hover{ border-color:var(--field); background:var(--sunk); }
+.toggle-sol:active{ transform:translateY(1px); }
+.toggle-sol::after{ content:"▾"; color:var(--text-3); }
+.toggle-sol.open::after{ content:"▴"; }
+@media (pointer:coarse){ .toggle-sol{ height:var(--tap); } }
+.solution{
+  display:none; margin-top:1rem; padding:1rem 1.2rem 1.05rem; border-radius:4px var(--r-m) var(--r-m) 4px;
+  background:var(--sunk); border-left:3px solid var(--sol-trait); font-size:var(--fs-sol);
+}
+.solution.shown{ display:block; }
+.solution h4{
+  margin:0 0 .5rem; font:var(--w-bold) var(--fs-kicker)/1.2 var(--font-ui); letter-spacing:var(--track-kicker);
+  text-transform:uppercase; color:var(--sol-titre);
+}
+.solution p{ margin:0 0 .6em; }
+.solution > :last-child{ margin-bottom:0; }
+
+/* Schémas SVG des exercices de cinématique (classes .svg-* du <style> de #cine-exos) */
+.cine-svg-wrap{ display:flex; justify-content:center; margin:.75rem 0; }
+.cine-svg-wrap svg{ max-width:100%; height:auto; border:1px solid var(--line); background:var(--sheet); border-radius:var(--r-s); }
+.cine-svg-wrap text[opacity]{ opacity:1; fill:var(--text-3); }   /* libellé estompé : encre 3 (≥ 4,5:1) plutôt qu'une opacité */
+
+/* --- 6. Téléphone et tablette ---------------------------------------------------------------- */
+@media (max-width:1023px){
+  .course-section{ display:block; }
+  .course-section + .course-section::before{ left:0; width:100%; }
+  .sec-num.coupe{ display:block; }
+  .sec-n{ display:inline; margin:0; padding:0; font:var(--w-bold) var(--fs-kicker)/1.2 var(--font-ui); letter-spacing:var(--track-kicker); }
+  .sec-n + .sr{ position:static; width:auto; height:auto; overflow:visible; clip:auto; white-space:pre; }
+  .sec-t{ display:inline; margin:0; }
+  .panel p, .panel li{ hyphens:auto; -webkit-hyphens:auto; }
+  .course-section > .formula[data-nom]::before{
+    position:static; display:block; width:auto; padding:0; margin:0 0 .35em; text-align:left; font-size:.85em;
+  }
+}
+@media (max-width:767px){
+  /* Formules en bloc : pleine largeur (débordent dans la gouttière de 16 px) */
+  .course-section > .formula{ margin-left:calc(var(--gutter) * -1 + 4px); margin-right:calc(var(--gutter) * -1 + 4px); padding:.8em .75em; }
+  .def-box, .prop-box, .method-box, .notice{ padding:.85em 1em .9em; }
+  .reveal{ padding:.85em 1em; }
+  .reveal .label, .reveal .prompt{ padding-right:0; }
+  .reveal::after{ position:static; margin-top:.7em; }
+  figure.schema.lisible{ max-width:none; margin-left:calc(var(--gutter) * -1 + 4px); margin-right:calc(var(--gutter) * -1 + 4px); }
+  .exo{ padding:1.1rem 1rem 1.2rem; }
+  .exo .q{ padding-left:2.1rem; text-indent:-2.1rem; }
+  .exo .q > strong:first-child{ min-width:2.1rem; }
+  .exo-tools{ gap:.6rem; }
+  .exo-tools .seg{ flex:1 1 100%; }
+  .exo-tools .info{ margin-left:auto; }
+  .solution{ padding:.9rem 1rem 1rem; }
+}
