@@ -924,6 +924,7 @@ kbd, .kbd{
     width:var(--sidebar-w); border-right:1px solid var(--line);
   }
   #mob-drawer-scroll{ padding-top:1rem; }
+  .dr-row{ margin-top:0; }
   html.nav-replie #mob-drawer{ display:none; }
   #mob-drawer-header, #dr-tuiles, #mob-drawer-overlay, #mob-drawer-overlay.open{ display:none !important; }
 }
@@ -981,7 +982,7 @@ kbd, .kbd{
    le nom de la matière (window.__ouvrirSommaire) ou le lien profond.
    =================================================================== */
 html.sommaire-ouvert #app-main > main, html.sommaire-ouvert #chap-pager{ display:none !important; }
-.sommaire{ max-width:var(--sheet-max); margin:1.5rem auto 3rem; padding:0 1.5rem; }
+.sommaire{ margin:1.5rem 1.5rem 3rem; }
 .sommaire-feuille{ background:var(--sheet); border-radius:var(--r-l); box-shadow:var(--sh-sheet);
   border-top:4px solid var(--chap-vif); overflow:clip; padding:0 2.5rem 2.5rem; }
 .ov-head{ position:relative; margin:0 -2.5rem; padding:2rem 2.5rem 1.5rem; background:var(--chap-fond); border-bottom:1px solid var(--line); }
@@ -76034,12 +76035,16 @@ ${bodyContent}
       etatBarre.section = s;
       rendreBarre();
       // « Reprendre · Cours · §3 Régime libre » (Récents, Sommaire) : section dans lastPos
-      const pos = Store.getJSON('lastPos', null);
+      // (différé : à l'arrivée sur un chapitre, lastPos n'est écrit qu'après la navigation)
       const p = sec.closest('.panel');
-      if(pos && pos.chap === ch.id && p && pos.panel === p.id){
-        const lib = (s.n ? s.n + ' ' : '') + s.t;
-        if(pos.s !== lib){ pos.s = lib; pos.t = Date.now(); Store.setJSON('lastPos', pos); }
-      }
+      setTimeout(() => {
+        if(!etatBarre.section || etatBarre.section.id !== s.id) return;
+        const pos = Store.getJSON('lastPos', null);
+        if(pos && pos.chap === ch.id && p && pos.panel === p.id){
+          const lib = (s.n ? s.n + ' ' : '') + s.t;
+          if(pos.s !== lib){ pos.s = lib; pos.t = Date.now(); Store.setJSON('lastPos', pos); }
+        }
+      }, 400);
     } catch(e){}
   };
   // Effacement au défilement (téléphone)
