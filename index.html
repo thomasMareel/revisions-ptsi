@@ -691,18 +691,8 @@ kbd, .kbd{
 @media (min-width:1200px){
   html:not(.nav-replie) #app-main{ margin-left:var(--sidebar-w); }
 }
-/* En-tête collant (56 px) : les onglets du chapitre collent juste dessous */
-@media (min-width:768px){
-  #app-main nav.tabs{ top:var(--header-h); }
-}
-/* Téléphone : la barre est collante (dans le flux) → plus de marge haute sous elle ;
-   les onglets collent sous la barre (56 px), ou tout en haut quand elle s'efface. */
-@media (max-width:767px){
-  #app-main > main, #app-main > main#si-content{ margin-top:0 !important; }
-  #app-main nav.tabs{ top:var(--bar-h) !important; z-index:var(--z-sticky) !important;
-    transition:top var(--dur-2) var(--ease), box-shadow var(--dur-2) var(--ease); }
-  html.mbar-cachee #app-main nav.tabs{ top:0 !important; box-shadow:var(--sh-1); }
-}
+/* Onglets du chapitre collants sous l'en-tête (56 px) ou sous la barre du téléphone :
+   région PAGE (nav.tabs). */
 
 /* ===================================================================
    2. EN-TÊTE ORDINATEUR (≥ 768 px) — SPEC §5.12
@@ -1197,249 +1187,293 @@ footer.pied .brand-mark{ width:1.375rem; height:1.375rem; border-radius:6px; fon
 /* Page chapitre : <main>, .chapter, panneaux, intercalaire .chap-title-banner, onglets .tabs,
    rail .toc (sommaire), pied #chap-pager. Propriétaire : ligne « coquille » (page). */
 
-@media (prefers-contrast: more){
-  .tab.active{ outline:1px solid currentColor; }
-}
+/* Plan de la région (SPEC §4.1, §4.2, §4.4, §5.1, §5.14 ; composants.css §4, §8, §9) :
+   1. Colonne de lecture (<main>) et feuille (.chapter)
+   2. Intercalaire .chap-title-banner (ordinateur et tablette ; enrichi par le module « PAGE CHAPITRE »)
+   3. Onglets nav.tabs / .tab : posés sur l'intercalaire, puis collants sous l'en-tête
+   4. Panneaux section.panel et filet rouge de marge
+   5. Rail droit #chap-rail (≥ 1 360 px) : sommaire .toc, « Mes cartes », liste des exercices
+   6. Pied de chapitre #chap-pager : deux cartes « chapitre précédent / suivant »
+   7. Tablette (768–1 023 px) : plus de marge « § »
+   8. Téléphone (≤ 767 px) : pas d'intercalaire, onglets collants sous la barre .mbar
+   9. Animations, contraste renforcé */
 
-/* S6 — Pager Précédent / Suivant entre chapitres */
-#chap-pager{ display:flex; gap:0.8rem; justify-content:space-between; max-width:780px; margin:2.5rem auto 1.5rem; padding:0 1rem; }
-.chap-pager-btn{
-  flex:1 1 0; min-width:0; display:flex; align-items:center; gap:0.65rem;
-  background:var(--paper); border:1.5px solid var(--ink); border-radius:var(--radius-m);
-  padding:0.65rem 0.95rem; cursor:pointer; color:var(--ink); min-height:44px;
-  font-family:var(--font-ui); text-align:left;
-  transition:background 0.15s, color 0.15s, opacity 0.15s, box-shadow 0.15s;
+/* ===================================================================
+   1. COLONNE DE LECTURE ET FEUILLE
+   La feuille est le .chapter lui-même : unie (--sheet), rayon 16 px, ombre --sh-sheet,
+   liseré de 4 px dans l'encre vive de la matière. overflow:clip (pas hidden) : les
+   onglets restent collants (clip ne crée pas de conteneur de défilement).
+   =================================================================== */
+main, main#si-content{ display:block; max-width:none; margin:0; padding:1.5rem 1.5rem 3rem; }
+.chapter{ display:none; }
+.chapter.active{ display:block; }
+.chapter{
+  --onglets-h:2.875rem;             /* hauteur des onglets (46 px ; 44 au téléphone) */
+  position:relative; max-width:var(--sheet-max); margin:0 auto;
+  background:var(--sheet); color:var(--text);
+  border-radius:var(--r-l); box-shadow:var(--sh-sheet);
+  border-top:4px solid var(--chap-vif);
+  overflow:clip;
 }
-.chap-pager-btn.cpg-next{ justify-content:flex-end; text-align:right; }
-.chap-pager-btn:hover:not(:disabled){ background:var(--ink); color:var(--paper); box-shadow:var(--shadow-2); }
-.chap-pager-btn:disabled{ opacity:0.3; cursor:default; }
-.cpg-arrow{ font-size:1.5rem; line-height:1; flex-shrink:0; }
-.cpg-txt{ display:flex; flex-direction:column; min-width:0; }
-.cpg-dir{ font-family:var(--font-code); font-size:0.64rem; letter-spacing:0.14em; text-transform:uppercase; color:var(--muted); }
-.chap-pager-btn:hover:not(:disabled) .cpg-dir{ color:var(--paper); opacity:0.85; }
-.cpg-name{ font-size:0.92rem; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+/* Simulateur : la feuille s'élargit (pas de rail sur cet onglet) */
+.chapter[data-onglet="simu"]{ max-width:66rem; }
 
-@media(max-width:767px){
-  .toc, .toc-wrapper > .toc{ display:none !important; }
-  /* ── Main et chapitres ── */
-  main,
-  main#si-content{
-    padding:0.75rem 0.75rem 80px !important;
-    margin:0 !important;
-    max-width:100% !important;
-    margin-top:52px !important;
-  }
-  /* ── Tabs onglets ── */
-  nav.tabs{
-    position:sticky !important;
-    top:52px !important;
-    overflow-x:auto;
-    scrollbar-width:none;
-    -webkit-overflow-scrolling:touch;
-    gap:0;
-  }
-  nav.tabs::-webkit-scrollbar{display:none;}
-  /* Le titre du chapitre est déjà affiché dans l'en-tête mobile sticky */
-  .chap-title-banner{display:none !important;}
-  .tab{
-    padding:0.75rem 1rem !important;
-    font-size:0.72rem !important;
-    min-height:44px;
-  }
-  /* ── TOC : masqué sur mobile ── */
-  .toc-wrapper{
-    display:block !important;
-    grid-template-columns:1fr !important;
-  }
-}
-
-/* ============================================================ */
-/* ======= AMÉLIORATION 10 — ANIMATIONS LÉGÈRES ============== */
-/* ============================================================ */
-
-/* Transition des panels. NB : la règle « section.panel.active » ci-dessous est
-   écrasée plus loin par « section.panel.active{display:block;animation:fadeIn 0.4s
-   ease} » (même spécificité, déclarée après) : c'est fadeIn qui s'applique, et
-   panelIn / panelInLeft / panelInRight ne servent pas. */
-@keyframes panelIn {
-  from { opacity: 0; transform: translateY(6px); }
-  to   { opacity: 1; transform: none; }
-}
-@keyframes panelInLeft {
-  from { opacity: 0; transform: translateX(-10px); }
-  to   { opacity: 1; transform: none; }
-}
-@keyframes panelInRight {
-  from { opacity: 0; transform: translateX(10px); }
-  to   { opacity: 1; transform: none; }
-}
-section.panel.active {
-  animation: panelIn 0.22s cubic-bezier(0.22,1,0.36,1) both;
-}
-
-/* Chapitre qui entre */
-@keyframes chapterIn {
-  from { opacity: 0; transform: translateY(12px); }
-  to   { opacity: 1; transform: none; }
-}
-.chapter.active {
-  animation: chapterIn 0.28s cubic-bezier(0.22,1,0.36,1) both;
-}
-
-/* Micro-animation sur les boutons d'action (tab, chap-btn, mat-btn) */
-.tab{
-  transition: background 0.18s, color 0.18s, box-shadow 0.18s !important;
-}
-.tab:active { transform: scale(0.97); }
-
-.toc-wrapper{
-  position:relative;
-}
-.toc{
-  display:none; /* caché par défaut, activé en JS sur les panels cours larges */
-}
-@media(min-width:1100px){
-  .toc-wrapper{
-    display:grid;
-    grid-template-columns:250px 1fr;
-    gap:0;
-    align-items:start;
-  }
-  .toc{
-    display:block;
-    position:sticky;
-    top:60px; /* sous la nav.tabs */
-    max-height:calc(100vh - 80px);
-    overflow-y:auto;
-    padding:1.15rem 0;
-    border-right:2px solid var(--ink);
-    margin-right:2rem;
-    background:var(--paper);
-  }
-  .toc-title{
-    font-family:var(--font-code);
-    font-size:0.72rem;
-    letter-spacing:0.2em;
-    text-transform:uppercase;
-    color:var(--accent);
-    padding:0 1.1rem 0.85rem;
-    display:block;
-    border-bottom:1px solid rgba(128,128,128,0.2);
-    margin-bottom:0.6rem;
-  }
-  .toc-item{
-    display:block;
-    padding:0.5rem 1.1rem;
-    font-family:var(--font-code);
-    font-size:0.82rem;
-    color:var(--ink);
-    opacity:0.82;
-    cursor:pointer;
-    border-left:3px solid transparent;
-    transition:all 0.15s;
-    text-decoration:none;
-    letter-spacing:0.03em;
-    line-height:1.45;
-  }
-  .toc-item:hover{ opacity:1; background:var(--paper-dark); }
-  .toc-item.active{
-    opacity:1;
-    color:var(--accent);
-    border-left-color:var(--accent);
-    background:rgba(200,71,46,0.06);
-    font-weight:600;
-  }
-  .toc-content{ min-width:0; }
-}
-
-/* Badge « 2ᵉ année » (chapitres de 2A) */
-.yr2a{
-  display:inline-block;
-  margin-left:0.5em;
-  padding:0.05em 0.4em;
-  border:1px solid var(--accent2);
-  border-radius:3px;
-  color:var(--accent2);
-  font-size:0.82em;
-  font-weight:700;
-  letter-spacing:0.06em;
-  vertical-align:middle;
-}
-
-/* BANDEAU TITRE DU CHAPITRE (injecté en haut de chaque chapitre) */
+/* ===================================================================
+   2. INTERCALAIRE (.chap-title-banner) — SPEC §4.4, §5.14
+   Tête de feuille teintée de la matière, papier millimétré dans l'encre vive de la
+   matière (traits de 8 et 40 px) en fondu vers le bas ; teinte et papier débordent sous
+   les onglets (transparents tant qu'ils ne collent pas). Colonne alignée sur la marge
+   « § » de 112 px (onglets Exercices et Simulateur : sur le bord de la feuille).
+   =================================================================== */
 .chap-title-banner{
-  padding:1.15rem 2rem 0.95rem;
-  background:var(--paper);
-  border-bottom:1px solid rgba(0,0,0,0.12);
+  position:relative; z-index:0;
+  padding:2rem 2.5rem 1.3rem var(--margin-col);
+  font-family:var(--font-ui); color:var(--text);
 }
-.chap-title-banner .ctb-sub{
-  display:block;
-  font-family:var(--font-code);
-  font-size:0.68rem;
-  letter-spacing:0.18em;
-  text-transform:uppercase;
-  color:var(--accent);
-  margin-bottom:0.3rem;
+.chap-title-banner::before, .chap-title-banner::after{
+  content:""; position:absolute; z-index:-1; left:0; right:0; top:0;
+  bottom:calc(var(--onglets-h) * -1 - 1px); pointer-events:none;
 }
+.chap-title-banner::before{ background:var(--chap-fond); }
+.chap-title-banner::after{
+  background-image:
+    linear-gradient(var(--mill-cm) 1px, transparent 1px), linear-gradient(90deg, var(--mill-cm) 1px, transparent 1px),
+    linear-gradient(var(--mill-fin) 1px, transparent 1px), linear-gradient(90deg, var(--mill-fin) 1px, transparent 1px);
+  background-size:40px 40px, 40px 40px, 8px 8px, 8px 8px; background-position:-1px -1px;
+  /* masque : seule l'opacité compte (aucune couleur rendue) */
+  -webkit-mask-image:linear-gradient(180deg, var(--text) 0, var(--text) 40%, transparent 100%);
+  mask-image:linear-gradient(180deg, var(--text) 0, var(--text) 40%, transparent 100%);
+}
+.chapter[data-onglet="exos"] > .chap-title-banner,
+.chapter[data-onglet="simu"] > .chap-title-banner{ padding-left:2.5rem; }
+
+/* Fil d'Ariane : pastille · Matière (→ Sommaire) › partie (→ navigation) · tag */
+.ctb-crumb{
+  display:flex; align-items:center; flex-wrap:wrap; gap:.25rem .45rem;
+  font:var(--w-medium) var(--fs-ui-s)/1.2 var(--font-ui); color:var(--text-2);
+}
+.ctb-crumb a{ color:inherit; text-decoration:none; border-radius:var(--r-xs); padding:.15rem .1rem; margin:-.15rem -.1rem; }
+.ctb-crumb a:hover{ color:var(--text); text-decoration:underline; text-underline-offset:.2em; text-decoration-thickness:1px; }
+.ctb-crumb .ctb-mat b{ color:var(--chap); font-weight:var(--w-bold); }
+.ctb-crumb .ic{ width:.9rem; height:.9rem; color:var(--text-3); flex:none; }
+.ctb-crumb .sep{ color:var(--text-3); }
+
+/* Titre (h2 : l'unique h1 est le titre du site) + actions alignées à droite */
+.ctb-row{ display:flex; align-items:flex-start; gap:1.5rem; margin-top:.7rem; }
 .chap-title-banner .ctb-title{
-  font-family:var(--font-text);
-  font-size:1.7rem;
-  font-weight:700;
-  letter-spacing:-0.015em;
-  line-height:1.12;
-  margin:0;
-  color:var(--ink);
+  flex:1 1 auto; min-width:0; margin:0;
+  font:var(--w-semi) var(--fs-h1)/1.08 var(--font-text); letter-spacing:var(--track-h1);
+  color:var(--text); text-wrap:balance; font-optical-sizing:auto;
 }
-:root[data-theme="dark"] .chap-title-banner{border-bottom-color:rgba(255,255,255,0.12)}
+.ctb-actions{ flex:none; display:flex; gap:.4rem; margin-left:auto; padding-top:.35rem; }
+.ctb-actions .btn[aria-pressed="true"] .ic{ color:var(--ambre-vif); }
 
-/* Rail de couleur par matière (identité visuelle, Lot 3) */
-.chap-title-banner{ border-left:5px solid transparent; }
-.chap-title-banner.mat-physique{ border-left-color:var(--accent2); }
-.chap-title-banner.mat-maths{    border-left-color:var(--accent);  }
-.chap-title-banner.mat-si{       border-left-color:var(--green);   }
-.chap-title-banner.mat-info{     border-left-color:var(--amber);   }
-.chap-title-banner.mat-anglais{  border-left-color:var(--anglais); }
+/* Méta : badge d'année · sections · cartes · exercices · simulateur */
+.ctb-meta{
+  display:flex; flex-wrap:wrap; align-items:center; gap:.4rem .75rem; margin-top:.85rem;
+  font:var(--w-regular) var(--fs-ui-s)/1.3 var(--font-ui); color:var(--text-2);
+}
+.ctb-meta .sep{ color:var(--text-3); }
+.ctb-meta .badge{ font-variant-numeric:normal; }
+.ctb-meta .badge-out{ color:var(--text-2); }
 
-/* NAV TABS */
+/* ===================================================================
+   3. ONGLETS (nav.tabs / .tab) — SPEC §4.4, §5.1, §6.1
+   Soulignés, sans « 01–05 » ; compteurs .cnt (effectif) et .count (cartes dues).
+   Collants sous l'en-tête de 56 px ; quand ils collent (.onglets-colles, posé par le
+   module « PAGE CHAPITRE »), fond --sheet et ombre --sh-1.
+   =================================================================== */
 nav.tabs{
-  display:flex;
-  gap:0;
-  border-bottom:2px solid var(--ink);
-  background:var(--paper-dark);
-  position:sticky;
-  top:0;
-  z-index:10;
-  overflow-x:auto;
+  position:sticky; top:var(--header-h); z-index:var(--z-sticky);
+  display:flex; align-items:stretch; gap:.25rem;
+  padding:0 2.5rem 0 calc(var(--margin-col) - .75rem);
+  background:transparent; border-bottom:1px solid var(--line);
+  overflow-x:auto; overflow-y:hidden; scrollbar-width:none;
+  transition:background-color var(--dur-2) var(--ease), box-shadow var(--dur-2) var(--ease);
+}
+nav.tabs::-webkit-scrollbar{ display:none; }
+.chapter[data-onglet="exos"] > nav.tabs,
+.chapter[data-onglet="simu"] > nav.tabs{ padding-left:1.75rem; }
+@media (min-width:768px){
+  .chapter.onglets-colles > nav.tabs{ background:var(--sheet); box-shadow:var(--sh-1); }
 }
 .tab{
-  font-family:var(--font-code);
-  font-size:0.85rem;
-  font-weight:500;
-  padding:1rem 1.5rem;
-  background:transparent;
-  border:none;
-  border-right:1px solid rgba(0,0,0,0.1);
-  cursor:pointer;
-  white-space:nowrap;
-  transition:all 0.2s;
-  color:var(--ink);
-  text-transform:uppercase;
-  letter-spacing:0.05em;
+  position:relative; flex:none; display:inline-flex; align-items:center; gap:.4rem;
+  height:var(--onglets-h); margin:0; padding:0 .75rem;
+  border:0; border-radius:0; background:none; cursor:pointer; white-space:nowrap;
+  font:var(--w-medium) var(--fs-ui)/1 var(--font-ui); letter-spacing:0; text-transform:none;
+  color:var(--text-2);
+  transition:color var(--dur-1) var(--ease);
 }
-.tab:hover{background:var(--paper)}
-.tab.active{background:var(--ink);color:var(--paper)}
-.tab .num{font-size:0.7rem;opacity:0.6;margin-right:0.4rem}
+.tab .num{ display:none; }                       /* « 01 … 05 » du HTML : masqués */
+.tab .cnt{ font-weight:var(--w-regular); color:var(--text-3); font-variant-numeric:tabular-nums; }
+.tab .count{ margin-left:-.05rem; }
+.tab .count[hidden]{ display:none; }
+.tab-court{ display:none; }
+.tab:hover{ color:var(--text); }
+.tab.active{ color:var(--text); font-weight:var(--w-semi); }
+.tab.active .cnt{ font-weight:var(--w-regular); }
+.tab.active::after{
+  content:""; position:absolute; left:.75rem; right:.75rem; bottom:0; height:3px;
+  border-radius:3px 3px 0 0; background:var(--chap-vif);
+}
+.tab:focus-visible{ outline:2px solid var(--focus); outline-offset:-3px; border-radius:var(--r-s); }
 
-/* MAIN */
-main{padding:2rem;max-width:1400px;margin:0 auto}
-.chapter{display:none}
-.chapter.active{display:block}
-section.panel{display:none}
-section.panel.active{display:block;animation:fadeIn 0.4s ease}
-@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+/* ===================================================================
+   4. PANNEAUX ET FILET ROUGE DE MARGE
+   Cours et Méthodes : la grille marge | texte est portée par .course-section (région
+   CONTENU), le panneau n'a donc pas de retrait à gauche ; filet rouge vertical à 20 px
+   du texte, décoratif, jamais au téléphone. Autres onglets : retrait de 2,5rem.
+   =================================================================== */
+section.panel{ display:none; position:relative; padding:2.25rem 2.5rem 3rem; }
+section.panel.active{ display:block; }
+section.panel[id$="-cours"], section.panel[id$="-meth"]{ padding-left:0; }
+section.panel[id$="-cours"]::before, section.panel[id$="-meth"]::before{
+  content:""; position:absolute; top:0; bottom:0; left:calc(var(--margin-col) - 1.25rem);
+  width:1px; background:var(--marge); pointer-events:none;
+}
 
-/* — Onglets : léger espacement de lettres, hover doux — */
-.tab{ letter-spacing:0.04em; transition:background 0.18s, color 0.18s; }
+/* ===================================================================
+   5. RAIL DROIT (#chap-rail, ≥ 1 360 px) — SPEC §4.4, composants.css §8
+   Fixe à droite sous l'en-tête ; la colonne de lecture lui laisse sa largeur
+   (html.rail-on, posé par le module « PAGE CHAPITRE » : chapitre affiché, onglet autre
+   que Simulateur). Contenu reconstruit pour le chapitre affiché.
+   =================================================================== */
+#chap-rail{ display:none; }
+@media (min-width:1360px){
+  html.rail-on:not(.sommaire-ouvert) #app-main{ padding-right:var(--rail-w); }
+  html.rail-on:not(.sommaire-ouvert) #chap-rail{
+    display:block; position:fixed; top:var(--header-h); right:0; bottom:0; width:var(--rail-w);
+    overflow-y:auto; overscroll-behavior:contain; scrollbar-width:thin;
+    padding:1.5rem 1.25rem 2rem .5rem; font-family:var(--font-ui); color:var(--text);
+  }
+}
+.rail-bloc + .rail-bloc{ margin-top:1.75rem; }
+.rail-titre{ display:block; margin:0 0 .6rem; }
+
+/* Sommaire scroll-spy « Dans ce chapitre » (.toc) : lignes « §n Titre » */
+.toc-list, .exo-list{ list-style:none; margin:0; padding:0; border-left:1px solid var(--line); }
+.toc-list a, .exo-list a{
+  display:grid; grid-template-columns:1.9rem minmax(0,1fr); gap:.25rem; align-items:baseline;
+  margin-left:-1px; padding:.42rem .5rem .42rem .8rem; border-left:2px solid transparent;
+  border-radius:0 var(--r-s) var(--r-s) 0;
+  text-decoration:none; color:var(--text-2); font:var(--w-regular) var(--fs-ui-s)/1.3 var(--font-ui);
+}
+.toc-list a .n{ font-family:var(--font-text); font-style:italic; color:var(--text-3); }
+.toc-list a:hover, .exo-list a:hover{ color:var(--text); background:var(--hover); }
+.toc-list a.on, .exo-list a.on{ border-left-color:var(--chap-vif); color:var(--text); font-weight:var(--w-semi); }
+.toc-list a.on .n{ color:var(--chap); }
+
+/* Liste des exercices (onglet Exercices) : « EXO 01 » + titre + difficulté en barres */
+.exo-list a{ grid-template-columns:2.85rem minmax(0,1fr) auto; align-items:center; gap:.4rem; padding-right:.25rem; }
+.exo-list .k{ font:var(--w-bold) var(--fs-count)/1.2 var(--font-ui); letter-spacing:.04em; text-transform:uppercase; color:var(--text-3); white-space:nowrap; }
+.exo-list a.on .k{ color:var(--chap); }
+.exo-list .barres{ display:inline-flex; align-items:flex-end; gap:2px; height:.875rem; }
+.exo-list .barres i{ display:block; width:4px; border-radius:1px; background:var(--line-2); }
+.exo-list .barres i:nth-child(1){ height:40%; } .exo-list .barres i:nth-child(2){ height:70%; } .exo-list .barres i:nth-child(3){ height:100%; }
+.exo-list [data-niveau="1"] .barres i:nth-child(-n+1),
+.exo-list [data-niveau="2"] .barres i:nth-child(-n+2),
+.exo-list [data-niveau="3"] .barres i{ background:var(--chap-vif); }
+
+/* « Mes cartes » : grand chiffre, barre empilée + légende, bouton teinté matière */
+.rail-cartes{ padding:1rem; border:1px solid var(--line); border-radius:var(--r-l); background:var(--sheet); box-shadow:var(--sh-2); }
+.rail-cartes .big{ margin-top:.6rem; font:var(--w-semi) 1.75rem/1 var(--font-text); color:var(--text); font-variant-numeric:lining-nums; }
+.rail-cartes .big small{ margin-left:.3rem; font:var(--w-regular) var(--fs-ui-s)/1 var(--font-ui); color:var(--text-2); }
+.rail-cartes .stack{ margin:.8rem 0 .7rem; }
+.rail-cartes .legend i.s2{ background:var(--note-2-vif); }
+.rail-cartes .legend i.s1{ background:var(--note-1-vif); }
+.rail-cartes .legend i.s0{ background:var(--note-0-vif); }
+.rail-cartes .legend i.nv{ background:var(--note-nv); }
+.rail-cartes .btn{ width:100%; margin-top:.9rem; gap:.4rem; padding:.45rem .5rem; white-space:normal; height:auto; min-height:2.375rem;
+  font-size:var(--fs-ui-xs); line-height:1.2; }
+.rail-cartes .btn .ic{ width:1rem; height:1rem; }
+
+/* ===================================================================
+   6. PIED DE CHAPITRE (#chap-pager) — SPEC §4.4
+   Deux cartes en bas de la feuille (le module le place en fin du chapitre affiché) :
+   « ‹ Chapitre précédent » + nom en serif 17 px, et l'inverse. Noms : goRelChapter.
+   =================================================================== */
+#chap-pager{
+  display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:.75rem;
+  box-sizing:content-box; max-width:var(--measure); margin:0; padding:0 2.5rem 2.75rem var(--margin-col);
+  font-size:var(--fs-body);           /* la mesure (34 em) se calcule sur le corps du texte */
+}
+.chapter[data-onglet="exos"] > #chap-pager,
+.chapter[data-onglet="simu"] > #chap-pager,
+.chapter[data-onglet="flash"] > #chap-pager{ max-width:none; padding-left:2.5rem; }
+.chap-pager-btn{
+  display:flex; flex-direction:column; align-items:flex-start; justify-content:center; gap:.3rem;
+  min-width:0; min-height:var(--tap); padding:.85rem 1rem;
+  border:1px solid var(--line-2); border-radius:var(--r-m); background:var(--sheet);
+  color:var(--text); text-align:left; cursor:pointer; font-family:var(--font-ui);
+  transition:background var(--dur-1) var(--ease), border-color var(--dur-1) var(--ease), transform var(--dur-1);
+}
+.chap-pager-btn.cpg-next{ grid-column:2; align-items:flex-end; text-align:right; }
+.chap-pager-btn:hover:not(:disabled){ background:var(--sunk); border-color:var(--field); }
+.chap-pager-btn:active:not(:disabled){ transform:translateY(1px); }
+.chap-pager-btn:disabled{ visibility:hidden; }
+.cpg-dir{ display:flex; align-items:center; gap:.3rem; font:var(--w-semi) var(--fs-ui-xs)/1.2 var(--font-ui); color:var(--text-3); }
+.cpg-dir .ic{ width:1rem; height:1rem; }
+.cpg-name{
+  max-width:100%; font:var(--w-semi) 1.0625rem/1.25 var(--font-text); color:var(--text);
+  display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;
+}
+
+/* ===================================================================
+   7. TABLETTE (768–1 023 px) : plus de marge « § » (le « §1 » passe dans le surtitre)
+   =================================================================== */
+@media (max-width:1023px){
+  main, main#si-content{ padding:1rem 1rem 2.5rem; }
+  .chap-title-banner{ padding-left:2.5rem; }
+  nav.tabs{ padding-left:1.75rem; }
+  section.panel[id$="-cours"], section.panel[id$="-meth"]{ padding-left:2.5rem; }
+  section.panel[id$="-cours"]::before, section.panel[id$="-meth"]::before{ display:none; }
+  #chap-pager{ padding-left:2.5rem; max-width:none; }
+}
+
+/* ===================================================================
+   8. TÉLÉPHONE (≤ 767 px) — SPEC §4.2
+   Pas d'intercalaire dans la page (le titre est dans la barre .mbar). Onglets collants
+   juste sous la barre (44 px), ou tout en haut quand elle s'efface (html.mbar-cachee) ;
+   ils tiennent dans 358 px (« Simu », « Exos ») ; seul le compteur des cartes dues reste.
+   Le sommaire (.toc) n'existe pas au téléphone (décision de l'utilisateur).
+   =================================================================== */
+@media (max-width:767px){
+  main, main#si-content{ padding:0; }
+  .chapter{ --onglets-h:var(--tabs-h); max-width:none; border-top:0; border-radius:0; box-shadow:none; overflow:visible; }
+  .chap-title-banner{ display:none; }
+  nav.tabs, .chapter[data-onglet] > nav.tabs{
+    top:var(--bar-h); justify-content:space-between; gap:0; padding:0 .25rem;
+    background:var(--sheet); border-bottom:1px solid var(--line);
+    transition:top var(--dur-2) var(--ease), box-shadow var(--dur-2) var(--ease);
+  }
+  nav.tabs:not(:has(> .tab:nth-of-type(4))){ justify-content:flex-start; gap:.5rem; }
+  html.mbar-cachee nav.tabs{ top:0; box-shadow:var(--sh-1); }
+  .tab{ padding:0 .55rem; font-size:.9375rem; }
+  .tab.active::after{ left:.55rem; right:.55rem; }
+  .tab .cnt{ display:none; }
+  .tab .count{ min-width:1.25rem; height:1.25rem; padding:0 .3rem; }
+  .tab-long[data-court]{ position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; }
+  .tab-court{ display:inline; }
+  section.panel, section.panel[id$="-cours"], section.panel[id$="-meth"]{ padding:1.5rem var(--gutter) 2.5rem; }
+  section.panel[id$="-cours"]::before, section.panel[id$="-meth"]::before{ display:none; }
+  #chap-pager, .chapter[data-onglet] > #chap-pager{ grid-template-columns:minmax(0,1fr); max-width:none; padding:0 var(--gutter) 2rem; }
+  .chap-pager-btn.cpg-next{ grid-column:auto; align-items:flex-start; text-align:left; }
+  .chap-pager-btn:disabled{ display:none; }
+  .toc, #chap-rail{ display:none !important; }
+}
+
+/* ===================================================================
+   9. ANIMATIONS (coupées par le mouvement réduit global, région BASE) ; CONTRASTE
+   =================================================================== */
+@keyframes panelIn{ from{ opacity:0; transform:translateY(6px); } to{ opacity:1; transform:none; } }
+@keyframes chapterIn{ from{ opacity:0; transform:translateY(10px); } to{ opacity:1; transform:none; } }
+section.panel.active{ animation:panelIn var(--dur-2) var(--ease) both; }
+.chapter.active{ animation:chapterIn var(--dur-3) var(--ease) both; }
+@media (prefers-contrast: more){
+  .tab.active::after{ height:4px; background:var(--text); }
+  nav.tabs{ border-bottom-color:var(--field); }
+}
 
 /* ===== FIN RÉGION PAGE ===== */
 
@@ -3195,6 +3229,7 @@ window.__icon = function(name){
   <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></symbol>
   <symbol id="i-chev-down" viewBox="0 0 24 24"><path d="M6.5 9.5 12 15l5.5-5.5"/></symbol>
   <symbol id="i-chev-right" viewBox="0 0 24 24"><path d="M9.5 6.5 15 12l-5.5 5.5"/></symbol>
+  <symbol id="i-chev-left" viewBox="0 0 24 24"><path d="M14.5 6.5 9 12l5.5 5.5"/></symbol>
   <symbol id="i-star" viewBox="0 0 24 24"><path d="m12 3.6 2.5 5.3 5.8.7-4.3 4 1.1 5.7L12 16.5l-5.1 2.8L8 13.6l-4.3-4 5.8-.7z"/></symbol>
   <symbol id="i-star-fill" viewBox="0 0 24 24"><path d="m12 3.6 2.5 5.3 5.8.7-4.3 4 1.1 5.7L12 16.5l-5.1 2.8L8 13.6l-4.3-4 5.8-.7z" fill="currentColor"/></symbol>
   <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2.8v2.4M12 18.8v2.4M2.8 12h2.4M18.8 12h2.4M5.5 5.5l1.7 1.7M16.8 16.8l1.7 1.7M5.5 18.5l1.7-1.7M16.8 7.2l1.7-1.7"/></symbol>
@@ -61427,16 +61462,20 @@ print(confusion_matrix(y_test, y_pred))   <span class="cmt"># [[VN, FP], [FN, VP
 
 </main><!-- fin main si -->
 
-<!-- S6 : navigation Précédent / Suivant entre chapitres (paire unique ; la logique
-     goRelChapter + updateNavButtons + observer existe déjà plus bas). -->
+<!-- Rail droit (≥ 1 360 px) : sommaire du chapitre, « Mes cartes », liste des exercices.
+     Rempli par le module « PAGE CHAPITRE » pour le chapitre affiché (SPEC §4.4). -->
+<aside id="chap-rail" class="rail" aria-label="Dans ce chapitre"></aside>
+
+<!-- Pied de chapitre : chapitre précédent / suivant, deux cartes (paire unique, placée en fin
+     du chapitre affiché par le module « PAGE CHAPITRE » ; logique goRelChapter + updateNavButtons). -->
 <nav id="chap-pager" aria-label="Chapitre précédent ou suivant">
-  <button id="prev-chap-btn" class="chap-pager-btn" type="button">
-    <span class="cpg-arrow" aria-hidden="true">‹</span>
-    <span class="cpg-txt"><span class="cpg-dir">Précédent</span><span class="cpg-name" id="prev-chap-name"></span></span>
+  <button id="prev-chap-btn" class="chap-pager-btn cpg-prev" type="button">
+    <span class="cpg-dir"><svg class="ic" aria-hidden="true"><use href="#i-chev-left"></use></svg>Chapitre précédent</span>
+    <span class="cpg-name" id="prev-chap-name"></span>
   </button>
   <button id="next-chap-btn" class="chap-pager-btn cpg-next" type="button">
-    <span class="cpg-txt"><span class="cpg-dir">Suivant</span><span class="cpg-name" id="next-chap-name"></span></span>
-    <span class="cpg-arrow" aria-hidden="true">›</span>
+    <span class="cpg-dir">Chapitre suivant<svg class="ic" aria-hidden="true"><use href="#i-chev-right"></use></svg></span>
+    <span class="cpg-name" id="next-chap-name"></span>
   </button>
 </nav>
 
@@ -62543,8 +62582,12 @@ function chapterFor(id)        { return CHAPTERS_BY_ID[id] || null; }
 function chapterForPrefix(p)   { return CHAPTERS_BY_PREFIX[p] || null; }
 function chaptersByMatiere(m)  { return CHAPTERS.filter(c => c.matiere === m); }
 
-/* Bandeau de titre en haut de chaque chapitre (sous-domaine + titre).
-   Injecté dynamiquement pour ne pas dupliquer ce HTML dans chaque chapitre. */
+/* Intercalaire en haut de chaque chapitre (SPEC §4.4) : ici, seulement le bandeau et son
+   titre (h2, pas h1 : l'unique h1 est le titre du site), pour ne pas dupliquer ce HTML dans
+   chaque chapitre. Le fil d'Ariane, les actions (Formulaire, Imprimer, Épingler) et la méta
+   (année, sections, cartes, exercices, simulateur) sont ajoutés PARESSEUSEMENT au premier
+   affichage du chapitre par le module « PAGE CHAPITRE » (fin de page) : rien de lourd au
+   chargement (au téléphone, l'intercalaire n'est pas affiché). */
 (function injectChapterTitleBanners(){
   document.querySelectorAll('.chapter').forEach(ch => {
     const c = CHAPTERS_BY_ID[ch.id.replace('chap-','')];
@@ -62553,21 +62596,10 @@ function chaptersByMatiere(m)  { return CHAPTERS.filter(c => c.matiere === m); }
     if(!tabs || ch.querySelector(':scope > .chap-title-banner')) return;
     const banner = document.createElement('div');
     banner.className = 'chap-title-banner';
-    if(c.matiere){
-      banner.classList.add('mat-' + c.matiere);  // rail de couleur par matière
-      banner.setAttribute('data-mat', c.matiere); // encre de la matière (jetons --chap*)
-    }
-    const sub = document.createElement('span');
-    sub.className = 'ctb-sub';
-    sub.textContent = c.subLabel || c.matiereLabel || '';
-    if(window.__YEAR2A && window.__YEAR2A.has(c.id)){
-      const y = document.createElement('span'); y.className = 'yr2a'; y.textContent = '2ᵉ année';
-      sub.appendChild(y);
-    }
-    const title = document.createElement('h2');   // h2 (pas h1) : un seul h1 sur la page (titre du site)
+    if(c.matiere) banner.setAttribute('data-mat', c.matiere); // encre de la matière (jetons --chap*)
+    const title = document.createElement('h2');
     title.className = 'ctb-title';
     title.textContent = c.name;
-    banner.appendChild(sub);
     banner.appendChild(title);
     ch.insertBefore(banner, tabs);
   });
@@ -74052,84 +74084,10 @@ function navigateTo(chapId, panelId, onDone){
 /* ============================================== */
 /* ============== SOMMAIRE INTERNE ============== */
 /* ============================================== */
-(function(){
-  // Pour chaque panel "cours" de chaque chapitre, on injecte le sommaire
-  document.querySelectorAll('.panel[id$="-cours"]').forEach(panel=>{
-    const sections = panel.querySelectorAll('.course-section');
-    if(sections.length < 2) return; // pas de TOC si 1 seule section
-
-    // Ajouter un id à chaque section pour le scroll
-    sections.forEach((sec, i)=>{
-      const secNum = sec.querySelector('.sec-num');
-      const h2 = sec.querySelector('h2');
-      if(!sec.id) sec.id = panel.id + '-sec-' + i;
-      sec.dataset.tocLabel = secNum
-        ? secNum.textContent.trim()
-        : (h2 ? h2.textContent.trim().slice(0,40) : '§'+(i+1));
-    });
-
-    // Créer le wrapper grid
-    const wrapper = document.createElement('div');
-    wrapper.className = 'toc-wrapper';
-
-    // Créer le TOC
-    const toc = document.createElement('nav');
-    toc.className = 'toc';
-    toc.setAttribute('aria-label', 'Sommaire');
-    const tocTitle = document.createElement('span');
-    tocTitle.className = 'toc-title';
-    tocTitle.textContent = 'Sommaire';
-    toc.appendChild(tocTitle);
-    sections.forEach(sec=>{
-      const a = document.createElement('a');
-      a.className = 'toc-item';
-      a.textContent = sec.dataset.tocLabel;
-      a.href = '#';
-      a.addEventListener('click', e=>{
-        e.preventDefault();
-        sec.scrollIntoView({behavior:'smooth', block:'start'});
-      });
-      a.dataset.targetId = sec.id;
-      toc.appendChild(a);
-    });
-
-    // Wrapper du contenu
-    const content = document.createElement('div');
-    content.className = 'toc-content';
-
-    // Déplacer toutes les sections dans content
-    const parent = panel;
-    const children = Array.from(panel.children);
-    children.forEach(child => content.appendChild(child));
-
-    wrapper.appendChild(toc);
-    wrapper.appendChild(content);
-    panel.appendChild(wrapper);
-  });
-
-  // Scroll spy : mettre en évidence l'item TOC actif.
-  // Index id de section → items du sommaire, construit une seule fois : le 1ᵉʳ rappel
-  // de l'observateur reçoit TOUTES les sections observées, et un querySelectorAll sur
-  // tout le document par section coûtait plusieurs secondes au chargement (160 chapitres).
-  const tocItemsById = new Map();
-  document.querySelectorAll('.toc-item[data-target-id]').forEach(a=>{
-    const k = a.dataset.targetId;
-    if(!tocItemsById.has(k)) tocItemsById.set(k, []);
-    tocItemsById.get(k).push(a);
-  });
-  const observer = new IntersectionObserver((entries)=>{
-    entries.forEach(entry=>{
-      (tocItemsById.get(entry.target.id) || []).forEach(a=>{
-        a.classList.toggle('active', entry.isIntersecting);
-      });
-      if(entry.isIntersecting && window.__surSection) window.__surSection(entry.target);
-    });
-  }, {rootMargin:'-10% 0px -70% 0px', threshold:0});
-
-  document.querySelectorAll('.course-section[id]').forEach(sec=>{
-    observer.observe(sec);
-  });
-})();
+/* Déplacé dans le module « PAGE CHAPITRE » (fin de page) : sommaire du rail droit et
+   scroll-spy (IntersectionObserver unique, limité aux sections du chapitre affiché ;
+   window.__surSection pour la barre du téléphone et lastPos). Les panneaux Cours ne sont
+   plus enveloppés dans .toc-wrapper / .toc-content (gain au chargement). */
 
 /* ============================================== */
 /* ============== RETOUR EN HAUT ================ */
@@ -75027,9 +74985,11 @@ ${bodyContent}
     renderCard();
   };
 
-  /* Lancer une session « Révisions du jour » (cartes dues, toutes matières) */
-  window.quizStartDue = function(){
-    const deck = dueDeck();
+  /* Lancer une session « Révisions du jour » (cartes dues, toutes matières) ;
+     avec un préfixe de deck (rail « Mes cartes »), les cartes dues de ce seul chapitre. */
+  window.quizStartDue = function(prefix){
+    let deck = dueDeck();
+    if(typeof prefix === 'string' && prefix) deck = deck.filter(x => x.prefix === prefix);
     document.getElementById('quiz-overlay').classList.add('open');
     if(!deck.length){
       showScreen('quiz-screen-config');
@@ -75870,6 +75830,23 @@ ${bodyContent}
     majBoutons();
     if(!v) buildDrawerList(currentMat);
   }
+  /* Fil d'Ariane de l'intercalaire (« Ondes & signaux ») : la navigation s'ouvre sur cette
+     partie de la matière, dépliée, visible, avec le focus sur son en-tête. */
+  window.__montrerPartie = function(mat, sub){
+    if(MATS.includes(mat)) currentMat = mat;
+    const input = $('mob-filter');
+    if(input && input.value){ input.value = ''; const cl = $('mob-filter-clear'); if(cl) cl.hidden = true; }
+    const cle = currentMat + '|' + (sub || '');
+    setCollapsed(cle, false);
+    if(navVisible()) buildDrawerList(currentMat); else openDrawer();
+    setTimeout(() => {
+      const h = Array.from(document.querySelectorAll('#mob-chap-list .nav-part-h')).find(x => x.dataset.cle === cle);
+      if(!h) return;
+      const sc = $('mob-drawer-scroll');
+      if(sc){ const r = h.getBoundingClientRect(), s = sc.getBoundingClientRect(); sc.scrollTop += (r.top - s.top) - 8; }
+      try { h.focus({ preventScroll:true }); } catch(e){ h.focus(); }
+    }, 80);
+  };
   /* Piège de focus : tant que le tiroir est ouvert, Tab boucle à l'intérieur */
   $('mob-drawer').addEventListener('keydown', e => {
     if(e.key !== 'Tab' || !drawerOpen) return;
@@ -76983,8 +76960,12 @@ setTimeout(()=>{drawSim();},100);
     // S6 : afficher le nom du chapitre voisin (de la même année)
     const pn = document.getElementById('prev-chap-name');
     const nn = document.getElementById('next-chap-name');
-    if(pn) pn.textContent = ip >= 0 ? (CHAPTERS[ip].mobLabel || CHAPTERS[ip].name) : '';
-    if(nn) nn.textContent = inx >= 0 ? (CHAPTERS[inx].mobLabel || CHAPTERS[inx].name) : '';
+    const nomP = ip >= 0 ? (CHAPTERS[ip].name || CHAPTERS[ip].mobLabel) : '';
+    const nomS = inx >= 0 ? (CHAPTERS[inx].name || CHAPTERS[inx].mobLabel) : '';
+    if(pn) pn.textContent = nomP;
+    if(nn) nn.textContent = nomS;
+    prevB.setAttribute('aria-label', nomP ? 'Chapitre précédent : ' + nomP : 'Chapitre précédent');
+    nextB.setAttribute('aria-label', nomS ? 'Chapitre suivant : ' + nomS : 'Chapitre suivant');
   }
   const navObs = new MutationObserver(updateNavButtons);
   document.querySelectorAll('.chapter').forEach(ch => navObs.observe(ch, {attributes:true, attributeFilter:['class']}));
@@ -77075,6 +77056,7 @@ document.getElementById('skip-link')?.addEventListener('click', e => {
     const m = document.getElementById('mob-revise-btn');
     if(m) m.setAttribute('aria-label', n > 0 ? 'Réviser : ' + n + ' carte' + (n > 1 ? 's' : '') + ' due' + (n > 1 ? 's' : '') : 'Réviser : révisions du jour');
     if(window.__majNavCompteurs) window.__majNavCompteurs();   // compteurs des rangées de la navigation
+    if(window.__majPageCompteurs) window.__majPageCompteurs(); // onglet Cartes et « Mes cartes » du chapitre affiché
   }
   window.__updateReviseBadge = updateBadge;
   setTimeout(updateBadge, 1500);   // laisser le registre de flashcards se peupler
@@ -77526,6 +77508,545 @@ document.getElementById('skip-link')?.addEventListener('click', e => {
   /* Boutons de réouverture (menus desktop + mobile) */
   document.getElementById('today-btn')?.addEventListener('click', open);
   document.getElementById('mob-today-btn')?.addEventListener('click', open);
+})();
+</script>
+
+<script>
+/* ===== PAGE CHAPITRE : intercalaire, onglets, rail droit, pied de chapitre =====
+   (SPEC §4.4, §5.1, §7.4, §7.5, §7.10, §7.11 ; styles : région PAGE du grand <style>)
+   Travail PARESSEUX : seul le chapitre affiché est traité, à son premier affichage (marqueurs
+   data-enrichi) ; rien n'est calculé pour les autres chapitres au chargement. Défensif : chaque
+   étape est protégée, une erreur ici ne coupe rien d'autre.
+   - intercalaire (.chap-title-banner, créé par injectChapterTitleBanners) : fil d'Ariane
+     (matière → Sommaire de la matière, partie → navigation, tag matiereLabel), actions
+     (Formulaire, Imprimer, Épingler), méta (année, sections, cartes, exercices, simulateur) ;
+   - onglets : rôles ARIA (tablist / tab / tabpanel ; ← → Début Fin), libellés (« Cartes » ;
+     « Simu », « Exos » au téléphone), effectifs .cnt et compteur .count des cartes dues du
+     deck (mis à jour par window.__updateReviseBadge → window.__majPageCompteurs) ;
+   - data-onglet sur la feuille (largeur, alignement), html.rail-on (colonne du rail),
+     .onglets-colles sur la feuille quand les onglets collent sous l'en-tête ;
+   - scroll-spy (ex-« SOMMAIRE INTERNE ») : un seul IntersectionObserver, limité aux sections
+     Cours du chapitre affiché → sommaire du rail + window.__surSection (barre du téléphone,
+     lastPos.s). Sections : id <panneau>-sec-<i> et data-toc-label, posés à la demande ;
+   - rail (≥ 1 360 px) : sommaire « Dans ce chapitre », « Mes cartes » (LECTURE SEULE de
+     flash:<prefix>), liste des exercices sur l'onglet Exercices (exercice visible suivi,
+     filtres de difficulté respectés : classe .filtre-masque) ;
+   - pied de chapitre : #chap-pager placé en fin du chapitre affiché (noms : goRelChapter). */
+(function(){
+  'use strict';
+  if(typeof CHAPTERS_BY_ID === 'undefined') return;
+  const $ = id => document.getElementById(id);
+  const root = document.documentElement;
+  const MAT_NOMS = { physique:'Physique', maths:'Maths', si:'SI', info:'Info', anglais:'Anglais' };
+  const COURTS = { 'Simulateur':'Simu', 'Exercices':'Exos', 'Visualiseur':'Visu' };
+  const NIVEAUX = ['', 'Facile', 'Moyen', 'Difficile'];
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  const ic = n => (window.__icon ? window.__icon(n) : '');
+  const mm = q => (window.matchMedia ? window.matchMedia(q) : { matches:false, addEventListener(){} });
+  const mqRail = mm('(min-width:1360px)');
+  const pluriel = (n, un, plusieurs) => n + ' ' + (n > 1 ? plusieurs : un);
+  const sur = f => function(){ try { return f.apply(this, arguments); } catch(e){ /* non bloquant */ } };
+  const rail = $('chap-rail');
+  let actuel = null;                   // chapitre affiché déjà traité
+
+  /* Chapitre affiché (deux .chapter.active au chargement, un par <main> : le visible) */
+  function chapVisible(){
+    const l = Array.from(document.querySelectorAll('.chapter.active'));
+    return l.find(x => x.offsetParent !== null) || l[0] || null;
+  }
+  const infoChap = ch => (ch && ch.id ? CHAPTERS_BY_ID[ch.id.replace('chap-', '')] || null : null);
+  function ongletActif(ch){
+    const p = ch && ch.querySelector(':scope > section.panel.active');
+    return p ? p.id.split('-').pop() : 'cours';
+  }
+
+  /* Progression d'un deck : LECTURE SEULE de flash:<prefix> (aligné par position sur le deck,
+     comme le Bilan et srsCountDue). Aucune écriture. */
+  function etatCartes(prefix){
+    const cartes = (window.FLASH_REGISTRY || {})[prefix];
+    if(!Array.isArray(cartes)) return null;
+    const arr = Store.getJSON('flash:' + prefix, null) || [];
+    const r = { total:cartes.length, acq:0, hes:0, rev:0, jamais:0, dues:0 };
+    cartes.forEach((_, i) => {
+      const s = arr[i], l = s ? s.last : null;
+      if(l === 2) r.acq++; else if(l === 1) r.hes++; else if(l === 0) r.rev++; else r.jamais++;
+      if(s && l !== null && l !== undefined && typeof srsIsDue === 'function' && srsIsDue(s)) r.dues++;
+    });
+    return r;
+  }
+
+  /* ══ Intercalaire (SPEC §4.4, §7.4) ══════════════════════════════════════ */
+  function enrichirBandeau(ch, c){
+    const b = ch.querySelector(':scope > .chap-title-banner');
+    if(!b || b.dataset.enrichi) return;
+    b.dataset.enrichi = '1';
+    const titre = b.querySelector('.ctb-title');
+    // Fil d'Ariane : ● Matière (→ Sommaire) › partie (→ navigation) · tag
+    const fil = document.createElement('nav');
+    fil.className = 'ctb-crumb';
+    fil.setAttribute('aria-label', 'Fil d\'Ariane');
+    let h = '<span class="dot" aria-hidden="true"></span>'
+      + '<a class="ctb-mat" href="#sommaire/' + esc(c.matiere) + '" data-ctb="sommaire" title="Sommaire de la matière"><b>'
+      + esc(MAT_NOMS[c.matiere] || c.matiereLabel || '') + '</b></a>';
+    if(c.subLabel) h += ic('chev-right') + '<a class="ctb-part" href="#' + esc(c.id) + '" data-ctb="partie" title="Voir cette partie dans la navigation">' + esc(c.subLabel) + '</a>';
+    if(c.matiereLabel && c.matiereLabel !== c.subLabel) h += '<span class="sep" aria-hidden="true">·</span><span class="ctb-tag">' + esc(c.matiereLabel) + '</span>';
+    fil.innerHTML = h;
+    // Titre + actions (sorties du menu Plus)
+    const ligne = document.createElement('div');
+    ligne.className = 'ctb-row';
+    const actions = document.createElement('div');
+    actions.className = 'ctb-actions';
+    actions.innerHTML =
+        '<button type="button" class="btn" data-ctb="formulaire" title="Formulaire du chapitre (fiche de synthèse imprimable)">' + ic('function') + 'Formulaire</button>'
+      + '<button type="button" class="btn btn-icon" data-ctb="imprimer" aria-label="Imprimer le chapitre" title="Imprimer le chapitre">' + ic('printer') + '</button>'
+      + '<button type="button" class="btn btn-icon" data-ctb="epingler" aria-pressed="false" aria-label="Épingler le chapitre" title="Épingler le chapitre">' + ic('star') + '</button>';
+    b.insertBefore(fil, b.firstChild);
+    if(titre){ b.insertBefore(ligne, titre); ligne.appendChild(titre); } else b.appendChild(ligne);
+    ligne.appendChild(actions);
+    // Méta : année · sections · cartes · exercices · simulateur
+    const an = window.__chapYear ? window.__chapYear(c) : ((window.__YEAR2A && window.__YEAR2A.has(c.id)) ? 2 : 1);
+    const badge = an === 2 ? '<span class="badge badge-2a">2ᵉ année</span>'
+      : an === 1 ? '<span class="badge badge-out">1ʳᵉ année</span>'
+      : '<span class="badge badge-out">1ʳᵉ et 2ᵉ années</span>';
+    const cours = $(c.prefix + '-cours'), exos = $(c.prefix + '-exos');
+    const deck = (window.FLASH_REGISTRY || {})[c.prefix];
+    const nSec = cours ? cours.querySelectorAll('.course-section').length : 0;
+    const nCartes = Array.isArray(deck) ? deck.length : 0;
+    const nExos = exos ? exos.querySelectorAll('.exo').length : 0;
+    const nSim = (c.panels || []).filter(p => p === 'simu').length;
+    const parts = [];
+    if(nSec > 1) parts.push(pluriel(nSec, 'section', 'sections'));
+    if(nCartes) parts.push(pluriel(nCartes, 'carte', 'cartes'));
+    if(nExos) parts.push(pluriel(nExos, 'exercice', 'exercices'));
+    if(nSim) parts.push(pluriel(nSim, 'simulateur', 'simulateurs'));
+    const meta = document.createElement('div');
+    meta.className = 'ctb-meta';
+    meta.innerHTML = badge + parts.map((t, i) => (i ? '<span class="sep" aria-hidden="true">·</span>' : '') + '<span>' + t + '</span>').join('');
+    b.appendChild(meta);
+  }
+  function majEpingle(ch){
+    const b = ch && ch.querySelector(':scope > .chap-title-banner [data-ctb="epingler"]');
+    if(!b || !window.__isPinned) return;
+    const p = !!window.__isPinned(ch.id);
+    const t = p ? 'Désépingler le chapitre' : 'Épingler le chapitre';
+    b.setAttribute('aria-pressed', p ? 'true' : 'false');
+    b.setAttribute('aria-label', t);
+    b.title = t;
+    const u = b.querySelector('use');
+    if(u) u.setAttribute('href', p ? '#i-star-fill' : '#i-star');
+  }
+  document.addEventListener('click', sur(function(e){
+    const a = e.target && e.target.closest && e.target.closest('.chap-title-banner [data-ctb]');
+    if(!a) return;
+    const ch = a.closest('.chapter'), c = infoChap(ch);
+    if(!c) return;
+    const k = a.getAttribute('data-ctb');
+    if(k === 'sommaire'){ if(window.__ouvrirSommaire){ e.preventDefault(); window.__ouvrirSommaire(c.matiere); } }
+    else if(k === 'partie'){ e.preventDefault(); if(window.__montrerPartie) window.__montrerPartie(c.matiere, c.subLabel); }
+    else if(k === 'formulaire'){ if(window.openFormulaSheet) window.openFormulaSheet(); else { const f = $('formula-btn'); if(f) f.click(); } }
+    else if(k === 'imprimer'){ if(typeof window.printChapter === 'function') window.printChapter(); }
+    else if(k === 'epingler'){ if(window.__togglePin){ window.__togglePin(ch.id); majEpingle(ch); } }
+  }));
+  // Épingle changée ailleurs (navigation, feuille ⋯) : l'étoile de l'intercalaire suit
+  document.addEventListener('click', e => {
+    if(e.target && e.target.closest && e.target.closest('.mob-pin, #mob-pin-btn')) setTimeout(sur(() => majEpingle(actuel)), 0);
+  });
+
+  /* ══ Onglets (SPEC §5.1, §6.3, §7.5) ═════════════════════════════════════ */
+  function enrichirOnglets(ch, c){
+    const nav = ch.querySelector(':scope > nav.tabs');
+    if(!nav || nav.dataset.enrichi) return;
+    nav.dataset.enrichi = '1';
+    nav.setAttribute('role', 'tablist');
+    nav.setAttribute('aria-label', 'Onglets du chapitre');
+    nav.querySelectorAll(':scope > .tab').forEach(t => {
+      const pid = t.getAttribute('data-panel') || '';
+      const k = pid.split('-').pop();
+      const p = $(pid);
+      // Libellé : le texte hors « 01–05 » (.num, masqué) ; « Flashcards » → « Cartes »
+      let lib = '';
+      Array.from(t.childNodes).forEach(n => { if(n.nodeType === 3){ lib += n.nodeValue; t.removeChild(n); } });
+      lib = lib.replace(/\s+/g, ' ').trim();
+      if(k === 'flash' && /^flash ?cards?$/i.test(lib)) lib = 'Cartes';
+      const l = document.createElement('span');
+      l.className = 'tab-l';
+      l.textContent = lib;
+      t.appendChild(l);
+      const court = COURTS[lib];
+      if(court){                               // téléphone : « Simu », « Exos » (le nom complet reste lu)
+        l.classList.add('tab-long');
+        l.setAttribute('data-court', court);
+        const s = document.createElement('span');
+        s.className = 'tab-court';
+        s.setAttribute('aria-hidden', 'true');
+        s.textContent = court;
+        t.appendChild(s);
+      }
+      // Effectifs : méthodes, cartes, exercices ; compteur des cartes dues sur Cartes
+      let n = 0, unite = '';
+      if(k === 'meth' && p){ n = p.querySelectorAll('.method-box').length; unite = n > 1 ? 'méthodes' : 'méthode'; }
+      else if(k === 'exos' && p){ n = p.querySelectorAll('.exo').length; unite = n > 1 ? 'exercices' : 'exercice'; }
+      else if(k === 'flash'){ const d = (window.FLASH_REGISTRY || {})[c.prefix]; n = Array.isArray(d) ? d.length : 0; unite = n > 1 ? 'cartes' : 'carte'; }
+      if(n){
+        const s = document.createElement('span');
+        s.className = 'cnt';
+        s.innerHTML = n + '<span class="sr"> ' + unite + '</span>';
+        t.appendChild(s);
+      }
+      if(k === 'flash'){
+        const s = document.createElement('span');
+        s.className = 'count';
+        s.hidden = true;
+        t.appendChild(s);
+      }
+      t.setAttribute('role', 'tab');
+      if(!t.id) t.id = 'onglet-' + pid;
+      t.setAttribute('aria-controls', pid);
+      if(p){ p.setAttribute('role', 'tabpanel'); p.setAttribute('aria-labelledby', t.id); }
+    });
+  }
+  function majSelection(ch){
+    const nav = ch && ch.querySelector(':scope > nav.tabs[role="tablist"]');
+    if(!nav) return;
+    const tabs = Array.from(nav.querySelectorAll(':scope > .tab'));
+    const act = tabs.find(t => t.classList.contains('active')) || tabs[0];
+    tabs.forEach(t => {
+      t.setAttribute('aria-selected', t === act ? 'true' : 'false');
+      t.tabIndex = t === act ? 0 : -1;
+    });
+  }
+  // Clavier : ← → Début Fin entre les onglets (activation immédiate), avant les raccourcis globaux
+  document.addEventListener('keydown', sur(function(e){
+    const t = e.target;
+    if(!t || !t.classList || !t.classList.contains('tab') || t.getAttribute('role') !== 'tab') return;
+    if(e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
+    const l = Array.from(t.parentNode.querySelectorAll(':scope > .tab')).filter(x => x.getClientRects().length);
+    const i = l.indexOf(t);
+    if(i < 0) return;
+    let j = -1;
+    if(e.key === 'ArrowRight') j = (i + 1) % l.length;
+    else if(e.key === 'ArrowLeft') j = (i - 1 + l.length) % l.length;
+    else if(e.key === 'Home') j = 0;
+    else if(e.key === 'End') j = l.length - 1;
+    if(j < 0) return;
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    l[j].click();
+    l[j].focus();
+  }), true);
+
+  /* ══ Onglets collés sous l'en-tête : fond plein + ombre (.onglets-colles) ══ */
+  let ioColle = null;
+  function observerColle(ch){
+    if(ioColle){ ioColle.disconnect(); ioColle = null; }
+    document.querySelectorAll('.chapter.onglets-colles').forEach(x => { if(x !== ch) x.classList.remove('onglets-colles'); });
+    const b = ch.querySelector(':scope > .chap-title-banner');
+    if(!b || !('IntersectionObserver' in window)) return;
+    const hdr = $('site-header');
+    const h = (hdr && hdr.offsetHeight) || 56;
+    ioColle = new IntersectionObserver(sur(entries => {
+      entries.forEach(en => { ch.classList.toggle('onglets-colles', !en.isIntersecting && en.boundingClientRect.top < h); });
+    }), { rootMargin:'-' + (h + 1) + 'px 0px 0px 0px', threshold:0 });
+    ioColle.observe(b);
+  }
+
+  /* ══ Scroll-spy des sections Cours (ex-« SOMMAIRE INTERNE ») ═════════════ */
+  let sections = [], sectionActive = null, liensSommaire = new Map();
+  const visibles = new Set();
+  const io = ('IntersectionObserver' in window) ? new IntersectionObserver(sur(entries => {
+    entries.forEach(en => {
+      if(en.isIntersecting) visibles.add(en.target); else visibles.delete(en.target);
+      if(en.isIntersecting && window.__surSection) window.__surSection(en.target);
+    });
+    const a = sections.find(s => visibles.has(s));
+    if(a && a !== sectionActive){ sectionActive = a; marquerSommaire(); }
+  }), { rootMargin:'-10% 0px -70% 0px', threshold:0 }) : null;
+  // Sections d'un panneau Cours : id et libellé (« §1 · LES BASES »), posés une seule fois
+  function preparerSections(panel){
+    if(!panel) return [];
+    const secs = Array.from(panel.querySelectorAll('.course-section'));
+    if(!panel.dataset.sectionsPretes){
+      panel.dataset.sectionsPretes = '1';
+      secs.forEach((sec, i) => {
+        if(!sec.id) sec.id = panel.id + '-sec-' + i;
+        if(!sec.dataset.tocLabel){
+          const sn = sec.querySelector('.sec-num'), h2 = sec.querySelector('h2');
+          sec.dataset.tocLabel = sn ? sn.textContent.replace(/\s+/g, ' ').trim()
+            : (h2 ? h2.textContent.trim().slice(0, 40) : '§' + (i + 1));
+        }
+      });
+    }
+    return secs;
+  }
+  window.__preparerSections = sur(preparerSections);
+  function observerSections(ch, c){
+    if(!io) return;
+    io.disconnect();
+    visibles.clear();
+    sectionActive = null;
+    const p = $(c.prefix + '-cours');
+    sections = (p && ch.contains(p)) ? preparerSections(p) : [];
+    if(sections.length < 2){ sections = []; return; }     // pas de sommaire pour une section unique
+    sectionActive = sections[0];                            // haut de page : §1 (avant la bande observée)
+    sections.forEach(s => io.observe(s));
+  }
+  function marquerSommaire(){
+    const on = (actuel && sectionActive && ongletActif(actuel) === 'cours') ? sectionActive.id : '';
+    liensSommaire.forEach((a, id) => {
+      const v = id === on;
+      a.classList.toggle('on', v);
+      if(v) a.setAttribute('aria-current', 'location'); else a.removeAttribute('aria-current');
+    });
+  }
+
+  /* ══ Défilement vers une section / un exercice, sous l'en-tête et les onglets collants ══ */
+  function decalage(){
+    let h = 0;
+    const hdr = $('site-header');
+    if(hdr && hdr.getClientRects().length) h += hdr.getBoundingClientRect().height;
+    const nav = actuel && actuel.querySelector(':scope > nav.tabs');
+    if(nav && nav.getClientRects().length) h += nav.getBoundingClientRect().height;
+    return h + 16;
+  }
+  function defilerVers(el){
+    if(!el) return;
+    const y = Math.max(0, el.getBoundingClientRect().top + (window.scrollY || 0) - decalage());
+    try { window.scrollTo({ top:y, behavior:window.__reduceMotion ? 'auto' : 'smooth' }); }
+    catch(e){ window.scrollTo(0, y); }
+  }
+
+  /* ══ Rail droit (≥ 1 360 px) : sommaire, « Mes cartes », exercices (SPEC §4.4, §7.10) ══ */
+  let railCle = '', exosRail = [], ioExos = null;
+  const exosVisibles = new Set();
+  const railVisible = () => !!rail && mqRail.matches;
+  function blocSommaire(c){
+    if(sections.length < 2) return;
+    const bloc = document.createElement('nav');
+    bloc.className = 'rail-bloc toc';
+    bloc.setAttribute('aria-label', 'Sommaire du chapitre');
+    bloc.innerHTML = '<span class="kicker rail-titre toc-title">Dans ce chapitre</span>';
+    const ul = document.createElement('ul');
+    ul.className = 'toc-list';
+    sections.forEach((sec, i) => {
+      const lab = sec.dataset.tocLabel || '';
+      const m = lab.match(/^\s*(§\s*\d+[a-z]?)\s*[·:\-–—.]?\s*(.*)$/i);
+      let t = m ? m[2] : lab;
+      if(t && window.__casPhrase) t = window.__casPhrase(t, sec);
+      if(!t){ const h2 = sec.querySelector('h2'); t = h2 ? h2.textContent.trim() : '§' + (i + 1); }
+      const li = document.createElement('li');
+      const a = document.createElement('a');
+      a.className = 'toc-item';
+      a.href = '#' + c.id + '/cours';
+      a.dataset.targetId = sec.id;
+      a.innerHTML = '<span class="n">' + esc(m ? m[1].replace(/\s+/g, '') : '') + '</span><span class="t">' + esc(t) + '</span>';
+      li.appendChild(a);
+      ul.appendChild(li);
+      liensSommaire.set(sec.id, a);
+    });
+    bloc.appendChild(ul);
+    rail.appendChild(bloc);
+    marquerSommaire();
+  }
+  // Titre d'exercice en texte simple (formule rendue : texte MathML ; sinon TeX allégé)
+  const TEX = { sqrt:'√', pi:'π', omega:'ω', Omega:'Ω', alpha:'α', beta:'β', gamma:'γ', theta:'θ', lambda:'λ', mu:'µ', infty:'∞', int:'∫', sum:'Σ', to:'→', le:'≤', ge:'≥', times:'×' };
+  function texteTitre(h){
+    if(!h) return '';
+    let t;
+    if(h.querySelector('mjx-container')){
+      const k = h.cloneNode(true);
+      k.querySelectorAll('mjx-container').forEach(m => { const a = m.querySelector('mjx-assistive-mml'); m.replaceWith(document.createTextNode(a ? a.textContent : '')); });
+      t = k.textContent;
+    } else {
+      t = (h.textContent || '').replace(/\\[()]/g, '').replace(/\\([a-zA-Z]+)/g, (x, n) => TEX[n] || '').replace(/[{}]/g, '');
+    }
+    return t.replace(/\s+/g, ' ').trim();
+  }
+  function blocExos(c){
+    const p = $(c.prefix + '-exos');
+    const exos = p ? Array.from(p.querySelectorAll('.exo')) : [];
+    if(!exos.length) return;
+    const bloc = document.createElement('nav');
+    bloc.className = 'rail-bloc rail-exos';
+    bloc.setAttribute('aria-label', 'Exercices du chapitre');
+    bloc.innerHTML = '<span class="kicker rail-titre">' + pluriel(exos.length, 'exercice', 'exercices') + '</span>';
+    const ul = document.createElement('ul');
+    ul.className = 'exo-list';
+    exosRail = exos.map((x, i) => {
+      if(!x.id) x.id = p.id + '-exo-' + (i + 1);
+      const num = x.querySelector(':scope > .num');
+      const brut = num ? num.textContent.replace(/\s+/g, ' ').trim() : '';
+      const k = /^EXO\b/i.test(brut) ? brut.toUpperCase() : (x.classList.contains('concours') || /PT/.test(brut) ? 'PT' : (brut || 'EXO ' + String(i + 1).padStart(2, '0')));
+      const d = x.querySelector(':scope > .diff');
+      const niv = d ? (d.getAttribute('data-niveau') || String(((d.textContent || '').match(/★/g) || []).length)) : '';
+      const mot = NIVEAUX[+niv] || '';
+      const li = document.createElement('li');
+      const a = document.createElement('a');
+      a.href = '#' + c.id + '/exos';
+      a.dataset.exo = x.id;
+      if(mot) a.dataset.niveau = niv;
+      a.innerHTML = '<span class="k">' + esc(k) + '</span><span class="t">' + esc(texteTitre(x.querySelector('h3')) || brut) + '</span>'
+        + (mot ? '<span class="barres" aria-hidden="true" title="' + mot + '"><i></i><i></i><i></i></span><span class="sr">, ' + mot.toLowerCase() + '</span>' : '');
+      li.appendChild(a);
+      ul.appendChild(li);
+      return { exo:x, li, a };
+    });
+    bloc.appendChild(ul);
+    rail.appendChild(bloc);
+    syncFiltreExos();
+    if('IntersectionObserver' in window){
+      ioExos = new IntersectionObserver(sur(entries => {
+        entries.forEach(en => { if(en.isIntersecting) exosVisibles.add(en.target); else exosVisibles.delete(en.target); });
+        const v = exosRail.find(o => exosVisibles.has(o.exo) && !o.exo.classList.contains('filtre-masque'));
+        if(v) marquerExo(v);
+      }), { rootMargin:'-20% 0px -60% 0px', threshold:0 });
+      exos.forEach(x => ioExos.observe(x));
+    }
+    marquerExo(exosRail.find(o => !o.li.hidden) || null);
+  }
+  function marquerExo(o){
+    exosRail.forEach(x => {
+      const v = x === o;
+      x.a.classList.toggle('on', v);
+      if(v) x.a.setAttribute('aria-current', 'location'); else x.a.removeAttribute('aria-current');
+    });
+  }
+  function syncFiltreExos(){ exosRail.forEach(o => { o.li.hidden = o.exo.classList.contains('filtre-masque'); }); }
+  // Filtres de l'onglet Exercices (difficulté, Concours PT) : la liste du rail suit
+  document.addEventListener('click', e => {
+    if(exosRail.length && e.target && e.target.closest && e.target.closest('.exo-tools')) setTimeout(sur(syncFiltreExos), 0);
+  });
+  function blocCartes(c, k){
+    const e = etatCartes(c.prefix);
+    if(!e || !e.total) return;
+    const bloc = document.createElement('section');
+    bloc.className = 'rail-bloc rail-cartes';
+    bloc.setAttribute('aria-label', 'Mes cartes');
+    rail.appendChild(bloc);
+    rendreCartes(bloc, e, k);
+  }
+  function rendreCartes(bloc, e, k){
+    if(!bloc || !e) return;
+    const pc = n => (n / e.total * 100).toFixed(1) + '%';
+    const lib = [pluriel(e.acq, 'acquise', 'acquises'), pluriel(e.hes, 'hésitante', 'hésitantes'), e.rev + ' à revoir', pluriel(e.jamais, 'jamais vue', 'jamais vues')];
+    let btn = '';
+    if(e.dues) btn = '<button type="button" class="btn btn-chap" data-rail="reviser">' + ic('refresh')
+      + '<span>' + (e.dues > 1 ? 'Réviser les ' + e.dues + ' cartes dues' : 'Réviser la carte due') + '</span></button>';
+    else if(k !== 'flash') btn = '<button type="button" class="btn btn-chap" data-rail="cartes">' + ic('refresh') + '<span>Revoir les cartes</span></button>';
+    bloc.innerHTML = '<span class="kicker rail-titre">Mes cartes</span>'
+      + '<div class="big">' + e.acq + '<small>' + (e.acq > 1 ? 'acquises' : 'acquise') + ' sur ' + e.total + '</small></div>'
+      + '<div class="stack" aria-hidden="true">'
+      + (e.acq ? '<i class="s2" style="width:' + pc(e.acq) + '"></i>' : '')
+      + (e.hes ? '<i class="s1" style="width:' + pc(e.hes) + '"></i>' : '')
+      + (e.rev ? '<i class="s0" style="width:' + pc(e.rev) + '"></i>' : '')
+      + '</div>'
+      + '<div class="legend"><span><i class="s2"></i>' + lib[0] + '</span><span><i class="s1"></i>' + lib[1] + '</span>'
+      + '<span><i class="s0"></i>' + lib[2] + '</span><span><i class="nv"></i>' + lib[3] + '</span></div>'
+      + btn;
+  }
+  function construireRail(ch, c, k){
+    rail.innerHTML = '';
+    liensSommaire = new Map();
+    exosRail = [];
+    exosVisibles.clear();
+    if(ioExos){ ioExos.disconnect(); ioExos = null; }
+    rail.setAttribute('data-mat', c.matiere || '');
+    rail.setAttribute('aria-label', k === 'exos' ? 'Exercices du chapitre' : 'Dans ce chapitre');
+    if(k === 'exos') blocExos(c); else blocSommaire(c);
+    blocCartes(c, k);
+  }
+  function majRail(force){
+    const ch = actuel, c = infoChap(ch);
+    const k = ch ? ongletActif(ch) : '';
+    const on = !!(ch && c && rail && k !== 'simu');
+    if(!on){ root.classList.remove('rail-on'); railCle = ''; return; }
+    if(!railVisible()){ root.classList.add('rail-on'); railCle = ''; return; }   // construit à l'apparition
+    const cle = ch.id + '|' + k;
+    if(cle !== railCle || force){ railCle = cle; construireRail(ch, c, k); }
+    root.classList.toggle('rail-on', rail.childElementCount > 0);
+  }
+  if(rail) rail.addEventListener('click', sur(function(e){
+    const t = e.target && e.target.closest ? e.target : null;
+    if(!t) return;
+    const a = t.closest('a[data-target-id]');
+    if(a){
+      e.preventDefault();
+      const sec = $(a.dataset.targetId), ch = sec && sec.closest('.chapter'), c = infoChap(ch);
+      if(!sec || !c) return;
+      if(ongletActif(ch) !== 'cours'){
+        const tab = ch.querySelector('.tab[data-panel="' + c.prefix + '-cours"]');
+        if(tab) tab.click();
+        setTimeout(() => defilerVers(sec), 80);
+      } else defilerVers(sec);
+      return;
+    }
+    const x = t.closest('a[data-exo]');
+    if(x){
+      e.preventDefault();
+      const exo = $(x.dataset.exo);
+      if(exo){ defilerVers(exo); const o = exosRail.find(r => r.exo === exo); if(o) marquerExo(o); }
+      return;
+    }
+    const b = t.closest('[data-rail]');
+    if(b && actuel){
+      const c = infoChap(actuel);
+      if(!c) return;
+      if(b.getAttribute('data-rail') === 'reviser' && window.quizStartDue) window.quizStartDue(c.prefix);
+      else if(b.getAttribute('data-rail') === 'cartes' && typeof navigateTo === 'function') navigateTo('chap-' + c.id, c.prefix + '-flash');
+    }
+  }));
+  if(mqRail.addEventListener) mqRail.addEventListener('change', sur(() => majRail(true)));
+
+  /* ══ Compteurs (cartes dues) : onglet Cartes et « Mes cartes » ═══════════ */
+  function majCompteurs(){
+    const ch = actuel, c = infoChap(ch);
+    if(!c) return;
+    const e = etatCartes(c.prefix);
+    if(!e) return;
+    const t = ch.querySelector(':scope > nav.tabs > .tab[data-panel="' + c.prefix + '-flash"] .count');
+    if(t){
+      t.hidden = !e.dues;
+      t.innerHTML = e.dues ? (e.dues > 99 ? '99+' : String(e.dues)) + '<span class="sr"> ' + (e.dues > 1 ? 'dues' : 'due') + '</span>' : '';
+    }
+    if(railVisible()) rendreCartes(rail.querySelector('.rail-cartes'), e, ongletActif(ch));
+  }
+  window.__majPageCompteurs = sur(majCompteurs);
+
+  /* ══ Mise à jour à chaque changement de chapitre ou d'onglet ═════════════ */
+  function majPage(){
+    const ch = chapVisible(), c = infoChap(ch);
+    if(!ch || !c){ root.classList.remove('rail-on'); return; }
+    const nouveau = ch !== actuel;
+    actuel = ch;
+    sur(enrichirBandeau)(ch, c);
+    sur(enrichirOnglets)(ch, c);
+    ch.setAttribute('data-onglet', ongletActif(ch));
+    majSelection(ch);
+    majEpingle(ch);
+    if(nouveau){
+      const pied = $('chap-pager');
+      if(pied && pied.parentNode !== ch) ch.appendChild(pied);   // pied de chapitre en bas de la feuille
+      sur(observerSections)(ch, c);
+      sur(observerColle)(ch);
+    }
+    marquerSommaire();
+    sur(majCompteurs)();
+    sur(majRail)(nouveau);
+  }
+  const majPageSur = sur(majPage);
+  let planifie = false;
+  function planifier(){
+    if(planifie) return;
+    planifie = true;
+    setTimeout(() => { planifie = false; majPageSur(); }, 0);
+  }
+  // Changement de chapitre : la classe « active » d'un .chapter change (clic sur .chap-btn, navigateTo…)
+  const obs = new MutationObserver(recs => {
+    if(recs.some(r => r.target.classList.contains('active') !== /(^|\s)active(\s|$)/.test(r.oldValue || ''))) planifier();
+  });
+  document.querySelectorAll('.chapter').forEach(ch => obs.observe(ch, { attributes:true, attributeFilter:['class'], attributeOldValue:true }));
+  // Changement d'onglet (clic réel ou programmatique sur .tab, après son propre gestionnaire)
+  document.addEventListener('click', e => { if(e.target && e.target.closest && e.target.closest('.tab')) planifier(); });
+  majPageSur();
 })();
 </script>
 
