@@ -72,42 +72,23 @@ const { pause, attendreApp, naviguer, etatMathJax } = require('../lib/outils');
    la recopier ici). */
 const TOLERES = [
   // — Contraste du texte —
-  ['contraste', 'aujourdhui', '*', '*', { 'span.due-sub': 2.57 }],
-  ['contraste', 'aujourdhui', 'sombre', '*', { '#today-due-btn span': 2.99, 'span.due-count': 2.99 }],
-  ['contraste', 'bilan', 'clair', '*', { '#dash-close-btn': 4.09 }],
-  ['contraste', 'bilan', 'sombre', '*', { '#dash-revise-btn': 2.99 }],
   ['contraste', 'chapitres', '*', '*', { 'span.num': 4.01 }],
   ['contraste', 'chapitres', 'sombre', 'ordi', { '#rev-badge': 2.99 }],
   ['contraste', 'chapitres', 'sombre', 'tel', { '#rev-badge-mob': 2.99 }],
-  ['contraste', 'quiz', '*', 'ordi', { 'button.quiz-btn-reread kbd': 3.25, 'button.quiz-rate-btn.rate-acq kbd': 2.39, 'button.quiz-rate-btn.rate-hes kbd': 1.96, 'button.quiz-rate-btn.rate-rev kbd': 2.46 }],
-  ['contraste', 'quiz', 'clair', '*', { '#quiz-progress-text': 4.28, 'button.quiz-close': 3.68 }],
   ['contraste', 'recherche', '*', '*', { 'span.sr-snippet mark': 2.11 }],
   ['contraste', 'recherche', 'clair', '*', { 'span.sr-badge.sr-b-meth': 4.17 }],
-  ['contraste', 'rlc-flash anglais-flash', '*', '*', { 'button.flash-reset': 1.9, 'div.flash-stats-wrap span#*-stats': 2.96, 'span.ic-lbl': 2.34 }],
-  ['contraste', 'rlc-flash anglais-flash', 'clair', '*', { 'button.ok': 2.61, 'div.flash-progress': 3.68 }],
   ['contraste', 'tiroir', '*', '*', { 'button.mob-mat-btn': 3.18 }],
   ['contraste', 'tiroir', 'clair', '*', { '#mob-drawer-close': 4.09 }],
   // — Taille du texte (px) —
-  ['taille', 'aujourdhui', '*', '*', { '#today-date': 10.56, 'span.due-sub': 11.52, 'span.mob-filter-tag': 10.24, 'span.today-label': 10.24 }],
-  ['taille', 'bilan', '*', '*', { 'div.m-name': 9.6, 'div.m-sub': 11.52, 'span.c-mat': 9.92, 'span.c-revoir': 11.52, 'span.dash-section-label': 9.92 }],
   ['taille', 'chapitres', '*', '*', { 'span.cpg-dir': 10.24, 'span.num': 11.2 }],
   ['taille', 'chapitres', '*', 'ordi', { '#rev-badge': 9.92, '#search-btn kbd': 9.6, '#theme-label': 11.2, 'div.eyebrow': 11.2, 'span.ctb-sub': 10.88, 'span.hdr-btn-label': 11.2 }],
   ['taille', 'chapitres', '*', 'tel', { '#rev-badge-mob': 9.92, 'button.tab': 11.52 }],
   ['taille', 'maxwell-cours', '*', 'ordi', { 'span.yr2a': 8.92 }],
   ['taille', 'menu-plus', '*', 'ordi', { '#backup-btn': 11.52, '#flag-btn': 11.52, '#formula-btn': 11.52, '#print-btn': 11.52, '#today-btn': 11.52, 'button.hdr-more-item': 11.52, 'span.read-size-val': 11.2 }],
-  ['taille', 'quiz', '*', '*', { '#qs-acquis': 11.2, '#qs-hes': 11.2, '#qs-rev': 11.2, '#qs-skip': 11.2, '#quiz-chapter-badge': 10.4, '#quiz-goto-btn': 11.2, '#quiz-progress-text': 11.52, 'span.ic-lbl': 11.2, 'span.quiz-card-tag': 10.4, 'span.quiz-score-item.score-acquis': 11.2, 'span.quiz-score-item.score-hes': 11.2, 'span.quiz-score-item.score-rev': 11.2, 'span.quiz-score-item.score-skip': 11.2 }],
-  ['taille', 'quiz', '*', 'ordi', { 'button.quiz-btn-reread kbd': 10.4, 'button.quiz-rate-btn.rate-acq kbd': 10.4, 'button.quiz-rate-btn.rate-hes kbd': 10.4, 'button.quiz-rate-btn.rate-rev kbd': 10.4 }],
-  ['taille', 'quiz', '*', 'tel', { 'button.quiz-rate-btn.rate-acq': 11.52, 'button.quiz-rate-btn.rate-hes': 11.52, 'button.quiz-rate-btn.rate-rev': 11.52 }],
   ['taille', 'recherche', '*', '*', { 'div.search-group-label': 9.6, 'div.search-hint-bar span': 10.4, 'div.sr-suggest': 11.2, 'div.sr-suggest a': 11.2, 'span.sr-badge.sr-b-cours': 9.92, 'span.sr-badge.sr-b-def': 9.92, 'span.sr-badge.sr-b-exo': 9.92, 'span.sr-badge.sr-b-flash': 9.92, 'span.sr-badge.sr-b-meth': 9.92, 'span.sr-meta': 10.88 }],
   ['taille', 'rlc-cours maxwell-cours slci-cours', '*', 'ordi', { 'span.toc-title': 11.52 }],
-  ['taille', 'rlc-flash anglais-flash', '*', '*', { 'button.flash-reset': 10.88, 'div.flash-hint': 11.2, 'span.tag': 11.2 }],
   ['taille', 'tiroir', '*', '*', { 'button.mob-mat-btn': 10.88, 'button.mob-subdomain-label.mob-sub-toggle': 10.24, 'span.mob-filter-tag.mt-anglais': 10.24, 'span.mob-filter-tag.mt-si': 10.24, 'span.mob-subdomain-label.mob-drawer-section': 10.24, 'span.sub-chev': 9.6, 'span.sub-count': 10.56 }],
   // — Cibles tactiles < 44 px (côté, px) —
-  ['cible44', 'anglais-flash', '*', 'tel', { 'button.flash-tts-btn': 40 }],
-  ['cible44', 'aujourdhui', '*', 'tel', { '#today-close': 15 }],
-  ['cible44', 'bilan', '*', 'tel', { '#dash-close-btn': 15, 'button.dash-chap': 38.2 }],
-  ['cible44', 'quiz', '*', 'tel', { '#quiz-flag-btn': 28.7, '#quiz-goto-btn': 28.7, 'button.quiz-btn-reread': 34, 'button.quiz-close': 25.8 }],
-  ['cible44', 'rlc-flash anglais-flash', '*', 'tel', { 'button.flash-course-link': 32, 'button.flash-flag-btn': 28.2, 'button.flash-reset': 27.2 }],
   ['cible44', 'tiroir', '*', 'tel', { '#mob-drawer-close': 27.4, '#mob-filter': 40, 'button.mob-subdomain-label.mob-sub-toggle': 40 }],
 ];
 

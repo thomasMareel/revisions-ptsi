@@ -75086,10 +75086,11 @@ ${bodyContent}
   };
 
   window.quizGotoChapter = function(){
-    const item = quizDeck[quizIdx > 0 ? quizIdx-1 : 0];
-    // Panel cours : préfixe du chapId + '-cours'
-    const chapPrefix = item.meta.chapId.replace('chap-','');
-    const coursPanelId = chapPrefix + '-cours';
+    // Carte AFFICHÉE (le lien est dans le pied de sa fiche) ; panneau Cours construit avec
+    // le prefix du deck (id ≠ prefix pour la plupart des chapitres)
+    const item = quizCurrent || quizDeck[quizIdx] || quizDeck[0];
+    if(!item) return;
+    const coursPanelId = item.prefix + '-cours';
 
     // Mots-clés de la question pour trouver la section
     const question = (item.card.q + ' ' + item.card.a).toLowerCase()
@@ -77325,6 +77326,16 @@ document.getElementById('skip-link')?.addEventListener('click', e => {
   document.addEventListener('keydown', e => {
     if(e.key === 'Escape' && ov.classList.contains('open')) close();
   });
+
+  /* Derrière Aujourd'hui et le Bilan, les raccourcis de la page sont inactifs (comme derrière
+     le quiz) : capture, touches simples seulement ; Échap, Tab et les champs passent. */
+  document.addEventListener('keydown', e => {
+    if(e.key === 'Escape' || e.key === 'Tab' || e.ctrlKey || e.metaKey || e.altKey) return;
+    if(!document.querySelector('#today-overlay.open, #dash-overlay.open')) return;
+    const t = e.target;
+    if(t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
+    e.stopPropagation();
+  }, true);
 
   /* Boutons d'ouverture (menus ordinateur et téléphone) */
   $('today-btn')?.addEventListener('click', open);
