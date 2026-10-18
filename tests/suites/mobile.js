@@ -9,7 +9,7 @@
      Des panneaux débordent déjà (formules en ligne trop longues, voir
      tests/README.md §5) : ils sont listés dans DEBORDEMENTS_CONNUS. La suite n'échoue que
      pour un NOUVEAU débordement, et signale un panneau connu qui ne déborde plus. */
-const { pause, attendreApp, fermerOverlays, naviguer, etatMathJax } = require('../lib/outils');
+const { pause, attendreApp, fermerOverlays, naviguer, choisirTheme, etatMathJax } = require('../lib/outils');
 
 /* Panneaux qui débordent à 390 px au commit a04c445 (mesurés avec cette suite,
    Chromium 141) : largeur de page mesurée (px) et formule en cause. Un panneau
@@ -114,15 +114,17 @@ module.exports = {
     }
     res.verifier('tiroir : ouverture, matières, filtre, Entrée', !pbTiroir.length, pbTiroir);
 
-    /* ---------- 3) Thème via le bouton mobile ---------- */
+    /* ---------- 3) Thème via la feuille ⋯ du téléphone (segmenté Clair / Sombre / Auto) ---------- */
     journal.lieu = 'thème mobile';
-    await page.tap('#mob-theme-btn');
-    await pause(300);
-    const th = await page.evaluate(() => document.documentElement.getAttribute('data-theme'));
-    await page.tap('#mob-theme-btn');
-    await pause(200);
-    const th2 = await page.evaluate(() => document.documentElement.getAttribute('data-theme'));
-    res.verifier('bouton thème mobile (sombre puis clair)', th === 'dark' && th2 !== 'dark', 'data-theme après 1 clic = ' + th + ', après 2 clics = ' + th2);
+    let th = {}, th2 = {};
+    try {
+      th = await choisirTheme(page, 'dark', true);
+      th2 = await choisirTheme(page, 'light', true);
+    } catch (e) { th.erreur = String(e.message).split('\n')[0]; }
+    res.verifier('thème au téléphone par la feuille ⋯ (sombre puis clair, mémorisé)',
+      th.attr === 'dark' && th.store === 'dark' && th2.attr !== 'dark' && th2.store === 'light' && !th2.feuille,
+      th.erreur || ('« Sombre » : data-theme = ' + th.attr + ', Store = ' + th.store + ' ; « Clair » : data-theme = ' + th2.attr
+        + ', Store = ' + th2.store + (th2.feuille ? ' ; la feuille ⋯ reste ouverte après Échap' : '')));
 
     /* ---------- 4) Débordement horizontal de chaque panneau ---------- */
     const tous = await page.evaluate(() => CHAPTERS.map(c => ({ id: c.id, prefix: c.prefix, matiere: c.matiere,

@@ -55,7 +55,7 @@
    fixe et les fenêtres refermées entre deux écrans. */
 const fs = require('fs');
 const path = require('path');
-const { pause, attendreApp, naviguer, etatMathJax } = require('../lib/outils');
+const { pause, attendreApp, naviguer, choisirTheme, etatMathJax } = require('../lib/outils');
 
 /* ---------- Anomalies TOLÉRÉES (site aux commits b3632ad et 1d2a766, Chromium 141) ----------
    Une ligne = [mesure, écrans, thèmes, appareils, { sélecteur: pire valeur tolérée, … }]
@@ -185,6 +185,17 @@ async function deplierSolution(page) {
   return ok ? [] : ['aucune solution dépliable dans rlc-exos (.toggle-sol)'];
 }
 async function ouvrirTiroir(page, app) {
+  // À partir de 1200 px, la navigation est une barre latérale PERMANENTE (#nav-toggle-btn la
+  // replie ou l'affiche) : on vérifie qu'elle est affichée ; en dessous, c'est un tiroir
+  // (page « Chapitres » plein écran au téléphone) qu'on ouvre.
+  const laterale = await page.evaluate(() => matchMedia('(min-width:1200px)').matches);
+  if (laterale) {
+    if (await page.evaluate(() => document.documentElement.classList.contains('nav-replie'))) await cliquer(page, '#nav-toggle-btn');
+    await pause(300);
+    const vis = await page.evaluate(() => { const d = document.getElementById('mob-drawer'); const r = d.getBoundingClientRect();
+      return d.checkVisibility() && r.width > 200 && r.left >= 0 && document.querySelectorAll('#mob-chap-list .mob-chap-row').length > 0; });
+    return vis ? [] : ['la barre latérale des chapitres n\'est pas affichée'];
+  }
   await cliquer(page, app.mobile ? '#mob-menu-btn' : '#nav-toggle-btn');
   await pause(450);
   return (await estOuvert(page, '#mob-drawer')) ? [] : ['le tiroir ne s\'ouvre pas'];
@@ -846,8 +857,9 @@ module.exports = {
         journal.lieu = 'thème ' + theme + ' (' + app.nom + ')';
         await toutFermer(page);
         if (theme === 'sombre') {
-          await cliquer(page, app.mobile ? '#mob-theme-btn' : '#theme-btn');
-          await pause(350);
+          // Sélecteur de thème : popover de #theme-btn (ordinateur), feuille ⋯ (téléphone)
+          await choisirTheme(page, 'dark', app.mobile).catch(e => pbPreparation.push(app.nom + ' : sélecteur de thème : ' + String(e.message).split('\n')[0]));
+          await pause(150);
         }
         const th = await page.evaluate(() => ({ attr: document.documentElement.getAttribute('data-theme'), store: Store.get('theme') }));
         const attendu = theme === 'sombre' ? 'dark' : null;

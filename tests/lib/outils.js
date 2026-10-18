@@ -6,7 +6,9 @@
    - CHAPTERS, CHAPTERS_BY_ID, Store, navigateTo, getCanvasColors, flashPretty…
      sont des globales « lexicales » : dans page.evaluate on écrit CHAPTERS.length,
      PAS window.CHAPTERS.
-   - applyTheme n'est pas accessible : pour changer de thème, cliquer #theme-btn.
+   - applyTheme n'est pas accessible : pour changer de thème, passer par le sélecteur
+     comme un utilisateur (choisirTheme ci-dessous : popover de #theme-btn sur
+     ordinateur, segmenté de la feuille ⋯ au téléphone).
    - Au 1er chargement, le service worker recharge la page : les suites
      travaillent donc dans des contextes où les service workers sont BLOQUÉS
      (sauf la suite pwa). */
@@ -128,6 +130,33 @@ async function naviguer(page, id, onglet) {
   await pause(120);
 }
 
+/* Choisit un thème comme un utilisateur (sélecteur Clair / Sombre / Auto) : sur
+   ordinateur, #theme-btn ouvre le popover #theme-pop et l'on clique la carte voulue ;
+   au téléphone (mobile = true), segmenté en bas de la feuille ⋯ (#mob-more-btn), puis
+   Échap referme la feuille. pref : 'light' | 'dark' | 'auto'. Renvoie l'état obtenu :
+   { attr: data-theme de <html>, store: clé theme du Store, pop: popover encore ouvert,
+   feuille: feuille ⋯ encore ouverte }. */
+async function choisirTheme(page, pref, mobile) {
+  if (mobile) {
+    await page.locator('#mob-more-btn').click({ timeout: 5000 });
+    await pause(450);
+    await page.locator('#mob-more-menu [data-theme-set="' + pref + '"]').click({ timeout: 5000 });
+    await pause(250);
+    await page.keyboard.press('Escape');
+    await pause(400);
+  } else {
+    await page.locator('#theme-btn').click({ timeout: 5000 });
+    await pause(250);
+    await page.locator('#theme-pop [data-theme-set="' + pref + '"]').click({ timeout: 5000 });
+    await pause(300);
+  }
+  return page.evaluate(() => {
+    const pop = document.getElementById('theme-pop'), f = document.getElementById('mob-more-menu');
+    return { attr: document.documentElement.getAttribute('data-theme'), store: Store.get('theme'),
+      pop: !!(pop && !pop.hidden), feuille: !!(f && f.classList.contains('open')) };
+  });
+}
+
 /* Code exécuté DANS la page : délimiteurs TeX restés en clair et erreurs
    MathJax (mjx-merror) d'un élément. Attend jusqu'à `attenteMs` que le rendu
    paresseux (typesetPanel) ait fait son travail. */
@@ -220,5 +249,5 @@ function listerFichiers(racine, sousDossier) {
 
 module.exports = {
   pause, suivreErreurs, problemesJournal, marqueJournal, attendreApp, fermerOverlays,
-  naviguer, etatMathJax, extraireDeck, remplacerDeck, lireServiceWorker, listerFichiers,
+  naviguer, choisirTheme, etatMathJax, extraireDeck, remplacerDeck, lireServiceWorker, listerFichiers,
 };

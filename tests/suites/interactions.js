@@ -7,7 +7,7 @@
    « Réviser », Bilan, Aujourd'hui, formulaire, cartes signalées, calcul
    mental, impression, thème, sauvegarde (export PUIS import, qui recharge). */
 const fs = require('fs');
-const { pause, attendreApp, fermerOverlays, naviguer, marqueJournal, problemesJournal } = require('../lib/outils');
+const { pause, attendreApp, fermerOverlays, naviguer, choisirTheme, marqueJournal, problemesJournal } = require('../lib/outils');
 
 /* Chapitre réellement affiché (deux .chapter.active coexistent au chargement :
    un dans chaque <main> ; on garde celui qui est visible) */
@@ -252,9 +252,7 @@ module.exports = {
     });
 
     /* ---------- Aujourd'hui ---------- */
-    await etape("écran « Aujourd'hui » (menu Plus)", async () => {
-      await page.click('#more-btn');
-      await pause(200);
+    await etape("écran « Aujourd'hui » (bouton de l'en-tête)", async () => {
       await page.click('#today-btn');
       await pause(400);
       const s = await page.evaluate(() => ({
@@ -358,15 +356,12 @@ module.exports = {
       return pb;
     });
 
-    await etape('thème sombre puis clair (#theme-btn, mémorisé)', async () => {
-      await page.click('#theme-btn');
-      await pause(250);
-      const a = await page.evaluate(() => ({ t: document.documentElement.getAttribute('data-theme'), s: Store.get('theme') }));
-      await page.click('#theme-btn');
-      await pause(250);
-      const b = await page.evaluate(() => ({ t: document.documentElement.getAttribute('data-theme'), s: Store.get('theme') }));
-      return [(a.t !== 'dark' || a.s !== 'dark') && '1er clic : data-theme=' + a.t + ', Store=' + a.s,
-        (b.t === 'dark' || b.s === 'dark') && '2e clic : data-theme=' + b.t + ', Store=' + b.s];
+    await etape('thème sombre puis clair (sélecteur de #theme-btn, mémorisé)', async () => {
+      const a = await choisirTheme(page, 'dark');
+      const b = await choisirTheme(page, 'light');
+      return [(a.attr !== 'dark' || a.store !== 'dark') && 'choix « Sombre » : data-theme=' + a.attr + ', Store=' + a.store,
+        a.pop && 'le sélecteur reste ouvert après le choix « Sombre »',
+        (b.attr === 'dark' || b.store !== 'light') && 'choix « Clair » : data-theme=' + b.attr + ', Store=' + b.store];
     });
 
     /* ---------- Sauvegarde : export ---------- */

@@ -28,6 +28,9 @@
   root.setAttribute('data-theme-pref', pref);
   var sombre = pref === 'dark' || (pref === 'auto' && !!(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches));
   if(sombre) root.setAttribute('data-theme', 'dark');
+  // Barre latérale des chapitres repliée sur ordinateur (clé navCollapsed) : posée ici
+  // aussi, sinon la colonne de lecture sauterait de 288 px au chargement.
+  try { if(localStorage.getItem('navCollapsed') === '1') root.classList.add('nav-replie'); } catch(e){}
 })();
 </script>
 <link rel="stylesheet" href="vendor/fonts/polices.css">
@@ -661,689 +664,529 @@ kbd, .kbd{
    .mat-btn), barre du téléphone (#mob-header), menus (Plus, Réviser, ⋯), sélecteur de thème,
    taille du texte, retour en haut, bandeaux de mise à jour, pied de site. Propriétaire : ligne « coquille ». */
 
-/* Boutons d'en-tête mobile (icône seule) : pictogramme un peu plus grand */
-#mob-menu-btn .ic, .mob-header-actions > button > .ic{ width:1.45em; height:1.45em; }
+/* Plan de la région :
+   1. Grille de la coquille (points de rupture SPEC §4.1) et couche de commande cachée
+   2. En-tête ordinateur .hdr (SPEC §5.12) et menus Réviser / Plus (SPEC §5.1)
+   3. Navigation des chapitres #mob-drawer : barre latérale ≥ 1200 px, tiroir 768–1199 px,
+      page « Chapitres » plein écran ≤ 767 px (SPEC §4.3, §5.13)
+   4. Sommaire de la matière #sommaire-matiere (SPEC §4.3 point 8)
+   5. Barre du téléphone .mbar et feuille ⋯ (SPEC §4.2)
+   6. Retour en haut, lien d'évitement, pied, bannière de mise à jour
+   7. Mouvement réduit (SPEC §6.4)
+   8. Sélecteur de thème (SPEC §4.6) — sous-bloc en fin de région */
 
-/* S5 — Ligne du jour sous le titre (date · cartes dues · chapitres maîtrisés) */
-.header-today{
-  font-size:0.84rem; color:var(--muted); margin-top:0.5rem;
-  display:flex; align-items:center; gap:0.4rem; flex-wrap:wrap;
+/* ===================================================================
+   1. GRILLE DE LA COQUILLE
+   =================================================================== */
+/* Couche de commande cachée (.sub-btn / .chap-btn, cliquée par navigateTo, le tiroir,
+   le routage) : invisible à TOUTES les largeurs — ne jamais l'afficher. */
+.subdomain-bar, .chapter-bar{ display:none !important; }
+.chap-btn, .sub-btn, .mat-btn{ font:inherit; }
+
+/* Masquer l'attribut hidden même sur les composants en display:flex (compteurs…) */
+.hdr [hidden], .mbar [hidden], .bsheet [hidden], #mob-drawer [hidden], .sommaire[hidden]{ display:none !important; }
+
+/* Colonne de lecture : décalée par la barre latérale permanente (≥ 1200 px, sauf repliée) */
+#app-main{ min-width:0; }
+@media (min-width:1200px){
+  html:not(.nav-replie) #app-main{ margin-left:var(--sidebar-w); }
 }
-.header-today[hidden]{ display:none; }   /* respecter l'attribut hidden (sinon bande vide au chargement) */
-.header-today .ic{ width:1em; height:1em; vertical-align:-0.1em; }
-.header-today strong{ font-weight:600; }
-
-/* S3 — Contrôle de taille du texte (A− / A+) dans les menus « Plus » */
-.read-size-ctrl{ display:flex; align-items:center; gap:0.5rem; padding:0.55rem 0.95rem; border-top:1px solid rgba(128,128,128,0.18); }
-.read-size-ctrl .rsc-label{ flex:1; font-size:0.85rem; color:var(--muted); font-family:var(--font-ui); white-space:nowrap; }
-
-/* surcharge le style « item de menu » (largeur pleine, flex) pour des carrés A−/A+ */
-#more-menu .read-size-ctrl .rsc-btn, #mob-more-menu .read-size-ctrl .rsc-btn{
-  flex:0 0 auto; width:38px; min-width:38px; height:38px; min-height:38px; padding:0;
-  display:flex; align-items:center; justify-content:center;
-  border:1.5px solid var(--ink); border-radius:var(--radius-s);
-  background:var(--paper); color:var(--ink); cursor:pointer;
-  font-weight:700; font-family:var(--font-text); font-size:0.95rem;
+/* En-tête collant (56 px) : les onglets du chapitre collent juste dessous */
+@media (min-width:768px){
+  #app-main nav.tabs{ top:var(--header-h); }
 }
-#more-menu .read-size-ctrl .rsc-btn:hover, #mob-more-menu .read-size-ctrl .rsc-btn:hover{ background:var(--accent); color:#fff; border-color:var(--accent); }
-.read-size-ctrl .read-size-val{ font-family:var(--font-code); font-size:0.7rem; color:var(--muted); min-width:3.2em; text-align:center; }
-
-/* G5 — Couleur de matière dans le tiroir : badge teinté + soulignement actif */
-.mob-filter-tag.mt-physique{ color:var(--accent2); border-color:var(--accent2); }
-.mob-filter-tag.mt-maths{    color:var(--accent);  border-color:var(--accent);  }
-.mob-filter-tag.mt-si{       color:var(--green);   border-color:var(--green);   }
-.mob-filter-tag.mt-info{     color:var(--amber);   border-color:var(--amber);   }
-.mob-filter-tag.mt-anglais{  color:var(--anglais); border-color:var(--anglais); }
-.mob-mat-btn.active[data-mat="physique"]{ box-shadow:inset 0 -3px 0 var(--accent2); }
-.mob-mat-btn.active[data-mat="maths"]{    box-shadow:inset 0 -3px 0 var(--accent);  }
-.mob-mat-btn.active[data-mat="si"]{       box-shadow:inset 0 -3px 0 var(--green);   }
-.mob-mat-btn.active[data-mat="info"]{     box-shadow:inset 0 -3px 0 var(--amber);   }
-.mob-mat-btn.active[data-mat="anglais"]{  box-shadow:inset 0 -3px 0 var(--anglais); }
-/* Barres de navigation en mode sombre : fond clair-distinct + texte lisible */
-:root[data-theme="dark"] .mat-btn{color:#b8b4a6;border-right-color:rgba(255,255,255,0.12)}
-:root[data-theme="dark"] .mat-btn:hover{background:rgba(255,255,255,0.06);color:var(--ink)}
-:root[data-theme="dark"] .mat-btn.active{background:var(--paper);color:var(--ink)}
-:root[data-theme="dark"] .subdomain-bar{background:#22262e;border-bottom-color:rgba(255,255,255,0.12)}
-:root[data-theme="dark"] .sub-btn{color:#a8a496;border-right-color:rgba(255,255,255,0.10)}
-:root[data-theme="dark"] .sub-btn:hover{background:rgba(255,255,255,0.06);color:var(--ink)}
-:root[data-theme="dark"] .sub-btn.active{color:var(--accent);background:rgba(255,255,255,0.06)}
-:root[data-theme="dark"] .chapter-bar{background:#2a2f3a}
-:root[data-theme="dark"] .chap-btn{color:#cfccc0;border-right-color:rgba(255,255,255,0.12)}
-:root[data-theme="dark"] .chap-btn:hover{background:rgba(255,255,255,0.07);color:#fff}
-:root[data-theme="dark"] .chap-btn.active{background:var(--accent);color:#fff}
-
-/* HEADER */
-header{
-  border-bottom:2px solid var(--ink);
-  padding:2rem 2rem 1.5rem 9rem;
-  background:var(--paper);
-  position:relative;
+/* Téléphone : la barre est collante (dans le flux) → plus de marge haute sous elle ;
+   les onglets collent sous la barre (56 px), ou tout en haut quand elle s'efface. */
+@media (max-width:767px){
+  #app-main > main, #app-main > main#si-content{ margin-top:0 !important; }
+  #app-main nav.tabs{ top:var(--bar-h) !important; z-index:var(--z-sticky) !important;
+    transition:top var(--dur-2) var(--ease), box-shadow var(--dur-2) var(--ease); }
+  html.mbar-cachee #app-main nav.tabs{ top:0 !important; box-shadow:var(--sh-1); }
 }
 
-/* Onglet « Chapitres » : bande verticale pleine hauteur, collée au bord gauche */
-.header-nav{
-  position:absolute;
-  top:0;left:0;bottom:0;
-  z-index:6;
-  display:flex;
+/* ===================================================================
+   2. EN-TÊTE ORDINATEUR (≥ 768 px) — SPEC §5.12
+   =================================================================== */
+.hdr{
+  position:sticky; top:0; z-index:var(--z-header); height:var(--header-h);
+  display:flex; align-items:center; gap:.75rem; padding:0 1rem;
+  background:color-mix(in srgb, var(--sheet) 92%, transparent);
+  -webkit-backdrop-filter:saturate(1.4) blur(10px); backdrop-filter:saturate(1.4) blur(10px);
+  border-bottom:1px solid var(--line);
 }
-.header-actions{
-  position:absolute;
-  top:1rem;right:1rem;
-  display:flex;
-  gap:0.5rem;
-  z-index:5;
-}
-.hdr-btn-tab{
-  height:100%;
-  border:none;
-  border-right:2px solid var(--ink);
-  border-radius:0;
-  background:var(--ink);
-  color:var(--paper);
-  flex-direction:column;
-  justify-content:center;
-  gap:0.55rem;
-  padding:0 1.35rem;
-  font-weight:700;
-}
-.hdr-btn-tab .tab-icon{font-size:1.5rem;line-height:1}
-.hdr-btn-tab:hover{background:var(--accent);border-color:var(--accent);color:var(--paper)}
-.hdr-btn{
-  background:var(--paper-dark);
-  border:1px solid var(--ink);
-  color:var(--ink);
-  font-family:var(--font-code);
-  font-size:0.7rem;
-  padding:0.4rem 0.7rem;
-  cursor:pointer;
-  display:flex;
-  align-items:center;
-  gap:0.4rem;
-  letter-spacing:0.05em;
-  transition:background 0.2s;
-}
-.hdr-btn:hover{background:var(--accent);color:var(--paper)}
-.rev-badge{display:inline-block;min-width:1.15em;padding:0 0.3em;margin-left:0.35em;border-radius:999px;background:var(--accent);color:#fff;font-size:0.62rem;font-weight:700;text-align:center;line-height:1.5}
-.hdr-btn:hover .rev-badge{background:var(--paper);color:var(--accent)}
-.hdr-btn kbd{
-  font-family:var(--font-code);
-  font-size:0.6rem;
-  border:1px solid currentColor;
-  border-radius:3px;
-  padding:0.05rem 0.3rem;
-  opacity:0.7;
-}
-@media(max-width:640px){
-  .hdr-btn-label{display:none}
-  .hdr-btn kbd{display:none}
-  .header-actions{top:0.6rem;right:0.6rem}
+@media (max-width:767px){ .hdr{ display:none !important; } }
+.hdr .spacer{ flex:1 1 0; min-width:0; }
+.hdr .vsep{ width:1px; height:1.5rem; background:var(--line); margin:0 .25rem; flex:none; }
+.hdr .btn{ flex:none; }
+.hdr .btn-ghost .ic{ width:1.15rem; height:1.15rem; }
+
+/* Bouton de la navigation : barre latérale (≥ 1200) ou tiroir (en dessous) */
+#nav-toggle-btn .ic-nav-menu{ display:none; }
+@media (max-width:1199px){
+  #nav-toggle-btn .ic-nav-side{ display:none; }
+  #nav-toggle-btn .ic-nav-menu{ display:inline-block; }
 }
 
-/* ============================================================ */
-/* =================== CSS MOBILE UNIQUEMENT ================== */
-/* ============================================================ */
-@media(max-width:767px){
-  /* ── Masquer les éléments desktop ── */
-  header, .subdomain-bar, .chapter-bar, #back-to-top{ display:none !important; }
-  /* ── Header mobile fixé en haut ── */
-  #mob-header{
-    display:flex;
-    align-items:center;
-    gap:0.5rem;
-    position:fixed;
-    top:0; left:0; right:0;
-    height:52px;
-    background:var(--paper);
-    border-bottom:2px solid var(--ink);
-    padding:0 0.75rem;
-    z-index:200;
-    box-shadow:0 2px 8px rgba(0,0,0,0.12);
-  }
-  #mob-menu-btn{
-    background:none;border:none;cursor:pointer;
-    font-size:1.3rem;color:var(--ink);
-    padding:0.3rem;flex-shrink:0;
-    line-height:1;
-    /* Cible tactile ≥ 44px (WCAG) sans changer le visuel */
-    min-width:44px;min-height:44px;
-    display:inline-flex;align-items:center;justify-content:center;
-  }
-  #mob-chapter-title{
-    flex:1;
-    font-family:var(--font-text);
-    font-size:0.95rem;
-    font-weight:600;
-    white-space:nowrap;
-    overflow:hidden;
-    text-overflow:ellipsis;
-    color:var(--ink);
-  }
-  .mob-header-actions{
-    display:flex;gap:0.25rem;flex-shrink:0;
-  }
-  .mob-header-actions button{
-    background:none;border:none;cursor:pointer;
-    font-size:1.15rem;color:var(--ink);
-    padding:0.35rem 0.4rem;
-    border-radius:4px;
-    transition:background 0.15s;
-    /* Cible tactile ≥ 44px (WCAG) */
-    min-width:44px;min-height:44px;
-    display:inline-flex;align-items:center;justify-content:center;
-  }
-  .mob-header-actions button:active{background:var(--paper-dark);}
-  /* Menu « ⋯ » regroupant les actions secondaires (désencombre la barre) */
-  #mob-more-wrap{ position:relative; display:flex; }
-  #mob-more-btn.open{ background:var(--paper-dark); }
-  #mob-more-menu{
-    display:none; position:absolute; right:0; top:calc(100% + 8px); z-index:300;
-    background:var(--paper); border:1.5px solid var(--ink); border-radius:9px;
-    box-shadow:0 8px 28px rgba(0,0,0,0.28); min-width:210px; overflow:hidden; padding:0.25rem 0;
-  }
-  #mob-more-menu.open{ display:block; }
-  #mob-more-menu button{
-    display:flex; align-items:center; gap:0.7rem; width:100%; text-align:left;
-    font-size:0.95rem; font-family:var(--font-ui); color:var(--ink);
-    padding:0.65rem 0.95rem; border-radius:0;
-    min-height:44px;
-  }
-  #mob-more-menu button > span{ flex:1; }
-  #mob-more-menu button:hover, #mob-more-menu button:active{ background:var(--accent); color:#fff; }
-  /* ── Drawer latéral ── */
-  #mob-drawer-overlay{
-    display:none;
-    position:fixed;inset:0;
-    background:rgba(0,0,0,0.45);
-    z-index:300;
-    backdrop-filter:blur(2px);
-  }
-  #mob-drawer-overlay.open{display:block;}
-  #mob-drawer{
-    position:fixed;
-    top:0;left:0;bottom:0;
-    width:82vw;max-width:320px;
-    background:var(--paper);
-    border-right:2px solid var(--ink);
-    z-index:301;
-    display:flex;flex-direction:column;
-    transform:translateX(-100%);
-    transition:transform 0.28s cubic-bezier(0.4,0,0.2,1);
-    overflow:hidden;
-  }
-  #mob-drawer.open{transform:translateX(0);}
-  #mob-drawer-header{
-    display:flex;align-items:center;justify-content:space-between;
-    padding:0.9rem 1rem;
-    border-bottom:1.5px solid var(--ink);
-    flex-shrink:0;
-    background:var(--paper-dark);
-  }
-  #mob-drawer-close{
-    background:none;border:none;cursor:pointer;
-    font-size:1.1rem;color:var(--ink);opacity:0.6;
-    padding:0.2rem 0.4rem;
-  }
-  #mob-mat-bar{
-    display:flex;
-    border-bottom:1.5px solid var(--ink);
-    flex-shrink:0;
-  }
-  .mob-mat-btn{
-    flex:1;
-    font-family:var(--font-code);
-    font-size:0.68rem;letter-spacing:0.08em;
-    text-transform:uppercase;
-    padding:0.65rem 0.3rem;
-    background:none;border:none;cursor:pointer;
-    color:var(--ink);opacity:0.5;
-    border-right:1px solid rgba(128,128,128,.2);
-    transition:all 0.18s;
-  }
-  .mob-mat-btn{ min-height:44px; }
-  .mob-mat-btn:last-child{border-right:none;}
-  .mob-mat-btn.active{
-    opacity:1;font-weight:700;
-    background:var(--paper-dark);
-    box-shadow:inset 0 -2px 0 var(--accent);
-  }
-  #mob-chap-list{
-    flex:1;overflow-y:auto;
-    padding:0.3rem 0;
-  }
-  .mob-subdomain-label{
-    font-family:var(--font-code);
-    font-size:0.64rem;letter-spacing:0.2em;
-    text-transform:uppercase;
-    color:var(--accent-deep);
-    padding:0.7rem 1rem 0.3rem;
-    display:block;
-  }
-  .mob-chap-item{
-    display:block;width:100%;
-    text-align:left;
-    background:none;border:none;cursor:pointer;
-    padding:0.75rem 1rem 0.75rem 1.3rem;
-    font-family:var(--font-ui);
-    font-size:0.88rem;
-    color:var(--ink);
-    border-left:3px solid transparent;
-    transition:all 0.15s;
-    border-bottom:1px solid rgba(128,128,128,.08);
-  }
-  .mob-chap-item{ min-height:44px; }
-  .mob-chap-item:active{background:var(--paper-dark);}
-  .mob-chap-item.active{
-    border-left-color:var(--accent);
-    background:var(--paper-dark);
-    font-weight:600;
-  }
-}
+/* Marque : carré « § » à l'encre, « prépa » en italique (l'unique h1 de la page) */
+.brand{ display:flex; align-items:center; gap:.6rem; color:var(--text); white-space:nowrap; flex:none; }
+.brand-mark{ width:1.75rem; height:1.75rem; border-radius:7px; flex:none; display:grid; place-items:center;
+  background:var(--primary); color:var(--on-primary); font:italic var(--w-semi) 1.125rem/1 var(--font-text); }
+.brand-mark::before{ content:"§"; transform:translateY(.02em); }
+.brand-name{ margin:0; font:var(--w-semi) 1.1875rem/1 var(--font-text); letter-spacing:-.01em; color:var(--text); }
+.brand-name em{ font-style:italic; font-weight:var(--w-medium); color:inherit; }
 
-/* Badge de domaine sur les chapter-btn — couleur à gauche */
-.chap-btn[data-domain="thermo"] { border-left: 3px solid var(--dom-thermo); }
-.chap-btn[data-domain="chimie"]  { border-left: 3px solid var(--dom-chimie); }
-.chap-btn[data-domain="meca"]    { border-left: 3px solid var(--dom-meca); }
-.chap-btn[data-domain="maths"]   { border-left: 3px solid var(--dom-maths); }
-.chap-btn[data-domain="auto"]    { border-left: 3px solid var(--dom-auto); }
+/* Recherche visible : un bouton qui a l'allure d'un champ creux (le clic ou Ctrl K
+   ouvre la fenêtre de recherche) */
+.hdr-search{
+  position:relative; display:flex; align-items:center; gap:.6rem; flex:0 1 26rem; min-width:10rem;
+  height:2.5rem; margin-left:1.25rem; padding:0 .6rem 0 .75rem; border-radius:var(--r-m);
+  border:1px solid var(--field); background:var(--sunk); color:var(--text-3); cursor:text;
+  font:var(--w-regular) var(--fs-ui)/1 var(--font-ui); text-align:left;
+  transition:background var(--dur-1) var(--ease), border-color var(--dur-1) var(--ease);
+}
+.hdr-search:hover{ background:var(--raise); }
+.hdr-search > .ic{ width:1.1rem; height:1.1rem; flex:none; color:var(--text-3); }
+.hdr-search-ph{ flex:1 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.hdr-search .kbd{ flex:none; }
 
-.mat-btn, .chap-btn{
-  transition: background 0.18s, color 0.18s, box-shadow 0.18s !important;
+/* Actions : Aujourd'hui, Bilan (discrets), Réviser (primaire + compteur), Thème, Plus */
+.hdr-act{ padding:0 .7rem; }
+.hdr .btn-primary .ic-chev{ width:1rem; height:1rem; margin-left:-.1rem; opacity:.8; }
+.hdr .btn-primary .count{ margin-left:-.1rem; box-shadow:0 0 0 1.5px var(--primary); }
+@media (max-width:1099px){
+  .hdr-act{ width:2.375rem; padding:0; }
+  .hdr-act .ic-lbl{ position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; }
+  .hdr-search{ margin-left:.5rem; }
 }
-.mat-btn:active { transform: scale(0.98); }
+@media (max-width:899px){
+  .brand-name{ display:none; }
+  .hdr{ gap:.5rem; padding:0 .75rem; }
+}
+#theme-btn[aria-expanded="true"], #more-btn[aria-expanded="true"]{ background:var(--hover); color:var(--text); }
 
-/* Boutons header : transition couleur accent */
-.hdr-btn { transition: background 0.18s, color 0.18s, border-color 0.18s; }
+/* Menus déroulants Réviser et Plus (SPEC §5.1) : gabarit .menu de la base */
+.hdr-more{ position:relative; display:inline-flex; flex:none; }
+.hdr-more-menu{
+  display:none; position:absolute; top:calc(100% + .5rem); right:0; z-index:var(--z-menu);
+  min-width:15.5rem;
+}
+.hdr-more-menu.open{ display:block; animation:menuIn var(--dur-2) var(--ease); }
+@keyframes menuIn{ from{ opacity:0; transform:translateY(-4px); } to{ opacity:1; transform:none; } }
+.hdr-more-item{ white-space:nowrap; }
+.hdr-more-item .end .count{ margin:0; }
+.hdr-more-item .end kbd{ height:1.375rem; }
+#study-menu{ min-width:15rem; }
+/* « Dans ce chapitre » (menu Plus, 1200–1359 px : le rail du sommaire n'a pas la place) */
+.more-toc-list{ max-height:min(18rem, 50vh); overflow:auto; }
+.more-toc-list .menu-item{ display:grid; grid-template-columns:2rem 1fr; gap:.25rem; min-height:2.25rem;
+  white-space:normal; font-size:var(--fs-ui-s); line-height:1.3; padding:.35rem .7rem; }
+.more-toc-list .menu-item .n{ font:italic var(--w-medium) var(--fs-ui-s)/1.3 var(--font-text); color:var(--text-3); }
 
-/* Drawer mobile */
-#mob-drawer { transition: transform 0.28s cubic-bezier(0.4,0,0.2,1); }
-#mob-drawer-overlay { transition: opacity 0.25s; }
+/* ===================================================================
+   3. NAVIGATION DES CHAPITRES (#mob-drawer) — SPEC §4.3, §5.13
+   =================================================================== */
+#mob-drawer{
+  display:flex; flex-direction:column; background:var(--desk); color:var(--text);
+  font-family:var(--font-ui); overflow:hidden;
+}
+#mob-drawer-scroll{ flex:1 1 auto; min-height:0; overflow-y:auto; overscroll-behavior:contain;
+  padding:.25rem .75rem 2rem 1rem; scrollbar-width:thin; }
+#mob-drawer-overlay{ display:none; position:fixed; inset:0; background:var(--scrim); z-index:calc(var(--z-drawer) - 1); }
+#mob-drawer-overlay.open{ display:block; animation:voileIn var(--dur-2) var(--ease); }
+@keyframes voileIn{ from{ opacity:0; } to{ opacity:1; } }
 
-/* ============================================================ */
-/* ===== DESKTOP : tiroir coulissant ouvert à la demande ===== */
-/* ============================================================ */
-@media(min-width:768px){
-  /* Masquer le header mobile et les anciennes barres horizontales.
-     L'overlay et le bouton de fermeture restent actifs (tiroir desktop). */
-  #mob-header, .subdomain-bar, .chapter-bar{ display:none !important; }
-  /* Tiroir coulissant : caché par défaut, ouvert via le bouton ☰ Chapitres.
-     Le contenu garde ainsi toute la largeur. */
-  #mob-drawer{
-    position:fixed;
-    top:0; left:0; bottom:0;
-    width:300px; max-width:85vw;
-    display:flex; flex-direction:column;
-    background:var(--paper);
-    border-right:2px solid var(--ink);
-    overflow:hidden;
-    z-index:301;
-    transform:translateX(-100%);
-    transition:transform 0.28s cubic-bezier(0.4,0,0.2,1);
-    box-shadow:4px 0 24px rgba(0,0,0,0.18);
-  }
-  #mob-drawer.open{ transform:translateX(0); }
-  #mob-drawer-overlay{
-    display:none;
-    position:fixed; inset:0;
-    background:rgba(0,0,0,0.45);
-    z-index:300;
-    backdrop-filter:blur(2px);
-  }
-  #mob-drawer-overlay.open{ display:block; }
-  #mob-drawer-header{
-    display:flex; align-items:center; justify-content:space-between;
-    padding:1.1rem 1rem;
-    border-bottom:1.5px solid var(--ink);
-    background:var(--paper-dark);
-    flex-shrink:0;
-  }
-  #mob-drawer-close{
-    display:block;
-    background:none; border:none; cursor:pointer;
-    font-size:1.1rem; color:var(--ink); opacity:0.6;
-    padding:0.2rem 0.4rem;
-  }
-  #mob-drawer-close:hover{ opacity:1; }
-  #mob-mat-bar{
-    display:flex;
-    border-bottom:1.5px solid var(--ink);
-    flex-shrink:0;
-  }
-  .mob-mat-btn{
-    flex:1;
-    font-family:var(--font-code);
-    font-size:0.68rem; letter-spacing:0.08em;
-    text-transform:uppercase;
-    padding:0.7rem 0.3rem;
-    background:none; border:none; cursor:pointer;
-    color:var(--ink); opacity:0.5;
-    border-right:1px solid rgba(128,128,128,.2);
-    transition:all 0.18s;
-  }
-  .mob-mat-btn:last-child{ border-right:none; }
-  .mob-mat-btn:hover{ opacity:0.85; }
-  .mob-mat-btn.active{
-    opacity:1; font-weight:700;
-    background:var(--paper-dark);
-    box-shadow:inset 0 -2px 0 var(--accent);
-  }
-  #mob-chap-list{
-    flex:1; overflow-y:auto;
-    padding:0.3rem 0;
-  }
-  .mob-subdomain-label{
-    font-family:var(--font-code);
-    font-size:0.64rem; letter-spacing:0.2em;
-    text-transform:uppercase;
-    color:var(--accent-deep);
-    padding:0.8rem 1rem 0.3rem;
-    display:block;
-  }
-  .mob-chap-item{
-    display:block; width:100%;
-    text-align:left;
-    background:none; border:none; cursor:pointer;
-    padding:0.6rem 1rem 0.6rem 1.3rem;
-    font-family:var(--font-ui);
-    font-size:0.88rem;
-    color:var(--ink);
-    border-left:3px solid transparent;
-    transition:all 0.15s;
-    border-bottom:1px solid rgba(128,128,128,.08);
-  }
-  .mob-chap-item:hover{ background:var(--paper-dark); }
-  .mob-chap-item.active{
-    border-left-color:var(--accent);
-    background:var(--paper-dark);
-    font-weight:600;
-  }
-}
+/* En-tête du tiroir / de la page : « Chapitres » + × */
+.dr-top{ display:flex; align-items:center; gap:.5rem; flex:none; padding:.5rem .5rem .25rem 1rem; }
+.dr-titre{ margin:0; font:var(--w-semi) 1.625rem/1.1 var(--font-text); letter-spacing:-.015em; color:var(--text); }
+.dr-top .btn{ margin-left:auto; }
 
-/* ===== BOUTON RETOUR EN HAUT ===== */
-#back-to-top{
-  position:fixed;
-  bottom:1.5rem;
-  right:1.5rem;
-  width:44px;height:44px;
-  background:var(--ink);
-  color:var(--paper);
-  border:none;
-  cursor:pointer;
-  font-size:1.1rem;
-  display:flex;align-items:center;justify-content:center;
-  opacity:0;
-  pointer-events:none;
-  transition:opacity 0.25s, background 0.2s;
-  z-index:200;
-  box-shadow:0 2px 12px rgba(0,0,0,0.25);
-}
-#back-to-top.visible{ opacity:1; pointer-events:all; }
-#back-to-top:hover{ background:var(--accent); }
-.eyebrow{
-  font-family:var(--font-code);
-  font-size:0.7rem;
-  letter-spacing:0.2em;
-  text-transform:uppercase;
-  color:var(--accent);
-  margin-bottom:0.5rem;
-}
-h1{
-  font-family:var(--font-text);
-  font-size:clamp(2rem,5vw,3.5rem);
-  font-weight:800;
-  letter-spacing:-0.02em;
-  line-height:1;
-}
-h1 em{
-  font-style:italic;
-  color:var(--accent);
-  font-weight:400;
-}
-/* CHAPTER SELECTOR */
-.mat-btn{
-  flex:1;
-  font-family:var(--font-text);
-  font-size:1.1rem;
-  font-weight:600;
-  padding:0.85rem 1rem;
-  background:transparent;
-  border:none;
-  color:var(--ink);
-  opacity:0.6;
-  cursor:pointer;
-  border-right:1px solid rgba(128,128,128,0.2);
-  letter-spacing:-0.01em;
-  transition:all 0.2s;
-}
-.mat-btn:last-child{border-right:none}
-.mat-btn:hover{background:rgba(0,0,0,0.04);color:var(--ink)}
-.mat-btn.active{
-  background:var(--paper);
-  color:var(--ink);
-  box-shadow:inset 0 -3px 0 var(--accent);
-}
+/* Tuiles riches (page Chapitres du téléphone) : Aujourd'hui · Bilan */
+.dr-rich{ display:grid; grid-template-columns:1fr 1fr; gap:.5rem; margin:.25rem 0 0; }
+.dr-tuile{ display:flex; flex-direction:column; align-items:flex-start; gap:.3rem; min-height:4rem; padding:.65rem .8rem;
+  border:0; border-radius:var(--r-m); background:var(--sunk); color:var(--text); text-align:left; cursor:pointer; }
+.dr-tuile:hover{ background:var(--hover); }
+.dr-tuile .t{ display:flex; align-items:center; gap:.45rem; width:100%; font:var(--w-semi) var(--fs-ui)/1.1 var(--font-ui); }
+.dr-tuile .t .ic{ color:var(--text-2); }
+.dr-tuile .t .count{ margin-left:auto; }
+.dr-tuile .s{ font:var(--w-regular) var(--fs-ui-xs)/1.25 var(--font-ui); color:var(--text-2); }
 
-.subdomain-bar{
-  display:flex;
-  gap:0;
-  background:var(--paper);
-  border-bottom:1px solid rgba(0,0,0,0.15);
-}
-.sub-btn{
-  font-family:var(--font-code);
-  font-size:0.75rem;
-  letter-spacing:0.08em;
-  text-transform:uppercase;
-  padding:0.65rem 1.2rem;
-  background:transparent;
-  border:none;
-  color:var(--ink);
-  opacity:0.72;
-  cursor:pointer;
-  border-right:1px solid rgba(128,128,128,0.2);
-  font-weight:500;
-  transition:all 0.2s;
-}
-.sub-btn:last-child{border-right:none}
-.sub-btn:hover{background:var(--paper-dark);color:var(--ink);opacity:0.9}
-.sub-btn.active{
-  color:var(--accent);
-  background:var(--paper-dark);
-  font-weight:700;
-  opacity:1;
-}
-.chapter-bar{
-  display:flex;
-  gap:0;
-  background:var(--ink);
-  overflow-x:auto;
-}
-.chap-btn{
-  font-family:var(--font-code);
-  font-size:0.78rem;
-  padding:0.7rem 1.1rem;
-  background:transparent;
-  border:none;
-  color:rgba(244,241,232,0.78);
-  cursor:pointer;
-  white-space:normal;
-  word-break:break-word;
-  max-width:120px;
-  min-width:80px;
-  text-align:left;
-  line-height:1.3;
-  border-right:1px solid rgba(244,241,232,0.1);
-  letter-spacing:0.03em;
-}
-.chap-btn:hover{background:rgba(244,241,232,0.05);color:var(--paper)}
-.chap-btn.active{background:var(--accent);color:var(--paper)}
-.chap-btn .matiere{
-  font-size:0.65rem;
-  opacity:0.6;
-  display:block;
-  margin-bottom:0.15rem;
-  letter-spacing:0.15em;
-  text-transform:uppercase;
-}
-.chap-btn .yr2a{font-size:0.85em;border-color:rgba(244,241,232,0.5);color:rgba(244,241,232,0.85)}
-.chap-btn.active .yr2a{border-color:var(--paper);color:var(--paper)}
+/* Année + filtre */
+.dr-row{ display:grid; grid-template-columns:minmax(0,1fr); gap:.75rem; margin-top:.75rem; }
+#mob-year-bar{ display:grid; width:100%; }
+#mob-year-bar .yr-c{ display:none; }
+.mob-year-btn{ white-space:nowrap; }
+#mob-filter-wrap{ width:100%; }
+#mob-filter{ -webkit-appearance:none; appearance:none; }
+#mob-filter::-webkit-search-cancel-button{ -webkit-appearance:none; display:none; }
+#mob-filter-wrap:has(#mob-filter-clear:not([hidden])) #mob-filter{ padding-right:2.6rem; }
+#mob-filter-clear{ position:absolute; right:.2rem; top:50%; transform:translateY(-50%);
+  display:grid; place-items:center; width:2.25rem; height:2.25rem; border:0; border-radius:8px;
+  background:transparent; color:var(--text-3); cursor:pointer; }
+#mob-filter-clear .ic{ position:static; width:1rem; height:1rem; color:inherit; }
+#mob-filter-clear:hover{ background:var(--hover); color:var(--text); }
 
-footer{
-  text-align:center;
-  padding:2rem;
-  font-family:var(--font-code);
-  font-size:0.75rem;
-  color:var(--muted);
-  border-top:1px solid var(--ink);
-  margin-top:3rem;
-}
+/* Blocs Épinglés / Récents (jamais filtrés) */
+.nav-block{ margin-top:1.1rem; }
+.nav-block > .kicker{ display:flex; align-items:center; justify-content:space-between; padding:0 .5rem .45rem; }
+.chips{ display:flex; flex-wrap:wrap; gap:.4rem; padding:0 .25rem; }
+.chip .dot{ width:.5rem; height:.5rem; }
+.chip-lbl{ overflow:hidden; text-overflow:ellipsis; max-width:14rem; }
+.recent-row{ display:flex; align-items:center; gap:.55rem; width:100%; min-height:2.125rem; padding:.2rem .5rem;
+  border:0; border-radius:8px; background:transparent; text-align:left; cursor:pointer;
+  font:var(--w-regular) var(--fs-ui-s)/1.25 var(--font-ui); color:var(--text-2); }
+.recent-row:hover{ background:var(--hover); color:var(--text); }
+.recent-row .nm{ min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.recent-row .where{ margin-left:auto; flex:none; color:var(--text-3); font-size:var(--fs-ui-xs); }
+.recent-row .dot{ width:.5rem; height:.5rem; }
 
-/* Pastille de compteur dans les menus */
-.flag-badge{ display:inline-block; min-width:1.1em; padding:0 0.3em; margin-left:0.35em; border-radius:999px; background:var(--accent); color:#fff; font-size:0.7rem; font-family:var(--font-code); text-align:center; vertical-align:middle; }
+/* Intercalaires de matière : filet vif en haut, nom + effectif, l'actif prend la teinte */
+.mat-tabs{ display:flex; gap:3px; margin-top:1.1rem; border-bottom:2px solid var(--chap-vif); }
+.mat-tab{
+  position:relative; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:.2rem;
+  flex:1 1 auto; min-width:2.25rem; min-height:3.25rem; padding:.55rem .35rem .4rem; border:0; border-radius:8px 8px 0 0; cursor:pointer;
+  background:var(--sunk); color:var(--text-2); box-shadow:inset 0 3px 0 var(--chap-vif);
+  font:var(--w-semi) var(--fs-ui-s)/1.1 var(--font-ui);
+}
+.mat-tab .n{ font:var(--w-bold) var(--fs-count)/1 var(--font-ui); color:var(--text-2); font-variant-numeric:tabular-nums; }
+.mat-tab:hover{ color:var(--text); background:color-mix(in srgb, var(--chap-fond) 55%, var(--sunk)); }
+.mat-tab.active, .mat-tab[aria-selected="true"]{ background:var(--chap-fond); color:var(--chap);
+  box-shadow:inset 0 4px 0 var(--chap-vif); font-weight:var(--w-bold); }
+.mat-tab.active .n{ color:var(--chap); }
+.mat-tab:focus-visible{ outline-offset:-2px; }
+#mob-drawer.filtre-actif .mat-tabs, #mob-drawer.filtre-actif #mob-quick{ display:none; }
 
-/* — Sélecteur d'année (en haut du tiroir, au-dessus des matières) — */
-#mob-year-bar{
-  display:flex;
-  gap:0;
-  flex-shrink:0;
-  border-bottom:1.5px solid var(--ink);
-  background:var(--paper-dark);
+/* Parties repliables (sous-domaines de CHAP_GROUPS) */
+#mob-chap-list{ margin-top:.5rem; }
+.nav-part{ margin-top:.35rem; }
+.nav-part-h{
+  display:flex; align-items:center; gap:.5rem; width:100%; min-height:2.25rem; padding:0 .5rem;
+  border:0; background:none; cursor:pointer; border-radius:8px; text-align:left;
+  font:var(--w-semi) var(--fs-ui-s)/1.2 var(--font-ui); color:var(--text);
 }
-.mob-year-btn{
-  flex:1;
-  font-family:var(--font-text);
-  font-size:0.95rem;
-  font-weight:600;
-  padding:0.6rem 0.3rem;
-  min-height:44px;
-  background:none;
-  border:none;
-  border-right:1px solid rgba(128,128,128,0.25);
-  color:var(--muted);
-  cursor:pointer;
-  /* color HORS de la transition : sinon le changement de --muted au basculement
-     de thème ne re-résout pas var() (quirk Chromium) et la couleur reste figée */
-  transition:background-color 0.18s, border-color 0.18s, opacity 0.18s;
-}
-.mob-year-btn:last-child{ border-right:none; }
-.mob-year-btn:hover{ color:var(--ink); }
-.mob-year-btn.active{ opacity:1; color:var(--paper); background:var(--accent); }
+.nav-part-h .n{ margin-left:auto; color:var(--text-2); font-weight:var(--w-medium); font-variant-numeric:tabular-nums; }
+.nav-part-h .ic{ width:1rem; height:1rem; color:var(--text-3); transition:transform var(--dur-2) var(--ease); }
+.nav-part-h[aria-expanded="false"] .ic{ transform:rotate(-90deg); }
+.nav-part-h:hover{ background:var(--hover); }
+.nav-list{ list-style:none; margin:.1rem 0 .4rem 1rem; padding:0 0 0 .75rem; border-left:1px solid var(--line-2); }
 
-/* — Sidebar : barre de défilement discrète, item actif accentué — */
-#mob-chap-list{ scrollbar-width:thin; scrollbar-color:rgba(128,128,128,0.4) transparent; }
-#mob-chap-list::-webkit-scrollbar{ width:8px; }
-#mob-chap-list::-webkit-scrollbar-thumb{ background:rgba(128,128,128,0.35); border-radius:4px; }
-#mob-chap-list::-webkit-scrollbar-track{ background:transparent; }
-
-/* ===== Tiroir nouvelle génération : filtre, épinglés/récents, accordéon, anneaux ===== */
-#mob-filter-wrap{
-  position:relative; flex-shrink:0;
-  padding:0.5rem 0.75rem;
-  border-bottom:1px solid rgba(128,128,128,0.18);
+/* Rangée de chapitre = bouton du chapitre + épingle (frères, jamais imbriqués) */
+.mob-chap-row{ position:relative; display:flex; align-items:center; border-radius:8px; color:var(--text-2); }
+.mob-chap-row:hover{ background:var(--hover); color:var(--text); }
+.mob-chap-item{
+  flex:1 1 auto; min-width:0; display:flex; align-items:center; gap:.5rem; min-height:2.125rem; padding:.3rem .25rem .3rem .65rem;
+  border:0; border-radius:8px; background:transparent; color:inherit; text-align:left; cursor:pointer;
+  font:var(--w-regular) var(--fs-ui)/1.25 var(--font-ui);
 }
-#mob-filter{
-  width:100%; min-height:40px;
-  padding:0.45rem 2.1rem 0.45rem 0.7rem;
-  font-family:var(--font-ui); font-size:0.9rem;
-  color:var(--ink); background:var(--paper);
-  border:1.5px solid rgba(128,128,128,0.35); border-radius:8px;
-  outline:none;
-}
-#mob-filter:focus{ border-color:var(--accent2); }
-#mob-filter::placeholder{ color:var(--muted); }
-#mob-filter-clear{
-  position:absolute; right:1.15rem; top:50%; transform:translateY(-50%);
-  background:none; border:none; cursor:pointer;
-  font-size:0.85rem; color:var(--muted); padding:0.35rem 0.45rem;
-}
-#mob-filter-clear:hover{ color:var(--accent); }
-
-/* Rangée chapitre = bouton + épingle */
-.mob-chap-row{
-  display:flex; align-items:stretch;
-  border-bottom:1px solid rgba(128,128,128,.08);
-}
-.mob-chap-row .mob-chap-item{ flex:1; border-bottom:none; display:flex; align-items:center; gap:0.55rem; }
-.mob-chap-label{ flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; }
+.mob-chap-item:focus-visible{ outline-offset:-2px; }
+.mob-chap-label{ flex:1 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.mob-chap-item .end{ margin-left:auto; display:flex; align-items:center; gap:.35rem; flex:none; }
+.tag2a{ font:var(--w-bold) var(--fs-count)/1 var(--font-ui); color:var(--text-2); letter-spacing:.02em; }
 .mob-pin{
-  width:44px; flex-shrink:0;
-  background:none; border:none; cursor:pointer;
-  font-size:0.95rem; color:var(--muted);
-  transition:all 0.15s;
+  flex:none; display:grid; place-items:center; width:2rem; height:2rem; margin-right:.15rem;
+  border:0; border-radius:8px; background:transparent; color:var(--text-3); cursor:pointer; opacity:0;
 }
-.mob-pin:hover{ opacity:1; color:var(--amber); }
-.mob-pin.pinned{ color:var(--amber); opacity:1; }
+.mob-pin .ic{ width:1rem; height:1rem; }
+.mob-chap-row:hover .mob-pin, .mob-chap-row:focus-within .mob-pin, .mob-pin.pinned{ opacity:1; }
+.mob-pin:hover{ background:var(--hover); color:var(--text); }
+.mob-pin.pinned{ color:var(--ambre-vif); }
+.mob-chap-row.cur{ background:var(--chap-fond); color:var(--chap); }
+.mob-chap-row.cur .mob-chap-item{ font-weight:var(--w-semi); }
+.mob-chap-row.cur::before{ content:""; position:absolute; left:-.8rem; top:.35rem; bottom:.35rem; width:3px; border-radius:3px; background:var(--chap-vif); }
+.mob-chap-row.cur .mob-pin:not(.pinned){ color:var(--chap); }
+/* « + N chapitres de 1ʳᵉ année » (2ᵉ année) */
+.nav-more{ display:flex; align-items:center; gap:.5rem; width:100%; min-height:2.125rem; padding:.2rem .5rem .2rem .65rem;
+  border:0; border-radius:8px; background:transparent; color:var(--text-2); cursor:pointer; text-align:left;
+  font:var(--w-medium) var(--fs-ui-s)/1.25 var(--font-ui); }
+.nav-more:hover{ background:var(--hover); color:var(--text); }
+.nav-more .ic{ width:.9rem; height:.9rem; color:var(--text-3); }
 
-/* Sous-domaines repliables */
-.mob-sub-toggle{
-  display:flex; align-items:center; gap:0.45rem;
-  width:100%; text-align:left;
-  background:none; border:none; cursor:pointer;
-  min-height:40px;
-}
-.mob-sub-toggle .sub-chev{
-  font-size:0.6rem; transition:transform 0.18s;
-  display:inline-block; width:0.8em;
-}
-.mob-sub-toggle.collapsed .sub-chev{ transform:rotate(-90deg); }
-.mob-sub-toggle .sub-count{
-  margin-left:auto; font-size:0.66rem; color:var(--muted);
-  background:rgba(128,128,128,0.15); border-radius:999px;
-  padding:0.1rem 0.45rem;
-}
-.mob-sub-toggle:hover{ background:rgba(128,128,128,0.08); }
+/* Résultats du filtre : groupés par matière, correspondance surlignée, année indiquée */
+.nav-results > .kicker{ margin:1rem .5rem .25rem; }
+.nav-results .grp{ margin-top:.9rem; }
+.nav-results .grp-h{ display:flex; align-items:center; gap:.45rem; padding:0 .5rem .35rem;
+  font:var(--w-bold) var(--fs-kicker)/1.2 var(--font-ui); letter-spacing:var(--track-kicker); text-transform:uppercase; color:var(--chap); }
+.nav-results .grp-h .n{ margin-left:auto; color:var(--text-2); letter-spacing:0; }
+.nav-results .grp-h .dot{ width:.55rem; height:.55rem; }
+.nav-results .nav-list{ margin:0; padding:0; border:0; }
+.nav-results .mob-chap-item{ flex-wrap:wrap; row-gap:.1rem; padding-top:.4rem; padding-bottom:.4rem; }
+.nav-results .mob-chap-label{ flex:1 1 0; white-space:normal; }
+.nav-results .mob-chap-item .sub{ flex-basis:100%; font-size:var(--fs-ui-xs); color:var(--text-2); }
+.nav-results .mob-chap-item .end .ic{ width:1rem; height:1rem; color:var(--text-3); }
+.nav-results .badge-2a{ height:1.25rem; }
+#mob-drawer mark{ background:var(--chap-fond); color:var(--chap); font-weight:var(--w-semi); border-radius:3px; padding:0 .08em;
+  box-shadow:0 0 0 1px color-mix(in srgb, var(--chap-vif) 35%, transparent); }
+.mob-filter-empty{ padding:1rem .5rem; font:var(--w-regular) var(--fs-ui-s)/1.4 var(--font-ui); color:var(--text-2); }
 
-/* Sections Épinglés / Récents */
-.mob-drawer-section{ color:var(--accent2) !important; }
-
-/* Badge matière (résultats filtrés + épinglés/récents) */
-.mob-filter-tag{
-  flex-shrink:0;
-  font-family:var(--font-code);
-  font-size:0.64rem; letter-spacing:0.1em;
-  color:var(--accent2); border:1px solid rgba(45,95,138,0.4);
-  border-radius:3px; padding:0.05rem 0.3rem;
+/* --- ≥ 1200 px : barre latérale permanente de 288 px, sous l'en-tête --- */
+@media (min-width:1200px){
+  #mob-drawer{
+    position:fixed; top:var(--header-h); left:0; bottom:0; z-index:calc(var(--z-header) - 1);
+    width:var(--sidebar-w); border-right:1px solid var(--line);
+  }
+  #mob-drawer-scroll{ padding-top:1rem; }
+  html.nav-replie #mob-drawer{ display:none; }
+  #mob-drawer-header, #dr-tuiles, #mob-drawer-overlay, #mob-drawer-overlay.open{ display:none !important; }
 }
-.mob-filter-empty{
-  padding:1rem; font-size:0.85rem; color:var(--muted); font-style:italic;
+/* --- 768–1199 px : tiroir de 320 px qui glisse depuis la gauche, avec le voile --- */
+@media (min-width:768px) and (max-width:1199px){
+  #mob-drawer{
+    position:fixed; top:0; left:0; bottom:0; z-index:var(--z-drawer); width:min(20rem, 88vw);
+    border-right:1px solid var(--line); box-shadow:var(--sh-3);
+    transform:translateX(-100%); visibility:hidden;
+    transition:transform var(--dur-3) var(--ease), visibility 0s linear var(--dur-3);
+  }
+  #mob-drawer.open{ transform:none; visibility:visible; transition:transform var(--dur-3) var(--ease), visibility 0s; }
+  #dr-tuiles{ display:none; }
+  .dr-titre{ font-size:1.375rem; }
+}
+/* --- ≤ 767 px : page plein écran « Chapitres » (☰), ouvrir un chapitre = 2 gestes --- */
+@media (max-width:767px){
+  #mob-drawer{
+    position:fixed; inset:0; z-index:var(--z-drawer); width:100%; background:var(--sheet);
+    transform:translateX(-100%); visibility:hidden;
+    transition:transform var(--dur-3) var(--ease), visibility 0s linear var(--dur-3);
+  }
+  #mob-drawer.open{ transform:none; visibility:visible; transition:transform var(--dur-3) var(--ease), visibility 0s; }
+  #mob-drawer-overlay, #mob-drawer-overlay.open{ display:none !important; }
+  #mob-drawer-scroll{ padding:.25rem 1rem 2.5rem; }
+  .dr-top{ padding:.5rem .25rem .25rem 1rem; }
+  .dr-row{ grid-template-columns:auto minmax(0,1fr); gap:.5rem; }
+  #mob-year-bar{ width:auto; }
+  #mob-year-bar .yr-l{ display:none; }
+  #mob-year-bar .yr-c{ display:inline; }
+  .mob-year-btn{ min-width:2.75rem; }
+  #mob-quick{ margin-top:1rem; }
+  #mob-quick .nav-block{ margin-top:0; }
+  #mob-quick .chips{ padding:0; }
+  #mob-quick .kicker{ padding:0 0 .5rem; }
+  .mat-tabs{ margin-top:1rem; }
+  .mat-tab{ min-height:3.5rem; font-size:var(--fs-ui); }
+  .nav-part-h{ min-height:var(--tap); font-size:.9375rem; padding:0 .25rem; }
+  .nav-list{ margin-left:.5rem; padding-left:.5rem; }
+  .mob-chap-item{ min-height:3rem; font-size:1rem; }
+  .mob-pin{ width:var(--tap); height:var(--tap); opacity:1; margin-right:0; }
+  .mob-chap-row.cur::before{ left:-.55rem; }
+  .nav-more{ min-height:var(--tap); }
+  .nav-results .mob-chap-item{ min-height:var(--tap); }
+}
+@media (pointer:coarse){
+  .mob-pin{ opacity:1; }
+  .recent-row{ min-height:var(--tap); }
+  #mob-filter-clear{ width:var(--tap); height:var(--tap); right:0; }
 }
 
-/* Boutons d'en-tête désactivés (ex. préc./suiv. en bout de liste) */
-.hdr-btn:disabled{ opacity:0.3; cursor:default; }
-.hdr-btn:disabled:hover{ background:var(--paper-dark); color:var(--ink); }
+/* ===================================================================
+   4. SOMMAIRE DE LA MATIÈRE (#sommaire/<matière>) — SPEC §4.3 point 8
+   Rendu dans la zone de la feuille ; ouvert par un 2ᵉ clic sur l'intercalaire actif,
+   le nom de la matière (window.__ouvrirSommaire) ou le lien profond.
+   =================================================================== */
+html.sommaire-ouvert #app-main > main, html.sommaire-ouvert #chap-pager{ display:none !important; }
+.sommaire{ max-width:var(--sheet-max); margin:1.5rem auto 3rem; padding:0 1.5rem; }
+.sommaire-feuille{ background:var(--sheet); border-radius:var(--r-l); box-shadow:var(--sh-sheet);
+  border-top:4px solid var(--chap-vif); overflow:clip; padding:0 2.5rem 2.5rem; }
+.ov-head{ position:relative; margin:0 -2.5rem; padding:2rem 2.5rem 1.5rem; background:var(--chap-fond); border-bottom:1px solid var(--line); }
+.ov-head::before{ content:""; position:absolute; inset:0; pointer-events:none;
+  background-image:linear-gradient(var(--mill-cm) 1px, transparent 1px), linear-gradient(90deg, var(--mill-cm) 1px, transparent 1px),
+    linear-gradient(var(--mill-fin) 1px, transparent 1px), linear-gradient(90deg, var(--mill-fin) 1px, transparent 1px);
+  background-size:40px 40px, 40px 40px, 8px 8px, 8px 8px; background-position:-1px -1px;
+  -webkit-mask-image:linear-gradient(180deg, #000, transparent); mask-image:linear-gradient(180deg, #000, transparent); }
+.ov-head > *{ position:relative; }
+.ov-crumb{ display:flex; align-items:center; flex-wrap:wrap; gap:.45rem; font:var(--w-medium) var(--fs-ui-s)/1.2 var(--font-ui); color:var(--text-2); }
+.ov-crumb b{ color:var(--chap); font-weight:var(--w-bold); }
+.ov-crumb .dot{ width:.55rem; height:.55rem; }
+.ov-h{ margin:.4rem 0 0; font:italic var(--w-semi) var(--fs-h1)/1.05 var(--font-text); letter-spacing:var(--track-h1); color:var(--chap); }
+.ov-meta{ margin-top:.6rem; font:var(--w-regular) var(--fs-ui)/1.4 var(--font-ui); color:var(--text-2); }
+.ov-meta b{ color:var(--rouge); font-weight:var(--w-semi); }
+.ov-resume{ display:flex; align-items:center; gap:.9rem; width:100%; max-width:34rem; margin-top:1.1rem; padding:.75rem 1rem;
+  border-radius:var(--r-m); background:var(--raise); border:1px solid var(--line); color:var(--text); text-align:left; cursor:pointer; }
+.ov-resume:hover{ border-color:var(--field); }
+.ov-resume .pic{ flex:none; width:2.5rem; height:2.5rem; border-radius:10px; display:grid; place-items:center;
+  background:var(--chap-fond); color:var(--chap); font:italic var(--w-semi) 1.15rem/1 var(--font-text); }
+.ov-resume .tx{ min-width:0; display:flex; flex-direction:column; gap:.2rem; }
+.ov-resume .t{ font:var(--w-semi) 1.0625rem/1.2 var(--font-text); }
+.ov-resume .s{ font:var(--w-regular) var(--fs-ui-s)/1.3 var(--font-ui); color:var(--text-2); }
+.ov-resume > .ic{ margin-left:auto; flex:none; color:var(--text-3); }
+.ov-grid{ columns:2; column-gap:1rem; margin-top:1.5rem; }
+.ov-grid .pcard{ break-inside:avoid; margin-bottom:1rem; }
+.pcard{ border:1px solid var(--line); border-radius:var(--r-l); padding:1rem 1rem .5rem; background:var(--sheet); }
+.pcard-h{ display:flex; align-items:baseline; gap:.5rem; }
+.pcard-h h3{ margin:0; font:var(--w-semi) 1.1875rem/1.2 var(--font-text); color:var(--text); }
+.pcard-n{ margin-left:auto; flex:none; font:var(--w-medium) var(--fs-ui-xs)/1 var(--font-ui); color:var(--text-2); }
+.pcard-p{ display:grid; grid-template-columns:4.5rem 1fr; align-items:center; gap:.6rem; margin:.65rem 0 .5rem;
+  font:var(--w-regular) var(--fs-ui-xs)/1.2 var(--font-ui); color:var(--text-2); }
+.pcard-p b{ color:var(--rouge); font-weight:var(--w-semi); }
+.pcard-p .stack{ height:.375rem; }
+.pcard-list{ list-style:none; margin:0; padding:0; counter-reset:c; }
+.pcard-list li{ display:flex; align-items:center; gap:.5rem; border-top:1px solid var(--line); counter-increment:c; }
+.pcard-list button{ flex:1 1 auto; min-width:0; display:flex; gap:.6rem; padding:.5rem 0; border:0; background:none; cursor:pointer; text-align:left;
+  font:var(--w-regular) var(--fs-ui)/1.25 var(--font-ui); color:var(--text); }
+.pcard-list button::before{ content:counter(c); min-width:1.1rem; font:italic var(--w-semi) 1rem/1.25 var(--font-text); color:var(--chap); }
+.pcard-list button:hover{ color:var(--chap); text-decoration:underline; text-underline-offset:.18em; }
+.pcard-list button.cur{ font-weight:var(--w-semi); color:var(--chap); }
+.pcard-list .simu{ color:var(--text-3); display:inline-flex; flex:none; }
+.pcard-list .simu .ic{ width:1rem; height:1rem; }
+.pcard-list .badge-2a{ height:1.25rem; flex:none; }
+.ov-2a{ display:flex; align-items:center; gap:.75rem; margin-top:.5rem; padding:.85rem 1rem; border-radius:var(--r-m);
+  background:var(--sunk); font:var(--w-regular) var(--fs-ui-s)/1.35 var(--font-ui); color:var(--text-2); }
+.ov-2a .btn{ margin-left:auto; }
+@media (max-width:1023px){ .ov-grid{ columns:1; } }
+@media (max-width:767px){
+  .sommaire{ margin:0 0 2rem; padding:0; }
+  .sommaire-feuille{ border-radius:0; box-shadow:none; border-top-width:3px; padding:0 var(--gutter) 2rem; }
+  .ov-head{ margin:0 calc(var(--gutter) * -1); padding:1.25rem var(--gutter) 1.25rem; }
+  .ov-2a{ flex-wrap:wrap; }
+  .pcard-list button, .ov-resume, .ov-2a .btn{ min-height:var(--tap); }
+}
 
-/* Lien d'évitement (accessibilité clavier) : caché jusqu'au focus */
+/* ===================================================================
+   5. TÉLÉPHONE (≤ 767 px) : barre haute .mbar + feuille ⋯ — SPEC §4.2
+   AUCUNE barre fixe en bas.
+   =================================================================== */
+#mob-header{ display:none; }
+#mob-more-menu, #mob-more-scrim{ display:none; }
+@media (max-width:767px){
+  /* Barre collante : ☰ · titre sur 2 lignes · loupe · Réviser · ⋯ (4 cibles de 44 px) */
+  #mob-header.mbar{
+    position:sticky; top:0; z-index:var(--z-header);
+    display:grid; grid-template-columns:var(--tap) minmax(0,1fr) var(--tap) var(--tap) var(--tap);
+    align-items:center; min-height:var(--bar-h); padding:.25rem .25rem .25rem .25rem;
+    background:var(--sheet); box-shadow:inset 0 3px 0 var(--chap-vif);
+    transition:transform var(--dur-2) var(--ease);
+  }
+  #mob-header.mbar.cachee{ transform:translateY(-100%); }
+  .mbar .btn-icon{ width:var(--tap); height:var(--tap); border-radius:12px; color:var(--text-2); position:relative; }
+  .mbar .btn-icon .ic{ width:1.45rem; height:1.45rem; }
+  .mbar .btn-icon .count{ position:absolute; top:.15rem; right:.05rem; min-width:1.25rem; height:1.25rem; padding:0 .3rem; box-shadow:0 0 0 2px var(--sheet); }
+  .mbar-t{ min-width:0; padding:.2rem .25rem 0 .25rem; }
+  .mbar-k{ display:flex; align-items:center; gap:.35rem; font:var(--w-semi) var(--fs-ui-xs)/1.25 var(--font-ui); color:var(--text-2); white-space:nowrap; overflow:hidden; }
+  .mbar-k > *{ flex:none; }
+  .mbar-k .part{ flex:0 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis; }   /* la partie s'abrège, jamais l'année */
+  .mbar-k .chap{ flex:0 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis; }
+  .mbar-k b{ color:var(--chap); font-weight:var(--w-bold); }
+  .mbar-k .dot{ width:.55rem; height:.55rem; }
+  .mbar-h{ font:var(--w-semi) var(--fs-bar-title)/1.2 var(--font-text); color:var(--text); letter-spacing:-.005em;
+    display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; overflow-wrap:anywhere; }
+  .mbar-h .sn{ font-style:italic; color:var(--chap); margin-right:.2em; }
+
+  /* Feuille « ⋯ » qui monte du bas : une modale ouverte à la demande */
+  #mob-more-scrim{ display:block; position:fixed; inset:0; z-index:var(--z-overlay); background:var(--scrim);
+    opacity:0; visibility:hidden; transition:opacity var(--dur-3) var(--ease), visibility 0s linear var(--dur-3); }
+  #mob-more-scrim.open{ opacity:1; visibility:visible; transition:opacity var(--dur-3) var(--ease), visibility 0s; }
+  #mob-more-menu.bsheet{
+    display:block; position:fixed; left:0; right:0; bottom:0; z-index:calc(var(--z-overlay) + 1);
+    max-height:85dvh; overflow:auto; overscroll-behavior:contain;
+    padding:.5rem 1rem calc(1rem + env(safe-area-inset-bottom));
+    background:var(--raise); color:var(--text); border-radius:var(--r-xl) var(--r-xl) 0 0; box-shadow:var(--sh-3);
+    transform:translateY(100%); visibility:hidden;
+    transition:transform var(--dur-3) var(--ease), visibility 0s linear var(--dur-3);
+  }
+  #mob-more-menu.bsheet.open{ transform:none; visibility:visible; transition:transform var(--dur-3) var(--ease), visibility 0s; }
+  .bsheet .grab{ width:2.5rem; height:4px; border-radius:4px; background:var(--line-2); margin:.25rem auto .5rem; }
+  .bsheet .menu-item{ min-height:3rem; padding:0 .25rem; gap:.85rem; font-size:var(--fs-ui); }
+  .bsheet .menu-item > .count{ margin-left:auto; }
+  .bsheet .menu-item .end{ margin-left:auto; font-size:var(--fs-ui-s); color:var(--text-2); font-weight:var(--w-regular); }
+  .bsheet .menu-item .flag-badge{ font:var(--w-medium) var(--fs-ui-s)/1 var(--font-ui); color:var(--text-2); }
+  .bsheet .menu-item[aria-pressed="true"] .ic{ color:var(--ambre-vif); fill:var(--ambre-vif); }
+  .bsheet-theme{ margin-top:.25rem; padding:.85rem .25rem .25rem; border-top:1px solid var(--line); }
+  .bsheet-theme .row{ display:flex; align-items:center; gap:.75rem; min-height:3rem; }
+  .bsheet-theme .lab{ width:3.75rem; flex:none; font:var(--w-semi) var(--fs-ui)/1.2 var(--font-ui); }
+  .bsheet-theme .seg{ flex:1 1 auto; min-width:0; }
+  .bsheet-theme .seg > button{ padding:0 .4rem; min-height:var(--tap); }
+  .bsheet-theme .help{ margin:.15rem 0 .5rem 4.5rem; font:var(--w-regular) var(--fs-ui-xs)/1.4 var(--font-ui); color:var(--text-2); }
+  .bsheet-theme .help b{ color:var(--text); font-weight:var(--w-semi); }
+}
+
+/* ===================================================================
+   6. RETOUR EN HAUT, LIEN D'ÉVITEMENT, PIED, BANNIÈRE DE MISE À JOUR
+   =================================================================== */
+#back-to-top{
+  position:fixed; right:1.5rem; bottom:1.5rem; z-index:var(--z-sticky);
+  width:2.75rem; height:2.75rem; border-radius:var(--r-full); box-shadow:var(--sh-2);
+  opacity:0; pointer-events:none; transition:opacity var(--dur-2) var(--ease), background var(--dur-1) var(--ease);
+}
+#back-to-top .ic{ transform:rotate(-90deg); }
+#back-to-top.visible{ opacity:1; pointer-events:auto; }
+@media (max-width:767px){ #back-to-top{ display:none !important; } }   /* aucune commande flottante en bas au téléphone */
+
 .skip-link{
-  position:absolute; left:-9999px; top:0.5rem; z-index:2000;
-  background:var(--accent); color:#fff;
-  padding:0.55rem 1rem;
-  font-family:var(--font-code); font-size:0.8rem;
-  text-decoration:none; border-radius:0 4px 4px 0;
+  position:absolute; left:-9999px; top:.5rem; z-index:calc(var(--z-toast) + 1);
+  padding:.55rem 1rem; border-radius:0 var(--r-m) var(--r-m) 0;
+  background:var(--primary); color:var(--on-primary); text-decoration:none;
+  font:var(--w-semi) var(--fs-ui-s)/1.2 var(--font-ui);
 }
 .skip-link:focus{ left:0; }
 
-/* Menu « ⋯ Plus » de l'en-tête (regroupe Sauvegarde / Raccourcis / Imprimer) */
-.hdr-more{ position:relative; display:inline-flex; }
-.hdr-more-menu{
-  display:none;
-  position:absolute; top:calc(100% + 4px); right:0;
-  background:var(--paper);
-  border:1px solid var(--ink);
-  box-shadow:0 4px 16px rgba(0,0,0,0.18);
-  z-index:60; min-width:190px;
-  padding:0.25rem;
+footer.pied{
+  display:flex; align-items:center; justify-content:center; gap:.6rem; flex-wrap:wrap;
+  margin:3rem auto 0; padding:1.5rem 1rem 2.5rem; border-top:1px solid var(--line);
+  font:var(--w-regular) var(--fs-ui-xs)/1.4 var(--font-ui); color:var(--text-2); text-align:center;
 }
-.hdr-more-menu.open{ display:block; }
-.hdr-more-item{
-  display:flex; align-items:center; gap:0.55rem; width:100%;
-  background:none; border:none; text-align:left; cursor:pointer;
-  font-family:var(--font-code); font-size:0.72rem;
-  letter-spacing:0.03em; color:var(--ink);
-  padding:0.6rem 0.8rem; white-space:nowrap;
-  transition:background 0.15s, color 0.15s;
+footer.pied .brand-mark{ width:1.375rem; height:1.375rem; border-radius:6px; font-size:.875rem; }
+
+/* Compteur des cartes signalées (menus) */
+.flag-badge{ font-variant-numeric:tabular-nums; }
+/* Étiquette de matière (PHY, MATH…) des récents de l'écran Aujourd'hui */
+.mob-filter-tag{ flex:none; padding:.2rem .35rem; border:1px solid var(--line-2); border-radius:var(--r-s);
+  font:var(--w-bold) var(--fs-count)/1 var(--font-ui); letter-spacing:.06em; color:var(--text-2); }
+
+/* Bannière « Nouvelle version disponible — Recharger » (un toast, pas une barre) */
+.maj-banniere{
+  position:fixed; left:50%; bottom:1rem; transform:translateX(-50%); z-index:var(--z-toast);
+  display:flex; align-items:center; gap:.75rem; max-width:min(32rem, calc(100vw - 2rem));
+  padding:.6rem .6rem .6rem 1rem; border-radius:12px; box-shadow:var(--sh-3);
+  background:var(--primary); color:var(--on-primary); font:var(--w-medium) var(--fs-ui)/1.3 var(--font-ui);
 }
-.hdr-more-item:hover{ background:var(--accent); color:#fff; }
-#more-btn.open{ background:var(--ink); color:var(--paper); }
+.maj-banniere .ic{ flex:none; }
+.maj-banniere .maj-recharger{ height:2.25rem; padding:0 .9rem; border:0; border-radius:var(--r-m); cursor:pointer;
+  background:var(--sheet); color:var(--text); font:var(--w-semi) var(--fs-ui-s)/1 var(--font-ui); }
+.maj-banniere .maj-ignorer{ display:grid; place-items:center; width:2.25rem; height:2.25rem; border:0; border-radius:var(--r-m);
+  background:transparent; color:inherit; cursor:pointer; }
+.maj-banniere .maj-ignorer:hover{ background:color-mix(in srgb, var(--on-primary) 14%, transparent); }
+@media (max-width:767px){
+  .maj-banniere{ left:.5rem; right:.5rem; transform:none; max-width:none; bottom:calc(.5rem + env(safe-area-inset-bottom)); }
+  .maj-banniere .maj-recharger, .maj-banniere .maj-ignorer{ height:var(--tap); min-width:var(--tap); }
+}
+
+/* ===================================================================
+   7. MOUVEMENT RÉDUIT : la barre se masque sans glisser, feuilles et tiroir sans glissement
+   =================================================================== */
+@media (prefers-reduced-motion: reduce){
+  #mob-header.mbar.cachee{ transform:none; visibility:hidden; }
+  #mob-drawer, #mob-more-menu.bsheet, #mob-more-scrim, .hdr-more-menu.open, #theme-pop{ transition:none !important; animation:none !important; }
+}
+
+/* --- Sélecteur de thème (SPEC §4.6) --- */
+/* Popover de l'en-tête (352 px) : 3 cartes à mini-vue + taille du texte */
+.theme-pop{ position:absolute; top:calc(100% + .5rem); right:0; z-index:var(--z-menu); width:22rem; max-width:calc(100vw - 1.5rem); padding:1rem; }
+.theme-pop:not([hidden]){ animation:menuIn var(--dur-2) var(--ease); }
+.theme-pop h3{ margin:0; font:var(--w-semi) var(--fs-ui-l)/1.2 var(--font-ui); color:var(--text); }
+.theme-now{ margin:.3rem 0 .85rem; font:var(--w-regular) var(--fs-ui-xs)/1.4 var(--font-ui); color:var(--text-2); }
+.theme-now b{ color:var(--text); font-weight:var(--w-semi); }
+.theme-opts{ display:grid; grid-template-columns:repeat(3, 1fr); gap:.5rem; }
+.theme-opt{ display:flex; flex-direction:column; align-items:stretch; gap:.45rem; padding:.45rem .45rem .55rem; border-radius:12px;
+  border:1px solid var(--line-2); background:var(--raise); cursor:pointer; color:var(--text-2); text-align:left;
+  font:var(--w-semi) var(--fs-ui-s)/1 var(--font-ui); }
+.theme-opt .nm{ display:flex; align-items:center; gap:.35rem; padding:0 .1rem; }
+.theme-opt:hover{ border-color:var(--field); color:var(--text); }
+.theme-opt[aria-checked="true"]{ border:2px solid var(--text); padding:calc(.45rem - 1px) calc(.45rem - 1px) calc(.55rem - 1px); color:var(--text); }
+.theme-sub{ display:flex; align-items:center; gap:.75rem; margin-top:.9rem; padding-top:.85rem; border-top:1px solid var(--line); }
+.theme-sub .lab{ font:var(--w-semi) var(--fs-ui-s)/1.2 var(--font-ui); color:var(--text); }
+.theme-sub .lab small{ display:block; margin-top:.15rem; font-weight:var(--w-regular); font-size:var(--fs-ui-xs); color:var(--text-2); }
+.theme-sub .seg{ margin-left:auto; }
+.read-size-seg > button{ min-width:2.75rem; font-family:var(--font-text); font-weight:var(--w-semi); }
+/* Mini-vues : couleurs littérales VOLONTAIRES (elles montrent chaque thème, quel que
+   soit le thème courant — seule exception à la règle « aucune couleur codée en dur ») */
+.theme-prev{ position:relative; width:100%; aspect-ratio:4/3; border-radius:8px; overflow:hidden; border:1px solid var(--line); }
+.theme-prev .pl, .theme-prev .pd, .theme-prev .layer{ position:absolute; inset:0; }
+.theme-prev .pl{ background:#fffdf9; }
+.theme-prev .pd{ background:#191b20; }
+.theme-prev .layer.diag{ clip-path:polygon(100% 0, 100% 100%, 0 100%); }
+.theme-prev .ln{ position:absolute; left:14%; height:7%; border-radius:4px; }
+.theme-prev .l1{ top:18%; width:52%; } .theme-prev .l2{ top:36%; width:72%; }
+.theme-prev .l3{ top:50%; width:64%; } .theme-prev .l4{ top:66%; width:40%; }
+.theme-prev .lc.l1{ background:#1c1d21; } .theme-prev .lc.l2, .theme-prev .lc.l3{ background:#d6cfc3; } .theme-prev .lc.l4{ background:#547add; }
+.theme-prev .ld.l1{ background:#e8e6e1; } .theme-prev .ld.l2, .theme-prev .ld.l3{ background:#3a3e47; } .theme-prev .ld.l4{ background:#6f94ee; }
+/* --- fin sélecteur de thème --- */
 
 /* ===== FIN RÉGION COQUILLE ===== */
 
@@ -3302,7 +3145,7 @@ figure.schema figcaption{
 
 </style>
 </head>
-<body>
+<body class="desk">
 
 <!-- Pointes de flèche réutilisables par tous les schémas SVG (.schema) -->
 <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs>
@@ -3344,102 +3187,161 @@ window.__icon = function(name){
 
 <a href="#" class="skip-link" id="skip-link">Aller au contenu</a>
 
-<header>
-  <div class="header-nav">
-    <button id="nav-toggle-btn" class="hdr-btn hdr-btn-tab" title="Ouvrir le menu des chapitres" aria-label="Chapitres" aria-controls="mob-drawer" aria-expanded="false"><span class="tab-icon"><svg class="ic" aria-hidden="true"><use href="#i-menu"></use></svg></span><span class="hdr-btn-label">Chapitres</span></button>
-  </div>
-  <div class="header-actions">
-    <button id="search-btn" class="hdr-btn" title="Rechercher (Ctrl+K)" aria-label="Rechercher"><svg class="ic" aria-hidden="true"><use href="#i-search"></use></svg> <span class="hdr-btn-label">Rechercher</span> <kbd>Ctrl K</kbd></button>
-    <div class="hdr-more">
-      <button id="study-btn" class="hdr-btn" title="Réviser : quiz, calcul mental, révisions du jour" aria-label="Réviser" aria-haspopup="true" aria-expanded="false"><svg class="ic" aria-hidden="true"><use href="#i-refresh"></use></svg> <span class="hdr-btn-label">Réviser</span><span class="rev-badge" id="rev-badge" hidden>0</span></button>
-      <div id="study-menu" class="hdr-more-menu" role="menu">
-        <button id="quiz-btn" class="hdr-more-item" role="menuitem" title="Quiz global (toutes les flashcards)"><svg class="ic" aria-hidden="true"><use href="#i-bolt"></use></svg> Quiz</button>
-        <button id="drill-btn" class="hdr-more-item" role="menuitem" title="Entraînement au calcul (automatismes)"><svg class="ic" aria-hidden="true"><use href="#i-calc"></use></svg> Calcul mental</button>
-        <button id="revise-btn" class="hdr-more-item" role="menuitem" title="Révisions du jour (répétition espacée)"><svg class="ic" aria-hidden="true"><use href="#i-refresh"></use></svg> Révisions du jour <span class="rev-badge" id="rev-badge-study" hidden>0</span></button>
-      </div>
+<!-- Icônes de la coquille (en-tête, navigation, sélecteur de thème) : complètent le
+     jeu ci-dessus, même trait (currentColor), même appel window.__icon(name). -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false" overflow="hidden"><defs>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></symbol>
+  <symbol id="i-chev-down" viewBox="0 0 24 24"><path d="M6.5 9.5 12 15l5.5-5.5"/></symbol>
+  <symbol id="i-chev-right" viewBox="0 0 24 24"><path d="M9.5 6.5 15 12l-5.5 5.5"/></symbol>
+  <symbol id="i-star" viewBox="0 0 24 24"><path d="m12 3.6 2.5 5.3 5.8.7-4.3 4 1.1 5.7L12 16.5l-5.1 2.8L8 13.6l-4.3-4 5.8-.7z"/></symbol>
+  <symbol id="i-star-fill" viewBox="0 0 24 24"><path d="m12 3.6 2.5 5.3 5.8.7-4.3 4 1.1 5.7L12 16.5l-5.1 2.8L8 13.6l-4.3-4 5.8-.7z" fill="currentColor"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2.8v2.4M12 18.8v2.4M2.8 12h2.4M18.8 12h2.4M5.5 5.5l1.7 1.7M16.8 16.8l1.7 1.7M5.5 18.5l1.7-1.7M16.8 7.2l1.7-1.7"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M19.5 14.5A8 8 0 0 1 9.5 4.5a8 8 0 1 0 10 10z"/></symbol>
+  <symbol id="i-auto" viewBox="0 0 24 24"><rect x="3" y="4.5" width="18" height="12.5" rx="2"/><path d="M8.5 20.5h7M12 17v3.5"/><path d="M12 7.5a3.2 3.2 0 0 0 0 6.4z" fill="currentColor" stroke="none"/><circle cx="12" cy="10.7" r="3.2"/></symbol>
+  <symbol id="i-sidebar" viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><path d="M9.5 4.5v15"/></symbol>
+  <symbol id="i-filter" viewBox="0 0 24 24"><path d="M4 6.5h16M7 12h10M10 17.5h4"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></symbol>
+  <symbol id="i-wave" viewBox="0 0 24 24"><path d="M2.5 12c2-6 4-6 6 0s4 6 6 0 4-6 7-1"/></symbol>
+</defs></svg>
+
+<!-- ===== EN-TÊTE ORDINATEUR ET TABLETTE (≥ 768 px) : collant, 56 px =====
+     Navigation · marque · recherche visible · Aujourd'hui · Bilan · Réviser ▾ · Thème · Plus. -->
+<header class="hdr" id="site-header">
+  <button id="nav-toggle-btn" class="btn btn-ghost btn-icon" type="button" title="Chapitres" aria-label="Chapitres" aria-controls="mob-drawer" aria-expanded="false"><svg class="ic ic-nav-side" aria-hidden="true"><use href="#i-sidebar"></use></svg><svg class="ic ic-nav-menu" aria-hidden="true"><use href="#i-menu"></use></svg></button>
+  <div class="brand"><span class="brand-mark" aria-hidden="true"></span><h1 class="brand-name">Mes cours de <em>prépa</em></h1></div>
+  <button id="search-btn" class="hdr-search" type="button" title="Rechercher (Ctrl+K)" aria-label="Rechercher un chapitre, une formule, une carte (Ctrl+K)" aria-keyshortcuts="Control+K"><svg class="ic" aria-hidden="true"><use href="#i-search"></use></svg><span class="hdr-search-ph">Rechercher chapitre, formule, carte…</span><kbd class="kbd kbd-hint">Ctrl K</kbd></button>
+  <span class="spacer"></span>
+  <button id="today-btn" class="btn btn-ghost hdr-act" type="button" title="Aujourd'hui : cartes dues, reprendre, récents" aria-label="Aujourd'hui"><svg class="ic" aria-hidden="true"><use href="#i-calendar"></use></svg><span class="ic-lbl">Aujourd'hui</span></button>
+  <button id="dash-btn" class="btn btn-ghost hdr-act" type="button" title="Bilan de révision" aria-label="Bilan de révision"><svg class="ic" aria-hidden="true"><use href="#i-chart"></use></svg><span class="ic-lbl">Bilan</span></button>
+  <div class="hdr-more">
+    <button id="study-btn" class="btn btn-primary" type="button" title="Réviser : révisions du jour, quiz, calcul mental" aria-label="Réviser" aria-haspopup="true" aria-expanded="false" aria-controls="study-menu"><svg class="ic" aria-hidden="true"><use href="#i-refresh"></use></svg><span class="ic-lbl">Réviser</span><span class="count rev-badge" id="rev-badge" hidden>0</span><svg class="ic ic-s ic-chev" aria-hidden="true"><use href="#i-chev-down"></use></svg></button>
+    <div id="study-menu" class="hdr-more-menu menu" role="menu" aria-label="Réviser">
+      <button id="revise-btn" class="hdr-more-item menu-item" role="menuitem" title="Révisions du jour (répétition espacée)"><svg class="ic" aria-hidden="true"><use href="#i-refresh"></use></svg>Révisions du jour<span class="end"><span class="count rev-badge" id="rev-badge-study" hidden>0</span></span></button>
+      <button id="quiz-btn" class="hdr-more-item menu-item" role="menuitem" title="Quiz global (toutes les flashcards)"><svg class="ic" aria-hidden="true"><use href="#i-bolt"></use></svg>Quiz</button>
+      <button id="drill-btn" class="hdr-more-item menu-item" role="menuitem" title="Entraînement au calcul (automatismes)"><svg class="ic" aria-hidden="true"><use href="#i-calc"></use></svg>Calcul mental</button>
     </div>
-    <button id="dash-btn" class="hdr-btn" title="Bilan de révision" aria-label="Bilan de révision"><svg class="ic" aria-hidden="true"><use href="#i-chart"></use></svg> <span class="hdr-btn-label">Bilan</span></button>
-    <button id="theme-btn" class="hdr-btn" title="Changer de thème" aria-label="Changer de thème"><svg class="ic" aria-hidden="true"><use href="#i-theme"></use></svg> <span class="hdr-btn-label" id="theme-label">Sombre</span></button>
-    <div class="hdr-more">
-      <button id="more-btn" class="hdr-btn" title="Plus d'actions" aria-label="Plus d'actions" aria-haspopup="true" aria-expanded="false"><svg class="ic" aria-hidden="true"><use href="#i-dots"></use></svg> <span class="hdr-btn-label">Plus</span></button>
-      <div id="more-menu" class="hdr-more-menu" role="menu">
-        <button id="today-btn" class="hdr-more-item" role="menuitem" title="Écran d'accueil : cartes dues, reprendre, récents"><svg class="ic" aria-hidden="true"><use href="#i-calendar"></use></svg> Aujourd'hui</button>
-        <button id="backup-btn" class="hdr-more-item" role="menuitem" title="Sauvegarder / restaurer ma progression"><svg class="ic" aria-hidden="true"><use href="#i-download"></use></svg> Sauvegarde</button>
-        <button class="hdr-more-item" role="menuitem" title="Raccourcis clavier" onclick="document.dispatchEvent(new KeyboardEvent('keydown',{key:'?',bubbles:true}))"><svg class="ic" aria-hidden="true"><use href="#i-keyboard"></use></svg> Raccourcis</button>
-        <button id="formula-btn" class="hdr-more-item" role="menuitem" title="Formulaire du chapitre actif (fiche de synthèse imprimable)"><svg class="ic" aria-hidden="true"><use href="#i-function"></use></svg> Formulaire</button>
-        <button id="print-btn" class="hdr-more-item" role="menuitem" title="Imprimer le chapitre actif" onclick="printChapter()"><svg class="ic" aria-hidden="true"><use href="#i-printer"></use></svg> Imprimer</button>
-        <button id="flag-btn" class="hdr-more-item" role="menuitem" title="Cartes signalées comme fausses ou peu claires"><svg class="ic" aria-hidden="true"><use href="#i-flag"></use></svg> Cartes signalées<span class="flag-badge" style="display:none">0</span></button>
-        <div class="read-size-ctrl" role="group" aria-label="Taille du texte">
-          <span class="rsc-label">Taille du texte</span>
-          <button type="button" class="rsc-btn" data-read="down" aria-label="Réduire le texte">A−</button>
-          <span class="read-size-val">100 %</span>
-          <button type="button" class="rsc-btn" data-read="up" aria-label="Agrandir le texte">A+</button>
+  </div>
+  <span class="vsep" aria-hidden="true"></span>
+  <div class="hdr-more">
+    <button id="theme-btn" class="btn btn-ghost btn-icon" type="button" title="Thème" aria-label="Thème" aria-haspopup="dialog" aria-expanded="false" aria-controls="theme-pop"><svg class="ic" aria-hidden="true"><use href="#i-theme"></use></svg></button>
+    <div id="theme-pop" class="menu theme-pop" role="dialog" aria-labelledby="theme-pop-titre" hidden>
+      <h3 id="theme-pop-titre">Thème</h3>
+      <p class="theme-now"><b>Auto</b> suit le réglage clair/sombre de ton appareil, en continu, même site ouvert — actuellement : <b class="theme-actuel">clair</b>.</p>
+      <div class="theme-opts" role="radiogroup" aria-label="Thème">
+        <button type="button" class="theme-opt" role="radio" aria-checked="false" data-theme-set="light"><span class="theme-prev" aria-hidden="true"><span class="pl"></span><span class="ln l1 lc"></span><span class="ln l2 lc"></span><span class="ln l3 lc"></span><span class="ln l4 lc"></span></span><span class="nm"><svg class="ic ic-s" aria-hidden="true"><use href="#i-sun"></use></svg>Clair</span></button>
+        <button type="button" class="theme-opt" role="radio" aria-checked="false" data-theme-set="dark"><span class="theme-prev" aria-hidden="true"><span class="pd"></span><span class="ln l1 ld"></span><span class="ln l2 ld"></span><span class="ln l3 ld"></span><span class="ln l4 ld"></span></span><span class="nm"><svg class="ic ic-s" aria-hidden="true"><use href="#i-moon"></use></svg>Sombre</span></button>
+        <button type="button" class="theme-opt" role="radio" aria-checked="false" data-theme-set="auto"><span class="theme-prev" aria-hidden="true"><span class="layer"><span class="pl"></span><span class="ln l1 lc"></span><span class="ln l2 lc"></span><span class="ln l3 lc"></span><span class="ln l4 lc"></span></span><span class="layer diag"><span class="pd"></span><span class="ln l1 ld"></span><span class="ln l2 ld"></span><span class="ln l3 ld"></span><span class="ln l4 ld"></span></span></span><span class="nm"><svg class="ic ic-s" aria-hidden="true"><use href="#i-auto"></use></svg>Auto</span></button>
+      </div>
+      <div class="theme-sub">
+        <span class="lab" id="read-size-lab">Taille du texte<small>cours et cartes</small></span>
+        <div class="seg read-size-seg" role="radiogroup" aria-labelledby="read-size-lab">
+          <button type="button" role="radio" aria-checked="true" data-read-set="0" aria-label="Texte normal (100 %)">A</button>
+          <button type="button" role="radio" aria-checked="false" data-read-set="1" aria-label="Texte agrandi (110 %)">A+</button>
+          <button type="button" role="radio" aria-checked="false" data-read-set="2" aria-label="Texte grand (120 %)">A++</button>
         </div>
       </div>
     </div>
   </div>
-  <div class="eyebrow">PTSI · Programme officiel · 1ère année</div>
-  <h1>Mes cours de <em>prépa</em></h1>
-  <div class="header-today" id="header-today" hidden></div>
+  <div class="hdr-more">
+    <button id="more-btn" class="btn btn-ghost btn-icon" type="button" title="Plus d'actions" aria-label="Plus d'actions" aria-haspopup="true" aria-expanded="false" aria-controls="more-menu"><svg class="ic" aria-hidden="true"><use href="#i-dots"></use></svg></button>
+    <div id="more-menu" class="hdr-more-menu menu" role="menu" aria-label="Plus d'actions">
+      <button id="formula-btn" class="hdr-more-item menu-item" role="menuitem" title="Formulaire du chapitre actif (fiche de synthèse imprimable)"><svg class="ic" aria-hidden="true"><use href="#i-function"></use></svg>Formulaire</button>
+      <button id="print-btn" class="hdr-more-item menu-item" role="menuitem" title="Imprimer le chapitre actif" onclick="printChapter()"><svg class="ic" aria-hidden="true"><use href="#i-printer"></use></svg>Imprimer</button>
+      <button id="backup-btn" class="hdr-more-item menu-item" role="menuitem" title="Sauvegarder / restaurer ma progression"><svg class="ic" aria-hidden="true"><use href="#i-download"></use></svg>Sauvegarde</button>
+      <button id="keys-btn" class="hdr-more-item menu-item" role="menuitem" title="Raccourcis clavier" onclick="document.dispatchEvent(new KeyboardEvent('keydown',{key:'?',bubbles:true}))"><svg class="ic" aria-hidden="true"><use href="#i-keyboard"></use></svg>Raccourcis<span class="end"><kbd>?</kbd></span></button>
+      <button id="flag-btn" class="hdr-more-item menu-item" role="menuitem" title="Cartes signalées comme fausses ou peu claires"><svg class="ic" aria-hidden="true"><use href="#i-flag"></use></svg>Cartes signalées<span class="end"><span class="flag-badge count count-quiet" style="display:none">0</span></span></button>
+      <div id="more-toc" class="more-toc" hidden><div class="menu-sep"></div><div class="menu-label">Dans ce chapitre</div><div class="more-toc-list"></div></div>
+    </div>
+  </div>
 </header>
 
-<!-- ===== HEADER MOBILE (visible uniquement sur mobile) ===== -->
-<div id="mob-header">
-  <button id="mob-menu-btn" aria-label="Menu chapitres" aria-controls="mob-drawer" aria-expanded="false"><svg class="ic" aria-hidden="true"><use href="#i-menu"></use></svg></button>
-  <span id="mob-chapter-title">Choisir un chapitre</span>
-  <div class="mob-header-actions">
-    <button id="mob-search-btn" aria-label="Rechercher"><svg class="ic" aria-hidden="true"><use href="#i-search"></use></svg></button>
-    <button id="mob-revise-btn" aria-label="Réviser"><svg class="ic" aria-hidden="true"><use href="#i-refresh"></use></svg><span class="rev-badge" id="rev-badge-mob" hidden>0</span></button>
-    <button id="mob-theme-btn" aria-label="Thème"><svg class="ic" aria-hidden="true"><use href="#i-theme"></use></svg></button>
-    <div id="mob-more-wrap">
-      <button id="mob-more-btn" aria-label="Plus d'actions" aria-haspopup="true" aria-expanded="false"><svg class="ic" aria-hidden="true"><use href="#i-dots"></use></svg></button>
-      <div id="mob-more-menu" role="menu">
-        <button id="mob-today-btn" role="menuitem"><svg class="ic" aria-hidden="true"><use href="#i-calendar"></use></svg> <span>Aujourd'hui</span></button>
-        <button id="mob-quiz-btn" role="menuitem"><svg class="ic" aria-hidden="true"><use href="#i-bolt"></use></svg> <span>Quiz</span></button>
-        <button id="mob-drill-btn" role="menuitem"><svg class="ic" aria-hidden="true"><use href="#i-calc"></use></svg> <span>Calcul mental</span></button>
-        <button id="mob-dash-btn" role="menuitem"><svg class="ic" aria-hidden="true"><use href="#i-chart"></use></svg> <span>Bilan de révision</span></button>
-        <button id="mob-formula-btn" role="menuitem"><svg class="ic" aria-hidden="true"><use href="#i-function"></use></svg> <span>Formulaire</span></button>
-        <button id="mob-backup-btn" role="menuitem"><svg class="ic" aria-hidden="true"><use href="#i-download"></use></svg> <span>Sauvegarde</span></button>
-        <button id="mob-flag-btn" role="menuitem"><svg class="ic" aria-hidden="true"><use href="#i-flag"></use></svg> <span>Cartes signalées<span class="flag-badge" style="display:none">0</span></span></button>
-        <div class="read-size-ctrl" role="group" aria-label="Taille du texte">
-          <span class="rsc-label">Taille du texte</span>
-          <button type="button" class="rsc-btn" data-read="down" aria-label="Réduire le texte">A−</button>
-          <span class="read-size-val">100 %</span>
-          <button type="button" class="rsc-btn" data-read="up" aria-label="Agrandir le texte">A+</button>
-        </div>
+<!-- ===== BARRE DU TÉLÉPHONE (≤ 767 px) : collante, s'efface au défilement =====
+     ☰ (page Chapitres) · titre sur 2 lignes · loupe · Réviser (révisions du jour) · ⋯ -->
+<div id="mob-header" class="mbar">
+  <button id="mob-menu-btn" class="btn btn-ghost btn-icon" type="button" aria-label="Chapitres" aria-controls="mob-drawer" aria-expanded="false"><svg class="ic" aria-hidden="true"><use href="#i-menu"></use></svg></button>
+  <div class="mbar-t">
+    <div class="mbar-k" id="mob-bar-k"></div>
+    <div class="mbar-h" id="mob-chapter-title">Choisir un chapitre</div>
+  </div>
+  <button id="mob-search-btn" class="btn btn-ghost btn-icon" type="button" aria-label="Rechercher"><svg class="ic" aria-hidden="true"><use href="#i-search"></use></svg></button>
+  <button id="mob-revise-btn" class="btn btn-ghost btn-icon" type="button" aria-label="Réviser : révisions du jour"><svg class="ic" aria-hidden="true"><use href="#i-refresh"></use></svg><span class="count rev-badge" id="rev-badge-mob" hidden>0</span></button>
+  <button id="mob-more-btn" class="btn btn-ghost btn-icon" type="button" aria-label="Plus d'actions" aria-haspopup="dialog" aria-expanded="false" aria-controls="mob-more-menu"><svg class="ic" aria-hidden="true"><use href="#i-dots"></use></svg></button>
+</div>
+
+<!-- Feuille « ⋯ » du téléphone : monte du bas, à la demande (une modale, pas une barre).
+     Thème et taille du texte EN BAS, à portée du pouce. -->
+<div id="mob-more-scrim" class="scrim" hidden></div>
+<div id="mob-more-menu" class="bsheet" role="dialog" aria-modal="true" aria-label="Plus d'actions">
+  <div class="grab" aria-hidden="true"></div>
+  <button id="mob-today-btn" class="menu-item" type="button"><svg class="ic" aria-hidden="true"><use href="#i-calendar"></use></svg><span>Aujourd'hui</span><span class="count rev-badge" id="rev-badge-sheet" hidden>0</span></button>
+  <button id="mob-dash-btn" class="menu-item" type="button"><svg class="ic" aria-hidden="true"><use href="#i-chart"></use></svg><span>Bilan</span></button>
+  <button id="mob-quiz-btn" class="menu-item" type="button"><svg class="ic" aria-hidden="true"><use href="#i-bolt"></use></svg><span>Quiz</span></button>
+  <button id="mob-drill-btn" class="menu-item" type="button"><svg class="ic" aria-hidden="true"><use href="#i-calc"></use></svg><span>Calcul mental</span></button>
+  <button id="mob-formula-btn" class="menu-item" type="button"><svg class="ic" aria-hidden="true"><use href="#i-function"></use></svg><span>Formulaire du chapitre</span></button>
+  <button id="mob-pin-btn" class="menu-item" type="button" aria-pressed="false"><svg class="ic" aria-hidden="true"><use href="#i-star"></use></svg><span class="ic-lbl">Épingler ce chapitre</span></button>
+  <button id="mob-flag-btn" class="menu-item" type="button"><svg class="ic" aria-hidden="true"><use href="#i-flag"></use></svg><span>Cartes signalées</span><span class="end"><span class="flag-badge" style="display:none">0</span></span></button>
+  <button id="mob-backup-btn" class="menu-item" type="button"><svg class="ic" aria-hidden="true"><use href="#i-download"></use></svg><span>Sauvegarde</span><span class="end">exporter, importer</span></button>
+  <div class="bsheet-theme">
+    <div class="row"><span class="lab" id="mob-theme-lab">Thème</span>
+      <div class="seg theme-seg" role="radiogroup" aria-labelledby="mob-theme-lab">
+        <button type="button" role="radio" aria-checked="false" data-theme-set="light"><svg class="ic ic-s" aria-hidden="true"><use href="#i-sun"></use></svg>Clair</button>
+        <button type="button" role="radio" aria-checked="false" data-theme-set="dark"><svg class="ic ic-s" aria-hidden="true"><use href="#i-moon"></use></svg>Sombre</button>
+        <button type="button" role="radio" aria-checked="false" data-theme-set="auto"><svg class="ic ic-s" aria-hidden="true"><use href="#i-auto"></use></svg>Auto</button>
+      </div>
+    </div>
+    <p class="help">Auto suit le réglage de ton téléphone — actuellement : <b class="theme-actuel">clair</b>.</p>
+    <div class="row"><span class="lab" id="mob-read-lab">Texte</span>
+      <div class="seg read-size-seg" role="radiogroup" aria-labelledby="mob-read-lab">
+        <button type="button" role="radio" aria-checked="true" data-read-set="0" aria-label="Texte normal (100 %)">A</button>
+        <button type="button" role="radio" aria-checked="false" data-read-set="1" aria-label="Texte agrandi (110 %)">A+</button>
+        <button type="button" role="radio" aria-checked="false" data-read-set="2" aria-label="Texte grand (120 %)">A++</button>
       </div>
     </div>
   </div>
 </div>
 
-<!-- ===== DRAWER LATÉRAL MOBILE ===== -->
+<!-- ===== NAVIGATION DES CHAPITRES =====
+     Barre latérale permanente (≥ 1200 px), tiroir (768–1199 px), page plein écran
+     « Chapitres » (≤ 767 px). Contenu construit par buildDrawerList (CHAPTERS, CHAP_GROUPS,
+     clés year / pinned / recents / drawerCollapsed). -->
 <div id="mob-drawer-overlay"></div>
-<div id="mob-drawer">
-  <div id="mob-drawer-header">
-    <span style="font-family:var(--font-text);font-size:1rem;font-weight:600">Chapitres</span>
-    <button id="mob-drawer-close" aria-label="Fermer">✕</button>
+<nav id="mob-drawer" aria-label="Chapitres">
+  <div id="mob-drawer-header" class="dr-top">
+    <h2 class="dr-titre">Chapitres</h2>
+    <button id="mob-drawer-close" class="btn btn-ghost btn-icon" type="button" aria-label="Fermer la liste des chapitres"><svg class="ic" aria-hidden="true"><use href="#i-x"></use></svg></button>
   </div>
-  <!-- Année (au-dessus des matières) -->
-  <div id="mob-year-bar">
-    <button class="mob-year-btn active" data-year="1">1ʳᵉ année</button>
-    <button class="mob-year-btn" data-year="2">2ᵉ année</button>
+  <div id="mob-drawer-scroll">
+    <div class="dr-rich" id="dr-tuiles">
+      <button type="button" class="dr-tuile" id="dr-today-tile"><span class="t"><svg class="ic" aria-hidden="true"><use href="#i-calendar"></use></svg>Aujourd'hui<span class="count rev-badge" id="rev-badge-tile" hidden>0</span></span><span class="s" id="dr-today-sub">Aucune carte due</span></button>
+      <button type="button" class="dr-tuile" id="dr-dash-tile"><span class="t"><svg class="ic" aria-hidden="true"><use href="#i-chart"></use></svg>Bilan</span><span class="s" id="dr-dash-sub">Progression des cartes</span></button>
+    </div>
+    <div class="dr-row">
+      <!-- Année (clé year) -->
+      <div id="mob-year-bar" class="seg" role="group" aria-label="Année">
+        <button type="button" class="mob-year-btn active" data-year="1" aria-pressed="true"><span class="yr-l">1ʳᵉ année</span><span class="yr-c">1ʳᵉ</span></button>
+        <button type="button" class="mob-year-btn" data-year="2" aria-pressed="false"><span class="yr-l">2ᵉ année</span><span class="yr-c">2ᵉ</span></button>
+      </div>
+      <!-- Filtre instantané (cherche dans TOUTES les matières et les deux années) -->
+      <div id="mob-filter-wrap" class="field field-soft">
+        <svg class="ic" aria-hidden="true"><use href="#i-filter"></use></svg>
+        <input id="mob-filter" type="search" placeholder="Filtrer les chapitres" autocomplete="off" enterkeyhint="go" aria-label="Filtrer les chapitres (toutes matières, les deux années)">
+        <button id="mob-filter-clear" type="button" aria-label="Effacer le filtre" hidden><svg class="ic" aria-hidden="true"><use href="#i-x"></use></svg></button>
+      </div>
+    </div>
+    <!-- Épinglés et récents (jamais filtrés) -->
+    <div id="mob-quick"></div>
+    <!-- Intercalaires de matière (effectif selon l'année) -->
+    <div id="mob-mat-bar" class="mat-tabs" role="tablist" aria-label="Matières" data-mat="physique">
+      <button type="button" class="mob-mat-btn mat-tab active" data-mat="physique" role="tab" aria-selected="true">Physique<span class="n"></span></button>
+      <button type="button" class="mob-mat-btn mat-tab" data-mat="maths" role="tab" aria-selected="false">Maths<span class="n"></span></button>
+      <button type="button" class="mob-mat-btn mat-tab" data-mat="si" role="tab" aria-selected="false">SI<span class="n"></span></button>
+      <button type="button" class="mob-mat-btn mat-tab" data-mat="info" role="tab" aria-selected="false">Info<span class="n"></span></button>
+      <button type="button" class="mob-mat-btn mat-tab" data-mat="anglais" role="tab" aria-selected="false">Anglais<span class="n"></span></button>
+    </div>
+    <!-- Parties repliables et rangées de chapitres (ou résultats du filtre) -->
+    <div id="mob-chap-list"></div>
   </div>
-  <!-- Matières -->
-  <div id="mob-mat-bar">
-    <button class="mob-mat-btn active" data-mat="physique">Physique</button>
-    <button class="mob-mat-btn" data-mat="maths">Maths</button>
-    <button class="mob-mat-btn" data-mat="si">SI</button>
-    <button class="mob-mat-btn" data-mat="info">Info</button>
-    <button class="mob-mat-btn" data-mat="anglais">Anglais</button>
-  </div>
-  <!-- Filtre instantané (cherche dans TOUTES les matières) -->
-  <div id="mob-filter-wrap">
-    <input id="mob-filter" type="search" placeholder="Filtrer les chapitres…" autocomplete="off" aria-label="Filtrer les chapitres">
-    <button id="mob-filter-clear" aria-label="Effacer le filtre" hidden>✕</button>
-  </div>
-  <!-- Liste des chapitres (remplie dynamiquement) -->
-  <div id="mob-chap-list"></div>
-</div>
+</nav>
 
 
 
@@ -3464,6 +3366,12 @@ window.__icon = function(name){
   <div class="chapter-bar"></div>
 </div>
 
+<!-- Colonne de lecture (décalée par la barre latérale à partir de 1200 px). Un <article> neutre
+     (role="none"), jamais un <div> ni un <section> : les </div> et </section> orphelins du
+     contenu (anomalie connue) refermeraient l'enveloppe et en sortiraient les chapitres. -->
+<article id="app-main" role="none">
+<!-- Sommaire de la matière (#sommaire/<matière>) : rempli à l'ouverture -->
+<section id="sommaire-matiere" class="sommaire" aria-label="Sommaire de la matière" hidden></section>
 <main>
 
 <!-- ========================================================== -->
@@ -61530,14 +61438,15 @@ print(confusion_matrix(y_test, y_pred))   <span class="cmt"># [[VN, FP], [FN, VP
   </button>
 </nav>
 
-<footer>
-  PTSI · Mes cours de physique · Programme officiel
+<footer class="pied">
+  <span class="brand-mark" aria-hidden="true"></span><span>Mes cours de <em>prépa</em> · PTSI → PT · programme officiel · fonctionne hors ligne</span>
 </footer>
+</article><!-- fin #app-main -->
 
 
 
 <!-- ===== BOUTON RETOUR EN HAUT ===== -->
-<button id="back-to-top" title="Retour en haut" aria-label="Retour en haut">↑</button>
+<button id="back-to-top" class="btn btn-icon" type="button" title="Retour en haut" aria-label="Retour en haut"><svg class="ic" aria-hidden="true"><use href="#i-chev-right"></use></svg></button>
 
 <!-- ===== MODALE QUIZ GLOBAL ===== -->
 <div id="quiz-overlay" class="quiz-overlay">
@@ -73638,13 +73547,15 @@ document.addEventListener('keydown',e=>{
    Le thème effectif reste exprimé par data-theme="dark" sur <html> (seul
    sélecteur du CSS sombre, lu par getCanvasColors/__CV) ; data-theme-pref
    porte la préférence. Déjà posé avant l'affichage par le script du <head>.
-   Bouton : auto → l'inverse du thème affiché → l'autre → auto (les deux
-   premiers clics changent toujours l'écran). API : window.__themePref(),
-   window.__setTheme(pref). */
+   Sélecteur explicite (SPEC §4.6) : sur ordinateur, #theme-btn ouvre le popover
+   #theme-pop (3 cartes Clair / Sombre / Auto + taille du texte) ; au téléphone,
+   segmenté en bas de la feuille ⋯. Tout bouton [data-theme-set] appelle setTheme ;
+   la mention « actuellement : … » suit le réglage de l'appareil (même matchMedia).
+   API : window.__themePref(), window.__setTheme(pref). */
 (function(){
   const root = document.documentElement;
-  const label = document.getElementById('theme-label');
   const btn = document.getElementById('theme-btn');
+  const pop = document.getElementById('theme-pop');
   const mq = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
   const NOMS = { light:'Clair', dark:'Sombre', auto:'Auto' };
   const themePref = () => { const t = Store.get('theme'); return (t === 'light' || t === 'dark') ? t : 'auto'; };
@@ -73665,9 +73576,14 @@ document.addEventListener('keydown',e=>{
       if(c && m.getAttribute('content') !== c) m.setAttribute('content', c);
     });
   }
-  function suivant(pref){
-    if(pref === 'auto') return estSombre('auto') ? 'light' : 'dark';
-    return estSombre('auto') === (pref === 'dark') ? 'auto' : (pref === 'dark' ? 'light' : 'dark');
+  /* Choix coché (cartes du popover, segmenté de la feuille ⋯) et « actuellement » */
+  function majControles(pref){
+    document.querySelectorAll('[data-theme-set]').forEach(b =>
+      b.setAttribute('aria-checked', b.getAttribute('data-theme-set') === pref ? 'true' : 'false'));
+    const appareil = (mq && mq.matches) ? 'sombre' : 'clair';
+    document.querySelectorAll('.theme-actuel').forEach(e => { if(e.textContent !== appareil) e.textContent = appareil; });
+    const t = 'Thème : ' + NOMS[pref] + (pref === 'auto' ? ' (actuellement ' + appareil + ')' : '');
+    if(btn){ btn.title = t; btn.setAttribute('aria-label', t); }
   }
   function applyTheme(pref){
     const avant = root.getAttribute('data-theme') === 'dark';
@@ -73675,9 +73591,7 @@ document.addEventListener('keydown',e=>{
     if(sombre) root.setAttribute('data-theme','dark'); else root.removeAttribute('data-theme');
     root.setAttribute('data-theme-pref', pref);
     try{ majThemeColor(pref); }catch(e){}
-    if(label) label.textContent = NOMS[pref];
-    const t = 'Thème : ' + NOMS[pref] + (pref === 'auto' ? ' (suit l\'appareil)' : '') + ' — passer à ' + NOMS[suivant(pref)];
-    [btn, document.getElementById('mob-theme-btn')].forEach(b => { if(b){ b.title = t; b.setAttribute('aria-label', t); } });
+    majControles(pref);
     // redessiner les canvas (couleurs dépendantes du thème) si l'écran a changé
     if(avant !== sombre) setTimeout(()=>{ try{
       const a = Array.from(document.querySelectorAll('.chapter.active')).find(x => x.offsetParent !== null);
@@ -73691,11 +73605,42 @@ document.addEventListener('keydown',e=>{
   }
   applyTheme(themePref());
   if(mq){
-    const surChangement = () => { if(themePref() === 'auto') applyTheme('auto'); };
+    const surChangement = () => { const p = themePref(); if(p === 'auto') applyTheme('auto'); else majControles(p); };
     if(mq.addEventListener) mq.addEventListener('change', surChangement);
     else if(mq.addListener) mq.addListener(surChangement);
   }
-  if(btn) btn.addEventListener('click', () => setTheme(suivant(themePref())));
+
+  /* Popover de l'en-tête : Échap, clic dehors ou choix d'un thème le ferment */
+  const ouvert = () => !!(pop && !pop.hidden);
+  function ouvrirPop(){
+    if(!pop || !btn) return;
+    pop.hidden = false;
+    btn.setAttribute('aria-expanded', 'true');
+    const c = pop.querySelector('.theme-opt[aria-checked="true"]') || pop.querySelector('.theme-opt');
+    if(c) setTimeout(() => { try{ c.focus({ preventScroll:true }); }catch(e){ c.focus(); } }, 30);
+  }
+  function fermerPop(rendreFocus){
+    if(!ouvert()) return;
+    pop.hidden = true;
+    btn.setAttribute('aria-expanded', 'false');
+    if(rendreFocus) btn.focus();
+  }
+  if(btn) btn.addEventListener('click', e => { e.stopPropagation(); if(ouvert()) fermerPop(); else ouvrirPop(); });
+  document.addEventListener('click', e => {
+    const b = e.target && e.target.closest ? e.target.closest('[data-theme-set]') : null;
+    if(b){ setTheme(b.getAttribute('data-theme-set')); if(pop && pop.contains(b)) fermerPop(true); return; }
+    if(ouvert() && !pop.contains(e.target) && e.target !== btn) fermerPop();
+  });
+  if(pop) pop.addEventListener('keydown', e => {
+    if(e.key === 'Escape'){ e.stopPropagation(); fermerPop(true); return; }
+    // Flèches : d'une carte à l'autre (groupe radio), puis Entrée / Espace pour choisir
+    const opts = Array.from(pop.querySelectorAll('.theme-opt'));
+    const i = opts.indexOf(document.activeElement);
+    if(i < 0 || !/^Arrow(Left|Right|Up|Down)$/.test(e.key)) return;
+    e.preventDefault();
+    opts[(i + (/Right|Down/.test(e.key) ? 1 : opts.length - 1)) % opts.length].focus();
+  });
+  document.addEventListener('keydown', e => { if(e.key === 'Escape' && ouvert()) fermerPop(true); });
   window.__themePref = themePref;
   window.__setTheme = setTheme;
 })();
@@ -73727,7 +73672,7 @@ function navigateTo(chapId, panelId, onDone){
       if(tabBtn) tabBtn.click();
     }
     // sauvegarder la position
-    Store.setJSON('lastPos', {chap:chapId, panel:panelId||null});
+    Store.setJSON('lastPos', {chap:chapId, panel:panelId||null, t:Date.now()});
     // Si pas de callback custom : haut de la page (le 1er <main> visé avant est masqué en SI)
     if(!onDone){
       scrollPageTop();
@@ -73746,18 +73691,84 @@ function navigateTo(chapId, panelId, onDone){
    passe déjà par les handlers existants ; on synchronise juste l'URL ensuite. */
 (function urlRouting(){
   let lastChap = null;
-  function syncHash(){
-    const ch = document.querySelector('.chapter.active');
-    if(!ch) return;
-    const chapId = ch.id.replace('chap-','');
-    const p = ch.querySelector('.panel.active');
-    const suf = p ? p.id.split('-').pop() : '';
-    const h = '#' + chapId + (suf ? '/'+suf : '');
-    if(location.hash === h) return;            // pas de changement
-    if(chapId !== lastChap){ history.pushState(null,'',h); }  // nouveau chapitre → entrée d'historique
-    else { history.replaceState(null,'',h); }                  // même chapitre, onglet différent → pas d'entrée
-    lastChap = chapId;
+  /* Pages plein écran du téléphone (page Chapitres, feuille ⋯, Aujourd'hui, recherche,
+     quiz, Bilan, fenêtres) : le bouton retour d'Android les FERME au lieu de quitter le
+     chapitre. À l'ouverture d'une page (classe .open), une entrée d'historique fictive
+     (même URL) est empilée ; « retour » la dépile → popstate → on ferme la page. Fermée
+     autrement (×, Échap, voile), l'entrée fictive est retirée (history.back, popstate
+     ignoré) ; si un chapitre est choisi depuis la page, elle est REMPLACÉE par ce
+     chapitre (syncHash fait alors replaceState au lieu de pushState). */
+  const PAGES = ['mob-drawer','mob-more-menu','today-overlay','search-overlay','quiz-overlay','dash-overlay',
+    'formula-overlay','backup-overlay','flag-overlay','drill-overlay'];
+  const mqTel = window.matchMedia ? window.matchMedia('(max-width:767px)') : { matches:false };
+  let pageFictive = null;      // page ouverte qui a empilé l'entrée fictive
+  let aRemplacer = false;      // entrée fictive au sommet, à remplacer par la prochaine URL
+  let retoursIgnores = 0;      // history.back() lancés par nous : leurs popstate sont ignorés
+  let parRetour = false;       // fermeture en cours provoquée par le bouton retour
+  const estOuverte = el => !!(el && el.classList.contains('open'));
+  function retirerFictive(delai){
+    setTimeout(() => {   // laissé à syncHash s'il navigue entre-temps (remplacement)
+      if(!aRemplacer || pageFictive) return;
+      aRemplacer = false; retoursIgnores++;
+      try { history.back(); } catch(e){ retoursIgnores--; }
+    }, delai || 0);
   }
+  function surMutations(){
+    // fermetures d'abord (une page peut en ouvrir une autre dans le même geste)
+    if(pageFictive && !estOuverte(pageFictive)){
+      pageFictive = null;
+      if(parRetour) parRetour = false;
+      else { aRemplacer = true; retirerFictive(0); }
+    }
+    if(!pageFictive && mqTel.matches){
+      const el = PAGES.map(id => document.getElementById(id)).find(estOuverte);
+      if(el){
+        pageFictive = el;
+        if(aRemplacer) aRemplacer = false;            // on réutilise l'entrée fictive restée au sommet
+        else { try { history.pushState({ pageFictive: el.id }, '', location.href); } catch(e){ pageFictive = null; } }
+      }
+    }
+  }
+  const obsPages = new MutationObserver(surMutations);
+  PAGES.forEach(id => { const el = document.getElementById(id); if(el) obsPages.observe(el, { attributes:true, attributeFilter:['class'] }); });
+  // Un chapitre va être choisi depuis la page ouverte : l'URL du chapitre remplacera
+  // l'entrée fictive. avecRelais : une autre page va s'ouvrir aussitôt (tuiles).
+  window.__consommerPageFictive = function(avecRelais){
+    if(!pageFictive) return;
+    pageFictive = null;
+    aRemplacer = true;
+    if(!avecRelais) retirerFictive(400);   // aucune navigation finalement (même URL) : on retire l'entrée
+  };
+  function fermerPageParRetour(el){
+    parRetour = true;
+    if(el.id === 'mob-drawer'){ const b = document.getElementById('mob-drawer-close'); if(b) b.click(); }
+    else if(el.id === 'mob-more-menu' && window.__fermerFeuillePlus) window.__fermerFeuillePlus();
+    else if(el.id === 'quiz-overlay' && window.quizClose) window.quizClose();
+    else document.dispatchEvent(new KeyboardEvent('keydown', { key:'Escape', bubbles:true }));
+    if(estOuverte(el)) el.classList.remove('open');   // filet de sécurité
+    setTimeout(() => { parRetour = false; }, 0);
+  }
+
+  function syncHash(){
+    const so = window.__sommaireOuvert ? window.__sommaireOuvert() : null;
+    let h, cle;
+    if(so){ h = '#sommaire/' + so; cle = 'sommaire/' + so; }
+    else {
+      const ch = document.querySelector('.chapter.active');
+      if(!ch) return;
+      const chapId = ch.id.replace('chap-','');
+      const p = ch.querySelector('.panel.active');
+      const suf = p ? p.id.split('-').pop() : '';
+      h = '#' + chapId + (suf ? '/'+suf : '');
+      cle = chapId;
+    }
+    if(location.hash === h) return;            // pas de changement
+    if(aRemplacer){ aRemplacer = false; history.replaceState(null,'',h); }   // remplace l'entrée fictive d'une page plein écran
+    else if(cle !== lastChap){ history.pushState(null,'',h); }  // nouveau chapitre (ou sommaire) → entrée d'historique
+    else { history.replaceState(null,'',h); }                  // même chapitre, onglet différent → pas d'entrée
+    lastChap = cle;
+  }
+  window.__syncHash = syncHash;
   document.addEventListener('click', e=>{
     const t = e.target;
     if(t && t.closest && (t.closest('.chap-btn') || t.closest('.tab') || t.closest('.mob-chap-item')
@@ -73769,14 +73780,25 @@ function navigateTo(chapId, panelId, onDone){
     const raw = (location.hash || '').replace(/^#/, '');
     if(!raw) return false;
     const parts = raw.split('/');
+    // Sommaire de la matière : #sommaire/physique
+    if(parts[0] === 'sommaire' && parts[1] && window.__ouvrirSommaire){
+      lastChap = 'sommaire/' + parts[1];
+      return window.__ouvrirSommaire(parts[1], true);
+    }
     const chapId = parts[0], suf = parts[1];
     const c = CHAPTERS_BY_ID[chapId];
     if(!c || !document.getElementById('chap-'+chapId)) return false;
     lastChap = chapId;           // évite de re-empiler une entrée d'historique
+    if(window.__sommaireOuvert && window.__sommaireOuvert() && window.__fermerSommaire) window.__fermerSommaire(false);
     navigateTo('chap-'+chapId, suf ? (c.prefix+'-'+suf) : null);
     return true;
   }
-  window.addEventListener('popstate', navFromHash);
+  window.addEventListener('popstate', () => {
+    if(retoursIgnores > 0){ retoursIgnores--; return; }      // retrait de l'entrée fictive : rien à faire
+    if(pageFictive){ const el = pageFictive; pageFictive = null; fermerPageParRetour(el); return; }
+    aRemplacer = false;
+    navFromHash();
+  });
   window.__navFromHash = navFromHash;
 })();
 
@@ -73787,13 +73809,13 @@ function navigateTo(chapId, panelId, onDone){
     b.addEventListener('click',()=>{
       const chapId = 'chap-'+b.dataset.chap;
       const activePanel = document.querySelector('#'+chapId+' .panel.active');
-      Store.setJSON('lastPos', {chap:chapId, panel: activePanel?activePanel.id:null});
+      Store.setJSON('lastPos', {chap:chapId, panel: activePanel?activePanel.id:null, t:Date.now()});
     });
   });
   document.querySelectorAll('.tab').forEach(t=>{
     t.addEventListener('click',()=>{
       const chap = t.closest('.chapter');
-      if(chap) Store.setJSON('lastPos', {chap:chap.id, panel:t.dataset.panel});
+      if(chap) Store.setJSON('lastPos', {chap:chap.id, panel:t.dataset.panel, t:Date.now()});
     });
   });
   // Restaurer au chargement : une URL #chapitre/onglet a priorité sur lastPos
@@ -74091,6 +74113,7 @@ function navigateTo(chapId, panelId, onDone){
       (tocItemsById.get(entry.target.id) || []).forEach(a=>{
         a.classList.toggle('active', entry.isIntersecting);
       });
+      if(entry.isIntersecting && window.__surSection) window.__surSection(entry.target);
     });
   }, {rootMargin:'-10% 0px -70% 0px', threshold:0});
 
@@ -75313,22 +75336,40 @@ ${bodyContent}
 })();
 
 /* ============================================================ */
-/* ===== NAVIGATION : tiroir #mob-drawer (mobile + desktop) == */
+/* ===== NAVIGATION DES CHAPITRES : #mob-drawer ================ */
 /* ============================================================ */
+/* Même structure partout (SPEC §4.3) : barre latérale permanente à partir de 1200 px
+   (repliable par #nav-toggle-btn, clé navCollapsed), tiroir de 768 à 1199 px, page plein
+   écran « Chapitres » au téléphone (☰). Contenu : année (clé year) · filtre (toutes
+   matières, les deux années, résultats groupés par matière) · Épinglés / Récents (jamais
+   filtrés) · intercalaires de matière avec effectif · parties repliables (CHAP_GROUPS,
+   clé drawerCollapsed) · rangées = bouton du chapitre + épingle (frères).
+   Choisir un chapitre clique TOUJOURS le .chap-btn caché (couche de commande).
+   Aussi dans ce module : barre du téléphone (titre, section courante, effacement au
+   défilement), feuille ⋯ du téléphone et Sommaire de la matière (#sommaire/<matière>).
+   Construction paresseuse : la liste n'est bâtie que si la navigation est visible
+   (barre latérale) ou à l'ouverture du tiroir — rien de lourd au chargement du téléphone. */
 (function(){
-  // Ce module pilote la navigation par matière/chapitre. C'est le même tiroir
-  // coulissant sur mobile (bouton ☰) ET sur desktop (bouton « Chapitres »).
+  const MATS = ['physique','maths','si','info','anglais'];
+  const MAT_NOMS = { physique:'Physique', maths:'Maths', si:'SI', info:'Info', anglais:'Anglais' };
+  const ONGLETS = { cours:'Cours', meth:'Méthodes', simu:'Simulateur', flash:'Cartes', exos:'Exercices' };
+  const $ = id => document.getElementById(id);
+  const ic = n => (window.__icon ? window.__icon(n) : '');
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  const root = document.documentElement;
+  const mm = q => (window.matchMedia ? window.matchMedia(q) : { matches:false, addEventListener(){} });
+  const mqSide = mm('(min-width:1200px)'), mqTel = mm('(max-width:767px)');
 
-  /* ── Données chapitres pour le drawer (dérivées de CHAPTERS) ── */
+  /* ── Données chapitres (dérivées de CHAPTERS, ordre et parties de CHAP_GROUPS) ── */
   const CHAP_DATA = (function buildChapData(){
     const out = { physique: [], maths: [], si: [], info: [], anglais: [] };
-    ['physique','maths','si','info','anglais'].forEach(mat => {
-      const groups = {};   // subLabel → list of items (préserve l'ordre d'apparition)
+    MATS.forEach(mat => {
+      const groups = {};   // subLabel → liste (préserve l'ordre d'apparition)
       const order = [];
       CHAPTERS.filter(c => c.matiere === mat).forEach(c => {
         const key = c.subLabel || '';
         if(!(key in groups)){ groups[key] = []; order.push(key); }
-        groups[key].push({ id: 'chap-' + c.id, label: c.mobLabel,
+        groups[key].push({ id: 'chap-' + c.id, label: c.mobLabel || c.name, c,
           // year 0 = visible dans les DEUX années (langues + fiches de référence) ;
           // sinon 2 si chapitre de 2ᵉ année (__YEAR2A), 1 par défaut.
           year: (c.matiere === 'anglais' || c.id === 'constantes') ? 0
@@ -75338,13 +75379,27 @@ ${bodyContent}
     });
     return out;
   })();
+  /* 'chap-x' → {item, mat} */
+  const CHAP_ITEM_BY_ID = {};
+  Object.keys(CHAP_DATA).forEach(m => CHAP_DATA[m].forEach(g => g.items.forEach(it => {
+    CHAP_ITEM_BY_ID[it.id] = { item: it, mat: m, sub: g.sub };
+  })));
 
   let currentMat = 'physique';
   let currentYear = (parseInt(Store.get('year')) === 2) ? 2 : 1;
   let drawerOpen = false;
+  let aConstruire = true;             // liste à (re)construire à la prochaine apparition
+  const deplies1A = new Set();        // parties (mat|partie) où les chapitres de 1ʳᵉ année sont dépliés (2ᵉ année)
+  const okYear = it => it.year === currentYear || it.year === 0;
 
-  /* ── Filtre par année (1ʳᵉ / 2ᵉ année) ── */
-  const MATS = ['physique','maths','si','info','anglais'];
+  /* Chapitre affiché (deux .chapter.active au chargement, un par <main> : le visible) */
+  function activeChapEl(){
+    const l = Array.from(document.querySelectorAll('.chapter.active'));
+    return l.find(x => x.offsetParent !== null) || l[0] || null;
+  }
+  const activeChapId = () => (activeChapEl() || {}).id || '';
+
+  /* ── Année / matières ── */
   function chaptersInYear(mat, year){
     return (CHAP_DATA[mat] || []).some(g => g.items.some(it => it.year === year || it.year === 0));
   }
@@ -75356,34 +75411,41 @@ ${bodyContent}
     }
     return null;
   }
+  function effectif(mat){
+    let n = 0;
+    (CHAP_DATA[mat] || []).forEach(g => g.items.forEach(it => { if(okYear(it)) n++; }));
+    return n;
+  }
   function refreshYearButtons(){
-    document.querySelectorAll('.mob-year-btn').forEach(b =>
-      b.classList.toggle('active', parseInt(b.dataset.year) === currentYear));
+    document.querySelectorAll('.mob-year-btn').forEach(b => {
+      const on = parseInt(b.dataset.year) === currentYear;
+      b.classList.toggle('active', on);
+      b.setAttribute('aria-pressed', on ? 'true' : 'false');
+    });
   }
   function refreshMatButtons(){
     const avail = matieresForYear(currentYear);
-    document.querySelectorAll('.mob-mat-btn').forEach(b => {
-      b.style.display = avail.includes(b.dataset.mat) ? '' : 'none';
-    });
     if(!avail.includes(currentMat)) currentMat = avail[0] || currentMat;
-    document.querySelectorAll('.mob-mat-btn').forEach(b =>
-      b.classList.toggle('active', b.dataset.mat === currentMat));
+    document.querySelectorAll('.mob-mat-btn').forEach(b => {
+      const m = b.dataset.mat, on = m === currentMat;
+      b.style.display = avail.includes(m) ? '' : 'none';
+      b.classList.toggle('active', on);
+      b.setAttribute('aria-selected', on ? 'true' : 'false');
+      b.tabIndex = on ? 0 : -1;
+      const n = b.querySelector('.n');
+      if(n) n.textContent = effectif(m);
+      b.title = on ? 'Ouvrir le sommaire : ' + MAT_NOMS[m] : MAT_NOMS[m];
+    });
+    const bar = $('mob-mat-bar');
+    if(bar) bar.setAttribute('data-mat', currentMat);
   }
 
-  /* ══ Tiroir nouvelle génération : helpers ══════════════════════════════
+  /* ══ Récents, épinglés, repli des parties ══════════════════════════════
      - Récents (clé 'recents') : 8 derniers chapitres consultés (MRU).
-     - Épinglés (clé 'pinned') : favoris ★ affichés en tête.
-     - Repli des sous-domaines (clé 'drawerCollapsed') : accordéon mémorisé.
+     - Épinglés (clé 'pinned') : 8 favoris ★ au plus.
+     - Repli des parties (clé 'drawerCollapsed') : accordéon mémorisé.
      - Anneau de progression (ringSVG) : % de cartes « acquises » (flash:<prefix>) ;
-       affiché seulement dans le Bilan (window.__ringSVG), plus dans le tiroir. */
-  const MAT_TAGS = { physique:'PHY', maths:'MATH', si:'SI', info:'INFO', anglais:'ANG' };
-  const escDrawer = s => String(s || '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-  /* 'chap-x' → {item, mat} (pour retrouver libellé/matière des récents & épinglés) */
-  const CHAP_ITEM_BY_ID = {};
-  Object.keys(CHAP_DATA).forEach(m => CHAP_DATA[m].forEach(g => g.items.forEach(it => {
-    CHAP_ITEM_BY_ID[it.id] = { item: it, mat: m };
-  })));
-
+       rendu dans le Bilan seulement (window.__ringSVG), jamais dans la navigation. */
   function getRecents(){ return Store.getJSON('recents', []) || []; }
   function recordRecent(chapId){
     if(!CHAP_ITEM_BY_ID[chapId]) return;
@@ -75399,6 +75461,10 @@ ${bodyContent}
     if(i >= 0) p.splice(i, 1); else p.unshift(id);
     Store.setJSON('pinned', p.slice(0, 8));
   }
+  /* API pour les autres modules (intercalaire du chapitre, feuille ⋯) : id 'chap-x' ou 'x' */
+  const idChap = id => (String(id || '').indexOf('chap-') === 0 ? String(id) : 'chap-' + id);
+  window.__isPinned = id => isPinned(idChap(id));
+  window.__togglePin = id => { togglePin(idChap(id)); reconstruire(); return isPinned(idChap(id)); };
   function getCollapsed(){ return Store.getJSON('drawerCollapsed', {}) || {}; }
   function setCollapsed(key, val){
     const c = getCollapsed();
@@ -75414,118 +75480,311 @@ ${bodyContent}
     return `<svg class="mob-ring ${cls}" viewBox="0 0 16 16" aria-hidden="true"><circle class="ring-bg" cx="8" cy="8" r="${r}"/><circle class="ring-fg" cx="8" cy="8" r="${r}" stroke-dasharray="${c.toFixed(1)}" stroke-dashoffset="${off}"/></svg>`;
   }
   window.__ringSVG = ringSVG;
-  /* Rangée chapitre : bouton de navigation + bouton épingle (frères, pas imbriqués) */
+
+  /* ── Cartes d'un deck : dues (même règle que srsCountDue) et acquises ── */
+  function etatDeck(prefix){
+    const cards = (window.FLASH_REGISTRY || {})[prefix];
+    const r = { tot: Array.isArray(cards) ? cards.length : 0, dues: 0, acq: 0 };
+    if(!r.tot) return r;
+    const arr = Store.getJSON('flash:' + prefix, null);
+    if(!Array.isArray(arr)) return r;
+    for(let i = 0; i < r.tot; i++){
+      const s = arr[i];
+      if(!s || s.last === null || s.last === undefined) continue;
+      if(s.last === 2) r.acq++;
+      if(typeof srsIsDue === 'function' && srsIsDue(s)) r.dues++;
+    }
+    return r;
+  }
+  let cacheEtats = null;   // valable le temps d'une construction
+  const etat = prefix => { if(!cacheEtats) cacheEtats = {}; return cacheEtats[prefix] || (cacheEtats[prefix] = etatDeck(prefix)); };
+  const libDues = n => n + ' carte' + (n > 1 ? 's' : '') + ' due' + (n > 1 ? 's' : '');
+  const libAnnee = y => y === 2 ? '2ᵉ année' : y === 1 ? '1ʳᵉ année' : 'les deux années';
+
+  /* ── Choisir un chapitre : ferme le tiroir / la page, clique le .chap-btn caché ── */
+  function ouvrirChapitre(id){
+    const chapId = id.replace('chap-', '');
+    const cible = idChap(chapId);
+    // Page plein écran ouverte : l'entrée d'historique fictive sera REMPLACÉE par le
+    // chapitre choisi (au lieu d'être retirée), sauf si l'on reste sur le même chapitre
+    if(cible !== activeChapId() && window.__consommerPageFictive) window.__consommerPageFictive();
+    fermerSommaire(false);
+    const f = $('mob-filter');
+    if(f && f.value){ f.value = ''; const cl = $('mob-filter-clear'); if(cl) cl.hidden = true; }
+    if(drawerOpen) closeDrawer(true);
+    const chapBtn = document.querySelector('.chap-btn[data-chap="' + chapId + '"]');
+    if(chapBtn) chapBtn.click();
+    updateMobTitle();
+    queueSync();
+  }
+
+  /* ── Rangée de chapitre : bouton de navigation + bouton épingle (frères, jamais imbriqués) ── */
   function makeChapRow(item, opts){
-    const activeChapId = (document.querySelector('.chapter.active') || {}).id || '';
-    const row = document.createElement('div');
+    opts = opts || {};
+    const c = item.c;
+    const row = document.createElement('li');
     row.className = 'mob-chap-row';
+    row.dataset.id = item.id;
+    row.setAttribute('data-mat', c.matiere);   // encre de la matière (jetons --chap*)
+    const cur = item.id === opts.actif;
+    if(cur) row.classList.add('cur');
     const btn = document.createElement('button');
-    btn.className = 'mob-chap-item' + (item.id === activeChapId ? ' active' : '');
-    const _mat = (CHAPTERS_BY_ID[item.id.replace('chap-','')] || {}).matiere || '';   // G5 : teinte du badge
-    if(_mat) row.setAttribute('data-mat', _mat);   // encre de la matière (jetons --chap*)
-    btn.innerHTML = '<span class="mob-chap-label">' + escDrawer(item.label) + '</span>'
-      + (opts && opts.tag ? '<span class="mob-filter-tag mt-' + _mat + '">' + opts.tag + '</span>' : '');
-    btn.addEventListener('click', () => {
-      closeDrawer();
-      const chapBtn = document.querySelector(`.chap-btn[data-chap="${item.id.replace('chap-','')}"]`);
-      if(chapBtn) chapBtn.click();
-      updateMobTitle();
-      buildDrawerList(currentMat);
-    });
-    const pin = document.createElement('button');
-    pin.className = 'mob-pin' + (isPinned(item.id) ? ' pinned' : '');
-    pin.setAttribute('aria-label', isPinned(item.id) ? 'Désépingler ce chapitre' : 'Épingler ce chapitre en haut du tiroir');
-    pin.textContent = isPinned(item.id) ? '★' : '☆';
-    pin.addEventListener('click', e => {
-      e.stopPropagation();
-      togglePin(item.id);
-      buildDrawerList(currentMat);
-    });
+    btn.type = 'button';
+    btn.className = 'mob-chap-item' + (cur ? ' active' : '');
+    if(cur) btn.setAttribute('aria-current', 'page');
+    let html = '<span class="mob-chap-label">' + (opts.labelHtml || esc(item.label)) + '</span>';
+    let end = '';
+    if(opts.resultat){
+      if(item.year === 2) end += '<span class="badge badge-2a" title="2ᵉ année">2ᵉ</span>';
+      end += ic('chev-right');
+    } else {
+      if(item.year === 2 && currentYear === 1) end += '<span class="tag2a" title="2ᵉ année">2A</span>';
+      const n = etat(c.prefix).dues;
+      if(n) end += '<span class="count count-soft" title="' + libDues(n) + '"><span class="sr">' + libDues(n) + ' : </span>' + n + '</span>';
+    }
+    if(end) html += '<span class="end">' + end + '</span>';
+    if(opts.sub) html += '<span class="sub">' + esc(opts.sub) + '</span>';
+    btn.innerHTML = html;
+    btn.title = c.name;
+    btn.addEventListener('click', () => ouvrirChapitre(item.id));
     row.appendChild(btn);
-    row.appendChild(pin);
+    if(!opts.resultat){
+      const p = isPinned(item.id);
+      const pin = document.createElement('button');
+      pin.type = 'button';
+      pin.className = 'mob-pin' + (p ? ' pinned' : '');
+      pin.setAttribute('aria-pressed', p ? 'true' : 'false');
+      pin.setAttribute('aria-label', (p ? 'Désépingler ' : 'Épingler ') + item.label);
+      pin.title = p ? 'Désépingler' : 'Épingler en tête de la navigation';
+      pin.innerHTML = ic(p ? 'star-fill' : 'star');
+      pin.addEventListener('click', e => {
+        e.stopPropagation();
+        togglePin(item.id);
+        reconstruire();
+        const n = document.querySelector('#mob-chap-list .mob-chap-row[data-id="' + item.id + '"] .mob-pin');
+        if(n) n.focus();
+      });
+      row.appendChild(pin);
+    }
     return row;
   }
-  function sectionLabel(text){
-    const s = document.createElement('span');
-    s.className = 'mob-subdomain-label mob-drawer-section';
-    s.textContent = text;
-    return s;
+
+  /* ── Épinglés et Récents (jamais filtrés ; puces + lignes sur ordinateur, une rangée de puces au téléphone) ── */
+  function panneauNom(panelId){ const s = String(panelId || '').split('-').pop(); return ONGLETS[s] || ''; }
+  function construireRapides(actif){
+    const box = $('mob-quick');
+    if(!box) return;
+    box.innerHTML = '';
+    const pinned = getPinned().map(id => CHAP_ITEM_BY_ID[id]).filter(Boolean);
+    const pinIds = getPinned();
+    const rec = getRecents().filter(id => !pinIds.includes(id)).map(id => CHAP_ITEM_BY_ID[id]).filter(Boolean).slice(0, 3);
+    if(!pinned.length && !rec.length) return;
+    const tel = mqTel.matches;
+    const puce = (x, icone) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'chip';
+      b.setAttribute('data-mat', x.mat);
+      b.title = x.item.c.name;
+      b.innerHTML = (icone ? icone : '<span class="dot" aria-hidden="true"></span>')
+        + '<span class="chip-lbl">' + esc(x.item.label) + '</span>'
+        + (x.item.year === 2 && currentYear === 1 ? '<span class="tag2a">2A</span>' : '');
+      b.addEventListener('click', () => ouvrirChapitre(x.item.id));
+      return b;
+    };
+    const bloc = titre => {
+      const d = document.createElement('div');
+      d.className = 'nav-block';
+      d.innerHTML = '<div class="kicker">' + titre + '</div>';
+      box.appendChild(d);
+      return d;
+    };
+    if(tel){
+      const d = bloc(pinned.length && rec.length ? 'Épinglés · Récents' : pinned.length ? 'Épinglés' : 'Récents');
+      const ch = document.createElement('div'); ch.className = 'chips';
+      pinned.forEach(x => ch.appendChild(puce(x, '<svg class="ic on" aria-hidden="true"><use href="#i-star-fill"></use></svg>')));
+      rec.forEach(x => ch.appendChild(puce(x, '<svg class="ic" aria-hidden="true"><use href="#i-clock"></use></svg>')));
+      d.appendChild(ch);
+      return;
+    }
+    if(pinned.length){
+      const d = bloc('Épinglés');
+      const ch = document.createElement('div'); ch.className = 'chips';
+      pinned.forEach(x => ch.appendChild(puce(x)));
+      d.appendChild(ch);
+    }
+    if(rec.length){
+      const d = bloc('Récents');
+      const pos = Store.getJSON('lastPos', null);
+      rec.forEach((x, i) => {
+        let ou = x.sub || '';
+        if(i === 0 && pos && pos.chap === x.item.id && pos.panel){
+          ou = panneauNom(pos.panel) + (pos.s ? ' · ' + String(pos.s).split(' ')[0] : '');
+        }
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'recent-row';
+        b.setAttribute('data-mat', x.mat);
+        b.title = x.item.c.name;
+        b.innerHTML = '<span class="dot" aria-hidden="true"></span><span class="nm">' + esc(x.item.label) + '</span>'
+          + (ou ? '<span class="where">' + esc(ou) + '</span>' : '');
+        b.addEventListener('click', () => ouvrirChapitre(x.item.id));
+        d.appendChild(b);
+      });
+    }
   }
-  /* Mode filtre : cherche dans TOUTES les matières (accents ignorés), année ignorée
-     volontairement — choisir un chapitre 2A bascule l'année (comportement standard). */
+
+  /* ── Filtre : toutes matières, les deux années, accents ignorés ; résultats groupés
+     par matière, correspondance surlignée par <mark> (dans la teinte de la matière) ── */
+  const sansAccent = s => String(s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+  function surligner(texte, nq){
+    // repère nq (normalisé) dans texte en gardant la correspondance des positions
+    let norm = '', pos = [];
+    for(let i = 0; i < texte.length; i++){
+      const n = sansAccent(texte[i]);
+      for(let k = 0; k < n.length; k++){ norm += n[k]; pos.push(i); }
+    }
+    const j = norm.indexOf(nq);
+    if(j < 0) return null;
+    const a = pos[j], b = pos[j + nq.length - 1] + 1;
+    return esc(texte.slice(0, a)) + '<mark>' + esc(texte.slice(a, b)) + '</mark>' + esc(texte.slice(b));
+  }
   function buildFilteredList(list, q){
-    const norm = s => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
-    const nq = norm(q);
-    let found = 0;
-    Object.keys(CHAP_DATA).forEach(m => CHAP_DATA[m].forEach(g => g.items.forEach(it => {
-      if(!norm(it.label).includes(nq)) return;
-      found++;
-      list.appendChild(makeChapRow(it, { tag: MAT_TAGS[m] }));
-    })));
-    if(!found){
+    const nq = sansAccent(q);
+    const groupes = [];
+    let total = 0;
+    MATS.forEach(m => {
+      const lignes = [];
+      CHAP_DATA[m].forEach(g => g.items.forEach(it => {
+        const hn = surligner(it.c.name, nq);
+        const hl = hn ? null : surligner(it.label, nq);
+        if(!hn && !hl) return;
+        lignes.push({ it, html: hn || hl, sub: (g.sub ? g.sub + ' · ' : '') + libAnnee(it.year) });
+      }));
+      if(lignes.length){ groupes.push({ m, lignes }); total += lignes.length; }
+    });
+    list.classList.add('nav-results');
+    if(!total){
       const e = document.createElement('div');
       e.className = 'mob-filter-empty';
       e.textContent = 'Aucun chapitre ne correspond à « ' + q + ' ».';
       list.appendChild(e);
+      return;
     }
-  }
-
-  /* ── Construire la liste des chapitres du drawer ── */
-  function buildDrawerList(mat){
-    const list = document.getElementById('mob-chap-list');
-    list.innerHTML = '';
-    const q = (document.getElementById('mob-filter')?.value || '').trim();
-    if(q){ buildFilteredList(list, q); return; }
-
-    const okYear = it => it.year === currentYear || it.year === 0;
-    /* Épinglés (toutes matières, année respectée) */
-    const pinned = getPinned().map(id => CHAP_ITEM_BY_ID[id]).filter(x => x && okYear(x.item));
-    if(pinned.length){
-      list.appendChild(sectionLabel('★ Épinglés'));
-      pinned.forEach(x => list.appendChild(makeChapRow(x.item, { tag: MAT_TAGS[x.mat] })));
-    }
-    /* Récents (3, hors chapitre actif et hors épinglés) */
-    const activeChapId = (document.querySelector('.chapter.active') || {}).id || '';
-    const pinnedIds = getPinned();
-    const rec = getRecents()
-      .filter(id => id !== activeChapId && !pinnedIds.includes(id))
-      .map(id => CHAP_ITEM_BY_ID[id])
-      .filter(x => x && okYear(x.item))
-      .slice(0, 3);
-    if(rec.length){
-      list.appendChild(sectionLabel('⌚ Récents'));
-      rec.forEach(x => list.appendChild(makeChapRow(x.item, { tag: MAT_TAGS[x.mat] })));
-    }
-    /* Sous-domaines de la matière courante (accordéon mémorisé) */
-    (CHAP_DATA[mat] || []).forEach(group => {
-      const items = group.items.filter(okYear);
-      if(items.length === 0) return;          // groupe sans chapitre dans l'année courante
-      const collKey = mat + '|' + (group.sub || '');
-      const collapsed = !!getCollapsed()[collKey];
-      const lbl = document.createElement('button');
-      lbl.type = 'button';
-      lbl.className = 'mob-subdomain-label mob-sub-toggle' + (collapsed ? ' collapsed' : '');
-      lbl.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
-      lbl.innerHTML = '<span class="sub-chev" aria-hidden="true">▾</span>'
-        + escDrawer(group.sub || 'Chapitres')
-        + '<span class="sub-count">' + items.length + '</span>';
-      lbl.addEventListener('click', () => { setCollapsed(collKey, !collapsed); buildDrawerList(mat); });
-      list.appendChild(lbl);
-      if(!collapsed) items.forEach(item => list.appendChild(makeChapRow(item)));
+    const k = document.createElement('div');
+    k.className = 'kicker';
+    k.textContent = total + ' chapitre' + (total > 1 ? 's' : '') + ' · toutes matières, les deux années';
+    list.appendChild(k);
+    groupes.forEach(gr => {
+      const d = document.createElement('div');
+      d.className = 'grp';
+      d.setAttribute('data-mat', gr.m);
+      d.innerHTML = '<div class="grp-h"><span class="dot" aria-hidden="true"></span>' + MAT_NOMS[gr.m] + '<span class="n">' + gr.lignes.length + '</span></div>';
+      const ul = document.createElement('ul');
+      ul.className = 'nav-list';
+      gr.lignes.forEach(l => ul.appendChild(makeChapRow(l.it, { resultat: true, labelHtml: l.html, sub: l.sub })));
+      d.appendChild(ul);
+      list.appendChild(d);
     });
-    // Faire défiler le chapitre actif au centre de la liste (utile avec plus de cent chapitres)
-    const act = list.querySelector('.mob-chap-item.active');
-    if(act){
-      const row = act.closest('.mob-chap-row') || act;
-      list.scrollTop = Math.max(0, row.offsetTop - list.clientHeight / 2);
-    }
   }
 
-  /* ── Filtre instantané du tiroir ── */
+  /* ── Construire la navigation (si visible ; sinon à la prochaine ouverture) ── */
+  const navVisible = () => drawerOpen || (mqSide.matches && !root.classList.contains('nav-replie'));
+  function buildDrawerList(mat){
+    if(mat) currentMat = mat;
+    if(!navVisible()){ aConstruire = true; return; }
+    aConstruire = false;
+    cacheEtats = null;
+    const drawer = $('mob-drawer'), list = $('mob-chap-list');
+    if(!list) return;
+    list.innerHTML = '';
+    list.classList.remove('nav-results');
+    const q = ($('mob-filter') || {}).value ? $('mob-filter').value.trim() : '';
+    if(drawer) drawer.classList.toggle('filtre-actif', !!q);
+    if(q){ buildFilteredList(list, q); cacheEtats = null; return; }
+    const actif = activeChapId();
+    construireRapides(actif);
+    refreshMatButtons();
+    const m = currentMat;
+    (CHAP_DATA[m] || []).forEach(group => {
+      const items = group.items.filter(okYear);
+      const autres = currentYear === 2 ? group.items.filter(it => it.year === 1) : [];
+      if(!items.length && !autres.length) return;     // partie sans chapitre dans l'année courante
+      const collKey = m + '|' + (group.sub || '');
+      const collapsed = !!getCollapsed()[collKey];
+      const part = document.createElement('div');
+      part.className = 'nav-part';
+      const h = document.createElement('button');
+      h.type = 'button';
+      h.className = 'nav-part-h mob-sub-toggle' + (collapsed ? ' collapsed' : '');
+      h.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+      h.innerHTML = ic('chev-down') + '<span>' + esc(group.sub || 'Chapitres') + '</span>'
+        + (items.length ? '<span class="n">' + items.length + '</span>' : '');
+      h.addEventListener('click', () => { setCollapsed(collKey, !collapsed); buildDrawerList(m); });
+      part.appendChild(h);
+      if(!collapsed){
+        const ul = document.createElement('ul');
+        ul.className = 'nav-list';
+        const deplie = deplies1A.has(collKey) || autres.some(it => it.id === actif);
+        group.items.forEach(it => {
+          if(okYear(it) || (deplie && it.year === 1 && currentYear === 2)) ul.appendChild(makeChapRow(it, { actif }));
+        });
+        if(autres.length){
+          const li = document.createElement('li');
+          const more = document.createElement('button');
+          more.type = 'button';
+          more.className = 'nav-more';
+          more.setAttribute('aria-expanded', deplie ? 'true' : 'false');
+          more.innerHTML = deplie ? ic('chev-down') + 'Masquer les chapitres de 1ʳᵉ année'
+            : ic('chev-right') + '+ ' + autres.length + ' chapitre' + (autres.length > 1 ? 's' : '') + ' de 1ʳᵉ année';
+          more.addEventListener('click', () => {
+            if(deplie) deplies1A.delete(collKey); else deplies1A.add(collKey);
+            buildDrawerList(m);
+          });
+          li.appendChild(more);
+          ul.appendChild(li);
+        }
+        part.appendChild(ul);
+      }
+      list.appendChild(part);
+    });
+    cacheEtats = null;
+    // Chapitre actif au milieu de la zone visible (utile avec plus de cent chapitres)
+    const act = list.querySelector('.mob-chap-row.cur');
+    const sc = $('mob-drawer-scroll');
+    if(act && sc){
+      const r = act.getBoundingClientRect(), s = sc.getBoundingClientRect();
+      if(r.top < s.top + 40 || r.bottom > s.bottom - 40) sc.scrollTop += (r.top - s.top) - sc.clientHeight / 2;
+    }
+  }
+  function reconstruire(){ aConstruire = true; buildDrawerList(currentMat); }
+  window.__majNav = reconstruire;
+
+  /* ── Tuiles de la page Chapitres (téléphone) : Aujourd'hui · Bilan ── */
+  function majTuiles(){
+    if(!mqTel.matches) return;
+    const due = (typeof srsCountDue === 'function') ? srsCountDue() : 0;
+    const sub = $('dr-today-sub');
+    if(sub) sub.textContent = due ? libDues(due) + ' · ≈ ' + Math.max(1, Math.round(due * 20 / 60)) + ' min' : 'Aucune carte due';
+    const b = $('rev-badge-tile');
+    if(b){ b.textContent = due > 99 ? '99+' : String(due); b.hidden = !due; }
+    let acq = 0, tot = 0;
+    const y = window.__currentYear ? window.__currentYear() : 1;
+    CHAPTERS.forEach(c => {
+      if(!c.panels.includes('flash')) return;
+      if(window.__inRevision && !window.__inRevision(c, y)) return;
+      const e = etatDeck(c.prefix); acq += e.acq; tot += e.tot;
+    });
+    const d = $('dr-dash-sub');
+    if(d) d.textContent = tot ? Math.round(acq / tot * 100) + ' % des cartes acquises' : 'Progression des cartes';
+  }
+
+  /* ── Filtre instantané ── */
   (function(){
-    const input = document.getElementById('mob-filter');
-    const clear = document.getElementById('mob-filter-clear');
+    const input = $('mob-filter');
+    const clear = $('mob-filter-clear');
     if(!input) return;
+    input.placeholder = 'Filtrer les ' + CHAPTERS.length + ' chapitres';
     input.addEventListener('input', () => {
       if(clear) clear.hidden = !input.value;
       buildDrawerList(currentMat);
@@ -75549,56 +75808,93 @@ ${bodyContent}
     });
   })();
 
-  /* ── Ouvrir/fermer le drawer ── */
-  function setExpanded(state){
-    document.querySelectorAll('#nav-toggle-btn, #mob-menu-btn').forEach(b => {
-      if(b) b.setAttribute('aria-expanded', state ? 'true' : 'false');
-    });
+  /* ── Ouvrir / fermer le tiroir (ou la page Chapitres) ; replier la barre latérale ── */
+  const navToggle = $('nav-toggle-btn');
+  function majBoutons(){
+    const lat = mqSide.matches, replie = root.classList.contains('nav-replie');
+    if(navToggle){
+      const ouvert = lat ? !replie : drawerOpen;
+      navToggle.setAttribute('aria-expanded', ouvert ? 'true' : 'false');
+      const t = lat ? (replie ? 'Afficher la navigation des chapitres' : 'Masquer la navigation des chapitres') : 'Chapitres';
+      navToggle.title = t; navToggle.setAttribute('aria-label', t);
+    }
+    const mb = $('mob-menu-btn');
+    if(mb) mb.setAttribute('aria-expanded', drawerOpen ? 'true' : 'false');
   }
-  // Bouton d'ouverture pertinent selon le format (desktop ☰ header vs mobile)
-  function currentToggle(){
-    return window.innerWidth >= 768
-      ? document.getElementById('nav-toggle-btn')
-      : document.getElementById('mob-menu-btn');
-  }
+  function currentToggle(){ return window.innerWidth >= 768 ? navToggle : $('mob-menu-btn'); }
   function openDrawer(){
+    if(mqSide.matches){ setReplie(false); return; }
     drawerOpen = true;
-    const drawer = document.getElementById('mob-drawer');
+    const drawer = $('mob-drawer');
     drawer.classList.add('open');
-    document.getElementById('mob-drawer-overlay').classList.add('open');
+    $('mob-drawer-overlay').classList.add('open');
     buildDrawerList(currentMat);
-    setExpanded(true);
-    // Déplacer le focus dans le tiroir (sur le bouton fermer)
-    const closeBtn = document.getElementById('mob-drawer-close');
-    if(closeBtn) setTimeout(() => closeBtn.focus(), 30);
+    majTuiles();
+    majBoutons();
+    const sc = $('mob-drawer-scroll');
+    if(sc && mqTel.matches && !$('mob-filter').value) sc.scrollTop = 0;
+    // Focus dans le tiroir (sur le bouton fermer)
+    const closeBtn = $('mob-drawer-close');
+    if(closeBtn) setTimeout(() => { try{ closeBtn.focus({ preventScroll:true }); }catch(e){ closeBtn.focus(); } }, 30);
   }
-  function closeDrawer(){
+  function closeDrawer(sansFocus){
+    if(!drawerOpen) return;
     drawerOpen = false;
-    document.getElementById('mob-drawer').classList.remove('open');
-    document.getElementById('mob-drawer-overlay').classList.remove('open');
-    setExpanded(false);
+    $('mob-drawer').classList.remove('open');
+    $('mob-drawer-overlay').classList.remove('open');
+    majBoutons();
     // Rendre le focus au bouton d'ouverture (différé pour passer après le clic)
     const opener = currentToggle();
-    if(opener) setTimeout(() => opener.focus(), 0);
+    if(opener && !sansFocus) setTimeout(() => opener.focus(), 0);
+  }
+  function setReplie(v){
+    root.classList.toggle('nav-replie', !!v);
+    Store.set('navCollapsed', v ? '1' : '0');
+    majBoutons();
+    if(!v) buildDrawerList(currentMat);
   }
   /* Piège de focus : tant que le tiroir est ouvert, Tab boucle à l'intérieur */
-  document.getElementById('mob-drawer').addEventListener('keydown', e => {
+  $('mob-drawer').addEventListener('keydown', e => {
     if(e.key !== 'Tab' || !drawerOpen) return;
-    const focusables = document.getElementById('mob-drawer')
-      .querySelectorAll('button:not([disabled]), [href], [tabindex]:not([tabindex="-1"])');
+    const focusables = Array.from($('mob-drawer')
+      .querySelectorAll('button:not([disabled]), input, [href], [tabindex]:not([tabindex="-1"])'))
+      .filter(x => x.getClientRects().length);
     if(!focusables.length) return;
     const first = focusables[0], last = focusables[focusables.length - 1];
     if(e.shiftKey && document.activeElement === first){ e.preventDefault(); last.focus(); }
     else if(!e.shiftKey && document.activeElement === last){ e.preventDefault(); first.focus(); }
   });
-
-  document.getElementById('mob-menu-btn').addEventListener('click', openDrawer);
-  document.getElementById('nav-toggle-btn')?.addEventListener('click', openDrawer); // bouton ☰ desktop
-  document.getElementById('mob-drawer-close').addEventListener('click', closeDrawer);
-  document.getElementById('mob-drawer-overlay').addEventListener('click', closeDrawer);
+  $('mob-menu-btn').addEventListener('click', openDrawer);
+  if(navToggle) navToggle.addEventListener('click', () => {
+    if(mqSide.matches) setReplie(!root.classList.contains('nav-replie'));
+    else if(drawerOpen) closeDrawer(); else openDrawer();
+  });
+  $('mob-drawer-close').addEventListener('click', () => closeDrawer());
+  $('mob-drawer-overlay').addEventListener('click', () => closeDrawer());
   document.addEventListener('keydown', e => { if(e.key === 'Escape' && drawerOpen) closeDrawer(); });
+  const surChangementLargeur = () => {
+    if(mqSide.matches && drawerOpen) closeDrawer(true);
+    majBoutons();
+    if(navVisible()) buildDrawerList(currentMat);
+    rendreBarre(true);
+  };
+  if(mqSide.addEventListener) mqSide.addEventListener('change', surChangementLargeur);
+  if(mqTel.addEventListener) mqTel.addEventListener('change', surChangementLargeur);
 
-  /* ── Swipe pour ouvrir le drawer depuis le bord gauche ── */
+  /* Tuiles */
+  $('dr-today-tile') && $('dr-today-tile').addEventListener('click', () => {
+    if(window.__consommerPageFictive) window.__consommerPageFictive(true);
+    closeDrawer(true);
+    if(window.todayOpen) window.todayOpen();
+  });
+  $('dr-dash-tile') && $('dr-dash-tile').addEventListener('click', () => {
+    if(window.__consommerPageFictive) window.__consommerPageFictive(true);
+    closeDrawer(true);
+    const b = $('dash-btn') || $('mob-dash-btn');
+    if(b) b.click();
+  });
+
+  /* ── Swipe pour ouvrir le tiroir depuis le bord gauche ── */
   let swipeStartX = 0, swipeStartY = 0, swipeBlocked = false;
   // Le swipe ne doit PAS se déclencher quand on manipule un curseur, un
   // sélecteur, un bouton ou un simulateur (sinon glisser un slider au doigt
@@ -75611,78 +75907,300 @@ ${bodyContent}
   }, {passive:true});
   document.addEventListener('touchend', e => {
     if(swipeBlocked){ swipeBlocked = false; return; }
+    if(mqSide.matches) return;
     const dx = e.changedTouches[0].clientX - swipeStartX;
     const dy = Math.abs(e.changedTouches[0].clientY - swipeStartY);
-    // Swipe droit depuis bord gauche → ouvrir drawer
+    // Swipe droit depuis bord gauche → ouvrir ; swipe gauche → fermer
     if(!drawerOpen && swipeStartX < 28 && dx > 55 && dy < 60) openDrawer();
-    // Swipe gauche depuis n'importe où → fermer drawer
     if(drawerOpen && dx < -55 && dy < 60) closeDrawer();
   }, {passive:true});
 
-  ;
-
-  /* ── Année dans le drawer (au-dessus des matières) ── */
+  /* ── Année : 1ʳᵉ / 2ᵉ (ouvre le 1ᵉʳ chapitre de l'année dans la matière courante) ── */
+  function setYear(y){
+    currentYear = (y === 2) ? 2 : 1;
+    Store.set('year', String(currentYear));
+    refreshYearButtons();
+    refreshMatButtons();
+  }
   document.querySelectorAll('.mob-year-btn').forEach(btn => {
     btn.addEventListener('click', () => {
-      currentYear = (parseInt(btn.dataset.year) === 2) ? 2 : 1;
-      Store.set('year', String(currentYear));
-      refreshYearButtons();
-      refreshMatButtons();          // masque les matières sans contenu + ajuste currentMat
+      const y = (parseInt(btn.dataset.year) === 2) ? 2 : 1;
+      if(y === currentYear && !sommaireOuvert) return;
+      setYear(y);
+      if(sommaireOuvert){ rendreSommaire(currentMat); buildDrawerList(currentMat); return; }
       buildDrawerList(currentMat);
       const id = firstChapInYear(currentMat, currentYear);
       if(id){
-        const cb = document.querySelector('.chap-btn[data-chap="'+id.replace('chap-','')+'"]');
+        const cb = document.querySelector('.chap-btn[data-chap="' + id.replace('chap-', '') + '"]');
         if(cb) cb.click();
         updateMobTitle();
-        buildDrawerList(currentMat);
       }
     });
   });
 
-  /* ── Matières dans le drawer ── */
+  /* ── Intercalaires de matière : parcourir sans naviguer ; un 2ᵉ clic sur l'actif
+     ouvre le Sommaire de la matière ── */
   document.querySelectorAll('.mob-mat-btn').forEach(btn => {
     btn.addEventListener('click', () => {
-      currentMat = btn.dataset.mat;
-      document.querySelectorAll('.mob-mat-btn').forEach(b => b.classList.toggle('active', b === btn));
-      // S4 : afficher la liste de la matière SANS naviguer (la navigation se fait
-      // au choix d'un chapitre). On reste dans le tiroir pour parcourir.
+      const m = btn.dataset.mat;
+      if(m === currentMat && btn.classList.contains('active')){ ouvrirSommaire(m); return; }
+      currentMat = m;
       buildDrawerList(currentMat);
     });
   });
+  // Clavier : ← → entre les intercalaires (role=tablist)
+  $('mob-mat-bar') && $('mob-mat-bar').addEventListener('keydown', e => {
+    if(e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+    const tabs = Array.from(document.querySelectorAll('.mob-mat-btn')).filter(b => b.style.display !== 'none');
+    const i = tabs.indexOf(document.activeElement);
+    if(i < 0) return;
+    e.preventDefault();
+    const t = tabs[(i + (e.key === 'ArrowRight' ? 1 : tabs.length - 1)) % tabs.length];
+    t.click(); t.focus();
+  });
 
-  /* ── Titre dynamique dans le header mobile ── */
-  function updateMobTitle(){
-    const activeChap = document.querySelector('.chapter.active');
-    if(!activeChap) return;
-    const chapId = activeChap.id;
-    // Chercher le label dans CHAP_DATA
-    let label = 'Cours';
-    Object.values(CHAP_DATA).forEach(mat => {
-      mat.forEach(group => {
-        group.items.forEach(item => {
-          if(item.id === chapId) label = item.label;
-        });
-      });
-    });
-    document.getElementById('mob-chapter-title').textContent = label;
+  /* ══ Barre du téléphone (SPEC §4.2) ══════════════════════════════════════
+     Au repos (haut de page) : « ● Matière · partie · année » + titre complet (2 lignes).
+     Au défilement : la barre s'efface quand on descend (> 8 px, au-delà de 120 px) et
+     revient au moindre geste vers le haut avec « Chapitre · onglet » + la section
+     courante (scroll-spy du sommaire : window.__surSection). Un seul écouteur scroll
+     passif, regroupé par requestAnimationFrame. */
+  const barre = $('mob-header');
+  const etatBarre = { c: null, section: null, cle: '' };
+  function casPhrase(t, sec){
+    t = String(t || '').replace(/\s+/g, ' ').trim();
+    if(!t || /[a-zà-öø-ÿ]/.test(t)) return t;            // déjà en casse normale
+    const ref = sec ? ((sec.querySelector('h2') || {}).textContent || '') : '';
+    const sigles = new Set(ref.split(/[^A-Za-zÀ-ÖØ-Ý0-9]+/).filter(w => w.length > 1 && /[A-Z]/.test(w) && w === w.toUpperCase()));
+    const s = t.split(' ').map(w => { const k = w.replace(/[^A-Za-zÀ-ÖØ-Ý0-9]/g, ''); return sigles.has(k) ? w : w.toLowerCase(); }).join(' ');
+    return s.charAt(0).toUpperCase() + s.slice(1);
   }
-
-  /* ── Synchroniser la sidebar/tiroir avec le chapitre actif ── */
-  function syncSidebar(){
-    const activeChap = document.querySelector('.chapter.active');
-    if(activeChap){
-      const c = CHAPTERS_BY_ID[activeChap.id.replace('chap-','')];
-      if(c){
-        // Chapitres bi-annuels (anglais, constantes) : ne pas forcer l'année courante.
-        const bothYears = (c.matiere === 'anglais' || c.id === 'constantes');
-        const y = (window.__YEAR2A && window.__YEAR2A.has(c.id)) ? 2 : 1;
-        if(!bothYears && y !== currentYear){ currentYear = y; Store.set('year', String(currentYear)); refreshYearButtons(); }
-        if(c.matiere !== currentMat){ currentMat = c.matiere; }
-        recordRecent(activeChap.id);   // historique « Récents » du tiroir + écran Aujourd'hui
+  function rendreBarre(force){
+    if(!barre) return;
+    const k = $('mob-bar-k'), h = $('mob-chapter-title');
+    if(!k || !h) return;
+    let cle, kh, hh, mat;
+    if(sommaireOuvert){
+      mat = sommaireOuvert;
+      cle = 'S|' + mat + '|' + currentYear;
+      kh = '<span class="dot" aria-hidden="true"></span><b>' + MAT_NOMS[mat] + '</b><span>·</span><span>' + (currentYear === 2 ? '2ᵉ' : '1ʳᵉ') + ' année</span>';
+      hh = 'Sommaire de la matière';
+    } else {
+      const c = etatBarre.c;
+      if(!c) return;
+      mat = c.matiere;
+      const sec = etatBarre.section;
+      const enSection = !!(sec && (window.scrollY || 0) > 120);
+      const ch = activeChapEl(), p = ch && ch.querySelector('.panel.active');
+      const ong = p ? panneauNom(p.id) : '';
+      if(enSection){
+        cle = 'C|' + c.id + '|' + ong + '|' + sec.id;
+        kh = '<span class="dot" aria-hidden="true"></span><span class="chap">' + esc(c.mobLabel || c.name) + '</span>' + (ong ? '<span>·</span><span>' + ong + '</span>' : '');
+        hh = (sec.n ? '<span class="sn">' + esc(sec.n) + '</span>' : '') + esc(sec.t);
+      } else {
+        const yr = window.__chapYear ? window.__chapYear(c) : 1;
+        cle = 'R|' + c.id;
+        kh = '<span class="dot" aria-hidden="true"></span><b>' + MAT_NOMS[mat] + '</b>'
+          + (c.subLabel ? '<span>·</span><span class="part">' + esc(c.subLabel) + '</span>' : '')
+          + (yr ? '<span>·</span><span>' + (yr === 2 ? '2ᵉ' : '1ʳᵉ') + '</span>' : '');
+        hh = esc(c.name);
       }
     }
-    refreshMatButtons();         // visibilité matières + bouton actif selon l'année
-    buildDrawerList(currentMat); // reconstruit la liste + surligne le chapitre actif
+    if(cle === etatBarre.cle && !force) return;
+    etatBarre.cle = cle;
+    barre.setAttribute('data-mat', mat);
+    k.innerHTML = kh;
+    h.innerHTML = hh;
+  }
+  /* ── Titre dynamique de la barre du téléphone (chapitre affiché) ── */
+  function updateMobTitle(){
+    const ch = activeChapEl();
+    if(!ch) return;
+    const c = CHAPTERS_BY_ID[ch.id.replace('chap-', '')];
+    if(!c) return;
+    if(etatBarre.c !== c) etatBarre.section = null;
+    etatBarre.c = c;
+    rendreBarre();
+  }
+  // Section courante (appelé par le scroll-spy du sommaire interne) → barre + lastPos.s
+  window.__surSection = function(sec){
+    try {
+      const ch = sec && sec.closest('.chapter');
+      if(!ch || ch !== activeChapEl()) return;
+      const lab = sec.dataset.tocLabel || '';
+      const m = lab.match(/^(§\s*\d+[a-z]?)\s*[·:\-–—.]?\s*(.*)$/i);
+      const s = { id: sec.id, n: m ? m[1].replace(/\s+/g, '') : '', t: casPhrase(m ? m[2] : lab, sec) };
+      if(etatBarre.section && etatBarre.section.id === s.id) return;
+      etatBarre.section = s;
+      rendreBarre();
+      // « Reprendre · Cours · §3 Régime libre » (Récents, Sommaire) : section dans lastPos
+      const pos = Store.getJSON('lastPos', null);
+      const p = sec.closest('.panel');
+      if(pos && pos.chap === ch.id && p && pos.panel === p.id){
+        const lib = (s.n ? s.n + ' ' : '') + s.t;
+        if(pos.s !== lib){ pos.s = lib; pos.t = Date.now(); Store.setJSON('lastPos', pos); }
+      }
+    } catch(e){}
+  };
+  // Effacement au défilement (téléphone)
+  let dernierY = window.scrollY || 0, tic = false;
+  function majDefilement(){
+    tic = false;
+    if(!barre) return;
+    const y = Math.max(0, window.scrollY || 0);
+    let cachee = barre.classList.contains('cachee');
+    if(!mqTel.matches || y <= 120){ cachee = false; dernierY = y; }
+    else if(y - dernierY > 8){ cachee = true; dernierY = y; }
+    else if(y < dernierY){ cachee = false; dernierY = y; }
+    if(cachee !== barre.classList.contains('cachee')){
+      barre.classList.toggle('cachee', cachee);
+      root.classList.toggle('mbar-cachee', cachee);
+    }
+    if(mqTel.matches) rendreBarre();
+  }
+  window.addEventListener('scroll', () => { if(!tic){ tic = true; requestAnimationFrame(majDefilement); } }, { passive:true });
+  // Changement d'onglet : la section courante sera redonnée par le scroll-spy
+  document.addEventListener('click', e => {
+    if(e.target && e.target.closest && e.target.closest('.tab')){ etatBarre.section = null; setTimeout(() => rendreBarre(), 0); }
+  });
+
+  /* ══ Sommaire de la matière (SPEC §4.3 point 8) : table des matières d'un livre ══
+     Rendu dans la zone de la feuille (#sommaire-matiere), lien profond #sommaire/<matière>
+     (urlRouting). Ouvert par un 2ᵉ clic sur l'intercalaire actif, ou window.__ouvrirSommaire
+     (nom de la matière du fil d'Ariane). Fermé par tout changement de chapitre (.chap-btn). */
+  let sommaireOuvert = null;
+  function quand(t){
+    if(!t) return '';
+    const d = new Date(t), j = new Date(); j.setHours(0, 0, 0, 0);
+    const h = d.getHours() + ' h ' + String(d.getMinutes()).padStart(2, '0');
+    const jour = new Date(d); jour.setHours(0, 0, 0, 0);
+    const ecart = Math.round((j - jour) / 86400000);
+    if(ecart === 0) return 'aujourd\'hui, ' + h;
+    if(ecart === 1) return 'hier, ' + h;
+    try { return d.toLocaleDateString('fr-FR', { weekday:'long', day:'numeric', month:'short' }) + ', ' + h; }
+    catch(e){ return d.toLocaleDateString() + ', ' + h; }
+  }
+  function rendreSommaire(mat){
+    const box = $('sommaire-matiere');
+    if(!box) return;
+    cacheEtats = null;
+    const actif = activeChapId();
+    const parties = [];
+    let nChap = 0, dues = 0, acq = 0, tot = 0, autreAnnee = 0;
+    (CHAP_DATA[mat] || []).forEach(g => {
+      const items = g.items.filter(okYear);
+      autreAnnee += g.items.length - items.length;
+      if(!items.length) return;
+      let pd = 0, pa = 0, pt = 0;
+      items.forEach(it => { const e = etat(it.c.prefix); pd += e.dues; pa += e.acq; pt += e.tot; });
+      parties.push({ g, items, pd, pa, pt });
+      nChap += items.length; dues += pd; acq += pa; tot += pt;
+    });
+    const pct = (a, t) => t ? Math.round(a / t * 100) : 0;
+    let html = '<div class="sommaire-feuille" data-mat="' + mat + '"><div class="ov-head">'
+      + '<div class="ov-crumb"><span class="dot" aria-hidden="true"></span><b>Sommaire de la matière</b><span>·</span><span>' + libAnnee(currentYear) + '</span></div>'
+      + '<h2 class="ov-h">' + MAT_NOMS[mat] + '</h2>'
+      + '<div class="ov-meta">' + parties.length + ' partie' + (parties.length > 1 ? 's' : '') + ' · ' + nChap + ' chapitre' + (nChap > 1 ? 's' : '')
+      + (dues ? ' · <b>' + libDues(dues) + '</b>' : '') + (tot ? ' · ' + pct(acq, tot) + ' % des cartes acquises' : '') + '</div>';
+    const pos = Store.getJSON('lastPos', null);
+    const rp = pos && pos.chap && CHAP_ITEM_BY_ID[pos.chap];
+    if(rp && rp.mat === mat){
+      const sn = pos.s ? String(pos.s).split(' ')[0] : '';
+      const s = [panneauNom(pos.panel), pos.s || '', quand(pos.t)].filter(Boolean).join(' · ');
+      html += '<button type="button" class="ov-resume" data-chap="' + esc(pos.chap) + '" data-panel="' + esc(pos.panel || '') + '">'
+        + '<span class="pic" aria-hidden="true">' + esc(/^§\d/.test(sn) ? sn : '§') + '</span>'
+        + '<span class="tx"><span class="t">Reprendre : ' + esc(rp.item.c.name) + '</span>' + (s ? '<span class="s">' + esc(s) + '</span>' : '') + '</span>'
+        + ic('chev-right') + '</button>';
+    }
+    html += '</div><div class="ov-grid">';
+    parties.forEach(p => {
+      html += '<section class="pcard"><div class="pcard-h"><h3>' + esc(p.g.sub || 'Chapitres') + '</h3><span class="pcard-n">' + p.items.length + ' chapitre' + (p.items.length > 1 ? 's' : '') + '</span></div>';
+      if(p.pt) html += '<div class="pcard-p"><div class="stack" role="img" aria-label="' + pct(p.pa, p.pt) + ' % des cartes acquises"><i class="s2" style="width:' + pct(p.pa, p.pt) + '%"></i></div>'
+        + '<span>' + pct(p.pa, p.pt) + ' % acquis' + (p.pd ? ' · <b>' + p.pd + ' due' + (p.pd > 1 ? 's' : '') + '</b>' : '') + '</span></div>';
+      html += '<ol class="pcard-list">';
+      p.items.forEach(it => {
+        const e = etat(it.c.prefix);
+        html += '<li><button type="button" data-chap="' + it.id + '"' + (it.id === actif ? ' class="cur" aria-current="page"' : '') + '>' + esc(it.c.name) + '</button>'
+          + (it.c.drawFn ? '<span class="simu" title="Simulateur">' + ic('wave') + '<span class="sr">simulateur</span></span>' : '')
+          + (e.dues ? '<span class="count count-soft" title="' + libDues(e.dues) + '">' + e.dues + '</span>' : '') + '</li>';
+      });
+      html += '</ol></section>';
+    });
+    html += '</div>';
+    if(autreAnnee){
+      const autre = currentYear === 1 ? 2 : 1;
+      html += '<div class="ov-2a"><span>' + autreAnnee + ' chapitre' + (autreAnnee > 1 ? 's' : '') + ' de ' + libAnnee(autre) + ' en ' + MAT_NOMS[mat].toLowerCase()
+        + (autre === 2 ? ' (PT) : ils s\'ajoutent en 2ᵉ année.' : ' : révisés aussi en 2ᵉ année.') + '</span>'
+        + '<button type="button" class="btn" data-annee="' + autre + '">Voir la ' + libAnnee(autre) + '</button></div>';
+    }
+    html += '</div>';
+    box.innerHTML = html;
+    cacheEtats = null;
+    box.querySelectorAll('.pcard-list button[data-chap]').forEach(b => b.addEventListener('click', () => ouvrirChapitre(b.dataset.chap)));
+    const rs = box.querySelector('.ov-resume');
+    if(rs) rs.addEventListener('click', () => {
+      const ch = rs.dataset.chap, pa = rs.dataset.panel;
+      fermerSommaire(false);
+      if(typeof navigateTo === 'function') navigateTo(ch, pa || null);
+    });
+    const an = box.querySelector('.ov-2a .btn');
+    if(an) an.addEventListener('click', () => { setYear(parseInt(an.dataset.annee)); rendreSommaire(mat); buildDrawerList(currentMat); rendreBarre(true); });
+  }
+  function ouvrirSommaire(mat, depuisUrl){
+    if(!CHAP_DATA[mat]) return false;
+    if(!chaptersInYear(mat, currentYear)) setYear(currentYear === 1 ? 2 : 1);
+    if(drawerOpen){
+      if(window.__consommerPageFictive) window.__consommerPageFictive();
+      closeDrawer(true);
+    }
+    sommaireOuvert = mat;
+    currentMat = mat;
+    rendreSommaire(mat);
+    $('sommaire-matiere').hidden = false;
+    root.classList.add('sommaire-ouvert');
+    if(typeof scrollPageTop === 'function') scrollPageTop();
+    buildDrawerList(currentMat);
+    rendreBarre(true);
+    if(!depuisUrl && window.__syncHash) window.__syncHash();
+    return true;
+  }
+  function fermerSommaire(majUrl){
+    if(!sommaireOuvert) return;
+    sommaireOuvert = null;
+    const box = $('sommaire-matiere');
+    if(box){ box.hidden = true; box.innerHTML = ''; }
+    root.classList.remove('sommaire-ouvert');
+    etatBarre.cle = '';
+    updateMobTitle();
+    if(majUrl !== false && window.__syncHash) window.__syncHash();
+  }
+  window.__ouvrirSommaire = ouvrirSommaire;
+  window.__fermerSommaire = fermerSommaire;
+  window.__sommaireOuvert = () => sommaireOuvert;
+  // Tout changement de chapitre (clic réel ou programmatique sur .chap-btn) ferme le sommaire
+  document.addEventListener('click', e => {
+    if(sommaireOuvert && e.target && e.target.closest && e.target.closest('.chap-btn')) fermerSommaire(false);
+  }, true);
+
+  /* ── Synchroniser la navigation avec le chapitre actif ── */
+  function syncSidebar(){
+    const activeChap = activeChapEl();
+    if(activeChap){
+      const c = CHAPTERS_BY_ID[activeChap.id.replace('chap-', '')];
+      if(c){
+        // Chapitres des deux années (anglais, constantes) : l'année courante reste. Un
+        // chapitre de 2ᵉ année ouvert en 1ʳᵉ année fait passer en 2ᵉ année ; un chapitre
+        // de 1ʳᵉ année ouvert en 2ᵉ année y reste (sa partie se déplie : « + N chapitres
+        // de 1ʳᵉ année »), car la 2ᵉ année révise tout le programme.
+        const bothYears = (c.matiere === 'anglais' || c.id === 'constantes');
+        const y = (window.__YEAR2A && window.__YEAR2A.has(c.id)) ? 2 : 1;
+        if(!bothYears && y === 2 && currentYear !== 2){ currentYear = 2; Store.set('year', '2'); refreshYearButtons(); }
+        if(c.matiere !== currentMat) currentMat = c.matiere;
+        recordRecent(activeChap.id);   // historique « Récents » + écran Aujourd'hui
+      }
+    }
+    refreshMatButtons();
+    buildDrawerList(currentMat);
     updateMobTitle();
   }
   let syncQueued = false;
@@ -75690,60 +76208,79 @@ ${bodyContent}
     if(syncQueued) return;
     syncQueued = true;
     // setTimeout plutôt que requestAnimationFrame : rAF se met en pause dans les
-    // onglets en arrière-plan, ce qui désynchroniserait la sidebar.
+    // onglets en arrière-plan, ce qui désynchroniserait la navigation.
     setTimeout(() => { syncQueued = false; syncSidebar(); }, 0);
   }
 
-  /* ── Swipe horizontal entre onglets : DÉSACTIVÉ (à la demande de l'utilisateur).
-     Le changement d'onglet se fait uniquement via les onglets (clic). On conserve
-     le swipe depuis le bord gauche pour ouvrir le tiroir (géré ailleurs). ── */
+  /* ── Boutons de la barre du téléphone → fonctions de l'en-tête ── */
+  $('mob-search-btn').addEventListener('click', () => { $('search-btn').click(); });
+  $('mob-quiz-btn').addEventListener('click', () => { $('quiz-btn').click(); });
 
-  /* ── Boutons mobile header → fonctions desktop ── */
-  document.getElementById('mob-search-btn').addEventListener('click', () => {
-    document.getElementById('search-btn').click();
-  });
-  document.getElementById('mob-quiz-btn').addEventListener('click', () => {
-    document.getElementById('quiz-btn').click();
-  });
-  document.getElementById('mob-theme-btn').addEventListener('click', () => {
-    document.getElementById('theme-btn').click();
-  });
-
-  /* ── Menu « ⋯ » mobile : regroupe les actions secondaires (Quiz, Calcul,
-     Bilan, Formulaire, Sauvegarde) pour désencombrer la barre du haut. ── */
+  /* ── Feuille « ⋯ » du téléphone : monte du bas, à la demande (une modale) ── */
   (function(){
-    const btn = document.getElementById('mob-more-btn');
-    const menu = document.getElementById('mob-more-menu');
+    const btn = $('mob-more-btn'), menu = $('mob-more-menu'), voile = $('mob-more-scrim');
     if(!btn || !menu) return;
-    const close = () => { menu.classList.remove('open'); btn.classList.remove('open'); btn.setAttribute('aria-expanded','false'); };
+    let opener = null;
+    const majEpingle = () => {
+      const b = $('mob-pin-btn'); if(!b) return;
+      const id = activeChapId(), p = id && isPinned(id);
+      b.setAttribute('aria-pressed', p ? 'true' : 'false');
+      const l = b.querySelector('.ic-lbl'); if(l) l.textContent = p ? 'Désépingler ce chapitre' : 'Épingler ce chapitre';
+      const u = b.querySelector('use'); if(u) u.setAttribute('href', p ? '#i-star-fill' : '#i-star');
+    };
+    function open(){
+      majEpingle();
+      opener = document.activeElement;
+      menu.classList.add('open');
+      if(voile){ voile.hidden = false; requestAnimationFrame(() => voile.classList.add('open')); }
+      btn.classList.add('open');
+      btn.setAttribute('aria-expanded', 'true');
+      const f = menu.querySelector('.menu-item');
+      if(f) setTimeout(() => { try{ f.focus({ preventScroll:true }); }catch(e){ f.focus(); } }, 60);
+    }
+    function close(rendre){
+      if(!menu.classList.contains('open')) return;
+      menu.classList.remove('open');
+      if(voile){ voile.classList.remove('open'); voile.hidden = true; }
+      btn.classList.remove('open');
+      btn.setAttribute('aria-expanded', 'false');
+      if(rendre !== false && opener && opener.getClientRects && opener.getClientRects().length) try{ opener.focus({ preventScroll:true }); }catch(e){}
+    }
     btn.addEventListener('click', e => {
       e.stopPropagation();
-      const open = menu.classList.toggle('open');
-      btn.classList.toggle('open', open);
-      btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+      if(menu.classList.contains('open')) close(); else open();
     });
-    // :not(.rsc-btn) → les boutons A−/A+ (taille du texte) ne ferment pas le menu
-    menu.querySelectorAll('button:not(.rsc-btn)').forEach(it => it.addEventListener('click', close));
-    document.addEventListener('click', e => { if(!menu.contains(e.target) && e.target !== btn) close(); });
+    // Les actions ferment la feuille ; les segmentés (thème, taille du texte) la laissent ouverte
+    menu.querySelectorAll('.menu-item').forEach(it => it.addEventListener('click', () => close(false)));
+    const pinB = $('mob-pin-btn');
+    if(pinB) pinB.addEventListener('click', () => { const id = activeChapId(); if(id){ togglePin(id); reconstruire(); } });
+    if(voile) voile.addEventListener('click', () => close());
     document.addEventListener('keydown', e => { if(e.key === 'Escape') close(); });
+    // Piège du focus dans la feuille
+    menu.addEventListener('keydown', e => {
+      if(e.key !== 'Tab') return;
+      const f = Array.from(menu.querySelectorAll('button:not([disabled])')).filter(x => x.getClientRects().length);
+      if(!f.length) return;
+      const a = f[0], z = f[f.length - 1];
+      if(e.shiftKey && document.activeElement === a){ e.preventDefault(); z.focus(); }
+      else if(!e.shiftKey && document.activeElement === z){ e.preventDefault(); a.focus(); }
+    });
+    window.__fermerFeuillePlus = close;
   })();
 
   /* ── Init ── */
   refreshYearButtons();
   refreshMatButtons();
+  majBoutons();
   syncSidebar();
 
-  // Observer les changements de chapitre actif pour resynchroniser la sidebar
+  // Observer les changements de chapitre actif pour resynchroniser la navigation
   const chapObs = new MutationObserver(() => queueSync());
   document.querySelectorAll('.chapter').forEach(ch => {
     chapObs.observe(ch, {attributes:true, attributeFilter:['class']});
   });
-
-  // Sync tab-bar avec la matière active au démarrage
-  const activeMat = (document.querySelector('.mat-btn.active') || {}).dataset?.mat || 'physique';
-  currentMat = activeMat;
-;
-
+  // Les compteurs des rangées suivent les révisions (appelé par __updateReviseBadge)
+  window.__majNavCompteurs = () => { if(navVisible()) reconstruire(); else aConstruire = true; };
 })();
 
 /* ============================================================ */
@@ -76505,56 +77042,36 @@ document.getElementById('skip-link')?.addEventListener('click', e => {
   function updateBadge(){
     if(typeof srsCountDue !== 'function') return;
     const n = srsCountDue();
-    ['rev-badge','rev-badge-mob','rev-badge-study'].forEach(id=>{
+    ['rev-badge','rev-badge-mob','rev-badge-study','rev-badge-sheet','rev-badge-tile'].forEach(id=>{
       const el=document.getElementById(id); if(!el) return;
       if(n>0){ el.textContent = n>99 ? '99+' : String(n); el.hidden=false; }
       else el.hidden=true;
     });
-    updateHeaderToday();   // S5 : garder la ligne du jour synchrone
-  }
-  /* S5 — ligne du jour : date · cartes dues · chapitres maîtrisés (>=80 % acquis) */
-  function updateHeaderToday(){
-    const el = document.getElementById('header-today');
-    if(!el) return;
-    let date = '';
-    try { date = new Date().toLocaleDateString('fr-FR', {weekday:'long', day:'numeric', month:'long'}); }
-    catch(e){ date = new Date().toLocaleDateString(); }
-    date = date.charAt(0).toUpperCase() + date.slice(1);
-    const due = (typeof srsCountDue === 'function') ? srsCountDue() : 0;
-    const reg = window.FLASH_REGISTRY || {};
-    let mastered = 0;
-    Object.keys(reg).forEach(p => {
-      const cards = reg[p]; if(!cards || !cards.length) return;
-      const st = Store.getJSON('flash:' + p, null); if(!st) return;
-      let a = 0; st.forEach(s => { if(s && s.last === 2) a++; });
-      if(a / cards.length >= 0.8) mastered++;
-    });
-    const icon = window.__icon ? window.__icon('calendar') : '';
-    const dueHtml = due > 0
-      ? ' · <strong style="color:var(--accent)">' + due + ' carte' + (due > 1 ? 's' : '') + ' à revoir</strong>'
-      : ' · <strong style="color:var(--green)">tout est à jour</strong>';
-    const mastHtml = mastered > 0 ? ' · ' + mastered + ' chapitre' + (mastered > 1 ? 's' : '') + ' ≥ 80 %' : '';
-    el.innerHTML = icon + '<span>' + date + dueHtml + mastHtml + '</span>';
-    el.hidden = false;
+    const t = document.getElementById('study-btn');
+    if(t) t.setAttribute('aria-label', n > 0 ? 'Réviser : ' + n + ' carte' + (n > 1 ? 's' : '') + ' due' + (n > 1 ? 's' : '') : 'Réviser');
+    const m = document.getElementById('mob-revise-btn');
+    if(m) m.setAttribute('aria-label', n > 0 ? 'Réviser : ' + n + ' carte' + (n > 1 ? 's' : '') + ' due' + (n > 1 ? 's' : '') : 'Réviser : révisions du jour');
+    if(window.__majNavCompteurs) window.__majNavCompteurs();   // compteurs des rangées de la navigation
   }
   window.__updateReviseBadge = updateBadge;
-  window.__updateHeaderToday = updateHeaderToday;
   setTimeout(updateBadge, 1500);   // laisser le registre de flashcards se peupler
 })();
 
-/* S3 — Réglage de la taille du texte (A− / A+), persistant. */
+/* S3 — Taille du texte (clé readScale : index 0-2 → --read-scale 1 / 1,1 / 1,2), choisie
+   par les segmentés A / A+ / A++ du popover Thème (ordinateur) et de la feuille ⋯ (téléphone). */
 (function(){
-  const LEVELS = [1, 1.1, 1.2], LBL = ['100 %', '110 %', '120 %'];
+  const LEVELS = [1, 1.1, 1.2];
   let i = parseInt(Store.get('readScale') || '0', 10);
   if(!(i >= 0 && i < LEVELS.length)) i = 0;
   function apply(){
     document.documentElement.style.setProperty('--read-scale', LEVELS[i]);
-    document.querySelectorAll('.read-size-val').forEach(e => e.textContent = LBL[i]);
+    document.querySelectorAll('[data-read-set]').forEach(b =>
+      b.setAttribute('aria-checked', parseInt(b.getAttribute('data-read-set'), 10) === i ? 'true' : 'false'));
   }
   apply();
-  document.querySelectorAll('.rsc-btn[data-read]').forEach(b => b.addEventListener('click', e => {
-    e.stopPropagation();                 // ne pas fermer le menu en réglant
-    i = b.dataset.read === 'up' ? Math.min(LEVELS.length - 1, i + 1) : Math.max(0, i - 1);
+  document.querySelectorAll('[data-read-set]').forEach(b => b.addEventListener('click', e => {
+    e.stopPropagation();                 // ne ferme ni le popover ni la feuille ⋯
+    i = Math.max(0, Math.min(LEVELS.length - 1, parseInt(b.getAttribute('data-read-set'), 10) || 0));
     Store.set('readScale', String(i));
     apply();
   }));
@@ -76562,41 +77079,73 @@ document.getElementById('skip-link')?.addEventListener('click', e => {
 </script>
 
 <script>
-/* Menu « ⋯ Plus » de l'en-tête */
+/* Menus déroulants de l'en-tête (Réviser ▾, Plus ⋯) — gabarit .menu (SPEC §5.1) :
+   clic, Échap, clic dehors ; flèches ↑ ↓ (Début / Fin) entre les éléments ; ouverture au
+   clavier = focus sur le 1ᵉʳ élément. Chaque élément garde son id et son propre handler.
+   Le menu Plus reçoit « Dans ce chapitre » entre 1200 et 1359 px (pas de place pour le
+   rail du sommaire à cette largeur). */
 (function(){
-  const btn = document.getElementById('more-btn');
-  const menu = document.getElementById('more-menu');
-  if(!btn || !menu) return;
-  function close(){ menu.classList.remove('open'); btn.classList.remove('open'); btn.setAttribute('aria-expanded','false'); }
-  btn.addEventListener('click', e => {
-    e.stopPropagation();
-    const open = !menu.classList.contains('open');
-    menu.classList.toggle('open', open);
-    btn.classList.toggle('open', open);
-    btn.setAttribute('aria-expanded', open ? 'true' : 'false');
-  });
-  menu.querySelectorAll('.hdr-more-item').forEach(it => it.addEventListener('click', close));
-  document.addEventListener('click', e => { if(!menu.contains(e.target) && e.target !== btn) close(); });
-  document.addEventListener('keydown', e => { if(e.key === 'Escape') close(); });
-})();
-
-/* Menu « ↻ Réviser » de l'en-tête (regroupe Quiz · Calcul mental · Révisions du jour) */
-(function(){
-  const btn = document.getElementById('study-btn');
-  const menu = document.getElementById('study-menu');
-  if(!btn || !menu) return;
-  function close(){ menu.classList.remove('open'); btn.classList.remove('open'); btn.setAttribute('aria-expanded','false'); }
-  btn.addEventListener('click', e => {
-    e.stopPropagation();
-    const open = !menu.classList.contains('open');
-    menu.classList.toggle('open', open);
-    btn.classList.toggle('open', open);
-    btn.setAttribute('aria-expanded', open ? 'true' : 'false');
-  });
-  // chaque item ferme le menu (les actions restent gérées par leurs propres handlers via leur id)
-  menu.querySelectorAll('.hdr-more-item').forEach(it => it.addEventListener('click', close));
-  document.addEventListener('click', e => { if(!menu.contains(e.target) && e.target !== btn) close(); });
-  document.addEventListener('keydown', e => { if(e.key === 'Escape') close(); });
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  function menuDeroulant(btnId, menuId, avantOuverture){
+    const btn = document.getElementById(btnId), menu = document.getElementById(menuId);
+    if(!btn || !menu) return;
+    const items = () => Array.from(menu.querySelectorAll('.menu-item')).filter(x => !x.disabled && x.getClientRects().length);
+    const estOuvert = () => menu.classList.contains('open');
+    function close(rendre){
+      if(!estOuvert()) return;
+      menu.classList.remove('open'); btn.classList.remove('open'); btn.setAttribute('aria-expanded', 'false');
+      if(rendre) btn.focus();
+    }
+    function open(clavier){
+      if(avantOuverture) try { avantOuverture(menu); } catch(e){}
+      menu.classList.add('open'); btn.classList.add('open'); btn.setAttribute('aria-expanded', 'true');
+      if(clavier){ const f = items()[0]; if(f) f.focus(); }
+    }
+    btn.addEventListener('click', e => { e.stopPropagation(); if(estOuvert()) close(); else open(e.detail === 0); });
+    btn.addEventListener('keydown', e => {
+      if((e.key === 'ArrowDown' || e.key === 'ArrowUp') && !estOuvert()){ e.preventDefault(); open(true); }
+    });
+    // chaque élément ferme le menu (son action reste gérée par son propre handler)
+    menu.addEventListener('click', e => { if(e.target.closest && e.target.closest('.menu-item')) close(); });
+    menu.addEventListener('keydown', e => {
+      const l = items(), n = l.length, i = l.indexOf(document.activeElement);
+      if(!n) return;
+      if(e.key === 'ArrowDown'){ e.preventDefault(); l[(i + 1) % n].focus(); }
+      else if(e.key === 'ArrowUp'){ e.preventDefault(); l[(i <= 0 ? n : i) - 1].focus(); }
+      else if(e.key === 'Home'){ e.preventDefault(); l[0].focus(); }
+      else if(e.key === 'End'){ e.preventDefault(); l[n - 1].focus(); }
+      else if(e.key === 'Escape'){ e.stopPropagation(); close(true); }
+      else if(e.key === 'Tab'){ close(); }
+    });
+    document.addEventListener('click', e => { if(!menu.contains(e.target) && !btn.contains(e.target)) close(); });
+    document.addEventListener('keydown', e => { if(e.key === 'Escape') close(); });
+  }
+  /* « Dans ce chapitre » : sections du panneau affiché (1200–1359 px seulement) */
+  function dansCeChapitre(){
+    const box = document.getElementById('more-toc');
+    const list = box && box.querySelector('.more-toc-list');
+    if(!list) return;
+    const w = window.innerWidth;
+    const ch = Array.from(document.querySelectorAll('.chapter.active')).find(x => x.offsetParent !== null);
+    const p = ch && ch.querySelector('.panel.active');
+    const secs = (w >= 1200 && w < 1360 && p) ? Array.from(p.querySelectorAll('.course-section')).filter(s => s.querySelector('h2')) : [];
+    list.innerHTML = '';
+    if(secs.length < 2){ box.hidden = true; return; }
+    secs.forEach((s, k) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'menu-item hdr-more-item';
+      b.setAttribute('role', 'menuitem');
+      const lab = s.dataset.tocLabel || ((s.querySelector('.sec-num') || {}).textContent || '');
+      const m = lab.match(/^\s*(§\s*\d+)/);
+      b.innerHTML = '<span class="n">' + esc(m ? m[1].replace(/\s+/g, '') : '§' + (k + 1)) + '</span><span>' + esc(s.querySelector('h2').textContent.trim()) + '</span>';
+      b.addEventListener('click', () => s.scrollIntoView({ behavior:'smooth', block:'start' }));
+      list.appendChild(b);
+    });
+    box.hidden = false;
+  }
+  menuDeroulant('more-btn', 'more-menu', dansCeChapitre);
+  menuDeroulant('study-btn', 'study-menu');
 })();
 </script>
 
@@ -76971,25 +77520,24 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
       if (document.getElementById('sw-update-banner')) return;
       const bar = document.createElement('div');
       bar.id = 'sw-update-banner';
+      bar.className = 'maj-banniere';
       bar.setAttribute('role', 'status');
-      bar.style.cssText = 'position:fixed;left:50%;bottom:1rem;transform:translateX(-50%);z-index:2000;'
-        + 'background:var(--ink,#1a1d24);color:var(--paper,#faf7f0);border:1.5px solid var(--accent,#c8472e);'
-        + 'box-shadow:0 6px 24px rgba(0,0,0,.35);border-radius:10px;padding:.65rem .9rem;display:flex;'
-        + 'align-items:center;gap:.7rem;font-family:var(--font-ui);font-size:.9rem;max-width:92vw;';
       const msg = document.createElement('span');
-      msg.textContent = '🔄 Nouvelle version disponible';
+      msg.innerHTML = (window.__icon ? window.__icon('refresh') : '') + ' Nouvelle version disponible';
       const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'maj-recharger';
       btn.textContent = 'Recharger';
-      btn.style.cssText = 'background:var(--accent,#c8472e);color:#fff;border:none;border-radius:6px;'
-        + 'padding:.4rem .85rem;cursor:pointer;font-family:var(--font-code);font-size:.8rem;';
       btn.addEventListener('click', () => {
         btn.disabled = true; btn.textContent = '…';
         if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
         else location.reload();
       });
       const close = document.createElement('button');
-      close.textContent = '✕'; close.setAttribute('aria-label', 'Ignorer');
-      close.style.cssText = 'background:none;border:none;color:inherit;opacity:.65;cursor:pointer;font-size:1rem;line-height:1;';
+      close.type = 'button';
+      close.className = 'maj-ignorer';
+      close.innerHTML = window.__icon ? window.__icon('x') : '×';
+      close.setAttribute('aria-label', 'Ignorer');
       close.addEventListener('click', () => bar.remove());
       bar.appendChild(msg); bar.appendChild(btn); bar.appendChild(close);
       document.body.appendChild(bar);
