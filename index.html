@@ -2058,8 +2058,9 @@ figure.schema.defile, .cine-svg-wrap.defile{ overflow-x:auto; overflow-y:hidden;
 #mth-canvas{ --h:460px; }
 #opt-canvas, #lin-canvas, #oxr-canvas, #slci-canvas, #th2-canvas, #hach-canvas, #flt-canvas{ --h:450px; }
 #s2-canvas, #con-canvas, #crb-canvas{ --h:440px; }
-#dyn-canvas, #s1-canvas, #od-canvas, #int-canvas{ --h:430px; }
+#s1-canvas, #od-canvas, #int-canvas{ --h:430px; }
 #ond-canvas{ --h:400px; }
+#dyn-canvas{ --h:300px; }   /* pendule + barres + portrait de phase : ≈ 210 px de dessin (largeur limitée) */
 /* Simulateurs où l'on glisse un objet au doigt : pas de défilement/zoom tactile sur la toile */
 #cpx-canvas, #es-canvas, #dyn-canvas{ touch-action:none; cursor:grab; }
 
@@ -62812,6 +62813,17 @@ function __CVchap(cv){
   }
   return c;
 }
+/* Étiquette lisible par-dessus un tracé : pavé de la couleur de la toile (--paper) sous le
+   texte (calé sur textAlign/textBaseline courants), puis le texte dans la couleur courante. */
+function __texteDetoure(c, txt, x, y){
+  const m = c.measureText(txt), fs = c.fillStyle, num = v => typeof v === 'number' && isFinite(v);
+  const g = num(m.actualBoundingBoxLeft) ? m.actualBoundingBoxLeft : 0;
+  const d = num(m.actualBoundingBoxRight) ? m.actualBoundingBoxRight : m.width;
+  const h = num(m.actualBoundingBoxAscent) ? m.actualBoundingBoxAscent : 9;
+  const b = num(m.actualBoundingBoxDescent) ? m.actualBoundingBoxDescent : 3;
+  c.fillStyle = __CV().paper; c.fillRect(x - g - 3, y - h - 2, g + d + 6, h + b + 4);
+  c.fillStyle = fs; c.fillText(txt, x, y);
+}
 /* Invalidation du cache au changement de thème (attribut data-theme sur <html>) */
 new MutationObserver(() => { __CVcache = null; __CVchapCache = new WeakMap(); })
   .observe(document.documentElement, {attributes:true, attributeFilter:['data-theme']});
@@ -62959,8 +62971,8 @@ function drawLibre(W,H,padL,padR,padT,padB,y0,p){
   }
   
   ctx.fillStyle = getCanvasColors().muted;
-  ctx.font = '11px JetBrains Mono';
-  ctx.fillText('u_C / U₀',padL-40,padT+10);
+  ctx.font = '12px JetBrains Mono';
+  ctx.fillText('u_C / U₀',padL+6,padT-9);
   ctx.fillText('t',W-padR-10,y0+18);
   
   ctx.strokeStyle = __CVchap(ctx.canvas);   // courbe principale : encre du chapitre
@@ -62998,7 +63010,7 @@ function drawLibre(W,H,padL,padR,padT,padB,y0,p){
   }
   
   ctx.fillStyle = getCanvasColors().ink;
-  ctx.font = '10px JetBrains Mono';
+  ctx.font = '12px JetBrains Mono';
   ctx.fillText('1',padL-15,y0-yScale+4);
   ctx.beginPath();
   ctx.moveTo(padL-3,y0-yScale);ctx.lineTo(padL+3,y0-yScale);
@@ -63039,8 +63051,8 @@ function drawEchelon(W,H,padL,padR,padT,padB,y0,p){
   }
   
   ctx.fillStyle = getCanvasColors().muted;
-  ctx.font = '11px JetBrains Mono';
-  ctx.fillText('u_C / E',padL-40,padT+10);
+  ctx.font = '12px JetBrains Mono';
+  ctx.fillText('u_C / E',padL+6,padT-9);
   ctx.fillText('t',W-padR-10,yBase+18);
   
   // Ligne asymptote E
@@ -63080,7 +63092,7 @@ function drawEchelon(W,H,padL,padR,padT,padB,y0,p){
   
   // Label régime + indications
   ctx.fillStyle = getCanvasColors().muted;
-  ctx.font = '10px JetBrains Mono';
+  ctx.font = '12px JetBrains Mono';
   ctx.fillText(tMax.toFixed(3).replace(/0+$/,'')+' s', W-padR-50, yBase+30);
 }
 
@@ -63119,7 +63131,7 @@ function drawForced(W,H,padL,padR,padT,padB,y0,p){
     ctx.beginPath();ctx.moveTo(x,padT);ctx.lineTo(x,H-padB);ctx.stroke();
     ctx.setLineDash([]);
     ctx.fillStyle = __CV().accent;
-    ctx.font = '11px JetBrains Mono';
+    ctx.font = '12px JetBrains Mono';
     ctx.fillText('f₀',x+4,padT+14);
   }
   
@@ -63131,12 +63143,13 @@ function drawForced(W,H,padL,padR,padT,padB,y0,p){
     ctx.fillStyle = __CV().green;
     ctx.beginPath();ctx.arc(x,y,5,0,2*Math.PI);ctx.fill();
     ctx.fillStyle = getCanvasColors().ink;
-    ctx.font = '11px JetBrains Mono';
-    ctx.fillText(`|H|=${A.toFixed(2)}`,x+8,y-6);
+    ctx.font = '12px JetBrains Mono';
+    const tH = `|H| = ${A.toFixed(2)}`, wH = ctx.measureText(tH).width;
+    __texteDetoure(ctx, tH, (x+8+wH > W-padR) ? x-8-wH : x+8, y-6);
   }
   
   ctx.fillStyle = getCanvasColors().muted;
-  ctx.font = '11px JetBrains Mono';
+  ctx.font = '12px JetBrains Mono';
   ctx.fillText('|u_C / e|',padL+5,padT+12);
   ctx.fillText('log(f)',W-padR-50,H-padB+22);
 }
@@ -63265,7 +63278,7 @@ function drawOpt(){
   octx.beginPath();
   octx.moveTo(xA-4,yB+5*Math.sign(AB));octx.lineTo(xA,yB);octx.lineTo(xA+4,yB+5*Math.sign(AB));
   octx.stroke();
-  octx.font = '11px JetBrains Mono';
+  octx.font = '12px JetBrains Mono';
   octx.fillText('A',xA-4,cy+14);
   octx.fillText('B',xA-4,yB-5);
   
@@ -63287,7 +63300,7 @@ function drawOpt(){
     }
     octx.setLineDash([]);
     octx.fillStyle = __CV().green;
-    octx.font = '11px JetBrains Mono';
+    octx.font = '12px JetBrains Mono';
     octx.fillText("A'",xAp+4,cy+14);
     octx.fillText("B'",xAp+4,yBp-5);
     
@@ -64102,8 +64115,8 @@ function drawOscLibre(W,H,padL,padR,padT,padB,y0,p){
   }
   
   oscCtx.fillStyle = getCanvasColors().muted;
-  oscCtx.font = '11px JetBrains Mono';
-  oscCtx.fillText('x / X₀', padL-40, padT+10);
+  oscCtx.font = '12px JetBrains Mono';
+  oscCtx.fillText('x / X₀', padL+6, padT-9);
   oscCtx.fillText('t (s)', W-padR-30, y0+18);
   
   // curve
@@ -64144,7 +64157,7 @@ function drawOscLibre(W,H,padL,padR,padT,padB,y0,p){
   
   // reference 1
   oscCtx.fillStyle = getCanvasColors().ink;
-  oscCtx.font = '10px JetBrains Mono';
+  oscCtx.font = '12px JetBrains Mono';
   oscCtx.fillText('1',padL-15,y0-yScale+4);
   oscCtx.beginPath();
   oscCtx.moveTo(padL-3,y0-yScale);oscCtx.lineTo(padL+3,y0-yScale);oscCtx.stroke();
@@ -64173,7 +64186,7 @@ function drawOscForced(W,H,padL,padR,padT,padB,y0,p){
   const norm = Math.max(ampMax, 1.2);
   
   oscCtx.fillStyle = getCanvasColors().muted;
-  oscCtx.font = '11px JetBrains Mono';
+  oscCtx.font = '12px JetBrains Mono';
   oscCtx.fillText('|X·k/F|', padL+5, padT+12);
   oscCtx.fillText('ω (rad/s)', W-padR-60, H-padB+22);
   
@@ -64199,8 +64212,8 @@ function drawOscForced(W,H,padL,padR,padT,padB,y0,p){
     oscCtx.stroke();
     oscCtx.setLineDash([]);
     oscCtx.fillStyle = __CV().accent;
-    oscCtx.font = '11px JetBrains Mono';
-    oscCtx.fillText('ω₀', x+4, padT+14);
+    oscCtx.font = '12px JetBrains Mono';
+    oscCtx.textAlign = 'right'; oscCtx.fillText('ω₀', x-4, H-padB-6); oscCtx.textAlign = 'left';
   }
   
   // marker at current w
@@ -64212,8 +64225,8 @@ function drawOscForced(W,H,padL,padR,padT,padB,y0,p){
     oscCtx.fillStyle = __CV().green;
     oscCtx.beginPath();oscCtx.arc(x,py,5,0,2*Math.PI);oscCtx.fill();
     oscCtx.fillStyle = getCanvasColors().ink;
-    oscCtx.font = '11px JetBrains Mono';
-    oscCtx.fillText('amp = '+A.toFixed(2), x+8, py-6);
+    oscCtx.font = '12px JetBrains Mono';
+    __texteDetoure(oscCtx, 'amp = '+A.toFixed(2), x+8, Math.max(py-6, padT+34));
   }
 }
 
@@ -64483,7 +64496,7 @@ function drawSer(){
       c.stroke();
       c.setLineDash([]);
       c.fillStyle = __CV().green;
-      c.font = '11px JetBrains Mono';
+      c.font = '12px JetBrains Mono';
       c.fillText('S = '+theo.val.toFixed(4), W-padR-100, yTh-6);
     }
   }
@@ -64511,12 +64524,12 @@ function drawSer(){
   
   // Labels axes
   c.fillStyle = getCanvasColors().muted;
-  c.font = '11px JetBrains Mono';
-  c.fillText('S_n', padL-40, padT+10);
-  c.fillText('n', W-padR-10, H-padB+18);
+  c.font = '12px JetBrains Mono';
+  c.fillText('S_n', padL-40, padT-10);
+  c.fillText('n', W-padR+5, H-padB+4);
   // graduations Y
   c.fillStyle = __CV().muted;
-  c.font = '10px JetBrains Mono';
+  c.font = '12px JetBrains Mono';
   c.fillText(yTopVal.toFixed(2), padL-45, padT+4);
   c.fillText(yBotVal.toFixed(2), padL-45, H-padB+4);
   // graduation X
@@ -66555,7 +66568,7 @@ function drawLin(){
   c.moveTo(cx, 20); c.lineTo(cx, H-20);
   c.stroke();
   c.fillStyle = getCanvasColors().muted;
-  c.font = '11px JetBrains Mono';
+  c.font = '12px JetBrains Mono';
   c.fillText('x', W-30, cy+15);
   c.fillText('y', cx+8, 30);
   
@@ -66656,7 +66669,7 @@ function drawLin(){
     c.stroke();
     c.setLineDash([]);
     c.fillStyle = __CV().accent;
-    c.font = 'bold 11px JetBrains Mono';
+    c.font = 'bold 12px JetBrains Mono';
     c.fillText('Ker f', toX(2*v[0]) + 4, toY(2*v[1]) - 4);
   }
   
@@ -66673,13 +66686,13 @@ function drawLin(){
     c.stroke();
     c.setLineDash([]);
     c.fillStyle = __CV().green;
-    c.font = 'bold 11px JetBrains Mono';
+    c.font = 'bold 12px JetBrains Mono';
     c.fillText('Im f', toX(-3*v[0]) + 4, toY(-3*v[1]) - 4);
   }
   
   // Légende
   c.fillStyle = getCanvasColors().muted;
-  c.font = '10px JetBrains Mono';
+  c.font = '12px JetBrains Mono';
   c.fillText('Carré unité (pointillés) → image (trait plein)', 10, H - 10);
   
   // Affichage infos
@@ -67005,7 +67018,7 @@ function drawOxred(){
   // Graduations
   c.strokeStyle = __CV().muted;
   c.lineWidth = 1;
-  c.font = '10px JetBrains Mono';
+  c.font = '12px JetBrains Mono';
   c.fillStyle = __CV().muted;
   for(let e = -3; e <= 3; e++){
     const y = toY(e);
@@ -67050,8 +67063,8 @@ function drawOxred(){
     c.textAlign = 'left';
     // E° à côté du point
     c.fillStyle = getCanvasColors().ink;
-    c.font = '10px JetBrains Mono';
-    c.fillText(couple.e.toFixed(2)+' V', xAxis+10, y+3);
+    c.font = '12px JetBrains Mono';
+    __texteDetoure(c, couple.e.toFixed(2)+' V', xAxis+10, y+3);
   }
   
   drawCouple(couple1, padL + 70, __CV().accent);
@@ -67128,7 +67141,7 @@ function drawOxred(){
   
   // Légende
   c.fillStyle = getCanvasColors().muted;
-  c.font = '10px JetBrains Mono';
+  c.font = '12px JetBrains Mono';
   c.fillText('↑ Pouvoir oxydant croissant', xAxis - 100, padT - 18);
 }
 
@@ -69532,9 +69545,12 @@ document.addEventListener('keydown',e=>{
     ctx.moveTo(padL, H - padB); ctx.lineTo(W - padR, H - padB);
     ctx.stroke();
     ctx.fillStyle = colors.muted;
-    ctx.font = '11px JetBrains Mono';
-    ctx.fillText(yLabel, padL - 35, padT + 10);
-    ctx.fillText(xLabel, W - padR - 30, H - padB + 22);
+    ctx.font = '12px JetBrains Mono';
+    if(ctx.measureText(yLabel).width > padL - 20) ctx.fillText(yLabel, padL + 6, padT - 9);
+    else ctx.fillText(yLabel, padL - 35, padT + 10);
+    ctx.textAlign = 'right';
+    ctx.fillText(xLabel, W - padR, H - padB + 22);
+    ctx.textAlign = 'left';
     return { padL, padR, padT, padB };
   }
 
@@ -69569,7 +69585,7 @@ document.addEventListener('keydown',e=>{
     ctx.stroke();
     ctx.setLineDash([]);
     ctx.fillStyle = __CV().accent2;
-    ctx.font = '11px JetBrains Mono';
+    ctx.font = '12px JetBrains Mono';
     ctx.fillText('K = ' + sInf.toFixed(2), W - padR - 80, yAsym - 6);
 
     // Marqueur à t = tau (s = 63.2%)
@@ -69677,7 +69693,7 @@ document.addEventListener('keydown',e=>{
     ctx.stroke();
     ctx.setLineDash([]);
     ctx.fillStyle = __CV().accent2;
-    ctx.font = '11px JetBrains Mono';
+    ctx.font = '12px JetBrains Mono';
     ctx.fillText('K = ' + sInf.toFixed(2), W - padR - 80, yAsym - 6);
 
     // Courbe
@@ -69755,7 +69771,7 @@ document.addEventListener('keydown',e=>{
     ctx.stroke();
     ctx.setLineDash([]);
     ctx.fillStyle = colors.muted;
-    ctx.font = '10px JetBrains Mono';
+    ctx.font = '12px JetBrains Mono';
     ctx.fillText('Gain (dB)', padL + 5, padT + 12);
     ctx.fillText('Phase (°)', padL + 5, padT + yRange + 14);
 
@@ -69808,7 +69824,7 @@ document.addEventListener('keydown',e=>{
     ctx.stroke();
     ctx.setLineDash([]);
     ctx.fillStyle = __CV().green;
-    ctx.font = '10px JetBrains Mono';
+    ctx.font = '12px JetBrains Mono';
     ctx.fillText('1/τ = ' + wc.toFixed(2), xLog(wc) + 4, padT + 12);
 
     const badge = document.getElementById('slci-regime-display');
@@ -69843,7 +69859,7 @@ document.addEventListener('keydown',e=>{
     ctx.stroke();
     ctx.setLineDash([]);
     ctx.fillStyle = colors.muted;
-    ctx.font = '10px JetBrains Mono';
+    ctx.font = '12px JetBrains Mono';
     ctx.fillText('Gain (dB)', padL + 5, padT + 12);
     ctx.fillText('Phase (°)', padL + 5, padT + yRange + 14);
 
@@ -69885,7 +69901,7 @@ document.addEventListener('keydown',e=>{
     ctx.stroke();
     ctx.setLineDash([]);
     ctx.fillStyle = __CV().green;
-    ctx.font = '10px JetBrains Mono';
+    ctx.font = '12px JetBrains Mono';
     ctx.fillText('ω₀ = ' + w0.toFixed(2), xLog(w0) + 4, padT + 12);
 
     // Résonance ?
@@ -70081,10 +70097,14 @@ document.addEventListener('keydown',e=>{
     ctx.stroke();
 
     ctx.fillStyle = colors.muted;
-    ctx.font = '10px JetBrains Mono';
-    ctx.fillText('Gain (dB)', padL + 8, padT + 14);
-    ctx.fillText('Phase (°)', padL + 8, padT + yRange + 16);
-    ctx.fillText('log ω', W - padR - 35, Hpx - padB + 18);
+    ctx.font = '12px JetBrains Mono';
+    ctx.fillText('Gain (dB)', padL + 4, padT - 8);
+    ctx.textAlign = 'right';
+    __texteDetoure(ctx, 'Phase (°)', W - padR - 4, padT + yRange + 16);
+    ctx.textAlign = 'left';
+    ctx.textAlign = 'right';
+    ctx.fillText('log ω', W - padR, Hpx - padB + 32);
+    ctx.textAlign = 'left';
 
     // Graduations log
     for(let lw = Math.ceil(logWMin); lw <= Math.floor(logWMax); lw++){
@@ -70140,9 +70160,11 @@ document.addEventListener('keydown',e=>{
     ctx.stroke();
     ctx.setLineDash([]);
     ctx.fillStyle = __CV().green;
-    ctx.font = '10px JetBrains Mono';
+    ctx.font = '12px JetBrains Mono';
     const wLabel = (mode === 'pb1' || mode === 'ph1') ? 'ω_c' : 'ω_0';
-    ctx.fillText(wLabel + ' = ' + wMark.toFixed(1), xMark + 4, padT + 12);
+    ctx.textAlign = 'right';
+    __texteDetoure(ctx, wLabel + ' = ' + wMark.toFixed(1), xMark - 5, Hpx - padB - 7);
+    ctx.textAlign = 'left';
 
     // Badge et info
     const labels = { pb1:'Passe-bas 1er ordre', ph1:'Passe-haut 1er ordre',
@@ -70309,9 +70331,9 @@ document.addEventListener('keydown',e=>{
     ctx.stroke();
 
     ctx.fillStyle = colors.muted;
-    ctx.font = '11px JetBrains Mono';
-    ctx.fillText('u(t) [V]', padL + 5, yUTop + 12);
-    ctx.fillText('i(t) [A]', padL + 5, yITop + 12);
+    ctx.font = '12px JetBrains Mono';
+    __texteDetoure(ctx, 'u(t) [V]', padL + 5, yUTop + 12);
+    __texteDetoure(ctx, 'i(t) [A]', padL + 5, yITop + 12);
     ctx.fillText('t', W - padR - 10, yIBot + 18);
 
     // Simulation
@@ -70361,8 +70383,10 @@ document.addEventListener('keydown',e=>{
     ctx.stroke();
     ctx.setLineDash([]);
     ctx.fillStyle = __CV().green;
-    ctx.font = '10px JetBrains Mono';
-    ctx.fillText('I moy = '+iMoy.toFixed(2)+' A', W - padR - 110, yIMoy - 4);
+    ctx.font = '12px JetBrains Mono';
+    ctx.textAlign = 'right';
+    __texteDetoure(ctx, 'I moy = '+iMoy.toFixed(2)+' A', W - padR, yIMoy - 5);
+    ctx.textAlign = 'left';
 
     // Marquer α·T sur la première période
     ctx.strokeStyle = __CVA('green',0.6);
@@ -70373,7 +70397,7 @@ document.addEventListener('keydown',e=>{
     ctx.stroke();
     ctx.setLineDash([]);
     ctx.fillStyle = __CV().green;
-    ctx.fillText('αT', xAlphaT + 4, yUTop + 14);
+    ctx.fillText('αT', xAlphaT - 7, yIBot + 18);
 
     // Moyenne tension
     const uMoy = p.alpha * p.E;
@@ -70385,7 +70409,9 @@ document.addEventListener('keydown',e=>{
     ctx.stroke();
     ctx.setLineDash([]);
     ctx.fillStyle = __CVchap(ctx.canvas);
-    ctx.fillText('U moy = αE = '+uMoy.toFixed(1)+' V', W - padR - 140, yUMoy - 4);
+    ctx.textAlign = 'right';
+    __texteDetoure(ctx, 'U moy = αE = '+uMoy.toFixed(1)+' V', W - padR, yUMoy - 5);
+    ctx.textAlign = 'left';
 
     // Badge
     const dI = iMax - iMin;
@@ -70423,9 +70449,9 @@ document.addEventListener('keydown',e=>{
     ctx.stroke();
 
     ctx.fillStyle = colors.muted;
-    ctx.font = '11px JetBrains Mono';
-    ctx.fillText('U moy / E', padL - 50, padT + 10);
-    ctx.fillText('α', W - padR - 10, H - padB + 20);
+    ctx.font = '12px JetBrains Mono';
+    ctx.fillText('U moy / E', padL - 50, padT - 12);
+    ctx.fillText('α', W - padR + 6, H - padB + 4);
 
     // Graduations
     for(let frac of [0, 0.25, 0.5, 0.75, 1]){
@@ -70577,9 +70603,11 @@ document.addEventListener('keydown',e=>{
     ctx.stroke();
 
     ctx.fillStyle = colors.muted;
-    ctx.font = '11px JetBrains Mono';
-    ctx.fillText('C (N·m)', padL - 50, padT + 10);
-    ctx.fillText('Ω (rad/s)', W - padR - 60, H - padB + 22);
+    ctx.font = '12px JetBrains Mono';
+    ctx.fillText('C (N·m)', padL - 50, padT - 12);
+    ctx.textAlign = 'right';
+    ctx.fillText('Ω (rad/s)', W - padR, H - padB + 34);
+    ctx.textAlign = 'left';
 
     const xOf = w => padL + (w/xMax) * xRange;
     const yOf = c => (H - padB) - (c/yMax) * yRange;
@@ -70609,22 +70637,26 @@ document.addEventListener('keydown',e=>{
     ctx.stroke();
     ctx.setLineDash([]);
     ctx.fillStyle = __CV().accent2;
-    ctx.font = '11px JetBrains Mono';
-    ctx.fillText('Cr = '+p.Cr.toFixed(1)+' N·m', W - padR - 110, yOf(p.Cr) - 6);
+    ctx.font = '12px JetBrains Mono';
+    const tCr = 'Cr = '+p.Cr.toFixed(1)+' N·m', wCr = ctx.measureText(tCr).width;
+    __texteDetoure(ctx, tCr, padL + 6, yOf(p.Cr) - 6);
 
     // Point de fonctionnement
     if(Wp > 0 && Wp < xMax && p.Cr < Cdem){
       ctx.fillStyle = __CV().green;
       ctx.beginPath(); ctx.arc(xOf(Wp), yOf(p.Cr), 7, 0, 2*Math.PI); ctx.fill();
       ctx.fillStyle = colors.ink;
-      ctx.font = 'bold 11px JetBrains Mono';
-      ctx.fillText('Ωp = '+Wp.toFixed(1)+' rad/s', xOf(Wp) + 10, yOf(p.Cr) - 6);
+      ctx.font = 'bold 12px JetBrains Mono';
+      const tWp = 'Ωp = '+Wp.toFixed(1)+' rad/s', wWp = ctx.measureText(tWp).width;
+      let xWp = (xOf(Wp) + 10 + wWp > xOf(W0) - 4) ? xOf(Wp) - 10 - wWp : xOf(Wp) + 10, yWp = yOf(p.Cr) - 10;
+      if(xWp < padL + 6 + wCr + 10){ xWp = Math.max(padL + 4, Math.min(xWp, W - padR - wWp)); yWp = yOf(p.Cr) - 28; }
+      __texteDetoure(ctx, tWp, xWp, yWp);
     }
 
     // Étiquettes des points spéciaux
     ctx.fillStyle = __CV().accent;
-    ctx.font = '10px JetBrains Mono';
-    ctx.fillText('Ω₀ = '+W0.toFixed(1), xOf(W0) - 38, H - padB - 6);
+    ctx.font = '12px JetBrains Mono';
+    __texteDetoure(ctx, 'Ω₀ = '+W0.toFixed(1), xOf(W0) + 4, H - padB - 6);
     ctx.fillText('Cdém = '+Cdem.toFixed(1), padL + 6, yOf(Cdem) + 14);
 
     // Badge
@@ -70666,7 +70698,7 @@ document.addEventListener('keydown',e=>{
     ctx.stroke();
 
     ctx.fillStyle = colors.muted;
-    ctx.font = '11px JetBrains Mono';
+    ctx.font = '12px JetBrains Mono';
     ctx.fillText('Ω (rad/s)', padL - 50, padT + 10);
     ctx.fillText('t (s)', W - padR - 30, H - padB + 22);
 
@@ -70696,7 +70728,7 @@ document.addEventListener('keydown',e=>{
     ctx.stroke();
     ctx.setLineDash([]);
     ctx.fillStyle = __CV().accent2;
-    ctx.font = '11px JetBrains Mono';
+    ctx.font = '12px JetBrains Mono';
     ctx.fillText('Ω∞ = '+Winf.toFixed(1)+' rad/s', W - padR - 130, yAsym - 6);
 
     // Courbe Ω(t)
@@ -70891,13 +70923,15 @@ document.addEventListener('keydown',e=>{
     ctx.stroke();
 
     ctx.fillStyle = colors.muted;
-    ctx.font = '11px JetBrains Mono';
-    ctx.fillText('P (Pa)', padL - 50, padT + 10);
-    ctx.fillText('V (m³)', W - padR - 50, H - padB + 22);
+    ctx.font = '12px JetBrains Mono';
+    ctx.fillText('P (Pa)', padL - 50, padT - 12);
+    ctx.textAlign = 'right';
+    ctx.fillText('V (L)', W - padR, H - padB + 34);   // graduations ci-dessous : V·1000 (m³ → L)
+    ctx.textAlign = 'left';
 
     // Graduations (5 valeurs)
     ctx.fillStyle = colors.muted;
-    ctx.font = '10px JetBrains Mono';
+    ctx.font = '12px JetBrains Mono';
     for(let k = 0; k <= 4; k++){
       const V = Vmin + (k/4)*(Vmax - Vmin);
       const P = Pmin + (k/4)*(Pmax - Pmin);
@@ -70932,7 +70966,7 @@ document.addEventListener('keydown',e=>{
     ctx.fillStyle = __CV().green;
     ctx.beginPath(); ctx.arc(xOf(V2), yOf(P2), 6, 0, 2*Math.PI); ctx.fill();
     ctx.fillStyle = colors.ink;
-    ctx.font = 'bold 11px JetBrains Mono';
+    ctx.font = 'bold 12px JetBrains Mono';
     ctx.fillText('1', xOf(p.V1) + 8, yOf(P1) - 4);
     ctx.fillText('2', xOf(V2) + 8, yOf(P2) - 4);
 
@@ -71026,7 +71060,7 @@ document.addEventListener('keydown',e=>{
     ctx.moveTo(padL, H - padB); ctx.lineTo(W - padR, H - padB);
     ctx.stroke();
     ctx.fillStyle = colors.muted;
-    ctx.font = '11px JetBrains Mono';
+    ctx.font = '12px JetBrains Mono';
     ctx.fillText('P (Pa)', padL - 50, padT + 10);
     ctx.fillText('V (m³)', W - padR - 50, H - padB + 22);
 
@@ -71064,7 +71098,7 @@ document.addEventListener('keydown',e=>{
       ctx.fillStyle = __CV().green;
       ctx.beginPath(); ctx.arc(xOf(V), yOf(P), 5, 0, 2*Math.PI); ctx.fill();
       ctx.fillStyle = colors.ink;
-      ctx.font = 'bold 11px JetBrains Mono';
+      ctx.font = 'bold 12px JetBrains Mono';
       ctx.fillText(lbl, xOf(V) + 8, yOf(P) - 4);
     });
 
@@ -71301,7 +71335,7 @@ document.addEventListener('keydown',e=>{
     ctx.fillStyle = __CV().green;
     ctx.beginPath(); ctx.arc(px, py, 7, 0, 2*Math.PI); ctx.fill();
     ctx.fillStyle = colors.ink;
-    ctx.font = 'bold 11px JetBrains Mono';
+    ctx.font = 'bold 12px JetBrains Mono';
     ctx.fillText('M', px + 9, py - 6);
 
     // Selon le mode : afficher les vecteurs/repères
@@ -71369,7 +71403,7 @@ document.addEventListener('keydown',e=>{
 
     // Légendes graduations
     ctx.fillStyle = colors.muted;
-    ctx.font = '10px JetBrains Mono';
+    ctx.font = '12px JetBrains Mono';
     ctx.fillText('x', W - padR - 10, yOf(0) + 14);
     ctx.fillText('y', xOf(0) - 14, padT + 12);
 
@@ -71428,9 +71462,12 @@ document.addEventListener('keydown',e=>{
     // Label
     if(label){
       ctx.fillStyle = color;
-      ctx.font = 'bold 11px JetBrains Mono';
-      const off = 12;
-      ctx.fillText(label, x2 + off*Math.cos(angle), y2 + off*Math.sin(angle) + 4);
+      ctx.font = 'bold 12px JetBrains Mono';
+      const off = 12, tw = ctx.measureText(label).width;
+      const cw = ctx.canvas.width/devicePixelRatio, ch = ctx.canvas.height/devicePixelRatio;
+      const lx = Math.max(2, Math.min(cw - tw - 2, x2 + off*Math.cos(angle)));
+      const ly = Math.max(14, Math.min(ch - 4, y2 + off*Math.sin(angle) + 4));
+      ctx.fillText(label, lx, ly);
     }
   }
 
@@ -71611,9 +71648,9 @@ document.addEventListener('keydown',e=>{
     ctx.textAlign = 'center'; ctx.font = '700 12px JetBrains Mono, monospace';
     ctx.fillStyle = colFor('planetaire'); ctx.fillText('S', cx, cy-Rs-6);
     ctx.fillStyle = colFor('couronne');
-    ctx.fillText('Couronne Z₃='+k.Zr, cx, cy - (Rr+th/2+rim) - 6);
+    ctx.fillText('Couronne Z₃='+k.Zr, cx, cy + (Rr+th/2+rim) + 16);
     if(planets[0]){ ctx.fillStyle = C.accent2; ctx.fillText('Z₂='+k.Zp, planets[0].x, planets[0].y - Rp - 5); }
-    ctx.font = '600 11px JetBrains Mono, monospace';
+    ctx.font = '600 12px JetBrains Mono, monospace';
     ctx.fillStyle = colFor('planetaire'); ctx.fillText('Z₁='+k.Zs, cx, cy+4);
 
     // --- symbole bâti sur l'élément fixe ---
@@ -71646,18 +71683,24 @@ document.addEventListener('keydown',e=>{
     ctx.save();
     ctx.fillStyle = withAlpha(C.paper, 0.82);
     ctx.strokeStyle = withAlpha(C.ink, 0.25); ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.rect(8, 8, 224, 84); ctx.fill(); ctx.stroke();
-    ctx.textAlign = 'left'; ctx.font = '600 11px JetBrains Mono, monospace';
+    const ratioTxt = 'r = ω_s/ω_e = '+fmt(k.ratio, 3);
+    ctx.font = '600 12px JetBrains Mono, monospace';
+    let lw = 0;
+    rows.forEach(rw => { lw = Math.max(lw, ctx.measureText(rw[0]+' : '+rw[1]).width + 25); });
+    ctx.font = '700 13px JetBrains Mono, monospace';
+    lw = Math.max(lw, ctx.measureText(ratioTxt).width) + 16;
+    ctx.beginPath(); ctx.rect(8, 8, Math.ceil(lw), 90); ctx.fill(); ctx.stroke();
+    ctx.textAlign = 'left'; ctx.font = '600 12px JetBrains Mono, monospace';
     let y = 26;
     rows.forEach(rw => {
       ctx.fillStyle = rw[2]; ctx.fillRect(16, y-9, 11, 11);
       ctx.fillStyle = C.ink;
       ctx.fillText(rw[0]+' : '+rw[1], 33, y);
-      y += 16;
+      y += 17;
     });
     ctx.font = '700 13px JetBrains Mono, monospace';
     ctx.fillStyle = C.accent;
-    ctx.fillText('r = ω_s/ω_e = '+fmt(k.ratio, 3), 16, y+4);
+    ctx.fillText(ratioTxt, 16, y+4);
     ctx.restore();
   }
 
@@ -71799,8 +71842,10 @@ document.addEventListener('keydown',e=>{
     ctx.strokeStyle=C.muted; ctx.lineWidth=1;
     for(let x=30;x<W-20;x+=16){ ctx.beginPath(); ctx.moveTo(x,yFloor); ctx.lineTo(x-9,yFloor+9); ctx.stroke(); }
     for(let y=34;y<yFloor;y+=16){ ctx.beginPath(); ctx.moveTo(xWall,y); ctx.lineTo(xWall-9,y-9); ctx.stroke(); }
-    ctx.fillStyle=C.muted; ctx.font='10px JetBrains Mono, monospace'; ctx.textAlign='left';
-    ctx.fillText('mur lisse', xWall+4, 40); ctx.fillText('sol (adhérence f)', 30, yFloor+22);
+    ctx.fillStyle=C.muted; ctx.font='12px JetBrains Mono, monospace'; ctx.textAlign='left';
+    ctx.save(); ctx.translate(xWall-14, (28+yFloor)/2); ctx.rotate(-Math.PI/2); ctx.textAlign='center';
+    ctx.fillText('mur lisse', 0, 0); ctx.restore();
+    ctx.fillText('sol (adhérence f)', 30, yFloor+22);
 
     // échelle (barreaux)
     ctx.strokeStyle=__CVchap(ctx.canvas); ctx.lineWidth=5; ctx.lineCap='round';
@@ -71836,7 +71881,7 @@ document.addEventListener('keydown',e=>{
       ctx.beginPath(); ctx.moveTo(Ax,Ay); ctx.lineTo(Ax-cl*Math.sin(phi),Ay-cl*Math.cos(phi)); ctx.stroke();
       ctx.beginPath(); ctx.moveTo(Ax,Ay); ctx.lineTo(Ax+cl*Math.sin(phi),Ay-cl*Math.cos(phi)); ctx.stroke();
       ctx.setLineDash([]);
-      ctx.fillStyle=C.muted; ctx.font='10px JetBrains Mono, monospace';
+      ctx.fillStyle=C.muted; ctx.font='12px JetBrains Mono, monospace';
       ctx.fillText('cône φ=arctan f', Ax+6, Ay-cl*Math.cos(phi)-2);
       // résultante sol R = (−T, −N) ; angle/vertical = atan(T/N)
       const Rm=Math.sqrt(T*T+N*N);
@@ -71934,7 +71979,7 @@ document.addEventListener('keydown',e=>{
     for(let i=0;i<=5;i++){ const y=gy+gh*i/5; ctx.beginPath(); ctx.moveTo(gx,y); ctx.lineTo(gx+gw,y); ctx.stroke(); }
     ctx.strokeStyle=C.ink; ctx.lineWidth=1.4;
     ctx.beginPath(); ctx.moveTo(gx,gy); ctx.lineTo(gx,gy+gh); ctx.lineTo(gx+gw,gy+gh); ctx.stroke();
-    ctx.fillStyle=C.muted; ctx.font='10px JetBrains Mono, monospace'; ctx.textAlign='right';
+    ctx.fillStyle=C.muted; ctx.font='12px JetBrains Mono, monospace'; ctx.textAlign='right';
     ctx.fillText(fmt(ymax,1), gx-4, gy+8); ctx.fillText('0', gx-4, gy+gh);
     ctx.textAlign='center'; ctx.fillText('t (s)', gx+gw-14, gy+gh+22);
     ctx.textAlign='left'; ctx.fillText('s(t)', gx+4, gy+10);
@@ -71942,7 +71987,10 @@ document.addEventListener('keydown',e=>{
     // asymptote K + bande ±5%
     ctx.strokeStyle=C.muted; ctx.setLineDash([6,4]); ctx.lineWidth=1.2;
     ctx.beginPath(); ctx.moveTo(gx,Y(d.K)); ctx.lineTo(gx+gw,Y(d.K)); ctx.stroke(); ctx.setLineDash([]);
-    ctx.fillStyle=C.muted; ctx.textAlign='left'; ctx.fillText('K='+fmt(d.K,1), gx+gw-54, Y(d.K)-4);
+    ctx.fillStyle=C.muted; ctx.textAlign='right';
+    // à gauche de l'encart des pôles (haut-droite, 104 px de large) quand il le masquerait
+    __texteDetoure(ctx, 'K='+fmt(d.K,1), (Y(d.K) < gy+6+120+14) ? gx+gw-104-14 : gx+gw-4, Y(d.K)-4);
+    ctx.textAlign='left';
     if($('s2-band').checked){
       ctx.fillStyle=withA(C.green,0.10);
       ctx.fillRect(gx, Y(d.K*1.05), gw, Y(d.K*0.95)-Y(d.K*1.05));
@@ -71964,7 +72012,7 @@ document.addEventListener('keydown',e=>{
       ctx.fillStyle=col; ctx.beginPath(); ctx.arc(X(d.tp),Y(yp),3.5,0,2*Math.PI); ctx.fill();
       ctx.strokeStyle=withA(col,0.5); ctx.setLineDash([3,3]);
       ctx.beginPath(); ctx.moveTo(X(d.tp),Y(yp)); ctx.lineTo(X(d.tp),Y(d.K)); ctx.stroke(); ctx.setLineDash([]);
-      ctx.fillStyle=col; ctx.textAlign='center'; ctx.font='10px JetBrains Mono, monospace';
+      ctx.fillStyle=col; ctx.textAlign='center'; ctx.font='12px JetBrains Mono, monospace';
       ctx.fillText('D₁='+fmt(d.D1*100,1)+'%', X(d.tp), Y(yp)-6);
     }
     // marqueur t5%
@@ -72003,14 +72051,14 @@ document.addEventListener('keydown',e=>{
   function withA(hex,a){ const h=hex.replace('#',''); if(h.length<6)return hex; const n=parseInt(h,16); return `rgba(${(n>>16)&255},${(n>>8)&255},${n&255},${a})`; }
 
   function drawPoles(W, gx, gy, gw, gh, C, d){
-    const bw=104, bh=104, bx=gx+gw-bw-6, by=gy+6;
+    const bw=104, bh=120, bx=gx+gw-bw-6, by=gy+6;
     ctx.fillStyle=withA(C.paper,0.85); ctx.strokeStyle=withA(C.ink,0.3); ctx.lineWidth=1;
     ctx.beginPath(); ctx.rect(bx,by,bw,bh); ctx.fill(); ctx.stroke();
-    const cx=bx+bw*0.62, cy=by+bh/2, sc=(bw*0.5)/(d.wn*1.2);
+    const cx=bx+bw*0.62, cy=by+(bh-16)/2, sc=(bw*0.5)/(d.wn*1.2);
     ctx.strokeStyle=withA(C.ink,0.4); ctx.lineWidth=1;
     ctx.beginPath(); ctx.moveTo(bx+6,cy); ctx.lineTo(bx+bw-6,cy); ctx.stroke();
     ctx.beginPath(); ctx.moveTo(cx,by+6); ctx.lineTo(cx,by+bh-6); ctx.stroke();
-    ctx.fillStyle=C.muted; ctx.font='8px JetBrains Mono, monospace'; ctx.textAlign='left';
+    ctx.fillStyle=C.muted; ctx.font='12px JetBrains Mono, monospace'; ctx.textAlign='left';
     ctx.fillText('Im', cx+3, by+12); ctx.fillText('Re', bx+bw-16, cy-3);
     const col = d.regime==='pseudo'?C.accent:(d.regime==='critique'?C.amber:C.accent2);
     ctx.strokeStyle=col; ctx.lineWidth=2;
@@ -72100,7 +72148,7 @@ document.addEventListener('keydown',e=>{
       ctx.strokeStyle=withA(C.ink,0.3); ctx.strokeRect(x,eby,ebw,ebh);
       const hh=Math.max(0,Math.min(1,frac))*ebh;
       ctx.fillStyle=col; ctx.fillRect(x,eby+ebh-hh,ebw,hh);
-      ctx.fillStyle=C.muted; ctx.font='10px JetBrains Mono, monospace'; ctx.textAlign='center';
+      ctx.fillStyle=C.muted; ctx.font='12px JetBrains Mono, monospace'; ctx.textAlign='center';
       ctx.fillText(label,x+ebw/2,eby+ebh+14);
     };
     bar(ebx, Ec/Emax, C.accent, 'Ec');
@@ -72114,7 +72162,7 @@ document.addEventListener('keydown',e=>{
       ctx.strokeStyle=withA(C.ink,0.3); ctx.lineWidth=1;
       ctx.beginPath(); ctx.moveTo(px,py+ph/2); ctx.lineTo(px+pw,py+ph/2); ctx.stroke();
       ctx.beginPath(); ctx.moveTo(px+pw/2,py); ctx.lineTo(px+pw/2,py+ph); ctx.stroke();
-      ctx.fillStyle=C.muted; ctx.font='9px JetBrains Mono, monospace'; ctx.textAlign='left';
+      ctx.fillStyle=C.muted; ctx.font='12px JetBrains Mono, monospace'; ctx.textAlign='left';
       ctx.fillText('θ̇', px+pw/2+3, py+10); ctx.fillText('θ', px+pw-12, py+ph/2-4);
       const sx=(pw/2)/(a0*1.15), sy=(ph/2)/(w0*a0*1.2);
       ctx.strokeStyle=__CVchap(ctx.canvas); ctx.lineWidth=1.6; ctx.beginPath();
@@ -72224,7 +72272,7 @@ document.addEventListener('keydown',e=>{
     for(let i=0;i<=5;i++){ const y=gy+gh*i/5; ctx.beginPath(); ctx.moveTo(gx,y); ctx.lineTo(gx+gw,y); ctx.stroke(); }
     ctx.strokeStyle=C.ink; ctx.lineWidth=1.4;
     ctx.beginPath(); ctx.moveTo(gx,gy); ctx.lineTo(gx,gy+gh); ctx.lineTo(gx+gw,gy+gh); ctx.stroke();
-    ctx.fillStyle=C.muted; ctx.font='10px JetBrains Mono, monospace'; ctx.textAlign='right';
+    ctx.fillStyle=C.muted; ctx.font='12px JetBrains Mono, monospace'; ctx.textAlign='right';
     ctx.fillText(fmt(ymax,1),gx-4,gy+8); ctx.fillText('0',gx-4,gy+gh);
     ctx.textAlign='center'; ctx.fillText('t (s)',gx+gw-14,gy+gh+22);
     ctx.textAlign='left'; ctx.fillText('s(t)',gx+4,gy+10);
@@ -72240,8 +72288,8 @@ document.addEventListener('keydown',e=>{
     if($('s1-tan').checked){
       ctx.strokeStyle=withA(C.accent2,0.8); ctx.lineWidth=1.4; ctx.setLineDash([5,3]);
       ctx.beginPath(); ctx.moveTo(X(0),Y(0)); ctx.lineTo(X(tau),Y(K)); ctx.stroke(); ctx.setLineDash([]);
-      ctx.fillStyle=C.accent2; ctx.textAlign='left'; ctx.font='10px JetBrains Mono, monospace';
-      ctx.fillText('tangente → K à t=τ', X(tau)+4, Y(K)+14);
+      ctx.fillStyle=C.accent2; ctx.textAlign='left'; ctx.font='12px JetBrains Mono, monospace';
+      ctx.fillText('tangente → K à t=τ', X(tau)+6, Y(K)-8);
     }
 
     // courbe s(t)=K(1-e^{-t/τ})
@@ -72254,7 +72302,7 @@ document.addEventListener('keydown',e=>{
       ctx.strokeStyle=withA(C.ink,0.4); ctx.setLineDash([3,3]); ctx.lineWidth=1;
       ctx.beginPath(); ctx.moveTo(X(t),gy+gh); ctx.lineTo(X(t),Y(s)); ctx.lineTo(gx,Y(s)); ctx.stroke(); ctx.setLineDash([]);
       ctx.fillStyle=__CVchap(ctx.canvas); ctx.beginPath(); ctx.arc(X(t),Y(s),3,0,2*Math.PI); ctx.fill();
-      ctx.fillStyle=C.ink; ctx.textAlign='center'; ctx.font='10px JetBrains Mono, monospace'; ctx.fillText(lab,X(t),gy+gh+22);
+      ctx.fillStyle=C.ink; ctx.textAlign='center'; ctx.font='12px JetBrains Mono, monospace'; ctx.fillText(lab,X(t),gy+gh+22);
     };
     mark(tau,'τ',0.632); mark(3*tau,'3τ',0.95);
 
@@ -72330,7 +72378,7 @@ document.addEventListener('keydown',e=>{
       if(0.5+lambda<=Lwin){ ctx.beginPath(); ctx.moveTo(xa,y0-amp-14); ctx.lineTo(xb,y0-amp-14); ctx.stroke();
         ctx.beginPath(); ctx.moveTo(xa,y0-amp-20); ctx.lineTo(xa,y0-amp-8); ctx.moveTo(xb,y0-amp-20); ctx.lineTo(xb,y0-amp-8); ctx.stroke(); }
       ctx.setLineDash([]);
-      ctx.fillStyle=C.accent; ctx.font='11px JetBrains Mono, monospace'; ctx.textAlign='center';
+      ctx.fillStyle=C.accent; ctx.font='12px JetBrains Mono, monospace'; ctx.textAlign='center';
       if(0.5+lambda<=Lwin) ctx.fillText('λ = '+fmt(lambda,2)+' m', (xa+xb)/2, y0-amp-24);
       // flèche de propagation
       ctx.fillStyle=C.muted; ctx.textAlign='left';
@@ -72353,8 +72401,10 @@ document.addEventListener('keydown',e=>{
       for(let m=0;m<=n;m++){ const xN=m*Lstring/n; ctx.beginPath(); ctx.arc(px(xN),y0,3.5,0,2*Math.PI); ctx.fill(); }
       ctx.fillStyle=C.green;
       for(let m=0;m<n;m++){ const xV=(m+0.5)*Lstring/n; ctx.beginPath(); ctx.arc(px(xV),y0,2.6,0,2*Math.PI); ctx.fill(); }
-      ctx.fillStyle=C.muted; ctx.font='10px JetBrains Mono, monospace'; ctx.textAlign='left';
-      ctx.fillText('nœuds (noir) · ventres (vert) — corde fixée, L = '+Lstring+' m', gx0+6, H-12);
+      ctx.fillStyle=C.muted; ctx.font='12px JetBrains Mono, monospace'; ctx.textAlign='left';
+      const leg1 = 'nœuds (gros points) · ventres (verts)', leg2 = 'corde fixée, L = '+Lstring+' m';
+      if(ctx.measureText(leg1+' — '+leg2).width <= W - gx0 - 12) ctx.fillText(leg1+' — '+leg2, gx0+6, H-12);
+      else { ctx.fillText(leg1, gx0+6, H-28); ctx.fillText(leg2, gx0+6, H-12); }
       info='Onde stationnaire : pas de propagation, des nœuds fixes et des ventres qui oscillent. Mode n → λ_n = 2L/n.';
     }
 
@@ -72476,7 +72526,7 @@ document.addEventListener('keydown',e=>{
       ctx.beginPath(); ctx.moveTo(bx,by); ctx.lineTo(ex,ey); ctx.stroke();
       const ang=Math.atan2(ey-by,ex-bx);
       ctx.beginPath(); ctx.moveTo(ex,ey); ctx.lineTo(ex-8*Math.cos(ang-0.4),ey-8*Math.sin(ang-0.4)); ctx.lineTo(ex-8*Math.cos(ang+0.4),ey-8*Math.sin(ang+0.4)); ctx.closePath(); ctx.fill();
-      ctx.fillStyle=C.green; ctx.font='11px JetBrains Mono, monospace'; ctx.fillText('v', ex+3, ey-3);
+      ctx.fillStyle=C.green; ctx.font='12px JetBrains Mono, monospace'; ctx.fillText('v', ex+3, ey-3);
     }
     ctx.fillStyle=__CVchap(ctx.canvas); ctx.beginPath(); ctx.arc(bx,by,6,0,2*Math.PI); ctx.fill();
 
@@ -72557,7 +72607,7 @@ document.addEventListener('keydown',e=>{
     ctx.clearRect(0,0,W,H);
 
     const padL=20, padR=20, gw=W-padL-padR;
-    const curveTop=24, curveH=H*0.42, bandTop=curveTop+curveH+24, bandH=H*0.30;
+    const curveTop=24, curveH=H*0.42, bandTop=curveTop+curveH+40, bandH=H*0.30;
     const xPix2phys = px => (px/gw - 0.5)*WPHYS;     // px in [0,gw] → x physique
     const rgb = colorOn ? wlRGB(+$('od-lam').value) : [235,235,235];
 
@@ -72569,7 +72619,7 @@ document.addEventListener('keydown',e=>{
       ctx.fillRect(padL+p, bandTop, 1.5, bandH);
     }
     ctx.strokeStyle=C.ink; ctx.lineWidth=1; ctx.strokeRect(padL,bandTop,gw,bandH);
-    ctx.fillStyle=C.muted; ctx.font='10px JetBrains Mono, monospace'; ctx.textAlign='left';
+    ctx.fillStyle=C.muted; ctx.font='12px JetBrains Mono, monospace'; ctx.textAlign='left';
     ctx.fillText('écran — figure d\'interférences', padL+4, bandTop+bandH+16);
 
     // --- courbe d'intensité ---
@@ -72581,7 +72631,7 @@ document.addEventListener('keydown',e=>{
       const X=padL+p, Y=curveTop+curveH-(I)*curveH*0.92; if(p===0)ctx.moveTo(X,Y); else ctx.lineTo(X,Y); }
     ctx.stroke();
     ctx.fillStyle=C.muted; ctx.textAlign='left'; ctx.fillText('I(x)', padL+2, curveTop+10);
-    ctx.textAlign='center'; ctx.fillText('x = 0', padL+gw/2, curveTop+curveH+14);
+    ctx.textAlign='right'; ctx.fillText('x = 0', padL+gw/2-5, curveTop+curveH+15);
 
     // --- marqueur interfrange (entre centre et frange suivante) ---
     const px0=padL+gw/2, pxi=padL+gw/2 + (i/WPHYS)*gw;
@@ -72590,8 +72640,12 @@ document.addEventListener('keydown',e=>{
       ctx.beginPath(); ctx.moveTo(px0,curveTop+curveH+4); ctx.lineTo(px0,bandTop-4); ctx.stroke();
       ctx.beginPath(); ctx.moveTo(pxi,curveTop+curveH+4); ctx.lineTo(pxi,bandTop-4); ctx.stroke();
       ctx.beginPath(); ctx.moveTo(px0,bandTop-10); ctx.lineTo(pxi,bandTop-10); ctx.stroke();
-      ctx.fillStyle=C.accent2; ctx.textAlign='center'; ctx.font='11px JetBrains Mono, monospace';
-      ctx.fillText('i = '+fmt(i*1000,2)+' mm', (px0+pxi)/2, bandTop-14);
+      ctx.fillStyle=C.accent2; ctx.textAlign='center'; ctx.font='12px JetBrains Mono, monospace';
+      // à droite du crochet (à gauche s'il touche le bord), jamais sur les repères
+      const ti = 'i = '+fmt(i*1000,2)+' mm', wi = ctx.measureText(ti).width;
+      if(pxi + 6 + wi <= padL + gw){ ctx.textAlign='left'; ctx.fillText(ti, pxi + 6, bandTop - 6); }
+      else { ctx.textAlign='right'; ctx.fillText(ti, px0 - 6, bandTop - 6); }
+      ctx.textAlign='left';
     }
 
     // infos
@@ -72843,7 +72897,7 @@ document.addEventListener('keydown',e=>{
     // axes
     ctx.strokeStyle=C.ink; ctx.lineWidth=1.4;
     ctx.beginPath(); ctx.moveTo(gx,gy); ctx.lineTo(gx,gy+gh); ctx.lineTo(gx+gw,gy+gh); ctx.stroke();
-    ctx.fillStyle=C.muted; ctx.font='11px JetBrains Mono, monospace';
+    ctx.fillStyle=C.muted; ctx.font='12px JetBrains Mono, monospace';
     ctx.textAlign='center'; ctx.fillText('V (volume)', gx+gw/2, gy+gh+26);
     ctx.save(); ctx.translate(16,gy+gh/2); ctx.rotate(-Math.PI/2); ctx.fillText('P (pression)',0,0); ctx.restore();
 
@@ -72861,7 +72915,7 @@ document.addEventListener('keydown',e=>{
     });
 
     // points 1-2-3-4
-    ctx.fillStyle=C.ink; ctx.font='10px JetBrains Mono, monospace'; ctx.textAlign='left';
+    ctx.fillStyle=C.ink; ctx.font='12px JetBrains Mono, monospace'; ctx.textAlign='left';
     cy.branches.forEach((b,i)=>{ const V=b.vert?b.Vx:b.V(0), P=b.vert?b.P(V,0):b.P(V); ctx.beginPath(); ctx.arc(X(V),Y(P),3,0,2*Math.PI); ctx.fill(); ctx.fillText((i+1).toString(), X(V)+5, Y(P)-4); });
 
     // point animé + sens (flèche)
@@ -72950,7 +73004,7 @@ document.addEventListener('keydown',e=>{
     // axes
     ctx.strokeStyle=Co.ink; ctx.lineWidth=1.4;
     ctx.beginPath(); ctx.moveTo(0,cy); ctx.lineTo(W,cy); ctx.moveTo(cx,0); ctx.lineTo(cx,H); ctx.stroke();
-    ctx.fillStyle=Co.muted; ctx.font='11px JetBrains Mono, monospace'; ctx.textAlign='left';
+    ctx.fillStyle=Co.muted; ctx.font='12px JetBrains Mono, monospace'; ctx.textAlign='left';
     ctx.fillText('Re', W-22, cy-6); ctx.fillText('Im', cx+6, 14);
 
     function vec(z,col,lab){ ctx.strokeStyle=col; ctx.fillStyle=col; ctx.lineWidth=2.4;
@@ -73067,18 +73121,18 @@ document.addEventListener('keydown',e=>{
     ctx.strokeStyle=C.grid; ctx.lineWidth=1;
     for(let i=0;i<=5;i++){ const x=gx+gw*i/5,y=gy+gh*i/5; ctx.beginPath();ctx.moveTo(x,gy);ctx.lineTo(x,gy+gh);ctx.stroke(); ctx.beginPath();ctx.moveTo(gx,y);ctx.lineTo(gx+gw,y);ctx.stroke(); }
     ctx.strokeStyle=C.ink; ctx.lineWidth=1.4; ctx.strokeRect(gx,gy,gw,gh);
-    ctx.fillStyle=C.muted; ctx.font='10px JetBrains Mono, monospace'; ctx.textAlign='center';
-    ctx.fillText('x', gx+gw-8, gy+gh+22); ctx.fillText(fmt(xmin,1), gx, gy+gh+16); ctx.fillText(fmt(xmax,1), gx+gw, gy+gh+16);
+    ctx.fillStyle=C.muted; ctx.font='12px JetBrains Mono, monospace'; ctx.textAlign='center';
+    ctx.fillText('x', gx+gw/2, gy+gh+22); ctx.fillText(fmt(xmin,1), gx, gy+gh+16); ctx.fillText(fmt(xmax,1), gx+gw, gy+gh+16);
 
     // droite y=x
     ctx.strokeStyle=withA(C.ink,0.5); ctx.lineWidth=1.4; ctx.setLineDash([5,4]);
     ctx.beginPath(); ctx.moveTo(X(Math.max(xmin,ymin)),Y(Math.max(xmin,ymin))); ctx.lineTo(X(Math.min(xmax,ymax)),Y(Math.min(xmax,ymax))); ctx.stroke(); ctx.setLineDash([]);
-    ctx.fillStyle=withA(C.ink,0.6); ctx.textAlign='left'; ctx.fillText('y=x', X(xmax)-30, Y(xmax)+14);
+    ctx.fillStyle=C.muted; ctx.textAlign='right'; __texteDetoure(ctx, 'y=x', X(xmax)-6, Y(xmax)+30); ctx.textAlign='left';
 
     // courbe y=f(x)
     ctx.strokeStyle=__CVchap(ctx.canvas); ctx.lineWidth=2.4; ctx.beginPath(); let started=false;
     for(let i=0;i<=300;i++){ const x=xmin+(xmax-xmin)*i/300; const y=f(x); if(y<ymin-1||y>ymax+1||!isFinite(y)){started=false;continue;} const px=X(x),py=Y(y); if(!started){ctx.moveTo(px,py);started=true;}else ctx.lineTo(px,py);} ctx.stroke();
-    ctx.fillStyle=__CVchap(ctx.canvas); ctx.fillText('y=f(x)', X(xmin)+6, Y(f(xmin))-6);
+    ctx.fillStyle=__CVchap(ctx.canvas); __texteDetoure(ctx, 'y=f(x)', X(xmin)+6, Y(f(xmin))-6);
 
     // suite + cobweb
     const u=[u0]; for(let n=0;n<N;n++){ let v=f(u[n]); if(!isFinite(v)) v=u[n]; u.push(v); }
@@ -73253,8 +73307,10 @@ document.addEventListener('keydown',e=>{
       if(p.a < fn.domain[0] || p.b < fn.domain[0]){
         ctx.fillStyle = colors.muted;
         ctx.font = '13px JetBrains Mono';
-        ctx.fillText('Domaine non valide pour '+fn.label+' : a et b doivent être ≥ '+fn.domain[0],
-                     30, H/2);
+        ctx.save(); ctx.textAlign = 'center';
+        ctx.fillText('Domaine non valide pour '+fn.label+' :', W/2, H/2 - 10);
+        ctx.fillText('a et b doivent être ≥ '+fn.domain[0], W/2, H/2 + 10);
+        ctx.restore();
         const badge = document.getElementById('int-regime-display');
         badge.textContent = 'Domaine invalide';
         badge.className = 'regime-badge aperiodique';
@@ -73316,15 +73372,16 @@ document.addEventListener('keydown',e=>{
     ctx.stroke();
 
     ctx.fillStyle = colors.muted;
-    ctx.font = '11px JetBrains Mono';
-    ctx.fillText('y', padL - 15, padT + 12);
-    ctx.fillText('x', W - padR - 10, yOf(0) + 16);
+    ctx.font = '12px JetBrains Mono';
+    ctx.fillText('y', padL + 6, padT + 10);
+    ctx.fillText('x', W - padR + 6, (yMin <= 0 && yMax >= 0 ? yOf(0) : H - padB) + 4);
 
-    // Graduations
-    ctx.font = '10px JetBrains Mono';
+    // Graduations (extrêmes : à l'intérieur de l'axe, jamais sur l'axe y)
+    ctx.font = '12px JetBrains Mono';
     for(let k = 0; k <= 4; k++){
-      const xv = xMin + (k/4)*(xMax - xMin);
-      ctx.fillText(xv.toFixed(1), xOf(xv) - 12, (yMin <=0 && yMax >= 0 ? yOf(0) : H - padB) + 14);
+      const xv = xMin + (k/4)*(xMax - xMin), tx = xv.toFixed(1), wx = ctx.measureText(tx).width;
+      const gx = k === 0 ? padL + 4 : (k === 4 ? W - padR - wx : xOf(xv) - wx/2);
+      ctx.fillText(tx, gx, (yMin <=0 && yMax >= 0 ? yOf(0) : H - padB) + 14);
     }
     for(let k = 0; k <= 4; k++){
       const yv = yMin + (k/4)*(yMax - yMin);
@@ -73359,7 +73416,7 @@ document.addEventListener('keydown',e=>{
     ctx.stroke();
     ctx.setLineDash([]);
     ctx.fillStyle = __CV().accent2;
-    ctx.font = 'bold 11px JetBrains Mono';
+    ctx.font = 'bold 12px JetBrains Mono';
     ctx.fillText('a', xOf(a) - 5, padT + 12);
     ctx.fillText('b', xOf(b) - 5, padT + 12);
 
