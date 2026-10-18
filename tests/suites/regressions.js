@@ -136,7 +136,10 @@ module.exports = {
     }));
     const noter = async (page, niveaux) => {
       for (const n of niveaux) {
-        await page.click('#rlc-flash .flash-controls .' + ['hard', 'ok', 'easy'][n]);
+        // Les boutons de notation ne s'affichent qu'au verso (SPEC §5.4) : retourner d'abord la carte
+        const sel = '#rlc-flash .flash-controls .' + ['hard', 'ok', 'easy'][n];
+        if (!(await page.isVisible(sel))) { await page.click('#rlc-flash .flash-card'); await page.waitForSelector(sel, { state: 'visible', timeout: 3000 }); }
+        await page.click(sel);
         await pause(120);
       }
       await pause(200);
