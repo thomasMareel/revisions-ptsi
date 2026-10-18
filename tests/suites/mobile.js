@@ -9,7 +9,7 @@
      Des panneaux débordent déjà (formules en ligne trop longues, voir
      tests/README.md §5) : ils sont listés dans DEBORDEMENTS_CONNUS. La suite n'échoue que
      pour un NOUVEAU débordement, et signale un panneau connu qui ne déborde plus. */
-const { pause, attendreApp, fermerOverlays, naviguer, etatMathJax } = require('../lib/outils');
+const { pause, attendreApp, fermerOverlays, naviguer, choisirTheme, etatMathJax } = require('../lib/outils');
 
 /* Panneaux qui débordent à 390 px au commit a04c445 (mesurés avec cette suite,
    Chromium 141) : largeur de page mesurée (px) et formule en cause. Un panneau
@@ -114,15 +114,48 @@ module.exports = {
     }
     res.verifier('tiroir : ouverture, matières, filtre, Entrée', !pbTiroir.length, pbTiroir);
 
-    /* ---------- 3) Thème via le bouton mobile ---------- */
+    /* ---------- 2b) Bouton retour (Android) : ferme la page Chapitres / la feuille ⋯ ---------- */
+    journal.lieu = 'retour Android';
+    const pbRetour = [];
+    try {
+      // Au-dessus de rlc/meth, qui ne déborde pas à 390 px : un panneau qui déborde élargit la zone
+      // d'affichage du téléphone, et avec elle les pages plein écran (voir DEBORDEMENTS_CONNUS)
+      await naviguer(page, 'rlc', 'meth');
+      await pause(300);
+      const avant = await page.evaluate(() => location.hash);
+      for (const [nom, bouton, page_] of [['page Chapitres', '#mob-menu-btn', 'mob-drawer'], ['feuille ⋯', '#mob-more-btn', 'mob-more-menu']]) {
+        await page.tap(bouton);
+        await pause(500);
+        if (!(await page.evaluate(id => document.getElementById(id).classList.contains('open'), page_))) { pbRetour.push(nom + ' : ne s\'ouvre pas'); continue; }
+        await page.goBack();
+        await pause(500);
+        const s = await page.evaluate(id => ({ ouvert: document.getElementById(id).classList.contains('open'), hash: location.hash }), page_);
+        if (s.ouvert) pbRetour.push(nom + ' : le bouton retour ne la ferme pas');
+        if (s.hash !== avant) pbRetour.push(nom + ' : le bouton retour a quitté le chapitre (hash ' + s.hash + ' au lieu de ' + avant + ')');
+      }
+      // fermée par ×, puis retour : on revient bien au chapitre PRÉCÉDENT (l'entrée fictive a été retirée)
+      await page.tap('#mob-menu-btn');
+      await pause(500);
+      await page.tap('#mob-drawer-close');
+      await pause(500);
+      const s2 = await page.evaluate(() => ({ ouvert: document.getElementById('mob-drawer').classList.contains('open'), hash: location.hash }));
+      if (s2.ouvert) pbRetour.push('× ne ferme pas la page Chapitres');
+      if (s2.hash !== avant) pbRetour.push('après ×, hash ' + s2.hash + ' au lieu de ' + avant);
+    } catch (e) { pbRetour.push('interaction impossible : ' + String(e.message).split('\n').slice(0, 8).join(' | ')); }
+    res.verifier('bouton retour (Android) : ferme la page Chapitres et la feuille ⋯ sans quitter le chapitre', !pbRetour.length, pbRetour);
+
+    /* ---------- 3) Thème via la feuille ⋯ du téléphone (segmenté Clair / Sombre / Auto) ---------- */
     journal.lieu = 'thème mobile';
-    await page.tap('#mob-theme-btn');
-    await pause(300);
-    const th = await page.evaluate(() => document.documentElement.getAttribute('data-theme'));
-    await page.tap('#mob-theme-btn');
-    await pause(200);
-    const th2 = await page.evaluate(() => document.documentElement.getAttribute('data-theme'));
-    res.verifier('bouton thème mobile (sombre puis clair)', th === 'dark' && th2 !== 'dark', 'data-theme après 1 clic = ' + th + ', après 2 clics = ' + th2);
+    let th = {}, th2 = {};
+    try {
+      await naviguer(page, 'rlc', 'meth');   // panneau sans débordement (voir ci-dessus)
+      th = await choisirTheme(page, 'dark', true);
+      th2 = await choisirTheme(page, 'light', true);
+    } catch (e) { th.erreur = String(e.message).split('\n')[0]; }
+    res.verifier('thème au téléphone par la feuille ⋯ (sombre puis clair, mémorisé)',
+      th.attr === 'dark' && th.store === 'dark' && th2.attr !== 'dark' && th2.store === 'light' && !th2.feuille,
+      th.erreur || ('« Sombre » : data-theme = ' + th.attr + ', Store = ' + th.store + ' ; « Clair » : data-theme = ' + th2.attr
+        + ', Store = ' + th2.store + (th2.feuille ? ' ; la feuille ⋯ reste ouverte après Échap' : '')));
 
     /* ---------- 4) Débordement horizontal de chaque panneau ---------- */
     const tous = await page.evaluate(() => CHAPTERS.map(c => ({ id: c.id, prefix: c.prefix, matiere: c.matiere,

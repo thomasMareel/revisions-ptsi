@@ -9,7 +9,7 @@
    - flashcards : flashPretty + MathJax sur toutes les cartes (0 erreur) ;
    - tous les simulateurs (drawFn) exécutés, canvas peints en clair ET sombre
      (en --rapide : un seul thème). */
-const { pause, attendreApp, fermerOverlays, naviguer, etatMathJax, problemesJournal } = require('../lib/outils');
+const { pause, attendreApp, fermerOverlays, naviguer, choisirTheme, etatMathJax, problemesJournal } = require('../lib/outils');
 
 /* Anomalies CONNUES (déjà recensées, à corriger avec l'accord de l'utilisateur) :
    elles ne font pas échouer la suite. Si l'une disparaît, un avertissement
@@ -204,11 +204,9 @@ module.exports = {
     for (const theme of themes) {
       journal.lieu = 'thème ' + theme;
       if (theme === 'sombre') {
-        await page.click('#theme-btn');
-        await pause(300);
-        const t = await page.evaluate(() => ({ attr: document.documentElement.getAttribute('data-theme'), stocke: Store.get('theme') }));
-        res.verifier('bascule en thème sombre (#theme-btn)', t.attr === 'dark' && t.stocke === 'dark',
-          'data-theme = ' + t.attr + ', Store theme = ' + t.stocke);
+        const t = await choisirTheme(page, 'dark');
+        res.verifier('bascule en thème sombre (sélecteur de #theme-btn)', t.attr === 'dark' && t.store === 'dark',
+          'data-theme = ' + t.attr + ', Store theme = ' + t.store);
       }
       const pbSim = [];
       ctx.log(simus.length + ' simulateur(s) en thème ' + theme);
@@ -255,7 +253,7 @@ module.exports = {
         await ctx.capture(page, 'rlc-simu-' + theme);
       }
     }
-    if (themes.includes('sombre')) { await page.click('#theme-btn'); await pause(200); }
+    if (themes.includes('sombre')) await choisirTheme(page, 'light');
 
     /* ---------- 6) Bilan du journal : erreurs JS, requêtes externes ---------- */
     const js = journal.erreurs.map(e => '[' + e.lieu + '] ' + e.type + ' : ' + e.texte + (e.source ? ' (' + e.source + ')' : ''));

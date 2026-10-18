@@ -55,7 +55,7 @@
    fixe et les fenêtres refermées entre deux écrans. */
 const fs = require('fs');
 const path = require('path');
-const { pause, attendreApp, naviguer, etatMathJax } = require('../lib/outils');
+const { pause, attendreApp, naviguer, choisirTheme, etatMathJax } = require('../lib/outils');
 
 /* ---------- Anomalies TOLÉRÉES (site aux commits b3632ad et 1d2a766, Chromium 141) ----------
    Une ligne = [mesure, écrans, thèmes, appareils, { sélecteur: pire valeur tolérée, … }]
@@ -77,8 +77,6 @@ const TOLERES = [
   ['contraste', 'bilan', 'clair', '*', { '#dash-close-btn': 4.09 }],
   ['contraste', 'bilan', 'sombre', '*', { '#dash-revise-btn': 2.99 }],
   ['contraste', 'chapitres', '*', '*', { 'span.num': 4.01 }],
-  ['contraste', 'chapitres', 'sombre', 'ordi', { '#rev-badge': 2.99 }],
-  ['contraste', 'chapitres', 'sombre', 'tel', { '#rev-badge-mob': 2.99 }],
   ['contraste', 'quiz', '*', 'ordi', { 'button.quiz-btn-reread kbd': 3.25, 'button.quiz-rate-btn.rate-acq kbd': 2.39, 'button.quiz-rate-btn.rate-hes kbd': 1.96, 'button.quiz-rate-btn.rate-rev kbd': 2.46 }],
   ['contraste', 'quiz', 'clair', '*', { '#quiz-progress-text': 4.28, 'button.quiz-close': 3.68 }],
   ['contraste', 'recherche', '*', '*', { 'span.sr-snippet mark': 2.11 }],
@@ -87,31 +85,23 @@ const TOLERES = [
   ['contraste', 'rlc-flash anglais-flash', '*', '*', { 'button.flash-reset': 1.9, 'div.flash-stats-wrap span#*-stats': 2.96, 'span.ic-lbl': 2.34 }],
   ['contraste', 'rlc-flash anglais-flash', 'clair', '*', { 'button.ok': 2.61, 'div.flash-progress': 3.68 }],
   ['contraste', 'rlc-simu', 'clair', '*', { 'span.lbl': 3.54 }],
-  ['contraste', 'tiroir', '*', '*', { 'button.mob-mat-btn': 3.18 }],
-  ['contraste', 'tiroir', 'clair', '*', { '#mob-drawer-close': 4.09 }],
   // — Taille du texte (px) —
   ['taille', 'aujourdhui', '*', '*', { '#today-date': 10.56, 'span.due-sub': 11.52, 'span.mob-filter-tag': 10.24, 'span.today-label': 10.24 }],
   ['taille', 'bilan', '*', '*', { 'div.m-name': 9.6, 'div.m-sub': 11.52, 'span.c-mat': 9.92, 'span.c-revoir': 11.52, 'span.dash-section-label': 9.92 }],
-  ['taille', 'chapitres', '*', '*', { 'span.cpg-dir': 10.24, 'span.num': 11.2 }],
-  ['taille', 'chapitres', '*', 'ordi', { '#rev-badge': 9.92, '#search-btn kbd': 9.6, '#theme-label': 11.2, 'div.eyebrow': 11.2, 'span.ctb-sub': 10.88, 'span.hdr-btn-label': 11.2 }],
-  ['taille', 'chapitres', '*', 'tel', { '#rev-badge-mob': 9.92, 'button.tab': 11.52 }],
-  ['taille', 'maxwell-cours', '*', 'ordi', { 'span.yr2a': 8.92 }],
+  ['taille', 'chapitres', '*', '*', { 'span.num': 11.2 }],
   ['taille', 'maxwell-cours', '*', 'tel', { 'text.lab-accent': 11.92, 'text.lab-accent2': 11.92, 'text.lab-it': 11.92, 'text.lab-muted': 10.54 }],
-  ['taille', 'menu-plus', '*', 'ordi', { '#backup-btn': 11.52, '#flag-btn': 11.52, '#formula-btn': 11.52, '#print-btn': 11.52, '#today-btn': 11.52, 'button.hdr-more-item': 11.52, 'span.read-size-val': 11.2 }],
   ['taille', 'quiz', '*', '*', { '#qs-acquis': 11.2, '#qs-hes': 11.2, '#qs-rev': 11.2, '#qs-skip': 11.2, '#quiz-chapter-badge': 10.4, '#quiz-goto-btn': 11.2, '#quiz-progress-text': 11.52, 'span.ic-lbl': 11.2, 'span.quiz-card-tag': 10.4, 'span.quiz-score-item.score-acquis': 11.2, 'span.quiz-score-item.score-hes': 11.2, 'span.quiz-score-item.score-rev': 11.2, 'span.quiz-score-item.score-skip': 11.2 }],
   ['taille', 'quiz', '*', 'ordi', { 'button.quiz-btn-reread kbd': 10.4, 'button.quiz-rate-btn.rate-acq kbd': 10.4, 'button.quiz-rate-btn.rate-hes kbd': 10.4, 'button.quiz-rate-btn.rate-rev kbd': 10.4 }],
   ['taille', 'quiz', '*', 'tel', { 'button.quiz-rate-btn.rate-acq': 11.52, 'button.quiz-rate-btn.rate-hes': 11.52, 'button.quiz-rate-btn.rate-rev': 11.52 }],
   ['taille', 'recherche', '*', '*', { 'div.search-group-label': 9.6, 'div.search-hint-bar span': 10.4, 'div.sr-suggest': 11.2, 'div.sr-suggest a': 11.2, 'span.sr-badge.sr-b-cours': 9.92, 'span.sr-badge.sr-b-def': 9.92, 'span.sr-badge.sr-b-exo': 9.92, 'span.sr-badge.sr-b-flash': 9.92, 'span.sr-badge.sr-b-meth': 9.92, 'span.sr-meta': 10.88 }],
   ['taille', 'rlc-cours maxwell-cours', '*', '*', { 'span.label': 11.2 }],
   ['taille', 'rlc-cours maxwell-cours slci-cours', '*', '*', { 'div.def-box::before': 9.92, 'div.prop-box::before': 9.92 }],
-  ['taille', 'rlc-cours maxwell-cours slci-cours', '*', 'ordi', { 'span.toc-title': 11.52 }],
   ['taille', 'rlc-exos', '*', '*', { 'p.exo-part': 11.52, 'span.diff': 11.2 }],
   ['taille', 'rlc-flash anglais-flash', '*', '*', { 'button.flash-reset': 10.88, 'div.flash-hint': 11.2, 'span.tag': 11.2 }],
   ['taille', 'rlc-meth', '*', '*', { 'div.method-box::before': 9.92, 'span.step': 11.2 }],
   ['taille', 'rlc-simu', '*', '*', { 'span.lbl': 11.2 }],
-  ['taille', 'tiroir', '*', '*', { 'button.mob-mat-btn': 10.88, 'button.mob-subdomain-label.mob-sub-toggle': 10.24, 'span.mob-filter-tag.mt-anglais': 10.24, 'span.mob-filter-tag.mt-si': 10.24, 'span.mob-subdomain-label.mob-drawer-section': 10.24, 'span.sub-chev': 9.6, 'span.sub-count': 10.56 }],
   // — Débordement horizontal (bord droit, px) —
-  ['debordement', 'rlc-cours', '*', 'tel', { '#mob-header': 415, 'div.course-section li mjx-container': 414, 'page (scrollWidth)': 415 }],
+  ['debordement', 'rlc-cours', '*', 'tel', { 'div.course-section li mjx-container': 414, 'page (scrollWidth)': 415 }],
   // — Cibles tactiles < 44 px (côté, px) —
   ['cible44', 'anglais-flash', '*', 'tel', { 'button.flash-tts-btn': 40 }],
   ['cible44', 'aujourdhui', '*', 'tel', { '#today-close': 15 }],
@@ -120,7 +110,6 @@ const TOLERES = [
   ['cible44', 'rlc-exos', '*', 'tel', { 'button.toggle-sol': 34 }],
   ['cible44', 'rlc-flash anglais-flash', '*', 'tel', { 'button.flash-course-link': 32, 'button.flash-flag-btn': 28.2, 'button.flash-reset': 27.2 }],
   ['cible44', 'rlc-simu', '*', 'tel', { '#C': 16, '#L': 16, '#R': 16 }],
-  ['cible44', 'tiroir', '*', 'tel', { '#mob-drawer-close': 27.4, '#mob-filter': 40, 'button.mob-subdomain-label.mob-sub-toggle': 40 }],
 ];
 
 /* Tolérance sur la valeur d'un constat toléré (instabilités de rendu, polices) */
@@ -163,6 +152,11 @@ const ECRANS = [
   { nom: 'bilan', chap: 'rlc', onglet: 'meth', racine: '#dash-overlay', preparer: ouvrirBilan },
   { nom: 'aujourdhui', chap: 'rlc', onglet: 'meth', racine: '#today-overlay', preparer: ouvrirAujourdhui },
   { nom: 'menu-plus', chap: 'rlc', onglet: 'meth', racine: '#more-menu', ordinateurSeul: true, preparer: ouvrirMenuPlus },
+  // Coquille de la refonte : menu Réviser, sélecteur de thème, feuille ⋯ du téléphone, Sommaire de la matière
+  { nom: 'menu-reviser', chap: 'rlc', onglet: 'meth', racine: '#study-menu', ordinateurSeul: true, preparer: ouvrirMenuReviser },
+  { nom: 'theme', chap: 'rlc', onglet: 'meth', racine: '#theme-pop', ordinateurSeul: true, preparer: ouvrirSelecteurTheme },
+  { nom: 'feuille-plus', chap: 'rlc', onglet: 'meth', racine: '#mob-more-menu', telephoneSeul: true, preparer: ouvrirFeuillePlus },
+  { nom: 'sommaire', chap: 'rlc', onglet: 'meth', preparer: ouvrirSommaire },
 ];
 
 /* Decks dont la progression est semée (Bilan, Aujourd'hui, badge « à réviser ») */
@@ -185,6 +179,17 @@ async function deplierSolution(page) {
   return ok ? [] : ['aucune solution dépliable dans rlc-exos (.toggle-sol)'];
 }
 async function ouvrirTiroir(page, app) {
+  // À partir de 1200 px, la navigation est une barre latérale PERMANENTE (#nav-toggle-btn la
+  // replie ou l'affiche) : on vérifie qu'elle est affichée ; en dessous, c'est un tiroir
+  // (page « Chapitres » plein écran au téléphone) qu'on ouvre.
+  const laterale = await page.evaluate(() => matchMedia('(min-width:1200px)').matches);
+  if (laterale) {
+    if (await page.evaluate(() => document.documentElement.classList.contains('nav-replie'))) await cliquer(page, '#nav-toggle-btn');
+    await pause(300);
+    const vis = await page.evaluate(() => { const d = document.getElementById('mob-drawer'); const r = d.getBoundingClientRect();
+      return d.checkVisibility() && r.width > 200 && r.left >= 0 && document.querySelectorAll('#mob-chap-list .mob-chap-row').length > 0; });
+    return vis ? [] : ['la barre latérale des chapitres n\'est pas affichée'];
+  }
   await cliquer(page, app.mobile ? '#mob-menu-btn' : '#nav-toggle-btn');
   await pause(450);
   return (await estOuvert(page, '#mob-drawer')) ? [] : ['le tiroir ne s\'ouvre pas'];
@@ -229,6 +234,29 @@ async function ouvrirMenuPlus(page) {
   await cliquer(page, '#more-btn');
   await pause(250);
   return (await estOuvert(page, '#more-menu')) ? [] : ['le menu Plus ne s\'ouvre pas'];
+}
+
+async function ouvrirMenuReviser(page) {
+  await cliquer(page, '#study-btn');
+  await pause(250);
+  return (await estOuvert(page, '#study-menu')) ? [] : ['le menu Réviser ne s\'ouvre pas'];
+}
+async function ouvrirSelecteurTheme(page) {
+  await cliquer(page, '#theme-btn');
+  await pause(300);
+  return (await page.evaluate(() => { const p = document.getElementById('theme-pop'); return !!(p && !p.hidden); })) ? [] : ['le sélecteur de thème (#theme-pop) ne s\'ouvre pas'];
+}
+async function ouvrirFeuillePlus(page) {
+  await cliquer(page, '#mob-more-btn');
+  await pause(450);
+  return (await estOuvert(page, '#mob-more-menu')) ? [] : ['la feuille ⋯ (#mob-more-menu) ne s\'ouvre pas'];
+}
+async function ouvrirSommaire(page) {
+  // Lien profond du Sommaire de la matière (comme un favori ou le bouton précédent)
+  await page.evaluate(() => { location.hash = '#sommaire/physique'; });
+  await pause(500);
+  return (await page.evaluate(() => { const s = document.getElementById('sommaire-matiere'); return !!(s && !s.hidden && s.querySelector('.pcard')); }))
+    ? [] : ['le Sommaire de la matière (#sommaire/physique) ne s\'affiche pas'];
 }
 
 /* Referme tout ce qui peut rester ouvert entre deux écrans (Échap, puis les
@@ -837,7 +865,7 @@ module.exports = {
         const a = CHAPTERS.find(c => c.matiere === 'anglais' && c.panels.includes('flash'));
         return a ? a.id : null;
       }, DECKS_SEMES);
-      const ecrans = ECRANS.filter(e => !(e.ordinateurSeul && app.mobile));
+      const ecrans = ECRANS.filter(e => !(e.ordinateurSeul && app.mobile) && !(e.telephoneSeul && !app.mobile));
       ecransParAppareil[app.nom] = ecrans.map(e => e.nom);
       let rang = 0;
       ctx.log(app.nom + ' ' + app.largeur + '×' + app.hauteur + ' : ' + ecrans.length + ' écrans × ' + THEMES.length + ' thèmes');
@@ -846,8 +874,9 @@ module.exports = {
         journal.lieu = 'thème ' + theme + ' (' + app.nom + ')';
         await toutFermer(page);
         if (theme === 'sombre') {
-          await cliquer(page, app.mobile ? '#mob-theme-btn' : '#theme-btn');
-          await pause(350);
+          // Sélecteur de thème : popover de #theme-btn (ordinateur), feuille ⋯ (téléphone)
+          await choisirTheme(page, 'dark', app.mobile).catch(e => pbPreparation.push(app.nom + ' : sélecteur de thème : ' + String(e.message).split('\n')[0]));
+          await pause(150);
         }
         const th = await page.evaluate(() => ({ attr: document.documentElement.getAttribute('data-theme'), store: Store.get('theme') }));
         const attendu = theme === 'sombre' ? 'dark' : null;

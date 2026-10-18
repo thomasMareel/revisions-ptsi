@@ -33,7 +33,7 @@
    est modifié (le fichier sur le disque n'est jamais touché). */
 const fs = require('fs');
 const path = require('path');
-const { pause, attendreApp, fermerOverlays, naviguer, extraireDeck, remplacerDeck, suivreErreurs } = require('../lib/outils');
+const { pause, attendreApp, fermerOverlays, naviguer, choisirTheme, extraireDeck, remplacerDeck, suivreErreurs } = require('../lib/outils');
 
 const DECK = 'rlcCards';   // deck utilisé pour B1/B2 (chapitre rlc, prefix rlc)
 const JOUR = 86400000;
@@ -817,13 +817,11 @@ module.exports = {
         const v1 = await lire();
         if (v1.theme === 'dark') throw new Error('préparation : le site démarre en thème sombre');
         controler('thème clair', v1, attendu.clair);
-        await page.click('#theme-btn');
-        await pause(300);
+        await choisirTheme(page, 'dark');
         const v2 = await lire();
-        if (v2.theme !== 'dark') throw new Error('préparation : #theme-btn n\'a pas activé le thème sombre');
+        if (v2.theme !== 'dark') throw new Error('préparation : le sélecteur de thème (#theme-btn) n\'a pas activé le thème sombre');
         controler('thème sombre', v2, attendu.sombre);
-        await page.click('#theme-btn');
-        await pause(300);
+        await choisirTheme(page, 'light');
         controler('retour au clair', await lire(), attendu.clair);
       } catch (e) { pb.push(String(e.message).split('\n')[0]); }
       res.verifier(nom, !pb.length, pb);
