@@ -1174,7 +1174,7 @@ footer.pied .brand-mark{ width:1.375rem; height:1.375rem; border-radius:6px; fon
 .theme-sub .lab{ font:var(--w-semi) var(--fs-ui-s)/1.2 var(--font-ui); color:var(--text); }
 .theme-sub .lab small{ display:block; margin-top:.15rem; font-weight:var(--w-regular); font-size:var(--fs-ui-xs); color:var(--text-2); }
 .theme-sub .seg{ margin-left:auto; }
-.read-size-seg > button{ min-width:2.75rem; font-family:var(--font-text); font-weight:var(--w-semi); }
+.read-size-seg > button{ min-width:2.75rem; }
 /* Mini-vues : couleurs littérales VOLONTAIRES (elles montrent chaque thème, quel que
    soit le thème courant — seule exception à la règle « aucune couleur codée en dur ») */
 .theme-prev{ position:relative; width:100%; aspect-ratio:4/3; border-radius:8px; overflow:hidden; border:1px solid var(--line); }
@@ -73710,7 +73710,10 @@ function navigateTo(chapId, panelId, onDone){
   function retirerFictive(delai){
     setTimeout(() => {   // laissé à syncHash s'il navigue entre-temps (remplacement)
       if(!aRemplacer || pageFictive) return;
-      aRemplacer = false; retoursIgnores++;
+      aRemplacer = false;
+      // garde-fou : on ne recule QUE depuis notre propre entrée fictive (jamais hors du site)
+      if(!(history.state && history.state.pageFictive)) return;
+      retoursIgnores++;
       try { history.back(); } catch(e){ retoursIgnores--; }
     }, delai || 0);
   }
@@ -73765,6 +73768,10 @@ function navigateTo(chapId, panelId, onDone){
     }
     if(location.hash === h) return;            // pas de changement
     if(aRemplacer){ aRemplacer = false; history.replaceState(null,'',h); }   // remplace l'entrée fictive d'une page plein écran
+    else if(pageFictive){                     // page plein écran encore ouverte (ex. année changée dans la page Chapitres) :
+      history.replaceState(null,'',h);         // l'entrée fictive devient la vraie entrée de l'URL…
+      try { history.pushState({ pageFictive: pageFictive.id }, '', h); } catch(e){}   // …et une nouvelle entrée fictive reste au sommet
+    }
     else if(cle !== lastChap){ history.pushState(null,'',h); }  // nouveau chapitre (ou sommaire) → entrée d'historique
     else { history.replaceState(null,'',h); }                  // même chapitre, onglet différent → pas d'entrée
     lastChap = cle;
@@ -76024,6 +76031,7 @@ ${bodyContent}
     rendreBarre();
   }
   // Section courante (appelé par le scroll-spy du sommaire interne) → barre + lastPos.s
+  window.__casPhrase = casPhrase;
   window.__surSection = function(sec){
     try {
       const ch = sec && sec.closest('.chapter');
@@ -77142,8 +77150,10 @@ document.getElementById('skip-link')?.addEventListener('click', e => {
       b.className = 'menu-item hdr-more-item';
       b.setAttribute('role', 'menuitem');
       const lab = s.dataset.tocLabel || ((s.querySelector('.sec-num') || {}).textContent || '');
-      const m = lab.match(/^\s*(§\s*\d+)/);
-      b.innerHTML = '<span class="n">' + esc(m ? m[1].replace(/\s+/g, '') : '§' + (k + 1)) + '</span><span>' + esc(s.querySelector('h2').textContent.trim()) + '</span>';
+      const m = lab.match(/^\s*(§\s*\d+[a-z]?)\s*[·:\-–—.]?\s*(.*)$/i);
+      // titre de section en casse de phrase (« §2 Mise en équation »), comme le sommaire ; à défaut, le h2
+      const t = (m && m[2] && window.__casPhrase) ? window.__casPhrase(m[2], s) : s.querySelector('h2').textContent.trim();
+      b.innerHTML = '<span class="n">' + esc(m ? m[1].replace(/\s+/g, '') : '§' + (k + 1)) + '</span><span>' + esc(t) + '</span>';
       b.addEventListener('click', () => s.scrollIntoView({ behavior:'smooth', block:'start' }));
       list.appendChild(b);
     });

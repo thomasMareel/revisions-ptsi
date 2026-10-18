@@ -77,8 +77,6 @@ const TOLERES = [
   ['contraste', 'bilan', 'clair', '*', { '#dash-close-btn': 4.09 }],
   ['contraste', 'bilan', 'sombre', '*', { '#dash-revise-btn': 2.99 }],
   ['contraste', 'chapitres', '*', '*', { 'span.num': 4.01 }],
-  ['contraste', 'chapitres', 'sombre', 'ordi', { '#rev-badge': 2.99 }],
-  ['contraste', 'chapitres', 'sombre', 'tel', { '#rev-badge-mob': 2.99 }],
   ['contraste', 'quiz', '*', 'ordi', { 'button.quiz-btn-reread kbd': 3.25, 'button.quiz-rate-btn.rate-acq kbd': 2.39, 'button.quiz-rate-btn.rate-hes kbd': 1.96, 'button.quiz-rate-btn.rate-rev kbd': 2.46 }],
   ['contraste', 'quiz', 'clair', '*', { '#quiz-progress-text': 4.28, 'button.quiz-close': 3.68 }],
   ['contraste', 'recherche', '*', '*', { 'span.sr-snippet mark': 2.11 }],
@@ -87,17 +85,14 @@ const TOLERES = [
   ['contraste', 'rlc-flash anglais-flash', '*', '*', { 'button.flash-reset': 1.9, 'div.flash-stats-wrap span#*-stats': 2.96, 'span.ic-lbl': 2.34 }],
   ['contraste', 'rlc-flash anglais-flash', 'clair', '*', { 'button.ok': 2.61, 'div.flash-progress': 3.68 }],
   ['contraste', 'rlc-simu', 'clair', '*', { 'span.lbl': 3.54 }],
-  ['contraste', 'tiroir', '*', '*', { 'button.mob-mat-btn': 3.18 }],
-  ['contraste', 'tiroir', 'clair', '*', { '#mob-drawer-close': 4.09 }],
   // — Taille du texte (px) —
   ['taille', 'aujourdhui', '*', '*', { '#today-date': 10.56, 'span.due-sub': 11.52, 'span.mob-filter-tag': 10.24, 'span.today-label': 10.24 }],
   ['taille', 'bilan', '*', '*', { 'div.m-name': 9.6, 'div.m-sub': 11.52, 'span.c-mat': 9.92, 'span.c-revoir': 11.52, 'span.dash-section-label': 9.92 }],
   ['taille', 'chapitres', '*', '*', { 'span.cpg-dir': 10.24, 'span.num': 11.2 }],
-  ['taille', 'chapitres', '*', 'ordi', { '#rev-badge': 9.92, '#search-btn kbd': 9.6, '#theme-label': 11.2, 'div.eyebrow': 11.2, 'span.ctb-sub': 10.88, 'span.hdr-btn-label': 11.2 }],
-  ['taille', 'chapitres', '*', 'tel', { '#rev-badge-mob': 9.92, 'button.tab': 11.52 }],
+  ['taille', 'chapitres', '*', 'ordi', { 'span.ctb-sub': 10.88 }],
+  ['taille', 'chapitres', '*', 'tel', { 'button.tab': 11.52 }],
   ['taille', 'maxwell-cours', '*', 'ordi', { 'span.yr2a': 8.92 }],
   ['taille', 'maxwell-cours', '*', 'tel', { 'text.lab-accent': 11.92, 'text.lab-accent2': 11.92, 'text.lab-it': 11.92, 'text.lab-muted': 10.54 }],
-  ['taille', 'menu-plus', '*', 'ordi', { '#backup-btn': 11.52, '#flag-btn': 11.52, '#formula-btn': 11.52, '#print-btn': 11.52, '#today-btn': 11.52, 'button.hdr-more-item': 11.52, 'span.read-size-val': 11.2 }],
   ['taille', 'quiz', '*', '*', { '#qs-acquis': 11.2, '#qs-hes': 11.2, '#qs-rev': 11.2, '#qs-skip': 11.2, '#quiz-chapter-badge': 10.4, '#quiz-goto-btn': 11.2, '#quiz-progress-text': 11.52, 'span.ic-lbl': 11.2, 'span.quiz-card-tag': 10.4, 'span.quiz-score-item.score-acquis': 11.2, 'span.quiz-score-item.score-hes': 11.2, 'span.quiz-score-item.score-rev': 11.2, 'span.quiz-score-item.score-skip': 11.2 }],
   ['taille', 'quiz', '*', 'ordi', { 'button.quiz-btn-reread kbd': 10.4, 'button.quiz-rate-btn.rate-acq kbd': 10.4, 'button.quiz-rate-btn.rate-hes kbd': 10.4, 'button.quiz-rate-btn.rate-rev kbd': 10.4 }],
   ['taille', 'quiz', '*', 'tel', { 'button.quiz-rate-btn.rate-acq': 11.52, 'button.quiz-rate-btn.rate-hes': 11.52, 'button.quiz-rate-btn.rate-rev': 11.52 }],
@@ -109,9 +104,8 @@ const TOLERES = [
   ['taille', 'rlc-flash anglais-flash', '*', '*', { 'button.flash-reset': 10.88, 'div.flash-hint': 11.2, 'span.tag': 11.2 }],
   ['taille', 'rlc-meth', '*', '*', { 'div.method-box::before': 9.92, 'span.step': 11.2 }],
   ['taille', 'rlc-simu', '*', '*', { 'span.lbl': 11.2 }],
-  ['taille', 'tiroir', '*', '*', { 'button.mob-mat-btn': 10.88, 'button.mob-subdomain-label.mob-sub-toggle': 10.24, 'span.mob-filter-tag.mt-anglais': 10.24, 'span.mob-filter-tag.mt-si': 10.24, 'span.mob-subdomain-label.mob-drawer-section': 10.24, 'span.sub-chev': 9.6, 'span.sub-count': 10.56 }],
   // — Débordement horizontal (bord droit, px) —
-  ['debordement', 'rlc-cours', '*', 'tel', { '#mob-header': 415, 'div.course-section li mjx-container': 414, 'page (scrollWidth)': 415 }],
+  ['debordement', 'rlc-cours', '*', 'tel', { 'div.course-section li mjx-container': 414, 'page (scrollWidth)': 415 }],
   // — Cibles tactiles < 44 px (côté, px) —
   ['cible44', 'anglais-flash', '*', 'tel', { 'button.flash-tts-btn': 40 }],
   ['cible44', 'aujourdhui', '*', 'tel', { '#today-close': 15 }],
@@ -120,7 +114,6 @@ const TOLERES = [
   ['cible44', 'rlc-exos', '*', 'tel', { 'button.toggle-sol': 34 }],
   ['cible44', 'rlc-flash anglais-flash', '*', 'tel', { 'button.flash-course-link': 32, 'button.flash-flag-btn': 28.2, 'button.flash-reset': 27.2 }],
   ['cible44', 'rlc-simu', '*', 'tel', { '#C': 16, '#L': 16, '#R': 16 }],
-  ['cible44', 'tiroir', '*', 'tel', { '#mob-drawer-close': 27.4, '#mob-filter': 40, 'button.mob-subdomain-label.mob-sub-toggle': 40 }],
 ];
 
 /* Tolérance sur la valeur d'un constat toléré (instabilités de rendu, polices) */
