@@ -11,26 +11,16 @@
      pour un NOUVEAU débordement, et signale un panneau connu qui ne déborde plus. */
 const { pause, attendreApp, fermerOverlays, naviguer, etatMathJax } = require('../lib/outils');
 
-/* Panneaux qui débordent à 390 px au commit a04c445 (mesurés avec cette suite,
-   Chromium 141) : largeur de page mesurée (px) et formule en cause. Un panneau
-   connu fait quand même échouer si sa largeur augmente de plus de MARGE px
-   (nouvelle formule plus large). Quand un débordement est corrigé, la suite
-   affiche un avertissement : retirer alors la ligne correspondante. */
-const DEBORDEMENTS_CONNUS = {
-  'rlc-cours': { largeur: 415, formule: '\\dot{u}_C(0) = 0 \\Rightarrow -A/\\tau + B\\omega = 0 …' },
-  'sig-meth': { largeur: 413, formule: 's(t) = \\sum_n |H(jn\\omega_0)|\\,E_n\\cos(…)' },
-  'mp-exos': { largeur: 399, formule: 'N(\\theta) = \\dfrac{mv^2}{R} - mg\\cos\\theta = …' },
-  'cpx-meth': { largeur: 668, formule: '\\cos^3\\theta = \\big(\\dfrac{e^{i\\theta}+e^{-i\\theta}}{2}\\big)^3 = …' },
-  'pol-cours': { largeur: 506, formule: 'P = X^n - s_1 X^{n-1} + … = \\prod_{i=1}^n (X - r_i)' },
-  'suit-meth': { largeur: 486, formule: '\\sqrt{n^2+n} - n = \\dfrac{…}{…}' },
-  'cd-cours': { largeur: 405, formule: '\\forall \\varepsilon > 0,\\;\\exists \\eta > 0 …' },
-  'dl-meth': { largeur: 613, formule: '\\dfrac{1}{1 + u} = 1 - u + u^2 + o(u^2) = …' },
-  'asy-meth': { largeur: 515, formule: 'e^{\\sin x} = 1 + x + x^2/2 - … + o(x^3)' },
-  'prim-meth': { largeur: 450, formule: '\\int \\dfrac{2\\,du}{4u^2 + 4} = …' },
-  'va-cours': { largeur: 444, formule: '\\mathrm{Cov}(X,Y) = E(XY) - E(X)E(Y) = …' },
-  'ensi-meth': { largeur: 400, formule: 'J_{eq,\\text{ramené}} = J_{moteur} + …' },
-  'repn-cours': { largeur: 607, formule: '2^0=1,\\ 2^1=2,\\ … 2^{10}=1024' },
-};
+/* Panneaux qui débordent à 390 px (mesurés avec cette suite, Chromium 141) : largeur de page
+   mesurée (px) et formule en cause. Un panneau connu fait quand même échouer si sa largeur augmente
+   de plus de MARGE px (nouvelle formule plus large). Quand un débordement est corrigé, la suite
+   affiche un avertissement : retirer alors la ligne correspondante.
+   Liste VIDE depuis la refonte du contenu (formules en bloc défilantes, formules en ligne trop
+   larges en .mj-large, schémas élargis) : les 13 panneaux du commit a04c445 (rlc-cours 415 px,
+   sig-meth, mp-exos, cpx-meth, pol-cours, suit-meth, cd-cours, dl-meth, asy-meth, prim-meth,
+   va-cours, ensi-meth, repn-cours) ne débordent plus. Format d'une entrée :
+   'rlc-cours': { largeur: 415, formule: '\\dot{u}_C(0) = 0 …' }, */
+const DEBORDEMENTS_CONNUS = {};
 
 const LARGEUR = 390;
 const MARGE = 12;   // tolérance (px) sur la largeur des débordements connus (polices, système)
