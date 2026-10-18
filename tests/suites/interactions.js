@@ -270,6 +270,24 @@ module.exports = {
       return pb;
     });
 
+    /* ---------- Relance : dernier chapitre consulté, sans « Aujourd'hui » ---------- */
+    await etape('relance sans #hash : dernier chapitre consulté, « Aujourd\'hui » fermé', async () => {
+      await naviguer(page, autre.id, 'flash');
+      await page.goto(ctx.url(), { waitUntil: 'load', timeout: 60000 });
+      await attendreApp(page);
+      await pause(400);
+      const s = await page.evaluate(id => ({
+        aujourdhui: document.getElementById('today-overlay').classList.contains('open'),
+        panneau: (document.querySelector('#chap-' + id + ' .panel.active') || {}).id,
+      }), autre.id);
+      s.chap = await visible();
+      return [
+        s.aujourdhui && "l'écran Aujourd'hui s'ouvre au lancement",
+        s.chap !== 'chap-' + autre.id && 'chapitre affiché : ' + s.chap + ' au lieu de chap-' + autre.id,
+        s.panneau !== autre.prefix + '-flash' && 'onglet actif : ' + s.panneau + ' au lieu de ' + autre.prefix + '-flash',
+      ];
+    });
+
     /* ---------- Fenêtres secondaires ---------- */
     for (const [nom, menu, bouton, fenetre] of [
       ['formulaire du chapitre', '#more-btn', '#formula-btn', 'formula-overlay'],

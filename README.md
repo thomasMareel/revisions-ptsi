@@ -10,7 +10,7 @@ Application web statique, **mono-fichier** (`index.html`) : tout le HTML, le CSS
 - Onglets par chapitre : **Cours**, **Méthodes**, **Simulateur** (27 chapitres, plus le simulateur de la force de Lorentz), **Flashcards**, **Exercices** corrigés (le plus souvent avec un exercice type « CONCOURS PT »).
 - **Flashcards** (160 paquets, 3 749 cartes) avec suivi de progression (acquis / hésitant / à revoir), sauvegardé localement. Tu peux ajouter, retirer ou réordonner des cartes sans perdre ta progression.
 - **Répétition espacée** (boîtes de Leitner) : menu « Réviser » → « Révisions du jour », avec un badge du nombre de cartes à revoir.
-- **Écran « Aujourd'hui »** au lancement : cartes dues, reprendre là où tu t'étais arrêté, chapitres récents.
+- **Ouverture sur le dernier chapitre consulté** ; écran **« Aujourd'hui »** (menus) : cartes dues, reprendre là où tu t'étais arrêté, chapitres récents.
 - **Quiz** global multi-chapitres (filtrable par matière, par mode, par type de carte : formules / grandeurs usuelles) et **calcul mental**.
 - **Tableau de bord « Bilan »** : % de cartes acquises global, par matière et par chapitre, chapitres à renforcer en priorité.
 - **Sauvegarde / restauration** de la progression (export/import en `.json`) pour la protéger ou la transférer entre appareils.

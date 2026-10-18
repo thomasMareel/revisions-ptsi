@@ -2,7 +2,7 @@
 /* ============================================================
    Suite « mobile » — téléphone 390×844 (tactile)
    ============================================================
-   - en-tête mobile visible, sommaire masqué, écran « Aujourd'hui » au lancement ;
+   - en-tête mobile visible, sommaire masqué, écran « Aujourd'hui » NON ouvert au lancement ;
    - tiroir des chapitres : ouverture, changement de matière, filtre
      (résultats, aucun résultat, Entrée = 1er résultat) ;
    - débordement horizontal (scrollWidth > largeur d'écran) de CHAQUE panneau.
@@ -60,7 +60,7 @@ module.exports = {
     await ctx.capture(page, 'accueil');
     res.verifier('en-tête mobile visible et sommaire (.toc) masqué', lancement.entete && lancement.tocMasque,
       [!lancement.entete && '#mob-header invisible', !lancement.tocMasque && 'le sommaire .toc est affiché en mobile (il doit être masqué)']);
-    res.verifier("écran « Aujourd'hui » affiché au lancement", lancement.aujourdhui, '#today-overlay non ouvert au lancement (sans #hash)');
+    res.verifier("écran « Aujourd'hui » non ouvert au lancement", !lancement.aujourdhui, "#today-overlay ouvert au lancement : le site doit s'ouvrir sur le dernier chapitre consulté");
     await fermerOverlays(page);
 
     /* ---------- 2) Tiroir des chapitres ---------- */
