@@ -72,44 +72,12 @@ const { pause, attendreApp, naviguer, choisirTheme, etatMathJax } = require('../
    la recopier ici). */
 const TOLERES = [
   // — Contraste du texte —
-  ['contraste', 'aujourdhui', '*', '*', { 'span.due-sub': 2.57 }],
-  ['contraste', 'aujourdhui', 'sombre', '*', { '#today-due-btn span': 2.99, 'span.due-count': 2.99 }],
-  ['contraste', 'bilan', 'clair', '*', { '#dash-close-btn': 4.09 }],
-  ['contraste', 'bilan', 'sombre', '*', { '#dash-revise-btn': 2.99 }],
   ['contraste', 'chapitres', '*', '*', { 'span.num': 4.01 }],
-  ['contraste', 'quiz', '*', 'ordi', { 'button.quiz-btn-reread kbd': 3.25, 'button.quiz-rate-btn.rate-acq kbd': 2.39, 'button.quiz-rate-btn.rate-hes kbd': 1.96, 'button.quiz-rate-btn.rate-rev kbd': 2.46 }],
-  ['contraste', 'quiz', 'clair', '*', { '#quiz-progress-text': 4.28, 'button.quiz-close': 3.68 }],
-  ['contraste', 'recherche', '*', '*', { 'span.sr-snippet mark': 2.11 }],
-  ['contraste', 'recherche', 'clair', '*', { 'span.sr-badge.sr-b-meth': 4.17 }],
-  ['contraste', 'rlc-cours maxwell-cours', 'sombre', '*', { 'div.notice': 1.99, 'div.notice em': 1.99, 'div.notice mjx-container': 1.99 }],
-  ['contraste', 'rlc-flash anglais-flash', '*', '*', { 'button.flash-reset': 1.9, 'div.flash-stats-wrap span#*-stats': 2.96, 'span.ic-lbl': 2.34 }],
-  ['contraste', 'rlc-flash anglais-flash', 'clair', '*', { 'button.ok': 2.61, 'div.flash-progress': 3.68 }],
-  ['contraste', 'rlc-simu', 'clair', '*', { 'span.lbl': 3.54 }],
+  ['contraste', 'recherche', 'clair', '*', { 'span.sr-badge.sr-b-meth': 4.17, 'span.sr-snippet mark': 2.11 }],
+  ['contraste', 'recherche', 'sombre', '*', { 'span.sr-snippet mark': 2.11 }],
   // — Taille du texte (px) —
-  ['taille', 'aujourdhui', '*', '*', { '#today-date': 10.56, 'span.due-sub': 11.52, 'span.mob-filter-tag': 10.24, 'span.today-label': 10.24 }],
-  ['taille', 'bilan', '*', '*', { 'div.m-name': 9.6, 'div.m-sub': 11.52, 'span.c-mat': 9.92, 'span.c-revoir': 11.52, 'span.dash-section-label': 9.92 }],
   ['taille', 'chapitres', '*', '*', { 'span.num': 11.2 }],
-  ['taille', 'maxwell-cours', '*', 'tel', { 'text.lab-accent': 11.92, 'text.lab-accent2': 11.92, 'text.lab-it': 11.92, 'text.lab-muted': 10.54 }],
-  ['taille', 'quiz', '*', '*', { '#qs-acquis': 11.2, '#qs-hes': 11.2, '#qs-rev': 11.2, '#qs-skip': 11.2, '#quiz-chapter-badge': 10.4, '#quiz-goto-btn': 11.2, '#quiz-progress-text': 11.52, 'span.ic-lbl': 11.2, 'span.quiz-card-tag': 10.4, 'span.quiz-score-item.score-acquis': 11.2, 'span.quiz-score-item.score-hes': 11.2, 'span.quiz-score-item.score-rev': 11.2, 'span.quiz-score-item.score-skip': 11.2 }],
-  ['taille', 'quiz', '*', 'ordi', { 'button.quiz-btn-reread kbd': 10.4, 'button.quiz-rate-btn.rate-acq kbd': 10.4, 'button.quiz-rate-btn.rate-hes kbd': 10.4, 'button.quiz-rate-btn.rate-rev kbd': 10.4 }],
-  ['taille', 'quiz', '*', 'tel', { 'button.quiz-rate-btn.rate-acq': 11.52, 'button.quiz-rate-btn.rate-hes': 11.52, 'button.quiz-rate-btn.rate-rev': 11.52 }],
   ['taille', 'recherche', '*', '*', { 'div.search-group-label': 9.6, 'div.search-hint-bar span': 10.4, 'div.sr-suggest': 11.2, 'div.sr-suggest a': 11.2, 'span.sr-badge.sr-b-cours': 9.92, 'span.sr-badge.sr-b-def': 9.92, 'span.sr-badge.sr-b-exo': 9.92, 'span.sr-badge.sr-b-flash': 9.92, 'span.sr-badge.sr-b-meth': 9.92, 'span.sr-meta': 10.88 }],
-  ['taille', 'rlc-cours maxwell-cours', '*', '*', { 'span.label': 11.2 }],
-  ['taille', 'rlc-cours maxwell-cours slci-cours', '*', '*', { 'div.def-box::before': 9.92, 'div.prop-box::before': 9.92 }],
-  ['taille', 'rlc-exos', '*', '*', { 'p.exo-part': 11.52, 'span.diff': 11.2 }],
-  ['taille', 'rlc-flash anglais-flash', '*', '*', { 'button.flash-reset': 10.88, 'div.flash-hint': 11.2, 'span.tag': 11.2 }],
-  ['taille', 'rlc-meth', '*', '*', { 'div.method-box::before': 9.92, 'span.step': 11.2 }],
-  ['taille', 'rlc-simu', '*', '*', { 'span.lbl': 11.2 }],
-  // — Débordement horizontal (bord droit, px) —
-  ['debordement', 'rlc-cours', '*', 'tel', { 'div.course-section li mjx-container': 414, 'page (scrollWidth)': 415 }],
-  // — Cibles tactiles < 44 px (côté, px) —
-  ['cible44', 'anglais-flash', '*', 'tel', { 'button.flash-tts-btn': 40 }],
-  ['cible44', 'aujourdhui', '*', 'tel', { '#today-close': 15 }],
-  ['cible44', 'bilan', '*', 'tel', { '#dash-close-btn': 15, 'button.dash-chap': 38.2 }],
-  ['cible44', 'quiz', '*', 'tel', { '#quiz-flag-btn': 28.7, '#quiz-goto-btn': 28.7, 'button.quiz-btn-reread': 34, 'button.quiz-close': 25.8 }],
-  ['cible44', 'rlc-exos', '*', 'tel', { 'button.toggle-sol': 34 }],
-  ['cible44', 'rlc-flash anglais-flash', '*', 'tel', { 'button.flash-course-link': 32, 'button.flash-flag-btn': 28.2, 'button.flash-reset': 27.2 }],
-  ['cible44', 'rlc-simu', '*', 'tel', { '#C': 16, '#L': 16, '#R': 16 }],
 ];
 
 /* Tolérance sur la valeur d'un constat toléré (instabilités de rendu, polices) */

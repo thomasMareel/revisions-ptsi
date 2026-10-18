@@ -186,7 +186,7 @@ un ordre fixe : deux lancements donnent les mêmes constats.
 
 **Anomalies connues tolérées** (elles ne font pas échouer les tests, en
 attendant d'être corrigées avec l'accord de l'utilisateur) :
-- `tests/suites/mobile.js` → `DEBORDEMENTS_CONNUS` : 13 panneaux trop larges à 390 px (longues formules en ligne) ;
+- `tests/suites/mobile.js` → `DEBORDEMENTS_CONNUS` : panneaux trop larges à 390 px (liste vide depuis la refonte du contenu : formules défilantes, `.mj-large`) ;
 - `tests/suites/site.js` → `TEX_EN_CLAIR_CONNUS` (tableau de Routh en `\[ … \]`) et `ONGLETS_HORS_CHAPTERS_CONNUS` (simulateur de Lorentz non déclaré) ;
 - `tests/suites/visuel.js` → `TOLERES` : une ligne par mesure et par lieu
   `[mesure, écrans, thèmes, appareils, { sélecteur: pire valeur }]` (écrans : noms, alias
