@@ -1692,6 +1692,9 @@ mjx-container.mj-large:not([display="true"]){
   vertical-align:middle; padding:.2em 0; scrollbar-width:thin;
 }
 mjx-container[display="true"]{ display:block !important; overflow-x:auto; overflow-y:hidden; max-width:100%; margin:.5em 0; scrollbar-width:thin; }
+/* MathML d'accessibilité (masqué par clip mais aussi large que la formule native) : il ne doit
+   pas élargir la page quand une formule en ligne finit près du bord droit */
+mjx-container.MathJax[jax] > mjx-assistive-mml:not([display="block"]){ width:1px !important; }
 /* Formule suivie de sa ponctuation (« … \(x\). ») : jamais séparées en fin de ligne (sauf formule
    plus large que sa ligne : .libre) */
 .mj-colle{ white-space:nowrap; }
@@ -1865,11 +1868,16 @@ figure.schema svg{ width:100%; height:auto; overflow:visible; display:block; }
 #sk-arrow-accent path{ fill:var(--accent); }
 #sk-arrow-accent2 path{ fill:var(--accent2); }
 #sk-arrow-green path{ fill:var(--green); }
-/* Schéma dont un libellé passerait sous 12 px (téléphone surtout) : le script lui donne une
-   largeur minimale (--svg-min) ; la figure s'élargit jusqu'à la colonne, puis défile en largeur. */
-figure.schema.lisible{ max-width:max(540px, var(--svg-min, 0px)); overflow-x:auto; overflow-y:hidden; scrollbar-width:thin; }
-.cine-svg-wrap.lisible{ overflow-x:auto; overflow-y:hidden; justify-content:safe center; scrollbar-width:thin; }
+/* Schéma dont un libellé passerait sous 12 px : le script lui donne une largeur minimale
+   (--svg-min, .lisible) ; la figure s'élargit jusqu'à la colonne (au téléphone, jusque dans la
+   gouttière), puis défile en largeur si cela ne suffit pas (.defile). */
+figure.schema.lisible{ max-width:max(540px, var(--svg-min, 0px)); }
 figure.schema.lisible svg, .cine-svg-wrap.lisible svg{ min-width:var(--svg-min, 0px); }
+figure.schema.defile, .cine-svg-wrap.defile{ overflow-x:auto; overflow-y:hidden; padding-block:.25rem; scrollbar-width:thin; }
+.cine-svg-wrap.defile{ justify-content:safe center; }
+/* Libellés blancs posés sur une pastille colorée (molécules, ions) : couleur de la feuille, lisible
+   dans les deux thèmes (la pastille s'éclaircit en sombre) */
+.schema text[style*="fill:#fff"]{ fill:var(--sheet) !important; }
 
 /* Code (informatique) : JetBrains Mono, sans ligatures */
 .codeblock{
@@ -1961,6 +1969,7 @@ figure.schema.lisible svg, .cine-svg-wrap.lisible svg{ min-width:var(--svg-min, 
 /* Schémas SVG des exercices de cinématique (classes .svg-* du <style> de #cine-exos) */
 .cine-svg-wrap{ display:flex; justify-content:center; margin:.75rem 0; }
 .cine-svg-wrap svg{ max-width:100%; height:auto; border:1px solid var(--line); background:var(--sheet); border-radius:var(--r-s); }
+.cine-svg-wrap text[opacity]{ opacity:1; fill:var(--text-3); }   /* libellé estompé : encre 3 (≥ 4,5:1) plutôt qu'une opacité */
 
 /* --- 6. Téléphone et tablette ---------------------------------------------------------------- */
 @media (max-width:1023px){
@@ -1982,6 +1991,7 @@ figure.schema.lisible svg, .cine-svg-wrap.lisible svg{ min-width:var(--svg-min, 
   .reveal{ padding:.85em 1em; }
   .reveal .label, .reveal .prompt{ padding-right:0; }
   .reveal::after{ position:static; margin-top:.7em; }
+  figure.schema.lisible{ max-width:none; margin-left:calc(var(--gutter) * -1 + 4px); margin-right:calc(var(--gutter) * -1 + 4px); }
   .exo{ padding:1.1rem 1rem 1.2rem; }
   .exo .q{ padding-left:2.1rem; text-indent:-2.1rem; }
   .exo .q > strong:first-child{ min-width:2.1rem; }
@@ -2017,7 +2027,10 @@ figure.schema.lisible svg, .cine-svg-wrap.lisible svg{ min-width:var(--svg-min, 
   grid-area:lead; margin:0; max-width:var(--measure);
   font:var(--w-regular) var(--fs-body)/var(--lh-text) var(--font-text); color:var(--text-2); text-wrap:pretty;
 }
-.sim-wrapper > .mode-switch{ grid-area:mode; display:grid; width:100%; align-self:center; }
+.sim-wrapper > .mode-switch{
+  grid-area:mode; display:grid; width:100%; align-self:center;
+  grid-auto-flow:row; grid-template-columns:repeat(auto-fit, minmax(5.75rem, 1fr));   /* 4-5 modes : sur deux rangées */
+}
 .sim-wrapper > .mode-switch > button{ padding:.35rem .4rem; line-height:1.15; }
 .sim-wrapper > .regime-badge{ grid-area:badge; justify-self:start; align-self:center; }
 .sim-wrapper > .sim-controls{ grid-area:reglages; }
@@ -2074,6 +2087,12 @@ figure.schema.lisible svg, .cine-svg-wrap.lisible svg{ min-width:var(--svg-min, 
   text-transform:none !important; white-space:nowrap;
 }
 .control input, .control select{ grid-column:1 / -1; grid-row:2; }
+/* Case à cocher (afficher la tangente, animer…) : sur la même ligne que son libellé */
+.control:has(> input[type="checkbox"]){ grid-template-columns:auto minmax(0, 1fr) auto; align-items:center; }
+.control:has(> input[type="checkbox"]) > input[type="checkbox"]{ grid-column:1; grid-row:1; }
+.control:has(> input[type="checkbox"]) > label{ grid-column:2; grid-row:1; }
+.control:has(> input[type="checkbox"]) > .value{ grid-column:3; grid-row:1; }
+.control input[type="checkbox"]{ width:1.125rem; height:1.125rem; margin:0; accent-color:var(--chap-vif); cursor:pointer; }
 .control select, .control input[type="number"], #lor-simu select{
   height:2.375rem; width:100%; padding:0 .6rem; border:1px solid var(--field); border-radius:var(--r-m);
   background:var(--raise); color:var(--text); font:var(--w-medium) var(--fs-ui-s)/1.2 var(--font-ui);
@@ -2111,6 +2130,7 @@ figure.schema.lisible svg, .cine-svg-wrap.lisible svg{ min-width:var(--svg-min, 
   .control input[type="range"], #lor-simu input[type="range"]{ height:var(--tap); }
   .control select, .control input[type="number"], #lor-simu select{ height:var(--tap); font-size:1rem; }
   .sim-reset{ height:var(--tap); }
+  .control input[type="checkbox"]{ width:1.5rem; height:1.5rem; }
 }
 
 /* Mesures : tuiles en creux, libellé en sans 13 px, valeur en serif 600 de 20 px tabulaire */
@@ -2126,6 +2146,12 @@ figure.schema.lisible svg, .cine-svg-wrap.lisible svg{ min-width:var(--svg-min, 
 #lor-simu label{ color:var(--text-2); font-family:var(--font-ui); }
 #lor-simu label > span:first-child{ font-weight:var(--w-medium); }
 #lor-params{ color:var(--text-2) !important; opacity:1 !important; }
+/* Libellés du tracé (couleurs et opacités en attributs, posés par lorDraw) : encres du thème */
+#lor-svg text{ opacity:1 !important; }
+#lor-svg text[fill="var(--ink)"]{ fill:var(--text-3); }
+#lor-svg [fill="#e74c3c"]{ fill:var(--rouge); } #lor-svg [stroke="#e74c3c"]{ stroke:var(--rouge-vif); }
+#lor-svg [fill="#2ecc71"]{ fill:var(--vert); } #lor-svg [stroke="#2ecc71"]{ stroke:var(--vert-vif); }
+#lor-svg [fill="#3498db"]{ fill:var(--physique); } #lor-svg [stroke="#3498db"]{ stroke:var(--physique-vif); }
 
 /* Téléphone : une colonne ; la courbe d'abord, collante sous la barre et les onglets
    (on la voit en bougeant un curseur), puis mesures, mode et réglages */
@@ -2140,6 +2166,7 @@ figure.schema.lisible svg, .cine-svg-wrap.lisible svg{ min-width:var(--svg-min, 
   }
   .sim-wrapper > .sim-info{ grid-template-columns:repeat(2, minmax(0, 1fr)); }
   .sim-controls{ padding:1rem; }
+  #lor-svg text{ font-size:17px; }   /* tracé réduit à ~70 % : libellés ≥ 12 px à l'écran */
 }
 
 /* ===== FIN RÉGION SIMU ===== */
@@ -62762,8 +62789,22 @@ function __CVA(name, alpha){
   const r = parseInt(h.slice(0,2),16), g = parseInt(h.slice(2,4),16), b = parseInt(h.slice(4,6),16);
   return 'rgba('+r+','+g+','+b+','+alpha+')';
 }
+/* Encre vive du chapitre d'une toile (--chap-vif, posée par data-mat sur .chapter) : couleur de
+   la courbe principale des simulateurs (SPEC §3.7). Lue par getComputedStyle(canvas), mise en
+   cache par toile (cache vidé au changement de thème) ; repli : accent. */
+let __CVchapCache = new WeakMap();
+function __CVchap(cv){
+  if(!cv) return __CV().accent;
+  let c = __CVchapCache.get(cv);
+  if(!c){
+    c = String(getComputedStyle(cv).getPropertyValue('--chap-vif') || '').trim();
+    if(!/^#[0-9a-f]{3,8}$/i.test(c) || !cv.closest('[data-mat]')) return __CV().accent;   // pas encore de matière : pas de cache
+    __CVchapCache.set(cv, c);
+  }
+  return c;
+}
 /* Invalidation du cache au changement de thème (attribut data-theme sur <html>) */
-new MutationObserver(() => { __CVcache = null; })
+new MutationObserver(() => { __CVcache = null; __CVchapCache = new WeakMap(); })
   .observe(document.documentElement, {attributes:true, attributeFilter:['data-theme']});
 
 /* ===== Lecture audio (TTS) — prononciation des cartes d'anglais =====
@@ -62913,7 +62954,7 @@ function drawLibre(W,H,padL,padR,padT,padB,y0,p){
   ctx.fillText('u_C / U₀',padL-40,padT+10);
   ctx.fillText('t',W-padR-10,y0+18);
   
-  ctx.strokeStyle = __CV().accent;
+  ctx.strokeStyle = __CVchap(ctx.canvas);   // courbe principale : encre du chapitre
   ctx.lineWidth = 2;
   ctx.beginPath();
   const N = 600;
@@ -62927,7 +62968,7 @@ function drawLibre(W,H,padL,padR,padT,padB,y0,p){
   ctx.stroke();
   
   if(Q > 0.5 + 1e-3){
-    ctx.strokeStyle = __CVA('accent2',0.4);
+    ctx.strokeStyle = __hexAlpha(getCanvasColors().muted, 0.75);
     ctx.setLineDash([4,4]);
     ctx.lineWidth = 1;
     const alpha = w0/(2*Q);
@@ -63015,7 +63056,7 @@ function drawEchelon(W,H,padL,padR,padT,padB,y0,p){
   ctx.fillText('0', padL-15, yBase+4);
   
   // Courbe u_C(t)
-  ctx.strokeStyle = __CV().accent;
+  ctx.strokeStyle = __CVchap(ctx.canvas);
   ctx.lineWidth = 2;
   ctx.beginPath();
   const N = 600;
@@ -63051,7 +63092,7 @@ function drawForced(W,H,padL,padR,padT,padB,y0,p){
   }
   const norm = Math.max(ampMax, 1.2);
   
-  ctx.strokeStyle = __CV().accent2;
+  ctx.strokeStyle = __CVchap(ctx.canvas);
   ctx.lineWidth = 2;
   ctx.beginPath();
   amps.forEach((pt,i)=>{
@@ -63164,7 +63205,7 @@ function drawOpt(){
   
   // Lens (vertical line with arrows)
   octx.lineWidth = 2;
-  octx.strokeStyle = __CV().accent2;
+  octx.strokeStyle = __CVchap(octx.canvas);
   octx.beginPath();
   octx.moveTo(cx,cy-100);octx.lineTo(cx,cy+100);octx.stroke();
   // arrows depending on type
@@ -64057,7 +64098,7 @@ function drawOscLibre(W,H,padL,padR,padT,padB,y0,p){
   oscCtx.fillText('t (s)', W-padR-30, y0+18);
   
   // curve
-  oscCtx.strokeStyle = __CV().accent;
+  oscCtx.strokeStyle = __CVchap(oscCtx.canvas);
   oscCtx.lineWidth = 2;
   oscCtx.beginPath();
   const N = 600;
@@ -64072,7 +64113,7 @@ function drawOscLibre(W,H,padL,padR,padT,padB,y0,p){
   
   // envelope for pseudo-periodic
   if(p.a > 0 && Q > 0.5 + 1e-3 && Q < 1000){
-    oscCtx.strokeStyle = __CVA('accent2',0.4);
+    oscCtx.strokeStyle = __hexAlpha(getCanvasColors().muted, 0.75);
     oscCtx.setLineDash([4,4]);
     oscCtx.lineWidth = 1;
     const alpha = w0/(2*Q);
@@ -64128,7 +64169,7 @@ function drawOscForced(W,H,padL,padR,padT,padB,y0,p){
   oscCtx.fillText('ω (rad/s)', W-padR-60, H-padB+22);
   
   // curve
-  oscCtx.strokeStyle = __CV().accent2;
+  oscCtx.strokeStyle = __CVchap(oscCtx.canvas);
   oscCtx.lineWidth = 2;
   oscCtx.beginPath();
   amps.forEach((pt,i)=>{
@@ -64439,7 +64480,7 @@ function drawSer(){
   }
   
   // Courbe des sommes partielles : escalier
-  c.strokeStyle = __CV().accent;
+  c.strokeStyle = __CVchap(c.canvas);
   c.lineWidth = 2;
   c.beginPath();
   sums.forEach((p,i)=>{
@@ -64449,7 +64490,7 @@ function drawSer(){
   c.stroke();
   
   // Points
-  c.fillStyle = __CV().accent;
+  c.fillStyle = __CVchap(c.canvas);
   sums.forEach((p,i)=>{
     if(i % Math.max(1, Math.floor(sums.length/30)) === 0 || i === sums.length-1){
       const xPx = toX(i), yPx = toY(p.s);
@@ -64515,7 +64556,7 @@ function drawConiques(){
   const scale = 55, ox = W*0.5, oy = H/2;
   ctx.strokeStyle = col.ink; ctx.lineWidth = 1;
   ctx.beginPath(); ctx.moveTo(0,oy); ctx.lineTo(W,oy); ctx.moveTo(ox,0); ctx.lineTo(ox,H); ctx.stroke();
-  ctx.strokeStyle = col.accent; ctx.lineWidth = 2.6; ctx.beginPath();
+  ctx.strokeStyle = __CVchap(ctx.canvas); ctx.lineWidth = 2.6; ctx.beginPath();
   let started = false;
   for(let deg=0; deg<=360; deg+=0.4){
     const th = deg*Math.PI/180, denom = 1 + e*Math.cos(th);
@@ -64573,12 +64614,12 @@ function drawCourbesParam(){
   ctx.strokeStyle=col.accent2;ctx.globalAlpha=0.30;ctx.lineWidth=2;
   ctx.beginPath();pts.forEach((p,i)=>{const X=toX(p[1]),Y=toY(p[2]);i?ctx.lineTo(X,Y):ctx.moveTo(X,Y);});ctx.stroke();
   ctx.globalAlpha=1;
-  ctx.strokeStyle=col.accent;ctx.lineWidth=2.6;ctx.beginPath();let st=false;
+  ctx.strokeStyle=__CVchap(ctx.canvas);ctx.lineWidth=2.6;ctx.beginPath();let st=false;
   pts.forEach(p=>{if(p[0]<=t0){const X=toX(p[1]),Y=toY(p[2]);st?ctx.lineTo(X,Y):ctx.moveTo(X,Y);st=true;}});ctx.stroke();
   const a=f(t0), b=f(t0+1e-3); const dx=(b[0]-a[0])/1e-3, dy=(b[1]-a[1])/1e-3; const nrm=Math.hypot(dx,dy)||1;
   ctx.strokeStyle=col.green;ctx.lineWidth=2.6;
   ctx.beginPath();ctx.moveTo(toX(a[0]),toY(a[1]));ctx.lineTo(toX(a[0])+dx/nrm*48,toY(a[1])-dy/nrm*48);ctx.stroke();
-  ctx.fillStyle=col.accent;ctx.beginPath();ctx.arc(toX(a[0]),toY(a[1]),5,0,2*Math.PI);ctx.fill();
+  ctx.fillStyle=__CVchap(ctx.canvas);ctx.beginPath();ctx.arc(toX(a[0]),toY(a[1]),5,0,2*Math.PI);ctx.fill();
   document.getElementById('crb-t-val').textContent=Math.round(tpct)+' %';
   document.getElementById('crb-info-pt').textContent='('+a[0].toFixed(2)+' ; '+a[1].toFixed(2)+')';
   document.getElementById('crb-info-tan').textContent='('+dx.toFixed(2)+' ; '+dy.toFixed(2)+')';
@@ -66533,7 +66574,7 @@ function drawLin(){
   ]);
   
   // Remplissage léger
-  c.fillStyle = __CVA('accent',0.15);
+  c.fillStyle = __hexAlpha(__CVchap(c.canvas), 0.15);
   c.beginPath();
   transformed.forEach((p,i)=>{
     const X = toX(p[0]), Y = toY(p[1]);
@@ -66543,7 +66584,7 @@ function drawLin(){
   c.fill();
   
   // Contour
-  c.strokeStyle = __CV().accent;
+  c.strokeStyle = __CVchap(c.canvas);
   c.lineWidth = 2;
   c.beginPath();
   transformed.forEach((p,i)=>{
@@ -66630,7 +66671,7 @@ function drawLin(){
   // Légende
   c.fillStyle = getCanvasColors().muted;
   c.font = '10px JetBrains Mono';
-  c.fillText('Carré unité (pointillés) → image (rouge)', 10, H - 10);
+  c.fillText('Carré unité (pointillés) → image (trait plein)', 10, H - 10);
   
   // Affichage infos
   const matStr = `[${mat[0][0].toFixed(2)}, ${mat[0][1].toFixed(2)}; ${mat[1][0].toFixed(2)}, ${mat[1][1].toFixed(2)}]`;
@@ -69497,7 +69538,7 @@ document.addEventListener('keydown',e=>{
     const xRange = W - padL - padR, yRange = H - padT - padB;
 
     // Tracer s(t) = K(1 - e^(-t/tau))
-    ctx.strokeStyle = __CV().accent;
+    ctx.strokeStyle = __CVchap(ctx.canvas);
     ctx.lineWidth = 2;
     ctx.beginPath();
     const N = 400;
@@ -69631,7 +69672,7 @@ document.addEventListener('keydown',e=>{
     ctx.fillText('K = ' + sInf.toFixed(2), W - padR - 80, yAsym - 6);
 
     // Courbe
-    ctx.strokeStyle = __CV().accent;
+    ctx.strokeStyle = __CVchap(ctx.canvas);
     ctx.lineWidth = 2;
     ctx.beginPath();
     const N = 600;
@@ -69710,7 +69751,7 @@ document.addEventListener('keydown',e=>{
     ctx.fillText('Phase (°)', padL + 5, padT + yRange + 14);
 
     // Courbe Gain
-    ctx.strokeStyle = __CV().accent;
+    ctx.strokeStyle = __CVchap(ctx.canvas);
     ctx.lineWidth = 2;
     ctx.beginPath();
     const N = 300;
@@ -69798,7 +69839,7 @@ document.addEventListener('keydown',e=>{
     ctx.fillText('Phase (°)', padL + 5, padT + yRange + 14);
 
     // Gain
-    ctx.strokeStyle = __CV().accent;
+    ctx.strokeStyle = __CVchap(ctx.canvas);
     ctx.lineWidth = 2;
     ctx.beginPath();
     const N = 400;
@@ -70061,7 +70102,7 @@ document.addEventListener('keydown',e=>{
     }
 
     // Tracer gain
-    ctx.strokeStyle = __CV().accent;
+    ctx.strokeStyle = __CVchap(ctx.canvas);
     ctx.lineWidth = 2;
     ctx.beginPath();
     data.forEach((d, i) => {
@@ -70071,7 +70112,7 @@ document.addEventListener('keydown',e=>{
     ctx.stroke();
 
     // Tracer phase
-    ctx.strokeStyle = __CV().accent2;
+    ctx.strokeStyle = __CV().accent;
     ctx.lineWidth = 2;
     ctx.beginPath();
     data.forEach((d, i) => {
@@ -70280,7 +70321,7 @@ document.addEventListener('keydown',e=>{
     const iHigh = iMax + 0.1*iRange;
 
     // Tracer u(t)
-    ctx.strokeStyle = __CV().accent2;
+    ctx.strokeStyle = __CVchap(ctx.canvas);
     ctx.lineWidth = 2;
     ctx.beginPath();
     samples.forEach((s, idx) => {
@@ -70327,14 +70368,14 @@ document.addEventListener('keydown',e=>{
 
     // Moyenne tension
     const uMoy = p.alpha * p.E;
-    ctx.strokeStyle = __CVA('accent2',0.5);
+    ctx.strokeStyle = __hexAlpha(__CVchap(ctx.canvas), 0.5);
     ctx.setLineDash([4,4]);
     ctx.beginPath();
     const yUMoy = yUBot - (uMoy/uMax) * yRange;
     ctx.moveTo(padL, yUMoy); ctx.lineTo(W - padR, yUMoy);
     ctx.stroke();
     ctx.setLineDash([]);
-    ctx.fillStyle = __CV().accent2;
+    ctx.fillStyle = __CVchap(ctx.canvas);
     ctx.fillText('U moy = αE = '+uMoy.toFixed(1)+' V', W - padR - 140, yUMoy - 4);
 
     // Badge
@@ -70392,7 +70433,7 @@ document.addEventListener('keydown',e=>{
     }
 
     // Droite U_moy / E = α
-    ctx.strokeStyle = __CV().accent;
+    ctx.strokeStyle = __CVchap(ctx.canvas);
     ctx.lineWidth = 2;
     ctx.beginPath();
     ctx.moveTo(padL, H - padB);
@@ -70544,7 +70585,7 @@ document.addEventListener('keydown',e=>{
     }
 
     // Droite C_em(Ω)
-    ctx.strokeStyle = __CV().accent;
+    ctx.strokeStyle = __CVchap(ctx.canvas);
     ctx.lineWidth = 2.5;
     ctx.beginPath();
     ctx.moveTo(xOf(0), yOf(Cdem));
@@ -70650,7 +70691,7 @@ document.addEventListener('keydown',e=>{
     ctx.fillText('Ω∞ = '+Winf.toFixed(1)+' rad/s', W - padR - 130, yAsym - 6);
 
     // Courbe Ω(t)
-    ctx.strokeStyle = __CV().accent;
+    ctx.strokeStyle = __CVchap(ctx.canvas);
     ctx.lineWidth = 2;
     ctx.beginPath();
     const N = 400;
@@ -70857,7 +70898,7 @@ document.addEventListener('keydown',e=>{
 
     // Aire sous la courbe (= -W reçu, ou W fourni)
     if(p.type !== 'isochore'){
-      ctx.fillStyle = __CVA('accent',0.13);
+      ctx.fillStyle = __hexAlpha(__CVchap(ctx.canvas), 0.13);
       ctx.beginPath();
       ctx.moveTo(xOf(points[0].V), yOf(0));
       points.forEach(pt => ctx.lineTo(xOf(pt.V), yOf(pt.P)));
@@ -70867,7 +70908,7 @@ document.addEventListener('keydown',e=>{
     }
 
     // Courbe
-    ctx.strokeStyle = __CV().accent;
+    ctx.strokeStyle = __CVchap(ctx.canvas);
     ctx.lineWidth = 2.5;
     ctx.beginPath();
     points.forEach((pt, i) => {
@@ -71236,7 +71277,7 @@ document.addEventListener('keydown',e=>{
     ctx.stroke();
 
     // Tracer la trajectoire
-    ctx.strokeStyle = __CV().accent;
+    ctx.strokeStyle = __CVchap(ctx.canvas);
     ctx.lineWidth = 2;
     ctx.beginPath();
     pts.forEach((p, i) => {
@@ -71503,6 +71544,7 @@ document.addEventListener('keydown',e=>{
     const panel = $('tr-simu');
     if(panel && !panel.classList.contains('active')) return;
     const r = canvas.getBoundingClientRect();
+    if(r.width < 2 || r.height < 2) return;   // toile masquée (chapitre quitté, redimensionnement) : rayons négatifs sinon
     canvas.width = r.width*dpr; canvas.height = r.height*dpr;
     ctx.setTransform(dpr,0,0,dpr,0,0);
     const W = r.width, H = r.height;
@@ -71752,7 +71794,7 @@ document.addEventListener('keydown',e=>{
     ctx.fillText('mur lisse', xWall+4, 40); ctx.fillText('sol (adhérence f)', 30, yFloor+22);
 
     // échelle (barreaux)
-    ctx.strokeStyle=C.accent2; ctx.lineWidth=5; ctx.lineCap='round';
+    ctx.strokeStyle=__CVchap(ctx.canvas); ctx.lineWidth=5; ctx.lineCap='round';
     ctx.beginPath(); ctx.moveTo(Ax,Ay); ctx.lineTo(Bx,By); ctx.stroke();
     ctx.lineCap='butt';
     // opérateur (point)
@@ -71902,7 +71944,7 @@ document.addEventListener('keydown',e=>{
     ctx.beginPath(); ctx.moveTo(X(0),Y(0)); ctx.lineTo(X(0),Y(d.K)); ctx.lineTo(gx+gw,Y(d.K)); ctx.stroke();
 
     // courbe réponse
-    const col = d.regime==='pseudo'?C.accent : (d.regime==='critique'?C.amber:C.accent2);
+    const col = d.regime==='pseudo'?__CVchap(ctx.canvas) : (d.regime==='critique'?C.amber:C.ink);
     ctx.strokeStyle=col; ctx.lineWidth=2.4; ctx.beginPath();
     d.pts.forEach((p,i)=>{ const x=X(p.t), y=Y(p.s); if(i===0)ctx.moveTo(x,y); else ctx.lineTo(x,y); });
     ctx.stroke();
@@ -72029,12 +72071,12 @@ document.addEventListener('keydown',e=>{
     ctx.beginPath(); ctx.moveTo(ox,oy); ctx.lineTo(ox,oy+Lr+24); ctx.stroke(); ctx.setLineDash([]);
     // tige + balourd
     const bx=ox+Lr*Math.sin(theta), by=oy+Lr*Math.cos(theta);
-    ctx.strokeStyle=C.accent2; ctx.lineWidth=4; ctx.lineCap='round';
+    ctx.strokeStyle=C.ink; ctx.lineWidth=4; ctx.lineCap='round';
     ctx.beginPath(); ctx.moveTo(ox,oy); ctx.lineTo(bx,by); ctx.stroke(); ctx.lineCap='butt';
-    ctx.fillStyle=C.accent; ctx.beginPath(); ctx.arc(bx,by,11,0,2*Math.PI); ctx.fill();
+    ctx.fillStyle=__CVchap(ctx.canvas); ctx.beginPath(); ctx.arc(bx,by,11,0,2*Math.PI); ctx.fill();
     ctx.fillStyle=C.ink; ctx.beginPath(); ctx.arc(ox,oy,3.5,0,2*Math.PI); ctx.fill();
     // arc d'angle
-    ctx.strokeStyle=withA(C.accent,0.6); ctx.lineWidth=1.4;
+    ctx.strokeStyle=withA(__CVchap(ctx.canvas),0.6); ctx.lineWidth=1.4;
     ctx.beginPath(); ctx.arc(ox,oy,26, Math.PI/2, Math.PI/2+theta, theta<0); ctx.stroke();
     ctx.fillStyle=C.ink; ctx.font='12px JetBrains Mono, monospace'; ctx.textAlign='left';
     ctx.fillText('θ = '+fmt(theta*180/Math.PI,0)+'°', ox+8, oy+44);
@@ -72066,11 +72108,11 @@ document.addEventListener('keydown',e=>{
       ctx.fillStyle=C.muted; ctx.font='9px JetBrains Mono, monospace'; ctx.textAlign='left';
       ctx.fillText('θ̇', px+pw/2+3, py+10); ctx.fillText('θ', px+pw-12, py+ph/2-4);
       const sx=(pw/2)/(a0*1.15), sy=(ph/2)/(w0*a0*1.2);
-      ctx.strokeStyle=C.accent; ctx.lineWidth=1.6; ctx.beginPath();
+      ctx.strokeStyle=__CVchap(ctx.canvas); ctx.lineWidth=1.6; ctx.beginPath();
       trail.forEach((q,i)=>{ const x=px+pw/2+q.th*sx, y=py+ph/2-q.om*sy; if(i===0)ctx.moveTo(x,y); else ctx.lineTo(x,y); });
       ctx.stroke();
       const cx=px+pw/2+theta*sx, cy=py+ph/2-omega*sy;
-      ctx.fillStyle=C.accent; ctx.beginPath(); ctx.arc(cx,cy,3.5,0,2*Math.PI); ctx.fill();
+      ctx.fillStyle=__CVchap(ctx.canvas); ctx.beginPath(); ctx.arc(cx,cy,3.5,0,2*Math.PI); ctx.fill();
       ctx.fillStyle=C.muted; ctx.textAlign='center'; ctx.fillText('portrait de phase', px+pw/2, py+ph+14);
     }
 
@@ -72194,7 +72236,7 @@ document.addEventListener('keydown',e=>{
     }
 
     // courbe s(t)=K(1-e^{-t/τ})
-    ctx.strokeStyle=C.accent; ctx.lineWidth=2.4; ctx.beginPath();
+    ctx.strokeStyle=__CVchap(ctx.canvas); ctx.lineWidth=2.4; ctx.beginPath();
     for(let i=0;i<=400;i++){ const t=Tmax*i/400, s=K*(1-Math.exp(-t/tau)); const x=X(t),y=Y(s); if(i===0)ctx.moveTo(x,y); else ctx.lineTo(x,y); }
     ctx.stroke();
 
@@ -72202,7 +72244,7 @@ document.addEventListener('keydown',e=>{
     const mark=(t,lab,frac)=>{ const s=K*frac;
       ctx.strokeStyle=withA(C.ink,0.4); ctx.setLineDash([3,3]); ctx.lineWidth=1;
       ctx.beginPath(); ctx.moveTo(X(t),gy+gh); ctx.lineTo(X(t),Y(s)); ctx.lineTo(gx,Y(s)); ctx.stroke(); ctx.setLineDash([]);
-      ctx.fillStyle=C.accent; ctx.beginPath(); ctx.arc(X(t),Y(s),3,0,2*Math.PI); ctx.fill();
+      ctx.fillStyle=__CVchap(ctx.canvas); ctx.beginPath(); ctx.arc(X(t),Y(s),3,0,2*Math.PI); ctx.fill();
       ctx.fillStyle=C.ink; ctx.textAlign='center'; ctx.font='10px JetBrains Mono, monospace'; ctx.fillText(lab,X(t),gy+gh+22);
     };
     mark(tau,'τ',0.632); mark(3*tau,'3τ',0.95);
@@ -72269,17 +72311,17 @@ document.addEventListener('keydown',e=>{
       k=2*Math.PI/lambda; w=k*c; f=c/lambda; T=1/f;
       const px=x=>gx0 + (x/Lwin)*gw;
       // onde y(x,t)=A sin(kx - ωt)
-      ctx.strokeStyle=C.accent; ctx.lineWidth=2.6; ctx.beginPath();
+      ctx.strokeStyle=__CVchap(ctx.canvas); ctx.lineWidth=2.6; ctx.beginPath();
       for(let i=0;i<=600;i++){ const x=Lwin*i/600; const y=y0 - amp*Math.sin(k*x - phase); const X=px(x); if(i===0)ctx.moveTo(X,y); else ctx.lineTo(X,y); }
       ctx.stroke();
       // marqueur de longueur d'onde
       const x1=( (phase/k)%lambda ); // un zéro montant approx
-      ctx.strokeStyle=withA(C.accent2,0.9); ctx.lineWidth=1.5; ctx.setLineDash([4,3]);
+      ctx.strokeStyle=withA(C.accent,0.9); ctx.lineWidth=1.5; ctx.setLineDash([4,3]);
       const xa=px(0.5), xb=px(0.5+lambda);
       if(0.5+lambda<=Lwin){ ctx.beginPath(); ctx.moveTo(xa,y0-amp-14); ctx.lineTo(xb,y0-amp-14); ctx.stroke();
         ctx.beginPath(); ctx.moveTo(xa,y0-amp-20); ctx.lineTo(xa,y0-amp-8); ctx.moveTo(xb,y0-amp-20); ctx.lineTo(xb,y0-amp-8); ctx.stroke(); }
       ctx.setLineDash([]);
-      ctx.fillStyle=C.accent2; ctx.font='11px JetBrains Mono, monospace'; ctx.textAlign='center';
+      ctx.fillStyle=C.accent; ctx.font='11px JetBrains Mono, monospace'; ctx.textAlign='center';
       if(0.5+lambda<=Lwin) ctx.fillText('λ = '+fmt(lambda,2)+' m', (xa+xb)/2, y0-amp-24);
       // flèche de propagation
       ctx.fillStyle=C.muted; ctx.textAlign='left';
@@ -72289,12 +72331,12 @@ document.addEventListener('keydown',e=>{
       const n=+$('ond-n').value; lambda=2*Lstring/n; k=n*Math.PI/Lstring; w=k*c; f=c/lambda; T=1/f;
       const px=x=>gx0 + (x/Lstring)*gw;
       // enveloppe ±A sin(kx)
-      ctx.strokeStyle=withA(C.accent2,0.45); ctx.lineWidth=1.2; ctx.setLineDash([5,4]);
+      ctx.strokeStyle=withA(C.muted,0.8); ctx.lineWidth=1.2; ctx.setLineDash([5,4]);
       for(const sgn of [1,-1]){ ctx.beginPath(); for(let i=0;i<=400;i++){ const x=Lstring*i/400; const y=y0 - sgn*amp*Math.abs(Math.sin(k*x)); const X=px(x); if(i===0)ctx.moveTo(X,y); else ctx.lineTo(X,y);} ctx.stroke(); }
       ctx.setLineDash([]);
       // corde y(x,t)=A sin(kx) cos(ωt)
       const ct=Math.cos(phase);
-      ctx.strokeStyle=C.accent; ctx.lineWidth=2.6; ctx.beginPath();
+      ctx.strokeStyle=__CVchap(ctx.canvas); ctx.lineWidth=2.6; ctx.beginPath();
       for(let i=0;i<=400;i++){ const x=Lstring*i/400; const y=y0 - amp*Math.sin(k*x)*ct; const X=px(x); if(i===0)ctx.moveTo(X,y); else ctx.lineTo(X,y); }
       ctx.stroke();
       // extrémités fixées + nœuds + ventres
@@ -72410,14 +72452,14 @@ document.addEventListener('keydown',e=>{
     ctx.strokeStyle=withA(C.amber,0.4); ctx.lineWidth=6; ctx.beginPath(); ctx.arc(SX(0),SY(0),9,0,2*Math.PI); ctx.stroke();
 
     // trace
-    ctx.strokeStyle=withA(C.accent,0.55); ctx.lineWidth=1.6; ctx.beginPath();
+    ctx.strokeStyle=withA(__CVchap(ctx.canvas),0.55); ctx.lineWidth=1.6; ctx.beginPath();
     trail.forEach((q,i)=>{ const X=SX(q.x),Y=SY(q.y); if(i===0)ctx.moveTo(X,Y); else ctx.lineTo(X,Y); }); ctx.stroke();
 
     // corps + vecteurs
     const bx=SX(st.x), by=SY(st.y);
     if($('cc-vec').checked){
       // rayon focal
-      ctx.strokeStyle=withA(C.accent2,0.7); ctx.lineWidth=1.4;
+      ctx.strokeStyle=withA(C.muted,0.9); ctx.lineWidth=1.4;
       ctx.beginPath(); ctx.moveTo(SX(0),SY(0)); ctx.lineTo(bx,by); ctx.stroke();
       // vitesse
       const vs=scale*0.5; const ex=bx+st.vx*vs, ey=by-st.vy*vs;
@@ -72427,7 +72469,7 @@ document.addEventListener('keydown',e=>{
       ctx.beginPath(); ctx.moveTo(ex,ey); ctx.lineTo(ex-8*Math.cos(ang-0.4),ey-8*Math.sin(ang-0.4)); ctx.lineTo(ex-8*Math.cos(ang+0.4),ey-8*Math.sin(ang+0.4)); ctx.closePath(); ctx.fill();
       ctx.fillStyle=C.green; ctx.font='11px JetBrains Mono, monospace'; ctx.fillText('v', ex+3, ey-3);
     }
-    ctx.fillStyle=C.accent; ctx.beginPath(); ctx.arc(bx,by,6,0,2*Math.PI); ctx.fill();
+    ctx.fillStyle=__CVchap(ctx.canvas); ctx.beginPath(); ctx.arc(bx,by,6,0,2*Math.PI); ctx.fill();
 
     // infos
     const rc=Math.hypot(st.x,st.y), v=Math.hypot(st.vx,st.vy), Em=0.5*v*v-MU/rc;
@@ -72621,7 +72663,7 @@ document.addEventListener('keydown',e=>{
           const a0=2*Math.PI*k/N + 0.15;
           let x=c.x+0.18*Math.cos(a0), y=c.y+0.18*Math.sin(a0);
           const dir=Math.sign(c.q);
-          ctx.strokeStyle=`rgba(${C.ink===('#e6e3d8')?'210,210,200':'70,80,95'},0.8)`;
+          ctx.strokeStyle=__hexAlpha(C.muted, 0.85);
           ctx.beginPath(); ctx.moveTo(SX(x),SY(y));
           let hit=false;
           for(let s=0;s<480;s++){
@@ -73025,9 +73067,9 @@ document.addEventListener('keydown',e=>{
     ctx.fillStyle=withA(C.ink,0.6); ctx.textAlign='left'; ctx.fillText('y=x', X(xmax)-30, Y(xmax)+14);
 
     // courbe y=f(x)
-    ctx.strokeStyle=C.accent2; ctx.lineWidth=2.4; ctx.beginPath(); let started=false;
+    ctx.strokeStyle=__CVchap(ctx.canvas); ctx.lineWidth=2.4; ctx.beginPath(); let started=false;
     for(let i=0;i<=300;i++){ const x=xmin+(xmax-xmin)*i/300; const y=f(x); if(y<ymin-1||y>ymax+1||!isFinite(y)){started=false;continue;} const px=X(x),py=Y(y); if(!started){ctx.moveTo(px,py);started=true;}else ctx.lineTo(px,py);} ctx.stroke();
-    ctx.fillStyle=C.accent2; ctx.fillText('y=f(x)', X(xmin)+6, Y(f(xmin))-6);
+    ctx.fillStyle=__CVchap(ctx.canvas); ctx.fillText('y=f(x)', X(xmin)+6, Y(f(xmin))-6);
 
     // suite + cobweb
     const u=[u0]; for(let n=0;n<N;n++){ let v=f(u[n]); if(!isFinite(v)) v=u[n]; u.push(v); }
@@ -73290,7 +73332,7 @@ document.addEventListener('keydown',e=>{
     }
 
     // Tracer la fonction
-    ctx.strokeStyle = __CV().accent;
+    ctx.strokeStyle = __CVchap(ctx.canvas);
     ctx.lineWidth = 2.5;
     ctx.beginPath();
     fxData.forEach((pt, i) => {
@@ -76708,12 +76750,15 @@ document.getElementById('skip-link')?.addEventListener('click', e => {
     });
   }
 
-  /* ---------- 6. Schémas SVG : aucun libellé sous 12 px ---------- */
+  /* ---------- 6. Schémas SVG : aucun libellé sous 12 px ----------
+     Mesure à l'état naturel ; s'il faut agrandir : .lisible (largeur minimale --svg-min, figure
+     élargie jusqu'à la colonne, et au téléphone jusque dans la gouttière), puis .defile (la
+     figure défile en largeur) seulement si cela ne suffit pas. */
   function schemasLisibles(root){
     var cadres = Array.prototype.slice.call(root.querySelectorAll('figure.schema, .cine-svg-wrap'))
       .filter(function(c){ return c.querySelector('svg text') && visible(c); });
     if(!cadres.length) return;
-    cadres.forEach(function(c){ c.classList.remove('lisible'); c.style.removeProperty('--svg-min'); });   // mesure à l'état naturel
+    cadres.forEach(function(c){ c.classList.remove('lisible', 'defile'); c.style.removeProperty('--svg-min'); });
     var besoins = cadres.map(function(c){
       var svg = c.querySelector('svg');
       var l = svg.getBoundingClientRect().width;
@@ -76726,13 +76771,15 @@ document.getElementById('skip-link')?.addEventListener('click', e => {
         var px = fs * Math.sqrt(Math.abs(m.a * m.d - m.b * m.c));
         if(px > 0 && px < mini) mini = px;
       });
-      return (isFinite(mini) && mini < 12) ? Math.ceil(l * 12.05 / mini) : 0;
+      return (isFinite(mini) && mini < 12) ? Math.ceil(l * 12.1 / mini) : 0;
     });
     cadres.forEach(function(c, i){
       if(!besoins[i]) return;
       c.classList.add('lisible');
       c.style.setProperty('--svg-min', besoins[i] + 'px');
     });
+    var trop = cadres.map(function(c, i){ return besoins[i] && besoins[i] > c.clientWidth + 1; });
+    cadres.forEach(function(c, i){ if(trop[i]) c.classList.add('defile'); });
   }
 
   /* ---------- 7. Simulateurs : curseurs (--p) et valeurs par défaut ---------- */
@@ -76790,8 +76837,8 @@ document.getElementById('skip-link')?.addEventListener('click', e => {
     if(!panel.__structure){
       panel.__structure = true;
       panel.querySelectorAll('.course-section').forEach(function(cs){
-        var s = cs.querySelector(':scope > .sec-num');
-        if(s) couperSecNum(s);
+        var s = cs.querySelectorAll(':scope > .sec-num');
+        if(s.length === 1) couperSecNum(s[0]);   // plusieurs § dans une section (anglais) : surtitres simples
       });
       panel.querySelectorAll('.exo > .diff').forEach(enrichirDiff);
       outilsExos(panel);
