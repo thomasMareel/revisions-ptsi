@@ -798,7 +798,9 @@ module.exports = {
       const nom = 'B4 — getCanvasColors() et __CV() : muted / grid suivent le thème';
       const pb = [];
       const compact = s => String(s).replace(/\s+/g, '').toLowerCase();
-      const attendu = { clair: { muted: '#666666', grid: 'rgba(45,95,138,0.08)' }, sombre: { muted: '#a8a496', grid: 'rgba(200,200,180,0.12)' } };
+      // Valeurs des jetons (refonte « Cahier de prépa ») : muted = --text-3 du thème,
+      // grid = encre du thème (--ink) à 8 % en clair, 12 % en sombre.
+      const attendu = { clair: { muted: '#63656c', grid: 'rgba(28,29,33,0.08)' }, sombre: { muted: '#9fa0a6', grid: 'rgba(232,230,225,0.12)' } };
       try {
         const { page } = await ctx.nouvellePage();
         await charger(page, '#rlc/simu');

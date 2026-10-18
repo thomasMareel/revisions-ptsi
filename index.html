@@ -62642,7 +62642,10 @@ function chaptersByMatiere(m)  { return CHAPTERS.filter(c => c.matiere === m); }
     if(!tabs || ch.querySelector(':scope > .chap-title-banner')) return;
     const banner = document.createElement('div');
     banner.className = 'chap-title-banner';
-    if(c.matiere) banner.classList.add('mat-' + c.matiere);  // rail de couleur par matière
+    if(c.matiere){
+      banner.classList.add('mat-' + c.matiere);  // rail de couleur par matière
+      banner.setAttribute('data-mat', c.matiere); // encre de la matière (jetons --chap*)
+    }
     const sub = document.createElement('span');
     sub.className = 'ctb-sub';
     sub.textContent = c.subLabel || c.matiereLabel || '';
@@ -62941,16 +62944,29 @@ function getCanvasColors(){
   // c'est aussi lui qu'observe l'invalidation du cache __CV ci-dessous).
   // L'ancien test « --ink === '#f4f1e8' » ne se vérifiait jamais (--ink sombre = #e6e3d8).
   const dark = document.documentElement.getAttribute('data-theme') === 'dark';
+  // Jetons (tous en #rrggbb, exigé par __CVA) ; replis = valeurs claires des jetons.
+  const ink = s.getPropertyValue('--ink').trim() || '#1c1d21';
   return {
-    ink:    s.getPropertyValue('--ink').trim()    || '#1a1d24',
-    paper:  s.getPropertyValue('--paper').trim()  || '#f4f1e8',
-    accent: s.getPropertyValue('--accent').trim() || '#c8472e',
-    accent2:s.getPropertyValue('--accent2').trim()|| '#2d5f8a',
-    green:  s.getPropertyValue('--green').trim()  || '#5a7a3a',
-    amber:  s.getPropertyValue('--amber').trim()  || '#b8801a',
-    muted:  dark ? '#a8a496' : '#666666',
-    grid:   dark ? 'rgba(200,200,180,0.12)' : 'rgba(45,95,138,0.08)',
+    ink:    ink,
+    paper:  s.getPropertyValue('--paper').trim()  || '#fffdf9',
+    accent: s.getPropertyValue('--accent').trim() || '#ab3a33',
+    accent2:s.getPropertyValue('--accent2').trim()|| '#3d5db2',
+    green:  s.getPropertyValue('--green').trim()  || '#2e6d18',
+    amber:  s.getPropertyValue('--amber').trim()  || '#8d5e07',
+    // Encre 3 du thème (légendes, graduations) ; quadrillage = encre du thème à
+    // 8 % (clair) / 12 % (sombre), translucide pour rester discret sur tout fond.
+    muted:  s.getPropertyValue('--text-3').trim() || '#63656c',
+    grid:   __hexAlpha(ink, dark ? 0.12 : 0.08),
   };
+}
+/* '#rrggbb' (ou '#rgb') → 'rgba(r,g,b,a)' ; autre format renvoyé tel quel. */
+function __hexAlpha(c, alpha){
+  let h = String(c || '').trim();
+  if(h.charAt(0) !== '#') return h;
+  h = h.slice(1);
+  if(h.length === 3) h = h.split('').map(x => x + x).join('');
+  const r = parseInt(h.slice(0,2),16), g = parseInt(h.slice(2,4),16), b = parseInt(h.slice(4,6),16);
+  return 'rgba('+r+','+g+','+b+','+alpha+')';
 }
 
 /* Couleurs de thème pour les canvas — version MISE EN CACHE (perf des boucles rAF :
@@ -75406,6 +75422,7 @@ ${bodyContent}
     const btn = document.createElement('button');
     btn.className = 'mob-chap-item' + (item.id === activeChapId ? ' active' : '');
     const _mat = (CHAPTERS_BY_ID[item.id.replace('chap-','')] || {}).matiere || '';   // G5 : teinte du badge
+    if(_mat) row.setAttribute('data-mat', _mat);   // encre de la matière (jetons --chap*)
     btn.innerHTML = '<span class="mob-chap-label">' + escDrawer(item.label) + '</span>'
       + (opts && opts.tag ? '<span class="mob-filter-tag mt-' + _mat + '">' + opts.tag + '</span>' : '');
     btn.addEventListener('click', () => {
@@ -75733,10 +75750,14 @@ ${bodyContent}
 /* == AMÉLIORATION 9 — DATA-DOMAIN sur les chapitres ========= */
 /* ============================================================ */
 (function(){
-  // data-domain dérivé de CHAPTERS
+  // data-domain dérivé de CHAPTERS ; data-mat (matière) à côté : il définit
+  // l'encre du chapitre (--chap, --chap-fond, --chap-vif) dans les jetons
   CHAPTERS.forEach(c => {
     const el = document.getElementById('chap-' + c.id);
-    if(el) el.setAttribute('data-domain', c.domain);
+    if(el){
+      el.setAttribute('data-domain', c.domain);
+      if(c.matiere) el.setAttribute('data-mat', c.matiere);
+    }
     const btn = document.querySelector(`.chap-btn[data-chap="${c.id}"]`);
     if(btn) btn.setAttribute('data-domain', c.domain);
   });
