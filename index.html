@@ -3019,257 +3019,266 @@ figure.schema figcaption{
 /* Fenêtres : recherche, formulaire, sauvegarde, raccourcis clavier, toasts et autres
    overlays. Propriétaire : ligne « thème et fenêtres ». */
 
-.search-modal, .backup-modal, .formula-modal{
-  animation:modalIn 0.2s ease-out;
-}
+/* NB (ligne C) : les fenêtres Cartes signalées et Calcul mental sont restylées ici par leur
+   id (#flag-overlay, #drill-overlay) ; leurs anciennes règles (.flag-list, .drill-*), rangées
+   en REVISION, perdent face à celles-ci (spécificité + ordre des régions). */
 
-/* Transition sur les résultats de recherche */
-.search-result {
-  transition: background 0.12s, transform 0.12s;
+/* --- 1. Gabarit commun des fenêtres (SPEC §5.11) ---------------------------------
+   Voile --scrim, boîte --raise (rayon 22 px, ombre --sh-3), tête « titre + × », corps
+   défilant. Ordinateur : boîte centrée, à --fen-haut du haut. Téléphone : PLEIN ÉCRAN
+   (fond --sheet, tête collante). Fermeture : ×, Échap, clic sur le voile, bouton retour
+   d'Android (urlRouting) ; focus piégé et rendu au bouton d'origine (module focus). */
+.fen{
+  --fen-haut: clamp(1rem, 9vh, 5.5rem);
+  --fen-l: 34rem;
+  display:none; position:fixed; inset:0; z-index:var(--z-overlay);
+  background:var(--scrim); overflow-y:auto; overscroll-behavior:contain;
+  padding:var(--fen-haut) 1rem 1.5rem;
 }
-.search-result.sel, .search-result:hover {
-  transform: translateX(3px);
+.fen.open{ display:flex; align-items:flex-start; justify-content:center; }
+.fen-etroite{ --fen-l: 30rem; }
+.fen-large{ --fen-l: 48rem; }
+.fen-boite{
+  position:relative; width:100%; max-width:var(--fen-l);
+  max-height:calc(100dvh - var(--fen-haut) - 1.5rem);
+  display:flex; flex-direction:column;
+  background:var(--raise); color:var(--text); border:1px solid var(--line);
+  border-radius:var(--r-xl); box-shadow:var(--sh-3);
+  font:var(--w-regular) var(--fs-ui)/var(--lh-ui) var(--font-ui);
+  animation:modalIn var(--dur-2) var(--ease) both;
 }
+.fen-boite:focus{ outline:none; }   /* le focus posé sur la boîte à l'ouverture ne dessine pas d'anneau */
+.fen-tete{
+  display:flex; align-items:center; gap:.75rem; flex:none;
+  padding:1.1rem 1rem .95rem 1.5rem; border-bottom:1px solid var(--line);
+}
+.fen-titre{
+  flex:1 1 auto; min-width:0; margin:0;
+  font:var(--w-semi) 1.5rem/1.15 var(--font-text); letter-spacing:var(--track-head); color:var(--text);
+  text-wrap:balance;
+}
+.fen-titre-2{ font-weight:var(--w-regular); color:var(--text-2); }
+.fen-x{ flex:none; margin:-.25rem 0; color:var(--text-2); }
+.fen-x .ic{ width:1.35rem; height:1.35rem; }
+.fen-corps{ flex:1 1 auto; min-height:0; overflow-y:auto; overscroll-behavior:contain; padding:1.25rem 1.5rem 1.5rem; }
+.fen-pied{ display:flex; flex-wrap:wrap; gap:.5rem; flex:none; padding:.9rem 1.5rem 1.2rem; border-top:1px solid var(--line); }
+.fen-intro{ margin:0 0 1.15rem; max-width:var(--measure-ui); font:var(--w-regular) var(--fs-ui)/1.5 var(--font-ui); color:var(--text-2); }
+.fen-intro strong{ color:var(--text); font-weight:var(--w-semi); }
+/* Retour d'une action (export, copie…) : un mot, dans l'encre sémantique */
+.backup-feedback{ min-height:1.4em; margin-top:.9rem; font:var(--w-semi) var(--fs-ui-s)/1.4 var(--font-ui); color:var(--text-2); }
+.backup-feedback:empty{ margin-top:0; min-height:0; }
+.backup-feedback.ok{ color:var(--vert); }
+.backup-feedback.err{ color:var(--rouge); }
 
-/* ===== AIDE CLAVIER ===== */
-#key-help-modal{
-  display:none;
-  position:fixed;
-  inset:0;
-  background:rgba(0,0,0,0.4);
-  z-index:1001;
-  align-items:center;
-  justify-content:center;
-  backdrop-filter:blur(2px);
+/* Grandes actions à deux lignes (Sauvegarde) : icône, intitulé, précision */
+.fen-action{
+  display:flex; align-items:center; gap:.85rem; width:100%; min-height:3.75rem; padding:.7rem 1rem;
+  border:1px solid var(--line-2); border-radius:var(--r-m); background:var(--raise); color:var(--text);
+  text-align:left; cursor:pointer;
+  transition:background var(--dur-1) var(--ease), border-color var(--dur-1), transform var(--dur-1);
 }
-#key-help-modal.open{ display:flex; }
-.key-help-box{
-  background:var(--paper);
-  border:2px solid var(--ink);
-  padding:1.5rem;
-  min-width:320px;
-  box-shadow:0 12px 40px rgba(0,0,0,0.35);
+.fen-action:hover{ background:var(--sunk); border-color:var(--field); }
+.fen-action:active{ transform:translateY(1px); }
+.fen-action .ic{ width:1.35rem; height:1.35rem; color:var(--text-2); }
+.fen-action-txt{ display:flex; flex-direction:column; gap:.15rem; min-width:0; }
+.fen-action .ba-titre{ font:var(--w-semi) var(--fs-ui)/1.25 var(--font-ui); }
+.fen-action .ba-desc{ font:var(--w-regular) var(--fs-ui-xs)/1.35 var(--font-ui); color:var(--text-2); }
+.fen-action-primaire{ background:var(--primary); border-color:transparent; color:var(--on-primary); }
+.fen-action-primaire:hover{ background:var(--primary-hover); border-color:transparent; }
+.fen-action-primaire .ic, .fen-action-primaire .ba-desc{ color:color-mix(in srgb, var(--on-primary) 82%, var(--primary)); }
+
+@media (max-width:767px){
+  /* Téléphone : page plein écran par-dessus la page (pas une barre) */
+  .fen{ padding:0; background:var(--sheet); }
+  .fen-boite{
+    max-width:none; min-height:100%; max-height:none; display:block;
+    border:0; border-radius:0; box-shadow:none; background:var(--sheet);
+  }
+  .fen-tete{
+    position:sticky; top:0; z-index:1; background:var(--sheet);
+    padding:calc(.5rem + env(safe-area-inset-top)) .25rem .6rem 1rem; min-height:3.75rem;
+  }
+  .fen-titre{ font-size:1.625rem; line-height:1.1; letter-spacing:-.015em; }
+  .fen-corps{ overflow:visible; padding:1.1rem var(--gutter) 1.5rem; }
+  .fen-pied{ padding:.9rem var(--gutter) calc(1.2rem + env(safe-area-inset-bottom)); }
+  .fen-pied .btn{ flex:1 1 auto; }
 }
-.key-help-title{
-  font-family:var(--font-text);
-  font-size:1.15rem;
-  font-weight:600;
-  margin-bottom:1rem;
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-}
-.key-help-title button{
-  background:none;border:none;cursor:pointer;font-size:1rem;
-  color:var(--ink);opacity:0.6;
-}
-.key-help-title button:hover{opacity:1}
-.key-help-table{
-  width:100%;
-  border-collapse:collapse;
-  font-family:var(--font-code);
-  font-size:0.78rem;
-}
-.key-help-table tr{border-bottom:1px solid rgba(128,128,128,0.15)}
-.key-help-table td{padding:0.45rem 0.5rem}
-.key-help-table td:first-child{white-space:nowrap}
-.key-help-table kbd{
-  background:var(--paper-dark);
-  border:1px solid var(--ink);
-  border-radius:3px;
-  padding:0.1rem 0.4rem;
-  font-size:0.72rem;
-}
-.search-overlay{
-  display:none;
-  position:fixed;
-  inset:0;
-  background:rgba(0,0,0,0.45);
-  z-index:1000;
-  padding-top:12vh;
-  backdrop-filter:blur(2px);
-}
-.search-overlay.open{display:block}
-.search-modal{
-  max-width:640px;
-  margin:0 auto;
-  background:var(--paper);
-  border:2px solid var(--ink);
-  box-shadow:0 12px 48px rgba(0,0,0,0.4);
-}
+@media (pointer:coarse){ .fen-x{ width:var(--tap); height:var(--tap); } }
+
+/* --- 2. Recherche (SPEC §5.9) ------------------------------------------------------ */
+#search-overlay{ --fen-haut: 12vh; --fen-l: 40rem; }
+.search-modal{ overflow:hidden; }
+.search-tete{ display:flex; align-items:center; gap:.5rem; flex:none; padding:.75rem; border-bottom:1px solid var(--line); }
+.search-champ{ position:relative; flex:1 1 auto; min-width:0; display:flex; align-items:center; }
+.search-champ > .ic{ position:absolute; left:.85rem; width:1.25rem; height:1.25rem; color:var(--text-3); pointer-events:none; }
 #search-input{
-  width:100%;
-  border:none;
-  border-bottom:2px solid var(--ink);
-  background:var(--paper);
-  color:var(--ink);
-  font-family:var(--font-text);
-  font-size:1.3rem;
-  padding:1.1rem 1.25rem;
-  outline:none;
+  width:100%; height:3rem; padding:0 4.75rem 0 2.75rem;
+  border:1px solid var(--field); border-radius:var(--r-m); background:var(--sunk); color:var(--text);
+  font:var(--w-regular) var(--fs-ui-l)/1 var(--font-ui);
 }
-#search-input::placeholder{color:var(--muted)}
-.search-hint-bar{
-  display:flex;
-  gap:1.25rem;
-  padding:0.5rem 1.25rem;
-  background:var(--paper-dark);
-  border-bottom:1px solid var(--ink);
-  font-family:var(--font-code);
-  font-size:0.65rem;
-  color:var(--ink);
-  opacity:0.7;
+#search-input::placeholder{ color:var(--text-3); opacity:1; }
+#search-input:focus-visible{ outline:2px solid var(--focus); outline-offset:2px; background:var(--raise); }
+.search-champ .kbd{ position:absolute; right:.7rem; pointer-events:none; }
+.search-x{ display:none; }
+.search-results{ flex:1 1 auto; min-height:0; max-height:min(62vh, 36rem); overflow-y:auto; overscroll-behavior:contain; padding:.25rem .5rem .6rem; }
+.sr-groupe + .sr-groupe{ margin-top:.25rem; padding-top:.25rem; border-top:1px solid var(--line); }
+.sr-groupe-titre{
+  display:flex; align-items:baseline; gap:.5rem; padding:.75rem .75rem .35rem;
+  font:var(--w-semi) var(--fs-kicker)/1.2 var(--font-ui); letter-spacing:var(--track-kicker); text-transform:uppercase; color:var(--text-3);
 }
-.search-hint-bar kbd{
-  border:1px solid currentColor;
-  border-radius:3px;
-  padding:0.05rem 0.3rem;
-  margin-right:0.15rem;
-}
-.search-results{
-  max-height:55vh;
-  overflow-y:auto;
-}
+.sr-groupe-titre .sr-n{ margin-left:auto; letter-spacing:0; text-transform:none; font-weight:var(--w-medium); font-variant-numeric:tabular-nums; }
 .search-result{
-  padding:0.7rem 1.25rem;
-  border-bottom:1px solid rgba(128,128,128,0.18);
-  cursor:pointer;
-  display:flex;
-  flex-direction:column;
-  gap:0.2rem;
+  position:relative; display:flex; align-items:flex-start; gap:.7rem;
+  min-height:3rem; padding:.55rem .75rem; border-radius:8px; cursor:pointer; color:var(--text);
 }
-.search-result:hover,.search-result.sel{background:rgba(200,71,46,0.12)}
-.search-result .sr-title{
-  font-family:var(--font-ui);
-  font-size:0.95rem;
-  font-weight:600;
-  color:var(--ink);
-}
-.search-result .sr-meta{
-  font-family:var(--font-code);
-  font-size:0.65rem;
-  letter-spacing:0.08em;
-  text-transform:uppercase;
-  color:var(--accent2);
-}
+.search-result:hover{ background:var(--hover); }
+.search-result.sel{ background:var(--hover); }
+.search-result.sel::before{ content:""; position:absolute; left:0; top:.45rem; bottom:.45rem; width:2px; border-radius:2px; background:var(--chap-vif); }
+.search-result .dot{ margin-top:.42rem; }
+.sr-txt{ flex:1 1 auto; min-width:0; display:flex; flex-direction:column; gap:.12rem; }
+.search-result .sr-title{ font:var(--w-medium) var(--fs-ui)/1.3 var(--font-ui); color:var(--text); overflow-wrap:anywhere; }
+.search-result .sr-meta{ font:var(--w-regular) var(--fs-ui-xs)/1.3 var(--font-ui); color:var(--text-3); }
 .search-result .sr-snippet{
-  font-size:0.8rem;
-  color:var(--ink);
-  opacity:0.7;
-  overflow:hidden;
-  text-overflow:ellipsis;
-  white-space:nowrap;
+  display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  font:var(--w-regular) var(--fs-ui-xs)/1.45 var(--font-ui); color:var(--text-2);
 }
+/* formules en ligne : white-space:normal !important (CONTENU) ferait passer l'extrait à la ligne */
+.search-result .sr-snippet mjx-container:not([display="true"]){ white-space:nowrap !important; }
+/* Formule trouvée : la formule elle-même (rendue), réduite, sans déborder de la ligne */
+.sr-formule{ display:block; max-width:100%; max-height:4.5rem; overflow:hidden; margin:.1rem 0 .05rem; font-size:.92em; color:var(--text);
+  -webkit-mask-image:linear-gradient(90deg, var(--text) 85%, transparent); mask-image:linear-gradient(90deg, var(--text) 85%, transparent); }
+.sr-formule mjx-container[display="true"]{ margin:0 !important; text-align:left !important; }
 .search-result mark{
-  background:var(--amber);
-  color:var(--paper);
-  padding:0 2px;
-  border-radius:2px;
+  background:var(--chap-fond); color:var(--chap); font-weight:var(--w-semi); border-radius:3px; padding:0 .08em;
+  box-shadow:0 0 0 1px color-mix(in srgb, var(--chap-vif) 35%, transparent);
+}
+.search-results .empty-state{ color:var(--text-2); }
+.search-results .sr-groupe + .sr-aide{ padding-top:1.25rem; }
+.search-hint-bar{
+  display:flex; align-items:center; gap:1.25rem; flex:none; padding:.6rem 1.25rem; border-top:1px solid var(--line);
+  font:var(--w-regular) var(--fs-ui-xs)/1.2 var(--font-ui); color:var(--text-2);
+}
+.search-hint-bar span{ display:inline-flex; align-items:center; gap:.3rem; }
+@media (max-width:767px){
+  #search-overlay{ background:var(--sheet); }
+  .search-modal{ overflow:visible; }
+  .search-tete{ position:sticky; top:0; z-index:1; background:var(--sheet); padding:calc(.5rem + env(safe-area-inset-top)) .25rem .5rem var(--gutter); }
+  #search-input{ padding-right:.9rem; }
+  .search-x{ display:inline-flex; }
+  .search-results{ max-height:none; overflow:visible; padding:.25rem .25rem 2rem; }
+}
+@media (pointer:coarse){
+  .search-x{ display:inline-flex; }
+  #search-input{ height:var(--tap); padding-right:.9rem; }
+  .search-result{ min-height:var(--tap); }
 }
 
-/* ===== Fenêtre Sauvegarde (export/import progression) ===== */
-.backup-overlay{
-  display:none;
-  position:fixed;
-  inset:0;
-  background:rgba(0,0,0,0.55);
-  z-index:1003;
-  align-items:center;
-  justify-content:center;
-  backdrop-filter:blur(3px);
-  padding:1rem;
-}
-.backup-overlay.open{ display:flex; }
-.backup-modal{
-  max-width:460px;
-  width:100%;
-  background:var(--paper);
-  border:2px solid var(--ink);
-  box-shadow:0 12px 48px rgba(0,0,0,0.4);
-  padding:1.5rem;
-}
-.backup-modal h2{
-  font-family:var(--font-text);
-  font-size:1.3rem;
-  margin-bottom:0.3rem;
-}
-.backup-modal .backup-intro{
-  font-size:0.85rem;
-  color:var(--muted);
-  margin-bottom:1.2rem;
-  line-height:1.5;
-}
-:root[data-theme="dark"] .backup-modal .backup-intro{ color:#a8a496; }
-.backup-actions{ display:flex; flex-direction:column; gap:0.7rem; }
-.backup-actions button{
-  background:var(--paper-dark);
-  border:1px solid var(--ink);
-  color:var(--ink);
-  font-family:var(--font-code);
-  font-size:0.82rem;
-  padding:0.7rem 1rem;
-  cursor:pointer;
-  text-align:left;
-  display:flex;
-  align-items:center;
-  gap:0.6rem;
-  transition:background 0.15s;
-}
-.backup-actions button:hover{ background:var(--accent); color:#fff; }
-.backup-actions .ba-desc{ display:block; font-size:0.72rem; opacity:0.75; margin-top:0.15rem; font-family:var(--font-ui); }
-.backup-feedback{ font-size:0.8rem; margin-top:1rem; min-height:1.2em; }
-.backup-feedback.ok{ color:var(--green); }
-.backup-feedback.err{ color:var(--accent); }
-.backup-close{
-  margin-top:1.2rem;
-  background:none;
-  border:none;
-  color:var(--muted);
-  cursor:pointer;
-  font-size:0.8rem;
-  text-decoration:underline;
-}
-
-/* ===== Formulaire (fiche de synthèse des formules du chapitre) ===== */
-.formula-overlay{
-  display:none; position:fixed; inset:0;
-  background:rgba(0,0,0,0.55); z-index:1003;
-  align-items:flex-start; justify-content:center;
-  backdrop-filter:blur(3px); padding:4vh 1rem; overflow-y:auto;
-}
-.formula-overlay.open{ display:flex; }
-.formula-modal{
-  max-width:760px; width:100%;
-  background:var(--paper); border:2px solid var(--ink);
-  box-shadow:0 12px 48px rgba(0,0,0,0.4);
-  max-height:92vh; display:flex; flex-direction:column;
-}
-.formula-head{
-  display:flex; align-items:center; justify-content:space-between; gap:1rem;
-  padding:1.1rem 1.4rem; border-bottom:2px solid var(--ink);
-  background:var(--paper-dark); flex-shrink:0;
-}
-.formula-head h2{ font-family:var(--font-text); font-size:1.3rem; font-weight:600; line-height:1.15; }
-.formula-headbtns{ display:flex; align-items:center; gap:0.5rem; flex-shrink:0; }
-.formula-print-btn{
-  font-family:var(--font-code); font-size:0.72rem;
-  border:1px solid var(--ink); background:var(--paper); color:var(--ink);
-  padding:0.35rem 0.6rem; cursor:pointer;
-}
-.formula-print-btn:hover{ background:var(--accent); color:#fff; border-color:var(--accent); }
-.formula-close{ background:none; border:none; cursor:pointer; font-size:1.1rem; color:var(--ink); opacity:0.6; }
-.formula-close:hover{ opacity:1; }
-#formula-body{ padding:1.2rem 1.4rem; overflow-y:auto; }
-.fsheet-group{ margin-bottom:1.3rem; }
+/* --- 3. Formulaire (SPEC §5.10) ----------------------------------------------------- */
+.formula-headbtns{ display:flex; align-items:center; gap:.4rem; flex:none; }
+#formula-body{ font-family:var(--font-text); }
+.fsheet-group + .fsheet-group{ margin-top:1.6rem; }
 .fsheet-group > h3{
-  font-family:var(--font-code); font-size:0.72rem; letter-spacing:0.1em;
-  text-transform:uppercase; color:var(--accent);
-  border-bottom:1px solid var(--grid); padding-bottom:0.3rem; margin-bottom:0.7rem;
+  margin:0 0 .6rem; font:var(--w-bold) var(--fs-kicker)/1.2 var(--font-ui);
+  letter-spacing:var(--track-kicker); text-transform:uppercase; color:var(--chap);
 }
-.fsheet-formulas{ display:flex; flex-direction:column; gap:0.55rem; }
-.fsheet-f{ background:var(--paper-dark); border-left:3px solid var(--accent2); padding:0.5rem 0.8rem; overflow-x:auto; }
-.formula-empty{ color:var(--muted); font-size:0.9rem; }
-:root[data-theme="dark"] .formula-empty{ color:#a8a496; }
+.fsheet-group > h3 .fsheet-titre{ display:block; margin-top:.3rem; font:var(--w-semi) var(--fs-h4)/1.3 var(--font-text); letter-spacing:0; text-transform:none; color:var(--text); }
+/* Formules consécutives d'une section : un seul bloc creux, séparées par un filet pointillé */
+.fsheet-formulas{ border-radius:var(--r-m); background:var(--formule-fond); overflow:hidden; }
+.fsheet-f{ position:relative; padding:.85em 1.1em; text-align:center; overflow-x:auto; overflow-y:hidden; scrollbar-width:thin; font-size:var(--fs-body); color:var(--text); }
+.fsheet-f + .fsheet-f{
+  background-image:linear-gradient(90deg, var(--line-2) 50%, transparent 0); background-size:8px 1px; background-repeat:repeat-x; background-position:top;
+}
+.fsheet-f mjx-container[display="true"]{ margin:0 !important; }
+.fsheet-nom{ display:block; margin:0 0 .35em; text-align:left; font:italic var(--w-regular) var(--fs-small)/1.25 var(--font-text); color:var(--text-3); }
+.formula-empty{ margin:1.5rem auto; max-width:var(--measure-ui); text-align:center; font:var(--w-regular) var(--fs-ui)/1.5 var(--font-ui); color:var(--text-2); }
+@media (max-width:767px){
+  .formula-print-btn{ width:var(--tap); padding:0; }
+  .formula-print-btn .ic-lbl{ position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; }
+  .fsheet-formulas{ margin:0 calc(-1 * var(--sp-3)); }
+}
+
+/* --- 4. Sauvegarde, Cartes signalées (SPEC §5.11) ---------------------------------- */
+.backup-actions{ display:flex; flex-direction:column; gap:.6rem; }
+#flag-overlay .flag-list{ list-style:none; margin:0; padding:0; border-top:1px solid var(--line); }
+#flag-overlay .flag-list li{
+  display:grid; grid-template-columns:minmax(0,1fr) auto; grid-template-areas:"q rm" "chap rm"; column-gap:.75rem; row-gap:.2rem;
+  align-items:center; padding:.75rem 0; border-bottom:1px solid var(--line);
+}
+#flag-overlay .flag-q{ grid-area:q; font:var(--w-regular) 1rem/1.4 var(--font-text); color:var(--text); overflow-wrap:anywhere; }
+#flag-overlay .flag-chap{
+  grid-area:chap; display:flex; align-items:center; gap:.4rem; min-width:0;
+  font:var(--w-regular) var(--fs-ui-xs)/1.3 var(--font-ui); color:var(--text-3); text-transform:none; letter-spacing:0;
+}
+#flag-overlay .flag-rm{
+  grid-area:rm; height:2.375rem; padding:0 .8rem; border:1px solid var(--line-2); border-radius:var(--r-m);
+  background:var(--raise); color:var(--text-2); font:var(--w-semi) var(--fs-ui-s)/1 var(--font-ui); cursor:pointer;
+}
+#flag-overlay .flag-rm:hover{ background:var(--sunk); border-color:var(--field); color:var(--text); }
+#flag-overlay .empty-state{ color:var(--text-2); }
+@media (pointer:coarse){ #flag-overlay .flag-rm{ height:var(--tap); } }
+
+/* --- 5. Calcul mental (SPEC §5.11) ------------------------------------------------- */
+#drill-overlay .drill-cats{
+  display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:.6rem 1rem;
+  margin:0 0 1.1rem; font:var(--w-medium) var(--fs-ui-s)/1.3 var(--font-ui); color:var(--text-2);
+}
+#drill-overlay .drill-cats label{ display:inline-flex; align-items:center; gap:.5rem; }
+#drill-overlay #drill-cat{
+  height:2.5rem; padding:0 2rem 0 .75rem; border:1px solid var(--field); border-radius:var(--r-m);
+  background-color:var(--raise); color:var(--text); font:var(--w-medium) var(--fs-ui-s)/1 var(--font-ui); cursor:pointer;
+}
+#drill-overlay .drill-score b{ font:var(--w-bold) var(--fs-ui-s)/1 var(--font-ui); color:var(--text); font-variant-numeric:tabular-nums; }
+#drill-overlay .drill-question{
+  display:flex; align-items:center; justify-content:center; min-height:6.5rem; margin:0 0 1rem; padding:1.25rem 1rem;
+  border:0; border-radius:var(--r-l); background:var(--sunk); color:var(--text); text-align:center;
+  font:var(--w-regular) 2rem/1.3 var(--font-text); overflow-x:auto; overflow-wrap:anywhere;
+}
+#drill-overlay #drill-form{ display:flex; gap:.6rem; }
+#drill-overlay #drill-input{
+  flex:1 1 auto; min-width:0; height:3.5rem; padding:0 1rem; border:1px solid var(--field); border-radius:var(--r-m);
+  background:var(--raise); color:var(--text); font:var(--w-semi) 1.5rem/1 var(--font-ui); font-variant-numeric:tabular-nums;
+}
+#drill-overlay #drill-input::placeholder{ color:var(--text-3); opacity:1; font-weight:var(--w-regular); }
+#drill-overlay .drill-check{ height:3.5rem; padding:0 1.25rem; font-size:var(--fs-ui); }
+#drill-overlay .drill-feedback{
+  display:flex; align-items:center; gap:.5rem; min-height:1.6em; margin:.9rem 0;
+  font:var(--w-semi) var(--fs-ui)/1.35 var(--font-ui); color:var(--text-2);
+}
+#drill-overlay .drill-feedback:empty{ margin:.4rem 0; }
+#drill-overlay .drill-feedback .ic{ width:1.3rem; height:1.3rem; flex:none; }
+#drill-overlay .drill-feedback.ok{ color:var(--vert); }
+#drill-overlay .drill-feedback.ko{ color:var(--rouge); }
+#drill-overlay .drill-next{ display:inline-flex; }
+
+/* --- 6. Raccourcis clavier (SPEC §5.11) -------------------------------------------- */
+#key-help-modal{ --fen-l: 28rem; }
+.key-help-table{ width:100%; border-collapse:collapse; font:var(--w-regular) var(--fs-ui-s)/1.35 var(--font-ui); color:var(--text); }
+.key-help-table tr + tr{ border-top:1px solid var(--line); }
+.key-help-table td{ padding:.55rem .25rem; vertical-align:middle; }
+.key-help-table td:first-child{ white-space:nowrap; padding-right:1rem; color:var(--text-2); }
+.key-help-table kbd{ margin:0 .1rem; }
+
+/* --- 7. Toasts (SPEC §5.1) : même apparence que la bannière de mise à jour ----------- */
+.toasts{
+  position:fixed; left:50%; bottom:1rem; transform:translateX(-50%); z-index:var(--z-toast);
+  display:flex; flex-direction:column; align-items:center; gap:.5rem;
+  width:max-content; max-width:calc(100vw - 1rem); pointer-events:none;
+}
+body:has(#sw-update-banner) .toasts{ bottom:5.25rem; }
+.toast{
+  display:flex; align-items:center; gap:.6rem; min-height:2.75rem; padding:.6rem 1.1rem;
+  border-radius:12px; background:var(--primary); color:var(--on-primary); box-shadow:var(--sh-3);
+  font:var(--w-medium) var(--fs-ui)/1.35 var(--font-ui); pointer-events:auto;
+  animation:toastIn var(--dur-2) var(--ease) both;
+}
+.toast .ic{ width:1.2rem; height:1.2rem; flex:none; }
+.toast.sort{ opacity:0; transform:translateY(6px); transition:opacity var(--dur-2) var(--ease), transform var(--dur-2) var(--ease); }
+@keyframes toastIn{ from{ opacity:0; transform:translateY(8px); } to{ opacity:1; transform:none; } }
+@media (max-width:767px){
+  .toasts{ left:.5rem; right:.5rem; transform:none; width:auto; max-width:none; bottom:calc(.5rem + env(safe-area-inset-bottom)); }
+  body:has(#sw-update-banner) .toasts{ bottom:calc(4.75rem + env(safe-area-inset-bottom)); }
+  .toast{ width:100%; }
+}
 
 /* ===== FIN RÉGION FENETRES ===== */
 
@@ -3278,24 +3287,21 @@ figure.schema figcaption{
 /* @media print de la page (le gabarit d'impression printChapter a son propre CSS, dans le
    script). Propriétaire : ligne « thème et fenêtres » (impression). */
 
+/* La page elle-même ne s'imprime pas : le chapitre (bouton Imprimer, Ctrl+P intercepté) et
+   le Formulaire passent par printChapter() / window.__imprimerDocument, qui écrivent un
+   document à part dans l'iframe #print-iframe, avec son propre CSS (thème clair forcé, encre
+   noire sur blanc) : ces règles ne le concernent pas. Impression lancée par le menu du
+   navigateur : page masquée, et une phrase qui renvoie au bouton (couleurs système, en
+   schéma clair : lisible même si le site est en sombre). */
 @media print{
- #chap-pager{ display:none; }
-}
-
-/* ===== BOUTON IMPRESSION ===== */
-@media print{
-  /* La page d'impression est générée par JS (printChapter) dans un iframe caché
-     #print-iframe, qui imprime son propre document : ces règles ne le concernent pas.
-     Ce bloc masque juste la page principale si quelqu'un imprime sans passer par le
-     bouton (Ctrl+P). L'exception « :not(#print-frame) » vise un id inexistant (reste). */
-  body > *:not(#print-frame){ display:none !important; }
-  header .header-actions{ display:none !important; }
-  /* Impression du formulaire : n'afficher QUE l'overlay du formulaire */
-  body.printing-formula > #formula-overlay{ display:block !important; position:static !important; background:#fff !important; padding:0 !important; backdrop-filter:none !important; overflow:visible !important; }
-  body.printing-formula #formula-modal{ max-width:none !important; border:none !important; box-shadow:none !important; max-height:none !important; }
-  body.printing-formula #formula-body{ overflow:visible !important; }
-  body.printing-formula .formula-headbtns{ display:none !important; }
-  body.printing-formula .fsheet-group, body.printing-formula .fsheet-f{ break-inside:avoid; page-break-inside:avoid; }
+  :root, :root[data-theme]{ color-scheme:light; }
+  body{ background:Canvas !important; }
+  body > *{ display:none !important; }
+  body::before{
+    content:"Pour imprimer un chapitre ou son formulaire, utilise le bouton « Imprimer » du site (ou Ctrl + P) : il prépare une version adaptée au papier.";
+    display:block; max-width:34em; margin:2cm auto; color:CanvasText;
+    font:var(--w-regular) 12pt/1.5 var(--font-ui);
+  }
 }
 
 /* ===== FIN RÉGION IMPRESSION ===== */
@@ -61707,37 +61713,46 @@ print(confusion_matrix(y_test, y_pred))   <span class="cmt"># [[VN, FP], [FN, VP
 </div>
 
 <!-- ===== MODALE DE RECHERCHE GLOBALE ===== -->
-<div id="search-overlay" class="search-overlay">
-  <div class="search-modal" role="dialog" aria-modal="true" aria-label="Recherche dans les chapitres">
-    <input type="text" id="search-input" placeholder="Rechercher dans tous les chapitres…" autocomplete="off" spellcheck="false">
-    <div class="search-hint-bar">
-      <span><kbd>↑</kbd><kbd>↓</kbd> naviguer</span>
-      <span><kbd>↵</kbd> ouvrir</span>
-      <span><kbd>Esc</kbd> fermer</span>
+<div id="search-overlay" class="search-overlay fen">
+  <div class="search-modal fen-boite" role="dialog" aria-modal="true" aria-label="Recherche dans les chapitres">
+    <div class="search-tete">
+      <div class="search-champ">
+        <svg class="ic" aria-hidden="true"><use href="#i-search"></use></svg>
+        <input type="text" id="search-input" placeholder="Chapitre, section, formule, carte…" autocomplete="off" spellcheck="false" enterkeyhint="search" aria-label="Rechercher dans tout le cours" role="combobox" aria-autocomplete="list" aria-controls="search-results" aria-expanded="false">
+        <kbd class="kbd kbd-hint">Échap</kbd>
+      </div>
+      <button type="button" class="btn btn-ghost btn-icon fen-x search-x" id="search-close-btn" aria-label="Fermer la recherche"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
     </div>
-    <div id="search-results" class="search-results"></div>
+    <div id="search-results" class="search-results" role="listbox" aria-label="Résultats de la recherche"></div>
+    <div class="search-hint-bar kbd-hint" aria-hidden="true">
+      <span><kbd>↑</kbd><kbd>↓</kbd> parcourir</span>
+      <span><kbd>↵</kbd> ouvrir</span>
+      <span><kbd>Échap</kbd> fermer</span>
+    </div>
   </div>
 </div>
 
 <!-- ===== Fenêtre Sauvegarde / restauration de la progression ===== -->
-<div id="backup-overlay" class="backup-overlay">
-  <div class="backup-modal" role="dialog" aria-modal="true" aria-label="Sauvegarde de la progression">
-    <h2>Sauvegarde de ma progression</h2>
-    <div class="backup-intro">
-      Ta progression (flashcards, thème) est enregistrée dans <strong>ce navigateur uniquement</strong>.
-      Exporte-la régulièrement pour la conserver, ou pour la transférer sur un autre appareil (téléphone, autre PC).
+<div id="backup-overlay" class="backup-overlay fen fen-etroite">
+  <div class="backup-modal fen-boite" role="dialog" aria-modal="true" aria-labelledby="backup-titre">
+    <div class="fen-tete">
+      <h2 class="fen-titre" id="backup-titre">Sauvegarde</h2>
+      <button type="button" class="btn btn-ghost btn-icon fen-x" id="backup-close-btn" aria-label="Fermer"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
     </div>
-    <div class="backup-actions">
-      <button id="backup-export-btn">⤓ Exporter ma progression
-        <span class="ba-desc">Télécharge un fichier .json à conserver</span>
-      </button>
-      <button id="backup-import-btn">⤒ Importer une sauvegarde
-        <span class="ba-desc">Restaure depuis un fichier .json exporté</span>
-      </button>
-      <input type="file" id="backup-file-input" accept="application/json,.json" style="display:none">
+    <div class="fen-corps">
+      <p class="fen-intro">Ta progression (cartes, thème) est enregistrée dans <strong>ce navigateur uniquement</strong>.
+      Exporte-la régulièrement pour la conserver, ou pour la transférer sur un autre appareil (téléphone, autre ordinateur).</p>
+      <div class="backup-actions">
+        <button type="button" id="backup-export-btn" class="fen-action fen-action-primaire"><svg class="ic" aria-hidden="true"><use href="#i-download"></use></svg>
+          <span class="fen-action-txt"><span class="ba-titre">Exporter ma progression</span><span class="ba-desc">Télécharge un fichier .json à conserver</span></span>
+        </button>
+        <button type="button" id="backup-import-btn" class="fen-action"><svg class="ic ic-envoi" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15.5v-11"/><path d="M7.5 8.5 12 4l4.5 4.5"/><path d="M5 20.5h14"/></svg>
+          <span class="fen-action-txt"><span class="ba-titre">Importer une sauvegarde</span><span class="ba-desc">Restaure depuis un fichier .json exporté</span></span>
+        </button>
+        <input type="file" id="backup-file-input" accept="application/json,.json" style="display:none">
+      </div>
+      <div id="backup-feedback" class="backup-feedback" role="status" aria-live="polite"></div>
     </div>
-    <div id="backup-feedback" class="backup-feedback"></div>
-    <button class="backup-close" id="backup-close-btn">Fermer</button>
   </div>
 </div>
 
@@ -61753,35 +61768,35 @@ print(confusion_matrix(y_test, y_pred))   <span class="cmt"># [[VN, FP], [FN, VP
 </div>
 
 <!-- ===== Formulaire (fiche de synthèse des formules du chapitre) ===== -->
-<div id="formula-overlay" class="formula-overlay">
-  <div class="formula-modal" id="formula-modal" role="dialog" aria-modal="true" aria-label="Formulaire du chapitre">
-    <div class="formula-head">
-      <h2 id="formula-title">Formulaire</h2>
+<div id="formula-overlay" class="formula-overlay fen fen-large">
+  <div class="formula-modal fen-boite" id="formula-modal" role="dialog" aria-modal="true" aria-labelledby="formula-title">
+    <div class="formula-head fen-tete">
+      <h2 class="fen-titre" id="formula-title">Formulaire</h2>
       <div class="formula-headbtns">
-        <button class="formula-print-btn" id="formula-print-btn" title="Imprimer ce formulaire">⎙ Imprimer</button>
-        <button class="formula-close" id="formula-close-btn" aria-label="Fermer">✕</button>
+        <button type="button" class="btn formula-print-btn" id="formula-print-btn" title="Imprimer ce formulaire" aria-label="Imprimer ce formulaire"><svg class="ic" aria-hidden="true"><use href="#i-printer"></use></svg><span class="ic-lbl">Imprimer</span></button>
+        <button type="button" class="btn btn-ghost btn-icon fen-x formula-close" id="formula-close-btn" aria-label="Fermer"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
       </div>
     </div>
-    <div id="formula-body"></div>
+    <div id="formula-body" class="fen-corps"></div>
   </div>
 </div>
 
 <!-- ===== Cartes signalées (jugées fausses / peu claires) ===== -->
-<div id="flag-overlay" class="backup-overlay">
-  <div class="backup-modal" role="dialog" aria-modal="true" aria-label="Cartes signalées">
-    <h2>Cartes signalées 🚩</h2>
-    <div class="backup-intro">Les cartes que tu as marquées comme <strong>fausses ou peu claires</strong> (bouton 🚩 sur une carte, dans le quiz ou les flashcards). Copie ou télécharge la liste pour me la transmettre ; retire celles qui sont corrigées.</div>
-    <div id="flag-body"></div>
-    <div class="backup-actions" style="margin-top:1rem">
-      <button id="flag-copy-btn">⧉ Copier la liste
-        <span class="ba-desc">Dans le presse-papier (à coller dans le chat)</span>
-      </button>
-      <button id="flag-dl-btn">⤓ Télécharger (.txt)
-        <span class="ba-desc">Fichier texte des cartes signalées</span>
-      </button>
+<div id="flag-overlay" class="flag-overlay fen">
+  <div class="fen-boite" role="dialog" aria-modal="true" aria-labelledby="flag-titre">
+    <div class="fen-tete">
+      <h2 class="fen-titre" id="flag-titre">Cartes signalées</h2>
+      <button type="button" class="btn btn-ghost btn-icon fen-x" id="flag-close-btn" aria-label="Fermer"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
     </div>
-    <div id="flag-feedback" class="backup-feedback"></div>
-    <button class="backup-close" id="flag-close-btn">Fermer</button>
+    <div class="fen-corps">
+      <p class="fen-intro">Les cartes que tu as marquées comme <strong>fausses ou peu claires</strong> (drapeau d'une carte, dans le quiz ou l'onglet Cartes). Copie ou télécharge la liste pour me la transmettre ; retire celles qui sont corrigées.</p>
+      <div id="flag-body"></div>
+      <div id="flag-feedback" class="backup-feedback" role="status" aria-live="polite"></div>
+    </div>
+    <div class="fen-pied">
+      <button type="button" class="btn" id="flag-copy-btn" title="Dans le presse-papier (à coller dans le chat)">⧉ Copier la liste</button>
+      <button type="button" class="btn" id="flag-dl-btn" title="Fichier texte des cartes signalées">⤓ Télécharger (.txt)</button>
+    </div>
   </div>
 </div>
 
@@ -61811,15 +61826,15 @@ print(confusion_matrix(y_test, y_pred))   <span class="cmt"># [[VN, FP], [FN, VP
 </div>
 
 <!-- ===== Entraînement au calcul (automatismes) ===== -->
-<div id="drill-overlay" class="dash-overlay">
-  <div class="dash-modal" role="dialog" aria-modal="true" aria-label="Entraînement au calcul">
-    <div class="dash-head">
-      <h2>Calcul — automatismes</h2>
-      <button class="dash-close" id="drill-close-btn" aria-label="Fermer">✕</button>
+<div id="drill-overlay" class="drill-overlay fen fen-etroite">
+  <div class="fen-boite" role="dialog" aria-modal="true" aria-labelledby="drill-titre">
+    <div class="fen-tete">
+      <h2 class="fen-titre" id="drill-titre">Calcul mental <span class="fen-titre-2">automatismes</span></h2>
+      <button type="button" class="btn btn-ghost btn-icon fen-x" id="drill-close-btn" aria-label="Fermer"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
     </div>
-    <div id="drill-body">
+    <div id="drill-body" class="fen-corps">
       <div class="drill-cats">
-        <label>Catégorie&nbsp;:
+        <label><span class="drill-cat-lbl">Catégorie</span>
           <select id="drill-cat">
             <option value="all" selected>Mélange</option>
             <option value="deriv">Dérivée en un point</option>
@@ -61828,15 +61843,15 @@ print(confusion_matrix(y_test, y_pred))   <span class="cmt"># [[VN, FP], [FN, VP
             <option value="combi">Combinatoire</option>
           </select>
         </label>
-        <span class="drill-score">Score : <b id="drill-score">0 / 0</b> · Série : <b id="drill-streak">0</b></span>
+        <span class="drill-score">Score <b id="drill-score">0 / 0</b> · Série <b id="drill-streak">0</b></span>
       </div>
-      <div class="drill-question" id="drill-question">—</div>
+      <div class="drill-question" id="drill-question" aria-live="polite">—</div>
       <form id="drill-form" autocomplete="off">
-        <input type="text" id="drill-input" inputmode="numeric" placeholder="Réponse (nombre)…" aria-label="Réponse">
-        <button type="submit" class="drill-check">Vérifier</button>
+        <input type="text" id="drill-input" inputmode="decimal" placeholder="Réponse" aria-label="Réponse (un nombre)">
+        <button type="submit" class="btn btn-primary drill-check">Vérifier</button>
       </form>
-      <div class="drill-feedback" id="drill-feedback"></div>
-      <button class="drill-next" id="drill-next">Question suivante →</button>
+      <div class="drill-feedback" id="drill-feedback" role="status" aria-live="polite"></div>
+      <button type="button" class="btn drill-next" id="drill-next">Question suivante →</button>
     </div>
   </div>
 </div>
@@ -73809,213 +73824,321 @@ function navigateTo(chapId, panelId, onDone){
 /* ============================================== */
 /* ============ RECHERCHE GLOBALE =============== */
 /* ============================================== */
+/* Fenêtre #search-overlay (SPEC §5.9). Index construit à la 1ʳᵉ recherche (pas au
+   chargement) : chapitres (CHAPTERS), sections, définitions et propriétés, méthodes,
+   formules, exercices, cartes. Résultats GROUPÉS par nature ; chaque ligne porte la
+   pastille et l'encre de sa matière (data-mat), la correspondance en <mark> et sa
+   provenance (« Physique · RLC · §3 »). ↑ ↓ parcourent tous les résultats affichés,
+   Entrée ouvre le résultat choisi (le 1ᵉʳ par défaut), Échap ou × ferment ; le bouton
+   retour d'Android ferme aussi (urlRouting, classe .open). Requête vide : récents. */
 (function(){
   const overlay = document.getElementById('search-overlay');
   const input = document.getElementById('search-input');
   const resultsEl = document.getElementById('search-results');
   const openBtn = document.getElementById('search-btn');
-  let index = [];
-  let selIdx = 0;
-  let currentResults = [];
+  const closeBtn = document.getElementById('search-close-btn');
+  if(!overlay || !input || !resultsEl) return;
+  const MAT = { physique:'Physique', maths:'Maths', si:'SI', info:'Info', anglais:'Anglais' };
+  // [nature, intitulé du groupe, nombre de lignes affichées au plus] — ordre d'affichage
+  const GROUPES = [
+    ['chap', 'Chapitres', 5], ['sec', 'Sections du cours', 6], ['boite', 'Définitions et propriétés', 5],
+    ['meth', 'Méthodes', 4], ['form', 'Formules', 4], ['exo', 'Exercices', 6], ['carte', 'Cartes', 6],
+  ];
+  let index = null;      // construit à la première recherche
+  let rows = [];         // résultats affichés, dans l'ordre de la liste
+  let sel = 0;           // ligne choisie au clavier
+  let opener = null;     // élément à qui rendre le focus à la fermeture
+  let minuterieTex = 0;
 
-  // Libellés lisibles des onglets selon le suffixe du panel
-  function panelLabel(panelId){
-    if(panelId.endsWith('-cours')) return 'Cours';
-    if(panelId.endsWith('-meth')) return 'Méthodes';
-    if(panelId.endsWith('-simu')) return 'Simulateur';
-    if(panelId.endsWith('-flash')) return 'Flashcards';
-    if(panelId.endsWith('-exos')) return 'Exercices';
-    return '';
+  const esc = s => String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  function normalize(s){
+    return String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
+  }
+  // Texte d'une carte : balises retirées (<strong>, <br>…), TeX \( … \) gardé (rendu ensuite)
+  function sansBalises(s){
+    return String(s || '').replace(/<br\s*\/?>/gi, ' ').replace(/<[^>]+>/g, '')
+      .replace(/&nbsp;/g, ' ').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&')
+      .replace(/\s+/g, ' ').trim();
+  }
+  // Provenance d'un chapitre : partie (CHAP_GROUPS), et l'année si c'est la 2ᵉ
+  const ouChap = c => (c.subLabel || '') + (window.__YEAR2A && window.__YEAR2A.has(c.id) ? ' · 2ᵉ année' : '');
+  const ongletDe = pid => /-meth$/.test(pid) ? 'Méthodes' : /-exos$/.test(pid) ? 'Exercices' : /-flash$/.test(pid) ? 'Cartes' : 'Cours';
+  // « §3 » d'une section (le .sec-num peut être découpé en spans : son texte reste « §3 · TITRE »)
+  function paragraphe(el, pid){
+    const sec = el && el.closest ? el.closest('.course-section') : null;
+    const sn = sec ? sec.querySelector('.sec-num') : null;
+    const t = sn ? sn.textContent.replace(/\s+/g, ' ').trim().split(/\s*·\s*/)[0] : '';
+    return /^§/.test(t) ? t : ongletDe(pid);
   }
 
-  // Construit l'index à partir du DOM
   function buildIndex(){
     index = [];
-    document.querySelectorAll('.chapter').forEach(chap=>{
-      const chapId = chap.id;
-      const chapBtn = document.querySelector('.chap-btn[data-chap="'+chapId.replace('chap-','')+'"]');
-      // Nom du chapitre (texte du bouton, sans le sous-titre matière)
-      let chapName = chapId.replace('chap-','');
-      if(chapBtn){
-        const clone = chapBtn.cloneNode(true);
-        const mat = clone.querySelector('.matiere');
-        if(mat) mat.remove();
-        chapName = clone.textContent.trim();
+    const add = (kind, title, extra) => {
+      title = String(title || '').replace(/\s+/g, ' ').trim();
+      if(title) index.push(Object.assign({ kind, title }, extra));
+    };
+    // TeX d'origine des formules déjà rendues (MathJax garde ses éléments mathématiques)
+    const tex = new Map();
+    try { for(const it of MathJax.startup.document.math){ if(it && it.typesetRoot) tex.set(it.typesetRoot, it.math); } } catch(e){}
+    const texDe = f => {
+      const c = f.querySelectorAll('mjx-container');
+      if(!c.length) return f.textContent;
+      return Array.from(c, m => tex.get(m) || '').join(' ') || f.textContent;
+    };
+    // Texte d'un bloc : une formule déjà rendue redevient son TeX (\( … \) en ligne, $$ … $$
+    // en bloc) au lieu du texte de son MathML d'accessibilité (« uL(t)=Ldidt ») ; parcours lent
+    // réservé aux blocs qui contiennent une formule rendue (panneaux déjà ouverts).
+    const SAUF = '.sec-num, h2, button, .toggle-sol';
+    function texte(el, sansEntete){
+      if(!el.querySelector('mjx-container')){
+        const tc = el.textContent;
+        if(!sansEntete) return tc;
+        // section sans formule rendue : texte après son en-tête (surtitre « §n » et titre)
+        const h = el.querySelector('h2'), k = h ? tc.indexOf(h.textContent) : -1;
+        return k >= 0 ? tc.slice(k + h.textContent.length) : tc;
       }
-      chap.querySelectorAll('.panel').forEach(panel=>{
-        const panelId = panel.id;
-        const lbl = panelLabel(panelId);
-        // Titres de sections de cours (h2 + sec-num)
-        panel.querySelectorAll('.course-section').forEach(sec=>{
-          const h2 = sec.querySelector('h2');
-          const secNum = sec.querySelector('.sec-num');
-          if(h2){
-            index.push({
-              title: h2.textContent.trim(),
-              meta: chapName+' › '+lbl+(secNum?' › '+secNum.textContent.trim():''),
-              text: sec.textContent.trim().slice(0,400),
-              chap: chapId, panel: panelId
-            });
-          }
-        });
-        // Sous-titres des méthodes (strong dans .method-box)
-        panel.querySelectorAll('.method-box > strong').forEach(st=>{
-          index.push({
-            title: st.textContent.trim(),
-            meta: chapName+' › '+lbl,
-            text: st.parentElement.textContent.trim().slice(0,400),
-            chap: chapId, panel: panelId
+      let s = '';
+      el.childNodes.forEach(n => {
+        if(n.nodeType === 3) s += n.data;
+        else if(n.nodeType === 1){
+          if(sansEntete && n.matches(SAUF)) return;
+          if(n.tagName === 'MJX-CONTAINER'){
+            const src = tex.get(n);
+            s += src ? (n.getAttribute('display') === 'true' ? ' $$' + src + '$$ ' : '\\(' + src + '\\)') : ' ';
+          } else s += texte(n);
+        }
+      });
+      return s;
+    }
+    CHAPTERS.forEach(c => {
+      const chap = document.getElementById('chap-' + c.id);
+      if(!chap) return;
+      const base = { chap:'chap-' + c.id, mat:c.matiere, court:c.mobLabel || c.name };
+      add('chap', c.name, Object.assign({}, base, {
+        court: '', panel: c.prefix + '-' + (c.panels[0] || 'cours'), ou: ouChap(c),
+        text: (c.mobLabel || '') + ' ' + (c.matiereLabel || '') }));
+      chap.querySelectorAll('.panel').forEach(panel => {
+        const pid = panel.id;
+        if(/-(cours|meth)$/.test(pid)){
+          panel.querySelectorAll('.course-section').forEach(sec => {
+            const h2 = sec.querySelector('h2');
+            if(h2) add('sec', h2.textContent, Object.assign({}, base, { panel:pid, ou:paragraphe(sec, pid), el:h2, text:texte(sec, true).slice(0, 900) }));
           });
-        });
-        // Exercices (h3 dans .exo)
-        panel.querySelectorAll('.exo').forEach(exo=>{
-          const h3 = exo.querySelector('h3');
-          const num = exo.querySelector('.num');
-          if(h3){
-            index.push({
-              title: (num?num.textContent.trim()+' — ':'')+h3.textContent.trim(),
-              meta: chapName+' › Exercices',
-              // texte INTÉGRAL (pas de troncature) : un mot-clé situé dans la
-              // partie B/C d'un long exo concours doit aussi être trouvable
-              text: exo.textContent.trim(),
-              chap: chapId, panel: panelId
-            });
-          }
-        });
+          panel.querySelectorAll('.def-box, .prop-box').forEach(b => {
+            const fort = b.querySelector(':scope > strong:first-child, :scope > p:first-child > strong:first-child');
+            const t = (fort ? fort.textContent : b.textContent.slice(0, 90)).replace(/^(DÉFINITION|PROPRIÉTÉ)\s*/i, '');
+            if(t.trim().length < 4) return;
+            add('boite', t, Object.assign({}, base, { panel:pid, ou:paragraphe(b, pid), el:b, text:texte(b).slice(0, 600) }));
+          });
+          panel.querySelectorAll('.method-box > strong:first-child').forEach(st => {
+            add('meth', st.textContent, Object.assign({}, base, { panel:pid, ou:ongletDe(pid), el:st.parentElement, text:texte(st.parentElement).slice(0, 600) }));
+          });
+          panel.querySelectorAll('.formula').forEach(f => {
+            const src = texDe(f).replace(/\s+/g, ' ').trim();
+            if(src.length < 4) return;
+            const sec = f.closest('.course-section'), h2 = sec ? sec.querySelector('h2') : null;
+            add('form', f.getAttribute('data-nom') || (h2 ? h2.textContent : 'Formule'), Object.assign({}, base, {
+              panel:pid, ou:paragraphe(f, pid), el:f, text:src, nom:f.getAttribute('data-nom') || '' }));
+          });
+        } else if(/-exos$/.test(pid)){
+          panel.querySelectorAll('.exo').forEach(exo => {
+            const h3 = exo.querySelector('h3'), num = exo.querySelector('.num');
+            if(!h3) return;
+            const n = num ? num.textContent.replace(/\s+/g, ' ').trim() : '';
+            // texte INTÉGRAL : un mot-clé de la partie C d'un long exercice reste trouvable
+            add('exo', h3.textContent, Object.assign({}, base, { panel:pid, ou:n ? n.charAt(0) + n.slice(1).toLowerCase() : 'Exercices', el:exo, text:texte(exo) }));
+          });
+        }
       });
     });
-    // Flashcards : on indexe les questions depuis le registre global
-    // flashMap dérivé de CHAPTERS (préfixe → [chapId, panelId])
-    const flashMap = Object.fromEntries(
-      CHAPTERS.filter(c => c.panels.includes('flash'))
-              .map(c => [c.prefix, ['chap-' + c.id, c.prefix + '-flash']])
-    );
-    const registry = window.FLASH_REGISTRY || {};
-    Object.keys(flashMap).forEach(prefix=>{
-      const arr = registry[prefix];
-      const [chapId, panelId] = flashMap[prefix];
-      if(Array.isArray(arr)){
-        const chapBtn = document.querySelector('.chap-btn[data-chap="'+chapId.replace('chap-','')+'"]');
-        let chapName = chapId.replace('chap-','');
-        if(chapBtn){ const c=chapBtn.cloneNode(true); const m=c.querySelector('.matiere'); if(m)m.remove(); chapName=c.textContent.trim(); }
-        arr.forEach(card=>{
-          index.push({
-            title: card.q,
-            meta: chapName+' › Flashcard',
-            text: card.a,
-            chap: chapId, panel: panelId,
-            isFlash:true
-          });
-        });
-      }
+    const reg = window.FLASH_REGISTRY || {};
+    CHAPTERS.forEach(c => {
+      const arr = reg[c.prefix];
+      if(!Array.isArray(arr) || !c.panels.includes('flash')) return;
+      arr.forEach(card => add('carte', sansBalises(card.q), { chap:'chap-' + c.id, mat:c.matiere, court:c.mobLabel || c.name,
+        panel:c.prefix + '-flash', ou:'Cartes', text:sansBalises(card.a), carte:true }));
     });
-    // Pré-normaliser UNE fois (perf : avec les exos en texte intégral, re-normaliser
-    // tout le corpus à chaque frappe coûterait trop cher)
+    // normalisé UNE fois (les exercices sont indexés en texte intégral)
     index.forEach(it => { it.nTitle = normalize(it.title); it.nText = normalize(it.text); });
   }
 
-  function normalize(s){
-    return s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+  // Surligne la 1ʳᵉ occurrence HORS formules TeX (\( … \), $$ … $$ : rendues par MathJax ensuite)
+  function marquer(text, q){
+    const nq = normalize(String(q || '').trim());
+    let fait = !nq;
+    return String(text || '').split(/(\\\([\s\S]*?\\\)|\$\$[\s\S]*?\$\$)/).map((p, k) => {
+      if(k % 2 || fait) return esc(p);
+      const i = normalize(p).indexOf(nq);
+      if(i < 0) return esc(p);
+      fait = true;
+      return esc(p.slice(0, i)) + '<mark>' + esc(p.slice(i, i + nq.length)) + '</mark>' + esc(p.slice(i + nq.length));
+    }).join('');
   }
-  function highlight(text, q){
-    const nt = normalize(text), nq = normalize(q);
-    const i = nt.indexOf(nq);
-    if(i<0) return text.replace(/</g,'&lt;');
-    const before = text.slice(0,i).replace(/</g,'&lt;');
-    const match = text.slice(i,i+q.length).replace(/</g,'&lt;');
-    const after = text.slice(i+q.length).replace(/</g,'&lt;');
-    return before+'<mark>'+match+'</mark>'+after;
+  // TeX d'un titre ou d'un extrait : délimiteurs \( \) seulement par paires, jamais de $$ isolé
+  // (MathJax apparierait sinon les délimiteurs de deux lignes différentes)
+  function texSur(s){
+    s = String(s || '');
+    if((s.match(/\\\(/g) || []).length !== (s.match(/\\\)/g) || []).length) s = s.replace(/\\[()]/g, '');
+    return s.replace(/\$\$/g, ' ');
+  }
+  // Extrait centré sur l'occurrence : formules en bloc remplacées par « … », formules en ligne
+  // jamais coupées (la fenêtre s'élargit jusqu'à leurs délimiteurs)
+  function extrait(it, q){
+    if(it.texteSur == null) it.texteSur = String(it.text || '').replace(/\$\$[\s\S]*?\$\$/g, ' … ').replace(/\\\[[\s\S]*?\\\]/g, ' … ').replace(/\s+/g, ' ');
+    const t = it.texteSur;
+    const i = normalize(t).indexOf(normalize(q.trim()));
+    let deb = i <= 50 ? 0 : i - 40, fin = Math.min(t.length, i <= 50 ? 170 : i + 130);
+    const re = /\\\([\s\S]*?\\\)/g;
+    let m;
+    while((m = re.exec(t)) && m.index < fin){
+      const a = m.index, b = a + m[0].length;
+      if(deb > a && deb < b) deb = a;
+      if(fin > a && fin < b) fin = b;
+    }
+    return (deb > 0 ? '… ' : '') + marquer(texSur(t.slice(deb, fin)), q);
+  }
+
+  function ligne(it, i, q){
+    const prov = [MAT[it.mat] || '', it.court, it.ou].filter(Boolean).join(' · ');
+    const dansTitre = q && it.nTitle.includes(normalize(q.trim()));
+    let h = '<div class="search-result' + (i === sel ? ' sel' : '') + '" id="sr-' + i + '" role="option" aria-selected="' + (i === sel) + '" data-i="' + i + '" data-mat="' + esc(it.mat || '') + '">'
+      + '<span class="dot" aria-hidden="true"></span><span class="sr-txt">'
+      + '<span class="sr-title">' + marquer(texSur(it.title), q) + '</span>';
+    if(it.kind === 'form' && it.el) h += '<span class="sr-formule">' + it.el.innerHTML + '</span>';
+    h += '<span class="sr-meta">' + esc(prov) + '</span>';
+    if(q && it.kind !== 'form' && it.kind !== 'chap' && it.text && (it.carte || !dansTitre)) h += '<span class="sr-snippet">' + extrait(it, q) + '</span>';
+    return h + '</span></div>';
+  }
+
+  function afficher(html){
+    resultsEl.innerHTML = html;
+    input.setAttribute('aria-expanded', rows.length ? 'true' : 'false');
+    if(rows.length) input.setAttribute('aria-activedescendant', 'sr-' + sel); else input.removeAttribute('aria-activedescendant');
+    // Formules TeX des titres, extraits et formules pas encore rendues : composées après une courte pause
+    clearTimeout(minuterieTex);
+    if(window.MathJax && MathJax.typesetPromise && /\\\(|\$\$/.test(resultsEl.textContent)){
+      minuterieTex = setTimeout(() => { try { MathJax.typesetPromise([resultsEl]).catch(() => {}); } catch(e){} }, 120);
+    }
+  }
+
+  function videOuRecents(q){
+    rows = []; sel = 0;
+    const rec = (Store.getJSON('recents', []) || []).map(id => CHAPTERS_BY_ID[String(id).replace('chap-', '')]).filter(Boolean).slice(0, 5);
+    let html = '';
+    if(q.trim().length === 0 && rec.length){
+      html += '<div class="sr-groupe" role="group" aria-label="Récents"><div class="sr-groupe-titre" aria-hidden="true"><span>Récents</span></div>';
+      rec.forEach(c => {
+        const it = { kind:'chap', title:c.name, chap:'chap-' + c.id, mat:c.matiere, court:'', ou:ouChap(c), panel:c.prefix + '-' + (c.panels[0] || 'cours'), nTitle:'' };
+        html += ligne(it, rows.length, ''); rows.push(it);
+      });
+      html += '</div>';
+    }
+    html += '<div class="empty-state sr-aide">' + window.__icon('search') + '<span>'
+      + (q.trim().length ? 'Encore une lettre…' : 'Chapitres, sections, formules, exercices et cartes : tape au moins 2 lettres.') + '</span></div>';
+    afficher(html);
   }
 
   function search(q){
-    if(!q || q.trim().length<2){ currentResults=[]; render(''); return; }
-    const nq = normalize(q.trim());
-    const scored = [];
-    index.forEach(item=>{
-      const nTitle = item.nTitle != null ? item.nTitle : normalize(item.title);
-      const nText  = item.nText  != null ? item.nText  : normalize(item.text);
-      let score = 0;
-      if(nTitle.includes(nq)) score += 10;
-      if(nTitle.startsWith(nq)) score += 5;
-      if(nText.includes(nq)) score += 3;
-      // recherche par mots
-      const words = nq.split(/\s+/);
-      if(words.length>1 && words.every(w=>nTitle.includes(w)||nText.includes(w))) score += 4;
-      if(score>0) scored.push({item, score});
+    const nq = normalize(String(q || '').trim());
+    if(nq.length < 2){ videOuRecents(String(q || '')); return; }
+    if(!index) buildIndex();
+    const mots = nq.split(/\s+/).filter(Boolean);
+    const par = {};
+    index.forEach(it => {
+      let s = 0;
+      if(it.nTitle.includes(nq)) s += 10;
+      if(it.nTitle.startsWith(nq)) s += 5;
+      if(it.nText.includes(nq)) s += 3;
+      if(mots.length > 1 && mots.every(w => it.nTitle.includes(w) || it.nText.includes(w))) s += 4;
+      if(s > 0) (par[it.kind] || (par[it.kind] = [])).push({ it, s });
     });
-    scored.sort((a,b)=>b.score-a.score);
-    currentResults = scored.slice(0,30).map(s=>s.item);
-    selIdx = 0;
-    render(q.trim());
+    rows = []; sel = 0;
+    let html = '';
+    GROUPES.forEach(([k, lib, max]) => {
+      const l = par[k];
+      if(!l) return;
+      l.sort((a, b) => b.s - a.s);
+      html += '<div class="sr-groupe" role="group" aria-label="' + lib + '"><div class="sr-groupe-titre" aria-hidden="true"><span>' + lib + '</span>'
+        + '<span class="sr-n">' + (l.length > max ? max + ' sur ' + l.length : l.length) + '</span></div>';
+      l.slice(0, max).forEach(({ it }) => { html += ligne(it, rows.length, q); rows.push(it); });
+      html += '</div>';
+    });
+    if(!rows.length) html = '<div class="empty-state">' + window.__icon('search') + '<span>Aucun résultat pour « ' + esc(q.trim()) + ' »</span></div>';
+    afficher(html);
   }
 
-  /* Extrait centré sur la 1re occurrence : les exos étant indexés en texte
-     intégral, l'occurrence peut être bien au-delà des 120 premiers caractères. */
-  function snippetFor(item, q){
-    const nText = item.nText != null ? item.nText : normalize(item.text);
-    const i = nText.indexOf(normalize(q));
-    if(i <= 60) return item.text.slice(0, 140);
-    return '… ' + item.text.slice(i - 50, i + 90);
-  }
-
-  function render(q){
-    if(currentResults.length===0){
-      resultsEl.innerHTML = q.length>=2
-        ? '<div class="empty-state">'+window.__icon('search')+'<span>Aucun résultat pour « '+q.replace(/</g,'&lt;')+' »</span></div>'
-        : '<div class="empty-state">'+window.__icon('search')+'<span>Tape au moins 2 caractères pour rechercher dans tout le cours.</span></div>';
-      return;
-    }
-    resultsEl.innerHTML = currentResults.map((r,i)=>{
-      return '<div class="search-result'+(i===selIdx?' sel':'')+'" data-i="'+i+'">'
-        + '<span class="sr-meta">'+r.meta.replace(/</g,'&lt;')+'</span>'
-        + '<span class="sr-title">'+highlight(r.title,q)+'</span>'
-        + (r.text?'<span class="sr-snippet">'+highlight(snippetFor(r,q),q)+'</span>':'')
-        + '</div>';
-    }).join('');
-    // clic
-    resultsEl.querySelectorAll('.search-result').forEach(el=>{
-      el.addEventListener('click',()=>{ go(parseInt(el.dataset.i)); });
+  function choisir(i){
+    if(!rows.length) return;
+    sel = (i + rows.length) % rows.length;
+    resultsEl.querySelectorAll('.search-result').forEach(r => {
+      const on = +r.dataset.i === sel;
+      r.classList.toggle('sel', on);
+      r.setAttribute('aria-selected', on ? 'true' : 'false');
+      if(on) r.scrollIntoView({ block:'nearest' });
     });
+    input.setAttribute('aria-activedescendant', 'sr-' + sel);
   }
 
   function go(i){
-    const r = currentResults[i];
+    const r = rows[i];
     if(!r) return;
-    close();
-    navigateTo(r.chap, r.panel);
+    close(false);
+    const cible = r.el;
+    navigateTo(r.chap, r.panel, cible ? () => {
+      if(!document.contains(cible)) return;
+      cible.scrollIntoView({ behavior:'smooth', block: r.kind === 'sec' ? 'start' : 'center' });
+      cible.classList.remove('cours-target-flash');
+      void cible.offsetWidth;                      // relance l'animation
+      cible.classList.add('cours-target-flash');
+    } : undefined);
   }
 
+  const isOpen = () => overlay.classList.contains('open');
   function open(){
-    if(index.length===0) buildIndex();
+    if(isOpen()) return;
+    opener = document.activeElement;
     overlay.classList.add('open');
-    input.value='';
-    currentResults=[]; render('');
-    setTimeout(()=>input.focus(),30);
+    input.value = '';
+    search('');
+    setTimeout(() => input.focus(), 30);
   }
-  function close(){ overlay.classList.remove('open'); }
+  function close(rendre){
+    if(!isOpen()) return;
+    overlay.classList.remove('open');
+    clearTimeout(minuterieTex);
+    const o = opener; opener = null;
+    if(rendre !== false && o && document.contains(o) && o.getClientRects().length){ try { o.focus({ preventScroll:true }); } catch(e){} }
+  }
 
   if(openBtn) openBtn.addEventListener('click', open);
-  if(input) input.addEventListener('input', ()=>search(input.value));
-  if(overlay) overlay.addEventListener('click', e=>{ if(e.target===overlay) close(); });
+  if(closeBtn) closeBtn.addEventListener('click', () => close());
+  input.addEventListener('input', () => search(input.value));
+  overlay.addEventListener('click', e => { if(e.target === overlay) close(); });
+  resultsEl.addEventListener('click', e => {
+    const r = e.target.closest && e.target.closest('.search-result');
+    if(r) go(+r.dataset.i);
+  });
 
   // Clavier global
-  document.addEventListener('keydown', e=>{
-    // Ouvrir avec Ctrl+K ou Cmd+K
-    if((e.ctrlKey||e.metaKey) && (e.key==='k'||e.key==='K')){
+  document.addEventListener('keydown', e => {
+    if((e.ctrlKey || e.metaKey) && (e.key === 'k' || e.key === 'K')){
       e.preventDefault();
-      if(overlay.classList.contains('open')) close(); else open();
+      if(isOpen()) close(); else open();
       return;
     }
-    if(!overlay.classList.contains('open')) return;
-    if(e.key==='Escape'){ e.preventDefault(); close(); }
-    else if(e.key==='ArrowDown'){ e.preventDefault(); if(currentResults.length){ selIdx=(selIdx+1)%currentResults.length; render(input.value.trim()); ensureVisible(); } }
-    else if(e.key==='ArrowUp'){ e.preventDefault(); if(currentResults.length){ selIdx=(selIdx-1+currentResults.length)%currentResults.length; render(input.value.trim()); ensureVisible(); } }
-    else if(e.key==='Enter'){ e.preventDefault(); go(selIdx); }
+    if(!isOpen()) return;
+    if(e.key === 'Escape'){ e.preventDefault(); close(); return; }
+    if(e.key === 'Tab'){            // focus gardé dans la fenêtre (champ ↔ ×)
+      const f = [input, closeBtn].filter(x => x && x.getClientRects().length);
+      if(f.length && (!overlay.contains(document.activeElement) || f.length === 1)){ e.preventDefault(); f[0].focus(); }
+      else if(f.length === 2 && document.activeElement === f[e.shiftKey ? 0 : 1]){ e.preventDefault(); f[e.shiftKey ? 1 : 0].focus(); }
+      return;
+    }
+    if(e.target !== input) return;  // ↑ ↓ Entrée : depuis le champ seulement (pas sur le ×)
+    if(e.key === 'ArrowDown'){ e.preventDefault(); choisir(sel + 1); }
+    else if(e.key === 'ArrowUp'){ e.preventDefault(); choisir(sel - 1); }
+    else if(e.key === 'Enter'){ e.preventDefault(); go(sel); }
   });
-  function ensureVisible(){
-    const sel = resultsEl.querySelector('.search-result.sel');
-    if(sel) sel.scrollIntoView({block:'nearest'});
-  }
 })();
 
 /* ============================================== */
@@ -74177,62 +74300,85 @@ function navigateTo(chapId, panelId, onDone){
     }
   });
 
-  // Mini-modale d'aide clavier
+  // Fenêtre « Raccourcis clavier » (gabarit .fen, SPEC §5.11) : « ? » l'ouvre ou la ferme ;
+  // Échap, × ou clic sur le voile la ferment ; focus posé dans la fenêtre puis rendu.
+  let keyHelpOpener = null;
+  function closeKeyHelp(){
+    const modal = document.getElementById('key-help-modal');
+    if(!modal || !modal.classList.contains('open')) return;
+    modal.classList.remove('open');
+    const o = keyHelpOpener; keyHelpOpener = null;
+    if(o && document.contains(o) && o.getClientRects().length){ try { o.focus({ preventScroll:true }); } catch(e){} }
+  }
   function showKeyHelp(){
     let modal = document.getElementById('key-help-modal');
-    if(modal){ modal.classList.toggle('open'); return; }
-    modal = document.createElement('div');
-    modal.id = 'key-help-modal';
-    modal.innerHTML = `
-      <div class="key-help-box">
-        <div class="key-help-title">Raccourcis clavier <button onclick="this.closest('#key-help-modal').classList.remove('open')">✕</button></div>
-        <table class="key-help-table">
-          <tr><td><kbd>1</kbd>–<kbd>5</kbd></td><td>Aller à l'onglet N</td></tr>
-          <tr><td><kbd>g</kbd> / <kbd>G</kbd></td><td>Onglet suivant / précédent</td></tr>
-          <tr><td><kbd>n</kbd> / <kbd>p</kbd></td><td>Chapitre suivant / précédent</td></tr>
-          <tr><td><kbd>Alt ←</kbd> / <kbd>Alt →</kbd></td><td>Chapitre précédent / suivant</td></tr>
-          <tr><td><kbd>Espace</kbd></td><td>Retourner la flashcard</td></tr>
-          <tr><td><kbd>←</kbd> <kbd>→</kbd></td><td>Carte précédente / suivante</td></tr>
-          <tr><td><kbd>Ctrl K</kbd></td><td>Ouvrir la recherche</td></tr>
-          <tr><td><kbd>?</kbd></td><td>Afficher/masquer cette aide</td></tr>
-        </table>
+    if(modal && modal.classList.contains('open')){ closeKeyHelp(); return; }
+    if(!modal){
+      modal = document.createElement('div');
+      modal.id = 'key-help-modal';
+      modal.className = 'fen';
+      modal.innerHTML = `
+      <div class="fen-boite key-help-box" role="dialog" aria-modal="true" aria-labelledby="key-help-titre" tabindex="-1">
+        <div class="fen-tete">
+          <h2 class="fen-titre" id="key-help-titre">Raccourcis clavier</h2>
+          <button type="button" class="btn btn-ghost btn-icon fen-x" aria-label="Fermer"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+        </div>
+        <div class="fen-corps">
+          <table class="key-help-table">
+            <tr><td><kbd>1</kbd>–<kbd>5</kbd></td><td>Aller à l'onglet N</td></tr>
+            <tr><td><kbd>g</kbd> / <kbd>G</kbd></td><td>Onglet suivant / précédent</td></tr>
+            <tr><td><kbd>n</kbd> / <kbd>p</kbd></td><td>Chapitre suivant / précédent</td></tr>
+            <tr><td><kbd>Alt ←</kbd> / <kbd>Alt →</kbd></td><td>Chapitre précédent / suivant</td></tr>
+            <tr><td><kbd>Espace</kbd></td><td>Retourner la carte</td></tr>
+            <tr><td><kbd>←</kbd> <kbd>→</kbd></td><td>Carte précédente / suivante</td></tr>
+            <tr><td><kbd>Ctrl K</kbd></td><td>Ouvrir la recherche</td></tr>
+            <tr><td><kbd>Ctrl P</kbd></td><td>Imprimer le chapitre</td></tr>
+            <tr><td><kbd>Échap</kbd></td><td>Fermer la fenêtre ouverte</td></tr>
+            <tr><td><kbd>?</kbd></td><td>Afficher / masquer cette aide</td></tr>
+          </table>
+        </div>
       </div>`;
-    modal.addEventListener('click', e=>{ if(e.target===modal) modal.classList.remove('open'); });
-    document.body.appendChild(modal);
+      modal.addEventListener('click', e=>{ if(e.target===modal || (e.target.closest && e.target.closest('.fen-x'))) closeKeyHelp(); });
+      modal.addEventListener('keydown', e=>{
+        if(e.key === 'Tab'){ e.preventDefault(); const x = modal.querySelector('.fen-x'); if(x) x.focus(); }   // une seule commande : le ×
+      });
+      document.body.appendChild(modal);
+    }
+    keyHelpOpener = document.activeElement;
     modal.classList.add('open');
+    setTimeout(() => { const d = modal.querySelector('[role="dialog"]'); if(d && modal.classList.contains('open')) try { d.focus({ preventScroll:true }); } catch(e){} }, 30);
   }
+  document.addEventListener('keydown', e=>{ if(e.key === 'Escape') closeKeyHelp(); });
 })();
 
 /* ============================================== */
 /* =============== IMPRESSION =================== */
 /* ============================================== */
+/* Gabarit d'impression (SPEC §5.15). printChapter() imprime le panneau affiché (Cours,
+   Méthodes, Exercices…) ; le Formulaire passe par le même gabarit (window.__imprimerDocument).
+   Le document est écrit dans l'iframe cachée #print-iframe, puis imprimé quand MathJax et
+   les polices y sont prêts. THÈME CLAIR FORCÉ : l'iframe reçoit les jetons du bloc clair
+   de la page (« :root », « [data-mat] » ; ni le bloc sombre, ni le filet de sécurité Auto),
+   encre noire sur blanc quel que soit le thème affiché. Correctif B5 gardé : formules
+   recopiées déjà rendues + feuille CHTML recopiée, blocs insécables (atomes), en-têtes de
+   bloc insécables, intertitre seul jamais en bas de page (suite regressions › B5). */
 function printChapter(){
-  /* ---- 1. Identifier chapitre + panel actif ---- */
-  const chap = document.querySelector('.chapter.active');
+  /* ---- 1. Chapitre et panneau RÉELLEMENT affichés (deux .chapter.active au départ :
+     un par <main>, on prend celui qui est visible) ---- */
+  const actifs = Array.from(document.querySelectorAll('.chapter.active'));
+  const chap = actifs.find(c => c.offsetParent !== null) || actifs[0];
   if(!chap) return;
   const chapId = chap.id.replace('chap-','');
-  const chapBtn = document.querySelector('.chap-btn[data-chap="'+chapId+'"]');
-  let chapName = chapId, matiere = '';
-  if(chapBtn){
-    const cl = chapBtn.cloneNode(true);
-    const mel = cl.querySelector('.matiere');
-    if(mel){
-      mel.querySelectorAll('.yr2a').forEach(x => x.remove());   // pastille « 2A » : l'année va dans le surtitre
-      matiere = mel.textContent.trim(); mel.remove();
-    }
-    chapName = cl.textContent.trim();
-  }
-  // Surtitre de la page de garde selon l'année du chapitre (0 = les deux années)
-  const chapYr = window.__chapYear ? window.__chapYear(CHAPTERS_BY_ID[chapId]) : 1;
-  const eyebrow = chapYr === 2 ? 'PT · 2ᵉ année · Révisions'
-    : chapYr === 0 ? 'PTSI · PT · Révisions' : 'PTSI · 1ʳᵉ année · Révisions';
+  const c = CHAPTERS_BY_ID[chapId] || {};
+  const chapName = c.name || chapId;
   const activePanel = chap.querySelector('.panel.active');
   if(!activePanel) return;
   const panelId = activePanel.id;
   let panelLabel = 'Cours';
   if(panelId.endsWith('-meth'))  panelLabel = 'Méthodes';
   else if(panelId.endsWith('-exos')) panelLabel = 'Exercices';
-  else if(panelId.endsWith('-flash')) panelLabel = 'Flashcards';
+  else if(panelId.endsWith('-flash')) panelLabel = 'Cartes';
+  else if(panelId.endsWith('-simu')) panelLabel = 'Simulateur';
 
   /* ---- 2. Extraire les blocs sources ---- */
   const isExos = panelId.endsWith('-exos');
@@ -74245,347 +74391,18 @@ function printChapter(){
     if(!sources.length) sources.push(activePanel);
   }
 
-  /* ---- 3. CSS de la page d'impression ---- */
-  const CSS = `
-*{ box-sizing:border-box; margin:0; padding:0; }
-@page{ size:A4 portrait; margin:2.2cm 1.8cm 2cm; }
-/* Familles des polices locales (vendor/fonts/polices.css) : mêmes piles que les
-   jetons de la page, pour ce CSS et pour les style="…" du contenu recopié */
-:root{
-  --font-text: 'Source Serif 4', 'Symboles TeX', 'Source Sans 3', Georgia, 'Times New Roman', serif;
-  --font-ui: 'Source Sans 3', 'Symboles TeX', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-  --font-code: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
-}
-html,body{ background:#fff; color:#111;
-  font-family:var(--font-ui); font-size:10.5pt; line-height:1.62; }
-
-/* ===== PAGE DE GARDE ===== */
-.cover{
-  /* Forcer une vraie page dédiée sans générer de page blanche */
-  break-after:page;
-  page-break-after:always;
-  display:flex;
-  flex-direction:column;
-  height:100vh;           /* remplir exactement la hauteur de la page d'impression */
-  padding:3cm 0 2cm;
-  border-bottom:3pt solid #c8472e;
-}
-.cover-eyebrow{
-  font-family:var(--font-code);
-  font-size:7.5pt;
-  letter-spacing:.25em;
-  text-transform:uppercase;
-  color:#c8472e;
-  margin-bottom:2.5cm;
-}
-.cover-matiere{
-  font-family:var(--font-code);
-  font-size:9pt;
-  letter-spacing:.15em;
-  text-transform:uppercase;
-  color:#2d5f8a;
-  margin-bottom:.35cm;
-}
-.cover-title{
-  font-family:var(--font-text);
-  font-size:38pt;
-  font-weight:800;
-  letter-spacing:-.02em;
-  line-height:1.05;
-  margin-bottom:.6cm;
-}
-.cover-panel{
-  font-family:var(--font-code);
-  font-size:10pt;
-  color:#595959;
-  margin-bottom:.5cm;
-}
-.cover-sep{ flex:1; }
-.cover-meta{
-  font-family:var(--font-code);
-  font-size:7.5pt;
-  color:#bbb;
-}
-
-/* ===== BLOCS DE SECTION ===== */
-/*
-  On utilise des divs simples, pas de table.
-  Chaque section = un wrapper avec bordure.
-  Chaque atome = un div avec break-inside:avoid.
-  Le titre est répété via CSS counter si la section coupe entre deux pages.
-*/
-.sec-block{
-  border:1.5pt solid #1a1d24;
-  margin-bottom:.8cm;
-  break-inside:auto;
-  page-break-inside:auto;
-  position:relative;
-}
-/* Coin rouge haut-gauche */
-.sec-block::before{
-  content:"";
-  position:absolute;
-  top:0; left:0;
-  width:18pt; height:18pt;
-  border-top:3pt solid #c8472e;
-  border-left:3pt solid #c8472e;
-  pointer-events:none;
-}
-.sec-header{
-  padding:.45cm .55cm .3cm;
-  border-bottom:1pt solid #eee;
-  background:#fff;
-  /* insécable (sinon « EXO 03 » en bas de page, son titre en haut de la suivante) */
-  break-inside:avoid;
-  page-break-inside:avoid;
-  break-after:avoid;
-  page-break-after:avoid;
-}
-.sec-num-print{
-  font-family:var(--font-code);
-  font-size:7pt;
-  letter-spacing:.2em;
-  color:#c8472e;
-  text-transform:uppercase;
-  margin-bottom:.15cm;
-}
-.sec-h2{
-  font-family:var(--font-text);
-  font-size:16pt;
-  font-weight:600;
-  line-height:1.1;
-}
-/* Corps : chaque atome est insécable */
-.sec-body-wrap{
-  padding:.15cm .55cm .4cm;
-}
-.atom{
-  break-inside:avoid;
-  page-break-inside:avoid;
-  margin-bottom:.3em;
-  /* orphans/widows pour les paragraphes */
-  orphans:3;
-  widows:3;
-}
-.atom:last-child{ margin-bottom:0; }
-/* Intertitre seul dans son atome : jamais en bas de page, séparé de ce qu'il annonce */
-.atom:has(> h3:only-child), .atom:has(> h4:only-child){ break-after:avoid; page-break-after:avoid; }
-
-/* ===== TYPOGRAPHIE ===== */
-h3{
-  font-family:var(--font-text);
-  font-size:12pt;
-  font-weight:600;
-  color:#2d5f8a;
-  margin-top:.2cm;
-  margin-bottom:.1cm;
-}
-h4{
-  font-family:var(--font-code);
-  font-size:7.5pt;
-  text-transform:uppercase;
-  letter-spacing:.12em;
-  color:#555;
-  margin-bottom:.15cm;
-}
-p{ margin-bottom:.35em; }
-ul,ol{ margin:.2em 0 .35em 1.1em; }
-li{ margin-bottom:.1em; }
-.intro{
-  font-style:italic;
-  color:#444;
-  font-size:9.5pt;
-  border-left:2pt solid #c8472e;
-  padding-left:.45cm;
-}
-strong{ font-weight:600; }
-em{ font-style:italic; }
-
-/* ===== BOÎTES PÉDAGOGIQUES ===== */
-.def-box,.prop-box,.method-box,.notice{
-  padding:.35cm .45cm;
-  margin:.15cm 0;
-  font-size:9.5pt;
-  break-inside:avoid;
-  page-break-inside:avoid;
-}
-.def-box{
-  border:1pt solid #b8801a;
-  border-left:3pt solid #b8801a;
-  background:rgba(224,168,58,0.08);
-}
-.def-box::before{
-  content:"DÉFINITION";
-  font-family:var(--font-code);
-  font-size:6pt; letter-spacing:.15em;
-  color:#b8801a; display:block;
-  margin-bottom:.15em; font-weight:600;
-}
-.prop-box{
-  border:1pt solid #5a7a3a;
-  border-left:3pt solid #5a7a3a;
-  background:rgba(90,122,58,0.08);
-}
-.prop-box::before{
-  content:"PROPRIÉTÉ";
-  font-family:var(--font-code);
-  font-size:6pt; letter-spacing:.15em;
-  color:#5a7a3a; display:block;
-  margin-bottom:.15em; font-weight:600;
-}
-.method-box{
-  border:1pt solid #2d5f8a;
-  border-left:3pt solid #2d5f8a;
-  background:rgba(45,95,138,0.08);
-}
-.method-box::before{
-  content:"MÉTHODE";
-  font-family:var(--font-code);
-  font-size:6pt; letter-spacing:.15em;
-  color:#2d5f8a; display:block;
-  margin-bottom:.15em; font-weight:700;
-}
-.notice{
-  border:1pt solid #b8801a;
-  border-left:3pt solid #b8801a;
-  background:#fffbf0;
-}
-.method-box ol{ margin-left:.9em; }
-.step{
-  font-family:var(--font-code);
-  font-size:7pt; color:#2d5f8a;
-  font-weight:700; text-transform:uppercase;
-}
-/* ===== FORMULES ===== */
-/* NB : document d'impression autonome — pas de variables CSS ici,
-   uniquement des couleurs littérales (palette claire). */
-.formula{
-  background:#e8e3d3;
-  border-left:2pt solid #1a1d24;
-  padding:.3cm .45cm;
-  margin:.15cm 0;
-  break-inside:avoid;
-  page-break-inside:avoid;
-  overflow:hidden;
-}
-
-/* ===== SCHÉMAS SVG ===== */
-figure.schema{
-  margin:.35cm auto;
-  max-width:12.5cm;
-  text-align:center;
-  break-inside:avoid;
-  page-break-inside:avoid;
-}
-figure.schema svg{ width:100%; height:auto; overflow:visible; display:block; }
-figure.schema figcaption{
-  margin-top:.15cm; font-size:8pt; font-style:italic;
-  color:#555; line-height:1.4;
-}
-.schema .sk-ink{ stroke:#1a1d24; fill:none; stroke-width:1.6; }
-.schema .sk-axis{ stroke:#1a1d24; fill:none; stroke-width:1; opacity:0.5; }
-.schema .sk-dash{ stroke:#1a1d24; fill:none; stroke-width:1.2; stroke-dasharray:4 4; opacity:0.7; }
-.schema .sk-accent{ stroke:#c8472e; fill:none; stroke-width:2.2; }
-.schema .sk-accent2{ stroke:#2d5f8a; fill:none; stroke-width:2.2; }
-.schema .sk-green{ stroke:#5a7a3a; fill:none; stroke-width:2.2; }
-.schema .sk-amber{ stroke:#b8801a; fill:none; stroke-width:2.2; }
-.schema .fl-ink{ fill:#1a1d24; }
-.schema .fl-accent{ fill:#c8472e; }
-.schema .fl-accent2{ fill:#2d5f8a; }
-.schema .fl-green{ fill:#5a7a3a; }
-.schema .fl-soft{ fill:#1a1d24; opacity:0.06; }
-.schema .fl-accent-soft{ fill:#c8472e; opacity:0.12; }
-.schema .fl-accent2-soft{ fill:#2d5f8a; opacity:0.12; }
-.schema .fl-green-soft{ fill:#5a7a3a; opacity:0.14; }
-.schema .fl-amber-soft{ fill:#b8801a; opacity:0.16; }
-.schema .fl-paper{ fill:#f4f1e8; }
-.schema text{ font-family:'Source Sans 3',system-ui,sans-serif; fill:#1a1d24; font-size:13px; }
-.schema text.lab-accent{ fill:#c8472e; }
-.schema text.lab-accent2{ fill:#2d5f8a; }
-.schema text.lab-green{ fill:#5a7a3a; }
-.schema text.lab-muted{ fill:#1a1d24; opacity:0.62; font-size:11.5px; }
-.schema text.lab-it{ font-style:italic; }
-.schema text.lab-b{ font-weight:600; }
-#sk-arrow-ink path{ fill:#1a1d24; }
-#sk-arrow-accent path{ fill:#c8472e; }
-#sk-arrow-accent2 path{ fill:#2d5f8a; }
-#sk-arrow-green path{ fill:#5a7a3a; }
-/* ===== REVEAL (affiché à l'impression) ===== */
-.reveal{
-  border:1pt dashed #bbb;
-  padding:.3cm .45cm;
-  margin:.15cm 0;
-  break-inside:avoid;
-  page-break-inside:avoid;
-}
-.reveal .label{
-  font-family:var(--font-code);
-  font-size:6.5pt; color:#c8472e;
-  text-transform:uppercase; letter-spacing:.12em;
-  display:block; margin-bottom:.15em;
-}
-.reveal .content{ display:block !important; }
-.reveal .prompt{ display:none; }
-
-/* ===== EXOS ===== */
-.exo-badge{
-  display:inline-block;
-  font-family:var(--font-code);
-  font-size:7pt; font-weight:600;
-  color:#fff; background:#1a1d24;
-  padding:.08cm .3cm; margin-bottom:.2cm;
-  letter-spacing:.08em;
-}
-.exo-diff-badge{
-  float:right;
-  font-family:var(--font-code);
-  font-size:7pt;
-  border:1pt solid #1a1d24;
-  padding:.05cm .25cm;
-  letter-spacing:.05em;
-}
-.exo-h3{
-  font-family:var(--font-text);
-  font-size:12pt; font-weight:600;
-  margin:.2cm 0 .15cm;
-}
-.q{
-  margin:.25em 0;
-  padding-left:.5cm;
-  border-left:1.5pt solid #2d5f8a;
-  font-size:9.5pt;
-}
-.sol-sep{
-  border-top:1pt dashed #ccc;
-  margin:.35cm 0 .2cm;
-}
-.sol-label{
-  font-family:var(--font-code);
-  font-size:6.5pt; letter-spacing:.15em;
-  text-transform:uppercase; color:#5a7a3a;
-  font-weight:600; margin-bottom:.2cm;
-}
-
-/* ===== NUMÉROTATION DES PAGES ===== */
-@page{
-  @bottom-center{
-    content:counter(page);
-    font-family:var(--font-code);
-    font-size:7pt; color:#bbb;
-  }
-}
-  `;
-
-  /* ---- 4. Helpers de génération HTML ---- */
-  const today = new Date().toLocaleDateString('fr-FR',{year:'numeric',month:'long',day:'numeric'});
-
-  /* Nettoyer les boutons/interactifs dans un clone */
+  /* ---- 3. Helpers de génération HTML ---- */
+  /* Nettoyer les boutons/interactifs dans un clone ; mémos (.reveal) et corrections
+     (.solution) imprimés OUVERTS */
   function cleanClone(node){
     const c = node.cloneNode(true);
     c.querySelectorAll('button,.toggle-sol,.flash-reset').forEach(b=>b.remove());
-    c.querySelectorAll('.solution:not(.shown)').forEach(s=>s.remove()); // garder celles affichées
-    // Afficher les .reveal à l'impression
     c.querySelectorAll('.reveal').forEach(r=>r.classList.add('open'));
+    c.querySelectorAll('.solution').forEach(s=>{
+      s.classList.add('shown');
+      // les atomes sortent du bloc .solution : chaque partie garde le filet de la correction
+      Array.from(s.children).forEach(k => k.classList.add('sol-part'));
+    });
     return c;
   }
 
@@ -74630,27 +74447,27 @@ figure.schema figcaption{
     return atoms;
   }
 
+  const atomesHTML = atoms => atoms.map(atom=>{
+    const content = atom.outerHTML || ('<span>'+escHtml(atom.textContent)+'</span>');
+    return `<div class="atom">${content}</div>`;
+  }).join('\n');
+
   /* Construire une section en divs (atomes insécables) */
   function buildSectionHTML(secNum, h2Text, atoms){
-    const atomDivs = atoms.map(atom=>{
-      const content = atom.outerHTML || ('<span>'+escHtml(atom.textContent)+'</span>');
-      return `<div class="atom">${content}</div>`;
-    }).join('\n');
-
     return `<div class="sec-block">
   <div class="sec-header">
     ${secNum?`<div class="sec-num-print">${escHtml(secNum)}</div>`:''}
     <div class="sec-h2">${escHtml(h2Text)}</div>
   </div>
   <div class="sec-body-wrap">
-${atomDivs}
+${atomesHTML(atoms)}
   </div>
 </div>`;
   }
 
   function escHtml(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
-  /* ---- 5. Générer le contenu ---- */
+  /* ---- 4. Générer le contenu ---- */
   let bodyContent = '';
 
   if(isExos){
@@ -74663,34 +74480,28 @@ ${atomDivs}
       clone.querySelector('h3')  && clone.querySelector('h3').remove();
       clone.querySelector('.num')  && clone.querySelector('.num').remove();
       clone.querySelector('.diff') && clone.querySelector('.diff').remove();
-      clone.querySelectorAll('.solution').forEach(s=>{ s.style.display='block'; });
-      clone.querySelectorAll('.toggle-sol').forEach(b=>b.remove());
 
       const atoms = atomize(clone);
-      const atomDivs = atoms.map(atom=>{
-        const content = atom.outerHTML || ('<span>'+escHtml(atom.textContent)+'</span>');
-        return `<div class="atom">${content}</div>`;
-      }).join('\n');
-
+      const niveau = diff ? (diff.getAttribute('title') || diff.textContent).replace(/\s+/g,' ').trim() : '';
       bodyContent += `<div class="sec-block">
   <div class="sec-header">
-    ${diff?`<div class="exo-diff-badge">${escHtml(diff.textContent)}</div>`:''}
-    ${num?`<div class="exo-badge">${escHtml(num.textContent)}</div>`:''}
+    ${niveau?`<div class="exo-diff-badge">${escHtml(niveau)}</div>`:''}
+    ${num?`<div class="exo-badge">${escHtml(num.textContent.trim())}</div>`:''}
     ${h3?`<div class="sec-h2">${escHtml(h3.textContent)}</div>`:''}
   </div>
   <div class="sec-body-wrap">
-${atomDivs}
+${atomesHTML(atoms)}
   </div>
 </div>\n`;
     });
   } else {
     sources.forEach(sec=>{
       const secNumEl = sec.querySelector('.sec-num');
-      const secNum   = secNumEl ? secNumEl.textContent.trim() : '';
+      const secNum   = secNumEl ? secNumEl.textContent.replace(/\s+/g,' ').trim() : '';
       const h2El     = sec.querySelector('h2');
       const h2Text   = h2El ? h2El.textContent.trim() : chapName;
 
-      // Cloner la section sans l'en-tête (sec-num + h2) qui est dans le thead
+      // Cloner la section sans son en-tête (sec-num + h2), recopié en texte dans .sec-header
       const cleaned = cleanClone(sec);
       cleaned.querySelector('.sec-num') && cleaned.querySelector('.sec-num').remove();
       cleaned.querySelector('h2')       && cleaned.querySelector('h2').remove();
@@ -74701,7 +74512,172 @@ ${atomDivs}
     });
   }
 
-  /* ---- 6. Document complet ---- */
+  imprimerDocument({ titre: chapName, onglet: panelLabel, mat: c.matiere || '', chapId, corps: bodyContent, garde: 'page' });
+}
+
+/* Écrit un document d'impression dans #print-iframe et l'imprime.
+   opts : { titre, onglet, mat (matière : encre du surtitre et des filets), chapId,
+            corps (HTML : .sec-block > .sec-header + .sec-body-wrap > .atom…),
+            garde : 'page' (page de garde dédiée) | 'compacte' (en-tête de 1ʳᵉ page) } */
+function imprimerDocument(opts){
+  opts = opts || {};
+  const escHtml = s => String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  const MAT = { physique:'Physique', maths:'Maths', si:'SI', info:'Info', anglais:'Anglais' };
+  const c = (opts.chapId && CHAPTERS_BY_ID[opts.chapId]) || {};
+  // Surtitre selon l'année du chapitre (0 = les deux années : anglais, constantes)
+  const an = window.__chapYear && c.id ? window.__chapYear(c) : 1;
+  const surtitre = an === 2 ? 'PT · 2ᵉ année' : an === 0 ? 'PTSI · PT' : 'PTSI · 1ʳᵉ année';
+  const matiere = [MAT[opts.mat] || '', c.subLabel || ''].filter(Boolean).join(' · ');
+  const today = new Date().toLocaleDateString('fr-FR',{year:'numeric',month:'long',day:'numeric'});
+
+  /* Jetons du thème CLAIR de la page (règles « :root », « :root, [data-mat] »,
+     « [data-mat="…"] » du grand <style>) : couleurs, polices, rôles des encadrés */
+  let jetons = '';
+  try {
+    for(const sh of Array.from(document.styleSheets)){
+      if(!sh.ownerNode || sh.ownerNode.tagName !== 'STYLE') continue;
+      let regles; try { regles = sh.cssRules; } catch(e){ continue; }
+      for(const r of Array.from(regles)){
+        if(r.type !== 1) continue;                 // règles de style seulement (pas les @media)
+        const s = r.selectorText.replace(/\s+/g, ' ').trim();
+        if(s === ':root' || s === ':root, [data-mat]' || /^\[data-mat="[a-z]+"\]$/.test(s)) jetons += r.cssText + '\n';
+      }
+      if(jetons) break;                            // le grand <style> de la page suffit
+    }
+  } catch(e){ /* sans jetons : couleurs par défaut du navigateur (noir sur blanc) */ }
+
+  /* CSS de la page d'impression (couleurs : jetons clairs ci-dessus, jamais de valeur en dur) */
+  const CSS = `
+*{ box-sizing:border-box; margin:0; padding:0; }
+@page{ size:A4 portrait; margin:18mm; }
+@page{ @bottom-center{ content:counter(page); font-family:'Source Sans 3', system-ui, sans-serif; font-size:8pt; } }
+:root{ color-scheme:light; }
+html, body{ background:var(--raise); color:var(--text); }
+body{ font:var(--w-regular) 11pt/1.45 var(--font-text); font-variant-numeric:lining-nums; font-kerning:normal;
+  font-optical-sizing:auto; -webkit-print-color-adjust:economy; print-color-adjust:economy; }
+
+/* ===== PAGE DE GARDE (sans intercalaire teinté : un filet de 2 pt dans l'encre de la matière) ===== */
+.cover{ break-after:page; page-break-after:always; display:flex; flex-direction:column; height:100vh; padding:36mm 0 0; }
+.cover-eyebrow{ font:var(--w-bold) 10pt/1.2 var(--font-ui); letter-spacing:var(--track-kicker); text-transform:uppercase; color:var(--chap); margin-bottom:7mm; }
+.cover-title{ font:var(--w-semi) 28pt/1.12 var(--font-text); letter-spacing:var(--track-h1); color:var(--text); margin-bottom:5mm; text-wrap:balance; }
+.cover-matiere{ font:var(--w-medium) 11pt/1.4 var(--font-ui); color:var(--text-2); }
+.cover-filet{ width:42mm; margin-top:9mm; border-top:2pt solid var(--chap-vif); }
+.cover-sep{ flex:1; }
+.cover-meta{ font:var(--w-regular) 9pt/1.4 var(--font-ui); color:var(--text-3); }
+.cover.compacte{ height:auto; padding:0 0 6mm; margin-bottom:8mm; break-after:auto; page-break-after:auto; border-bottom:2pt solid var(--chap-vif); }
+.cover.compacte .cover-eyebrow{ margin-bottom:2.5mm; }
+.cover.compacte .cover-title{ font-size:22pt; margin-bottom:1.5mm; }
+.cover.compacte .cover-meta{ margin-top:2mm; }
+
+/* ===== BLOCS DE SECTION : surtitre « §1 · LES BASES » + titre, puis atomes insécables ===== */
+.sec-block{ margin:0 0 8mm; }
+.sec-header{ margin:0 0 3.5mm; padding:0 0 2.5mm; border-bottom:.75pt solid var(--line-2);
+  /* insécable (sinon « EXO 03 » en bas de page, son titre en haut de la suivante) */
+  break-inside:avoid; page-break-inside:avoid; break-after:avoid; page-break-after:avoid; }
+.sec-num-print{ font:var(--w-bold) 8.5pt/1.2 var(--font-ui); letter-spacing:var(--track-kicker); text-transform:uppercase; color:var(--chap); margin-bottom:1.2mm; }
+.sec-h2{ font:var(--w-semi) 16pt/1.2 var(--font-text); letter-spacing:var(--track-head); color:var(--text); }
+.atom{ break-inside:avoid; page-break-inside:avoid; margin-bottom:.5em; orphans:3; widows:3; }
+.atom:last-child{ margin-bottom:0; }
+/* Intertitre seul dans son atome : jamais en bas de page, séparé de ce qu'il annonce */
+.atom:has(> h3:only-child), .atom:has(> h4:only-child){ break-after:avoid; page-break-after:avoid; }
+
+/* ===== TYPOGRAPHIE ===== */
+h2{ font:var(--w-semi) 16pt/1.2 var(--font-text); break-after:avoid; page-break-after:avoid; }
+h3{ font:var(--w-semi) 13pt/1.25 var(--font-text); color:var(--text); margin:4mm 0 1.2mm; break-after:avoid; page-break-after:avoid; }
+h4{ font:var(--w-semi) 11pt/1.3 var(--font-text); color:var(--text); margin:3mm 0 1mm; break-after:avoid; page-break-after:avoid; }
+p{ margin:0 0 .5em; }
+ul, ol{ margin:.2em 0 .5em 1.3em; }
+li{ margin:.15em 0; }
+li::marker{ color:var(--chap-vif); }
+.intro{ font-size:12pt; line-height:1.45; color:var(--text-2); margin:0 0 .6em; }
+strong, b{ font-weight:var(--w-strong); }
+a{ color:inherit; text-decoration:none; }
+code{ font-family:var(--font-code); font-size:.86em; font-variant-ligatures:none; }
+pre{ font:9pt/1.45 var(--font-code); font-variant-ligatures:none; white-space:pre-wrap; margin:2mm 0;
+  padding:2.5mm 3.5mm; border:.6pt solid var(--line-2); border-radius:1.5mm; background:var(--sunk); break-inside:avoid; }
+table{ border-collapse:collapse; width:100%; margin:2mm 0; font:var(--w-regular) 9.5pt/1.35 var(--font-ui) !important; font-variant-numeric:tabular-nums; }
+th, td{ padding:1.4mm 2.2mm !important; border:.6pt solid var(--line-2) !important; text-align:left; vertical-align:top; }
+th{ font-weight:var(--w-semi); }
+mjx-container{ color:inherit; }
+.video-resources{ display:none !important; }
+
+/* ===== ENCADRÉS : intitulés générés, teintes imprimées (seule exception à l'économie d'encre) ===== */
+.def-box, .prop-box, .method-box, .notice, .reveal{ margin:2.5mm 0; padding:3mm 4mm; border-radius:1.5mm;
+  font-size:10.5pt; break-inside:avoid; page-break-inside:avoid; }
+.def-box, .prop-box, .method-box, .notice{ -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+.def-box::before, .prop-box::before, .notice::before{ display:block; margin-bottom:1.4mm;
+  font:var(--w-bold) 8pt/1.2 var(--font-ui); letter-spacing:var(--track-kicker); text-transform:uppercase; }
+.def-box{ background:var(--def-fond); border-left:2.25pt solid var(--def-trait); }
+.def-box::before{ content:"Définition"; color:var(--def-titre); }
+.prop-box{ background:var(--raise); border:.6pt solid var(--line-2); border-left:2.25pt solid var(--prop-trait); }
+.prop-box::before{ content:"À retenir"; color:var(--prop-titre); }
+.prop-box > strong:first-child{ color:var(--prop-titre); }
+.method-box{ background:var(--meth-fond); }
+.method-box > strong:first-child{ display:block; margin-bottom:1.5mm; font:var(--w-semi) 11.5pt/1.3 var(--font-text); color:var(--meth-titre); }
+.method-box ol{ margin-left:1.1em; }
+.notice{ background:var(--notice-fond); border-left:2.25pt solid var(--notice-trait); color:var(--text); }
+.notice::before{ content:"À noter"; color:var(--notice-titre); }
+.step{ font:var(--w-bold) 8pt/1 var(--font-ui); letter-spacing:.04em; text-transform:uppercase; color:var(--chap); }
+.reveal{ border:.75pt dashed var(--field); }
+.reveal .label{ display:block; margin-bottom:1.2mm; font:var(--w-bold) 8pt/1.2 var(--font-ui); letter-spacing:var(--track-kicker); text-transform:uppercase; color:var(--text-3); }
+.reveal .prompt{ display:block; font-weight:var(--w-semi); }
+.reveal .content{ display:block !important; margin-top:1.5mm; padding-top:1.5mm; border-top:.6pt solid var(--line); }
+
+/* ===== FORMULES : creux --sunk, et filet gris clair si l'imprimante ne rend pas les fonds ===== */
+.formula{ margin:2.5mm 0; padding:2.5mm 4mm; border-radius:1.5mm; background:var(--formule-fond); border:.6pt solid var(--line);
+  text-align:center; break-inside:avoid; page-break-inside:avoid; overflow:hidden; }
+.formula mjx-container[display="true"]{ margin:.2em 0 !important; }
+.formula[data-nom]::before{ content:attr(data-nom); display:block; margin-bottom:1mm; text-align:left;
+  font:italic var(--w-regular) 10pt/1.3 var(--font-text); color:var(--text-3); }
+.formula-nom{ margin:2mm 0 -1mm; font:italic var(--w-regular) 10pt/1.3 var(--font-text); color:var(--text-3); }
+
+/* ===== SCHÉMAS SVG (mêmes classes que la page, couleurs des jetons clairs) ===== */
+figure.schema{ margin:3mm auto; max-width:125mm; text-align:center; break-inside:avoid; page-break-inside:avoid; }
+figure.schema svg{ width:100%; height:auto; overflow:visible; display:block; }
+figure.schema figcaption{ margin-top:1.5mm; font:italic var(--w-regular) 9pt/1.4 var(--font-text); color:var(--text-3); }
+.schema .sk-ink{ stroke:var(--ink); fill:none; stroke-width:1.6; }
+.schema .sk-axis{ stroke:var(--ink); fill:none; stroke-width:1; opacity:0.5; }
+.schema .sk-dash{ stroke:var(--ink); fill:none; stroke-width:1.2; stroke-dasharray:4 4; opacity:0.7; }
+.schema .sk-accent{ stroke:var(--accent); fill:none; stroke-width:2.2; }
+.schema .sk-accent2{ stroke:var(--accent2); fill:none; stroke-width:2.2; }
+.schema .sk-green{ stroke:var(--green); fill:none; stroke-width:2.2; }
+.schema .sk-amber{ stroke:var(--amber); fill:none; stroke-width:2.2; }
+.schema .fl-ink{ fill:var(--ink); }
+.schema .fl-accent{ fill:var(--accent); }
+.schema .fl-accent2{ fill:var(--accent2); }
+.schema .fl-green{ fill:var(--green); }
+.schema .fl-soft{ fill:var(--ink); opacity:0.06; }
+.schema .fl-accent-soft{ fill:var(--accent); opacity:0.12; }
+.schema .fl-accent2-soft{ fill:var(--accent2); opacity:0.12; }
+.schema .fl-green-soft{ fill:var(--green); opacity:0.14; }
+.schema .fl-amber-soft{ fill:var(--amber); opacity:0.16; }
+.schema .fl-paper{ fill:var(--paper); }
+.schema text{ font-family:var(--font-ui); fill:var(--ink); font-size:13px; }
+.schema text.lab-accent{ fill:var(--accent); }
+.schema text.lab-accent2{ fill:var(--accent2); }
+.schema text.lab-green{ fill:var(--green); }
+.schema text.lab-muted{ fill:var(--text-3); font-size:11.5px; }
+.schema text.lab-it{ font-style:italic; }
+.schema text.lab-b{ font-weight:600; }
+#sk-arrow-ink path{ fill:var(--ink); }
+#sk-arrow-accent path{ fill:var(--accent); }
+#sk-arrow-accent2 path{ fill:var(--accent2); }
+#sk-arrow-green path{ fill:var(--green); }
+
+/* ===== EXERCICES (corrections imprimées ouvertes) ===== */
+.exo-badge{ display:inline-block; margin-bottom:1.5mm; font:var(--w-bold) 8.5pt/1 var(--font-ui); letter-spacing:var(--track-kicker); text-transform:uppercase; color:var(--chap); }
+.exo-diff-badge{ float:right; font:var(--w-semi) 8.5pt/1 var(--font-ui); color:var(--text-2); }
+.statement{ margin:0 0 .5em; }
+.q{ margin:.35em 0; padding-left:7mm; text-indent:-7mm; }
+.q strong:first-child{ display:inline-block; width:7mm; text-indent:0; font:var(--w-bold) 8.5pt/1 var(--font-ui); color:var(--chap); }
+.exo-part{ margin:3mm 0 1mm; font:var(--w-bold) 8.5pt/1.2 var(--font-ui); letter-spacing:var(--track-kicker); text-transform:uppercase; color:var(--text-2); }
+.exo-source{ margin:1mm 0 2mm; font:var(--w-regular) 9pt/1.4 var(--font-ui); color:var(--text-2); }
+.atom:has(> .sol-part){ margin-bottom:0; padding:0 0 .5em 4mm; border-left:2.25pt solid var(--sol-trait); }
+.atom:has(> h4.sol-part){ margin-top:3mm; padding-top:1mm; }
+.sol-part{ font-size:10.5pt; }
+h4.sol-part{ margin:0; font:var(--w-bold) 8pt/1.2 var(--font-ui); letter-spacing:var(--track-kicker); text-transform:uppercase; color:var(--sol-titre); }
+  `;
+
   /* Pointes de flèche des schémas : reconstruites par boucle (mêmes ids que la
      page, indispensables aux marker-end="url(#sk-arrow-…)" des SVG clonés).
      Générées dynamiquement pour ne pas dupliquer les id dans le source. */
@@ -74722,12 +74698,21 @@ ${atomDivs}
     catch(e){ mjxCSS = mjxSheet.textContent; }
   }
 
+  const compacte = opts.garde === 'compacte';
+  const garde = `<div class="cover${compacte ? ' compacte' : ''}">
+  <div class="cover-eyebrow">${escHtml(surtitre + (compacte && opts.onglet ? ' · ' + opts.onglet : ''))}</div>
+  <h1 class="cover-title">${escHtml(opts.titre || '')}</h1>
+  <div class="cover-matiere">${escHtml([matiere, compacte ? '' : opts.onglet].filter(Boolean).join(' · '))}</div>
+  ${compacte ? '' : '<div class="cover-filet"></div>\n  <div class="cover-sep"></div>'}
+  <div class="cover-meta">Mes cours de prépa · imprimé le ${today}</div>
+</div>`;
+
   const printDoc = `<!DOCTYPE html>
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
 <base href="${location.href}">
-<title>${escHtml(chapName)} — ${escHtml(panelLabel)}</title>
+<title>${escHtml(opts.titre || '')} — ${escHtml(opts.onglet || '')}</title>
 <link rel="stylesheet" href="vendor/fonts/polices.css">
 <script>
 MathJax = { tex:{inlineMath:[['\\\\(','\\\\)']]}, options:{skipHtmlTags:['script','noscript','style','textarea']},
@@ -74737,36 +74722,32 @@ MathJax = { tex:{inlineMath:[['\\\\(','\\\\)']]}, options:{skipHtmlTags:['script
     if(f && f.findMath){ var t = f.findMath.bind(f); f.findMath = function(n){ return t(n).filter(function(q){ var x = q && q.start && q.start.node; return !(x && x.closest && x.closest('mjx-container')); }); }; } }); } } };
 <\/script>
 <script src="vendor/mathjax/tex-mml-chtml.js" async id="MathJax-script"><\/script>
+<style id="print-jetons">${jetons}</style>
 <style id="print-mjx-styles">${mjxCSS}</style>
 <style>${CSS}</style>
 </head>
-<body>
+<body${opts.mat ? ` data-mat="${escHtml(opts.mat)}"` : ''}>
 
 <!-- Pointes de flèche des schémas SVG (copie des defs de la page) -->
 <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs>
   ${ARROW_DEFS}
 </defs></svg>
 
-<div class="cover">
-  <div class="cover-eyebrow">${escHtml(eyebrow)}</div>
-  <div class="cover-matiere">${escHtml(matiere)}</div>
-  <h1 class="cover-title">${escHtml(chapName)}</h1>
-  <div class="cover-panel">${escHtml(panelLabel)}</div>
-  <div class="cover-sep"></div>
-  <div class="cover-meta">Généré le ${today}</div>
-</div>
+${garde}
 
-${bodyContent}
+${opts.corps || ''}
 
 </body>
 </html>`;
 
-  /* ---- 7. Imprimer via iframe caché (pas de nouvelle fenêtre) ---- */
+  /* ---- Imprimer via iframe caché (pas de nouvelle fenêtre) ---- */
   // Recycler ou créer un iframe dédié à l'impression
   let iframe = document.getElementById('print-iframe');
   if(!iframe){
     iframe = document.createElement('iframe');
     iframe.id = 'print-iframe';
+    iframe.setAttribute('aria-hidden', 'true');
+    iframe.setAttribute('tabindex', '-1');
     iframe.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;border:none;visibility:hidden;';
     document.body.appendChild(iframe);
   }
@@ -74801,6 +74782,19 @@ ${bodyContent}
     waitMathJax(30);
   };
 }
+window.__imprimerDocument = imprimerDocument;
+
+/* Ctrl+P (⌘P) : imprime le chapitre affiché par ce gabarit (ou le Formulaire s'il est
+   ouvert) au lieu de la page brute, que l'impression du navigateur ne sait pas mettre en
+   page (voir la région IMPRESSION du CSS). Rien sur téléphone (pas de clavier). */
+document.addEventListener('keydown', e => {
+  if(!(e.ctrlKey || e.metaKey) || e.altKey || e.shiftKey || (e.key !== 'p' && e.key !== 'P')) return;
+  e.preventDefault();
+  const f = document.getElementById('formula-overlay');
+  const b = document.getElementById('formula-print-btn');
+  if(f && f.classList.contains('open') && b) b.click();
+  else printChapter();
+});
 
 /* ============================================== */
 /* ================ QUIZ GLOBAL ================= */
@@ -75763,310 +75757,41 @@ ${bodyContent}
   });
 })();
 
-/* ============================================================ */
-/* == AMÉLIORATION 6 — RECHERCHE AMÉLIORÉE =================== */
-/* ============================================================ */
-/* Surcharge buildIndex pour indexer def-box, prop-box et formules,
-   et surcharge render() pour afficher des badges de type colorés   */
-(function(){
-  // Attendre que la recherche originale soit initialisée
-  document.addEventListener('DOMContentLoaded', ()=>{}, {once:true});
-
-  // On patche après le chargement complet via un observer sur search-overlay
-  const waitForSearch = setInterval(()=>{
-    const overlay = document.getElementById('search-overlay');
-    if(!overlay) return;
-    clearInterval(waitForSearch);
-    patchSearch();
-  }, 50);
-
-  function patchSearch(){
-    // Stocker la référence à l'index global (exposé par le script de recherche)
-    // On recompile buildIndex en conservant tout l'existant et en ajoutant
-    // l'indexation des encadrés + le rendu enrichi.
-    // Strategy : on monkey-patch window._ptsiSearchPatch = true pour éviter double-patch
-    if(window._ptsiSearchPatch) return;
-    window._ptsiSearchPatch = true;
-
-    // Exposer un hook : le script de recherche appelle buildIndex()
-    // On va observer l'input et injecter nos entrées supplémentaires
-    // après le premier buildIndex natif en écoutant l'événement d'ouverture.
-    const input = document.getElementById('search-input');
-    if(!input) return;
-
-    // Type badges : classe CSS par type (couleurs en variables de thème →
-    // lisibles en clair COMME en sombre, contrairement aux anciens hex figés)
-    const TYPE_CLASS = {
-      'Définition': 'def', 'Propriété': 'prop', 'Méthode': 'meth',
-      'Exercice': 'exo', 'Flashcard': 'flash', 'Cours': 'cours', 'Formule': 'form',
-    };
-
-    // Fonction pour créer le badge HTML
-    function badge(type){
-      return `<span class="sr-badge sr-b-${TYPE_CLASS[type] || 'cours'}">${type}</span>`;
-    }
-
-    // Injecter le CSS des badges (si pas déjà présent)
-    if(!document.getElementById('sr-badge-style')){
-      const style = document.createElement('style');
-      style.id = 'sr-badge-style';
-      style.textContent = `
-        .sr-badge{
-          display:inline-block;
-          font-family:var(--font-code);
-          font-size:0.62rem;letter-spacing:0.12em;
-          text-transform:uppercase;font-weight:700;
-          padding:0.1rem 0.4rem;
-          border:1px solid;border-radius:2px;
-          margin-right:0.4rem;vertical-align:middle;
-          flex-shrink:0;
-        }
-        .sr-b-def  { background:rgba(224,168,58,.15); color:var(--amber);   border-color:var(--amber); }
-        .sr-b-prop { background:rgba(90,122,58,.15);  color:var(--green);   border-color:var(--green); }
-        .sr-b-meth { background:rgba(45,95,138,.15);  color:var(--accent2); border-color:var(--accent2); }
-        .sr-b-exo  { background:rgba(200,71,46,.12);  color:var(--accent);  border-color:var(--accent); }
-        .sr-b-flash{ background:rgba(138,90,154,.12); color:var(--anglais); border-color:var(--anglais); }
-        .sr-b-cours{ background:rgba(128,128,128,.10);color:var(--ink);     border-color:var(--ink); opacity:.75; }
-        .sr-b-form { background:rgba(45,95,138,.08);  color:var(--accent2); border-color:var(--accent2); }
-        .sr-type-row{
-          display:flex;align-items:center;
-          gap:0.2rem;margin-bottom:0.2rem;
-        }
-        .sr-meta{ font-size:0.68rem !important; }
-        .search-group-label{
-          font-family:var(--font-code);
-          font-size:0.6rem;letter-spacing:0.2em;text-transform:uppercase;
-          color:var(--accent);padding:0.5rem 0.85rem 0.25rem;
-          border-top:1px solid rgba(128,128,128,.15);
-          margin-top:0.25rem;
-        }
-        .search-group-label:first-child{ border-top:none; margin-top:0; }
-        .sr-suggest{
-          padding:0.5rem 0.85rem;
-          font-family:var(--font-code);
-          font-size:0.7rem;color:var(--accent2);
-          border-top:1px solid rgba(128,128,128,.1);
-        }
-        .sr-suggest a{
-          color:var(--accent2);text-decoration:underline;cursor:pointer;
-        }
-      `;
-      document.head.appendChild(style);
-    }
-
-    // Accumuler les entrées supplémentaires : def-box, prop-box, formules
-    function buildExtraIndex(){
-      const extra = [];
-      document.querySelectorAll('.chapter').forEach(chap=>{
-        const chapId = chap.id;
-        const chapBtn = document.querySelector('.chap-btn[data-chap="'+chapId.replace('chap-','')+'"]');
-        let chapName = chapId.replace('chap-','');
-        if(chapBtn){
-          const clone = chapBtn.cloneNode(true);
-          const mat = clone.querySelector('.matiere');
-          if(mat) mat.remove();
-          chapName = clone.textContent.trim();
-        }
-        // Cours panels uniquement pour les encadrés
-        const coursPanel = chap.querySelector('.panel[id$="-cours"]');
-        if(!coursPanel) return;
-        const panelId = coursPanel.id;
-
-        // def-box
-        coursPanel.querySelectorAll('.def-box').forEach(box=>{
-          const text = box.textContent.trim().slice(0,300);
-          const title = text.slice(0,80).replace(/DÉFINITION\s*/,'').trim();
-          if(title.length < 5) return;
-          extra.push({ title, meta:chapName+' › Cours', text,
-            chap:chapId, panel:panelId, type:'Définition' });
-        });
-
-        // prop-box
-        coursPanel.querySelectorAll('.prop-box').forEach(box=>{
-          const text = box.textContent.trim().slice(0,300);
-          const title = text.slice(0,80).replace(/PROPRIÉTÉ\s*/,'').trim();
-          if(title.length < 5) return;
-          extra.push({ title, meta:chapName+' › Cours', text,
-            chap:chapId, panel:panelId, type:'Propriété' });
-        });
-
-        // method-box (titre = premier élément strong)
-        coursPanel.querySelectorAll('.method-box > strong').forEach(st=>{
-          const text = st.parentElement.textContent.trim().slice(0,300);
-          extra.push({ title:st.textContent.trim(), meta:chapName+' › Méthodes', text,
-            chap:chapId, panel:panelId, type:'Méthode' });
-        });
-
-        // formules — on indexe le texte LaTeX brut
-        coursPanel.querySelectorAll('.formula').forEach(f=>{
-          const text = f.textContent.trim().slice(0,200);
-          if(text.length < 8) return;
-          extra.push({ title:'Formule : '+text.slice(0,60), meta:chapName+' › Cours', text,
-            chap:chapId, panel:panelId, type:'Formule' });
-        });
-      });
-      return extra;
-    }
-
-    // Patch de la fonction render : on réécrit le rendu HTML pour ajouter les badges
-    // et grouper les résultats par type
-    let extraIndex = null;
-    let origResults = [];
-
-    // Observer l'ouverture de la modale pour injecter les extras
-    const overlayEl = document.getElementById('search-overlay');
-    const resultsEl = document.getElementById('search-results');
-    if(!resultsEl) return;
-
-    // Patch via MutationObserver sur les résultats
-    const obs = new MutationObserver(()=>{
-      const items = resultsEl.querySelectorAll('.search-result');
-      if(items.length === 0) return;
-      // Éviter la récursion
-      if(resultsEl.dataset.patched === '1') return;
-      resultsEl.dataset.patched = '1';
-      enhanceResults(items);
-      resultsEl.dataset.patched = '0';
-    });
-    obs.observe(resultsEl, {childList:true});
-
-    function enhanceResults(items){
-      // Re-render avec badges
-      items.forEach(item=>{
-        const metaEl = item.querySelector('.sr-meta');
-        const titleEl = item.querySelector('.sr-title');
-        if(!metaEl || !titleEl || item.querySelector('.sr-badge')) return;
-
-        // Déduire le type depuis le meta
-        const meta = metaEl.textContent;
-        let type = 'Cours';
-        if(meta.includes('Flashcard')) type = 'Flashcard';
-        else if(meta.includes('Exercice')) type = 'Exercice';
-        else if(meta.includes('Méthode')) type = 'Méthode';
-
-        // Injecter le badge avant le titre
-        const typeRow = document.createElement('div');
-        typeRow.className = 'sr-type-row';
-        typeRow.innerHTML = badge(type);
-        typeRow.appendChild(metaEl.cloneNode(true));
-        metaEl.replaceWith(typeRow);
-      });
-    }
-
-    // Patcher l'input pour ajouter les extras à chaque frappe
-    const origHandler = input.oninput;
-    let extraInjected = false;
-
-    function injectExtras(){
-      if(extraInjected) return;
-      extraInjected = true;
-      if(!extraIndex) extraIndex = buildExtraIndex();
-      // Accéder à l'index interne (exposé via closure dans le script de recherche)
-      // On ne peut pas directement accéder à la variable `index` dans la closure,
-      // mais on peut observer les résultats et compléter via un second pass.
-      // Alternative propre : on reconstruit nous-mêmes notre propre mini-moteur
-      // sur les extras et on fusionne dans le DOM.
-    }
-
-    // Mini moteur de recherche pour les entrées extras
-    function normalize(s){
-      return s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
-    }
-
-    function searchExtras(q){
-      if(!extraIndex) extraIndex = buildExtraIndex();
-      const nq = normalize(q.trim());
-      if(nq.length < 2) return [];
-      const words = nq.split(/\s+/);
-      const scored = [];
-      extraIndex.forEach(item=>{
-        const nTitle = normalize(item.title);
-        const nText  = normalize(item.text);
-        let score = 0;
-        if(nTitle.includes(nq)) score += 10;
-        if(nTitle.startsWith(nq)) score += 5;
-        if(nText.includes(nq)) score += 3;
-        if(words.length>1 && words.every(w=>nTitle.includes(w)||nText.includes(w))) score += 4;
-        if(score > 0) scored.push({item, score});
-      });
-      scored.sort((a,b)=>b.score-a.score);
-      return scored.slice(0,8).map(s=>s.item);
-    }
-
-    function highlight(text, q){
-      const nt = normalize(text), nq = normalize(q);
-      const i = nt.indexOf(nq);
-      if(i<0) return text.replace(/</g,'&lt;');
-      return text.slice(0,i).replace(/</g,'&lt;')
-        + '<mark>'+text.slice(i,i+q.length).replace(/</g,'&lt;')+'</mark>'
-        + text.slice(i+q.length).replace(/</g,'&lt;');
-    }
-
-    // Injecter les résultats extras dans le DOM après le rendu natif
-    input.addEventListener('input', ()=>{
-      const q = input.value.trim();
-      if(q.length < 2){ return; }
-      setTimeout(()=>{
-        const extras = searchExtras(q);
-        if(extras.length === 0) return;
-        // Ajouter une section "Encadrés & formules" en bas
-        const existing = resultsEl.querySelector('.sr-extras-group');
-        if(existing) existing.remove();
-
-        const group = document.createElement('div');
-        group.className = 'sr-extras-group';
-
-        const groupLabel = document.createElement('div');
-        groupLabel.className = 'search-group-label';
-        groupLabel.textContent = 'Définitions, propriétés & formules';
-        group.appendChild(groupLabel);
-
-        extras.forEach(item=>{
-          const div = document.createElement('div');
-          div.className = 'search-result';
-          div.innerHTML = `
-            <div class="sr-type-row">${badge(item.type)}<span class="sr-meta">${item.meta.replace(/</g,'&lt;')}</span></div>
-            <span class="sr-title">${highlight(item.title, q)}</span>
-            <span class="sr-snippet">${highlight(item.text.slice(0,100), q)}</span>
-          `;
-          div.addEventListener('click', ()=>{
-            overlayEl.classList.remove('open');
-            navigateTo(item.chap, item.panel);
-          });
-          group.appendChild(div);
-        });
-
-        // Suggestions "Voir aussi" : chapitres qui reviennent dans les extras
-        const chapSeen = [...new Set(extras.map(e=>e.chap))].slice(0,3);
-        if(chapSeen.length > 1){
-          const suggest = document.createElement('div');
-          suggest.className = 'sr-suggest';
-          suggest.innerHTML = 'Voir aussi : ' + chapSeen.map(chapId=>{
-            const btn = document.querySelector(`.chap-btn[data-chap="${chapId.replace('chap-','')}"]`);
-            let name = chapId.replace('chap-','');
-            if(btn){ const c=btn.cloneNode(true); const m=c.querySelector('.matiere'); if(m)m.remove(); name=c.textContent.trim(); }
-            return `<a data-chap="${chapId}">${name}</a>`;
-          }).join(' · ');
-          suggest.querySelectorAll('a[data-chap]').forEach(a=>{
-            a.addEventListener('click', ()=>{
-              overlayEl.classList.remove('open');
-              navigateTo(a.dataset.chap, a.dataset.chap.replace('chap-','')+'-cours');
-            });
-          });
-          group.appendChild(suggest);
-        }
-
-        resultsEl.appendChild(group);
-      }, 30);
-    }, {passive:true});
-  }
-})();
-
 /* Initial draws */
 setTimeout(()=>{drawSim();},100);
 </script>
 
 <script>
+/* ===== Toasts (SPEC §5.1) : messages temporaires (« Carte signalée », « Sauvegarde
+   importée »…). Même apparence que la bannière de mise à jour, 4 s, zone role="status"
+   (lue par les lecteurs d'écran) ; sans animation en mouvement réduit. ===== */
+(function(){
+  let zone = null;
+  window.__toast = function(msg, opts){
+    try {
+      opts = opts || {};
+      if(!zone || !document.body.contains(zone)){
+        zone = document.createElement('div');
+        zone.className = 'toasts';
+        zone.setAttribute('role', 'status');
+        zone.setAttribute('aria-live', 'polite');
+        document.body.appendChild(zone);
+      }
+      const t = document.createElement('div');
+      t.className = 'toast';
+      t.innerHTML = (opts.icone && window.__icon ? window.__icon(opts.icone) : '') + '<span></span>';
+      t.lastChild.textContent = String(msg);
+      zone.appendChild(t);
+      while(zone.children.length > 3) zone.firstChild.remove();
+      setTimeout(() => {
+        t.classList.add('sort');
+        setTimeout(() => t.remove(), window.__reduceMotion ? 0 : 240);
+      }, opts.duree || 4000);
+      return t;
+    } catch(e){ return null; }
+  };
+})();
+
 /* ============================================== */
 /* ===== SAUVEGARDE / RESTAURATION PROGRESSION == */
 /* ============================================== */
@@ -76147,6 +75872,7 @@ setTimeout(()=>{drawSim();},100);
         flashKeys.forEach(k=>{ const idk='flashids:'+k.slice(6); if(!has(idk)){ try{ localStorage.removeItem(idk); }catch(e){} } });
         fb.className='backup-feedback ok';
         fb.textContent='Import réussi. Rechargement…';
+        if(window.__toast) window.__toast('Sauvegarde importée', { icone:'check' });
         setTimeout(()=>location.reload(),900);
       } catch(e){
         fb.className='backup-feedback err';
@@ -76317,11 +76043,12 @@ setTimeout(()=>{drawSim();},100);
           const key=(el.textContent||'').replace(/\s+/g,'');
           if(!key || seen.has(key)) return;
           seen.add(key);
-          items.push(isFormula ? el.innerHTML : el.outerHTML);
+          // nom de la formule (attribut facultatif data-nom), affiché au-dessus
+          items.push({ html: isFormula ? el.innerHTML : el.outerHTML, nom: isFormula ? (el.getAttribute('data-nom') || '') : '' });
         });
         if(items.length){
           let title='';
-          const sn=sec.querySelector('.sec-num'); if(sn) title=sn.textContent.trim();
+          const sn=sec.querySelector('.sec-num'); if(sn) title=sn.textContent.replace(/\s+/g,' ').trim();
           else { const h=sec.querySelector('h2,h3'); if(h) title=h.textContent.trim(); }
           groups.push({title, items});
         }
@@ -76332,13 +76059,15 @@ setTimeout(()=>{drawSim();},100);
   function build(){
     const chap = activeChapter();
     if(!chap){ titleEl.textContent='Formulaire'; body.innerHTML='<p class="formula-empty">Aucun chapitre actif.</p>'; return; }
-    titleEl.textContent = chapName(chap) + ' · Formulaire';
+    // « Formulaire » + nom du chapitre (encre 2) ; surtitres et filets dans l'encre de la matière
+    titleEl.innerHTML = 'Formulaire <span class="fen-titre-2">' + esc(chapName(chap)) + '</span>';
     const groups = collect(chap);
     if(!groups.length){ body.innerHTML='<p class="formula-empty">Ce chapitre ne contient pas encore de formules à regrouper.</p>'; return; }
     let html='';
     groups.forEach(g=>{
+      // formules consécutives d'une section : un seul bloc (filet pointillé entre elles)
       html += '<div class="fsheet-group"><h3>'+esc(g.title||'Formules')+'</h3><div class="fsheet-formulas">';
-      g.items.forEach(f=>{ html += '<div class="fsheet-f">'+f+'</div>'; });
+      g.items.forEach(f=>{ html += '<div class="fsheet-f">' + (f.nom ? '<span class="fsheet-nom">'+esc(f.nom)+'</span>' : '') + f.html + '</div>'; });
       html += '</div></div>';
     });
     body.innerHTML = html;
@@ -76347,6 +76076,8 @@ setTimeout(()=>{drawSim();},100);
   }
   function open(){
     const chap = activeChapter();
+    const c = chap && CHAPTERS_BY_ID[chap.id.replace('chap-','')];
+    if(c && c.matiere) overlay.setAttribute('data-mat', c.matiere); else overlay.removeAttribute('data-mat');
     overlay.classList.add('open');
     body.innerHTML='<p class="formula-empty">Préparation du formulaire…</p>';
     // s'assurer que les panneaux Cours et Méthodes sont composés (les $$…$$
@@ -76357,12 +76088,26 @@ setTimeout(()=>{drawSim();},100);
     } else { build(); }
   }
   function close(){ overlay.classList.remove('open'); }
+  // Impression : document à part (#print-iframe, même gabarit que printChapter : thème
+  // clair forcé, encre noire sur blanc), sections en surtitres, formules déjà rendues.
   function printSheet(){
-    if(!overlay.classList.contains('open')) return;
-    document.body.classList.add('printing-formula');
-    const after=()=>{ document.body.classList.remove('printing-formula'); window.removeEventListener('afterprint', after); };
-    window.addEventListener('afterprint', after);
-    setTimeout(()=>{ try{ window.print(); }catch(e){ after(); } }, 80);
+    if(!overlay.classList.contains('open') || !window.__imprimerDocument) return;
+    const chap = activeChapter();
+    if(!chap || !body.querySelector('.fsheet-group')) return;
+    const c = CHAPTERS_BY_ID[chap.id.replace('chap-','')] || {};
+    let corps = '';
+    body.querySelectorAll('.fsheet-group').forEach(g=>{
+      const h = g.querySelector('h3');
+      corps += '<div class="sec-block"><div class="sec-header"><div class="sec-num-print">'+esc(h ? h.textContent.trim() : 'Formules')+'</div></div><div class="sec-body-wrap">';
+      g.querySelectorAll('.fsheet-f').forEach(fl=>{
+        const nom = fl.querySelector('.fsheet-nom');
+        const cl = fl.cloneNode(true);
+        const n2 = cl.querySelector('.fsheet-nom'); if(n2) n2.remove();
+        corps += '<div class="atom">' + (nom ? '<div class="formula-nom">'+esc(nom.textContent)+'</div>' : '') + '<div class="formula">'+cl.innerHTML+'</div></div>';
+      });
+      corps += '</div></div>';
+    });
+    window.__imprimerDocument({ titre: chapName(chap), onglet: 'Formulaire', mat: c.matiere || '', chapId: c.id || '', corps, garde: 'compacte' });
   }
   document.getElementById('formula-btn')?.addEventListener('click', open);
   document.getElementById('mob-formula-btn')?.addEventListener('click', open);
@@ -76479,10 +76224,12 @@ document.getElementById('skip-link')?.addEventListener('click', e => {
     if(answered) return;
     const val=input.value.trim().replace(',','.'); if(val==='') return;
     const num=parseFloat(val); answered=true; total++;
-    if(!isNaN(num) && Math.abs(num-current.a)<1e-6){ good++; streak++; fb.textContent='✓ Correct !'; fb.className='drill-feedback ok'; }
-    else { streak=0; fb.textContent='✗ Faux — réponse : '+current.a; fb.className='drill-feedback ko'; }
+    // retour doublé d'une icône et d'un mot (jamais la couleur seule) : ✓ Juste / ↺ Faux
+    const ic = n => window.__icon ? window.__icon(n) : '';
+    if(!isNaN(num) && Math.abs(num-current.a)<1e-6){ good++; streak++; fb.innerHTML=ic('check')+'<span>Juste !</span>'; fb.className='drill-feedback ok'; }
+    else { streak=0; fb.innerHTML=ic('refresh')+'<span>Faux — réponse : '+String(current.a).replace('.', ',')+'</span>'; fb.className='drill-feedback ko'; }
     scoreEl.textContent=good+' / '+total; streakEl.textContent=streak;
-    nextBtn.style.display='inline-block';
+    nextBtn.style.display='inline-flex';
   }
   form.addEventListener('submit', e=>{ e.preventDefault(); if(answered) newQuestion(); else check(); });
   nextBtn.addEventListener('click', newQuestion);
@@ -76743,13 +76490,18 @@ document.getElementById('skip-link')?.addEventListener('click', e => {
   function save(l){ Store.setJSON('flagged', l); refresh(); }
   function stripHtml(s){ const d = document.createElement('div'); d.innerHTML = String(s||''); return (d.textContent||'').replace(/\s+/g,' ').trim(); }
   function chapName(p){ try { return (CHAPTERS_BY_PREFIX[p]||{}).name || p; } catch(e){ return p; } }
+  const MAT_LBL = { physique:'Physique', maths:'Maths', si:'SI', info:'Info', anglais:'Anglais' };
+  function chapMat(p){ try { return (CHAPTERS_BY_PREFIX[p]||{}).matiere || ''; } catch(e){ return ''; } }
   function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
   window.flagIsFlagged = (p,i) => getList().some(x => x.p===p && +x.i===+i);
   window.flagToggle = function(p,i,q,a){
     const l = getList(); const pos = l.findIndex(x => x.p===p && +x.i===+i);
     if(pos>=0) l.splice(pos,1); else l.push({p:p, i:+i, q:q||'', a:a||'', t:Date.now()});
-    save(l); return pos<0;
+    save(l);
+    // depuis une carte (quiz, onglet Cartes) : un toast confirme ; pas depuis la liste (« Retirer »)
+    if(q !== undefined && window.__toast) window.__toast(pos<0 ? 'Carte signalée' : 'Signalement retiré', { icone:'flag' });
+    return pos<0;
   };
   window.flaggedCount = () => getList().length;
 
@@ -76770,7 +76522,12 @@ document.getElementById('skip-link')?.addEventListener('click', e => {
     const l = getList();
     if(!l.length){ body.innerHTML = '<div class="empty-state">'+window.__icon('flag')+'<span>Aucune carte signalée pour l\'instant.<br>Sur une carte (quiz ou flashcards), touche le drapeau pour la marquer.</span></div>'; return; }
     let h = '<ul class="flag-list">';
-    l.forEach(x => { h += `<li><span class="flag-chap">${esc(chapName(x.p))}</span><span class="flag-q">${esc(stripHtml(x.q))}</span><button class="flag-rm" data-p="${esc(x.p)}" data-i="${x.i}">retirer</button></li>`; });
+    l.forEach(x => {
+      const m = chapMat(x.p);
+      h += `<li${m ? ` data-mat="${m}"` : ''}><span class="flag-q">${esc(stripHtml(x.q))}</span>`
+        + `<span class="flag-chap"><span class="dot" aria-hidden="true"></span>${esc([MAT_LBL[m] || '', chapName(x.p)].filter(Boolean).join(' · '))}</span>`
+        + `<button type="button" class="flag-rm" data-p="${esc(x.p)}" data-i="${x.i}" aria-label="Retirer cette carte de la liste">Retirer</button></li>`;
+    });
     body.innerHTML = h + '</ul>';
     body.querySelectorAll('.flag-rm').forEach(btn => btn.addEventListener('click', () => { window.flagToggle(btn.dataset.p, btn.dataset.i); render(); }));
   }
@@ -76788,7 +76545,7 @@ document.getElementById('skip-link')?.addEventListener('click', e => {
   document.getElementById('flag-copy-btn')?.addEventListener('click', () => {
     const t = asText();
     (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject())
-      .then(() => { if(fb){ fb.className='backup-feedback ok'; fb.textContent='Liste copiée dans le presse-papier.'; } })
+      .then(() => { if(fb){ fb.className='backup-feedback ok'; fb.textContent='Liste copiée dans le presse-papier.'; } if(window.__toast) window.__toast('Liste copiée', { icone:'check' }); })
       .catch(() => { if(fb){ fb.className='backup-feedback'; fb.textContent='Copie impossible — utilise « Télécharger ».'; } });
   });
   document.getElementById('flag-dl-btn')?.addEventListener('click', () => {
