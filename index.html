@@ -110,7 +110,8 @@ window.MathJax = {
           const lances = window.__typesetLances || (window.__typesetLances = new WeakSet());
           if (lances.has(panel) || panel.querySelector('mjx-container')) return;
           lances.add(panel);
-          MathJax.typesetPromise([panel]).catch(() => {});
+          // Après le rendu : finitions du module « CONTENU » (typographie, formules trop larges)
+          MathJax.typesetPromise([panel]).then(() => { if (window.__apresRendu) window.__apresRendu(panel); }).catch(() => {});
         }
       };
       if (document.readyState === 'loading') {
@@ -1604,581 +1605,390 @@ section.panel.active{display:block;animation:fadeIn 0.4s ease}
    .prop-box, .method-box, .notice, .reveal), tableaux, listes, schémas SVG, code, exercices
    (.exo, .solution, .toggle-sol). Propriétaire : ligne « contenu ». */
 
-@media (prefers-contrast: more){
-  .def-box, .prop-box, .method-box, .notice, .reveal{ border-width:2px; }
+/* --- 1. Texte de cours (SPEC §2.4, §2.5, §5.2 ; composants.css §5) -------------------------
+   La typographie du contenu est posée sur .panel (seulement police, corps, interligne, encre :
+   la mise en page du panneau — fond, marges — relève de la région PAGE). Les cartes, le quiz
+   et les simulateurs redéfinissent leur propre police (interface). */
+.panel{
+  font-family:var(--font-text); font-size:var(--fs-body); line-height:var(--lh-text); color:var(--text);
+  font-variant-numeric:lining-nums; hanging-punctuation:first; overflow-wrap:break-word;
+  font-kerning:normal; font-optical-sizing:auto;
 }
 
-/* def-box/prop-box/method-box utilisent déjà rgba() → pas besoin d'override */
-:root[data-theme="dark"] .notice{background:rgba(224,168,58,0.14)}
-
-/* Textes gris secondaires : éclaircir en mode sombre */
-:root[data-theme="dark"] .course-section .intro{color:#a8a496 !important}
-
-@media(max-width:767px){
-  /* ── Sections de cours ── */
-  .course-section{
-    padding:1rem !important;
-    margin-bottom:1rem !important;
-  }
-  .course-section h2{
-    font-size:1.3rem !important;
-  }
-  .course-section h3{
-    font-size:1rem !important;
-  }
-  .course-section p,
-  .course-section li{
-    font-size:0.9rem !important;
-    line-height:1.6 !important;
-  }
-  .def-box,.prop-box,.notice,.method-box{
-    padding:0.85rem !important;
-    font-size:0.88rem !important;
-  }
-  /* Formules — scroll horizontal si trop large.
-     NE PAS mettre display:block sur mjx-container inline (ça casse le texte).
-     Cibler uniquement les formules display (block) et la classe .formula */
-  .formula{
-    overflow-x:auto !important;
-    max-width:100% !important;
-    display:block !important;
-  }
-  /* Formules display MathJax : display="true" */
-  mjx-container[display="true"]{
-    overflow-x:auto !important;
-    max-width:100% !important;
-    display:block !important;
-  }
-  /* Formules inline MathJax : NE PAS forcer block, laisser inline */
-  mjx-container:not([display="true"]){
-    display:inline !important;
-    vertical-align:middle !important;
-    overflow-x:visible !important;
-  }
-  /* ── Exercices ── */
-  .exo{
-    padding:1rem !important;
-    margin-bottom:1rem !important;
-  }
-  .exo h3{ font-size:1rem !important; }
-  .cine-svg-wrap svg{
-    max-width:100% !important;
-    height:auto !important;
-  }
+/* Section § : grille marge 112 px | colonne de 34 em (≥ 1024 px) ; un seul bloc en dessous.
+   Entre deux sections : 3,2 em + filet sur la largeur du texte. */
+.course-section{ position:relative; display:grid; grid-template-columns:var(--margin-col) minmax(0, var(--measure)); }
+.course-section > *{ grid-column:2; min-width:0; }
+.course-section + .course-section{ margin-top:var(--flow-section); padding-top:var(--flow-section); }
+.course-section + .course-section::before{
+  content:""; position:absolute; top:0; left:var(--margin-col); height:1px; background:var(--line);
+  width:calc(min(100%, var(--margin-col) + var(--measure)) - var(--margin-col));
 }
 
-/* Accent dynamique sur les course-section::before selon le domaine actif */
-/* On applique via JS en ajoutant data-domain sur le chapter actif */
-.chapter[data-domain="thermo"] .course-section::before { border-color: var(--dom-thermo); }
-.chapter[data-domain="chimie"]  .course-section::before { border-color: var(--dom-chimie); }
-.chapter[data-domain="meca"]    .course-section::before { border-color: var(--dom-meca); }
-.chapter[data-domain="maths"]   .course-section::before { border-color: var(--dom-maths); }
-.chapter[data-domain="auto"]    .course-section::before { border-color: var(--dom-auto); }
-
-.chapter[data-domain="thermo"] .sec-num { color: var(--dom-thermo); }
-.chapter[data-domain="chimie"]  .sec-num { color: var(--dom-chimie); }
-.chapter[data-domain="meca"]    .sec-num { color: var(--dom-meca); }
-.chapter[data-domain="maths"]   .sec-num { color: var(--dom-maths); }
-.chapter[data-domain="auto"]    .sec-num { color: var(--dom-auto); }
-
-.chapter[data-domain="thermo"] h3 { color: var(--dom-thermo); }
-.chapter[data-domain="chimie"]  h3 { color: var(--dom-chimie); }
-.chapter[data-domain="meca"]    h3 { color: var(--dom-meca); }
-.chapter[data-domain="maths"]   h3 { color: var(--dom-maths); }
-.chapter[data-domain="auto"]    h3 { color: var(--dom-auto); }
-
-/* Mode sombre — atténuer les couleurs domaine */
-:root[data-theme="dark"] .chapter[data-domain="thermo"] .sec-num,
-:root[data-theme="dark"] .chapter[data-domain="thermo"] h3 { color: #d99040; }
-:root[data-theme="dark"] .chapter[data-domain="chimie"]  .sec-num,
-:root[data-theme="dark"] .chapter[data-domain="chimie"]  h3 { color: #b065c0; }
-:root[data-theme="dark"] .chapter[data-domain="meca"]    .sec-num,
-:root[data-theme="dark"] .chapter[data-domain="meca"]    h3 { color: #72b055; }
-:root[data-theme="dark"] .chapter[data-domain="maths"]   .sec-num,
-:root[data-theme="dark"] .chapter[data-domain="maths"]   h3 { color: #e06050; }
-:root[data-theme="dark"] .chapter[data-domain="auto"]    .sec-num,
-:root[data-theme="dark"] .chapter[data-domain="auto"]    h3 { color: #3a9ab5; }
-
-/* Interlignage amélioré dans les encadrés */
-.def-box, .prop-box, .notice, .method-box {
-  line-height: 1.65;
+/* Surtitre de section. Brut (« §1 · LES BASES », ou « MÉTHODES · RLC ») : surtitre de la colonne.
+   Découpé au premier affichage (script « CONTENU ») en
+   <span class="sec-n">§1</span><span class="sr"> · </span><span class="sec-t">LES BASES</span> :
+   le « §1 » passe dans la marge, en serif italique, à l'encre de la matière. */
+.sec-num{
+  display:block; margin:0 0 .55rem; font:var(--w-bold) var(--fs-kicker)/1.2 var(--font-ui);
+  letter-spacing:var(--track-kicker); text-transform:uppercase; color:var(--chap);
 }
-.def-box p, .prop-box p, .notice p, .method-box p { margin-bottom: 0.6rem; }
-.def-box li, .prop-box li, .method-box li { margin-bottom: 0.45rem; line-height: 1.6; }
-
-/* Léger arrondi intérieur sur les encadrés pour plus de douceur */
-.def-box, .prop-box, .notice, .method-box {
-  border-radius: 0 4px 4px 0;
+.sec-num.coupe{ display:contents; }
+.sec-n{
+  grid-column:1; grid-row:1 / span 2; align-self:start; justify-self:end; padding-right:2rem; margin-top:.95em;
+  font:italic var(--w-medium) 2.125rem/1 var(--font-text); color:var(--chap); letter-spacing:-.02em;
+  text-transform:none;
+}
+.sec-t{
+  grid-column:2; grid-row:1; margin-bottom:.55rem; font:var(--w-bold) var(--fs-kicker)/1.2 var(--font-ui);
+  letter-spacing:var(--track-kicker); text-transform:uppercase; color:var(--chap);
 }
 
-/* Transition douce des def-box/prop-box au hover (légère lueur) */
-.def-box:hover   { box-shadow: 0 2px 12px rgba(224,168,58,0.15); transition: box-shadow 0.25s; }
-.prop-box:hover  { box-shadow: 0 2px 12px rgba(90,122,58,0.15);  transition: box-shadow 0.25s; }
-.method-box:hover{ box-shadow: 0 2px 12px rgba(45,95,138,0.15);  transition: box-shadow 0.25s; }
-
-/* Le bouton ☰ « Chapitres » est dans l'en-tête desktop (.header-nav),
-   lui-même masqué sur mobile — donc visible uniquement sur desktop, sans
-   règle d'affichage dédiée. */
-
-/* MathJax — formules inline : ne pas briser le flux de texte */
-mjx-container:not([display="true"]){
-  display:inline !important;
-  vertical-align:middle !important;
-  line-height:inherit !important;
-  margin:0 0.1em !important;
-  white-space:normal !important;
-}
-
-/* MathJax — formules display ($$...$$) : block avec scroll horizontal */
-mjx-container[display="true"]{
-  display:block !important;
-  overflow-x:auto;
-  max-width:100%;
-  margin:0.5em 0;
-}
-
-/* MathJax SVG et CHTML — laisser hériter la taille de police */
-mjx-container svg, mjx-container > div {
-  max-width:100%;
-}
-
-/* Bloc « Ressources vidéo » (liens externes attribués, ex. matimatheque) */
-.video-resources{
-  max-width:820px;
-  margin:0.5rem 0 1.5rem;
-  padding:0.9rem 1.2rem;
-  border:1px solid var(--accent2);
-  border-left:4px solid var(--accent2);
-  border-radius:4px;
-  background:rgba(45,95,138,0.06);
-}
-.video-resources .vr-label{
-  display:block;
-  font-family:var(--font-code);
-  font-size:0.7rem;
-  letter-spacing:0.15em;
-  text-transform:uppercase;
-  color:var(--accent2);
-  font-weight:700;
-  margin-bottom:0.35rem;
-}
-.video-resources p{ margin:0; font-size:0.92rem; line-height:1.5; }
-.video-resources a{ color:var(--accent2); font-weight:600; }
-.video-resources .vr-src{ display:block; margin-top:0.4rem; font-size:0.75rem; opacity:0.7; }
-:root[data-theme="dark"] .video-resources{ background:rgba(120,160,200,0.10); }
-
-/* COURS — version étoffée */
-.course-section{
-  background:var(--paper);
-  border:2px solid var(--ink);
-  padding:2rem;
-  margin-bottom:1.5rem;
-  position:relative;
-  box-shadow:var(--shadow);
-  max-width:820px; /* largeur de lecture confortable (~90 caractères) */
-}
-.course-section::before{
-  content:"";
-  position:absolute;
-  top:-2px;left:-2px;
-  width:32px;height:32px;
-  border-top:3px solid var(--accent);
-  border-left:3px solid var(--accent);
-}
-.course-section .sec-num{
-  font-family:var(--font-code);
-  font-size:0.95rem;
-  font-weight:700;
-  letter-spacing:0.12em;
-  color:var(--accent);
-  margin-bottom:0.4rem;
-}
+/* Titres (plus jamais colorés par domaine) */
 .course-section h2{
-  font-family:var(--font-text);
-  font-size:1.45rem;
-  font-weight:600;
-  letter-spacing:-0.01em;
-  margin-bottom:0.5rem;
-}
-.course-section .intro{
-  font-style:italic;
-  color:#555;
-  margin-bottom:1.25rem;
-  font-size:0.95rem;
-  border-left:2px solid var(--accent);
-  padding-left:1rem;
+  margin:0 0 .55em; font:var(--w-semi) var(--fs-h2)/var(--lh-head) var(--font-text);
+  letter-spacing:var(--track-head); text-wrap:balance; color:var(--text);
 }
 .course-section h3{
-  font-family:var(--font-text);
-  font-size:1.25rem;
-  font-weight:600;
-  margin:1.5rem 0 0.5rem;
-  color:var(--accent2);
+  margin:var(--flow-h3) 0 .5em; font:var(--w-semi) var(--fs-h3)/1.25 var(--font-text);
+  letter-spacing:-.005em; color:var(--text); text-wrap:balance;
 }
-.course-section h4{
-  font-family:var(--font-code);
-  font-size:0.75rem;
-  letter-spacing:0.15em;
-  text-transform:uppercase;
-  color:var(--ink);
-  opacity:0.55;
-  margin:1rem 0 0.4rem;
-}
-.course-section p{margin-bottom:0.75rem}
-.course-section ul, .course-section ol{margin:0.5rem 0 0.75rem 1.5rem}
-.course-section li{margin-bottom:0.4rem}
+.course-section h4{ margin:1.4em 0 .4em; font:var(--w-semi) var(--fs-h4)/1.3 var(--font-text); color:var(--text); }
+.course-section h2 + h3, .course-section .intro + h3, .course-section .sec-num + h3{ margin-top:1.1em; }
 
-.formula{
-  background:var(--paper-dark);
-  border-left:3px solid var(--accent);
-  padding:0.75rem 1rem;
-  margin:0.75rem 0;
-  font-size:1.05rem;
-  overflow-x:auto;
+/* Chapô : romain, encre 2, sans italique ni filet */
+.intro{
+  margin:0 0 1.1em; font-size:var(--fs-lead); line-height:var(--lh-lead); font-style:normal;
+  color:var(--text-2); text-wrap:pretty;
 }
 
-.def-box{
-  background:rgba(224,168,58,0.10);
-  border:1px solid var(--amber);
-  padding:0.85rem 1rem;
-  margin:0.85rem 0;
-  border-left:4px solid var(--amber);
-  border-radius:0 4px 4px 0;
-}
-.def-box::before{
-  content:"DÉFINITION";
-  font-family:var(--font-code);
-  font-size:0.7rem;
-  letter-spacing:0.15em;
-  color:var(--amber);
-  display:block;
-  margin-bottom:0.35rem;
-  font-weight:600;
-  padding-left:1.5em; min-height:1.05em;
-  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23b8801a' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M12 11v5'/%3E%3Cpath d='M12 7.6h.01'/%3E%3C/svg%3E") no-repeat left 0.02em / 1.05em 1.05em;
-}
+/* Paragraphes, gras, listes */
+.panel p{ margin:0 0 var(--flow-p); text-wrap:pretty; }
+.panel strong, .panel b{ font-weight:var(--w-strong); }
+.panel ul, .panel ol{ margin:0 0 var(--flow-p); padding-left:1.35em; }
+.panel li{ margin:.3em 0; padding-left:.15em; }
+.panel li::marker{ color:var(--chap-vif); }
+.panel ol > li::marker{ font:var(--w-bold) .85em var(--font-ui); color:var(--chap); }
+.panel a{ color:var(--link); text-underline-offset:.18em; text-decoration-thickness:1px; }
+.panel sub, .panel sup{ line-height:0; }
 
-.prop-box{
-  background:rgba(90,122,58,0.10);
-  border:1px solid var(--green);
-  padding:0.85rem 1rem;
-  margin:0.85rem 0;
-  border-left:4px solid var(--green);
-  border-radius:0 4px 4px 0;
-}
-.prop-box::before{
-  content:"PROPRIÉTÉ";
-  font-family:var(--font-code);
-  font-size:0.7rem;
-  letter-spacing:0.15em;
-  color:var(--green);
-  display:block;
-  margin-bottom:0.35rem;
-  font-weight:600;
-  padding-left:1.5em; min-height:1.05em;
-  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%235a7a3a' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19.5 6.5'/%3E%3C/svg%3E") no-repeat left 0.02em / 1.05em 1.05em;
-}
-
-.method-box{
-  background:rgba(45,95,138,0.10);
-  border:1px solid var(--accent2);
-  border-left:4px solid var(--accent2);
-  padding:0.85rem 1rem;
-  margin:0.85rem 0;
-  border-radius:0 4px 4px 0;
-}
-.method-box::before{
-  content:"MÉTHODE";
-  font-family:var(--font-code);
-  font-size:0.7rem;
-  letter-spacing:0.15em;
-  color:var(--accent2);
-  display:block;
-  margin-bottom:0.35rem;
-  font-weight:700;
-  padding-left:1.5em; min-height:1.05em;
-  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232d5f8a' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9 7h11M9 12h11M9 17h11'/%3E%3Ccircle cx='4.6' cy='7' r='1.1' fill='%232d5f8a'/%3E%3Ccircle cx='4.6' cy='12' r='1.1' fill='%232d5f8a'/%3E%3Ccircle cx='4.6' cy='17' r='1.1' fill='%232d5f8a'/%3E%3C/svg%3E") no-repeat left 0.02em / 1.05em 1.05em;
-}
-.method-box ol{margin-top:0.4rem}
-
-/* G4 — icônes des encadrés : ré-émettre le pictogramme avec les hex du thème sombre
-   (sinon la teinte « claire » figée jure avec le libellé éclairci en sombre). */
-:root[data-theme="dark"] .def-box::before{
-  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23e0a83a' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M12 11v5'/%3E%3Cpath d='M12 7.6h.01'/%3E%3C/svg%3E");
-}
-:root[data-theme="dark"] .prop-box::before{
-  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%239bc06f' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19.5 6.5'/%3E%3C/svg%3E");
-}
-:root[data-theme="dark"] .method-box::before{
-  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236ba3d6' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9 7h11M9 12h11M9 17h11'/%3E%3Ccircle cx='4.6' cy='7' r='1.1' fill='%236ba3d6'/%3E%3Ccircle cx='4.6' cy='12' r='1.1' fill='%236ba3d6'/%3E%3Ccircle cx='4.6' cy='17' r='1.1' fill='%236ba3d6'/%3E%3C/svg%3E");
-}
-.method-box .step{
-  font-family:var(--font-code);
-  font-size:0.7rem;
-  letter-spacing:0.1em;
-  color:var(--accent2);
-  font-weight:700;
-  text-transform:uppercase;
-}
-
-.reveal{
-  border:1px dashed var(--ink);
-  padding:0.75rem 1rem;
-  margin:0.85rem 0;
-  cursor:pointer;
-  background:rgba(200,71,46,0.05);
-  transition:background 0.2s;
-}
-.reveal:hover{background:rgba(200,71,46,0.1)}
-.reveal:focus-visible{ outline:2px solid var(--accent); outline-offset:3px; }
-.reveal .label{
-  font-family:var(--font-code);
-  font-size:0.7rem;
-  letter-spacing:0.15em;
-  text-transform:uppercase;
-  color:var(--accent);
-  display:block;
-  margin-bottom:0.25rem;
-}
-.reveal .content{display:none}
-.reveal.open .content{display:block;margin-top:0.5rem}
-.reveal.open .prompt{display:none}
-
-/* Cible du saut flashcard → cours : décalage sous l'en-tête/onglets + surbrillance */
-.panel h2, .panel h3, .panel .sec-num{ scroll-margin-top:104px; }
-.cours-target-flash{ animation:coursTargetFlash 2.6s ease-out; border-radius:6px; }
+/* Cible du saut carte → cours : décalage sous l'en-tête et les onglets + surbrillance */
+.panel h2, .panel h3, .panel .sec-num{ scroll-margin-top:7.5rem; }
+.cours-target-flash{ animation:coursTargetFlash 2.6s var(--ease); border-radius:var(--r-xs); }
 @keyframes coursTargetFlash{
-  0%,12%   { background:rgba(45,95,138,0.22); box-shadow:0 0 0 8px rgba(45,95,138,0.10); }
-  100%     { background:transparent;          box-shadow:0 0 0 8px rgba(45,95,138,0); }
-}
-:root[data-theme="dark"] .cours-target-flash{ animation:coursTargetFlashDark 2.6s ease-out; }
-@keyframes coursTargetFlashDark{
-  0%,12%   { background:rgba(120,170,210,0.28); box-shadow:0 0 0 8px rgba(120,170,210,0.12); }
-  100%     { background:transparent;            box-shadow:0 0 0 8px rgba(120,170,210,0); }
+  0%, 12% { background:var(--selection); box-shadow:0 0 0 8px var(--selection); }
+  100%    { background:transparent; box-shadow:0 0 0 8px transparent; }
 }
 
-/* EXOS */
-.exo-wrapper{max-width:900px;margin:0 auto;padding-top:1.25rem}
-.exo{
-  background:var(--paper);
-  border:2px solid var(--ink);
-  padding:1.75rem;
-  margin-bottom:1.5rem;
-  position:relative;
-  box-shadow:var(--shadow);
+/* --- 2. Formules (MathJax CHTML) ----------------------------------------------------------
+   En ligne : dans le flux du texte (MathJax pose line-height:0 : on garde l'interligne).
+   Trop large pour sa ligne : classe .mj-large posée par le script (défile dans la ligne).
+   En bloc : bloc à défilement horizontal, la page ne déborde jamais. */
+mjx-container:not([display="true"]){
+  display:inline !important; line-height:inherit !important; white-space:normal !important;
 }
-.exo .num{
-  position:absolute;
-  top:-14px;left:1.5rem;
-  background:var(--accent);
-  color:var(--paper);
-  font-family:var(--font-code);
-  font-size:0.75rem;
-  padding:0.25rem 0.75rem;
-  letter-spacing:0.1em;
-  font-weight:600;
+mjx-container.mj-large:not([display="true"]){
+  display:inline-block !important; max-width:100%; overflow-x:auto; overflow-y:hidden;
+  vertical-align:middle; padding:.2em 0; scrollbar-width:thin;
 }
-.exo .diff{
-  position:absolute;
-  top:-14px;right:1.5rem;
-  background:var(--paper);
-  border:1px solid var(--ink);
-  font-family:var(--font-code);
-  font-size:0.7rem;
-  padding:0.2rem 0.6rem;
-  letter-spacing:0.1em;
-}
-.exo h3{
-  font-family:var(--font-text);
-  font-size:1.25rem;
-  margin-bottom:0.75rem;
-  margin-top:0.5rem;
-}
-.exo .statement{margin-bottom:1rem}
-.exo .q{margin:0.75rem 0;padding-left:1rem;border-left:2px solid var(--accent2)}
-.exo .q strong{font-family:var(--font-code);font-size:0.8rem;color:var(--accent2)}
-.solution{
-  margin-top:1rem;
-  border-top:1px dashed var(--ink);
-  padding-top:1rem;
-  display:none;
-}
-.solution.shown{display:block}
-.solution h4{
-  font-family:var(--font-code);
-  font-size:0.75rem;
-  letter-spacing:0.15em;
-  text-transform:uppercase;
-  color:var(--green);
-  margin-bottom:0.5rem;
-}
-.toggle-sol{
-  margin-top:0.75rem;
-  background:transparent;
-  color:var(--ink);   /* sinon noir par défaut des boutons : illisible en sombre */
-  border:1px solid var(--ink);
-  padding:0.5rem 1rem;
-  font-family:var(--font-code);
-  font-size:0.75rem;
-  cursor:pointer;
-  text-transform:uppercase;
-  letter-spacing:0.08em;
-}
-.toggle-sol:hover{background:var(--ink);color:var(--paper)}
+mjx-container[display="true"]{ display:block !important; overflow-x:auto; overflow-y:hidden; max-width:100%; margin:.5em 0; scrollbar-width:thin; }
+/* Formule suivie de sa ponctuation (« … \(x\). ») : jamais séparées en fin de ligne (sauf formule
+   plus large que sa ligne : .libre) */
+.mj-colle{ white-space:nowrap; }
+.mj-colle.libre{ white-space:normal; }
 
-/* Exercice « type concours » : un par chapitre, calibré sur les épreuves PT réelles.
-   Bordure + pastille bleues pour le distinguer des exercices d'entraînement maison. */
-.exo.concours{ border-color:var(--accent2); }
-.exo.concours .num{ background:var(--accent2); }
-.exo-source{
-  margin:0.4rem 0 1.1rem;
-  padding:0.55rem 0.8rem;
-  background:var(--paper-dark);
-  border-left:3px solid var(--accent2);
-  border-radius:0 4px 4px 0;
-  font-size:0.82rem;
-  line-height:1.5;
+/* Formules en bloc : creux discret, centré, défilement horizontal si trop long ; ni rail ni cadre */
+.formula{
+  position:relative; margin:var(--flow-box) 0; padding:.85em 1.1em; border-radius:var(--r-m);
+  background:var(--formule-fond); text-align:center; overflow-x:auto; overflow-y:hidden; scrollbar-width:thin;
 }
-.exo-source a{ color:var(--accent2); font-weight:600; text-decoration:none; border-bottom:1px solid currentColor; }
-.exo-source a:hover{ opacity:0.78; }
-.exo-part{
-  font-family:var(--font-code);
-  font-size:0.72rem; letter-spacing:0.12em; text-transform:uppercase;
-  color:var(--accent2); font-weight:600;
-  margin:1.3rem 0 0.3rem; padding-top:0.7rem; border-top:1px dashed var(--grid);
+.formula mjx-container[display="true"]{ margin:0 !important; }
+.solution .formula{ background:var(--sheet); }
+/* Formules consécutives : un seul bloc (coins intérieurs carrés, filet pointillé entre elles) */
+.formula:has(+ .formula){ margin-bottom:0; border-bottom-left-radius:0; border-bottom-right-radius:0; padding-bottom:.6em; }
+.formula + .formula{
+  margin-top:0; border-top-left-radius:0; border-top-right-radius:0; padding-top:.6em;
+  background-image:linear-gradient(90deg, var(--line-2) 50%, transparent 0); background-size:8px 1px;
+  background-repeat:repeat-x; background-position:top;
+}
+/* Nom de formule (attribut facultatif data-nom) : dans la marge sur ordinateur, au-dessus du
+   bloc en dessous de 1024 px. Placé par rapport à .course-section (l'overflow de .formula le rognerait). */
+.course-section > .formula[data-nom]{ position:static; }
+.course-section > .formula[data-nom]::before{
+  content:attr(data-nom); position:absolute; left:0; width:var(--margin-col); padding:.15em 1.85rem 0 .25rem;
+  text-align:right; font:italic 400 var(--fs-small)/1.25 var(--font-text); color:var(--text-3);
 }
 
-/* Code Python (matière Informatique) : blocs et code en ligne */
-.codeblock{
-  font-family:var(--font-code); font-size:0.82rem; line-height:1.55;
-  background:var(--paper-dark); border:1px solid var(--grid); border-left:3px solid var(--accent2);
-  border-radius:0 5px 5px 0; padding:0.75rem 0.95rem; margin:0.9rem 0;
-  overflow-x:auto; white-space:pre; tab-size:4; color:var(--ink);
+/* --- 3. Encadrés : une forme et un intitulé par rôle (intitulés générés en CSS) ------------ */
+.def-box, .prop-box, .method-box, .notice{
+  margin:var(--flow-box) 0 1.2em; padding:.95em 1.2em 1em; border-radius:4px var(--r-m) var(--r-m) 4px;
 }
-.codeblock .cmt{ color:var(--accent2); opacity:0.8; font-style:italic; }
-.codeblock .kw{ color:var(--accent); font-weight:600; }
-.codeblock .str{ color:var(--green); }
-.code-inline{
-  font-family:var(--font-code); font-size:0.86em;
-  background:var(--paper-dark); padding:0.05rem 0.32rem; border-radius:3px;
+.def-box > :last-child, .prop-box > :last-child, .method-box > :last-child, .notice > :last-child{ margin-bottom:0; }
+.def-box::before, .prop-box::before, .notice::before{
+  display:block; margin-bottom:.45rem; font:var(--w-bold) var(--fs-kicker)/1.2 var(--font-ui);
+  letter-spacing:var(--track-kicker); text-transform:uppercase;
+}
+.def-box p, .prop-box p, .notice p{ margin-bottom:.55em; }
+.def-box li, .prop-box li, .method-box li, .notice li{ margin:.35em 0; }
+.def-box ul, .def-box ol, .prop-box ul, .prop-box ol, .method-box ul, .method-box ol, .notice ul, .notice ol{ margin-top:.4em; }
+/* Définition : teinte de la matière, filet vif */
+.def-box{ background:var(--def-fond); border-left:3px solid var(--def-trait); }
+.def-box::before{ content:"Définition"; color:var(--def-titre); }
+/* À retenir : feuille, contour, filet vif ; le gras d'ouverture à l'encre de la matière */
+.prop-box{ background:var(--sheet); border:1px solid var(--line-2); border-left:3px solid var(--prop-trait); }
+.prop-box::before{ content:"À retenir"; color:var(--prop-titre); }
+.prop-box > strong:first-child{ color:var(--prop-titre); }
+/* Méthode : creux neutre ; titre (gras d'ouverture) en serif ; étapes en pastilles numérotées */
+.method-box{ background:var(--meth-fond); border-radius:var(--r-m); padding:1.1em 1.3em; }
+.method-box > strong:first-child{
+  display:block; margin-bottom:.5em; font:var(--w-semi) var(--fs-h4)/1.3 var(--font-text); color:var(--meth-titre);
+}
+.method-box ol:has(> li > .step){ list-style:none; padding-left:0; counter-reset:etape; }
+.method-box li:has(> .step){ position:relative; counter-increment:etape; padding-left:2.25em; margin:.55em 0; }
+.method-box li:has(> .step)::before{
+  content:counter(etape); position:absolute; left:0; top:.1em; width:1.75em; height:1.75em; border-radius:50%;
+  display:grid; place-items:center; background:var(--chap); color:var(--sheet);
+  font:var(--w-bold) .8em/1 var(--font-ui); font-variant-numeric:tabular-nums;
+}
+/* « Étape n. » : gardé pour les lecteurs d'écran, masqué à l'écran (la pastille le remplace) */
+.method-box li:has(> .step) > .step{
+  position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap;
+}
+.step{ font:var(--w-bold) var(--fs-kicker)/1.2 var(--font-ui); letter-spacing:var(--track-kicker); text-transform:uppercase; color:var(--chap); }
+/* À noter : teinte ambre, filet ambre vif, texte à l'encre normale */
+.notice{ background:var(--notice-fond); border-left:3px solid var(--notice-trait); color:var(--text); }
+.notice::before{ content:"À noter"; color:var(--notice-titre); }
+@media (prefers-contrast: more){
+  .def-box, .prop-box, .notice{ border-left-width:4px; }
+  .method-box{ box-shadow:inset 0 0 0 1px var(--line-2); }
 }
 
-.notice{
-  background:rgba(224,168,58,0.10);
-  border:1px dashed var(--amber);
-  padding:0.6rem 1rem;
-  margin:0.75rem 0;
-  font-size:0.88rem;
-  color:#7a5a0e;
+/* Mémo à dévoiler : tout le bloc est la cible (role=button, tabindex) ; « Afficher ▾ » = repère */
+.reveal{
+  position:relative; margin:1.2em 0; padding:.9em 1.2em; min-height:var(--tap);
+  border:1.5px dashed var(--reveal-trait); border-radius:var(--r-m); cursor:pointer; background:transparent;
+  transition:background var(--dur-1) var(--ease);
 }
-.notice strong{color:var(--amber)}
+.reveal:hover{ background:var(--hover); }
+.reveal:focus-visible{ outline:2px solid var(--focus); outline-offset:2px; }
+.reveal .label{
+  display:block; padding-right:7.5rem; font:var(--w-bold) var(--fs-kicker)/1.2 var(--font-ui);
+  letter-spacing:var(--track-kicker); text-transform:uppercase; color:var(--text-3);
+}
+.reveal .prompt{ display:block; margin-top:.35em; padding-right:6.5rem; font-weight:var(--w-semi); }
+.reveal::after{
+  content:"Afficher ▾"; position:absolute; right:.75rem; top:.7em; display:inline-flex; align-items:center;
+  height:2rem; padding:0 .8rem; border-radius:var(--r-full); border:1px solid var(--line-2);
+  background:var(--raise); color:var(--text); font:var(--w-semi) var(--fs-ui-s)/1 var(--font-ui);
+}
+.reveal .content{ display:none; }
+.reveal.open{ border-style:solid; border-color:var(--line-2); background:var(--sheet); }
+.reveal.open::after{ content:"Masquer ▴"; }
+.reveal.open .content{ display:block; margin-top:.8em; padding-top:.8em; border-top:1px solid var(--line); cursor:auto; }
+.reveal .content > :last-child{ margin-bottom:0; }
 
-/* ===== Bandeau « hors programme » =====
-   Signale un contenu conservé volontairement mais qui ne fait pas partie
-   du programme de PTSI 1re année (anticipation 2e année ou complément). */
+/* Bandeau « hors programme » et ressources vidéo (en tête de quelques panneaux) */
 .hors-prog{
-  background:rgba(200,71,46,0.07);
-  border:1px solid var(--accent);
-  border-left:5px solid var(--accent);
-  border-radius:4px;
-  padding:0.7rem 1rem;
-  margin:0 0 1.2rem;
-  font-size:0.9rem;
-  line-height:1.5;
-  color:var(--ink);
+  margin:0 0 1.2rem; padding:.8rem 1rem; border-radius:4px var(--r-m) var(--r-m) 4px;
+  background:var(--rouge-fond); border-left:3px solid var(--rouge-vif); color:var(--text);
+  font:var(--w-regular) var(--fs-ui-s)/1.5 var(--font-ui); max-width:calc(var(--margin-col) + var(--measure));
 }
 .hors-prog .hp-tag{
-  display:inline-block;
-  font-family:var(--font-code);
-  font-size:0.7rem;
-  font-weight:700;
-  letter-spacing:0.04em;
-  text-transform:uppercase;
-  color:#fff;
-  background:var(--accent);
-  padding:0.14rem 0.5rem;
-  border-radius:3px;
-  margin-right:0.45rem;
+  display:inline-flex; align-items:center; height:1.375rem; margin-right:.45rem; padding:0 .5rem; border-radius:var(--r-s);
+  background:var(--rouge-plein); color:var(--on-rouge-plein);
+  font:var(--w-bold) var(--fs-count)/1 var(--font-ui); letter-spacing:.04em; text-transform:uppercase;
 }
-.hors-prog strong{color:var(--accent)}
-:root[data-theme="dark"] .hors-prog{background:rgba(200,71,46,0.16)}
+.hors-prog strong{ color:var(--rouge); }
+.video-resources{
+  margin:0 0 1.5rem; padding:.85rem 1.1rem; border-radius:var(--r-m); background:var(--sunk);
+  border:1px solid var(--line); font:var(--w-regular) var(--fs-ui-s)/1.5 var(--font-ui); color:var(--text-2);
+  max-width:calc(var(--margin-col) + var(--measure));
+}
+.video-resources .vr-label{
+  display:block; margin-bottom:.35rem; font:var(--w-bold) var(--fs-kicker)/1.2 var(--font-ui);
+  letter-spacing:var(--track-kicker); text-transform:uppercase; color:var(--text-3);
+}
+.video-resources p{ margin:0; font-size:var(--fs-ui-s); line-height:1.5; }
+.video-resources a{ color:var(--link); font-weight:var(--w-semi); }
+.video-resources .vr-src{ display:block; margin-top:.4rem; font-size:var(--fs-ui-xs); color:var(--text-3); }
 
-/* ===== Schémas SVG des cours =====
-   Figures vectorielles inline, adaptatives au thème (clair/sombre), hors-ligne.
-   Classes utilitaires basées sur les variables de thème. Libellés en Unicode
-   (pas de LaTeX : MathJax ne traite pas le <text> SVG). */
-figure.schema{ margin:1.3rem auto; max-width:540px; text-align:center; }
+/* --- 4. Tableaux, figures, schémas, code --------------------------------------------------- */
+/* Tableaux : styles inline du contenu (font-size .82rem, padding, bordures) neutralisés */
+.panel table{
+  border-collapse:collapse; width:100%; margin:var(--flow-box) 0;
+  font:var(--w-regular) var(--fs-small)/var(--lh-snug) var(--font-ui) !important;
+  font-variant-numeric:tabular-nums; background:var(--sheet); color:var(--text);
+}
+.panel th, .panel td{ padding:.55em .8em !important; border:1px solid var(--line-2) !important; vertical-align:top; }
+.panel th{ text-align:inherit; }
+.panel th, .panel tr[style*="background"] > *{ background:var(--sunk) !important; font-weight:var(--w-semi); color:var(--text); }
+.panel table tr:first-child > th{ border-bottom:2px solid var(--field) !important; }
+.panel div:has(> table){ overflow-x:auto; }
+
+/* Figures et schémas SVG (couleurs = variables de thème ; libellés en Unicode) */
+.panel figure{ margin:var(--flow-box) 0; text-align:center; }
+figure.schema{ margin:1.3em auto; max-width:540px; text-align:center; }
 figure.schema svg{ width:100%; height:auto; overflow:visible; display:block; }
-figure.schema figcaption{
-  margin-top:0.5rem; font-size:0.82rem; font-style:italic;
-  color:var(--ink); opacity:0.72; line-height:1.45;
+.panel figure svg{ max-width:100%; height:auto; }
+.panel figcaption, figure.schema figcaption{
+  margin-top:.5em; font:italic 400 var(--fs-small)/1.4 var(--font-text); color:var(--text-3); text-wrap:pretty;
 }
-
 /* Traits */
 .schema .sk-ink{ stroke:var(--ink); fill:none; stroke-width:1.6; }
-.schema .sk-axis{ stroke:var(--ink); fill:none; stroke-width:1; opacity:0.5; }
-.schema .sk-dash{ stroke:var(--ink); fill:none; stroke-width:1.2; stroke-dasharray:4 4; opacity:0.7; }
+.schema .sk-axis{ stroke:var(--text-3); fill:none; stroke-width:1; }
+.schema .sk-dash{ stroke:var(--text-2); fill:none; stroke-width:1.2; stroke-dasharray:4 4; }
 .schema .sk-accent{ stroke:var(--accent); fill:none; stroke-width:2.2; }
 .schema .sk-accent2{ stroke:var(--accent2); fill:none; stroke-width:2.2; }
 .schema .sk-green{ stroke:var(--green); fill:none; stroke-width:2.2; }
 .schema .sk-amber{ stroke:var(--amber); fill:none; stroke-width:2.2; }
-
 /* Remplissages */
 .schema .fl-ink{ fill:var(--ink); }
 .schema .fl-accent{ fill:var(--accent); }
 .schema .fl-accent2{ fill:var(--accent2); }
 .schema .fl-green{ fill:var(--green); }
-.schema .fl-soft{ fill:var(--ink); opacity:0.06; }
-.schema .fl-accent-soft{ fill:var(--accent); opacity:0.12; }
-.schema .fl-accent2-soft{ fill:var(--accent2); opacity:0.12; }
-.schema .fl-green-soft{ fill:var(--green); opacity:0.14; }
-.schema .fl-amber-soft{ fill:var(--amber); opacity:0.16; }
+.schema .fl-soft{ fill:var(--ink); opacity:.06; }
+.schema .fl-accent-soft{ fill:var(--accent); opacity:.12; }
+.schema .fl-accent2-soft{ fill:var(--accent2); opacity:.12; }
+.schema .fl-green-soft{ fill:var(--green); opacity:.14; }
+.schema .fl-amber-soft{ fill:var(--amber); opacity:.16; }
 .schema .fl-paper{ fill:var(--paper); }
-
-/* Textes (Unicode uniquement) */
-.schema text{ font-family:'Source Sans 3',system-ui,sans-serif; fill:var(--ink); font-size:13px; }
+/* Textes */
+.schema text{ font-family:'Source Sans 3', system-ui, sans-serif; fill:var(--ink); font-size:13px; }
 .schema text.lab-accent{ fill:var(--accent); }
 .schema text.lab-accent2{ fill:var(--accent2); }
 .schema text.lab-green{ fill:var(--green); }
-.schema text.lab-muted{ fill:var(--ink); opacity:0.62; font-size:11.5px; }
+.schema text.lab-muted{ fill:var(--text-3); font-size:12px; }
 .schema text.lab-it{ font-style:italic; }
 .schema text.lab-b{ font-weight:600; }
-
-/* Pointes de flèche réutilisables : le path est coloré via CSS → thème-aware */
+/* Pointes de flèche réutilisables (sprite en tête de <body>) : colorées par le thème */
 #sk-arrow-ink path{ fill:var(--ink); }
 #sk-arrow-accent path{ fill:var(--accent); }
 #sk-arrow-accent2 path{ fill:var(--accent2); }
 #sk-arrow-green path{ fill:var(--green); }
+/* Schéma dont un libellé passerait sous 12 px (téléphone surtout) : le script lui donne une
+   largeur minimale (--svg-min) ; la figure s'élargit jusqu'à la colonne, puis défile en largeur. */
+figure.schema.lisible{ max-width:max(540px, var(--svg-min, 0px)); overflow-x:auto; overflow-y:hidden; scrollbar-width:thin; }
+.cine-svg-wrap.lisible{ overflow-x:auto; overflow-y:hidden; justify-content:safe center; scrollbar-width:thin; }
+figure.schema.lisible svg, .cine-svg-wrap.lisible svg{ min-width:var(--svg-min, 0px); }
 
-/* ============================================================ */
-/* ===== POLISH VISUEL (Phase C) ============================= */
-/* Affinages fidèles au style éditorial existant. Placé en fin de
-   feuille pour l'emporter sur les règles de base à spécificité égale. */
-
-/* — Rythme vertical & titres — */
-.course-section{ padding:2.2rem 2.4rem; margin-bottom:1.75rem; }
-.course-section h2{ margin-bottom:0.7rem; letter-spacing:-0.015em; line-height:1.2; }
-.course-section h3{ margin:1.9rem 0 0.6rem; }
-.course-section p{ margin:0.7rem 0; }
-.course-section .intro{ margin-bottom:1.15rem; }
-
-/* — Encadrés def / prop / méthode : plus aérés, bord externe adouci,
-     accent gauche renforcé, label plus lisible — */
-.def-box, .prop-box, .method-box{
-  padding:1.15rem 1.35rem;
-  margin:1.15rem 0;
-  border-top-width:1px; border-right-width:1px; border-bottom-width:1px;
-  border-left-width:5px;
-  border-radius:0 7px 7px 0;
+/* Code (informatique) : JetBrains Mono, sans ligatures */
+.codeblock{
+  margin:var(--flow-box) 0; padding:.9em 1.1em; border-radius:var(--r-m);
+  background:var(--sunk); border:1px solid var(--line); color:var(--text);
+  font-family:var(--font-code); font-size:.84em; line-height:1.55; font-variant-ligatures:none;
+  overflow-x:auto; white-space:pre; tab-size:4; scrollbar-width:thin;
 }
-.def-box{ border-top-color:rgba(184,128,26,0.30); border-right-color:rgba(184,128,26,0.30); border-bottom-color:rgba(184,128,26,0.30); }
-.prop-box{ border-top-color:rgba(90,122,58,0.30); border-right-color:rgba(90,122,58,0.30); border-bottom-color:rgba(90,122,58,0.30); }
-.method-box{ border-top-color:rgba(45,95,138,0.30); border-right-color:rgba(45,95,138,0.30); border-bottom-color:rgba(45,95,138,0.30); }
-.def-box::before, .prop-box::before, .method-box::before{
-  font-size:0.62rem;
-  letter-spacing:0.18em;
-  margin-bottom:0.45rem;
-  font-weight:700;
+.codeblock .cmt{ color:var(--text-3); font-style:italic; }
+.codeblock .kw{ color:var(--chap); font-weight:var(--w-semi); }
+.codeblock .str{ color:var(--vert); }
+.code-inline, .panel :not(pre) > code{
+  font-family:var(--font-code); font-size:.84em; font-variant-ligatures:none;
+  background:var(--sunk); padding:.1em .35em; border-radius:var(--r-xs); color:var(--text);
+}
+.panel pre code{ font-size:1em; background:none; padding:0; }
+
+/* --- 5. Exercices (SPEC §5.3 ; composants.css §6) ----------------------------------------- */
+/* Outils en tête de l'onglet (construits par le script) : difficulté, Concours PT, effectif */
+.exo-tools{ display:flex; align-items:center; gap:.75rem; flex-wrap:wrap; margin:0 0 1.4rem; font-family:var(--font-ui); max-width:54rem; }
+.exo-tools .seg > button{ font-variant-numeric:tabular-nums; }
+.exo-tools .chip[aria-pressed="true"]{ background:var(--primary); color:var(--on-primary); border-color:transparent; }
+.exo-tools .info{ margin-left:auto; font-size:var(--fs-ui-s); color:var(--text-3); }
+.exo-tools .vide{ flex-basis:100%; margin:0; font-size:var(--fs-ui-s); color:var(--text-2); }
+.exo-wrapper{ display:flex; flex-direction:column; gap:1.25rem; max-width:54rem; }
+.exo-wrapper ~ .exo, .panel > .exo{ margin-top:1.25rem; max-width:54rem; }
+.exo.filtre-masque{ display:none !important; }   /* filtre de l'onglet (classe, pas hidden : l'impression garde tout) */
+.exo{ position:relative; padding:1.3rem 1.5rem 1.4rem; border:1px solid var(--line); border-radius:var(--r-l); background:var(--sheet); }
+.exo > .num{
+  display:inline-flex; align-items:center; height:1.5rem; vertical-align:middle;
+  font:var(--w-bold) var(--fs-kicker)/1 var(--font-ui); letter-spacing:var(--track-kicker); text-transform:uppercase; color:var(--chap);
+}
+/* Difficulté (enrichie par le script) : 3 barres + niveau en toutes lettres, à côté du numéro */
+.exo > .diff{
+  display:inline-flex; align-items:center; gap:.45rem; margin-left:.85rem; vertical-align:middle;
+  font:var(--w-semi) var(--fs-ui-xs)/1 var(--font-ui); color:var(--text-2); letter-spacing:.02em;
+}
+.diff .bars{ display:inline-flex; align-items:flex-end; gap:2px; height:.9rem; }
+.diff .bars i{ display:block; width:4px; border-radius:1px; background:var(--line-2); }
+.diff .bars i:nth-child(1){ height:40%; } .diff .bars i:nth-child(2){ height:70%; } .diff .bars i:nth-child(3){ height:100%; }
+.diff[data-niveau="1"] .bars i:nth-child(-n+1), .diff[data-niveau="2"] .bars i:nth-child(-n+2), .diff[data-niveau="3"] .bars i{ background:var(--chap-vif); }
+.exo h3{ margin:.55rem 0 .7rem; font:var(--w-semi) var(--fs-h3)/1.25 var(--font-text); color:var(--text); text-wrap:balance; }
+.exo .statement{ margin:0 0 .8em; }
+.exo .statement > :last-child{ margin-bottom:0; }
+/* Questions : « Q1. » en retrait suspendu, sans gras, à l'encre de la matière */
+.exo .q{ display:block; margin:.45em 0; padding-left:2.5rem; text-indent:-2.5rem; }
+.exo .q *{ text-indent:0; }
+.exo .q > strong:first-child{
+  display:inline-block; min-width:2.5rem; padding-right:.3rem; font:var(--w-bold) .8em/1 var(--font-ui);
+  color:var(--chap); letter-spacing:.02em;
+}
+.exo .q:not(:has(> strong:first-child)){ padding-left:0; text-indent:0; }
+.exo .exo-part{
+  margin:1.1em 0 .3em; font:var(--w-bold) var(--fs-kicker)/1.2 var(--font-ui);
+  letter-spacing:var(--track-kicker); text-transform:uppercase; color:var(--text-2);
+}
+.exo-source{
+  margin:.2rem 0 .9rem; padding:.7rem .9rem; border-radius:var(--r-m); background:var(--sunk);
+  font:var(--w-regular) var(--fs-ui-s)/1.45 var(--font-ui); color:var(--text-2);
+}
+.exo-source a{ color:var(--link); font-weight:var(--w-semi); }
+/* Exercice de type concours : liseré intérieur à l'encre en haut, badge en aplat d'encre */
+.exo.concours{ border-color:var(--line-2); box-shadow:inset 0 3px 0 var(--primary); }
+.exo.concours > .num{ padding:0 .55rem; border-radius:var(--r-s); background:var(--primary); color:var(--on-primary); }
+/* Solution : bouton secondaire « Voir la solution ▾ / Masquer la solution ▴ » */
+.toggle-sol{
+  display:inline-flex; align-items:center; gap:.45rem; margin-top:.9rem; height:2.375rem; padding:0 .9rem;
+  border-radius:var(--r-m); border:1px solid var(--line-2); background:var(--raise); color:var(--text);
+  font:var(--w-semi) var(--fs-ui-s)/1 var(--font-ui); cursor:pointer;
+  transition:background var(--dur-1) var(--ease), border-color var(--dur-1);
+}
+.toggle-sol:hover{ border-color:var(--field); background:var(--sunk); }
+.toggle-sol:active{ transform:translateY(1px); }
+.toggle-sol::after{ content:"▾"; color:var(--text-3); }
+.toggle-sol.open::after{ content:"▴"; }
+@media (pointer:coarse){ .toggle-sol{ height:var(--tap); } }
+.solution{
+  display:none; margin-top:1rem; padding:1rem 1.2rem 1.05rem; border-radius:4px var(--r-m) var(--r-m) 4px;
+  background:var(--sunk); border-left:3px solid var(--sol-trait); font-size:var(--fs-sol);
+}
+.solution.shown{ display:block; }
+.solution h4{
+  margin:0 0 .5rem; font:var(--w-bold) var(--fs-kicker)/1.2 var(--font-ui); letter-spacing:var(--track-kicker);
+  text-transform:uppercase; color:var(--sol-titre);
+}
+.solution p{ margin:0 0 .6em; }
+.solution > :last-child{ margin-bottom:0; }
+
+/* Schémas SVG des exercices de cinématique (classes .svg-* du <style> de #cine-exos) */
+.cine-svg-wrap{ display:flex; justify-content:center; margin:.75rem 0; }
+.cine-svg-wrap svg{ max-width:100%; height:auto; border:1px solid var(--line); background:var(--sheet); border-radius:var(--r-s); }
+
+/* --- 6. Téléphone et tablette ---------------------------------------------------------------- */
+@media (max-width:1023px){
+  .course-section{ display:block; }
+  .course-section + .course-section::before{ left:0; width:100%; }
+  .sec-num.coupe{ display:block; }
+  .sec-n{ display:inline; margin:0; padding:0; font:var(--w-bold) var(--fs-kicker)/1.2 var(--font-ui); letter-spacing:var(--track-kicker); }
+  .sec-n + .sr{ position:static; width:auto; height:auto; overflow:visible; clip:auto; white-space:pre; }
+  .sec-t{ display:inline; margin:0; }
+  .panel p, .panel li{ hyphens:auto; -webkit-hyphens:auto; }
+  .course-section > .formula[data-nom]::before{
+    position:static; display:block; width:auto; padding:0; margin:0 0 .35em; text-align:left; font-size:.85em;
+  }
+}
+@media (max-width:767px){
+  /* Formules en bloc : pleine largeur (débordent dans la gouttière de 16 px) */
+  .course-section > .formula{ margin-left:calc(var(--gutter) * -1 + 4px); margin-right:calc(var(--gutter) * -1 + 4px); padding:.8em .75em; }
+  .def-box, .prop-box, .method-box, .notice{ padding:.85em 1em .9em; }
+  .reveal{ padding:.85em 1em; }
+  .reveal .label, .reveal .prompt{ padding-right:0; }
+  .reveal::after{ position:static; margin-top:.7em; }
+  .exo{ padding:1.1rem 1rem 1.2rem; }
+  .exo .q{ padding-left:2.1rem; text-indent:-2.1rem; }
+  .exo .q > strong:first-child{ min-width:2.1rem; }
+  .exo-tools{ gap:.6rem; }
+  .exo-tools .seg{ flex:1 1 100%; }
+  .exo-tools .info{ margin-left:auto; }
+  .solution{ padding:.9rem 1rem 1rem; }
 }
 
 /* ===== FIN RÉGION CONTENU ===== */
@@ -2188,178 +1998,148 @@ figure.schema figcaption{
 /* Simulateurs (.sim-wrapper, .sim-controls, .control, .regime-badge, .mode-switch, .sim-info,
    canvas), Lorentz compris. Propriétaire : ligne « contenu » (simulateurs). */
 
-:root[data-theme="dark"] .regime-badge.pseudo{background:rgba(90,160,60,0.22)}
-
-/* SIMULATEUR */
+/* --- Simulateur (SPEC §5.5 ; composants.css §7) ----------------------------------------------
+   DOM réel (inchangé) des 26 simulateurs canvas :
+   .sim-wrapper > h2, .lead, .mode-switch?, .regime-badge?, .sim-controls, canvas, .sim-info, .notice?
+   Disposition par une grille à zones nommées : courbe à gauche, réglages à droite ; une zone dont
+   l'élément n'existe pas reste vide. Couleurs : variables de thème uniquement (les anciens
+   overrides sombres des encadrés sont remplacés par ces règles). */
 .sim-wrapper{
-  background:var(--paper);
-  border:2px solid var(--ink);
-  padding:1.5rem;
-  margin-top:0;
+  display:grid; grid-template-columns:minmax(0, 1fr) 19rem; column-gap:1.5rem; row-gap:.9rem; align-items:start;
+  grid-template-areas:"titre titre" "lead lead" "badge mode" "scene reglages" "info reglages" "note note";
+  font-family:var(--font-ui); color:var(--text);
 }
-.sim-wrapper h2{
-  font-family:var(--font-text);
-  font-size:1.75rem;
-  margin-bottom:0.5rem;
+.sim-wrapper > h2{
+  grid-area:titre; margin:0; font:var(--w-semi) var(--fs-h2)/var(--lh-head) var(--font-text);
+  letter-spacing:var(--track-head); text-wrap:balance; color:var(--text);
 }
-.sim-wrapper .lead{color:var(--ink);opacity:0.65;margin-bottom:1rem}
-.sim-controls{
-  display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
-  gap:1rem;
-  margin-bottom:1.5rem;
-  padding:1rem;
-  background:var(--paper-dark);
-  border:1px solid var(--ink);
+.sim-wrapper > .lead{
+  grid-area:lead; margin:0; max-width:var(--measure);
+  font:var(--w-regular) var(--fs-body)/var(--lh-text) var(--font-text); color:var(--text-2); text-wrap:pretty;
 }
-.control{display:flex;flex-direction:column;gap:0.35rem}
-.control label{
-  font-family:var(--font-code);
-  font-size:0.75rem;
-  text-transform:uppercase;
-  letter-spacing:0.1em;
-  color:var(--ink);
-  opacity:0.7;
-}
-.control input[type=range]{width:100%;accent-color:var(--accent);touch-action:pan-y}
-.control input[type=number],.control select{
-  padding:0.4rem;
-  border:1px solid var(--ink);
-  background:var(--paper);
-  color:var(--ink);
-  font-family:var(--font-code);
-  font-size:0.85rem;
-}
+.sim-wrapper > .mode-switch{ grid-area:mode; display:grid; width:100%; align-self:center; }
+.sim-wrapper > .mode-switch > button{ padding:.35rem .4rem; line-height:1.15; }
+.sim-wrapper > .regime-badge{ grid-area:badge; justify-self:start; align-self:center; }
+.sim-wrapper > .sim-controls{ grid-area:reglages; }
+.sim-wrapper > .sim-info{ grid-area:info; }
+.sim-wrapper > .notice{ grid-area:note; margin:.4rem 0 0; max-width:calc(var(--measure) + 4rem); font-family:var(--font-text); }
 
-/* Menu déroulant ouvert : forcer fond/texte lisibles (les <option> n'héritent
-   pas toujours de la couleur, surtout en thème sombre) */
-.control select option{ background:var(--paper-dark); color:var(--ink); }
-.control .value{
-  font-family:var(--font-code);
-  font-weight:500;
-  font-size:0.85rem;
-  color:var(--accent2);
+/* Scène : feuille à contour, rayon 16 px. Hauteur propre à chaque simulateur (--h) : le dessin
+   lit getBoundingClientRect() et redimensionne la toile (devicePixelRatio). */
+.sim-wrapper > canvas{
+  grid-area:scene; display:block; width:100%; height:var(--h, 380px);
+  border:1px solid var(--line); border-radius:var(--r-l); background:var(--sheet);
 }
+#tr-canvas{ --h:560px; }
+#stat-canvas, #cc-canvas, #es-canvas, #cpx-canvas, #cine-canvas{ --h:480px; }
+#suit-canvas{ --h:470px; }
+#mth-canvas{ --h:460px; }
+#opt-canvas, #lin-canvas, #oxr-canvas, #slci-canvas, #th2-canvas, #hach-canvas, #flt-canvas{ --h:450px; }
+#s2-canvas, #con-canvas, #crb-canvas{ --h:440px; }
+#dyn-canvas, #s1-canvas, #od-canvas, #int-canvas{ --h:430px; }
+#ond-canvas{ --h:400px; }
+/* Simulateurs où l'on glisse un objet au doigt : pas de défilement/zoom tactile sur la toile */
+#cpx-canvas, #es-canvas, #dyn-canvas{ touch-action:none; cursor:grab; }
+
+/* Régime : information, pas notation → matière / ambre (seuil) / neutre ; jamais rouge ni vert */
 .regime-badge{
-  display:inline-block;
-  font-family:var(--font-code);
-  font-size:0.75rem;
-  padding:0.35rem 0.75rem;
-  border:1px solid var(--ink);
-  background:var(--paper);
-  margin-bottom:1rem;
-  font-weight:500;
+  display:inline-flex; align-items:center; gap:.45rem; min-height:1.875rem; padding:.2rem .75rem;
+  border-radius:var(--r-full); background:var(--chap-fond); color:var(--chap);
+  font:var(--w-semi) var(--fs-ui-s)/1.2 var(--font-ui); font-variant-numeric:tabular-nums;
 }
-.regime-badge.pseudo{background:rgba(90,160,60,0.15);border-color:var(--green);color:var(--green)}
-.regime-badge.critique{background:rgba(184,128,26,0.15);border-color:#b8801a;color:#b8801a}
-.regime-badge.aperiodique{background:rgba(200,71,46,0.15);border-color:var(--accent);color:var(--accent)}
+.regime-badge::before{ content:""; flex:none; width:.5rem; height:.5rem; border-radius:50%; background:currentColor; }
+.regime-badge.pseudo{ background:var(--chap-fond); color:var(--chap); }
+.regime-badge.critique{ background:var(--ambre-fond); color:var(--ambre); }
+.regime-badge.aperiodique{ background:var(--sunk); color:var(--text-2); box-shadow:inset 0 0 0 1px var(--line-2); }
 
-#sim-canvas, #opt-canvas, #osc-canvas, #ser-canvas, #lin-canvas, #oxr-canvas,
-#slci-canvas, #hach-canvas, #mcc-canvas, #th2-canvas, #cine-canvas, #int-canvas, #flt-canvas,
-#con-canvas, #crb-canvas, #tr-canvas, #stat-canvas, #s2-canvas, #dyn-canvas, #s1-canvas, #ond-canvas, #cc-canvas, #od-canvas, #es-canvas, #mth-canvas, #cpx-canvas, #suit-canvas{
-  width:100%;
-  height:380px;
-  background:var(--paper);
-  border:1px solid var(--ink);
-  display:block;
+/* Réglages : panneau feuille à contour, intitulé « Paramètres » généré */
+.sim-controls{
+  display:flex; flex-direction:column; gap:1.05rem; padding:1.1rem;
+  border:1px solid var(--line); border-radius:var(--r-l); background:var(--sheet);
 }
-#tr-canvas{height:560px}
-#stat-canvas{height:480px}
-#s2-canvas{height:440px}
-#dyn-canvas{height:430px}
-#s1-canvas{height:430px}
-#ond-canvas{height:400px}
-#cc-canvas{height:480px}
-#od-canvas{height:430px}
-#es-canvas{height:480px}
-#mth-canvas{height:460px}
-#cpx-canvas{height:480px}
-#suit-canvas{height:470px}
-#con-canvas, #crb-canvas{height:440px}
-
-/* Simulateurs où l'on peut glisser un objet au doigt : on désactive le
-   défilement/zoom tactile par-dessus le canvas pour que le drag fonctionne. */
-#cpx-canvas, #es-canvas, #dyn-canvas{touch-action:none;cursor:grab}
-#opt-canvas{height:450px}
-#lin-canvas{height:450px}
-#oxr-canvas{height:450px}
-#slci-canvas{height:450px}
-#th2-canvas{height:450px}
-#cine-canvas{height:480px}
-#hach-canvas{height:450px}
-#int-canvas{height:430px}
-#flt-canvas{height:450px}
-.sim-info{
-  display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(160px,1fr));
-  gap:0.75rem;
-  margin-top:1rem;
-  font-family:var(--font-code);
-  font-size:0.85rem;
+.sim-controls::before{
+  content:"Paramètres"; font:var(--w-semi) var(--fs-kicker)/1.2 var(--font-ui);
+  letter-spacing:var(--track-kicker); text-transform:uppercase; color:var(--text-3);
 }
-.sim-info div{
-  padding:0.5rem 0.75rem;
-  background:var(--paper-dark);
-  border-left:3px solid var(--accent2);
+.control{ display:grid; grid-template-columns:minmax(0, 1fr) auto; align-items:baseline; column-gap:.6rem; row-gap:.4rem; }
+/* Contrôle ré-affiché par un simulateur (style="display:flex" posé en JS) : même grille */
+.sim-controls .control[style*="flex"]{ display:grid !important; }
+.control label{
+  font:var(--w-medium) var(--fs-ui-s)/1.25 var(--font-ui); color:var(--text-2);
+  text-transform:none !important; letter-spacing:0 !important;
 }
-.sim-info .lbl{font-size:0.7rem;color:var(--ink);opacity:0.55;display:block;margin-bottom:0.2rem}
-
-.mode-switch{
-  display:flex;
-  gap:0;
-  margin-bottom:1rem;
-  border:1px solid var(--ink);
-  width:fit-content;
-  flex-wrap:wrap;
+.control .value{
+  justify-self:end; padding:.25rem .45rem; border-radius:var(--r-s); background:var(--sunk);
+  font:var(--w-semi) var(--fs-ui-s)/1 var(--font-ui); font-variant-numeric:tabular-nums; color:var(--text);
+  text-transform:none !important; white-space:nowrap;
 }
-.mode-switch button{
-  padding:0.5rem 1rem;
-  border:none;
-  background:var(--paper-dark);
-  color:var(--ink);
-  opacity:0.65;
-  font-family:var(--font-code);
-  font-size:0.8rem;
-  cursor:pointer;
-  text-transform:uppercase;
-  letter-spacing:0.08em;
-  border-right:1px solid rgba(128,128,128,0.3);
-  transition:background 0.18s, opacity 0.18s;
+.control input, .control select{ grid-column:1 / -1; grid-row:2; }
+.control select, .control input[type="number"], #lor-simu select{
+  height:2.375rem; width:100%; padding:0 .6rem; border:1px solid var(--field); border-radius:var(--r-m);
+  background:var(--raise); color:var(--text); font:var(--w-medium) var(--fs-ui-s)/1.2 var(--font-ui);
 }
-.mode-switch button:last-child{border-right:none}
-.mode-switch button:hover{opacity:0.9;background:var(--paper-dark)}
-.mode-switch button.active{
-  background:var(--ink);
-  color:var(--paper);
-  opacity:1;
+#lor-simu select{ width:auto; }
+/* Menu déroulant ouvert : fond et texte lisibles (les <option> n'héritent pas toujours) */
+.control select option, #lor-simu select option{ background:var(--raise); color:var(--text); }
+/* Curseurs : piste de 4 px, partie remplie à l'encre vive de la matière (--p posé par le
+   script « CONTENU »), poignée de 18 px à contour vif ; 44 px de haut au doigt */
+.control input[type="range"], #lor-simu input[type="range"]{
+  width:100%; margin:0; height:1.5rem; background:transparent; accent-color:var(--chap-vif);
+  -webkit-appearance:none; appearance:none; touch-action:pan-y; cursor:pointer;
+}
+.control input[type="range"]::-webkit-slider-runnable-track, #lor-simu input[type="range"]::-webkit-slider-runnable-track{
+  height:4px; border-radius:4px; background:linear-gradient(90deg, var(--chap-vif) var(--p, 50%), var(--line-2) var(--p, 50%));
+}
+.control input[type="range"]::-moz-range-track, #lor-simu input[type="range"]::-moz-range-track{ height:4px; border-radius:4px; background:var(--line-2); }
+.control input[type="range"]::-moz-range-progress, #lor-simu input[type="range"]::-moz-range-progress{ height:4px; border-radius:4px; background:var(--chap-vif); }
+.control input[type="range"]::-webkit-slider-thumb, #lor-simu input[type="range"]::-webkit-slider-thumb{
+  -webkit-appearance:none; width:1.125rem; height:1.125rem; margin-top:-7px; border-radius:50%;
+  background:var(--raise); border:2px solid var(--chap-vif); box-shadow:var(--sh-1);
+}
+.control input[type="range"]::-moz-range-thumb, #lor-simu input[type="range"]::-moz-range-thumb{
+  width:1rem; height:1rem; border-radius:50%; background:var(--raise); border:2px solid var(--chap-vif);
+}
+.control input[type="range"]:focus-visible, #lor-simu input[type="range"]:focus-visible{ outline:2px solid var(--focus); outline-offset:2px; border-radius:4px; }
+/* Bouton « ↺ Valeurs par défaut » (ajouté par le script) : discret, en bas du panneau */
+.sim-reset{
+  align-self:flex-start; display:inline-flex; align-items:center; gap:.4rem; height:2.25rem; padding:0 .7rem;
+  border:1px solid transparent; border-radius:var(--r-m); background:transparent; color:var(--text-2);
+  font:var(--w-semi) var(--fs-ui-s)/1 var(--font-ui); cursor:pointer;
+}
+.sim-reset:hover{ background:var(--hover); color:var(--text); }
+@media (pointer:coarse){
+  .control input[type="range"], #lor-simu input[type="range"]{ height:var(--tap); }
+  .control select, .control input[type="number"], #lor-simu select{ height:var(--tap); font-size:1rem; }
+  .sim-reset{ height:var(--tap); }
 }
 
-/* ===== Contraste des encadrés de simulateur en thème sombre =====
-   TOUS les simulateurs réutilisent ces classes (.sim-controls, .sim-info,
-   .regime-badge…). Ce bloc unique garantit, en mode sombre, des encadrés qui
-   se détachent du fond et un texte lisible — il s'applique donc aux
-   simulateurs existants ET futurs (rien à refaire par simulateur).
-   ⚠ Si on ajoute une variante de .regime-badge, lui donner ici une couleur
-   issue des variables de thème (jamais une couleur codée en dur). */
-:root[data-theme="dark"] .sim-controls{ border-color:rgba(255,255,255,0.16); }
-:root[data-theme="dark"] .sim-info div{
-  background:var(--paper-dark);
-  border:1px solid rgba(255,255,255,0.12);
-  border-left:3px solid var(--accent2);
+/* Mesures : tuiles en creux, libellé en sans 13 px, valeur en serif 600 de 20 px tabulaire */
+.sim-info{ display:grid; grid-template-columns:repeat(auto-fit, minmax(8.5rem, 1fr)); gap:.75rem; }
+.sim-info > div{
+  min-width:0; padding:.7rem .85rem; border-radius:var(--r-m); background:var(--sunk);
+  font:var(--w-semi) 1.25rem/1.15 var(--font-text); font-variant-numeric:lining-nums tabular-nums; color:var(--text);
+  overflow-wrap:anywhere;
 }
-:root[data-theme="dark"] .sim-info .lbl{ opacity:0.72; }
-:root[data-theme="dark"] .regime-badge{
-  background:var(--paper-dark);
-  border-color:rgba(255,255,255,0.22);
-}
-:root[data-theme="dark"] .regime-badge.pseudo{
-  color:var(--green);  border-color:var(--green);  background:rgba(155,192,111,0.16);
-}
-:root[data-theme="dark"] .regime-badge.critique{
-  color:var(--amber);  border-color:var(--amber);  background:rgba(224,168,58,0.16);
-}
-:root[data-theme="dark"] .regime-badge.aperiodique{
-  color:var(--accent); border-color:var(--accent); background:rgba(232,115,85,0.16);
+.sim-info .lbl{ display:block; margin-bottom:.3rem; font:var(--w-medium) var(--fs-ui-xs)/1.2 var(--font-ui); color:var(--text-3); }
+
+/* Simulateur SVG de Lorentz (hors CHAPTERS, DOM et styles inline gardés) : lisible dans les deux thèmes */
+#lor-simu label{ color:var(--text-2); font-family:var(--font-ui); }
+#lor-simu label > span:first-child{ font-weight:var(--w-medium); }
+#lor-params{ color:var(--text-2) !important; opacity:1 !important; }
+
+/* Téléphone : une colonne ; la courbe d'abord, collante sous la barre et les onglets
+   (on la voit en bougeant un curseur), puis mesures, mode et réglages */
+@media (max-width:767px){
+  .sim-wrapper{
+    grid-template-columns:minmax(0, 1fr);
+    grid-template-areas:"titre" "lead" "badge" "scene" "info" "mode" "reglages" "note";
+  }
+  .sim-wrapper > canvas{
+    position:sticky; top:calc(var(--bar-h) + var(--tabs-h)); z-index:2; box-shadow:var(--sh-2);
+    height:min(calc(var(--h, 380px) * .72), 48vh); height:min(calc(var(--h, 380px) * .72), 48svh);
+  }
+  .sim-wrapper > .sim-info{ grid-template-columns:repeat(2, minmax(0, 1fr)); }
+  .sim-controls{ padding:1rem; }
 }
 
 /* ===== FIN RÉGION SIMU ===== */
@@ -45329,32 +45109,23 @@ v_eff = np.sqrt(y)                 <span class="cmt"># valeur efficace glissante
 <!-- ============ CINÉMATIQUE : EXERCICES ============ -->
 <section class="panel" id="cine-exos">
 
-<!-- CSS commun aux schémas SVG des exos -->
+<!-- CSS commun aux schémas SVG des exos (cadre .cine-svg-wrap : région CONTENU) -->
 <style>
-.cine-svg-wrap{
-  display:flex;justify-content:center;margin:.75rem 0;
-}
-.cine-svg-wrap svg{
-  max-width:100%;height:auto;
-  border:1px solid rgba(128,128,128,.2);
-  background:var(--paper);
-  border-radius:2px;
-}
-/* Traits et textes s'adaptent au thème */
+/* Traits et textes suivent le thème (variables uniquement, jamais de couleur codée en dur) */
 .svg-axis{stroke:var(--ink);stroke-width:1.5;fill:none;marker-end:url(#arr)}
 .svg-solid{stroke:var(--ink);stroke-width:2;fill:none}
 .svg-dim{stroke:var(--accent2);stroke-width:1;stroke-dasharray:4,3;fill:none}
 .svg-vec{stroke:var(--accent);stroke-width:2;fill:none;marker-end:url(#arr-acc)}
-.svg-angle{stroke:var(--amber);stroke-width:1.5;fill:rgba(184,128,26,.12)}
+.svg-angle{stroke:var(--amber);stroke-width:1.5;fill:color-mix(in srgb, var(--amber) 12%, transparent)}
 .svg-label{fill:var(--ink);font-family:'Source Sans 3',sans-serif;font-size:13px}
-.svg-label-acc{fill:var(--accent);font-family:'Source Sans 3',sans-serif;font-size:12px;font-style:italic}
-.svg-label-dim{fill:var(--accent2);font-family:'JetBrains Mono',ui-monospace,monospace;font-size:11px}
+.svg-label-acc{fill:var(--accent);font-family:'Source Sans 3',sans-serif;font-size:13px;font-style:italic}
+.svg-label-dim{fill:var(--accent2);font-family:'JetBrains Mono',ui-monospace,monospace;font-size:12px}
 .svg-point{fill:var(--ink)}
-.svg-ground{stroke:var(--ink);stroke-width:1.5;fill:rgba(128,128,128,.15)}
-.svg-link{stroke:var(--ink);stroke-width:3;fill:rgba(180,180,160,.25);stroke-linejoin:round}
+.svg-ground{stroke:var(--ink);stroke-width:1.5;fill:color-mix(in srgb, var(--ink) 12%, transparent)}
+.svg-link{stroke:var(--ink);stroke-width:3;fill:color-mix(in srgb, var(--amber) 16%, transparent);stroke-linejoin:round}
 .svg-pin{fill:var(--paper);stroke:var(--ink);stroke-width:1.5}
 .svg-vel{stroke:var(--green);stroke-width:2;fill:none;marker-end:url(#arr-vel)}
-.svg-label-vel{fill:var(--green);font-family:'Source Sans 3',sans-serif;font-size:12px;font-style:italic}
+.svg-label-vel{fill:var(--green);font-family:'Source Sans 3',sans-serif;font-size:13px;font-style:italic}
 </style>
 
 <div class="exo-wrapper">
@@ -62822,10 +62593,14 @@ function redrawChapter(chap){
 /* Typeset paresseux d'un seul panneau (perf : évite de tout rendre d'un coup).
    Ne fait rien si MathJax n'est pas prêt ou si le panneau est déjà rendu. */
 function typesetPanel(panel){
+  // Enrichissements d'affichage du panneau (surtitres, difficulté, outils d'exercices, curseurs) :
+  // module « CONTENU » en fin de page, paresseux et idempotent
+  if(panel && window.__contenuPanneau) window.__contenuPanneau(panel);
   const lances = window.__typesetLances || (window.__typesetLances = new WeakSet());
   if(panel && window.MathJax && window.MathJax.typesetPromise && !lances.has(panel) && !panel.querySelector('mjx-container')){
     lances.add(panel);   // rendu lancé (ensemble partagé avec typesetActive)
-    MathJax.typesetPromise([panel]).catch(()=>{});
+    // Après le rendu : typographie française, formules trop larges (.mj-large), schémas lisibles
+    MathJax.typesetPromise([panel]).then(()=>{ if(window.__apresRendu) window.__apresRendu(panel); }).catch(()=>{});
   }
 }
 
@@ -62889,8 +62664,11 @@ document.querySelectorAll('.tab').forEach(t=>{
 function toggleSol(btn){
   const sol = btn.nextElementSibling;
   sol.classList.toggle('shown');
-  btn.textContent = sol.classList.contains('shown')?'Masquer la solution':'Voir la solution';
-  if(window.MathJax && MathJax.typesetPromise) MathJax.typesetPromise([sol]).catch(()=>{});
+  const ouverte = sol.classList.contains('shown');
+  btn.textContent = ouverte?'Masquer la solution':'Voir la solution';
+  btn.classList.toggle('open', ouverte);                  // flèche ▾ / ▴ (CSS)
+  btn.setAttribute('aria-expanded', ouverte ? 'true' : 'false');
+  if(window.MathJax && MathJax.typesetPromise) MathJax.typesetPromise([sol]).then(()=>{ if(ouverte && window.__apresRendu) window.__apresRendu(sol); }).catch(()=>{});
 }
 
 /* ============================================== */
@@ -76343,7 +76121,7 @@ setTimeout(()=>{drawSim();},100);
     });
     body.innerHTML = html;
     // équations déjà rendues : laissées telles quelles ; sources restantes : composées.
-    if(window.MathJax && MathJax.typesetPromise){ try{ MathJax.typesetPromise([body]); }catch(e){} }
+    if(window.MathJax && MathJax.typesetPromise){ try{ MathJax.typesetPromise([body]).then(()=>{ if(window.__apresRendu) window.__apresRendu(body, { forcer:true }); }).catch(()=>{}); }catch(e){} }
   }
   function open(){
     const chap = activeChapter();
@@ -76730,6 +76508,348 @@ document.getElementById('skip-link')?.addEventListener('click', e => {
     if(e.shiftKey && active === first){ e.preventDefault(); last.focus(); }
     else if(!e.shiftKey && active === last){ e.preventDefault(); first.focus(); }
   });
+})();
+</script>
+
+<script>
+/* ===== CONTENU : enrichissements d'affichage du cours, des exercices et des simulateurs =====
+   (SPEC §7.2, §7.3, §7.14 ; styles : régions CONTENU et SIMU du grand <style>)
+   Travail PARESSEUX : un panneau n'est traité qu'à son premier affichage (typesetPanel appelle
+   window.__contenuPanneau), le reste après le rendu MathJax (window.__apresRendu, appelé dans la
+   promesse de typesetPanel, de toggleSol, du Formulaire et du rendu de démarrage). Tout est
+   idempotent (marqueurs) et défensif : une erreur ici ne coupe rien d'autre.
+   - .sec-num « §1 · LES BASES » → <span class="sec-n">§1</span><span class="sr"> · </span>
+     <span class="sec-t">LES BASES</span> : textContent inchangé (sommaire, recherche, impression) ;
+   - .diff « ★ ★ ☆ » → data-niveau="2", 3 barres + « Moyen » (title « Difficulté 2 sur 3 ») ;
+   - onglet Exercices : outils en tête (difficulté, Concours PT, effectif), qui masquent des .exo
+     par la classe .filtre-masque (pas l'attribut hidden : l'impression garde tout) ;
+   - après le rendu : typographie française (espace fine insécable avant ; ! ?, insécable avant :
+     et », après «) hors code/pre/kbd/mjx-container, ponctuation collée à sa formule (.mj-colle),
+     formule en ligne plus large que sa ligne (.mj-large : défile dans la ligne), schéma SVG dont
+     un libellé passerait sous 12 px (largeur minimale + défilement de la figure) ;
+   - simulateurs : --p sur chaque curseur (partie remplie de la piste), bouton « Valeurs par défaut »
+     (valeurs d'origine du HTML : defaultValue / defaultSelected / defaultChecked). */
+(function(){
+  'use strict';
+  var NIVEAUX = ['', 'Facile', 'Moyen', 'Difficile'];
+  var BALISES_EXCLUES = /^(CODE|PRE|KBD|SAMP|VAR|SCRIPT|STYLE|TEXTAREA|INPUT|SELECT|OPTION|BUTTON|SVG|MATH|TEMPLATE|NOSCRIPT)$/;
+  var rendus = new WeakSet();          // racines dont le rendu MathJax est terminé
+  var raf = window.requestAnimationFrame ? window.requestAnimationFrame.bind(window) : function(f){ return setTimeout(f, 16); };
+  function sur(f){ return function(){ try { return f.apply(this, arguments); } catch(e){ /* enrichissement non bloquant */ } }; }
+  function visible(el){ return !!(el && el.isConnected && el.getClientRects().length); }
+
+  /* ---------- 1. Surtitre de section (.sec-num, 1er enfant de .course-section) ---------- */
+  function couperSecNum(el){
+    if(!el || el.__secVu) return;
+    el.__secVu = true;
+    var t = el.firstChild;
+    if(!t || t.nodeType !== 3) return;
+    var m = /^\s*(§\s*\d+[a-z]?)\s*·\s*/.exec(t.nodeValue);
+    if(!m) return;                     // « MÉTHODES · RLC »… : surtitre simple, inchangé
+    var n = document.createElement('span'); n.className = 'sec-n'; n.textContent = m[1].replace(/\s+/g, '');
+    var sep = document.createElement('span'); sep.className = 'sr'; sep.textContent = ' · ';
+    var titre = document.createElement('span'); titre.className = 'sec-t';
+    t.nodeValue = t.nodeValue.slice(m[0].length);
+    while(el.firstChild) titre.appendChild(el.firstChild);
+    el.appendChild(n); el.appendChild(sep); el.appendChild(titre);
+    el.classList.add('coupe');
+  }
+
+  /* ---------- 2. Difficulté (.exo > .diff) ---------- */
+  function enrichirDiff(d){
+    if(!d || d.hasAttribute('data-niveau')) return;
+    var n = ((d.textContent || '').match(/★/g) || []).length;
+    if(n < 1 || n > 3) return;         // format inattendu : laissé tel quel
+    d.setAttribute('data-niveau', String(n));
+    d.title = 'Difficulté ' + n + ' sur 3';
+    d.innerHTML = '<span class="bars" aria-hidden="true"><i></i><i></i><i></i></span>' + NIVEAUX[n];
+  }
+  function niveau(exo){
+    var d = exo.querySelector(':scope > .diff');
+    return d ? d.getAttribute('data-niveau') : null;
+  }
+
+  /* ---------- 3. Outils de l'onglet Exercices ---------- */
+  function outilsExos(panel){
+    if(panel.__outilsExos || !/-exos$/.test(panel.id)) return;
+    panel.__outilsExos = true;
+    var exos = Array.prototype.slice.call(panel.querySelectorAll('.exo'));
+    if(exos.length < 2) return;
+    var compte = { 1: 0, 2: 0, 3: 0 }, concours = 0;
+    exos.forEach(function(e){
+      var n = niveau(e); if(n && compte[n] !== undefined) compte[n]++;
+      if(e.classList.contains('concours')) concours++;
+    });
+    var barre = document.createElement('div');
+    barre.className = 'exo-tools';
+    var seg = document.createElement('div');
+    seg.className = 'seg';
+    seg.setAttribute('role', 'group');
+    seg.setAttribute('aria-label', 'Filtrer les exercices par difficulté');
+    [['tous', 'Tous'], ['1', 'Facile'], ['2', 'Moyen'], ['3', 'Difficile']].forEach(function(o){
+      if(o[0] !== 'tous' && !compte[o[0]]) return;      // niveau absent du chapitre : pas de bouton
+      var b = document.createElement('button');
+      b.type = 'button'; b.dataset.niveau = o[0]; b.textContent = o[1];
+      b.setAttribute('aria-pressed', o[0] === 'tous' ? 'true' : 'false');
+      if(o[0] !== 'tous') b.title = compte[o[0]] + ' exercice' + (compte[o[0]] > 1 ? 's' : '');
+      seg.appendChild(b);
+    });
+    barre.appendChild(seg);
+    var puce = null;
+    if(concours){
+      puce = document.createElement('button');
+      puce.type = 'button'; puce.className = 'chip';
+      puce.setAttribute('aria-pressed', 'false');
+      puce.textContent = 'Concours PT · ' + concours;
+      puce.title = 'Ne garder que les exercices de type concours';
+      barre.appendChild(puce);
+    }
+    var info = document.createElement('span');
+    info.className = 'info';
+    info.setAttribute('aria-live', 'polite');
+    barre.appendChild(info);
+    var vide = document.createElement('p');
+    vide.className = 'vide';
+    vide.hidden = true;
+    vide.textContent = 'Aucun exercice ne correspond à ce filtre.';
+    barre.appendChild(vide);
+    function appliquer(){
+      var b = seg.querySelector('button[aria-pressed="true"]');
+      var niv = b ? b.dataset.niveau : 'tous';
+      var seulsConcours = !!(puce && puce.getAttribute('aria-pressed') === 'true');
+      var vus = 0;
+      exos.forEach(function(e){
+        var ok = (niv === 'tous' || niveau(e) === niv) && (!seulsConcours || e.classList.contains('concours'));
+        e.classList.toggle('filtre-masque', !ok);
+        if(ok) vus++;
+      });
+      info.textContent = vus === exos.length ? exos.length + ' exercices corrigés' : vus + ' exercice' + (vus > 1 ? 's' : '') + ' sur ' + exos.length;
+      vide.hidden = vus > 0;
+    }
+    seg.addEventListener('click', function(e){
+      var b = e.target.closest('button');
+      if(!b) return;
+      seg.querySelectorAll('button').forEach(function(x){ x.setAttribute('aria-pressed', x === b ? 'true' : 'false'); });
+      appliquer();
+    });
+    if(puce) puce.addEventListener('click', function(){
+      puce.setAttribute('aria-pressed', puce.getAttribute('aria-pressed') === 'true' ? 'false' : 'true');
+      appliquer();
+    });
+    appliquer();
+    panel.insertBefore(barre, panel.firstChild);
+  }
+
+  /* ---------- 4. Typographie française et ponctuation collée aux formules ---------- */
+  function exclu(el){
+    return BALISES_EXCLUES.test(el.nodeName.toUpperCase()) || el.nodeName.toUpperCase().indexOf('MJX-') === 0
+      || (el.classList && (el.classList.contains('code-inline') || el.classList.contains('codeblock')));
+  }
+  function typographier(root){
+    var a_traiter = [];
+    var w = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT, { acceptNode: function(n){
+      if(n.nodeType === 1) return exclu(n) ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_SKIP;
+      return /[;:!?«»]/.test(n.nodeValue) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_SKIP;
+    }});
+    while(w.nextNode()) a_traiter.push(w.currentNode);
+    a_traiter.forEach(function(t){
+      var s = t.nodeValue;
+      var r = s.replace(/[  ]+([;!?])/g, ' $1')      // espace fine insécable avant ; ! ?
+               .replace(/ +([:»])/g, ' $1')                  // espace insécable avant : et »
+               .replace(/« +/g, '« ');                        // et après «
+      if(r !== s) t.nodeValue = r;
+    });
+    // Ponctuation collée à sa formule en ligne : « \(x\). » ne se sépare plus en fin de ligne
+    root.querySelectorAll('mjx-container:not([display="true"])').forEach(function(m){
+      var p = m.parentNode;
+      if(!p || (p.classList && p.classList.contains('mj-colle')) || m.closest('pre, code, button, .codeblock')) return;
+      var av = m.previousSibling, ap = m.nextSibling;
+      var mAv = av && av.nodeType === 3 ? /[(\[«][  ]?$/.exec(av.nodeValue) : null;
+      var mAp = ap && ap.nodeType === 3 ? /^[  ]?[.,;:!?…)\]»]+/.exec(ap.nodeValue) : null;
+      if(!mAv && !mAp) return;
+      var span = document.createElement('span');
+      span.className = 'mj-colle';
+      p.insertBefore(span, m);
+      if(mAv){ av.nodeValue = av.nodeValue.slice(0, mAv.index); span.appendChild(document.createTextNode(mAv[0])); }
+      span.appendChild(m);
+      if(mAp){ ap.nodeValue = ap.nodeValue.slice(mAp[0].length); span.appendChild(document.createTextNode(mAp[0])); }
+    });
+  }
+
+  /* ---------- 5. Formules en ligne plus larges que leur ligne (.mj-large) ---------- */
+  function blocParent(el, cache){
+    for(var e = el; e && e.nodeType === 1; e = e.parentElement){
+      var d = cache.get(e);
+      if(d === undefined){ d = getComputedStyle(e).display; cache.set(e, d); }
+      if(d !== 'inline' && d !== 'contents') return e;
+    }
+    return null;
+  }
+  function marquerLarges(root){
+    var cacheD = new Map(), cacheL = new Map(), decisions = [];
+    root.querySelectorAll('mjx-container:not([display="true"])').forEach(function(m){
+      if(!m.getClientRects().length) return;                       // replié (solution, mémo) : plus tard
+      var hote = blocParent(m.parentElement, cacheD);
+      if(!hote) return;
+      var dispo = cacheL.get(hote);
+      if(dispo === undefined){
+        var cs = getComputedStyle(hote);
+        dispo = hote.clientWidth - (parseFloat(cs.paddingLeft) || 0) - (parseFloat(cs.paddingRight) || 0);
+        cacheL.set(hote, dispo);
+      }
+      var large = m.classList.contains('mj-large');
+      var nat = large ? m.scrollWidth : m.getBoundingClientRect().width;
+      decisions.push([m, dispo > 0 && nat > dispo + 1]);
+    });
+    decisions.forEach(function(x){
+      x[0].classList.toggle('mj-large', x[1]);
+      var p = x[0].parentNode;
+      if(p && p.classList && p.classList.contains('mj-colle')) p.classList.toggle('libre', x[1]);
+    });
+  }
+
+  /* ---------- 6. Schémas SVG : aucun libellé sous 12 px ---------- */
+  function schemasLisibles(root){
+    var cadres = Array.prototype.slice.call(root.querySelectorAll('figure.schema, .cine-svg-wrap'))
+      .filter(function(c){ return c.querySelector('svg text') && visible(c); });
+    if(!cadres.length) return;
+    cadres.forEach(function(c){ c.classList.remove('lisible'); c.style.removeProperty('--svg-min'); });   // mesure à l'état naturel
+    var besoins = cadres.map(function(c){
+      var svg = c.querySelector('svg');
+      var l = svg.getBoundingClientRect().width;
+      if(!l) return 0;
+      var mini = Infinity;
+      svg.querySelectorAll('text, tspan').forEach(function(t){
+        if(!t.firstChild || !t.getClientRects().length) return;
+        var fs = parseFloat(getComputedStyle(t).fontSize) || 0, m = t.getScreenCTM && t.getScreenCTM();
+        if(!fs || !m) return;
+        var px = fs * Math.sqrt(Math.abs(m.a * m.d - m.b * m.c));
+        if(px > 0 && px < mini) mini = px;
+      });
+      return (isFinite(mini) && mini < 12) ? Math.ceil(l * 12.05 / mini) : 0;
+    });
+    cadres.forEach(function(c, i){
+      if(!besoins[i]) return;
+      c.classList.add('lisible');
+      c.style.setProperty('--svg-min', besoins[i] + 'px');
+    });
+  }
+
+  /* ---------- 7. Simulateurs : curseurs (--p) et valeurs par défaut ---------- */
+  function majCurseur(inp){
+    var min = inp.min === '' ? 0 : parseFloat(inp.min), max = inp.max === '' ? 100 : parseFloat(inp.max), v = parseFloat(inp.value);
+    var p = (max > min && isFinite(v)) ? Math.min(100, Math.max(0, (v - min) / (max - min) * 100)) : 50;
+    inp.style.setProperty('--p', p.toFixed(2) + '%');
+  }
+  function curseurs(root){ root.querySelectorAll('input[type="range"]').forEach(majCurseur); }
+  function boutonDefaut(wrap){
+    var sc = wrap.querySelector(':scope > .sim-controls');
+    if(!sc || sc.querySelector('.sim-reset')) return;
+    var champs = Array.prototype.slice.call(sc.querySelectorAll('input, select'));
+    if(!champs.length) return;
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'sim-reset';
+    b.innerHTML = (window.__icon ? window.__icon('refresh') : '↺') + '<span class="ic-lbl">Valeurs par défaut</span>';
+    b.addEventListener('click', function(){
+      champs.forEach(function(c){
+        var change = false;
+        if(c.tagName === 'SELECT'){
+          var i = Array.prototype.findIndex.call(c.options, function(o){ return o.defaultSelected; });
+          if(i < 0) i = 0;
+          if(c.selectedIndex !== i){ c.selectedIndex = i; change = true; }
+        } else if(c.type === 'checkbox' || c.type === 'radio'){
+          if(c.checked !== c.defaultChecked){ c.checked = c.defaultChecked; change = true; }
+        } else if(c.value !== c.defaultValue){ c.value = c.defaultValue; change = true; }
+        if(change){
+          c.dispatchEvent(new Event('input', { bubbles: true }));
+          c.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+      });
+      curseurs(sc);
+    });
+    sc.appendChild(b);
+  }
+  document.addEventListener('input', sur(function(e){
+    var t = e.target;
+    if(t && t.type === 'range') majCurseur(t);
+  }), true);
+  // Un mode de simulateur peut changer des curseurs par programme : resynchroniser après le clic
+  document.addEventListener('click', sur(function(e){
+    var w = e.target && e.target.closest && e.target.closest('.sim-wrapper, #lor-simu');
+    if(w) raf(sur(function(){ curseurs(w); }));
+  }));
+  document.addEventListener('change', sur(function(e){
+    var w = e.target && e.target.closest && e.target.closest('.sim-wrapper, #lor-simu');
+    if(w) raf(sur(function(){ curseurs(w); }));
+  }));
+
+  /* ---------- Orchestration ---------- */
+  function structurer(panel){
+    if(!panel || panel.nodeType !== 1) return;
+    if(!panel.__structure){
+      panel.__structure = true;
+      panel.querySelectorAll('.course-section').forEach(function(cs){
+        var s = cs.querySelector(':scope > .sec-num');
+        if(s) couperSecNum(s);
+      });
+      panel.querySelectorAll('.exo > .diff').forEach(enrichirDiff);
+      outilsExos(panel);
+      panel.querySelectorAll('.sim-wrapper').forEach(boutonDefaut);
+    }
+    curseurs(panel);
+  }
+  function cleMesure(){ return document.documentElement.clientWidth + 'x' + getComputedStyle(document.documentElement).fontSize; }
+  function mesurer(root){
+    if(!visible(root)) return;                                     // mesures au prochain affichage
+    marquerLarges(root);
+    schemasLisibles(root);
+    root.__cleMesure = cleMesure();
+  }
+  function finir(root, forcer){
+    if(!root || !root.isConnected) return;
+    if(root.matches && root.matches('section.panel')) structurer(root);
+    if(forcer || !root.__typo){ root.__typo = true; typographier(root); }
+    mesurer(root);
+  }
+  function panneauxVisibles(){
+    return Array.prototype.slice.call(document.querySelectorAll('.chapter.active .panel.active')).filter(visible);
+  }
+  // Appelé (synchrone) par typesetPanel à chaque affichage d'un panneau
+  window.__contenuPanneau = sur(function(panel){
+    structurer(panel);
+    raf(sur(function(){
+      if(!panel.isConnected) return;
+      // rendu MathJax terminé (ou panneau déjà composé ailleurs, ex. Formulaire) : finitions
+      if(rendus.has(panel) || panel.querySelector('mjx-container')){
+        if(!panel.__typo) finir(panel);
+        else if(panel.__cleMesure !== cleMesure()) mesurer(panel);
+      }
+    }));
+  });
+  // Appelé après un rendu MathJax : panneau, solution dépliée, Formulaire (forcer : contenu reconstruit)
+  window.__apresRendu = sur(function(root, opts){
+    if(!root) return;
+    rendus.add(root);
+    raf(sur(function(){ finir(root, !!(opts && opts.forcer)); }));
+  });
+  // Mémo déplié : ses formules deviennent mesurables
+  document.addEventListener('click', sur(function(e){
+    var r = e.target && e.target.closest && e.target.closest('.reveal');
+    if(r && r.classList.contains('open')) raf(sur(function(){ if(visible(r)){ marquerLarges(r); schemasLisibles(r); } }));
+  }));
+  // Largeur ou taille du texte (A−/A+) changée : nouvelles mesures du panneau affiché
+  var minuterie = null;
+  function remesurer(){
+    clearTimeout(minuterie);
+    minuterie = setTimeout(sur(function(){
+      panneauxVisibles().forEach(function(p){ if(p.__typo) mesurer(p); });
+    }), 250);
+  }
+  window.addEventListener('resize', remesurer);
+  try { new MutationObserver(remesurer).observe(document.documentElement, { attributes: true, attributeFilter: ['style'] }); } catch(e){ /* sans observateur : mesures au redimensionnement seulement */ }
+  // Premier affichage : structurer tout de suite les panneaux actifs (pas de saut de mise en page)
+  sur(function(){ document.querySelectorAll('.chapter.active .panel.active').forEach(structurer); })();
 })();
 </script>
 
