@@ -1118,10 +1118,6 @@ footer.pied .brand-mark{ width:1.375rem; height:1.375rem; border-radius:6px; fon
 
 /* Compteur des cartes signalées (menus) */
 .flag-badge{ font-variant-numeric:tabular-nums; }
-/* Étiquette de matière (PHY, MATH…) des récents de l'écran Aujourd'hui */
-.mob-filter-tag{ flex:none; padding:.2rem .35rem; border:1px solid var(--line-2); border-radius:var(--r-s);
-  font:var(--w-bold) var(--fs-count)/1 var(--font-ui); letter-spacing:.06em; color:var(--text-2); }
-
 /* Bannière « Nouvelle version disponible — Recharger » (un toast, pas une barre) */
 .maj-banniere{
   position:fixed; left:50%; bottom:1rem; transform:translateX(-50%); z-index:var(--z-toast);
@@ -1466,6 +1462,9 @@ section.panel[id$="-cours"]::before, section.panel[id$="-meth"]::before{
   .tab-long[data-court]{ position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; }
   .tab-court{ display:inline; }
   section.panel, section.panel[id$="-cours"], section.panel[id$="-meth"]{ padding:1.5rem var(--gutter) 2.5rem; }
+  /* Onglet Cartes : la fiche suit les onglets de près (maquette 04a : .75rem), toute la hauteur
+     de l'écran lui revient (hauteur minimale de la fiche : région REVISION) */
+  section.panel[id$="-flash"]{ padding-top:.75rem; }
   section.panel[id$="-cours"]::before, section.panel[id$="-meth"]::before{ display:none; }
   #chap-pager, .chapter[data-onglet] > #chap-pager{ grid-template-columns:minmax(0,1fr); max-width:none; padding:0 var(--gutter) 2rem; }
   .chap-pager-btn.cpg-next{ grid-column:auto; align-items:flex-start; text-align:left; }
@@ -2077,14 +2076,14 @@ figure.schema.defile, .cine-svg-wrap.defile{ overflow-x:auto; overflow-y:hidden;
 
 
 /* ===== RÉGION REVISION ===== */
-/* Révision : flashcards (makeFlash), quiz, calcul mental, Aujourd'hui, Bilan (anneau
-   compris), cartes signalées. Propriétaire : ligne « révision ». */
+/* Révision : flashcards (makeFlash), quiz, Aujourd'hui, Bilan (anneau compris).
+   Propriétaire : ligne « révision ». Cartes signalées et calcul mental : région FENETRES. */
 
 /* Référence : composants.css §10 (cartes) et §11 (Aujourd'hui) ; SPEC §5.4, §5.6, §5.7, §5.8.
    Sous-parties : 1. fondus · 2. fiche de révision (onglet Cartes ET quiz) · 3. commandes sous la
    fiche · 4. gabarit des fenêtres de révision (quiz, Bilan, Aujourd'hui) · 5. quiz · 6. Aujourd'hui
-   · 7. Bilan et anneau · 8. blocs laissés à la ligne « fenêtres » (Cartes signalées, Calcul
-   mental : elle les surcharge depuis FENETRES) · 9. mouvement réduit. Couleurs : jetons seulement
+   · 7. Bilan et anneau · 8. bouton « Signaler » d'une carte signalée (.is-flagged)
+   · 9. mouvement réduit. Couleurs : jetons seulement
    (encre de la matière via data-mat : --chap, --chap-fond, --chap-vif ; notes : --note-0/1/2). */
 
 /* --- 1. Fondus ------------------------------------------------------------------------------
@@ -2247,7 +2246,9 @@ figure.schema.defile, .cine-svg-wrap.defile{ overflow-x:auto; overflow-y:hidden;
 @media (pointer:coarse){ .flash-reset{ min-height:var(--tap); } }
 @media (max-width:767px){
   .flash-wrapper{ gap:.6rem; }
-  .flash-card{ min-height:max(17rem, calc(100dvh - 18.5rem)); }
+  /* fiche + commandes = hauteur de l'écran sous la barre et les onglets (panneau Cartes à .75rem
+     du haut, région PAGE) : « Afficher la réponse » finit à ≈ 12 px du bas sur 390 × 844 */
+  .flash-card{ min-height:max(17rem, calc(100dvh - 18rem)); }
 }
 
 /* --- 4. Gabarit des fenêtres de révision (quiz, Bilan, Aujourd'hui ; Calcul mental partage
@@ -2522,33 +2523,10 @@ figure.schema.defile, .cine-svg-wrap.defile{ overflow-x:auto; overflow-y:hidden;
   .dash-head{ padding-left:var(--gutter); }
 }
 
-/* --- 8. Laissés à la ligne « fenêtres » (elle les restyle depuis FENETRES) ----------------- */
-/* ===== Cartes signalées ===== */
-.flag-list{ list-style:none; margin:0.4rem 0 0; padding:0; max-height:46vh; overflow-y:auto; }
-.flag-list li{ display:flex; align-items:center; gap:0.6rem; padding:0.5rem 0; border-bottom:1px solid var(--grid); }
-.flag-list .flag-chap{ font-family:var(--font-code); font-size:0.6rem; letter-spacing:0.08em; text-transform:uppercase; color:var(--accent); flex-shrink:0; max-width:30%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.flag-list .flag-q{ flex:1; font-size:0.85rem; line-height:1.35; }
-.flag-list .flag-rm{ background:none; border:1px solid var(--ink); border-radius:5px; padding:0.2rem 0.5rem; font-size:0.7rem; cursor:pointer; color:var(--ink); flex-shrink:0; }
-.flag-list .flag-rm:hover{ background:var(--rouge-plein); color:var(--on-rouge-plein); border-color:var(--rouge-plein); }
-
-/* Bouton 🚩 actif (carte signalée) */
+/* --- 8. Bouton « Signaler » d'une carte déjà signalée (fiche et quiz) ------------------------
+   (Les anciennes règles .flag-list / #drill-* sont retirées depuis la fusion : Cartes signalées et
+   Calcul mental sont entièrement stylés par id dans la région FENETRES, gabarit .fen.) */
 .is-flagged{ color:var(--accent) !important; }
-
-/* ── Entraînement au calcul ── */
-#drill-body{ padding:1.4rem; }
-.drill-cats{ display:flex; align-items:center; justify-content:space-between; gap:1rem; flex-wrap:wrap; font-size:0.82rem; margin-bottom:1.2rem; }
-.drill-cats select{ font-family:var(--font-code); font-size:0.8rem; padding:0.3rem 0.5rem; border:1px solid var(--ink); background:var(--paper); color:var(--ink); }
-.drill-score b{ font-family:var(--font-code); color:var(--accent); }
-.drill-question{ font-size:1.35rem; text-align:center; padding:1.6rem 1rem; min-height:2.2em; border:2px solid var(--ink); background:var(--paper-dark); margin-bottom:1rem; }
-#drill-form{ display:flex; gap:0.6rem; }
-#drill-input{ flex:1; font-family:var(--font-code); font-size:1.05rem; padding:0.6rem 0.8rem; border:2px solid var(--ink); background:var(--paper); color:var(--ink); }
-.drill-check{ font-family:var(--font-code); font-size:0.85rem; padding:0 1.2rem; border:2px solid var(--ink); background:var(--ink); color:var(--paper); cursor:pointer; letter-spacing:0.05em; }
-.drill-check:hover{ background:var(--accent); border-color:var(--accent); }
-.drill-feedback{ min-height:1.6em; margin:0.9rem 0; font-size:0.95rem; font-weight:600; }
-.drill-feedback.ok{ color:var(--green); }
-.drill-feedback.ko{ color:var(--accent); }
-.drill-next{ display:none; font-family:var(--font-code); font-size:0.85rem; padding:0.55rem 1rem; border:1px solid var(--ink); background:var(--paper-dark); color:var(--ink); cursor:pointer; }
-.drill-next:hover{ background:var(--accent2); color:var(--paper); border-color:var(--accent2); }
 
 /* --- 9. Mouvement réduit (en plus de la règle globale de BASE) ------------------------------ */
 @media (prefers-reduced-motion: reduce){
@@ -2563,9 +2541,9 @@ figure.schema.defile, .cine-svg-wrap.defile{ overflow-x:auto; overflow-y:hidden;
 /* Fenêtres : recherche, formulaire, sauvegarde, raccourcis clavier, toasts et autres
    overlays. Propriétaire : ligne « thème et fenêtres ». */
 
-/* NB (ligne C) : les fenêtres Cartes signalées et Calcul mental sont restylées ici par leur
-   id (#flag-overlay, #drill-overlay) ; leurs anciennes règles (.flag-list, .drill-*), rangées
-   en REVISION, perdent face à celles-ci (spécificité + ordre des régions). */
+/* NB : les fenêtres Cartes signalées et Calcul mental sont stylées ici par leur id
+   (#flag-overlay, #drill-overlay) ; leurs anciennes règles (.flag-list, .drill-*) ont été
+   retirées de REVISION à la fusion des lignes. */
 
 /* --- 1. Gabarit commun des fenêtres (SPEC §5.11) ---------------------------------
    Voile --scrim, boîte --raise (rayon 22 px, ombre --sh-3), tête « titre + × », corps
@@ -2613,11 +2591,6 @@ figure.schema.defile, .cine-svg-wrap.defile{ overflow-x:auto; overflow-y:hidden;
 .backup-feedback:empty{ margin-top:0; min-height:0; }
 .backup-feedback.ok{ color:var(--vert); }
 .backup-feedback.err{ color:var(--rouge); }
-
-/* Lien discret : « Continuer → » d'Aujourd'hui (#today-close, région REVISION) porte encore cette classe */
-.backup-close{ margin-top:1.2rem; padding:0; border:0; background:none; color:var(--text-2); cursor:pointer;
-  font:var(--w-semi) var(--fs-ui-s)/1.3 var(--font-ui); text-decoration:underline; text-underline-offset:.2em; }
-.backup-close:hover{ color:var(--text); }
 
 /* Grandes actions à deux lignes (Sauvegarde) : icône, intitulé, précision */
 .fen-action{
@@ -2905,8 +2878,9 @@ window.__icon = function(name){
 
 <a href="#" class="skip-link" id="skip-link">Aller au contenu</a>
 
-<!-- Icônes de la coquille (en-tête, navigation, sélecteur de thème) : complètent le
-     jeu ci-dessus, même trait (currentColor), même appel window.__icon(name). -->
+<!-- Icônes de la coquille (en-tête, navigation, sélecteur de thème) et de la fiche de
+     révision (undo, skip, flip, play) : complètent le jeu ci-dessus, même trait
+     (currentColor), même appel window.__icon(name). -->
 <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false" overflow="hidden"><defs>
   <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></symbol>
   <symbol id="i-chev-down" viewBox="0 0 24 24"><path d="M6.5 9.5 12 15l5.5-5.5"/></symbol>
@@ -2921,6 +2895,10 @@ window.__icon = function(name){
   <symbol id="i-filter" viewBox="0 0 24 24"><path d="M4 6.5h16M7 12h10M10 17.5h4"/></symbol>
   <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></symbol>
   <symbol id="i-wave" viewBox="0 0 24 24"><path d="M2.5 12c2-6 4-6 6 0s4 6 6 0 4-6 7-1"/></symbol>
+  <symbol id="i-undo" viewBox="0 0 24 24"><path d="M9 7.5 4.5 12 9 16.5"/><path d="M4.5 12H15a4.5 4.5 0 0 1 0 9h-2"/></symbol>
+  <symbol id="i-skip" viewBox="0 0 24 24"><path d="M6 6.5 12 12l-6 5.5M13 6.5l6 5.5-6 5.5"/></symbol>
+  <symbol id="i-flip" viewBox="0 0 24 24"><path d="M4 9a8 8 0 0 1 14-3.5L20 7.5"/><path d="M20 3.5v4h-4"/><path d="M20 15a8 8 0 0 1-14 3.5L4 16.5"/><path d="M4 20.5v-4h4"/></symbol>
+  <symbol id="i-play" viewBox="0 0 24 24"><path d="M8 5.5v13l10.5-6.5z"/></symbol>
 </defs></svg>
 
 <!-- ===== EN-TÊTE ORDINATEUR ET TABLETTE (≥ 768 px) : collant, 56 px =====
@@ -63542,34 +63520,6 @@ function flashSaveState(prefix, cards, state){
   Store.setJSON('flash:' + prefix, state);
   Store.setJSON('flashids:' + prefix, flashCardIds(cards));
 }
-
-/* === Icônes des cartes de révision (SPEC §5.4) ===============================
-   Symboles ajoutés au sprite SEULEMENT s'ils manquent : la coquille en définit une
-   partie dans le sprite statique (pas de doublon d'id). <use href="#i-…"> se résout
-   dynamiquement : l'ordre d'insertion n'importe pas. */
-(function(){
-  try {
-    const SYM = {
-      'x': '<path d="M6 6l12 12M18 6 6 18"/>',
-      'chev-left': '<path d="M14.5 6.5 9 12l5.5 5.5"/>',
-      'chev-right': '<path d="M9.5 6.5 15 12l-5.5 5.5"/>',
-      'clock': '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>',
-      'wave': '<path d="M2.5 12c2-6 4-6 6 0s4 6 6 0 4-6 7-1"/>',
-      'undo': '<path d="M9 7.5 4.5 12 9 16.5"/><path d="M4.5 12H15a4.5 4.5 0 0 1 0 9h-2"/>',
-      'skip': '<path d="M6 6.5 12 12l-6 5.5M13 6.5l6 5.5-6 5.5"/>',
-      'flip': '<path d="M4 9a8 8 0 0 1 14-3.5L20 7.5"/><path d="M20 3.5v4h-4"/><path d="M20 15a8 8 0 0 1-14 3.5L4 16.5"/><path d="M4 20.5v-4h4"/>',
-      'play': '<path d="M8 5.5v13l10.5-6.5z"/>'
-    };
-    const manque = Object.keys(SYM).filter(n => !document.getElementById('i-' + n));
-    if(!manque.length || !document.body) return;
-    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-    svg.setAttribute('width', '0'); svg.setAttribute('height', '0');
-    svg.setAttribute('aria-hidden', 'true'); svg.setAttribute('focusable', 'false');
-    svg.style.position = 'absolute';
-    svg.innerHTML = '<defs>' + manque.map(n => '<symbol id="i-' + n + '" viewBox="0 0 24 24">' + SYM[n] + '</symbol>').join('') + '</defs>';
-    document.body.appendChild(svg);
-  } catch(e){ /* icônes non bloquantes */ }
-})();
 
 /* === Fiche de révision : morceaux communs à makeFlash et au quiz (SPEC §5.4) ===
    Rendu seulement : l'état des cartes (flash:/flashids:) n'est ni lu ni écrit ici. */

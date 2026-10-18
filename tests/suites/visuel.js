@@ -57,7 +57,7 @@ const fs = require('fs');
 const path = require('path');
 const { pause, attendreApp, naviguer, choisirTheme, etatMathJax } = require('../lib/outils');
 
-/* ---------- Anomalies TOLÉRÉES (site aux commits b3632ad et 1d2a766, Chromium 141) ----------
+/* ---------- Anomalies TOLÉRÉES (liste vide depuis la fusion de la refonte, wip/refonte, Chromium 141) ----------
    Une ligne = [mesure, écrans, thèmes, appareils, { sélecteur: pire valeur tolérée, … }]
    - mesure : contraste | taille | debordement | cible24 | cible44 ;
    - écrans : noms d'ECRANS séparés par des espaces, alias 'chapitres' (les 8
@@ -71,10 +71,8 @@ const { pause, attendreApp, naviguer, choisirTheme, etatMathJax } = require('../
    la liste correspondant aux constats du dernier lancement (à relire avant de
    la recopier ici). */
 const TOLERES = [
-  // — Contraste du texte —
-  ['contraste', 'chapitres', '*', '*', { 'span.num': 4.01 }],
-  // — Taille du texte (px) —
-  ['taille', 'chapitres', '*', '*', { 'span.num': 11.2 }],
+  // Aucune anomalie tolérée depuis la fusion de la refonte (visuel --strict : 0 constat).
+  // Les numéros d'onglets « 01–05 » (span.num), dernier constat de la liste, sont masqués.
 ];
 
 /* Tolérance sur la valeur d'un constat toléré (instabilités de rendu, polices) */
