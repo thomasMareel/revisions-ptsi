@@ -77826,6 +77826,18 @@ document.getElementById('skip-link')?.addEventListener('click', e => {
     io = new IntersectionObserver(sur(surIntersections), { rootMargin:'-' + y + 'px 0px -' + bas + 'px 0px', threshold:0 });
     sections.forEach(x => io.observe(x));
   }
+  // Fenêtre redimensionnée (pas les petites variations de hauteur de la barre d'adresse) : ligne recalculée
+  let dimIO = { w:window.innerWidth, h:window.innerHeight }, minuteurIO = 0;
+  window.addEventListener('resize', () => {
+    clearTimeout(minuteurIO);
+    minuteurIO = setTimeout(sur(() => {
+      const w = window.innerWidth, h = window.innerHeight;
+      if(w === dimIO.w && Math.abs(h - dimIO.h) < 120) return;
+      dimIO = { w, h };
+      const c = infoChap(actuel), act = sectionActive;
+      if(c){ observerSections(actuel, c); if(act && sections.includes(act)){ sectionActive = act; marquerSommaire(); } }
+    }), 250);
+  }, { passive:true });
   function marquerSommaire(){
     const on = (actuel && sectionActive && ongletActif(actuel) === 'cours') ? sectionActive.id : '';
     liensSommaire.forEach((a, id) => {
