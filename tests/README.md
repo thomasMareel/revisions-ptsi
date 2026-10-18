@@ -18,15 +18,15 @@ serveur local le temps du test, puis s'arrête.
 | Suite | Ce qui est vérifié | Durée (complète / `--rapide`) |
 |---|---|---|
 | `site` | chargement sans erreur JavaScript ; **aucune requête externe** (site 100 % autonome) ; `CHAPTERS` cohérent avec le DOM ; **tous les chapitres × tous leurs onglets** : panneau affiché, 0 erreur MathJax, aucun `\(` `$$` resté en clair ; toutes les flashcards passées par MathJax ; **tous les simulateurs** exécutés et dessinés en thème clair **et** sombre | ≈ 6 min / ≈ 40 s |
-| `mobile` | téléphone 390 px : en-tête, tiroir des chapitres, filtre, bouton thème ; **débordement horizontal** de chaque panneau (une liste de débordements *déjà connus* est tolérée) | ≈ 3 min / ≈ 15 s |
-| `interactions` | lien direct `#chapitre/onglet`, boutons précédent/suivant du navigateur, boutons ‹ ›, passage vers la SI, recherche, flashcards + répétition espacée, quiz, « Réviser », Bilan, Aujourd'hui, formulaire, cartes signalées, calcul mental, impression, thème, **sauvegarde export puis import** | ≈ 30 s |
+| `mobile` | téléphone 390 px : barre du haut `.mbar` (sommaire masqué), « Aujourd'hui » jamais ouvert au lancement, page « Chapitres » (matières, filtre, Entrée), **bouton retour d'Android** (page Chapitres, feuille ⋯), thème par la feuille ⋯ ; **débordement horizontal** de chaque panneau (une liste de débordements *déjà connus* est tolérée — vide depuis la refonte) | ≈ 3 min / ≈ 15 s |
+| `interactions` | lien direct `#chapitre/onglet` et `#sommaire/<matière>`, boutons précédent/suivant du navigateur, cartes précédent/suivant, passage vers la SI, barre latérale des chapitres (repli mémorisé), Sommaire de la matière, filtre groupé par matière, page chapitre (intercalaire, onglets, rail), recherche groupée (↑ ↓, Entrée), flashcards + répétition espacée, raccourcis des cartes et garde de saisie, quiz, « Réviser », Bilan, Aujourd'hui, formulaire, cartes signalées, calcul mental, aide clavier « ? », touche n inactive derrière les fenêtres, impression, thème par le sélecteur, **sauvegarde export puis import** | ≈ 1 min |
 | `pwa` | `sw.js` (fichiers du précache présents), manifeste, service worker activé, cache rempli, **rechargement hors-ligne** | ≈ 10 s |
 | `regressions` | un test par correctif **B1 à B5** : notes du quiz conservées par les flashcards, même localStorage plein (puis de nouveau disponible) et même quand le quiz tourne dans un autre onglet (B1) ; progression qui suit ses cartes quand un deck change (B2 : un état distinct pour **chaque** carte, contrôlé carte par carte) — carte insérée, retirée, déplacée ; question reformulée (sur place, suivie d'une insertion, après retrait de la précédente, à côté d'une carte déplacée, entre une carte retirée et une carte ajoutée) ; cas ambigu (deux entrées candidates de même réponse → carte vierge) ; question **et** réponse retouchées sur place, deck entier réécrit (état conservé) ; carte remplacée sur place (hérite de l'état de l'ancienne) ; question en double (réponses différentes ou doublon exact) —, `quizRate` sur un état ancien non migré, import d'une ancienne sauvegarde, cartes signalées (y compris sur une question en double, et signalement devenu orphelin) ; t₅% et palier du simulateur SLCI (B3) ; couleurs des simulateurs en thème sombre (B4) ; impression d'un chapitre : formules réellement dessinées dans le document imprimé (glyphes, polices MathJax chargées, encre), exercices non découpés, en-têtes et intertitres jamais coupés de leur suite en bas de page (B5) | ≈ 3 min |
-| `visuel` | **mesures visuelles**, garde-fou de la refonte graphique, sur 14 écrans (rlc cours / méthodes / simulateur / flashcards / exercices avec une solution dépliée, maxwell cours, slci cours, flashcards d'anglais, tiroir, recherche, quiz, Bilan, Aujourd'hui, menu Plus), en thème clair **et** sombre, sur ordinateur 1440×900 **et** téléphone 390×844 : **contraste** réel du texte (≥ 4,5:1, 3:1 en grand texte), **taille** du texte (≥ 12 px), **débordement** horizontal, **cibles tactiles** sur téléphone (≥ 24 px ou assez espacées, WCAG 2.5.8 ; ≥ 44 px, signalé à part) ; une liste d'anomalies *déjà connues* est tolérée (sauf avec `--strict`) ; détail dans `visuel.json` + `visuel.md` et une capture par écran (voir §4) | ≈ 2 min (identique en `--rapide`) |
+| `visuel` | **mesures visuelles**, garde-fou de la refonte graphique, sur **24 écrans** (rlc cours / méthodes / simulateur / cartes / exercices avec une solution dépliée, maxwell cours, slci cours, cartes d'anglais, navigation des chapitres, recherche, formulaire, sauvegarde, cartes signalées, calcul mental, raccourcis, quiz, Bilan, Aujourd'hui, menus Plus et Réviser, sélecteur de thème, feuille ⋯ du téléphone, Sommaire de la matière), en thème clair **et** sombre, sur ordinateur 1440×900 **et** téléphone 390×844 : **contraste** réel du texte (≥ 4,5:1, 3:1 en grand texte), **taille** du texte (≥ 12 px), **débordement** horizontal, **cibles tactiles** sur téléphone (≥ 24 px ou assez espacées, WCAG 2.5.8 ; ≥ 44 px, signalé à part) ; une liste d'anomalies *déjà connues* est tolérée (sauf avec `--strict`, que la refonte doit passer) ; détail dans `visuel.json` + `visuel.md` et une capture par écran (voir §4) | ≈ 4 min (identique en `--rapide`) |
 
 Les durées sont indicatives (mesurées dans un conteneur Linux à 4 cœurs : batterie
-complète ≈ 20 min, `--rapide` ≈ 6 min 30 s, dont 2 min pour `visuel` ; jusqu'à
-≈ 8 min 30 s quand la machine est chargée).
+complète ≈ 25 min, `--rapide` ≈ 8 min, dont 4 min pour `visuel` ; davantage
+quand la machine est chargée).
 
 ---
 
@@ -264,7 +264,16 @@ Ailleurs : `res.verifier('nom du contrôle', condition, ['message si échec'])`.
   globale « lexicale » : dans `page.evaluate`, écrire `CHAPTERS.length`, **pas**
   `window.CHAPTERS` (qui vaut `undefined`). `Store`, `navigateTo`, `getCanvasColors`,
   `flashPretty`… s'appellent aussi directement par leur nom.
-- `applyTheme` n'est pas accessible : pour changer de thème, cliquer `#theme-btn`.
+- `applyTheme` n'est pas accessible : pour changer de thème, passer par le sélecteur comme un
+  utilisateur avec `choisirTheme(page, 'dark' | 'light' | 'auto', mobile)` de `tests/lib/outils.js`
+  (popover de `#theme-btn` sur ordinateur, segmenté de la feuille ⋯ au téléphone), ou appeler
+  `window.__setTheme('dark')`.
+- Fiches de révision : les boutons de notation n'existent qu'au **verso** (retourner la carte
+  d'abord, `flashFlip` ou clic sur la fiche). « Aujourd'hui » s'ouvre par `#today-btn` (en-tête)
+  ou `window.todayOpen()` ; il ne s'ouvre jamais seul au lancement.
+- À partir de 1200 px, la navigation des chapitres est une **barre latérale permanente** (rien à
+  « ouvrir ») ; en dessous, un tiroir (`#nav-toggle-btn`) ou, au téléphone, une page plein écran
+  (`#mob-menu-btn`).
 - Naviguer avec `naviguer(page, id, onglet)` (ou `location.hash = '#id/onglet'`),
   jamais en posant `.active` à la main.
 - Attention `id` ≠ `prefix` : l'onglet Cours de `ondes` est `ond-cours`. Utiliser `CHAPTERS_BY_ID[id].prefix`.
@@ -288,10 +297,13 @@ ainsi (tableau « mutant → contrôle qui l'attrape » : `docs/audit-2026-09.md
 - Playwright 1.56.1 est installé **globalement** et Chromium est dans
   `/opt/pw-browsers` (`PLAYWRIGHT_BROWSERS_PATH` déjà positionné). `tests/run.js`
   trouve le Playwright global tout seul (via `npm root -g`) : `NODE_PATH` est facultatif.
+- Si les polices Latin Modern sont installées (`/usr/share/texmf/fonts`), lancer les tests avec un
+  `FONTCONFIG_FILE` qui les exclut (`<selectfont><rejectfont><glob>/usr/share/texmf/fonts/*</glob></rejectfont></selectfont>`) :
+  sinon les largeurs mesurées changent et `mobile` / `visuel` peuvent échouer.
 - **Ne pas lancer** `npx playwright install` ni `npm install` dans le dépôt
   (une autre version de Playwright réclamerait un Chromium absent du conteneur).
-- Commandes : `node tests/run.js --rapide` (≈ 6 min 30 s, jusqu'à 8 min 30 s), `node tests/run.js` (≈ 20 min),
-  `node tests/run.js --suite=visuel` (≈ 2 min).
+- Commandes : `node tests/run.js --rapide` (≈ 8 min), `node tests/run.js` (≈ 25 min),
+  `node tests/run.js --suite=visuel` (≈ 4 min ; `--strict` pour la refonte).
   L'outil Bash coupe au bout de 10 min : lancer la batterie complète (et `--rapide`, qui
   s'en approche) **en arrière-plan** en redirigeant la sortie vers un fichier temporaire
   hors du dépôt, puis suivre ce fichier.

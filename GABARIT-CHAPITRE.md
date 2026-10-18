@@ -2,7 +2,7 @@
 
 Ce fichier est un **modèle à copier-coller** dans `index.html`. Il n'est pas utilisé par le site, c'est juste une aide-mémoire.
 
-> 💡 **Retrouver un endroit dans `index.html`** : le fichier fait plus de 50 000 lignes et les numéros de ligne changent à chaque modification. On cherche donc un **texte repère** : dans ton éditeur, `Ctrl+F` puis le repère indiqué (par ex. `const CHAP_GROUPS`) ; dans un terminal, `grep -n "const CHAP_GROUPS" index.html`.
+> 💡 **Retrouver un endroit dans `index.html`** : le fichier fait près de 80 000 lignes et les numéros de ligne changent à chaque modification. On cherche donc un **texte repère** : dans ton éditeur, `Ctrl+F` puis le repère indiqué (par ex. `const CHAP_GROUPS`) ; dans un terminal, `grep -n "const CHAP_GROUPS" index.html`.
 
 ## Principe : 5 endroits à modifier
 
@@ -14,7 +14,7 @@ Ce fichier est un **modèle à copier-coller** dans `index.html`. Il n'est pas u
 | D | Le **bloc du chapitre** (onglets + panneaux) | le bon `<main>` : `id="si-content"` pour la SI, le `<main>` principal pour les autres matières |
 | E | Les **flashcards** (`const …Cards` + `makeFlash(...)`) | juste après une ligne `Flash = makeFlash(` existante (repère : `Flash = makeFlash(`) |
 
-⚠️ **Il n'y a PAS de bouton de navigation à écrire.** Le menu des chapitres (tiroir) et les boutons `.chap-btn` sont construits automatiquement à partir de `CHAPTERS` et `CHAP_GROUPS` ; un bouton ajouté à la main serait effacé.
+⚠️ **Il n'y a PAS de bouton de navigation à écrire.** La navigation des chapitres (barre latérale, tiroir, page « Chapitres » du téléphone), les boutons `.chap-btn`, l'en-tête du chapitre (intercalaire avec fil d'Ariane, Formulaire, Imprimer, Épingler), les compteurs des onglets, le rail « Dans ce chapitre » et les cartes précédent / suivant sont construits automatiquement à partir de `CHAPTERS` et `CHAP_GROUPS` ; un bouton ajouté à la main serait effacé.
 
 ## Convention de nommage (à choisir avant de commencer)
 
@@ -39,7 +39,7 @@ Dans les gabarits ci-dessous, remplace **`monid`** par ton id et **`mon`** par t
 
 - `matiere` : `'physique'`, `'maths'`, `'si'`, `'info'` ou `'anglais'`.
 - `sub` / `subLabel` : tu peux les recopier d'un voisin, mais ils sont **réécrits automatiquement** par `CHAP_GROUPS` (étape B).
-- `matiereLabel` (petit tag du bouton de chapitre, repris sur la page de garde de l'impression ; le bandeau de titre, lui, affiche `subLabel`) et `domain` (couleur d'accent) **ne sont pas** réécrits : recopie-les d'un chapitre du **même groupe**.
+- `matiereLabel` (petit tag affiché dans le fil d'Ariane de l'en-tête du chapitre et repris par l'impression) et `domain` (ancien code de couleur, gardé pour compatibilité : la couleur vient maintenant de `matiere`) **ne sont pas** réécrits : recopie-les d'un chapitre du **même groupe**.
 - `panels` : la liste des onglets. Elle doit correspondre **exactement** aux onglets du bloc D.
 - `drawFn:null` car pas de simulateur (voir la dernière section sinon).
 - **Anglais (ou autre langue)** : `panels:['cours','flash']` en général (pas d'exercices). Les cartes sont affichées en texte brut (pas de maths) et peuvent être lues à voix haute.
@@ -58,14 +58,14 @@ Cherche `const CHAP_GROUPS`. Chaque ligne est un groupe `[ code, 'Libellé', [id
 
 ## C. Chapitre de 2ᵉ année (sinon, passe à D)
 
-Juste en dessous de `CHAP_GROUPS`, ajoute `'monid'` dans `window.__YEAR2A = new Set([ … ])`. Le chapitre reçoit alors le badge « 2ᵉ année » dans son bandeau de titre et n'apparaît que lorsque « 2ᵉ année » est sélectionnée dans le menu.
+Juste en dessous de `CHAP_GROUPS`, ajoute `'monid'` dans `window.__YEAR2A = new Set([ … ])`. Le chapitre reçoit alors le badge « 2ᵉ année » dans l'en-tête du chapitre (« 2A » dans la navigation) et n'apparaît que lorsque « 2ᵉ année » est sélectionnée dans la navigation.
 
 ---
 
 ## D. Bloc du chapitre
 
 À coller dans le bon `<main>` (entre deux chapitres existants : cherche `id="chap-` d'un voisin). Pour la **SI**, c'est dans `<main id="si-content">`.
-Ce gabarit est la **version sans simulateur** (le cas le plus courant). Pour un chapitre d'anglais, garde seulement les onglets Cours et Flashcards (et renumérote : 01, 02).
+Ce gabarit est la **version sans simulateur** (le cas le plus courant). Pour un chapitre d'anglais, garde seulement les onglets Cours et Flashcards (et renumérote : 01, 02). Les numéros `<span class="num">01</span>` restent dans le HTML mais **ne s'affichent plus** ; l'onglet « Flashcards » est affiché « Cartes », et au téléphone « Simulateur » / « Exercices » deviennent « Simu » / « Exos » (fait par le site).
 
 ```html
 <!-- ====================== CHAPITRE : Nom du chapitre ====================== -->
@@ -87,10 +87,11 @@ Ce gabarit est la **version sans simulateur** (le cas le plus courant). Pour un 
 
     <h3>Sous-titre</h3>
     <p>Paragraphe de cours. Math en ligne : \(a^2 + b^2 = c^2\).</p>
-    <div class="formula">$$E = mc^2$$</div>
+    <div class="formula" data-nom="Équivalence masse-énergie">$$E = mc^2$$</div>
 
-    <div class="def-box"><strong>Définition.</strong> Texte de la définition.</div>
-    <div class="prop-box"><strong>Propriété.</strong> Texte de la propriété.</div>
+    <div class="def-box">La <strong>notion définie</strong> est … (intitulé « DÉFINITION » ajouté par le site).</div>
+    <div class="prop-box"><strong>Nom du résultat :</strong> énoncé à retenir (intitulé « À RETENIR »).</div>
+    <div class="notice"><strong>Piège classique :</strong> remarque, erreur fréquente (intitulé « À NOTER »).</div>
 
     <div class="reveal" onclick="this.classList.toggle('open')">
       <span class="label">Application</span>
@@ -107,11 +108,12 @@ Ce gabarit est la **version sans simulateur** (le cas le plus courant). Pour un 
     <h2>Stratégies pour les exercices</h2>
     <div class="method-box">
       <strong>Méthode 1 — Titre de la méthode</strong>
-      <ol style="margin-top:0.4rem">
+      <ol>
         <li><span class="step">Étape 1.</span> Première étape.</li>
         <li><span class="step">Étape 2.</span> Deuxième étape.</li>
       </ol>
     </div>
+    <!-- Les « Étape n. » deviennent des pastilles numérotées à l'écran (texte gardé pour les lecteurs d'écran). -->
   </div>
 </section>
 
@@ -149,8 +151,16 @@ Ce gabarit est la **version sans simulateur** (le cas le plus courant). Pour un 
       <p><strong>Q1.</strong> Réponse.</p>
     </div>
   </div>
-  <!-- Exercice type concours (facultatif) : <div class="exo concours"> … </div>,
-       à placer ICI, à l'intérieur de .exo-wrapper, sans </div> supplémentaire. -->
+  <!-- Exercice type concours (facultatif), à placer ICI, à l'intérieur de .exo-wrapper,
+       sans </div> supplémentaire :
+  <div class="exo concours">
+    <span class="num">EXO 05</span><span class="diff">★ ★ ★</span>
+    <h3>Titre — Concours PT</h3>
+    <div class="exo-source">Exercice <strong>original</strong> au format concours (thème…).</div>
+    <p class="exo-part">Partie A — Titre de la partie</p>
+    <div class="q"><strong>Q1.</strong> …</div>
+    … (bouton + solution comme ci-dessus)
+  </div> -->
 </div>
 </section>
 
@@ -158,11 +168,20 @@ Ce gabarit est la **version sans simulateur** (le cas le plus courant). Pour un 
 <!-- ====================== FIN CHAPITRE ====================== -->
 ```
 
+**Ce que le site ajoute tout seul** (ne pas l'écrire dans le HTML) :
+- les **intitulés des encadrés** : « DÉFINITION » (`.def-box`), « À RETENIR » (`.prop-box`), « À NOTER » (`.notice`) ; commence l'encadré directement par le texte, ou par un `<strong>` qui nomme la notion ;
+- le **surtitre** `§1 · TITRE` est découpé (« §1 » passe dans la marge sur ordinateur) : garde exactement la forme `§n · TITRE` en tête de chaque `.course-section` (les surtitres sans « §n », comme `MÉTHODES · NOM`, restent tels quels) ;
+- la **difficulté** `★ ☆ ☆` / `★ ★ ☆` / `★ ★ ★` devient 3 barres + « Facile » / « Moyen » / « Difficile », et l'onglet Exercices reçoit des filtres (difficulté, Concours PT) : garde exactement ce format d'étoiles ;
+- la **typographie française** (espaces fines avant ; ! ? », insécables avant :) : écris les espaces normalement ;
+- `data-nom="…"` (facultatif) sur une `.formula` : nom de la formule, affiché dans la marge (au-dessus au téléphone) et repris par le Formulaire et la recherche ;
+- deux `.formula` qui se suivent sont fusionnées en un seul bloc ; une formule trop longue défile horizontalement ;
+- les **couleurs** : celles de la matière du chapitre (`matiere`), y compris dans les schémas SVG si tu utilises les classes existantes (`.svg-*`, `.lab-*`) — jamais de couleur écrite en dur.
+
 **Règles pour les formules du cours** :
 - en ligne `\( … \)`, en bloc `$$ … $$` (pas `\[ … \]`) ;
 - jamais un `<` collé à une lettre dans une formule (`\(a<b\)` casse la page) : écrire `\(a \lt b\)` ;
 - pas de commandes exotiques (`\cancel`, `\ce`…) : elles ne sont pas disponibles hors-ligne ;
-- une très longue formule en ligne déborde sur téléphone : la mettre plutôt en bloc `$$ … $$` dans une `<div class="formula">`.
+- une très longue formule en ligne devient défilante sur téléphone (lisible mais moins confortable) : la mettre plutôt en bloc `$$ … $$` dans une `<div class="formula">`.
 
 ---
 
@@ -179,6 +198,7 @@ const monCards = [
 const monFlash = makeFlash(monCards, 'mon', 'mon-flash-content', 'mon-flash-prog', 'mon-stats');
 ```
 
+- La fiche affichée (en-tête, badges « Formule » / « Grandeur », boutons de notation avec la date de prochaine révision, « Voir dans le cours ») est construite par le site à partir du HTML du panneau Flashcards ci-dessus : ne pas modifier ce HTML, sauf le prefix.
 - **Formules : caractères Unicode par défaut.** Écris `ω₀`, `√(LC)`, `½`, `→`, `x²`, `e^(iθ)`, `u_n` : le site les convertit tout seul en belles formules (même police que le cours). Si une carte s'affiche mal, tu peux l'écrire directement en LaTeX, avec **deux** antislashs dans le code JS : `a:"\\(\\omega_0 = \\dfrac{1}{\\sqrt{LC}}\\)"`.
 - **Anglais** : texte brut, pas de maths ; tu peux utiliser `<strong>`, `<em>`, `<br>` dans les réponses.
 - `cat` est **facultatif** : `'form'` (formule) ou `'val'` (grandeur usuelle) permet de filtrer ces cartes dans le Quiz.
@@ -191,7 +211,7 @@ const monFlash = makeFlash(monCards, 'mon', 'mon-flash-content', 'mon-flash-prog
 
 ## Vérification après ajout
 
-1. **Change le numéro de version** : en haut de `sw.js`, incrémente `CACHE_VERSION` (ex. `'ptsi-cache-v81'` → `'ptsi-cache-v82'`). Sans ça, l'application installée ne proposera pas la mise à jour.
+1. **Change le numéro de version** au moment de publier : en haut de `sw.js`, incrémente `CACHE_VERSION` (ex. `'ptsi-cache-v88'` → `'ptsi-cache-v89'`). Sans ça, l'application installée ne proposera pas la mise à jour.
 2. **Lance le validateur** (quelques secondes) :
    ```
    python tools/validate.py
@@ -219,6 +239,7 @@ Un simulateur est un dessin sur un `<canvas>` piloté par des curseurs. Le plus 
 <section class="panel" id="mon-simu">
 <div class="sim-wrapper">
   <h2>Simulateur — Titre</h2>
+  <p class="lead">Une phrase qui dit ce qu'on observe en bougeant les curseurs.</p>
   <div class="sim-controls">
     <div class="control">
       <label>Paramètre a</label>
@@ -288,8 +309,9 @@ Un simulateur est un dessin sur un `<canvas>` piloté par des curseurs. Le plus 
 ```
 
 **4. Les finitions** :
-- **Couleurs** : uniquement `__CV()` (`C.ink`, `C.paper`, `C.accent`, `C.accent2`, `C.green`, `C.amber`, `C.muted`, `C.grid`) et `__CVA('nom', alpha)` — **jamais** de couleur écrite en dur (`'#c8472e'`, `rgba(…)`), sinon le simulateur devient illisible en thème sombre.
+- **Couleurs** : uniquement `__CV()` (`C.ink`, `C.paper`, `C.accent`, `C.accent2`, `C.green`, `C.amber`, `C.muted`, `C.grid`), `__CVA('nom', alpha)` et, pour la **courbe principale**, `__CVchap(canvas)` (couleur de la matière du chapitre) — **jamais** de couleur écrite en dur (`'#c8472e'`, `rgba(…)`), sinon le simulateur devient illisible en thème sombre.
+- **Libellés du canvas** : au moins 12 px (`ctx.font = '12px "Source Sans 3"'`, ou `JetBrains Mono` pour les valeurs) ; un libellé posé sur une courbe se lit mieux avec `__texteDetoure(ctx, texte, x, y)` (pavé de la couleur du fond sous le texte).
 - **Redimensionnement de la fenêtre** : ajoute ta fonction au gestionnaire global (repère : `window.addEventListener('resize',()=>{drawSim();`) sur le modèle `if(typeof drawMon==='function')drawMon();`.
-- **Taille du canvas** : ajoute `#mon-canvas` à la règle CSS commune des canvas (repère : `#sim-canvas, #opt-canvas`) ; pour une autre hauteur, ajoute une ligne comme `#mon-canvas{height:480px}` juste après.
-- **Badge de régime** (`.regime-badge`) : une nouvelle variante doit recevoir sa couleur dans le bloc CSS « Contraste des encadrés de simulateur en thème sombre ».
+- **Mise en page** : rien à écrire ; la région CSS « SIMU » place la courbe à gauche et les réglages à droite (au téléphone : la courbe d'abord, puis les réglages) et ajoute un bouton « Valeurs par défaut ». Hauteur de la toile : 380 px par défaut ; pour une autre hauteur, ajoute une ligne comme `#mon-canvas{ --h:450px; }` à côté des autres (repère : `#tr-canvas{ --h:560px; }`).
+- **Badge de régime** (`.regime-badge`) : variantes existantes `.pseudo`, `.critique`, `.aperiodique` ; une nouvelle variante reçoit ses couleurs (jetons uniquement) à côté d'elles, dans la région SIMU.
 - **Teste dans les deux thèmes** (bouton Thème), puis `node tests/run.js --suite=site --chapitres=monid` : la suite vérifie que le simulateur s'exécute et dessine en clair et en sombre.
