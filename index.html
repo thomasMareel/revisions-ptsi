@@ -7,6 +7,19 @@
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#c8472e">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<script>
+/* Thème posé AVANT le premier affichage (sinon flash clair au lancement en
+   sombre). Préférence 'light' | 'dark' | 'auto' (défaut : 'auto' = suit le
+   système). Lit localStorage directement : Store n'existe pas encore ici
+   (exception documentée dans CLAUDE.md). Le module THÈME du grand script prend
+   ensuite le relais (bouton, suivi du système en continu). */
+(function(){
+  var t = null;
+  try { t = localStorage.getItem('theme'); } catch(e){}
+  var sombre = t === 'dark' || (t !== 'light' && !!(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches));
+  if(sombre) document.documentElement.setAttribute('data-theme', 'dark');
+})();
+</script>
 <link rel="stylesheet" href="vendor/fonts/fonts.css">
 <script>
 window.MathJax = {
@@ -73150,27 +73163,54 @@ document.addEventListener('keydown',e=>{
 /* ============================================== */
 /* ====== THÈME (mode sombre) + AUTOSAVE ======== */
 /* ============================================== */
+/* Préférence (clé 'theme') : 'light' | 'dark' | 'auto' (défaut, et ancienne
+   valeur absente) = suit le réglage clair/sombre de l'appareil, EN CONTINU.
+   Le thème effectif reste exprimé par data-theme="dark" sur <html> (seul
+   sélecteur du CSS sombre, lu par getCanvasColors/__CV) ; data-theme-pref
+   porte la préférence. Déjà posé avant l'affichage par le script du <head>.
+   Bouton : auto → l'inverse du thème affiché → l'autre → auto (les deux
+   premiers clics changent toujours l'écran). API : window.__themePref(),
+   window.__setTheme(pref). */
 (function(){
   const root = document.documentElement;
   const label = document.getElementById('theme-label');
-  function applyTheme(theme){
-    if(theme==='dark'){ root.setAttribute('data-theme','dark'); if(label) label.textContent='Clair'; }
-    else { root.removeAttribute('data-theme'); if(label) label.textContent='Sombre'; }
-  }
-  // Restaurer le thème ; par défaut suit la préférence système au premier lancement
-  let saved = Store.get('theme');
-  if(saved===null){
-    saved = (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
-  }
-  applyTheme(saved);
   const btn = document.getElementById('theme-btn');
-  if(btn) btn.addEventListener('click',()=>{
-    const now = root.getAttribute('data-theme')==='dark' ? 'light' : 'dark';
-    applyTheme(now);
-    Store.set('theme', now);
-    // redessiner les canvas (couleurs éventuellement dépendantes du thème)
-    setTimeout(()=>{ try{ const a=document.querySelector('.chapter.active'); if(a) redrawChapter(a.id.replace('chap-','')); }catch(e){} }, 50);
-  });
+  const mq = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
+  const NOMS = { light:'Clair', dark:'Sombre', auto:'Auto' };
+  const themePref = () => { const t = Store.get('theme'); return (t === 'light' || t === 'dark') ? t : 'auto'; };
+  const estSombre = pref => pref === 'dark' || (pref === 'auto' && !!(mq && mq.matches));
+  function suivant(pref){
+    if(pref === 'auto') return estSombre('auto') ? 'light' : 'dark';
+    return estSombre('auto') === (pref === 'dark') ? 'auto' : (pref === 'dark' ? 'light' : 'dark');
+  }
+  function applyTheme(pref){
+    const avant = root.getAttribute('data-theme') === 'dark';
+    const sombre = estSombre(pref);
+    if(sombre) root.setAttribute('data-theme','dark'); else root.removeAttribute('data-theme');
+    root.setAttribute('data-theme-pref', pref);
+    if(label) label.textContent = NOMS[pref];
+    const t = 'Thème : ' + NOMS[pref] + (pref === 'auto' ? ' (suit l\'appareil)' : '') + ' — passer à ' + NOMS[suivant(pref)];
+    [btn, document.getElementById('mob-theme-btn')].forEach(b => { if(b){ b.title = t; b.setAttribute('aria-label', t); } });
+    // redessiner les canvas (couleurs dépendantes du thème) si l'écran a changé
+    if(avant !== sombre) setTimeout(()=>{ try{
+      const a = Array.from(document.querySelectorAll('.chapter.active')).find(x => x.offsetParent !== null);
+      if(a) redrawChapter(a.id.replace('chap-',''));
+    }catch(e){} }, 50);
+  }
+  function setTheme(pref){
+    if(pref !== 'light' && pref !== 'dark') pref = 'auto';
+    Store.set('theme', pref);
+    applyTheme(pref);
+  }
+  applyTheme(themePref());
+  if(mq){
+    const surChangement = () => { if(themePref() === 'auto') applyTheme('auto'); };
+    if(mq.addEventListener) mq.addEventListener('change', surChangement);
+    else if(mq.addListener) mq.addListener(surChangement);
+  }
+  if(btn) btn.addEventListener('click', () => setTheme(suivant(themePref())));
+  window.__themePref = themePref;
+  window.__setTheme = setTheme;
 })();
 
 /* ====== Navigation programmatique vers un chapitre/onglet ====== */

@@ -17,7 +17,7 @@ Application web statique, **mono-fichier** (`index.html`) : tout le HTML, le CSS
 - **Recherche** globale (cours, formules, encadrés, flashcards), **formulaire** du chapitre (fiche de synthèse imprimable), **impression** d'un chapitre, **cartes signalées**.
 - **Lecture audio** des cartes d'anglais.
 - **Navigation** : tiroir des chapitres (filtre, épinglés, récents), boutons précédent/suivant (‹ › et Alt+←/→), liens directs du type `#rlc/cours`.
-- **Thème clair / sombre**, taille du texte réglable, version **mobile**.
+- **Thème clair / sombre / auto** (suit le réglage de l'appareil), taille du texte réglable, version **mobile**.
 - Formules mathématiques rendues avec **MathJax**.
 - **Application installable (PWA)** : depuis le site en ligne (HTTPS), installable sur téléphone/ordinateur, avec mise en cache pour un fonctionnement hors-ligne et un lancement instantané.
 

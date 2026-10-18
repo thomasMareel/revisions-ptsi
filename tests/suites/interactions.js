@@ -334,6 +334,30 @@ module.exports = {
     });
 
     /* ---------- Thème ---------- */
+    await etape('thème Auto : suit le réglage de l\'appareil en continu, pas un choix explicite', async () => {
+      const lire = () => page.evaluate(() => ({ t: document.documentElement.getAttribute('data-theme'), pref: document.documentElement.getAttribute('data-theme-pref') }));
+      const attendre = async attendu => {   // l'événement « change » de matchMedia est asynchrone
+        for (let i = 0; i < 30; i++) { const s = await lire(); if (s.t === attendu) return s; await pause(100); }
+        return lire();
+      };
+      const pb = [];
+      await page.evaluate(() => window.__setTheme('auto'));
+      await page.emulateMedia({ colorScheme: 'dark' });
+      let s = await attendre('dark');
+      if (s.t !== 'dark' || s.pref !== 'auto') pb.push('Auto + appareil en sombre : data-theme=' + s.t + ', préférence=' + s.pref);
+      await page.emulateMedia({ colorScheme: 'light' });
+      s = await attendre(null);
+      if (s.t === 'dark') pb.push('Auto + appareil repassé en clair : le site reste sombre');
+      await page.evaluate(() => window.__setTheme('light'));
+      await page.emulateMedia({ colorScheme: 'dark' });
+      await pause(600);
+      s = await lire();
+      if (s.t === 'dark') pb.push('préférence Clair : le site suit quand même l\'appareil en sombre');
+      await page.emulateMedia({ colorScheme: 'light' });
+      await page.evaluate(() => window.__setTheme('auto'));
+      return pb;
+    });
+
     await etape('thème sombre puis clair (#theme-btn, mémorisé)', async () => {
       await page.click('#theme-btn');
       await pause(250);
