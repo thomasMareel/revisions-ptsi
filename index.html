@@ -1878,9 +1878,13 @@ figure.schema svg{ width:100%; height:auto; overflow:visible; display:block; }
 #sk-arrow-green path{ fill:var(--green); }
 /* Schéma dont un libellé passerait sous 12 px : le script lui donne une largeur minimale
    (--svg-min, .lisible) ; la figure s'élargit jusqu'à la colonne (au téléphone, jusque dans la
-   gouttière), puis défile en largeur si cela ne suffit pas (.defile). */
-figure.schema.lisible{ max-width:max(540px, var(--svg-min, 0px)); }
+   gouttière), puis défile en largeur si cela ne suffit pas (.defile). !important : 88 figures
+   portent un max-width en ligne (souvent 300 px) qui, sinon, les laissait défiler dans leur
+   largeur d'origine alors que la colonne avait la place. Le schéma prend juste la largeur
+   nécessaire, centré dans la figure. */
+figure.schema.lisible{ max-width:max(540px, var(--svg-min, 0px)) !important; }
 figure.schema.lisible svg, .cine-svg-wrap.lisible svg{ min-width:var(--svg-min, 0px); }
+figure.schema.lisible svg{ max-width:var(--svg-min, none); margin-inline:auto; }
 figure.schema.defile, .cine-svg-wrap.defile{ overflow-x:auto; overflow-y:hidden; padding-block:.25rem; scrollbar-width:thin; }
 .cine-svg-wrap.defile{ justify-content:safe center; }
 /* Libellés blancs posés sur une pastille colorée (molécules, ions) : couleur de la feuille, lisible
@@ -2000,7 +2004,9 @@ figure.schema.defile, .cine-svg-wrap.defile{ overflow-x:auto; overflow-y:hidden;
   .reveal{ padding:.85em 1em; }
   .reveal .label, .reveal .prompt{ padding-right:0; }
   .reveal::after{ position:static; margin-top:.7em; }
-  figure.schema.lisible{ max-width:none; margin-left:calc(var(--gutter) * -1 + 4px); margin-right:calc(var(--gutter) * -1 + 4px); }
+  figure.schema.lisible{ max-width:none !important; margin-left:calc(var(--gutter) * -1 + 4px); margin-right:calc(var(--gutter) * -1 + 4px); }
+  /* … mais la légende reste dans la colonne du texte */
+  figure.schema.lisible figcaption{ padding-inline:calc(var(--gutter) - 4px); }
   .exo{ padding:1.1rem 1rem 1.2rem; }
   .exo .q{ padding-left:2.1rem; text-indent:-2.1rem; }
   .exo .q > strong:first-child{ min-width:2.1rem; }
@@ -76963,6 +76969,20 @@ document.getElementById('skip-link')?.addEventListener('click', e => {
   try { new MutationObserver(remesurer).observe(document.documentElement, { attributes: true, attributeFilter: ['style'] }); } catch(e){ /* sans observateur : mesures au redimensionnement seulement */ }
   // Premier affichage : structurer tout de suite les panneaux actifs (pas de saut de mise en page)
   sur(function(){ document.querySelectorAll('.chapter.active .panel.active').forEach(structurer); })();
+  // Rattrapage : sur un téléphone lent, la restauration du dernier chapitre (+120 ms) peut afficher
+  // un panneau et lancer son rendu AVANT que ce script, en fin de page, soit lu : sa promesse
+  // trouvait alors window.__apresRendu indéfini et le panneau restait sans finitions (typographie,
+  // .mj-large, schémas). On attend la file de MathJax (startup.promise enchaîne tous les rendus
+  // lancés) puis on finit chaque panneau actif déjà lancé ; finir() est idempotent.
+  sur(function(){
+    var lances = window.__typesetLances, mj = window.MathJax;
+    var file = mj && mj.startup && mj.startup.promise;
+    document.querySelectorAll('.chapter.active .panel.active').forEach(function(p){
+      if(p.querySelector('mjx-container')) { window.__apresRendu(p); return; }
+      if(lances && lances.has(p) && file && typeof file.then === 'function')
+        file.then(sur(function(){ window.__apresRendu(p); }), function(){});
+    });
+  })();
 })();
 </script>
 
