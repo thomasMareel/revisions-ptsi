@@ -333,6 +333,52 @@ module.exports = {
       return [s.ok && !s.btn && 'bouton .flash-tts-btn absent alors que la synthèse vocale est disponible'];
     });
 
+    /* ---------- Raccourcis des cartes : tous les decks, garde de saisie, rien derrière le quiz ---------- */
+    await etape('raccourcis des cartes (Espace, 1/2/3, flèches) sur un deck quelconque, garde de saisie et quiz', async () => {
+      const pb = [];
+      await naviguer(page, autre.id, 'flash');
+      await pause(300);
+      const lire = () => page.evaluate(p => ({
+        verso: !!(FLASH_INSTANCES[p] && FLASH_INSTANCES[p].isFlipped && FLASH_INSTANCES[p].isFlipped()),
+        panneau: (Array.from(document.querySelectorAll('.chapter.active .panel.active')).find(x => x.offsetParent) || {}).id,
+        chap: (Array.from(document.querySelectorAll('.chapter.active')).find(x => x.offsetParent) || {}).id,
+        notees: (Store.getJSON('flash:' + p, []) || []).filter(s => s && s.last !== null && s.last !== undefined).length,
+        prog: (document.getElementById(p + '-flash-prog') || {}).textContent || '',
+      }), autre.prefix);
+      await page.evaluate(() => { if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); });
+      const s0 = await lire();
+      await page.keyboard.press('2'); await pause(250);
+      const s1 = await lire();
+      if (s1.panneau !== autre.prefix + '-flash') pb.push('« 2 » au recto a changé d\'onglet (' + s1.panneau + ')');
+      if (s1.notees !== s0.notees) pb.push('« 2 » au recto a noté une carte');
+      await page.keyboard.press(' '); await pause(500);
+      const s2 = await lire();
+      if (!s2.verso) pb.push('Espace ne retourne pas la carte (' + autre.prefix + ')');
+      await page.keyboard.press('3'); await pause(400);
+      const s3 = await lire();
+      if (s3.notees !== s0.notees + 1) pb.push('« 3 » au verso : ' + (s3.notees - s0.notees) + ' carte(s) notée(s) au lieu de 1');
+      if (s3.verso) pb.push('après « 3 », la carte suivante est restée au verso');
+      await page.keyboard.press('ArrowRight'); await pause(250);
+      const s4 = await lire();
+      if (s4.prog === s3.prog) pb.push('→ ne passe pas à la carte suivante (« ' + s4.prog + ' »)');
+      // Garde de saisie : Espace dans un champ ne retourne rien
+      await page.evaluate(() => { const i = document.createElement('input'); i.id = 'zz-saisie'; document.body.appendChild(i); i.focus(); });
+      await page.keyboard.press(' '); await pause(300);
+      if ((await lire()).verso) pb.push('Espace dans un champ de saisie a retourné la carte');
+      await page.evaluate(() => { const i = document.getElementById('zz-saisie'); if (i) i.remove(); });
+      // Quiz ouvert : les touches ne vont pas à la page derrière
+      await page.evaluate(() => window.quizOpen());
+      await pause(400);
+      await page.keyboard.press('n'); await pause(400);
+      await page.keyboard.press('3'); await pause(250);
+      const s5 = await lire();
+      if (s5.chap !== 'chap-' + autre.id) pb.push('« n » derrière le quiz a changé de chapitre (' + s5.chap + ')');
+      if (s5.notees !== s3.notees) pb.push('« 3 » derrière le quiz a noté une carte du chapitre');
+      await page.keyboard.press('Escape'); await pause(250);
+      if (await ouvert('quiz-overlay')) pb.push('Échap ne ferme pas le quiz');
+      return pb;
+    });
+
     /* ---------- Thème ---------- */
     await etape('thème Auto : suit le réglage de l\'appareil en continu, pas un choix explicite', async () => {
       const lire = () => page.evaluate(() => ({ t: document.documentElement.getAttribute('data-theme'), pref: document.documentElement.getAttribute('data-theme-pref') }));
