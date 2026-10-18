@@ -22,10 +22,10 @@ serveur local le temps du test, puis s'arrête.
 | `interactions` | lien direct `#chapitre/onglet` et `#sommaire/<matière>`, boutons précédent/suivant du navigateur, cartes précédent/suivant, passage vers la SI, barre latérale des chapitres (repli mémorisé), Sommaire de la matière, filtre groupé par matière, page chapitre (intercalaire, onglets, rail), recherche groupée (↑ ↓, Entrée), flashcards + répétition espacée, raccourcis des cartes et garde de saisie, quiz, « Réviser », Bilan, Aujourd'hui, formulaire, cartes signalées, calcul mental, aide clavier « ? », touche n inactive derrière les fenêtres, impression, thème par le sélecteur, **sauvegarde export puis import** | ≈ 1 min |
 | `pwa` | `sw.js` (fichiers du précache présents), manifeste, service worker activé, cache rempli, **rechargement hors-ligne** | ≈ 10 s |
 | `regressions` | un test par correctif **B1 à B5** : notes du quiz conservées par les flashcards, même localStorage plein (puis de nouveau disponible) et même quand le quiz tourne dans un autre onglet (B1) ; progression qui suit ses cartes quand un deck change (B2 : un état distinct pour **chaque** carte, contrôlé carte par carte) — carte insérée, retirée, déplacée ; question reformulée (sur place, suivie d'une insertion, après retrait de la précédente, à côté d'une carte déplacée, entre une carte retirée et une carte ajoutée) ; cas ambigu (deux entrées candidates de même réponse → carte vierge) ; question **et** réponse retouchées sur place, deck entier réécrit (état conservé) ; carte remplacée sur place (hérite de l'état de l'ancienne) ; question en double (réponses différentes ou doublon exact) —, `quizRate` sur un état ancien non migré, import d'une ancienne sauvegarde, cartes signalées (y compris sur une question en double, et signalement devenu orphelin) ; t₅% et palier du simulateur SLCI (B3) ; couleurs des simulateurs en thème sombre (B4) ; impression d'un chapitre : formules réellement dessinées dans le document imprimé (glyphes, polices MathJax chargées, encre), exercices non découpés, en-têtes et intertitres jamais coupés de leur suite en bas de page (B5) | ≈ 3 min |
-| `visuel` | **mesures visuelles**, garde-fou de la refonte graphique, sur **24 écrans** (rlc cours / méthodes / simulateur / cartes / exercices avec une solution dépliée, maxwell cours, slci cours, cartes d'anglais, navigation des chapitres, recherche, formulaire, sauvegarde, cartes signalées, calcul mental, raccourcis, quiz, Bilan, Aujourd'hui, menus Plus et Réviser, sélecteur de thème, feuille ⋯ du téléphone, Sommaire de la matière), en thème clair **et** sombre, sur ordinateur 1440×900 **et** téléphone 390×844 : **contraste** réel du texte (≥ 4,5:1, 3:1 en grand texte), **taille** du texte (≥ 12 px), **débordement** horizontal, **cibles tactiles** sur téléphone (≥ 24 px ou assez espacées, WCAG 2.5.8 ; ≥ 44 px, signalé à part) ; une liste d'anomalies *déjà connues* est tolérée (sauf avec `--strict`, que la refonte doit passer) ; détail dans `visuel.json` + `visuel.md` et une capture par écran (voir §4) | ≈ 4 min (identique en `--rapide`) |
+| `visuel` | **mesures visuelles**, garde-fou de la refonte graphique, sur **24 écrans** (rlc cours / méthodes / simulateur / cartes / exercices avec une solution dépliée, maxwell cours, slci cours, cartes d'anglais, navigation des chapitres, recherche, formulaire, sauvegarde, cartes signalées, calcul mental, raccourcis, quiz, Bilan, Aujourd'hui, menus Plus et Réviser, sélecteur de thème, feuille ⋯ du téléphone, Sommaire de la matière), en thème clair **et** sombre, sur ordinateur 1440×900 **et** téléphone 390×844 : **contraste** réel du texte (≥ 4,5:1, 3:1 en grand texte), **taille** du texte (≥ 12 px), **débordement** horizontal, **cibles tactiles** sur téléphone (≥ 24 px ou assez espacées, WCAG 2.5.8 ; ≥ 44 px, signalé à part) ; une liste d'anomalies *déjà connues* est tolérée (sauf avec `--strict`, que la refonte doit passer) ; détail dans `visuel.json` + `visuel.md` et une capture par écran (voir §4) | ≈ 2 min 30 s (identique en `--rapide`) |
 
 Les durées sont indicatives (mesurées dans un conteneur Linux à 4 cœurs : batterie
-complète ≈ 25 min, `--rapide` ≈ 8 min, dont 4 min pour `visuel` ; davantage
+complète ≈ 25 min, `--rapide` ≈ 8 min, dont 2 min 30 s pour `visuel` ; davantage
 quand la machine est chargée).
 
 ---
@@ -69,8 +69,8 @@ Toujours depuis le dossier du dépôt :
 
 | Commande | Effet |
 |---|---|
-| `npm test` | **toute** la batterie (≈ 20 min) |
-| `npm run test:rapide` | version courte : une dizaine de chapitres couvrant les 5 matières + tous les simulateurs dans un seul thème, et la suite `visuel` complète (≈ 6 min 30 s) |
+| `npm test` | **toute** la batterie (≈ 25 min) |
+| `npm run test:rapide` | version courte : une dizaine de chapitres couvrant les 5 matières + tous les simulateurs dans un seul thème, et la suite `visuel` complète (≈ 8 min) |
 | `npm run valider` | le validateur Python `tools/validate.py` (quelques secondes, sans navigateur) |
 
 Pour passer des options, soit `node tests/run.js <options>`, soit
@@ -303,7 +303,7 @@ ainsi (tableau « mutant → contrôle qui l'attrape » : `docs/audit-2026-09.md
 - **Ne pas lancer** `npx playwright install` ni `npm install` dans le dépôt
   (une autre version de Playwright réclamerait un Chromium absent du conteneur).
 - Commandes : `node tests/run.js --rapide` (≈ 8 min), `node tests/run.js` (≈ 25 min),
-  `node tests/run.js --suite=visuel` (≈ 4 min ; `--strict` pour la refonte).
+  `node tests/run.js --suite=visuel` (≈ 2 min 30 s ; `--strict` pour la refonte).
   L'outil Bash coupe au bout de 10 min : lancer la batterie complète (et `--rapide`, qui
   s'en approche) **en arrière-plan** en redirigeant la sortie vers un fichier temporaire
   hors du dépôt, puis suivre ce fichier.

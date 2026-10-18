@@ -229,3 +229,65 @@ sur des écarts dus au nouveau rendu, à corriger par les lignes propriétaires 
   (fil d'Ariane), `window.__togglePin(id)` / `__isPinned(id)` (bouton Épingler de l'intercalaire),
   `window.__casPhrase(texte, section)` (titres de section en casse de phrase), `window.__surSection`
   (appelé par le scroll-spy du sommaire interne).
+
+## Après la ligne A, étape 2 (PAGE CHAPITRE, branche wip/refonte-a)
+- PAGE réécrite (9 sous-parties) : feuille = `.chapter` (liseré `--chap-vif`, `overflow:clip`), intercalaire
+  `.chap-title-banner` (teinte `--chap-fond` + millimétré `--mill-*` en fondu, qui déborde sous les onglets),
+  onglets `nav.tabs` collants (`.onglets-colles` : fond + ombre), panneaux + filet `--marge` (Cours/Méthodes,
+  ≥ 1024 px), rail `#chap-rail` (≥ 1360 px, fixe, `html.rail-on`), pied `#chap-pager` en deux cartes,
+  tablette (plus de marge), téléphone (pas d'intercalaire, onglets sous `.mbar`, `top:0` avec
+  `html.mbar-cachee`). Les règles `#app-main nav.tabs{top}` de COQUILLE ont été reprises dans PAGE ;
+  reste dans COQUILLE : `html.sommaire-ouvert #app-main > main, #chap-pager{display:none}`.
+- Contrat avec CONTENU (ligne B) : Cours/Méthodes n'ont PAS de retrait gauche (la grille marge 112 px |
+  texte est portée par `.course-section`) ; Exercices/Simulateur/Cartes ont 2,5rem ; téléphone :
+  gouttière `--gutter` (16 px) sur `section.panel`. Le rail lit `.exo > .num`, `.exo > .diff`
+  (`data-niveau` ou ★), `.exo h3`, et suit `.exo.filtre-masque` (clics dans `.exo-tools`) ; le sommaire
+  lit `.sec-num` (textContent « §1 · LES BASES », compatible avec le découpage `.sec-n`/`.sr`/`.sec-t`).
+- Module JS « PAGE CHAPITRE » (`<script>` avant l'enregistrement du SW) ; API : `window.__majPageCompteurs`
+  (appelé par `__updateReviseBadge`), `window.__preparerSections(panel)`, `quizStartDue(prefix)`.
+- Seule la fusion avec B fait disparaître les débordements de formules au téléphone (aperçu fusionné :
+  0 panneau sur 630 ; sur A seule, suit-cours 394 px apparaît avec la gouttière de 16 px).
+
+## Après la ligne B, étape 2 (RÉVISION, branche wip/refonte-b)
+- REVISION réécrite (9 sous-parties) : fiche bristol commune (onglet Cartes ET quiz), commandes sous la
+  fiche, gabarit des fenêtres de révision (`.quiz-overlay` / `.dash-overlay` à `--z-overlay`, modale
+  `--raise` de rayon 22 px, plein écran au téléphone ; `#drill-overlay` partage `.dash-overlay` /
+  `.dash-modal` / `.dash-head` / `.dash-close`), quiz, Aujourd'hui, Bilan + anneau. Les anciens blocs
+  `.flag-list` / `.is-flagged` et `#drill-*` sont GARDÉS tels quels dans REVISION (sous-partie 8) pour la
+  ligne « fenêtres », qui les surcharge depuis FENETRES (seul changement : `.flag-rm:hover` sans #fff).
+- Sur B seule (COQUILLE pas encore fusionnée), l'ancien `#mob-header` (z-index 200) passe au-dessus des
+  fenêtres de révision (z 50) au téléphone : normal, disparaît à la fusion avec A.
+- JS : makeFlash réécrit (DOM enrichi au 1er affichage par ResizeObserver ; API + `isFlipped()`),
+  gestionnaire clavier unique des cartes (remplace celui des 18 decks), quiz (HTML neuf, clavier en
+  CAPTURE, `quizStartDue` enveloppé : lignes de A non touchées), Aujourd'hui (module réécrit, lit
+  `lastPos.t` / `.s` si présents), Bilan (rendu). Fusion d'essai A + B : 0 conflit sur index.html
+  (conflit seulement dans tests/suites/visuel.js, listes TOLERES ; aussi CLAUDE.md : lignes distinctes).
+
+## Après la ligne C, étape 1 (FENÊTRES ET IMPRESSION, branche wip/refonte-c)
+- FENETRES réécrite (7 sous-parties) : gabarit commun `.fen` (voile `--scrim`, `--z-overlay`) > `.fen-boite`
+  (`role="dialog"`, `--raise`, rayon 22 px, `--sh-3`) > `.fen-tete` (`h2.fen-titre` + × `.fen-x`) + `.fen-corps`
+  (+ `.fen-pied`) ; plein écran au téléphone ; recherche (§5.9), formulaire (§5.10), sauvegarde, cartes signalées
+  et calcul mental (par id : `#flag-overlay …`, `#drill-overlay …`, qui battent `.flag-list` / `#drill-*` gardés
+  dans REVISION), raccourcis, toasts `.toasts`/`.toast`, `.backup-close` gardé (lien « Continuer → » d'Aujourd'hui).
+- HTML : `#drill-overlay` n'a PLUS `.dash-overlay`/`.dash-modal`/`.dash-head`/`.dash-close` (gabarit `.fen`) ;
+  ids inchangés. Toutes les fenêtres gardent `.open` + Échap (retour Android de A).
+- JS : module RECHERCHE GLOBALE réécrit (index unifié, résultats groupés, l'ancien « AMÉLIORATION 6 » et
+  `<style id="sr-badge-style">` supprimés) ; `window.__toast(texte, {icone, duree})` ; garde des raccourcis en
+  capture derrière `.fen.open` ; `printChapter()` + `window.__imprimerDocument(opts)` (jetons clairs lus dans le
+  grand `<style>`, corrections et mémos ouverts, Ctrl+P intercepté) ; Formulaire (data-mat, data-nom, impression
+  par l'iframe) ; raccourcis (fenêtre `.fen`, Échap).
+- IMPRESSION : la page ne s'imprime plus par le menu du navigateur (phrase de renvoi au bouton) ; le gabarit
+  d'impression a son propre CSS (dans `imprimerDocument`).
+- Tests : visuel + 5 écrans (formulaire, sauvegarde, signalees, calcul, raccourcis), TOLERES 'recherche' retirées ;
+  interactions : touche n inactive derrière les fenêtres, recherche groupée, aide « ? ».
+- Fusion d'essai A + B + C : index.html et CLAUDE.md sans conflit ; tests/suites/visuel.js : 1 conflit (listes
+  TOLERES, avec B). Sur l'aperçu fusionné (tests fusionnés) : visuel --strict 0 constat, interactions 26/26.
+
+## Après la FUSION (wip/refonte = socle + A + B + C)
+- Fusions `--no-ff` dans l'ordre A, B, C : index.html, CLAUDE.md, interactions.js sans conflit ; seul conflit,
+  `tests/suites/visuel.js` (listes TOLERES), résolu par fusion sémantique (retraits de toutes les lignes gardés).
+- Toutes les régions ont désormais leur propriétaire « final » : COQUILLE/PAGE (A), CONTENU/SIMU/REVISION (B),
+  FENETRES/IMPRESSION (C). Les règles de jonction laissées exprès par une ligne pour une autre (« à surcharger
+  depuis FENETRES », « gardée pour l'écran Aujourd'hui ») ont été revues à la fusion (voir le journal fusion.md).
+- CLAUDE.md réécrit en entier (sections Navigation, Page chapitre, Contenu, Simulateurs, Fiche de révision,
+  Fenêtres, Impression, CSS : régions/jetons/thème, Identité visuelle, Anomalies).
