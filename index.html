@@ -73841,6 +73841,9 @@ html,body{ background:#fff; color:#111;
   padding:.45cm .55cm .3cm;
   border-bottom:1pt solid #eee;
   background:#fff;
+  /* insécable (sinon « EXO 03 » en bas de page, son titre en haut de la suivante) */
+  break-inside:avoid;
+  page-break-inside:avoid;
   break-after:avoid;
   page-break-after:avoid;
 }
@@ -73871,6 +73874,8 @@ html,body{ background:#fff; color:#111;
   widows:3;
 }
 .atom:last-child{ margin-bottom:0; }
+/* Intertitre seul dans son atome : jamais en bas de page, séparé de ce qu'il annonce */
+.atom:has(> h3:only-child), .atom:has(> h4:only-child){ break-after:avoid; page-break-after:avoid; }
 
 /* ===== TYPOGRAPHIE ===== */
 h3{
@@ -74090,39 +74095,42 @@ figure.schema figcaption{
     return c;
   }
 
-  /* Découper un nœud DOM en "atomes" imprimables (éléments leaf) */
+  /* Découper un nœud DOM en "atomes" imprimables (blocs insécables) */
   function atomize(container){
     /* Les blocs suivants sont atomiques (ne pas découper à l'intérieur) */
-    const ATOMIC = ['P','H3','H4','UL','OL','TABLE',
-                    'DIV.formula','DIV.def-box','DIV.prop-box',
-                    'DIV.method-box','DIV.notice','DIV.reveal',
-                    'DIV.intro','DIV.formula'];
     const atomicClasses = new Set(['formula','def-box','prop-box','method-box','notice','reveal','intro','schema']);
     const atomicTags    = new Set(['P','H3','H4','UL','OL','TABLE','FIGURE','SVG']);
+    /* Balises de bloc : tout le reste (texte, <strong>, <br>, formule mjx-container…)
+       est du contenu en ligne, jamais séparé de ses voisins */
+    const blockTags = new Set(['DIV','P','H1','H2','H3','H4','H5','H6','UL','OL','DL','TABLE',
+                               'FIGURE','SVG','SECTION','ARTICLE','BLOCKQUOTE','PRE','HR','CANVAS']);
+    const isBlock = n => n.nodeType === 1 && blockTags.has(n.tagName.toUpperCase());
 
     const atoms = [];
     function walk(el){
-      const tag = el.tagName;
-      const cls = el.className || '';
-      const isAtomic = atomicTags.has((tag||'').toUpperCase()) ||
-                       [...atomicClasses].some(c=>el.classList && el.classList.contains(c));
+      // Atome : bloc listé, ou bloc sans sous-bloc (énoncé .statement, question .q…).
+      // Y descendre sortait chaque morceau de texte, et chaque symbole des formules
+      // (texte du MathML d'accessibilité), sur sa propre ligne.
+      const isAtomic = atomicTags.has((el.tagName||'').toUpperCase()) ||
+                       [...atomicClasses].some(c=>el.classList && el.classList.contains(c)) ||
+                       !Array.from(el.children).some(isBlock);
       if(isAtomic){
         atoms.push(el.cloneNode(true));
-      } else {
-        // Descendre dans les enfants
-        Array.from(el.childNodes).forEach(child=>{
-          if(child.nodeType===3){ // texte
-            const t = child.textContent.trim();
-            if(t){
-              const span = document.createElement('span');
-              span.textContent = child.textContent;
-              atoms.push(span);
-            }
-          } else if(child.nodeType===1){
-            walk(child);
-          }
-        });
+        return;
       }
+      // Sinon descendre : le contenu en ligne compris entre deux blocs forme un seul atome
+      let run = null;
+      const flush = ()=>{
+        if(run && (run.textContent.trim() || run.querySelector(':not(br)'))) atoms.push(run);
+        run = null;
+      };
+      Array.from(el.childNodes).forEach(child=>{
+        if(isBlock(child)){ flush(); walk(child); }
+        else if(child.nodeType===1 || child.nodeType===3){
+          (run || (run = document.createElement('span'))).appendChild(child.cloneNode(true));
+        }
+      });
+      flush();
     }
     walk(container);
     return atoms;
@@ -74207,6 +74215,19 @@ ${atomDivs}
     `<marker id="sk-arrow-${k}" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z"></path></marker>`
   ).join('\n  ');
 
+  /* Feuille CHTML de MathJax, recopiée de la page : les formules arrivent DÉJÀ
+     rendues, et leurs glyphes (mjx-c, sans texte) ne sont dessinés que par ses
+     règles « mjx-c.mjx-cXXXX::before{content:…} » et ses @font-face MJXTEX,
+     ajoutées au fil des rendus par CSSOM (donc lues dans cssRules, absentes du
+     textContent). Le MathJax de l'iframe, qui n'y trouve plus de TeX à rendre, ne
+     les crée pas : sans cette copie, formules invisibles à l'impression. */
+  let mjxCSS = '';
+  const mjxSheet = document.getElementById('MJX-CHTML-styles');
+  if(mjxSheet){
+    try{ mjxCSS = Array.from(mjxSheet.sheet.cssRules, r => r.cssText).join('\n'); }
+    catch(e){ mjxCSS = mjxSheet.textContent; }
+  }
+
   const printDoc = `<!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -74221,6 +74242,7 @@ MathJax = { tex:{inlineMath:[['\\\\(','\\\\)']]}, options:{skipHtmlTags:['script
     if(f && f.findMath){ var t = f.findMath.bind(f); f.findMath = function(n){ return t(n).filter(function(q){ var x = q && q.start && q.start.node; return !(x && x.closest && x.closest('mjx-container')); }); }; } }); } } };
 <\/script>
 <script src="vendor/mathjax/tex-mml-chtml.js" async id="MathJax-script"><\/script>
+<style id="print-mjx-styles">${mjxCSS}</style>
 <style>${CSS}</style>
 </head>
 <body>
@@ -74269,8 +74291,11 @@ ${bodyContent}
       if(printed) return;
       const mj = win.MathJax;
       if(mj && mj.startup && mj.startup.promise){
-        const fonts = (win.document.fonts && win.document.fonts.ready) || Promise.resolve();
-        Promise.all([mj.startup.promise, fonts])
+        // Polices attendues APRÈS le rendu et une mise en page forcée : c'est elle qui
+        // lance le chargement des polices MathJax des glyphes (sinon fonts.ready, lu
+        // trop tôt, pouvait être déjà résolu)
+        mj.startup.promise
+          .then(() => { void win.document.body.offsetHeight; return win.document.fonts && win.document.fonts.ready; })
           .then(() => setTimeout(() => { clearTimeout(fallback); printOnce(); }, 250))
           .catch(() => {});
       } else if(tries > 0){

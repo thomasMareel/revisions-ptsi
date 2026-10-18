@@ -1,6 +1,6 @@
 'use strict';
 /* ============================================================
-   Suite « regressions » — un test par correctif (contrat B1 à B4)
+   Suite « regressions » — un test par correctif (contrat B1 à B5)
    ============================================================
    B1  Synchronisation quiz → flashcards : les notes données dans le quiz
        (« Réviser ») ne doivent pas être écrasées par l'onglet Flashcards ;
@@ -24,6 +24,10 @@
        palier atteint dans la fenêtre tracée (pôle lent) ; t₅% pseudo-périodique
        exact même au-delà de la fenêtre tracée (80 s).
    B4  getCanvasColors() : couleurs muted / grid du thème sombre.
+   B5  Impression (printChapter) : formules du document imprimé réellement
+       dessinées (glyphes MathJax avec contenu, polices chargées, encre),
+       exercices non découpés (énoncés, questions et formules entiers),
+       en-têtes de bloc insécables et intertitres liés à leur suite.
    Tests en boîte noire autant que possible (vrais boutons, vrai Store). Pour
    B2, le serveur de test sert une VARIANTE d'index.html où le deck rlcCards
    est modifié (le fichier sur le disque n'est jamais touché). */
@@ -118,7 +122,7 @@ function t5PseudoExact(K, w0, z) {
 
 module.exports = {
   nom: 'regressions',
-  description: 'correctifs B1 (quiz→flashcards), B2 (état des decks), B3 (SLCI ξ>1), B4 (couleurs canvas)',
+  description: 'correctifs B1 (quiz→flashcards), B2 (état des decks), B3 (SLCI ξ>1), B4 (couleurs canvas), B5 (impression)',
   delaiMax: () => 8 * 60000,
 
   async executer(ctx, res) {
@@ -819,6 +823,138 @@ module.exports = {
         await page.click('#theme-btn');
         await pause(300);
         controler('retour au clair', await lire(), attendu.clair);
+      } catch (e) { pb.push(String(e.message).split('\n')[0]); }
+      res.verifier(nom, !pb.length, pb);
+    })();
+
+    /* =====================================================================
+       B5 — impression (printChapter) : l'iframe #print-iframe reçoit les
+       formules DÉJÀ rendues ; leurs glyphes (mjx-c, sans texte) ne sont
+       dessinés que par la feuille CHTML de MathJax (règles ::before et
+       @font-face MJXTEX). État relevé AU MOMENT où l'iframe appelle print() :
+       chaque glyphe a un contenu, ses polices MathJax sont chargées, aucune
+       formule de largeur nulle ; aucune formule perdue, énoncés et questions
+       entiers, aucun symbole isolé sur sa ligne (exercices), en-têtes de bloc
+       insécables et intertitres jamais laissés seuls en bas de page ; puis
+       encre réellement dessinée dans une formule en bloc et une formule en ligne.
+       ===================================================================== */
+    await (async () => {
+      const nom = 'B5 — impression : formules dessinées (glyphes, polices MathJax, encre), exercices non découpés, coupures de page';
+      const pb = [];
+      try {
+        const { page, journal } = await ctx.nouvellePage();
+        await charger(page, '#rlc/cours');
+        // Énoncés et questions sans sous-bloc (schéma, liste…) : à imprimer entiers
+        const SOUS_BLOC = 'div,p,ul,ol,dl,table,figure,svg,section,blockquote,pre,hr,canvas,h1,h2,h3,h4,h5,h6';
+        // Imprime le panneau actif (solutions dépliées) et relève l'état du document
+        // de l'iframe quand elle appelle print() (remplacé : aucune boîte de dialogue)
+        const imprimer = async (id, onglet) => {
+          await naviguer(page, id, onglet);
+          const source = await page.evaluate(async SOUS_BLOC => {
+            const chap = Array.from(document.querySelectorAll('.chapter.active')).find(c => c.offsetParent !== null);
+            const panneau = chap.querySelector('.panel.active');
+            panneau.querySelectorAll('.toggle-sol').forEach(b => { const s = b.nextElementSibling; if (s && !s.classList.contains('shown')) b.click(); });
+            await MathJax.startup.promise;
+            await new Promise(r => setTimeout(r, 300));
+            // Formules du panneau que printChapter recopie (hors titres, recopiés en texte)
+            const exos = panneau.id.endsWith('-exos');
+            const blocs = exos ? panneau.querySelectorAll('.exo') : (panneau.querySelector('.toc-content') || panneau).querySelectorAll('.course-section');
+            let formules = 0, questions = 0;
+            blocs.forEach(b => {
+              formules += Array.from(b.querySelectorAll('mjx-container')).filter(m => !m.closest('h1,h2,h3,.sec-num,.num,.diff,button,.solution:not(.shown)')).length;
+              questions += Array.from(b.querySelectorAll('.statement,.q')).filter(q => !q.querySelector(SOUS_BLOC)).length;
+            });
+            return { panneau: panneau.id, formules, questions };
+          }, SOUS_BLOC);
+          const imp = await page.evaluate(SOUS_BLOC => new Promise(resolve => {
+            const garde = setTimeout(() => resolve({ erreur: 'l\'iframe n\'a jamais appelé print() (12 s)' }), 12000);
+            printChapter();
+            const w = document.getElementById('print-iframe').contentWindow;
+            w.print = () => {
+              clearTimeout(garde);
+              const d = w.document, sansQuotes = s => s.trim().replace(/^["']|["']$/g, '');
+              const affiche = el => el.getClientRects().length > 0;   // hors display:none (ex. .reveal .prompt)
+              const chargees = new Set(), enCours = new Set();
+              d.fonts.forEach(f => {
+                if (f.status === 'loaded') chargees.add(sansQuotes(f.family));
+                else if (f.status === 'loading' && /^MJX/.test(sansQuotes(f.family))) enCours.add(sansQuotes(f.family));
+              });
+              // Glyphe sans contenu : ni texte ni règle ::before (un ::before "" est voulu : U+2061…) ;
+              // glyphe affiché : au moins une de ses polices MathJax (hors MJXZERO) chargée
+              const vides = [], sansPolice = new Set();
+              d.querySelectorAll('mjx-c').forEach(g => {
+                const avant = w.getComputedStyle(g, '::before').content;
+                if (!g.textContent && (!avant || avant === 'none' || avant === 'normal')) vides.push(g.className);
+                if (!affiche(g)) return;
+                const familles = w.getComputedStyle(g).fontFamily.split(',').map(sansQuotes).filter(f => /^MJX/.test(f) && f !== 'MJXZERO');
+                if (familles.length && !familles.some(f => chargees.has(f))) sansPolice.add(familles.join('/'));
+              });
+              const formules = Array.from(d.querySelectorAll('mjx-container')).filter(m => !m.closest('h1,h2,h3'));
+              const nulles = formules.filter(m => { const x = m.querySelector('mjx-math'); return affiche(m) && (!x || x.getBoundingClientRect().width < 0.5); });
+              const isoles = Array.from(d.querySelectorAll('.atom'))
+                .filter(a => { const t = a.textContent.trim(); return t && t.length <= 2 && !a.querySelector('mjx-container,svg,img'); })
+                .map(a => a.textContent.trim());
+              resolve({
+                glyphes: d.querySelectorAll('mjx-c').length, vides: vides.length, exVides: vides.slice(0, 3),
+                sansPolice: Array.from(sansPolice), enCours: Array.from(enCours),
+                formules: formules.length, nulles: nulles.length,
+                exNulles: nulles.slice(0, 2).map(m => (m.querySelector('mjx-assistive-mml') || m).textContent.trim().slice(0, 40)),
+                questions: Array.from(d.querySelectorAll('.statement,.q')).filter(q => !q.querySelector(SOUS_BLOC)).length,
+                isoles: isoles.length, exIsoles: isoles.slice(0, 6),
+                // Coupures de page : en-tête (« EXO 03 » + titre) insécable, intertitre seul
+                // dans son atome toujours suivi de ce qu'il annonce
+                enteteSecable: Array.from(d.querySelectorAll('.sec-header')).filter(h => w.getComputedStyle(h).breakInside !== 'avoid').length,
+                titresSeuls: Array.from(d.querySelectorAll('.atom')).filter(a => a.children.length === 1 && /^H[34]$/.test(a.firstElementChild.tagName) && w.getComputedStyle(a).breakAfter !== 'avoid').length,
+              });
+            };
+          }), SOUS_BLOC);
+          const ou = 'impression de ' + source.panneau;
+          if (imp.erreur) { pb.push(ou + ' : ' + imp.erreur); return; }
+          if (imp.vides) pb.push(ou + ' : ' + imp.vides + '/' + imp.glyphes + ' glyphe(s) sans contenu (aucune règle ::before de MathJax) : ' + imp.exVides.join(' ; '));
+          if (imp.sansPolice.length) pb.push(ou + ' : glyphe(s) affiché(s) dont aucune police MathJax n\'est chargée dans l\'iframe : ' + imp.sansPolice.slice(0, 4).join(', '));
+          if (imp.enCours.length) pb.push(ou + ' : police(s) MathJax encore en chargement à l\'appel de print() : ' + imp.enCours.join(', '));
+          if (imp.nulles) pb.push(ou + ' : ' + imp.nulles + '/' + imp.formules + ' formule(s) de largeur nulle (ex. ' + imp.exNulles.join(' ; ') + ')');
+          if (imp.formules < source.formules) pb.push(ou + ' : ' + imp.formules + ' formule(s) imprimée(s) entières pour ' + source.formules + ' dans le panneau (formules découpées)');
+          if (imp.questions < source.questions) pb.push(ou + ' : ' + imp.questions + ' énoncé(s)/question(s) entiers pour ' + source.questions + ' dans le panneau');
+          if (imp.isoles) pb.push(ou + ' : ' + imp.isoles + ' symbole(s) isolé(s) sur leur ligne (ex. ' + imp.exIsoles.map(t => '« ' + t + ' »').join(' ') + ')');
+          if (imp.enteteSecable) pb.push(ou + ' : ' + imp.enteteSecable + ' en-tête(s) de bloc sécable(s) (break-inside ≠ avoid : badge et titre coupés entre deux pages)');
+          if (imp.titresSeuls) pb.push(ou + ' : ' + imp.titresSeuls + ' intertitre(s) pouvant rester seul(s) en bas de page (break-after ≠ avoid)');
+          if (source.formules && !imp.glyphes) pb.push(ou + ' : aucun glyphe MathJax dans le document imprimé');
+        };
+        // Encre réellement dessinée : capture d'une formule du document imprimé (iframe
+        // agrandie au format A4 et rendue visible), pixels sombres comptés dans la page
+        const encre = async selecteur => {
+          await page.evaluate(() => { document.getElementById('print-iframe').style.cssText = 'position:fixed;top:0;left:0;width:794px;height:1123px;border:none;visibility:visible;z-index:2147483647;background:#fff'; });
+          const el = page.frameLocator('#print-iframe').locator(selecteur).first();
+          if (!(await el.count())) return -1;
+          const boite = await el.boundingBox();
+          if (!boite || boite.width < 1 || boite.height < 1) return 0;
+          const png = await el.screenshot();
+          return page.evaluate(async b64 => {
+            const img = new Image();
+            img.src = 'data:image/png;base64,' + b64;
+            await img.decode();
+            const c = document.createElement('canvas');
+            c.width = img.width; c.height = img.height;
+            const g = c.getContext('2d');
+            g.drawImage(img, 0, 0);
+            const px = g.getImageData(0, 0, c.width, c.height).data;
+            let n = 0;
+            for (let i = 0; i < px.length; i += 4) if (px[i] + px[i + 1] + px[i + 2] < 330) n++;
+            return n;
+          }, png.toString('base64'));
+        };
+
+        await imprimer('rlc', 'cours');
+        for (const [quoi, sel] of [['formule en bloc', '.formula mjx-container[display="true"]'], ['formule en ligne', 'p mjx-container:not([display="true"])']]) {
+          const n = await encre(sel);
+          if (n < 0) pb.push('impression de rlc-cours : aucune ' + quoi + ' (' + sel + ') dans le document imprimé');
+          else if (n < 20) pb.push('impression de rlc-cours : ' + quoi + ' sans encre (' + n + ' pixel(s) sombre(s))');
+        }
+        await page.evaluate(() => { document.getElementById('print-iframe').style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;border:none;visibility:hidden;'; });
+        // Exercices (solutions dépliées) de plusieurs matières, cours de Maxwell
+        for (const [id, onglet] of [['rlc', 'exos'], ['maxwell', 'cours'], ['slci', 'exos'], ['complexes', 'exos']]) await imprimer(id, onglet);
+        exceptions(journal).forEach(e => pb.push('exception JavaScript : ' + e));
       } catch (e) { pb.push(String(e.message).split('\n')[0]); }
       res.verifier(nom, !pb.length, pb);
     })();
