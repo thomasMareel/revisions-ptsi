@@ -98,9 +98,9 @@ module.exports = {
       await attendreApp(page, 30000);
       await fermerOverlays(page);
       const s = await page.evaluate(() => ({ chapitres: CHAPTERS.length, titre: document.title,
-        police: document.fonts ? document.fonts.check('16px "Inter Tight"') : true }));
+        police: document.fonts ? ['Source Sans 3', 'Source Serif 4'].filter(f => !document.fonts.check('16px "' + f + '"')) : [] }));
       if (!s.chapitres) pbHL.push('CHAPTERS vide hors-ligne');
-      if (!s.police) pbHL.push('police Inter Tight non disponible hors-ligne');
+      if (s.police.length) pbHL.push('police(s) non disponible(s) hors-ligne : ' + s.police.join(', '));
       const og = await page.evaluate(() => { const c = CHAPTERS.find(x => x.id !== 'rlc' && x.matiere === 'physique'); return c && c.id; });
       await naviguer(page, og, 'cours');
       const pid = await page.evaluate(id => CHAPTERS_BY_ID[id].prefix + '-cours', og);
