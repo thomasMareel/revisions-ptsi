@@ -80,7 +80,7 @@ const TOLERES = [
   ['contraste', 'recherche', '*', '*', { 'span.sr-snippet mark': 2.11 }],
   ['contraste', 'recherche', 'clair', '*', { 'div.search-group-label': 4.23, 'span.sr-badge.sr-b-def': 2.76, 'span.sr-badge.sr-b-exo': 3.61, 'span.sr-badge.sr-b-flash': 3.99, 'span.sr-badge.sr-b-meth': 4.17, 'span.sr-title mark': 3.03 }],
   ['contraste', 'rlc-cours maxwell-cours', 'clair', '*', { 'div.notice strong': 2.85, 'span.label': 3.96 }],
-  ['contraste', 'rlc-cours maxwell-cours', 'sombre', '*', { 'div.notice': 1.99, 'div.notice em': 1.99, 'mjx-container.MathJax': 1.99 }],
+  ['contraste', 'rlc-cours maxwell-cours', 'sombre', '*', { 'div.notice': 1.99, 'div.notice em': 1.99, 'div.notice mjx-container': 1.99 }],
   ['contraste', 'rlc-cours maxwell-cours slci-cours', 'clair', 'ordi', { 'span.toc-title': 4.23 }],
   ['contraste', 'rlc-cours rlc-meth maxwell-cours', 'clair', '*', { 'div.sec-num': 4.23 }],
   ['contraste', 'rlc-exos', 'clair', '*', { 'div.solution h4': 4.34 }],
@@ -110,7 +110,7 @@ const TOLERES = [
   ['taille', 'rlc-simu', '*', '*', { 'span.lbl': 11.2 }],
   ['taille', 'tiroir', '*', '*', { 'button.mob-mat-btn': 10.88, 'button.mob-subdomain-label.mob-sub-toggle': 10.24, 'span.mob-filter-tag.mt-anglais': 10.24, 'span.mob-filter-tag.mt-si': 10.24, 'span.mob-subdomain-label.mob-drawer-section': 10.24, 'span.sub-chev': 9.6, 'span.sub-count': 10.56 }],
   // — Débordement horizontal (bord droit, px) —
-  ['debordement', 'rlc-cours', '*', 'tel', { '#mob-header': 415, 'mjx-container.MathJax': 414, 'page (scrollWidth)': 415 }],
+  ['debordement', 'rlc-cours', '*', 'tel', { '#mob-header': 415, 'div.course-section li mjx-container': 414, 'page (scrollWidth)': 415 }],
   // — Cibles tactiles < 44 px (côté, px) —
   ['cible44', 'anglais-flash', '*', 'tel', { 'button.flash-tts-btn': 40 }],
   ['cible44', 'aujourdhui', '*', 'tel', { '#today-close': 15 }],
@@ -289,6 +289,8 @@ function mesurerEcran(o) {
     return id ? tag + id : tag;
   }
   function decrire(e) {
+    // formule : située par son contenant (div.notice mjx-container, div.course-section p mjx-container…)
+    if (e.tagName === 'MJX-CONTAINER' && e.parentElement) return decrire(e.parentElement) + ' mjx-container';
     const id = idLisible(e);
     if (id && id[1] !== '*') return id;
     if (classes(e).length) return etiquette(e);
@@ -445,7 +447,9 @@ function mesurerEcran(o) {
     const w = document.createTreeWalker(racine, NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT, {
       acceptNode(n) {
         if (n.nodeType === 3) return /\S/.test(n.nodeValue) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_SKIP;
-        if (EXCLUS.has(n.tagName.toUpperCase()) || !n.checkVisibility()) return NodeFilter.FILTER_REJECT;
+        if (EXCLUS.has(n.tagName.toUpperCase())) return NodeFilter.FILTER_REJECT;
+        // non rendu → sous-arbre écarté ; sauf display:contents (pas de boîte, mais des enfants rendus)
+        if (!n.checkVisibility()) return cs(n).display === 'contents' ? NodeFilter.FILTER_SKIP : NodeFilter.FILTER_REJECT;
         elements.push(n);
         if (n.tagName === 'MJX-CONTAINER') { formules.push(n); return NodeFilter.FILTER_REJECT; }
         return NodeFilter.FILTER_SKIP;

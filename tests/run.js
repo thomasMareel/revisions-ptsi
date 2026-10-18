@@ -74,7 +74,8 @@ Usage :  node tests/run.js [options]      (ou : npm test, npm run test:rapide)
 
 Options :
   --rapide               échantillon d'une dizaine de chapitres (5 matières)
-                         + tous les simulateurs dans un seul thème (clair)
+                         + tous les simulateurs dans un seul thème (clair) ;
+                         la suite visuel, elle, reste complète (≈ 2 min)
   --suite=nom[,nom]      suites à lancer parmi : ${SUITES.join(', ')}
   --chapitres=id[,id]    limite les boucles de chapitres à ces ids (ex. rlc,optgeo) ;
                          un prefix est accepté (og = optgeo) ; nom inconnu → arrêt (code 2)
