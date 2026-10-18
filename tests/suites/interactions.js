@@ -465,7 +465,7 @@ module.exports = {
       ['cartes signalées', '#more-btn', '#flag-btn', 'flag-overlay'],
       ['calcul mental', '#study-btn', '#drill-btn', 'drill-overlay'],
     ]) {
-      await etape('fenêtre « ' + nom + ' » : ouverture et Échap', async () => {
+      await etape('fenêtre « ' + nom + ' » : ouverture, raccourcis de la page inactifs derrière, Échap', async () => {
         await naviguer(page, 'rlc', 'cours');
         await page.click(menu);
         await pause(200);
@@ -473,12 +473,50 @@ module.exports = {
         await pause(500);
         const s = await page.evaluate(id => { const o = document.getElementById(id); return o ? { ouvert: o.classList.contains('open'), n: o.innerText.trim().length } : null; }, fenetre);
         if (!s) return ['#' + fenetre + ' absent'];
+        const avant = await visible();
+        await page.keyboard.press('n');            // « chapitre suivant » : sans effet derrière une fenêtre
+        await pause(400);
+        const apres = await visible();
         await page.keyboard.press('Escape');
         await pause(200);
         return [!s.ouvert && 'la fenêtre ne s\'ouvre pas', s.ouvert && s.n < 20 && 'fenêtre vide',
+          apres !== avant && 'la touche n change de chapitre derrière la fenêtre (' + apres + ')',
           (await ouvert(fenetre)) && 'Échap ne ferme pas la fenêtre'];
       });
     }
+
+    /* ---------- Recherche groupée et aide clavier ---------- */
+    await etape('recherche groupée par nature (matière de chaque ligne, ↓) ; aide clavier « ? » et Échap', async () => {
+      const pb = [];
+      await naviguer(page, 'rlc', 'cours');
+      await page.keyboard.press('Control+k');
+      await pause(250);
+      await page.fill('#search-input', 'bobine');
+      await pause(500);
+      const r = await page.evaluate(() => {
+        const lignes = Array.from(document.querySelectorAll('#search-results .search-result'));
+        return { groupes: Array.from(document.querySelectorAll('#search-results .sr-groupe-titre > span:first-child'), e => e.textContent),
+          n: lignes.length, sansMat: lignes.filter(e => !e.dataset.mat).length, sel: lignes.filter(e => e.classList.contains('sel')).length };
+      });
+      if (r.groupes.length < 2) pb.push('résultats de « bobine » non groupés par nature (' + r.groupes.join(', ') + ')');
+      if (r.sansMat) pb.push(r.sansMat + ' résultat(s) sans matière (data-mat)');
+      if (r.sel !== 1) pb.push(r.sel + ' ligne(s) active(s) au lieu de 1');
+      await page.keyboard.press('ArrowDown');
+      const i = await page.evaluate(() => { const s = document.querySelector('#search-results .search-result.sel'); return s ? +s.dataset.i : -1; });
+      if (r.n > 1 && i !== 1) pb.push('↓ ne choisit pas la 2ᵉ ligne (ligne ' + i + ')');
+      await page.keyboard.press('Escape');
+      await pause(200);
+      if (await ouvert('search-overlay')) pb.push('Échap ne ferme pas la recherche');
+      await page.keyboard.press('?');
+      await pause(300);
+      if (!(await ouvert('key-help-modal'))) pb.push('« ? » n\'ouvre pas l\'aide clavier');
+      else {
+        await page.keyboard.press('Escape');
+        await pause(200);
+        if (await ouvert('key-help-modal')) pb.push('Échap ne ferme pas l\'aide clavier');
+      }
+      return pb;
+    });
 
     /* ---------- Impression (génération de l'iframe seulement) ---------- */
     await etape('impression du chapitre (document généré)', async () => {

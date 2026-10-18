@@ -73,11 +73,8 @@ const { pause, attendreApp, naviguer, choisirTheme, etatMathJax } = require('../
 const TOLERES = [
   // — Contraste du texte —
   ['contraste', 'chapitres', '*', '*', { 'span.num': 4.01 }],
-  ['contraste', 'recherche', 'clair', '*', { 'span.sr-badge.sr-b-meth': 4.17, 'span.sr-snippet mark': 2.11 }],
-  ['contraste', 'recherche', 'sombre', '*', { 'span.sr-snippet mark': 2.11 }],
   // — Taille du texte (px) —
   ['taille', 'chapitres', '*', '*', { 'span.num': 11.2 }],
-  ['taille', 'recherche', '*', '*', { 'div.search-group-label': 9.6, 'div.search-hint-bar span': 10.4, 'div.sr-suggest': 11.2, 'div.sr-suggest a': 11.2, 'span.sr-badge.sr-b-cours': 9.92, 'span.sr-badge.sr-b-def': 9.92, 'span.sr-badge.sr-b-exo': 9.92, 'span.sr-badge.sr-b-flash': 9.92, 'span.sr-badge.sr-b-meth': 9.92, 'span.sr-meta': 10.88 }],
 ];
 
 /* Tolérance sur la valeur d'un constat toléré (instabilités de rendu, polices) */
@@ -116,6 +113,12 @@ const ECRANS = [
   { nom: 'anglais-flash', chap: 'anglais', onglet: 'flash' },   // 1er chapitre d'anglais de CHAPTERS
   { nom: 'tiroir', chap: 'rlc', onglet: 'meth', racine: '#mob-drawer', preparer: ouvrirTiroir },
   { nom: 'recherche', chap: 'rlc', onglet: 'meth', racine: '#search-overlay', preparer: ouvrirRecherche },
+  // Fenêtres secondaires (gabarit .fen) : formulaire, sauvegarde, cartes signalées, calcul mental, raccourcis
+  { nom: 'formulaire', chap: 'rlc', onglet: 'meth', racine: '#formula-overlay', preparer: ouvrirFormulaire },
+  { nom: 'sauvegarde', chap: 'rlc', onglet: 'meth', racine: '#backup-overlay', preparer: ouvrirSauvegarde },
+  { nom: 'signalees', chap: 'rlc', onglet: 'meth', racine: '#flag-overlay', preparer: ouvrirSignalees },
+  { nom: 'calcul', chap: 'rlc', onglet: 'meth', racine: '#drill-overlay', preparer: ouvrirCalcul },
+  { nom: 'raccourcis', chap: 'rlc', onglet: 'meth', racine: '#key-help-modal', ordinateurSeul: true, preparer: ouvrirRaccourcis },
   { nom: 'quiz', chap: 'rlc', onglet: 'meth', racine: '#quiz-overlay', preparer: ouvrirQuiz },
   { nom: 'bilan', chap: 'rlc', onglet: 'meth', racine: '#dash-overlay', preparer: ouvrirBilan },
   { nom: 'aujourdhui', chap: 'rlc', onglet: 'meth', racine: '#today-overlay', preparer: ouvrirAujourdhui },
@@ -170,6 +173,44 @@ async function ouvrirRecherche(page, app) {
   await pause(500);
   const n = await page.evaluate(() => document.querySelectorAll('#search-results .search-result').length);
   return n ? [] : ['recherche « fourier » : aucun résultat'];
+}
+/* Fenêtres secondaires : ouvertes par leurs fonctions (les boutons changent de place selon
+   l'appareil : menu Plus, feuille ⋯, intercalaire) */
+async function ouvrirFormulaire(page) {
+  await page.evaluate(() => window.openFormulaSheet());
+  await pause(900);
+  const s = await page.evaluate(() => ({ o: document.getElementById('formula-overlay').classList.contains('open'), n: document.querySelectorAll('#formula-body .fsheet-f').length }));
+  return !s.o ? ['le Formulaire ne s\'ouvre pas (openFormulaSheet)'] : !s.n ? ['Formulaire de rlc : aucune formule'] : [];
+}
+async function ouvrirSauvegarde(page) {
+  await page.evaluate(() => document.getElementById('backup-btn').click());
+  await pause(400);
+  return (await estOuvert(page, '#backup-overlay')) ? [] : ['la fenêtre Sauvegarde ne s\'ouvre pas (#backup-btn)'];
+}
+async function ouvrirSignalees(page) {
+  // Trois cartes signalées (retirées à l'écran suivant : rien ne déborde sur les autres écrans)
+  await page.evaluate(() => {
+    const l = [['rlc', 2], ['cpx', 5], ['slci', 1]].map(([p, i]) => { const c = FLASH_REGISTRY[p] && FLASH_REGISTRY[p][i]; return c && { p, i, q: c.q, a: c.a, t: 0 }; }).filter(Boolean);
+    Store.setJSON('flagged', l);
+    window.flaggedOpen();
+  });
+  await pause(400);
+  const n = await page.evaluate(() => document.querySelectorAll('#flag-body .flag-list li').length);
+  return (await estOuvert(page, '#flag-overlay')) && n === 3 ? [] : ['Cartes signalées : fenêtre fermée ou liste incomplète (' + n + ' carte(s))'];
+}
+async function ouvrirCalcul(page) {
+  await page.evaluate(() => { Store.setJSON('flagged', []); if (window.__refreshFlagUI) window.__refreshFlagUI(); window.__visuelGraine(5); document.getElementById('drill-btn').click(); });
+  await pause(600);
+  await page.fill('#drill-input', '-999999');   // réponse fausse : retour « Faux » (rouge + icône) mesuré
+  await page.keyboard.press('Enter');
+  await pause(500);
+  const s = await page.evaluate(() => ({ o: document.getElementById('drill-overlay').classList.contains('open'), fb: document.getElementById('drill-feedback').textContent }));
+  return s.o && /Faux/.test(s.fb) ? [] : ['Calcul mental : fenêtre fermée ou retour absent (« ' + s.fb + ' »)'];
+}
+async function ouvrirRaccourcis(page) {
+  await page.evaluate(() => document.dispatchEvent(new KeyboardEvent('keydown', { key: '?', bubbles: true })));
+  await pause(400);
+  return (await estOuvert(page, '#key-help-modal')) ? [] : ['la fenêtre Raccourcis ne s\'ouvre pas (touche ?)'];
 }
 async function ouvrirQuiz(page, app) {
   // Même tirage à chaque lancement (graine), et physique seule : si les decks changent, la
