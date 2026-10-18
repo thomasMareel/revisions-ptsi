@@ -77779,17 +77779,23 @@ document.getElementById('skip-link')?.addEventListener('click', e => {
     ioColle.observe(b);
   }
 
-  /* ══ Scroll-spy des sections Cours (ex-« SOMMAIRE INTERNE ») ═════════════ */
-  let sections = [], sectionActive = null, liensSommaire = new Map();
-  const visibles = new Set();
-  const io = ('IntersectionObserver' in window) ? new IntersectionObserver(sur(entries => {
+  /* ══ Scroll-spy des sections Cours (ex-« SOMMAIRE INTERNE ») ═════════════
+     La section courante est celle qui passe sous une ligne de lecture placée juste sous les
+     barres collantes (en-tête ou barre du téléphone + onglets) : IntersectionObserver sur une
+     bande de 2 px à cette hauteur (recalculée à chaque changement de chapitre). */
+  let sections = [], sectionActive = null, liensSommaire = new Map(), io = null;
+  function ligneLecture(){
+    const rem = parseFloat(getComputedStyle(root).fontSize) || 16;
+    const nav = actuel && actuel.querySelector(':scope > nav.tabs');
+    return Math.round(3.5 * rem + (nav && nav.getClientRects().length ? nav.offsetHeight : 0) + 24);
+  }
+  function surIntersections(entries){
     entries.forEach(en => {
-      if(en.isIntersecting) visibles.add(en.target); else visibles.delete(en.target);
-      if(en.isIntersecting && window.__surSection) window.__surSection(en.target);
+      if(!en.isIntersecting) return;
+      if(window.__surSection) window.__surSection(en.target);
+      if(en.target !== sectionActive){ sectionActive = en.target; marquerSommaire(); }
     });
-    const a = sections.find(s => visibles.has(s));
-    if(a && a !== sectionActive){ sectionActive = a; marquerSommaire(); }
-  }), { rootMargin:'-10% 0px -70% 0px', threshold:0 }) : null;
+  }
   // Sections d'un panneau Cours : id et libellé (« §1 · LES BASES »), posés une seule fois
   function preparerSections(panel){
     if(!panel) return [];
@@ -77809,15 +77815,16 @@ document.getElementById('skip-link')?.addEventListener('click', e => {
   }
   window.__preparerSections = sur(preparerSections);
   function observerSections(ch, c){
-    if(!io) return;
-    io.disconnect();
-    visibles.clear();
+    if(io){ io.disconnect(); io = null; }
     sectionActive = null;
     const p = $(c.prefix + '-cours');
     sections = (p && ch.contains(p)) ? preparerSections(p) : [];
     if(sections.length < 2){ sections = []; return; }     // pas de sommaire pour une section unique
-    sectionActive = sections[0];                            // haut de page : §1 (avant la bande observée)
-    sections.forEach(s => io.observe(s));
+    sectionActive = sections[0];                            // haut de page : §1 (avant la ligne de lecture)
+    if(!('IntersectionObserver' in window)) return;
+    const y = ligneLecture(), bas = Math.max(0, (window.innerHeight || 800) - y - 2);
+    io = new IntersectionObserver(sur(surIntersections), { rootMargin:'-' + y + 'px 0px -' + bas + 'px 0px', threshold:0 });
+    sections.forEach(x => io.observe(x));
   }
   function marquerSommaire(){
     const on = (actuel && sectionActive && ongletActif(actuel) === 'cours') ? sectionActive.id : '';

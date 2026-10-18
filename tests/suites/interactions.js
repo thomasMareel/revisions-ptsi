@@ -120,6 +120,88 @@ module.exports = {
       return pb;
     });
 
+    /* ---------- Page chapitre : intercalaire, onglets, rail droit, pied (SPEC §4.4) ---------- */
+    await etape('page chapitre : intercalaire, onglets (ARIA, compteurs, clavier), rail droit, pied dans la feuille', async () => {
+      const pb = [];
+      await naviguer(page, 'rlc', 'cours');
+      await pause(300);
+      const s = await page.evaluate(() => {
+        const ch = document.getElementById('chap-rlc'), c = CHAPTERS_BY_ID.rlc;
+        const b = ch.querySelector(':scope > .chap-title-banner');
+        const nav = ch.querySelector(':scope > nav.tabs');
+        const flash = nav && nav.querySelector('.tab[data-panel="rlc-flash"]');
+        const rail = document.getElementById('chap-rail');
+        const secs = document.querySelectorAll('#rlc-cours .course-section').length;
+        return {
+          fil: b ? (b.querySelector('.ctb-crumb') || {}).textContent || '' : '',
+          titre: b ? (b.querySelector('.ctb-title') || {}).textContent || '' : '', nom: c.name,
+          actions: b ? b.querySelectorAll('.ctb-actions [data-ctb]').length : 0,
+          meta: b ? (b.querySelector('.ctb-meta') || {}).textContent || '' : '',
+          role: nav && nav.getAttribute('role'),
+          selection: Array.from(nav.querySelectorAll('.tab')).map(t => t.getAttribute('aria-selected')).join(','),
+          cartes: flash ? parseInt((flash.querySelector('.cnt') || {}).textContent, 10) : NaN, deck: FLASH_REGISTRY.rlc.length,
+          railOn: document.documentElement.classList.contains('rail-on') && rail.getBoundingClientRect().width > 150,
+          liens: rail.querySelectorAll('.toc-list a').length, secs,
+          actif: (rail.querySelector('.toc-list a.on .t') || {}).textContent || '',
+          mesCartes: !!rail.querySelector('.rail-cartes .big'),
+          pied: document.getElementById('chap-pager').parentNode === ch,
+          suivant: document.getElementById('next-chap-name').textContent,
+        };
+      });
+      if (!/Physique/.test(s.fil) || !/Ondes/.test(s.fil)) pb.push('fil d\'Ariane : « ' + s.fil + ' »');
+      if (s.titre !== s.nom) pb.push('titre de l\'intercalaire : « ' + s.titre + ' » au lieu de « ' + s.nom + ' »');
+      if (s.actions !== 3) pb.push(s.actions + ' actions dans l\'intercalaire (Formulaire, Imprimer, Épingler attendus)');
+      if (!/année/.test(s.meta) || !/cartes/.test(s.meta)) pb.push('méta de l\'intercalaire : « ' + s.meta + ' »');
+      if (s.role !== 'tablist' || !/^true(,false)+$/.test(s.selection)) pb.push('onglets : role=' + s.role + ', aria-selected=' + s.selection);
+      if (s.cartes !== s.deck) pb.push('effectif de l\'onglet Cartes : ' + s.cartes + ' au lieu de ' + s.deck);
+      if (!s.railOn) pb.push('rail droit absent à 1 400 px');
+      if (s.liens !== s.secs || s.secs < 2) pb.push('sommaire du rail : ' + s.liens + ' lignes pour ' + s.secs + ' sections');
+      if (!s.actif) pb.push('aucune section active dans le sommaire du rail en haut de page');
+      if (!s.mesCartes) pb.push('« Mes cartes » absent du rail');
+      if (!s.pied) pb.push('#chap-pager n\'est pas en bas de la feuille du chapitre affiché');
+      if (!s.suivant) pb.push('nom du chapitre suivant vide');
+      // Sommaire du rail : clic sur la 3ᵉ section → défilement jusqu'à elle, ligne active
+      await page.evaluate(() => document.querySelectorAll('#chap-rail .toc-list a')[2].click());
+      await pause(1400);
+      const d = await page.evaluate(() => {
+        const a = document.querySelectorAll('#chap-rail .toc-list a')[2], sec = document.getElementById(a.dataset.targetId);
+        return { haut: Math.round(sec.getBoundingClientRect().top), on: a.classList.contains('on') };
+      });
+      if (d.haut < 0 || d.haut > 300) pb.push('clic sur le sommaire du rail : la section est à ' + d.haut + ' px du haut');
+      if (!d.on) pb.push('clic sur le sommaire du rail : la ligne n\'est pas marquée active');
+      // Clavier : → sur l'onglet actif active l'onglet suivant
+      await page.evaluate(() => { scrollPageTop(); document.querySelector('#chap-rlc .tab.active').focus(); });
+      await page.keyboard.press('ArrowRight');
+      await pause(300);
+      const k = await page.evaluate(() => ({ p: (document.querySelector('#chap-rlc .panel.active') || {}).id,
+        f: document.activeElement && document.activeElement.getAttribute('data-panel') }));
+      if (k.p !== 'rlc-meth' || k.f !== 'rlc-meth') pb.push('→ sur les onglets : panneau ' + k.p + ', focus ' + k.f + ' (rlc-meth attendu)');
+      // Onglet Exercices : liste des exercices dans le rail ; Simulateur : pas de rail
+      await naviguer(page, 'rlc', 'exos');
+      await pause(300);
+      const e = await page.evaluate(() => ({ liens: document.querySelectorAll('#chap-rail .exo-list a').length,
+        exos: document.querySelectorAll('#rlc-exos .exo').length, onglet: document.getElementById('chap-rlc').dataset.onglet }));
+      if (!e.exos || e.liens !== e.exos) pb.push('rail de l\'onglet Exercices : ' + e.liens + ' lignes pour ' + e.exos + ' exercices');
+      if (e.onglet !== 'exos') pb.push('data-onglet de la feuille : ' + e.onglet);
+      await naviguer(page, 'rlc', 'simu');
+      await pause(300);
+      if (await page.evaluate(() => document.documentElement.classList.contains('rail-on'))) pb.push('rail affiché sur l\'onglet Simulateur');
+      // Épingler depuis l'intercalaire (puis rétablir)
+      await naviguer(page, 'rlc', 'cours');
+      const avant = await page.evaluate(() => (Store.getJSON('pinned', []) || []).includes('chap-rlc'));
+      await page.click('#chap-rlc .ctb-actions [data-ctb="epingler"]');
+      const ep = await page.evaluate(() => ({ st: (Store.getJSON('pinned', []) || []).includes('chap-rlc'),
+        aria: document.querySelector('#chap-rlc [data-ctb="epingler"]').getAttribute('aria-pressed') }));
+      if (ep.st === avant || ep.aria !== String(!avant)) pb.push('Épingler (intercalaire) : épinglé=' + ep.st + ', aria-pressed=' + ep.aria);
+      await page.click('#chap-rlc .ctb-actions [data-ctb="epingler"]');
+      // Formulaire depuis l'intercalaire
+      await page.click('#chap-rlc .ctb-actions [data-ctb="formulaire"]');
+      await pause(400);
+      if (!(await ouvert('formula-overlay'))) pb.push('le bouton Formulaire de l\'intercalaire n\'ouvre pas le formulaire');
+      await page.keyboard.press('Escape');
+      return pb;
+    });
+
     /* ---------- Navigation des chapitres (coquille) ---------- */
     await etape('barre latérale des chapitres (≥ 1200 px) : affichée, repliable, mémorisée (navCollapsed)', async () => {
       const pb = [];
