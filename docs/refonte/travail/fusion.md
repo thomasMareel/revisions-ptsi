@@ -30,5 +30,10 @@ sonde.js : évaluer une expression ; gabarit.py, testsreadme.py : retouches de d
   (346cfa9) et à la référence de la ligne B, ordinateur et téléphone.
 - Captures (cap1, cap2) comparées à 01, 02, 04a, 04b, 05, 08b : fidèles.
 
-## Reste à faire
-- Vérifier la batterie t2 (sur 8d76e47), commit des docs, git checkout --detach.
+- 70dbfbb docs : REPRISE.md mis à jour, journaux copiés dans docs/refonte/travail, durées des tests.
+- Batterie t2 (--strict, toutes suites) sur 8d76e47 (index.html final) : TOUT EST OK en 23 min 43 s
+  (site 11, mobile 8, interactions 26, pwa 8 + avertissement connu, regressions 29, visuel 8 : 0 constat).
+- Chargement téléphone émulé, processeur ×4, sans SW (perf.js, 3 essais) : main = DCL 12,5 s / prêt
+  13,2 s ; wip/refonte = DCL 9,1 s / prêt 9,5 s (makeFlash paresseux, sommaire interne supprimé).
+
+## TERMINÉ — wip/refonte, puis checkout --detach
