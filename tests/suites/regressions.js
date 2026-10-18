@@ -25,8 +25,9 @@
        exact même au-delà de la fenêtre tracée (80 s).
    B4  getCanvasColors() : couleurs muted / grid du thème sombre.
    B5  Impression (printChapter) : formules du document imprimé réellement
-       dessinées (glyphes MathJax avec contenu, polices chargées, encre) et
-       exercices non découpés (énoncés, questions et formules entiers).
+       dessinées (glyphes MathJax avec contenu, polices chargées, encre),
+       exercices non découpés (énoncés, questions et formules entiers),
+       en-têtes de bloc insécables et intertitres liés à leur suite.
    Tests en boîte noire autant que possible (vrais boutons, vrai Store). Pour
    B2, le serveur de test sert une VARIANTE d'index.html où le deck rlcCards
    est modifié (le fichier sur le disque n'est jamais touché). */
@@ -833,11 +834,12 @@ module.exports = {
        @font-face MJXTEX). État relevé AU MOMENT où l'iframe appelle print() :
        chaque glyphe a un contenu, ses polices MathJax sont chargées, aucune
        formule de largeur nulle ; aucune formule perdue, énoncés et questions
-       entiers, aucun symbole isolé sur sa ligne (exercices) ; puis encre
-       réellement dessinée dans une formule en bloc et une formule en ligne.
+       entiers, aucun symbole isolé sur sa ligne (exercices), en-têtes de bloc
+       insécables et intertitres jamais laissés seuls en bas de page ; puis
+       encre réellement dessinée dans une formule en bloc et une formule en ligne.
        ===================================================================== */
     await (async () => {
-      const nom = 'B5 — impression : formules dessinées (glyphes, polices MathJax, encre) et exercices non découpés';
+      const nom = 'B5 — impression : formules dessinées (glyphes, polices MathJax, encre), exercices non découpés, coupures de page';
       const pb = [];
       try {
         const { page, journal } = await ctx.nouvellePage();
@@ -899,6 +901,10 @@ module.exports = {
                 exNulles: nulles.slice(0, 2).map(m => (m.querySelector('mjx-assistive-mml') || m).textContent.trim().slice(0, 40)),
                 questions: Array.from(d.querySelectorAll('.statement,.q')).filter(q => !q.querySelector(SOUS_BLOC)).length,
                 isoles: isoles.length, exIsoles: isoles.slice(0, 6),
+                // Coupures de page : en-tête (« EXO 03 » + titre) insécable, intertitre seul
+                // dans son atome toujours suivi de ce qu'il annonce
+                enteteSecable: Array.from(d.querySelectorAll('.sec-header')).filter(h => w.getComputedStyle(h).breakInside !== 'avoid').length,
+                titresSeuls: Array.from(d.querySelectorAll('.atom')).filter(a => a.children.length === 1 && /^H[34]$/.test(a.firstElementChild.tagName) && w.getComputedStyle(a).breakAfter !== 'avoid').length,
               });
             };
           }), SOUS_BLOC);
@@ -911,6 +917,8 @@ module.exports = {
           if (imp.formules < source.formules) pb.push(ou + ' : ' + imp.formules + ' formule(s) imprimée(s) entières pour ' + source.formules + ' dans le panneau (formules découpées)');
           if (imp.questions < source.questions) pb.push(ou + ' : ' + imp.questions + ' énoncé(s)/question(s) entiers pour ' + source.questions + ' dans le panneau');
           if (imp.isoles) pb.push(ou + ' : ' + imp.isoles + ' symbole(s) isolé(s) sur leur ligne (ex. ' + imp.exIsoles.map(t => '« ' + t + ' »').join(' ') + ')');
+          if (imp.enteteSecable) pb.push(ou + ' : ' + imp.enteteSecable + ' en-tête(s) de bloc sécable(s) (break-inside ≠ avoid : badge et titre coupés entre deux pages)');
+          if (imp.titresSeuls) pb.push(ou + ' : ' + imp.titresSeuls + ' intertitre(s) pouvant rester seul(s) en bas de page (break-after ≠ avoid)');
           if (source.formules && !imp.glyphes) pb.push(ou + ' : aucun glyphe MathJax dans le document imprimé');
         };
         // Encre réellement dessinée : capture d'une formule du document imprimé (iframe
