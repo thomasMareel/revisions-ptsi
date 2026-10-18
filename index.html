@@ -1376,7 +1376,7 @@ section.panel[id$="-cours"]::before, section.panel[id$="-meth"]::before{
 .exo-list [data-niveau="3"] .barres i{ background:var(--chap-vif); }
 
 /* « Mes cartes » : grand chiffre, barre empilée + légende, bouton teinté matière */
-.rail-cartes{ padding:1rem; border:1px solid var(--line); border-radius:var(--r-l); background:var(--sheet); box-shadow:var(--sh-2); }
+.rail-cartes{ padding:1rem .875rem; border:1px solid var(--line); border-radius:var(--r-l); background:var(--sheet); box-shadow:var(--sh-2); }
 .rail-cartes .big{ margin-top:.6rem; font:var(--w-semi) 1.75rem/1 var(--font-text); color:var(--text); font-variant-numeric:lining-nums; }
 .rail-cartes .big small{ margin-left:.3rem; font:var(--w-regular) var(--fs-ui-s)/1 var(--font-ui); color:var(--text-2); }
 .rail-cartes .stack{ margin:.8rem 0 .7rem; }
@@ -1384,7 +1384,7 @@ section.panel[id$="-cours"]::before, section.panel[id$="-meth"]::before{
 .rail-cartes .legend i.s1{ background:var(--note-1-vif); }
 .rail-cartes .legend i.s0{ background:var(--note-0-vif); }
 .rail-cartes .legend i.nv{ background:var(--note-nv); }
-.rail-cartes .btn{ width:100%; margin-top:.9rem; gap:.4rem; padding:.45rem .5rem; white-space:normal; height:auto; min-height:2.375rem;
+.rail-cartes .btn{ width:100%; margin-top:.9rem; gap:.4rem; padding:.45rem .25rem; white-space:normal; height:auto; min-height:2.375rem;
   font-size:var(--fs-ui-xs); line-height:1.2; }
 .rail-cartes .btn .ic{ width:1rem; height:1rem; }
 
@@ -1397,6 +1397,12 @@ section.panel[id$="-cours"]::before, section.panel[id$="-meth"]::before{
   display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:.75rem;
   box-sizing:content-box; max-width:var(--measure); margin:0; padding:0 2.5rem 2.75rem var(--margin-col);
   font-size:var(--fs-body);           /* la mesure (34 em) se calcule sur le corps du texte */
+  position:relative;
+}
+/* Le filet rouge de marge descend jusqu'au bas de la feuille, le long du pied */
+.chapter[data-onglet="cours"] > #chap-pager::before, .chapter[data-onglet="meth"] > #chap-pager::before{
+  content:""; position:absolute; top:0; bottom:0; left:calc(var(--margin-col) - 1.25rem);
+  width:1px; background:var(--marge); pointer-events:none;
 }
 .chapter[data-onglet="exos"] > #chap-pager,
 .chapter[data-onglet="simu"] > #chap-pager,
@@ -1429,6 +1435,7 @@ section.panel[id$="-cours"]::before, section.panel[id$="-meth"]::before{
   section.panel[id$="-cours"], section.panel[id$="-meth"]{ padding-left:2.5rem; }
   section.panel[id$="-cours"]::before, section.panel[id$="-meth"]::before{ display:none; }
   #chap-pager{ padding-left:2.5rem; max-width:none; }
+  .chapter[data-onglet] > #chap-pager::before{ display:none; }
 }
 
 /* ===================================================================
@@ -1442,11 +1449,12 @@ section.panel[id$="-cours"]::before, section.panel[id$="-meth"]::before{
   main, main#si-content{ padding:0; }
   .chapter{ --onglets-h:var(--tabs-h); max-width:none; border-top:0; border-radius:0; box-shadow:none; overflow:visible; }
   .chap-title-banner{ display:none; }
-  nav.tabs, .chapter[data-onglet] > nav.tabs{
+  nav.tabs{
     top:var(--bar-h); justify-content:space-between; gap:0; padding:0 .25rem;
     background:var(--sheet); border-bottom:1px solid var(--line);
     transition:top var(--dur-2) var(--ease), box-shadow var(--dur-2) var(--ease);
   }
+  .chapter[data-onglet] > nav.tabs{ padding-left:.25rem; }
   nav.tabs:not(:has(> .tab:nth-of-type(4))){ justify-content:flex-start; gap:.5rem; }
   html.mbar-cachee nav.tabs{ top:0; box-shadow:var(--sh-1); }
   .tab{ padding:0 .55rem; font-size:.9375rem; }
@@ -75961,13 +75969,34 @@ ${bodyContent}
      passif, regroupé par requestAnimationFrame. */
   const barre = $('mob-header');
   const etatBarre = { c: null, el: null, section: null, cle: '' };
+  /* « LES ÉQUATIONS DE MAXWELL » → « Les équations de Maxwell » : un mot garde la forme sous
+     laquelle il apparaît dans le titre et le début de la section (sigle « ARQS », nom propre
+     « Maxwell »), s'il n'y apparaît jamais en minuscules ; sinon il passe en minuscules. */
+  const LETTRES = /[A-Za-zÀ-ÖØ-öø-ÿ0-9]+/g;
+  const casCache = new Map();
   function casPhrase(t, sec){
     t = String(t || '').replace(/\s+/g, ' ').trim();
     if(!t || /[a-zà-öø-ÿ]/.test(t)) return t;            // déjà en casse normale
-    const ref = sec ? ((sec.querySelector('h2') || {}).textContent || '') : '';
-    const sigles = new Set(ref.split(/[^A-Za-zÀ-ÖØ-Ý0-9]+/).filter(w => w.length > 1 && /[A-Z]/.test(w) && w === w.toUpperCase()));
-    const s = t.split(' ').map(w => { const k = w.replace(/[^A-Za-zÀ-ÖØ-Ý0-9]/g, ''); return sigles.has(k) ? w : w.toLowerCase(); }).join(' ');
-    return s.charAt(0).toUpperCase() + s.slice(1);
+    const cle = (sec && sec.id ? sec.id : '') + '|' + t;
+    if(casCache.has(cle)) return casCache.get(cle);
+    let ref = '';
+    if(sec){
+      const sn = sec.querySelector('.sec-num');
+      ref = String(sec.textContent || '');
+      if(sn) ref = ref.replace(sn.textContent, ' ');      // sans le surtitre lui-même (tout en capitales)
+      ref = ref.slice(0, 4000);
+    }
+    const formes = {};
+    (ref.match(LETTRES) || []).forEach(w => {
+      if(w.length < 2) return;
+      const k = w.toLowerCase(), f = formes[k] || (formes[k] = { maj:'', min:false });
+      if(w === k) f.min = true;
+      else if(!f.maj || (f.maj === f.maj.toUpperCase() && w !== w.toUpperCase())) f.maj = w;   // « Maxwell » plutôt que « MAXWELL »
+    });
+    let s = t.replace(LETTRES, w => { const f = formes[w.toLowerCase()]; return (f && f.maj && !f.min) ? f.maj : w.toLowerCase(); });
+    s = s.charAt(0).toUpperCase() + s.slice(1);
+    if(sec && sec.id) casCache.set(cle, s);
+    return s;
   }
   function rendreBarre(force){
     if(!barre) return;
