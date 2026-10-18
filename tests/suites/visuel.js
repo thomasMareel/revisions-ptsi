@@ -6,17 +6,23 @@
    ECRANS), en thème CLAIR puis SOMBRE (bascule par le bouton du thème, comme
    un utilisateur), sur ordinateur 1440×900 et sur téléphone 390×844 :
    1) CONTRASTE réel du texte : couleur calculée de chaque nœud texte visible
-      (et de chaque formule MathJax, prise en bloc) contre son fond effectif,
+      (et de chaque formule MathJax, prise en bloc, et de chaque texte généré
+      par le CSS : ::before / ::after à content:"…", comme les étiquettes
+      DÉFINITION / PROPRIÉTÉ / MÉTHODE des encadrés, sélecteur « div.def-box::before »)
+      contre son fond effectif,
       obtenu en remontant les ancêtres et en composant les fonds
       semi-transparents (opacité des ancêtres comprise). Seuil 4,5:1, ou 3:1
       pour un grand texte (≥ 24 px, ou ≥ 18,66 px en gras). Un fond en image
       ou en dégradé n'est pas évalué : il est listé à part (« fonds non
       évalués »). Le quadrillage de la page (lignes de 1 px sur body) est
-      négligé : le texte est évalué contre la couleur de fond. Textes des
-      commandes désactivées exclus (exemption WCAG 1.4.3).
+      négligé : le texte est évalué contre la couleur de fond ; de même une
+      petite icône non répétée (≤ 48 px, posée à côté du texte). Textes des
+      commandes désactivées exclus (exemption WCAG 1.4.3), ainsi que les
+      éléments « masqués visuellement » (boîte visible de 1 px au plus).
    2) TAILLE du texte rendu : aucune police < 12 px (une formule MathJax compte
       pour sa taille de base : exposants et indices internes exclus ; un texte
-      SVG compte pour sa taille multipliée par l'échelle du viewBox).
+      SVG compte pour sa taille multipliée par l'échelle du viewBox ; un texte
+      généré par le CSS, pour la taille de son pseudo-élément).
    3) DÉBORDEMENT horizontal : document.scrollingElement.scrollWidth plus large
       que la fenêtre, et éléments visibles qui dépassent à droite (le plus haut
       élément qui dépasse ; un élément rogné par un ancêtre à défilement ou
@@ -51,7 +57,7 @@ const fs = require('fs');
 const path = require('path');
 const { pause, attendreApp, naviguer, etatMathJax } = require('../lib/outils');
 
-/* ---------- Anomalies TOLÉRÉES (site au commit b3632ad, Chromium 141) ----------
+/* ---------- Anomalies TOLÉRÉES (site aux commits b3632ad et 1d2a766, Chromium 141) ----------
    Une ligne = [mesure, écrans, thèmes, appareils, { sélecteur: pire valeur tolérée, … }]
    - mesure : contraste | taille | debordement | cible24 | cible44 ;
    - écrans : noms d'ECRANS séparés par des espaces, alias 'chapitres' (les 8
@@ -81,6 +87,7 @@ const TOLERES = [
   ['contraste', 'recherche', 'clair', '*', { 'div.search-group-label': 4.23, 'span.sr-badge.sr-b-def': 2.76, 'span.sr-badge.sr-b-exo': 3.61, 'span.sr-badge.sr-b-flash': 3.99, 'span.sr-badge.sr-b-meth': 4.17, 'span.sr-title mark': 3.03 }],
   ['contraste', 'rlc-cours maxwell-cours', 'clair', '*', { 'div.notice strong': 2.85, 'span.label': 3.96 }],
   ['contraste', 'rlc-cours maxwell-cours', 'sombre', '*', { 'div.notice': 1.99, 'div.notice em': 1.99, 'div.notice mjx-container': 1.99 }],
+  ['contraste', 'rlc-cours maxwell-cours slci-cours', 'clair', '*', { 'div.def-box::before': 2.85, 'div.prop-box::before': 3.86 }],
   ['contraste', 'rlc-cours maxwell-cours slci-cours', 'clair', 'ordi', { 'span.toc-title': 4.23 }],
   ['contraste', 'rlc-cours rlc-meth maxwell-cours', 'clair', '*', { 'div.sec-num': 4.23 }],
   ['contraste', 'rlc-exos', 'clair', '*', { 'div.solution h4': 4.34 }],
@@ -103,10 +110,11 @@ const TOLERES = [
   ['taille', 'quiz', '*', 'tel', { 'button.quiz-rate-btn.rate-acq': 11.52, 'button.quiz-rate-btn.rate-hes': 11.52, 'button.quiz-rate-btn.rate-rev': 11.52 }],
   ['taille', 'recherche', '*', '*', { 'div.search-group-label': 9.6, 'div.search-hint-bar kbd': 10.4, 'div.search-hint-bar span': 10.4, 'div.sr-suggest': 11.2, 'div.sr-suggest a': 11.2, 'span.sr-badge.sr-b-cours': 9.92, 'span.sr-badge.sr-b-def': 9.92, 'span.sr-badge.sr-b-exo': 9.92, 'span.sr-badge.sr-b-flash': 9.92, 'span.sr-badge.sr-b-meth': 9.92, 'span.sr-meta': 10.88 }],
   ['taille', 'rlc-cours maxwell-cours', '*', '*', { 'span.label': 11.2 }],
+  ['taille', 'rlc-cours maxwell-cours slci-cours', '*', '*', { 'div.def-box::before': 9.92, 'div.prop-box::before': 9.92 }],
   ['taille', 'rlc-cours maxwell-cours slci-cours', '*', 'ordi', { 'span.toc-title': 11.52 }],
   ['taille', 'rlc-exos', '*', '*', { 'p.exo-part': 11.52, 'span.diff': 11.2 }],
   ['taille', 'rlc-flash anglais-flash', '*', '*', { 'button.flash-reset': 10.88, 'div.flash-hint': 11.2, 'span.tag': 11.2 }],
-  ['taille', 'rlc-meth', '*', '*', { 'span.step': 11.2 }],
+  ['taille', 'rlc-meth', '*', '*', { 'div.method-box::before': 9.92, 'span.step': 11.2 }],
   ['taille', 'rlc-simu', '*', '*', { 'span.lbl': 11.2 }],
   ['taille', 'tiroir', '*', '*', { 'button.mob-mat-btn': 10.88, 'button.mob-subdomain-label.mob-sub-toggle': 10.24, 'span.mob-filter-tag.mt-anglais': 10.24, 'span.mob-filter-tag.mt-si': 10.24, 'span.mob-subdomain-label.mob-drawer-section': 10.24, 'span.sub-chev': 9.6, 'span.sub-count': 10.56 }],
   // — Débordement horizontal (bord droit, px) —
@@ -268,12 +276,12 @@ function mesurerEcran(o) {
   const sx = window.scrollX, sy = window.scrollY;
   const racines = o.racines.map(s => document.querySelector(s)).filter(Boolean);
   const prefixes = new Set(typeof CHAPTERS !== 'undefined' ? CHAPTERS.map(c => c.prefix) : []);
-  const stats = { textes: 0, formules: 0, champs: 0, elements: 0, cibles: 0, inactifs: 0, ciblesEnLigne: 0 };
+  const stats = { textes: 0, formules: 0, generes: 0, champs: 0, elements: 0, cibles: 0, inactifs: 0, ciblesEnLigne: 0 };
   const constats = new Map(), nonEvalues = new Map();
 
   /* ---- Sélecteur lisible : classes (hors classes d'état), id stable, ou balise
      précédée de l'ancêtre le plus proche qui porte une classe / un id ---- */
-  const ETAT = /^(active|open|shown|flipped|flipping|show|selected|current|visible|done|on|is-[\w-]+|has-[\w-]+)$/;
+  const ETAT = /^(active|open|shown|flipped|flipping|show|sel|selected|current|visible|done|on|is-[\w-]+|has-[\w-]+)$/;
   const classes = e => Array.from(e.classList || []).filter(c => !ETAT.test(c));
   function idLisible(e) {
     const id = e.id;
@@ -356,24 +364,36 @@ function mesurerEcran(o) {
      lignes de 1 à 2 px : négligeable pour la lisibilité (évalué contre la couleur de fond). */
   const COUCHE_FINE = /^linear-gradient\((?:[\d.]+deg,\s*|to [a-z ]+,\s*)?(?:rgba?\([^)]*\)|[a-z]+)\s+[0-2](?:\.\d+)?px,\s*(?:transparent|rgba\(0, 0, 0, 0\))\s+[0-2](?:\.\d+)?px\)$/;
   const motifFin = img => img.split(/,\s*(?=linear-gradient)/).every(c => COUCHE_FINE.test(c.trim()));
+  /* Petite icône non répétée (≤ 48 px : pictogramme des étiquettes DÉFINITION…,
+     posé à côté du texte grâce à un retrait) : ne passe pas derrière le texte. */
+  const icone = s => /^url\([^)]*\)$/.test(s.backgroundImage) && s.backgroundRepeat === 'no-repeat'
+    && /^[\d.]+px [\d.]+px$/.test(s.backgroundSize) && s.backgroundSize.split(' ').every(v => parseFloat(v) <= 48);
+  const fondIgnore = s => motifFin(s.backgroundImage) || icone(s);
 
   /* Couleurs finales d'un texte et de son fond, en peignant la chaîne des
      ancêtres comme le navigateur : chaque ancêtre peint son fond, puis ses
      descendants par-dessus, et son opacité s'applique au groupe entier (fond
-     ET texte, sur ce qui est peint derrière lui). → { texte, fond } ou
-     { nonEvalue, source } si une image / un dégradé transparaît derrière le texte. */
-  function couleursFinales(el, fg) {
+     ET texte, sur ce qui est peint derrière lui). Un texte généré (ps : style
+     du ::before / ::after) peint d'abord le fond du pseudo-élément.
+     → { texte, fond } ou { nonEvalue, source } si une image / un dégradé
+     transparaît derrière le texte. */
+  function couleursFinales(el, fg, ps, suffixe) {
     let gTexte = fg, gFond = VIDE, couvert = false;
-    for (let e = el; e && e.nodeType === 1; e = e.parentElement) {
-      const s = cs(e);
+    const peindre = s => {   // une couche : fond de s sous ce qui est déjà peint, puis son opacité → type de fond non évaluable, ou null
       const img = s.backgroundImage, op = parseFloat(s.opacity);
-      if (!couvert && img && img !== 'none' && !motifFin(img)) return { nonEvalue: /url\(/.test(img) ? 'image' : 'dégradé', source: decrire(e) };
+      if (!couvert && img && img !== 'none' && !fondIgnore(s)) return /url\(/.test(img) ? 'image' : 'dégradé';
       const c = couleur(s.backgroundColor) || VIDE;
       gTexte = sur(gTexte, c);
       gFond = sur(gFond, c);
       if (op < 1) { gTexte = Object.assign({}, gTexte, { a: gTexte.a * op }); gFond = Object.assign({}, gFond, { a: gFond.a * op }); }
       // couvert : un fond opaque sans opacité < 1 depuis → les couches plus bas ne transparaissent plus
       couvert = op >= 1 && (couvert || c.a >= 0.999);
+      return null;
+    };
+    if (ps) { const t = peindre(ps); if (t) return { nonEvalue: t, source: decrire(el) + suffixe }; }
+    for (let e = el; e && e.nodeType === 1; e = e.parentElement) {
+      const t = peindre(cs(e));
+      if (t) return { nonEvalue: t, source: decrire(e) };
     }
     return { texte: sur(gTexte, BLANC), fond: sur(gFond, BLANC) };   // toile du navigateur
   }
@@ -412,7 +432,7 @@ function mesurerEcran(o) {
   }
   const rognage = fabriqueRognage(/^(hidden|clip)$/);
   const rognageDefil = fabriqueRognage(/^(hidden|clip|auto|scroll)$/);
-  const intersecte = (r, k) => Math.min(r.right, k.r) - Math.max(r.left, k.l) >= 1 && Math.min(r.bottom, k.b) - Math.max(r.top, k.t) >= 1;
+  const intersecte = (r, k) => Math.min(r.right, k.r) - Math.max(r.left, k.l) > 1 && Math.min(r.bottom, k.b) - Math.max(r.top, k.t) > 1;
   /* Face cachée d'une carte retournée (backface-visibility:hidden tournée vers l'arrière) */
   const cacheD = new Map();
   function deDos(e) {
@@ -429,11 +449,13 @@ function mesurerEcran(o) {
     cacheD.set(e, v);
     return v;
   }
-  /* Élément réellement visible : rendu, visibility, opacité, face, rognage, dans la page */
+  /* Élément réellement visible : rendu, visibility, opacité, face, rognage, dans la page.
+     Une boîte (ou une partie visible) de 1 px au plus ne compte pas : motif « masqué
+     visuellement » (1 × 1 px + overflow:hidden + clip), lu par les lecteurs d'écran seulement. */
   function visible(e, r) {
     const s = cs(e);
     if (s.visibility !== 'visible' || opacite(e) < 0.05 || deDos(e)) return false;
-    if (r.width < 1 || r.height < 1) return false;
+    if (r.width <= 1 || r.height <= 1) return false;
     if (r.right + sx <= 0 || r.bottom + sy <= 0) return false;   // hors de la page (lien d'évitement…)
     return intersecte(r, rognage(e));
   }
@@ -461,23 +483,26 @@ function mesurerEcran(o) {
 
   /* ---- 1) et 2) Contraste et taille de chaque texte / formule / champ ---- */
   const rg = document.createRange();
-  /* Taille rendue (px CSS) ; un texte SVG est mis à l'échelle par le viewBox (getScreenCTM) */
-  function mesurerTaille(el, sel, texte) {
-    let taille = parseFloat(cs(el).fontSize);
+  /* Taille rendue (px CSS) ; un texte SVG est mis à l'échelle par le viewBox (getScreenCTM) ;
+     ps : style du pseudo-élément pour un texte généré */
+  function mesurerTaille(el, sel, texte, ps) {
+    let taille = parseFloat((ps || cs(el)).fontSize);
     const m = el instanceof SVGElement && el.getScreenCTM ? el.getScreenCTM() : null;
     if (m) taille *= Math.sqrt(Math.abs(m.a * m.d - m.b * m.c));
     taille = Math.round(taille * 100) / 100;
     if (taille < 12) constater('taille', sel, taille, 12, { valeur: taille, texte: extrait(texte) }, true);
     return taille;
   }
-  function mesurerTexte(el, r, couleurTexte, texte, suffixe) {
-    const s = cs(el);
+  /* suffixe : '::placeholder', '::before'… ajouté au sélecteur ; ps : style du ::before / ::after
+     d'un texte généré (taille, graisse et fond lus sur le pseudo-élément) */
+  function mesurerTexte(el, r, couleurTexte, texte, suffixe, ps) {
+    const s = ps || cs(el);
     const sel = decrire(el) + (suffixe || '');
-    const taille = mesurerTaille(el, sel, texte), gras = parseInt(s.fontWeight, 10) >= 700;
+    const taille = mesurerTaille(el, sel, texte, ps), gras = parseInt(s.fontWeight, 10) >= 700;
     if (el.closest(':disabled, [aria-disabled="true"]')) { stats.inactifs++; return; }
     const fg = couleur(couleurTexte);
     if (!fg || fg.a === 0) return;   // texte transparent (dégradé détouré…) : rien à mesurer
-    const f = couleursFinales(el, fg);
+    const f = couleursFinales(el, fg, ps, suffixe);
     if (f.nonEvalue) {
       const cle = sel + '|' + f.source;
       const ne = nonEvalues.get(cle) || { selecteur: sel, fond: f.source, type: f.nonEvalue, n: 0, texte: extrait(texte) };
@@ -530,6 +555,20 @@ function mesurerEcran(o) {
     if (!visible(m, r)) continue;
     stats.formules++;
     mesurerTexte(m, r, cs(m).color, '[formule] ' + (m.textContent || ''));
+  }
+  // Textes générés par le CSS : ::before / ::after à contenu textuel (content:"DÉFINITION"…),
+  // mesurés sur leur propre style (hors glyphes MathJax, rendus eux aussi par des ::before)
+  const genere = c => (c && c !== 'none' && c !== 'normal' ? (c.match(/"(?:[^"\\]|\\.)*"/g) || []).map(x => x.slice(1, -1).replace(/\\(.)/g, '$1')).join('') : '');
+  for (const e of elements) {
+    if (e.tagName.startsWith('MJX-')) continue;
+    for (const pseudo of ['::before', '::after']) {
+      const ps = getComputedStyle(e, pseudo), t = genere(ps.content);
+      if (!/\S/.test(t) || ps.display === 'none' || ps.visibility !== 'visible' || parseFloat(ps.opacity) < 0.05) continue;
+      const r = rect(e);
+      if (!visible(e, r)) continue;
+      stats.generes++;
+      mesurerTexte(e, r, ps.webkitTextFillColor || ps.color, t, pseudo, ps);
+    }
   }
   // Champs de saisie : valeur tapée, sinon texte indicatif (placeholder)
   for (const racine of racines) {

@@ -133,14 +133,17 @@ Chaque **constat** = `{ ecran, theme, appareil, selecteur, valeur, seuil }`, reg
 sélecteur lisible dans un écran (pire valeur, nombre d'occurrences, exemples).
 
 - **Contraste** : couleur calculée de chaque texte visible (et de chaque formule MathJax,
-  prise en bloc) contre son fond effectif, en peignant la chaîne des ancêtres comme le
-  navigateur (fonds semi-transparents et opacité des ancêtres compris). Seuil 4,5:1, ou
-  3:1 pour un texte ≥ 24 px (≥ 18,66 px en gras). Un texte sur une **image**, un
-  **dégradé** ou des **formes SVG** n'est pas évalué : il est listé à part dans
-  `visuel.md`. Le quadrillage de la page (lignes de 1 px) est négligé. Les commandes
-  désactivées sont exclues (exemption WCAG).
+  prise en bloc, et de chaque **texte généré par le CSS** : `::before` / `::after` à
+  `content:"…"`, comme les étiquettes DÉFINITION / PROPRIÉTÉ / MÉTHODE des encadrés,
+  sélecteur `div.def-box::before`) contre son fond effectif, en peignant la chaîne des
+  ancêtres comme le navigateur (fonds semi-transparents et opacité des ancêtres compris).
+  Seuil 4,5:1, ou 3:1 pour un texte ≥ 24 px (≥ 18,66 px en gras). Un texte sur une
+  **image**, un **dégradé** ou des **formes SVG** n'est pas évalué : il est listé à part dans
+  `visuel.md`. Le quadrillage de la page (lignes de 1 px) et les petites icônes non
+  répétées (≤ 48 px, posées à côté du texte) sont négligés. Les commandes désactivées sont
+  exclues (exemption WCAG), comme les éléments « masqués visuellement » (1 px au plus).
 - **Taille** : police rendue < 12 px (formule MathJax : taille de base, exposants exclus ;
-  texte SVG : taille × échelle du dessin).
+  texte SVG : taille × échelle du dessin ; texte généré : taille du pseudo-élément).
 - **Débordement** : page plus large que l'écran (`scrollWidth`), et le plus haut élément
   visible qui dépasse à droite (un élément rogné par une zone défilante ne compte pas).
 - **Cibles tactiles** (téléphone) : boutons, liens, champs, éléments cliquables (curseur
