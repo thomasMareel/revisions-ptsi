@@ -750,9 +750,8 @@ kbd, .kbd{
 .hdr-search .kbd{ flex:none; }
 
 /* Actions : Aujourd'hui, Bilan (discrets), Réviser (primaire + compteur), Thème, Plus */
-.hdr-act{ padding:0 .7rem; }
-.hdr .btn-primary .ic-chev{ width:1rem; height:1rem; margin-left:-.1rem; opacity:.8; }
-.hdr .btn-primary .count{ margin-left:-.1rem; box-shadow:0 0 0 1.5px var(--primary); }
+.hdr .btn-primary .ic-chev{ width:1rem; height:1rem; opacity:.85; }
+.hdr .btn-primary .count{ box-shadow:0 0 0 1.5px var(--primary); }
 @media (max-width:1099px){
   .hdr-act{ width:2.375rem; padding:0; }
   .hdr-act .ic-lbl{ position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; }
@@ -793,6 +792,7 @@ kbd, .kbd{
   padding:.25rem .75rem 2rem 1rem; scrollbar-width:thin; }
 #mob-drawer-overlay{ display:none; position:fixed; inset:0; background:var(--scrim); z-index:calc(var(--z-drawer) - 1); }
 #mob-drawer-overlay.open{ display:block; animation:voileIn var(--dur-2) var(--ease); }
+#mob-drawer-overlay, #mob-more-scrim{ touch-action:none; }   /* le doigt sur le voile ne fait pas défiler la page dessous */
 @keyframes voileIn{ from{ opacity:0; } to{ opacity:1; } }
 
 /* En-tête du tiroir / de la page : « Chapitres » + × */
@@ -836,7 +836,7 @@ kbd, .kbd{
   font:var(--w-regular) var(--fs-ui-s)/1.25 var(--font-ui); color:var(--text-2); }
 .recent-row:hover{ background:var(--hover); color:var(--text); }
 .recent-row .nm{ min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.recent-row .where{ margin-left:auto; flex:none; color:var(--text-3); font-size:var(--fs-ui-xs); }
+.recent-row .where{ margin-left:auto; flex:0 1 auto; min-width:0; max-width:45%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--text-3); font-size:var(--fs-ui-xs); }
 .recent-row .dot{ width:.5rem; height:.5rem; }
 
 /* Intercalaires de matière : filet vif en haut, nom + effectif, l'actif prend la teinte */
@@ -956,6 +956,7 @@ kbd, .kbd{
   #mob-year-bar .yr-l{ display:none; }
   #mob-year-bar .yr-c{ display:inline; }
   .mob-year-btn{ min-width:2.75rem; }
+  #mob-filter-wrap input{ background:var(--raise); }   /* champ plein sur la page Chapitres (creux dans la barre latérale) */
   #mob-quick{ margin-top:1rem; }
   #mob-quick .nav-block{ margin-top:0; }
   #mob-quick .chips{ padding:0; }
@@ -75728,7 +75729,8 @@ ${bodyContent}
       h.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
       h.innerHTML = ic('chev-down') + '<span>' + esc(group.sub || 'Chapitres') + '</span>'
         + (items.length ? '<span class="n">' + items.length + '</span>' : '');
-      h.addEventListener('click', () => { setCollapsed(collKey, !collapsed); buildDrawerList(m); });
+      h.dataset.cle = collKey;
+      h.addEventListener('click', () => { setCollapsed(collKey, !collapsed); buildDrawerList(m); refocus('.nav-part-h', collKey); });
       part.appendChild(h);
       if(!collapsed){
         const ul = document.createElement('ul');
@@ -75745,9 +75747,11 @@ ${bodyContent}
           more.setAttribute('aria-expanded', deplie ? 'true' : 'false');
           more.innerHTML = deplie ? ic('chev-down') + 'Masquer les chapitres de 1ʳᵉ année'
             : ic('chev-right') + '+ ' + autres.length + ' chapitre' + (autres.length > 1 ? 's' : '') + ' de 1ʳᵉ année';
+          more.dataset.cle = collKey;
           more.addEventListener('click', () => {
             if(deplie) deplies1A.delete(collKey); else deplies1A.add(collKey);
             buildDrawerList(m);
+            refocus('.nav-more', collKey);
           });
           li.appendChild(more);
           ul.appendChild(li);
@@ -75764,6 +75768,11 @@ ${bodyContent}
       const r = act.getBoundingClientRect(), s = sc.getBoundingClientRect();
       if(r.top < s.top + 40 || r.bottom > s.bottom - 40) sc.scrollTop += (r.top - s.top) - sc.clientHeight / 2;
     }
+  }
+  // Après reconstruction de la liste, rendre le focus clavier au bouton équivalent
+  function refocus(sel, cle){
+    const n = Array.from(document.querySelectorAll('#mob-chap-list ' + sel)).find(x => x.dataset.cle === cle);
+    if(n) try { n.focus({ preventScroll:true }); } catch(e){ n.focus(); }
   }
   function reconstruire(){ aConstruire = true; buildDrawerList(currentMat); }
   window.__majNav = reconstruire;
