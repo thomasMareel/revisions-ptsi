@@ -754,7 +754,8 @@ module.exports = {
           const d = cv.getContext('2d').getImageData(0, 0, W, H).data;
           const col = getCanvasColors();
           const rgb = h => { h = String(h).trim().replace('#', ''); if (h.length === 3) h = h.split('').map(x => x + x).join(''); return [0, 2, 4].map(k => parseInt(h.substr(k, 2), 16)); };
-          const acc = rgb(col.accent), ink = rgb(col.ink);
+          // Courbe principale à l'encre vive du chapitre (refonte, SPEC §3.7) : __CVchap(toile) ; repli : accent
+          const acc = rgb(typeof __CVchap === 'function' ? __CVchap(cv) : col.accent), ink = rgb(col.ink);
           const proche = (i, c, tol) => d[i + 3] > 180 && Math.abs(d[i] - c[0]) + Math.abs(d[i + 1] - c[1]) + Math.abs(d[i + 2] - c[2]) < tol;
           let xmin = Infinity; const pts = [];
           for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (proche((y * W + x) * 4, acc, 60)) { pts.push([x, y]); if (x < xmin) xmin = x; }

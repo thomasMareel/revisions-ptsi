@@ -1695,10 +1695,10 @@ mjx-container[display="true"]{ display:block !important; overflow-x:auto; overfl
 /* MathML d'accessibilité (masqué par clip mais aussi large que la formule native) : il ne doit
    pas élargir la page quand une formule en ligne finit près du bord droit */
 mjx-container.MathJax[jax] > mjx-assistive-mml:not([display="block"]){ width:1px !important; }
-/* Formule suivie de sa ponctuation (« … \(x\). ») : jamais séparées en fin de ligne (sauf formule
-   plus large que sa ligne : .libre) */
+/* Formule suivie de sa ponctuation (« … \(x\). ») : jamais séparées en fin de ligne ; une formule
+   trop large y laisse la place de sa ponctuation */
 .mj-colle{ white-space:nowrap; }
-.mj-colle.libre{ white-space:normal; }
+.mj-colle > mjx-container.mj-large:not([display="true"]){ max-width:calc(100% - 1em); }
 
 /* Formules en bloc : creux discret, centré, défilement horizontal si trop long ; ni rail ni cadre */
 .formula{
@@ -1794,7 +1794,7 @@ mjx-container.MathJax[jax] > mjx-assistive-mml:not([display="block"]){ width:1px
 .hors-prog{
   margin:0 0 1.2rem; padding:.8rem 1rem; border-radius:4px var(--r-m) var(--r-m) 4px;
   background:var(--rouge-fond); border-left:3px solid var(--rouge-vif); color:var(--text);
-  font:var(--w-regular) var(--fs-ui-s)/1.5 var(--font-ui); max-width:calc(var(--margin-col) + var(--measure));
+  font:var(--w-regular) var(--fs-ui-s)/1.5 var(--font-ui);
 }
 .hors-prog .hp-tag{
   display:inline-flex; align-items:center; height:1.375rem; margin-right:.45rem; padding:0 .5rem; border-radius:var(--r-s);
@@ -1805,7 +1805,6 @@ mjx-container.MathJax[jax] > mjx-assistive-mml:not([display="block"]){ width:1px
 .video-resources{
   margin:0 0 1.5rem; padding:.85rem 1.1rem; border-radius:var(--r-m); background:var(--sunk);
   border:1px solid var(--line); font:var(--w-regular) var(--fs-ui-s)/1.5 var(--font-ui); color:var(--text-2);
-  max-width:calc(var(--margin-col) + var(--measure));
 }
 .video-resources .vr-label{
   display:block; margin-bottom:.35rem; font:var(--w-bold) var(--fs-kicker)/1.2 var(--font-ui);
@@ -1814,6 +1813,10 @@ mjx-container.MathJax[jax] > mjx-assistive-mml:not([display="block"]){ width:1px
 .video-resources p{ margin:0; font-size:var(--fs-ui-s); line-height:1.5; }
 .video-resources a{ color:var(--link); font-weight:var(--w-semi); }
 .video-resources .vr-src{ display:block; margin-top:.4rem; font-size:var(--fs-ui-xs); color:var(--text-3); }
+/* Sur ordinateur, alignés sur la colonne de texte (après la marge « § ») */
+@media (min-width:1024px){
+  .hors-prog, .video-resources{ margin-left:var(--margin-col); max-width:40rem; }   /* ≈ 34 em du corps */
+}
 
 /* --- 4. Tableaux, figures, schémas, code --------------------------------------------------- */
 /* Tableaux : styles inline du contenu (font-size .82rem, padding, bordures) neutralisés */
@@ -1825,8 +1828,10 @@ mjx-container.MathJax[jax] > mjx-assistive-mml:not([display="block"]){ width:1px
 .panel th, .panel td{ padding:.55em .8em !important; border:1px solid var(--line-2) !important; vertical-align:top; }
 .panel th{ text-align:inherit; }
 .panel th, .panel tr[style*="background"] > *{ background:var(--sunk) !important; font-weight:var(--w-semi); color:var(--text); }
-.panel table tr:first-child > th{ border-bottom:2px solid var(--field) !important; }
+.panel table tr:first-child > th, .panel table tr:first-child[style*="background"] > *{ border-bottom:2px solid var(--field) !important; }
 .panel div:has(> table){ overflow-x:auto; }
+/* Tableau posé directement dans un encadré (sans conteneur défilant) : il défile lui-même */
+.def-box > table, .prop-box > table, .method-box > table, .notice > table{ display:block; max-width:100%; overflow-x:auto; }
 
 /* Figures et schémas SVG (couleurs = variables de thème ; libellés en Unicode) */
 .panel figure{ margin:var(--flow-box) 0; text-align:center; }
@@ -1928,6 +1933,7 @@ figure.schema.defile, .cine-svg-wrap.defile{ overflow-x:auto; overflow-y:hidden;
 .exo .q > strong:first-child{
   display:inline-block; min-width:2.5rem; padding-right:.3rem; font:var(--w-bold) .8em/1 var(--font-ui);
   color:var(--chap); letter-spacing:.02em;
+  margin-right:-.265em;   /* rattrape l'espace qui suit « Q1. » : la 1re ligne s'aligne sur les suivantes */
 }
 .exo .q:not(:has(> strong:first-child)){ padding-left:0; text-indent:0; }
 .exo .exo-part{
@@ -76740,14 +76746,14 @@ document.getElementById('skip-link')?.addEventListener('click', e => {
         cacheL.set(hote, dispo);
       }
       var large = m.classList.contains('mj-large');
-      var nat = large ? m.scrollWidth : m.getBoundingClientRect().width;
-      decisions.push([m, dispo > 0 && nat > dispo + 1]);
+      var l = m.getBoundingClientRect().width;
+      var nat = large ? m.scrollWidth : l;
+      // ponctuation collée (.mj-colle, insécable) : elle doit tenir sur la même ligne que la formule
+      var p = m.parentNode, colle = 0;
+      if(p && p.classList && p.classList.contains('mj-colle')) colle = Math.max(0, p.getBoundingClientRect().width - l);
+      decisions.push([m, dispo > 0 && nat + colle > dispo + 1]);
     });
-    decisions.forEach(function(x){
-      x[0].classList.toggle('mj-large', x[1]);
-      var p = x[0].parentNode;
-      if(p && p.classList && p.classList.contains('mj-colle')) p.classList.toggle('libre', x[1]);
-    });
+    decisions.forEach(function(x){ x[0].classList.toggle('mj-large', x[1]); });
   }
 
   /* ---------- 6. Schémas SVG : aucun libellé sous 12 px ----------
