@@ -77743,8 +77743,9 @@ document.getElementById('skip-link')?.addEventListener('click', e => {
   }
   function cleMesure(){ return document.documentElement.clientWidth + 'x' + (document.documentElement.style.getPropertyValue('--read-scale') || '1'); }
   /* Mesures d'un panneau (ou d'un bloc déplié) : toutes les lectures, puis toutes les écritures
-     (deux mises en page forcées au lieu d'une par étape) ; lancées APRÈS la première peinture
-     (rAF puis tâche) : le contenu s'affiche sans attendre ces mesures (téléphone lent). */
+     (deux mises en page forcées au lieu d'une par étape). Lancées dans l'image qui suit le rendu
+     (finir est appelé par requestAnimationFrame) : la mise en page forcée est celle dont l'image a
+     besoin de toute façon, et aucune formule trop large ne déborde, même un instant. */
   function mesurerMaintenant(root){
     if(!visible(root)) return;                                     // mesures au prochain affichage
     var cle = cleMesure();
@@ -77756,11 +77757,7 @@ document.getElementById('skip-link')?.addEventListener('click', e => {
     ecrireDefilants(def);
     root.__cleMesure = cle;
   }
-  function mesurer(root){
-    if(root.__mesureEnAttente) return;
-    root.__mesureEnAttente = true;
-    raf(function(){ setTimeout(sur(function(){ root.__mesureEnAttente = false; mesurerMaintenant(root); }), 0); });
-  }
+  function mesurer(root){ mesurerMaintenant(root); }
   function finir(root, forcer){
     if(!root || !root.isConnected) return;
     if(root.matches && root.matches('section.panel')) structurer(root);
