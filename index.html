@@ -2785,6 +2785,7 @@ figure.schema.defile, .cine-svg-wrap.defile{ overflow-x:auto; overflow-y:hidden;
 /* formules en ligne : white-space:normal !important (CONTENU) ferait passer l'extrait à la ligne */
 .search-result .sr-snippet mjx-container:not([display="true"]){ white-space:nowrap !important; }
 /* Formule trouvée : la formule elle-même (rendue), réduite, sans déborder de la ligne */
+.sr-formule:empty{ min-height:1.6em; }   /* aperçu posé à la pause de frappe : sa ligne est réservée */
 .sr-formule{ display:block; max-width:100%; max-height:4.5rem; overflow:hidden; margin:.1rem 0 .05rem; font-size:.92em; color:var(--text);
   -webkit-mask-image:linear-gradient(90deg, var(--text) 85%, transparent); mask-image:linear-gradient(90deg, var(--text) 85%, transparent); }
 .sr-formule mjx-container[display="true"]{ margin:0 !important; text-align:left !important; }
@@ -74085,6 +74086,9 @@ function navigateTo(chapId, panelId, onDone){
   let sel = 0;           // ligne choisie au clavier
   let opener = null, repli = null;     // élément à qui rendre le focus à la fermeture (repli : bouton du menu d'origine)
   let minuterieTex = 0;
+  let dernierFiltre = null;   // { nq, items } : dernière requête et ses correspondances (filtrage incrémental)
+  let versionTex = 0;    // garde : une composition lancée pour une liste remplacée depuis est abandonnée
+  let composes = [];     // lignes passées à MathJax (retirées de sa liste interne au remplacement)
 
   const esc = s => String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   function normalize(s){
@@ -74270,20 +74274,57 @@ function navigateTo(chapId, panelId, onDone){
     let h = '<div class="search-result' + (i === sel ? ' sel' : '') + '" id="sr-' + i + '" role="option" aria-selected="' + (i === sel) + '" data-i="' + i + '" data-mat="' + esc(it.mat || '') + '">'
       + '<span class="dot" aria-hidden="true"></span><span class="sr-txt">'
       + '<span class="sr-title">' + marquer(texSur(it.title), q) + '</span>';
-    if(it.kind === 'form' && it.el) h += '<span class="sr-formule">' + it.el.innerHTML + '</span>';
+    // aperçu de la formule : posé à la pause de frappe (composerResultats), pas à chaque touche —
+    // recopier ses centaines d'éléments MathJax alourdissait chaque frappe
+    if(it.kind === 'form' && it.el) h += '<span class="sr-formule" data-f="' + i + '"></span>';
     h += '<span class="sr-meta">' + esc(prov) + '</span>';
     if(q && it.kind !== 'form' && it.kind !== 'chap' && it.text && (it.carte || !dansTitre)) h += '<span class="sr-snippet">' + extrait(it, q) + '</span>';
     return h + '</span></div>';
   }
 
+  /* Formules des anciens résultats retirées de la liste interne de MathJax (sinon elle grossissait
+     d'≈ 36 éléments par recherche et gardait les nœuds détachés), composition en cours abandonnée */
+  function effacerTex(){
+    versionTex++;
+    clearTimeout(minuterieTex);
+    try { if(window.MathJax && MathJax.typesetClear) MathJax.typesetClear([resultsEl].concat(composes)); } catch(e){}
+    composes = [];
+  }
+  const auRepos = f => (window.requestIdleCallback ? requestIdleCallback(f, { timeout:1000 }) : setTimeout(f, 30));
+  /* Composition paresseuse : à une vraie pause de frappe seulement (≈ 450 ms — relancée 120 ms
+     après chaque touche, elle bloquait le fil principal jusqu'à 0,8 s entre deux touches sur un
+     téléphone lent), ligne par ligne au repos, de haut en bas (les lignes visibles d'abord). */
+  function composerResultats(v){
+    if(v !== versionTex || !isOpen()) return;
+    const mj = !!(window.MathJax && MathJax.typesetPromise);
+    const aTex = r => /\\\(|\$\$/.test(r.textContent);
+    const reste = Array.from(resultsEl.querySelectorAll('.search-result')).filter(r => r.querySelector('.sr-formule[data-f]') || aTex(r));
+    // une ligne par tâche (aucune longue tâche si l'élève reprend la frappe), dans l'ordre de la liste
+    const suite = () => {
+      if(v !== versionTex || !reste.length) return;
+      const r = reste.shift();
+      const sp = r.querySelector('.sr-formule[data-f]');
+      if(sp){
+        const it = rows[+sp.getAttribute('data-f')];
+        sp.removeAttribute('data-f');
+        if(it && it.el) sp.innerHTML = it.el.innerHTML;      // formule déjà rendue dans la page, ou son TeX
+      }
+      if(mj && aTex(r)){
+        composes.push(r);
+        try { MathJax.typesetPromise([r]).then(() => auRepos(suite)).catch(() => {}); } catch(e){}
+      } else auRepos(suite);
+    };
+    suite();
+  }
   function afficher(html){
+    effacerTex();
+    const v = versionTex;
     resultsEl.innerHTML = html;
     input.setAttribute('aria-expanded', rows.length ? 'true' : 'false');
     if(rows.length) input.setAttribute('aria-activedescendant', 'sr-' + sel); else input.removeAttribute('aria-activedescendant');
-    // Formules TeX des titres, extraits et formules pas encore rendues : composées après une courte pause
-    clearTimeout(minuterieTex);
-    if(window.MathJax && MathJax.typesetPromise && /\\\(|\$\$/.test(resultsEl.textContent)){
-      minuterieTex = setTimeout(() => { try { MathJax.typesetPromise([resultsEl]).catch(() => {}); } catch(e){} }, 120);
+    // Formules TeX des titres, extraits et formules pas encore rendues
+    if(resultsEl.querySelector('.sr-formule[data-f]') || (window.MathJax && MathJax.typesetPromise && /\\\(|\$\$/.test(resultsEl.textContent))){
+      minuterieTex = setTimeout(() => composerResultats(v), 450);
     }
   }
 
@@ -74310,14 +74351,20 @@ function navigateTo(chapId, panelId, onDone){
     if(!index) buildIndex();
     const mots = nq.split(/\s+/).filter(Boolean);
     const par = {};
-    index.forEach(it => {
+    // Requête qui prolonge la précédente (on tape la suite du mot) : ses résultats sont forcément
+    // parmi ceux de la précédente (titre, texte ou tous ses mots la contenaient déjà) ; on ne
+    // reparcourt qu'eux, pas tout l'index (exercices en texte intégral) à chaque touche.
+    const base = (dernierFiltre && nq.startsWith(dernierFiltre.nq)) ? dernierFiltre.items : index;
+    const trouves = [];
+    base.forEach(it => {
       let s = 0;
       if(it.nTitle.includes(nq)) s += 10;
       if(it.nTitle.startsWith(nq)) s += 5;
       if(it.nText.includes(nq)) s += 3;
       if(mots.length > 1 && mots.every(w => it.nTitle.includes(w) || it.nText.includes(w))) s += 4;
-      if(s > 0) (par[it.kind] || (par[it.kind] = [])).push({ it, s });
+      if(s > 0){ trouves.push(it); (par[it.kind] || (par[it.kind] = [])).push({ it, s }); }
     });
+    dernierFiltre = { nq, items: trouves };
     rows = []; sel = 0;
     let html = '';
     GROUPES.forEach(([k, lib, max]) => {
@@ -74377,7 +74424,7 @@ function navigateTo(chapId, panelId, onDone){
   function close(rendre){
     if(!isOpen()) return;
     overlay.classList.remove('open');
-    clearTimeout(minuterieTex);
+    effacerTex();
     const o = opener, r = repli; opener = repli = null;
     if(rendre !== false && window.__rendreFocus) window.__rendreFocus(o, r);
   }
