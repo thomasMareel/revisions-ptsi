@@ -696,29 +696,47 @@ module.exports = {
 
     /* ---------- Focus jamais caché sous l'en-tête et les onglets collants (WCAG 2.4.11) ----------
        Maj+Tab en remontant les Exercices : le navigateur alignait l'élément focalisé sur le bord
-       haut de la fenêtre, sous 103 px de barres (scroll-padding-top sur html). */
-    await etape('Maj+Tab sur #rlc/exos : l\'élément focalisé n\'est jamais caché sous l\'en-tête et les onglets collants', async () => {
+       haut de la fenêtre, sous 103 px de barres (dégagé par le module de navigation) — défilement
+       instantané (mouvement réduit) ET animé. Et l'inverse : le focus d'une commande COLLANTE
+       (onglet, bouton de l'en-tête, focus rendu à « Plus ») ne fait jamais sauter la page (un
+       scroll-padding sur <html> la faisait remonter de ≈ 450 px). */
+    await etape('Maj+Tab sur #rlc/exos : l\'élément focalisé n\'est jamais caché sous l\'en-tête et les onglets collants ; focus d\'un onglet ou de l\'en-tête sans saut', async () => {
       const pb = [];
-      await page.emulateMedia({ reducedMotion: 'reduce' });
-      await naviguer(page, 'rlc', 'exos');
-      await page.evaluate(() => document.getElementById('next-chap-btn').focus());
-      await pause(200);
-      let vus = 0;
-      for (let i = 0; i < 18; i++) {
-        await page.keyboard.press('Shift+Tab'); await pause(120);
-        const r = await page.evaluate(() => {
-          const a = document.activeElement, p = document.getElementById('rlc-exos');
-          if (!a || !p || !p.contains(a)) return null;
-          const t = document.querySelector('#chap-rlc > nav.tabs').getBoundingClientRect(), b = a.getBoundingClientRect();
-          return { el: (a.className || a.tagName).toString().split(' ')[0] + ' «' + (a.textContent || '').trim().slice(0, 20) + '»', haut: Math.round(b.top), onglets: Math.round(t.bottom) };
-        });
-        if (!r) continue;
-        vus++;
-        if (r.haut < r.onglets - 1) pb.push(r.el + ' : haut à ' + r.haut + ' px, sous les onglets collés (bas à ' + r.onglets + ' px)');
+      for (const reduit of [true, false]) {
+        await page.emulateMedia({ reducedMotion: reduit ? 'reduce' : 'no-preference' });
+        await naviguer(page, 'rlc', 'exos');
+        await page.evaluate(() => document.getElementById('next-chap-btn').focus());
+        await pause(reduit ? 200 : 700);
+        let vus = 0;
+        for (let i = 0; i < 18; i++) {
+          await page.keyboard.press('Shift+Tab'); await pause(reduit ? 120 : 600);
+          const r = await page.evaluate(() => {
+            const a = document.activeElement, p = document.getElementById('rlc-exos');
+            if (!a || !p || !p.contains(a)) return null;
+            const t = document.querySelector('#chap-rlc > nav.tabs').getBoundingClientRect(), b = a.getBoundingClientRect();
+            return { el: (a.className || a.tagName).toString().split(' ')[0] + ' «' + (a.textContent || '').trim().slice(0, 20) + '»', haut: Math.round(b.top), onglets: Math.round(t.bottom) };
+          });
+          if (!r) continue;
+          vus++;
+          if (r.haut < r.onglets - 1) pb.push((reduit ? '' : '(défilement animé) ') + r.el + ' : haut à ' + r.haut + ' px, sous les onglets collés (bas à ' + r.onglets + ' px)');
+        }
+        if (!vus) pb.push('aucun élément du panneau Exercices atteint par Maj+Tab');
       }
-      if (!vus) pb.push('aucun élément du panneau Exercices atteint par Maj+Tab');
+      await page.emulateMedia({ reducedMotion: 'reduce' });
+      // commandes collantes focalisées en milieu de page : la page reste où elle est
+      await naviguer(page, 'rlc', 'cours');
+      for (const [nom, sel] of [['onglet actif', '#chap-rlc > nav.tabs .tab.active'], ['dernier onglet', '#chap-rlc > nav.tabs .tab:last-child'], ['« Plus » de l\'en-tête', '#more-btn'], ['recherche de l\'en-tête', '#search-btn']]) {
+        const saut = await page.evaluate(async s => {
+          if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+          window.scrollTo(0, 3000); await new Promise(r => setTimeout(r, 250));
+          const y0 = window.scrollY; document.querySelector(s).focus(); await new Promise(r => setTimeout(r, 250));
+          return Math.round(window.scrollY - y0);
+        }, sel);
+        if (Math.abs(saut) > 4) pb.push('focus de ' + nom + ' à mi-page : la page saute de ' + saut + ' px');
+      }
+      await page.evaluate(() => { if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); window.scrollTo(0, 0); });
       await page.emulateMedia({ reducedMotion: null });
-      return pb.slice(0, 5);
+      return pb.slice(0, 6);
     });
 
     /* ---------- Blocs dépliables : intitulé = vrai bouton, contenu HORS du bouton ; solutions ----------

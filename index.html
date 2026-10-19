@@ -1660,16 +1660,17 @@ section.panel.active{ animation:panelIn var(--dur-2) var(--ease) both; }
 .panel a{ color:var(--link); text-underline-offset:.18em; text-decoration-thickness:1px; }
 .panel sub, .panel sup{ line-height:0; font-size:max(.83em, 12px); }   /* jamais sous 12 px (surtitres, bandeaux) */
 
-/* Défilement vers un élément (focus au clavier, Maj+Tab compris ; scrollIntoView de la recherche, du
-   saut carte → cours, de « Dans ce chapitre ») : la zone utile commence SOUS l'en-tête et les onglets
-   collants (WCAG 2.4.11 : le navigateur alignait l'élément focalisé sur le bord haut, caché sous
-   103 px de barres). Téléphone : barre haute (elle revient dès qu'on remonte) + onglets. */
-html{ scroll-padding-top:calc(var(--header-h) + var(--tabs-h) + .5rem); scroll-padding-bottom:.5rem; }
-@media (max-width:767px){ html{ scroll-padding-top:calc(var(--bar-h) + var(--tabs-h) + .5rem); } }
-/* zones défilantes internes : l'anneau de la rangée focalisée n'est plus coupé au bord */
+/* Focus au clavier jamais caché sous l'en-tête et les onglets collants (WCAG 2.4.11) : PAS de
+   scroll-padding sur <html> — Chrome jugeait alors les commandes des barres collantes elles-mêmes
+   (en-tête, onglets, barre du téléphone) cachées par la bande réservée et faisait sauter la page de
+   ≈ 450 px à chaque focus de l'une d'elles (Maj+Tab, focus rendu à « Plus » après un menu…). Le
+   contenu resté sous les barres est dégagé après coup en JS (« Focus jamais caché », module de
+   navigation). Zones défilantes internes (sans élément collant) : l'anneau de la rangée focalisée
+   n'est plus coupé au bord. */
 #mob-drawer-scroll, .more-toc-list, #dash-body, .fen-corps, #search-results{ scroll-padding-block:.5rem; }
-/* Cible du saut carte → cours : petit décalage en plus du scroll-padding ci-dessus + surbrillance */
-.panel h2, .panel h3, .panel .sec-num, .panel .course-section{ scroll-margin-top:.5rem; }
+/* Cible des scrollIntoView (saut carte → cours, recherche, « Dans ce chapitre ») : décalage sous
+   l'en-tête et les onglets + surbrillance */
+.panel h2, .panel h3, .panel .sec-num, .panel .course-section{ scroll-margin-top:7.5rem; }
 .cours-target-flash{ animation:coursTargetFlash 2.6s var(--ease); border-radius:var(--r-xs); }
 @keyframes coursTargetFlash{
   0%, 12% { background:var(--selection); box-shadow:0 0 0 8px var(--selection); }
@@ -76741,10 +76742,7 @@ document.addEventListener('keydown', e => {
       if(!hb || hb === hReel) return;                     // masquée (ordinateur) : valeur gardée
       hReel = hb;
       if(!feuille){ feuille = document.createElement('style'); feuille.id = 'barre-hauteur'; document.head.appendChild(feuille); }
-      // (+ scroll-padding de la page à la hauteur réelle : le focus au clavier n'est pas caché sous
-      //  une barre de 2 lignes ; propriété non héritée posée sur <html> seul, rien d'autre à recalculer)
-      feuille.textContent = 'nav.tabs, .sim-wrapper > canvas, .chapter .flash-card{ --bar-h-reel:' + hb + 'px; }'
-        + '@media (max-width:767px){ html{ scroll-padding-top:calc(' + hb + 'px + var(--tabs-h) + .5rem); } }';
+      feuille.textContent = 'nav.tabs, .sim-wrapper > canvas, .chapter .flash-card{ --bar-h-reel:' + hb + 'px; }';
     } catch(err){ /* non bloquant */ } }).observe(barre);
   }
   /* ── Titre dynamique de la barre du téléphone (chapitre affiché) ── */
@@ -76832,6 +76830,53 @@ document.addEventListener('keydown', e => {
       dernierY = Math.max(0, window.scrollY || 0);
     });
   });
+  /* ── Focus jamais caché sous les barres collantes (WCAG 2.4.11, SPEC §6.1) ──
+     En remontant au clavier (Maj+Tab), le navigateur aligne l'élément focalisé sur le bord haut de
+     la FENÊTRE : sous l'en-tête et les onglets collants (103 px à l'ordinateur, barre + onglets au
+     téléphone), anneau compris. Après son défilement (déjà fait au focusin), un élément du contenu
+     resté sous les barres est dégagé de ce qu'il faut. Pas de scroll-padding sur <html> : il faisait
+     sauter la page au focus des barres collantes elles-mêmes (voir la région PAGE). Une lecture de
+     boîtes par focus clavier, rien au chargement. */
+  function basDesBarres(){
+    const ch = activeChapEl(), tabs = ch && ch.querySelector(':scope > nav.tabs');
+    const rt = tabs && tabs.getClientRects().length ? tabs.getBoundingClientRect() : null;
+    if(mqTel.matches && barre){
+      // téléphone : la barre revient dès qu'on remonte (et le dégagement remonte) → comptée affichée
+      const hb = barre.offsetHeight, haut = barre.classList.contains('cachee') ? 0 : hb;
+      return rt && rt.top <= haut + 1 ? hb + rt.height : hb;
+    }
+    const hd = $('site-header'), rh = hd && hd.getClientRects().length ? hd.getBoundingClientRect() : null;
+    let bas = rh && rh.top <= 1 ? rh.bottom : 0;
+    if(rt && rt.top <= bas + 1) bas = Math.max(bas, rt.bottom);
+    return bas;
+  }
+  function degager(t){ try {
+    if(document.activeElement !== t) return;
+    const r = t.getBoundingClientRect(), bas = basDesBarres(), marge = 8;
+    if(!r.height || r.bottom <= 0 || r.top >= bas + marge) return;
+    if(r.height > window.innerHeight - bas - 2 * marge) return;                  // plus haut que la zone utile (panneau, feuille) : rien
+    try { window.scrollBy({ top:r.top - bas - marge, behavior:'instant' }); } catch(err){ window.scrollBy(0, r.top - bas - marge); }
+  } catch(err){ /* non bloquant */ } }
+  let suiviFocus = null;
+  document.addEventListener('focusin', e => { try {
+    const t = e.target;
+    if(!t || t.nodeType !== 1 || !t.closest) return;
+    const zone = $('app-main');
+    if(!zone || !zone.contains(t) || t.closest('nav.tabs, #chap-rail')) return;   // (barres et rail fixe : jamais sous les barres)
+    if(!t.matches(':focus-visible')) return;                                     // appui au doigt / clic : la page ne bouge pas
+    degager(t);                                       // défilement instantané du navigateur : déjà fait
+    /* Défilement ANIMÉ (scroll-behavior:smooth, hors mouvement réduit) : l'élément n'est à sa place
+       qu'à la fin → nouvelle vérification à `scrollend` (ou après 160 ms sans défilement). */
+    if(suiviFocus) suiviFocus();
+    let to = 0;
+    const arreter = () => { clearTimeout(to); window.removeEventListener('scroll', relance); window.removeEventListener('scrollend', fin); suiviFocus = null; };
+    const fin = () => { arreter(); degager(t); };
+    const relance = () => { clearTimeout(to); to = setTimeout(fin, 160); };
+    window.addEventListener('scroll', relance, { passive:true });
+    window.addEventListener('scrollend', fin);
+    to = setTimeout(arreter, 160);                    // aucun défilement : rien à suivre
+    suiviFocus = arreter;
+  } catch(err){ /* non bloquant */ } });
   // Changement d'onglet : la section courante sera redonnée par le scroll-spy
   document.addEventListener('click', e => {
     if(e.target && e.target.closest && e.target.closest('.tab')){ etatBarre.section = null; setTimeout(() => rendreBarre(), 0); }
