@@ -15,8 +15,8 @@ const { pause, attendreApp, fermerOverlays, naviguer, choisirTheme, etatMathJax,
    elles ne font pas échouer la suite. Si l'une disparaît, un avertissement
    demande de la retirer de la liste. */
 const TEX_EN_CLAIR_CONNUS = {
-  // panneau : textes restés en clair tolérés (tout AUTRE reste dans ce panneau fait échouer)
-  'stab-exos': { motif: /Tableau de Routh\s*:\s*\\\[|^\\\]$/, raison: 'tableau de Routh écrit en \\[ … \\] au lieu de $$ … $$' },
+  // panneau : { motif, raison } — textes restés en clair tolérés (tout AUTRE reste dans ce panneau
+  // fait échouer). Vide depuis le tableau de Routh de stab-exos réécrit en $$ … $$ (2026-10-19).
 };
 const ONGLETS_HORS_CHAPTERS_CONNUS = {
   'lor-simu': 'simulateur de Lorentz (SVG) non déclaré dans CHAPTERS.panels',
