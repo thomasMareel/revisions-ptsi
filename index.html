@@ -1557,7 +1557,7 @@ section.panel.active{ animation:panelIn var(--dur-2) var(--ease) both; }
 .panel li::marker{ color:var(--chap-vif); }
 .panel ol > li::marker{ font:var(--w-bold) .85em var(--font-ui); color:var(--chap); }
 .panel a{ color:var(--link); text-underline-offset:.18em; text-decoration-thickness:1px; }
-.panel sub, .panel sup{ line-height:0; }
+.panel sub, .panel sup{ line-height:0; font-size:max(.83em, 12px); }   /* jamais sous 12 px (surtitres, bandeaux) */
 
 /* Cible du saut carte → cours : décalage sous l'en-tête et les onglets + surbrillance */
 .panel h2, .panel h3, .panel .sec-num{ scroll-margin-top:7.5rem; }
@@ -1574,6 +1574,9 @@ section.panel.active{ animation:panelIn var(--dur-2) var(--ease) both; }
 mjx-container:not([display="true"]){
   display:inline !important; line-height:inherit !important; white-space:normal !important;
 }
+/* Formule dans un surtitre en capitales espacées (.exo-part, .sec-num, .step…) : ni capitales ni
+   interlettrage (« (d = 0,800 m) » ne devient pas « (D = 0,800 M) ») */
+mjx-container{ text-transform:none; letter-spacing:normal; }
 mjx-container.mj-large:not([display="true"]){
   display:inline-block !important; max-width:100%; overflow-x:auto; overflow-y:hidden;
   vertical-align:middle; padding:.2em 0; scrollbar-width:thin;
@@ -1585,6 +1588,9 @@ mjx-container.MathJax[jax] > mjx-assistive-mml:not([display="block"]){ width:1px
 /* Formule suivie de sa ponctuation (« … \(x\). ») : jamais séparées en fin de ligne ; une formule
    trop large y laisse la place de sa ponctuation */
 .mj-colle{ white-space:nowrap; }
+/* (la règle générale des formules en ligne rétablit white-space:normal : la battre ici, sinon la
+   ponctuation repart seule au début de la ligne suivante) */
+.mj-colle > mjx-container:not([display="true"]){ white-space:nowrap !important; }
 .mj-colle > mjx-container.mj-large:not([display="true"]){ max-width:calc(100% - 1em); }
 
 /* Formules en bloc : creux discret, centré, défilement horizontal si trop long ; ni rail ni cadre */
@@ -1633,15 +1639,23 @@ mjx-container.MathJax[jax] > mjx-assistive-mml:not([display="block"]){ width:1px
 .method-box > strong:first-child{
   display:block; margin-bottom:.5em; font:var(--w-semi) var(--fs-h4)/1.3 var(--font-text); color:var(--meth-titre);
 }
-.method-box ol:has(> li > .step){ list-style:none; padding-left:0; counter-reset:etape; }
-.method-box li:has(> .step){ position:relative; counter-increment:etape; padding-left:2.25em; margin:.55em 0; }
-.method-box li:has(> .step)::before{
+/* Toute liste numérotée d'un encadré de méthode (avec ou sans <span class="step">) : pastilles */
+.method-box > ol{ list-style:none; padding-left:0; counter-reset:etape; }
+.method-box > ol[start="2"]{ counter-reset:etape 1; } .method-box > ol[start="3"]{ counter-reset:etape 2; }
+.method-box > ol[start="4"]{ counter-reset:etape 3; } .method-box > ol[start="5"]{ counter-reset:etape 4; }
+.method-box > ol[start="6"]{ counter-reset:etape 5; } .method-box > ol[start="7"]{ counter-reset:etape 6; }
+.method-box > ol > li{ position:relative; counter-increment:etape; padding-left:2.25em; margin:.55em 0; }
+.method-box > ol > li::before{
   content:counter(etape); position:absolute; left:0; top:.1em; width:1.75em; height:1.75em; border-radius:50%;
   display:grid; place-items:center; background:var(--chap); color:var(--sheet);
   font:var(--w-bold) .8em/1 var(--font-ui); font-variant-numeric:tabular-nums;
 }
-/* « Étape n. » : gardé pour les lecteurs d'écran, masqué à l'écran (la pastille le remplace) */
-.method-box li:has(> .step) > .step{
+/* Libellé d'étape (« T : », « Isochore : », « Contrôle. ») : en ligne, gras, encre de la matière,
+   sans capitales (certains contiennent une formule) */
+.method-box li > .step{ font:inherit; font-weight:var(--w-strong); color:var(--chap); letter-spacing:0; text-transform:none; }
+/* « Étape n. » / « Réflexe n. » (classe .step-num posée par le module CONTENU) : gardé pour les
+   lecteurs d'écran, masqué à l'écran (la pastille le remplace) */
+.method-box > ol > li > .step.step-num{
   position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap;
 }
 .step{ font:var(--w-bold) var(--fs-kicker)/1.2 var(--font-ui); letter-spacing:var(--track-kicker); text-transform:uppercase; color:var(--chap); }
@@ -1873,7 +1887,8 @@ figure.schema.defile, .cine-svg-wrap.defile{ overflow-x:auto; overflow-y:hidden;
 
 /* --- 6. Téléphone et tablette ---------------------------------------------------------------- */
 @media (max-width:1023px){
-  .course-section{ display:block; }
+  /* un seul bloc, mais toujours la mesure de 34 em (pas de colonne de 85-95 signes sur tablette) */
+  .course-section{ display:block; max-width:var(--measure); }
   .course-section + .course-section::before{ left:0; width:100%; }
   .sec-num.coupe{ display:block; }
   .sec-n{ display:inline; margin:0; padding:0; font:var(--w-bold) var(--fs-kicker)/1.2 var(--font-ui); letter-spacing:var(--track-kicker); }
@@ -3897,7 +3912,7 @@ window.__icon = function(name){
 <section class="panel active" id="es-cours">
 <div class="hors-prog">
   <span class="hp-tag">Hors programme PTSI</span>
-  <strong>L'électrostatique</strong> (champ \(\vec{E}\), potentiel, théorème de Gauss, énergie du condensateur vue comme densité d'énergie du champ) n'est <strong>pas au programme de PTSI 1<sup>re</sup> année</strong> : elle est traitée en 2<sup>e</sup> année. En 1<sup>re</sup> année, l'électromagnétisme se limite à la <em>magnétostatique</em> (chapitre « Magnétostatique ») et à l'<em>induction</em>. Fiche conservée comme complément.
+  <strong>L'électrostatique</strong> (champ \(\vec{E}\), potentiel, théorème de Gauss, énergie du condensateur vue comme densité d'énergie du champ) n'est <strong>pas au programme de PTSI 1ʳᵉ année</strong> : elle est traitée en 2ᵉ année. En 1ʳᵉ année, l'électromagnétisme se limite à la <em>magnétostatique</em> (chapitre « Magnétostatique ») et à l'<em>induction</em>. Fiche conservée comme complément.
 </div>
 <div class="course-section">
   <div class="sec-num">§1 · CHAMP ÉLECTROSTATIQUE</div>
@@ -5779,7 +5794,7 @@ window.__icon = function(name){
 </div>
 
 <div class="course-section">
-  <div class="sec-num">§4 · FILTRES DU 1<sup>ER</sup> ORDRE</div>
+  <div class="sec-num">§4 · FILTRES DU 1ᵉʳ ORDRE</div>
   <h2>Passe-bas et passe-haut</h2>
   <div class="intro">Le filtre du 1<sup>er</sup> ordre a une fonction de transfert dont le dénominateur est de degré 1 en \(j\omega\). Atténuation à \(\pm 20\) dB/décade.</div>
 
@@ -5814,7 +5829,7 @@ window.__icon = function(name){
 </div>
 
 <div class="course-section">
-  <div class="sec-num">§5 · FILTRES DU 2<sup>E</sup> ORDRE</div>
+  <div class="sec-num">§5 · FILTRES DU 2ᵉ ORDRE</div>
   <h2>Passe-bas, passe-haut, passe-bande</h2>
   <div class="intro">Les filtres du 2<sup>e</sup> ordre ont un dénominateur de degré 2 en \(j\omega\). Pentes de \(\pm 40\) dB/déc en HF/BF. Avec un facteur de qualité \(Q\) suffisant, ils présentent une résonance.</div>
 
@@ -7157,7 +7172,7 @@ window.__icon = function(name){
 <section class="panel active" id="od-cours">
 <div class="hors-prog">
   <span class="hp-tag">Hors programme PTSI</span>
-  <strong>L'optique ondulatoire</strong> (interférences, diffraction, polarisation) n'est <strong>pas au programme de PTSI 1<sup>re</sup> année</strong> : en optique, seule l'optique géométrique (voir le chapitre « Optique géométrique ») est exigible. Cette fiche est conservée comme complément et anticipation de la 2<sup>e</sup> année.
+  <strong>L'optique ondulatoire</strong> (interférences, diffraction, polarisation) n'est <strong>pas au programme de PTSI 1ʳᵉ année</strong> : en optique, seule l'optique géométrique (voir le chapitre « Optique géométrique ») est exigible. Cette fiche est conservée comme complément et anticipation de la 2ᵉ année.
 </div>
 <div class="course-section">
   <div class="sec-num">§1 · NATURE ONDULATOIRE DE LA LUMIÈRE</div>
@@ -14033,7 +14048,7 @@ r = mv⊥/(|q|B) | Pas = v∥·T | La composante v∥ est inchangée par la forc
 <section class="panel active" id="fd-cours">
 <div class="hors-prog">
   <span class="hp-tag">Hors programme PTSI</span>
-  <strong>La dynamique des fluides</strong> (équation de Bernoulli, écoulements) relève de la <strong>2<sup>e</sup> année</strong>. En 1<sup>re</sup> année, seule la <em>statique</em> des fluides (voir le chapitre « Statique des fluides ») est au programme. Fiche conservée comme complément.
+  <strong>La dynamique des fluides</strong> (équation de Bernoulli, écoulements) relève de la <strong>2ᵉ année</strong>. En 1ʳᵉ année, seule la <em>statique</em> des fluides (voir le chapitre « Statique des fluides ») est au programme. Fiche conservée comme complément.
 </div>
 <div class="course-section">
   <div class="sec-num">§1 · DESCRIPTION D'UN ÉCOULEMENT</div>
@@ -20742,7 +20757,7 @@ r = mv⊥/(|q|B) | Pas = v∥·T | La composante v∥ est inchangée par la forc
 
 <div class="hors-prog">
   <span class="hp-tag">Hors programme PTSI</span>
-  Les <strong>séries numériques</strong> (convergence d'une somme infinie \(\sum_{n} u_n\)) ne sont <strong>pas au programme de PTSI 1<sup>re</sup> année</strong> : elles sont étudiées en 2<sup>e</sup> année. En 1<sup>re</sup> année, on manipule seulement des <em>sommes finies</em> \(\left(\sum_{k=1}^{n}\right)\) — voir les chapitres « Suites numériques » et « Dénombrement ». Fiche conservée comme anticipation.
+  Les <strong>séries numériques</strong> (convergence d'une somme infinie \(\sum_{n} u_n\)) ne sont <strong>pas au programme de PTSI 1ʳᵉ année</strong> : elles sont étudiées en 2ᵉ année. En 1ʳᵉ année, on manipule seulement des <em>sommes finies</em> \(\left(\sum_{k=1}^{n}\right)\) — voir les chapitres « Suites numériques » et « Dénombrement ». Fiche conservée comme anticipation.
 </div>
 
 <div class="course-section">
@@ -29165,7 +29180,7 @@ print(record_u, record_t)</pre>
 </div>
 
 <div class="course-section">
-  <div class="sec-num">§4 · TRI À BULLES <span style="font-weight:400;font-size:.8em">(complément classique)</span></div>
+  <div class="sec-num">§4 · TRI À BULLES <span style="font-weight:400">(complément classique)</span></div>
   <h2>Faire « remonter » les grands éléments</h2>
   <div class="def-box">
     <strong>Principe.</strong> On parcourt le tableau en comparant chaque élément à son voisin de droite et en les échangeant s'ils sont mal ordonnés. À chaque passage complet, le plus grand élément restant « remonte » (comme une bulle) en fin de zone non triée. On répète jusqu'à ce qu'aucun échange ne soit nécessaire.
@@ -74474,6 +74489,7 @@ mjx-container{ color:inherit; }
 .notice{ background:var(--notice-fond); border-left:2.25pt solid var(--notice-trait); color:var(--text); }
 .notice::before{ content:"À noter"; color:var(--notice-titre); }
 .step{ font:var(--w-bold) 8pt/1 var(--font-ui); letter-spacing:.04em; text-transform:uppercase; color:var(--chap); }
+mjx-container{ text-transform:none; letter-spacing:normal; }
 .reveal{ border:.75pt dashed var(--field); }
 .reveal .label{ display:block; margin-bottom:1.2mm; font:var(--w-bold) 8pt/1.2 var(--font-ui); letter-spacing:var(--track-kicker); text-transform:uppercase; color:var(--text-3); }
 .reveal .prompt{ display:block; font-weight:var(--w-semi); }
@@ -77005,6 +77021,7 @@ document.getElementById('skip-link')?.addEventListener('click', e => {
 (function(){
   'use strict';
   var NIVEAUX = ['', 'Facile', 'Moyen', 'Difficile'];
+  var RE_ETAPE = /^\s*(Étape|Etape|Réflexe)\s*\d+\s*[.:)]?\s*$/i;
   var BALISES_EXCLUES = /^(CODE|PRE|KBD|SAMP|VAR|SCRIPT|STYLE|TEXTAREA|INPUT|SELECT|OPTION|BUTTON|SVG|MATH|TEMPLATE|NOSCRIPT)$/;
   var rendus = new WeakSet();          // racines dont le rendu MathJax est terminé
   var raf = window.requestAnimationFrame ? window.requestAnimationFrame.bind(window) : function(f){ return setTimeout(f, 16); };
@@ -77310,6 +77327,11 @@ document.getElementById('skip-link')?.addEventListener('click', e => {
         if(s.length === 1) couperSecNum(s[0]);   // plusieurs § dans une section (anglais) : surtitres simples
       });
       panel.querySelectorAll('.exo > .diff').forEach(enrichirDiff);
+      // Étapes de méthode : seul un libellé « Étape n. » / « Réflexe n. » double la pastille et se
+      // masque à l'écran ; les autres (« T : », « Isochore : », « Contrôle. ») restent lisibles
+      panel.querySelectorAll('.method-box li > .step').forEach(function(s){
+        if(RE_ETAPE.test(s.textContent || '')) s.classList.add('step-num');
+      });
       outilsExos(panel);
       panel.querySelectorAll('.sim-wrapper').forEach(boutonDefaut);
       observerToiles(panel);
