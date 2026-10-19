@@ -1287,6 +1287,12 @@ main, main#si-content{ display:block; max-width:none; margin:0; padding:1.5rem 1
   font:var(--w-semi) var(--fs-h1)/1.08 var(--font-text); letter-spacing:var(--track-h1);
   color:var(--text); text-wrap:balance; font-optical-sizing:auto;
 }
+/* complément du titre (après « — ») : ligne à part, plus petite, initiale en capitale */
+.chap-title-banner .ctb-sub{
+  display:block; margin-top:.4rem;
+  font:var(--w-regular) var(--fs-h3)/1.25 var(--font-text); letter-spacing:0; color:var(--text-2);
+}
+.chap-title-banner .ctb-sub::first-letter{ text-transform:uppercase; }
 .ctb-actions{ flex:none; display:flex; gap:.4rem; margin-left:auto; padding-top:.35rem; }
 .ctb-actions .btn[aria-pressed="true"] .ic{ color:var(--ambre-vif); }
 
@@ -1541,9 +1547,11 @@ section.panel.active{ animation:panelIn var(--dur-2) var(--ease) both; }
    Découpé au premier affichage (script « CONTENU ») en
    <span class="sec-n">§1</span><span class="sr"> · </span><span class="sec-t">LES BASES</span> :
    le « §1 » passe dans la marge, en serif italique, à l'encre de la matière. */
+/* Pas de text-transform : la source est déjà en capitales (873 surtitres sur 886) ; les 13 autres
+   gardent des minuscules voulues (« pH », « ℝᵖ », « for / while », « SysML », « V/f », « 1er »). */
 .sec-num{
   display:block; margin:0 0 .55rem; font:var(--w-bold) var(--fs-kicker)/1.2 var(--font-ui);
-  letter-spacing:var(--track-kicker); text-transform:uppercase; color:var(--chap);
+  letter-spacing:var(--track-kicker); color:var(--chap);
 }
 .sec-num.coupe{ display:contents; }
 .sec-n{
@@ -1553,7 +1561,7 @@ section.panel.active{ animation:panelIn var(--dur-2) var(--ease) both; }
 }
 .sec-t{
   grid-column:2; grid-row:1; margin-bottom:.55rem; font:var(--w-bold) var(--fs-kicker)/1.2 var(--font-ui);
-  letter-spacing:var(--track-kicker); text-transform:uppercase; color:var(--chap);
+  letter-spacing:var(--track-kicker); color:var(--chap);
 }
 
 /* Titres (plus jamais colorés par domaine) */
@@ -1882,6 +1890,8 @@ figure.schema.defile, .cine-svg-wrap.defile{ overflow-x:auto; overflow-y:hidden;
   margin:1.1em 0 .3em; font:var(--w-bold) var(--fs-kicker)/1.2 var(--font-ui);
   letter-spacing:var(--track-kicker); text-transform:uppercase; color:var(--text-2);
 }
+/* casse à garder dans un surtitre en capitales (« pH ») */
+.nocap{ text-transform:none; }
 .exo-source{
   margin:.2rem 0 .9rem; padding:.7rem .9rem; border-radius:var(--r-m); background:var(--sunk);
   font:var(--w-regular) var(--fs-ui-s)/1.45 var(--font-ui); color:var(--text-2);
@@ -2191,7 +2201,13 @@ figure.schema.defile, .cine-svg-wrap.defile{ overflow-x:auto; overflow-y:hidden;
 @media (min-width:768px){
   .chapter[data-onglet="flash"] > .chap-title-banner{ padding-top:1.25rem; }
   .chapter[data-onglet="flash"] > .chap-title-banner .ctb-meta{ display:none; }
-  .chapter[data-onglet="flash"] .flash-card{ height:clamp(16rem, calc(100dvh - 28.75rem), 30rem); }
+  /* titre réduit, complément (après « — ») lu seulement par les lecteurs d'écran */
+  .chapter[data-onglet="flash"] > .chap-title-banner .ctb-title{ font-size:var(--fs-h2); line-height:1.15; }
+  .chapter[data-onglet="flash"] > .chap-title-banner .ctb-sub{ position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; }
+  /* --ctb-extra : hauteur de l'intercalaire au-delà d'un titre et d'un fil d'une ligne (titre long
+     sur 2 ou 3 lignes), mesurée par le module PAGE (observerBandeau) et posée sur la seule fiche :
+     la notation reste au-dessus du pli quelle que soit la longueur du titre. */
+  .chapter[data-onglet="flash"] .flash-card{ height:clamp(16rem, calc(100dvh - 28.75rem - var(--ctb-extra, 0px)), 30rem); }
 }
 .chapter .flash-side{ min-height:0; overflow-y:auto; overscroll-behavior:contain; scrollbar-width:thin; }
 /* face qui déborde : fondu en bas tant qu'il reste à lire (flashRepereDefil) ; masque d'opacité seule
@@ -11800,7 +11816,7 @@ window.__rendreFocus = function(op, repli){
   <div class="q"><strong>A1.</strong> Écrire la réaction de titrage et déterminer le volume équivalent \(V_{eq}\).</div>
   <div class="q"><strong>A2.</strong> Que vaut le pH à la demi-équivalence ? Justifier.</div>
 
-  <p class="exo-part">Partie B — pH à l'équivalence</p>
+  <p class="exo-part">Partie B — <span class="nocap">pH</span> à l'équivalence</p>
   <div class="q"><strong>B1.</strong> Déterminer le pH à l'équivalence. Pourquoi est-il basique ?</div>
 
   <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
@@ -62378,7 +62394,21 @@ function chaptersByMatiere(m)  { return CHAPTERS.filter(c => c.matiere === m); }
     if(c.matiere) banner.setAttribute('data-mat', c.matiere); // encre de la matière (jetons --chap*)
     const title = document.createElement('h2');
     title.className = 'ctb-title';
-    title.textContent = c.name;
+    // « Titre — complément » : le complément passe sur sa propre ligne, plus petit (.ctb-sub), le
+    // tiret restant lu par les lecteurs d'écran (textContent = c.name) ; sinon un tiret cadratin
+    // ouvrait seul une ligne du titre (« Systèmes numériques / — acquisition, / filtrage… »).
+    const m = /^(.+?)\s+—\s+(.+)$/.exec(c.name);
+    if(m){
+      title.appendChild(document.createTextNode(m[1]));
+      const tiret = document.createElement('span');
+      tiret.className = 'sr';
+      tiret.textContent = ' — ';
+      const sub = document.createElement('span');
+      sub.className = 'ctb-sub';
+      sub.textContent = m[2];
+      title.appendChild(tiret);
+      title.appendChild(sub);
+    } else title.textContent = c.name;
     banner.appendChild(title);
     ch.insertBefore(banner, tabs);
   });
@@ -74758,6 +74788,7 @@ figure.schema figcaption{ margin-top:1.5mm; font:italic var(--w-regular) 9pt/1.4
 .q{ margin:.35em 0; padding-left:7mm; text-indent:-7mm; }
 .q strong:first-child{ display:inline-block; width:7mm; text-indent:0; font:var(--w-bold) 8.5pt/1 var(--font-ui); color:var(--chap); }
 .exo-part{ margin:3mm 0 1mm; font:var(--w-bold) 8.5pt/1.2 var(--font-ui); letter-spacing:var(--track-kicker); text-transform:uppercase; color:var(--text-2); }
+.nocap{ text-transform:none; }
 .exo-source{ margin:1mm 0 2mm; font:var(--w-regular) 9pt/1.4 var(--font-ui); color:var(--text-2); }
 .atom:has(> .sol-part){ margin-bottom:0; padding:0 0 .5em 4mm; border-left:2.25pt solid var(--sol-trait); }
 .atom:has(> h4.sol-part){ margin-top:3mm; padding-top:1mm; }
@@ -78402,6 +78433,44 @@ document.getElementById('skip-link')?.addEventListener('click', e => {
     l[j].focus();
   }), true);
 
+  /* ══ Hauteur de l'intercalaire sur l'onglet Cartes : excédent publié sur la fiche ══
+     La fiche (ordinateur) est bornée à 100dvh − 28,75 rem, calcul qui suppose un titre et un fil
+     d'Ariane d'une ligne. Un titre sur 2 ou 3 lignes (ou un fil replié) faisait passer « Afficher
+     la réponse » et la notation sous le pli : l'excédent réel est mesuré (ResizeObserver sur
+     l'intercalaire du chapitre affiché, onglet Cartes seulement) et posé en --ctb-extra sur la
+     seule fiche de ce chapitre (aucun recalcul de style hors de la fiche). */
+  let roBandeau = null;
+  function excedentBandeau(ch){
+    const b = ch.querySelector(':scope > .chap-title-banner');
+    if(!b || ch.getAttribute('data-onglet') !== 'flash' || !b.getClientRects().length) return 0;
+    let x = 0;
+    const ligne = b.querySelector('.ctb-row'), titre = b.querySelector('.ctb-title'), act = b.querySelector('.ctb-actions');
+    if(ligne && titre){
+      const lh = parseFloat(getComputedStyle(titre).lineHeight) || titre.offsetHeight;
+      const ha = act ? act.offsetHeight : 0;   // boîte bordure : retrait du haut compris
+      x += Math.max(0, ligne.offsetHeight - Math.max(lh, ha));
+    }
+    const fil = b.querySelector('.ctb-crumb');
+    if(fil && fil.children.length){
+      const tops = new Set(Array.from(fil.children).map(e => e.offsetTop));
+      if(tops.size > 1) x += fil.offsetHeight * (tops.size - 1) / tops.size;
+    }
+    return Math.round(x);
+  }
+  function poserExcedent(ch){
+    const f = ch && ch.querySelector('.flash-card');
+    if(!f) return;
+    const v = excedentBandeau(ch) + 'px';
+    if(f.style.getPropertyValue('--ctb-extra') !== v) f.style.setProperty('--ctb-extra', v);
+  }
+  function observerBandeau(ch){
+    if(typeof ResizeObserver !== 'function') return;
+    if(!roBandeau) roBandeau = new ResizeObserver(sur(() => { if(actuel) poserExcedent(actuel); }));
+    roBandeau.disconnect();
+    const b = ch.querySelector(':scope > .chap-title-banner');
+    if(b) roBandeau.observe(b);
+  }
+
   /* ══ Onglets collés sous l'en-tête : fond plein + ombre (.onglets-colles) ══ */
   let ioColle = null;
   function observerColle(ch){
@@ -78729,7 +78798,9 @@ document.getElementById('skip-link')?.addEventListener('click', e => {
       if(pied && pied.parentNode !== ch) ch.appendChild(pied);   // pied de chapitre en bas de la feuille
       sur(observerSections)(ch, c);
       sur(observerColle)(ch);
+      sur(observerBandeau)(ch);
     }
+    sur(poserExcedent)(ch);
     marquerSommaire();
     sur(sectionCourante)();
     sur(majCompteurs)();
