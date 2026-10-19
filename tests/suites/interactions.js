@@ -694,6 +694,33 @@ module.exports = {
       return pb;
     });
 
+    /* ---------- Focus jamais caché sous l'en-tête et les onglets collants (WCAG 2.4.11) ----------
+       Maj+Tab en remontant les Exercices : le navigateur alignait l'élément focalisé sur le bord
+       haut de la fenêtre, sous 103 px de barres (scroll-padding-top sur html). */
+    await etape('Maj+Tab sur #rlc/exos : l\'élément focalisé n\'est jamais caché sous l\'en-tête et les onglets collants', async () => {
+      const pb = [];
+      await page.emulateMedia({ reducedMotion: 'reduce' });
+      await naviguer(page, 'rlc', 'exos');
+      await page.evaluate(() => document.getElementById('next-chap-btn').focus());
+      await pause(200);
+      let vus = 0;
+      for (let i = 0; i < 18; i++) {
+        await page.keyboard.press('Shift+Tab'); await pause(120);
+        const r = await page.evaluate(() => {
+          const a = document.activeElement, p = document.getElementById('rlc-exos');
+          if (!a || !p || !p.contains(a)) return null;
+          const t = document.querySelector('#chap-rlc > nav.tabs').getBoundingClientRect(), b = a.getBoundingClientRect();
+          return { el: (a.className || a.tagName).toString().split(' ')[0] + ' «' + (a.textContent || '').trim().slice(0, 20) + '»', haut: Math.round(b.top), onglets: Math.round(t.bottom) };
+        });
+        if (!r) continue;
+        vus++;
+        if (r.haut < r.onglets - 1) pb.push(r.el + ' : haut à ' + r.haut + ' px, sous les onglets collés (bas à ' + r.onglets + ' px)');
+      }
+      if (!vus) pb.push('aucun élément du panneau Exercices atteint par Maj+Tab');
+      await page.emulateMedia({ reducedMotion: null });
+      return pb.slice(0, 5);
+    });
+
     /* ---------- Tiroir modal et menu ouvert à la souris : raccourcis muets derrière ---------- */
     await etape('tiroir modal (1024 px) et menu Plus ouvert à la souris : role=dialog, arrière-plan inerte, « n » sans effet', async () => {
       const pb = [];
@@ -744,6 +771,24 @@ module.exports = {
         if (v.line !== v.field) pb.push(th + ' : --line ' + v.line + ' ≠ --field ' + v.field);
       }
       await page.emulateMedia({ contrast: null }); await page.evaluate(() => window.__setTheme('light')); await pause(300);
+      return pb;
+    });
+
+    /* ---------- Couleurs forcées (contraste élevé de Windows) : repères d'état conservés ---------- */
+    await etape('couleurs forcées (forced-colors: active) : soulignement de l\'onglet actif, intercalaire et rangée courante visibles', async () => {
+      const pb = [];
+      await naviguer(page, 'rlc', 'flash');
+      await page.emulateMedia({ forcedColors: 'active' }); await pause(300);
+      const r = await page.evaluate(() => {
+        const sys = document.createElement('span'); sys.style.cssText = 'position:absolute;forced-color-adjust:none;color:Highlight'; document.body.appendChild(sys);
+        const hl = getComputedStyle(sys).color; sys.remove();
+        const t = document.querySelector('#chap-rlc > nav.tabs .tab.active'), m = document.querySelector('.mat-tab.active'), row = document.querySelector('#mob-chap-list .mob-chap-row.cur');
+        return { hl, souligne: t ? getComputedStyle(t, '::after').backgroundColor : '', inter: m ? getComputedStyle(m).outlineStyle : 'absent', rail: row ? getComputedStyle(row, '::before').backgroundColor : null };
+      });
+      if (r.souligne !== r.hl) pb.push('onglet actif : soulignement ' + r.souligne + ' (Highlight = ' + r.hl + ')');
+      if (r.inter !== 'solid') pb.push('intercalaire de matière actif sans contour (' + r.inter + ')');
+      if (r.rail !== null && r.rail !== r.hl) pb.push('rangée courante de la navigation : rail ' + r.rail);
+      await page.emulateMedia({ forcedColors: 'none' }); await pause(200);
       return pb;
     });
 

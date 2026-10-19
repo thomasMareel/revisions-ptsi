@@ -248,8 +248,18 @@ module.exports = {
               return { id: cv.id, l: cv.width, h: cv.height, peints };
             });
             out.svg = panneau.querySelectorAll('svg').length;
+            // segmenté des modes : groupe, exactement un bouton aria-pressed="true", celui qui est .active
+            out.modes = Array.from(panneau.querySelectorAll('.mode-switch')).map(ms => {
+              const bs = Array.from(ms.querySelectorAll('button'));
+              const presses = bs.filter(b => b.getAttribute('aria-pressed') === 'true');
+              if (ms.getAttribute('role') !== 'group' || !ms.getAttribute('aria-label')) return 'segmenté des modes sans role=group ni nom';
+              if (bs.some(b => !b.hasAttribute('aria-pressed'))) return 'bouton de mode sans aria-pressed';
+              if (presses.length !== 1 || !presses[0].classList.contains('active')) return presses.length + ' bouton(s) aria-pressed="true" (mode actif : ' + ((bs.find(b => b.classList.contains('active')) || {}).textContent || '?').trim() + ')';
+              return '';
+            }).filter(Boolean);
             return out;
           }, [c.prefix + '-simu', c.drawFn]);
+          s.modes.forEach(m => pbSim.push(c.id + ' : ' + m));
           if (s.appel !== 'ok') pbSim.push(c.id + ' : ' + c.drawFn + '() lève « ' + s.appel + ' »');
           s.deformes.forEach(d => pbSim.push(c.id + ' : toile étirée à l\'arrivée sur l\'onglet : ' + d));
           if (s.canvas.length && !s.canvas.some(k => k.peints > 0)) pbSim.push(c.id + ' : canvas vide(s) après ' + c.drawFn + '() : ' + s.canvas.map(k => (k.id || '?') + ' ' + k.l + '×' + k.h).join(', '));
@@ -269,6 +279,22 @@ module.exports = {
       }
     }
     if (themes.includes('sombre')) await choisirTheme(page, 'light');
+
+    /* ---------- 5 bis) Segmenté des modes : aria-pressed suit le clic (rlc) ---------- */
+    if (simus.some(c => c.id === 'rlc')) {
+      journal.lieu = 'modes du simulateur (rlc)';
+      const pbModes = [];
+      try {
+        await naviguer(page, 'rlc', 'simu'); await pause(300);
+        const etat = () => page.evaluate(() => Array.from(document.querySelectorAll('#rlc-simu .mode-switch button')).map(b => b.getAttribute('aria-pressed')).join(','));
+        const avant = await etat();
+        await page.click('#rlc-simu .mode-switch button:nth-child(2)'); await pause(250);
+        const apres = await etat();
+        if (apres.split(',')[1] !== 'true' || apres.split(',').filter(x => x === 'true').length !== 1) pbModes.push('après un clic sur le 2ᵉ mode : aria-pressed = ' + apres + ' (avant : ' + avant + ')');
+        await page.click('#rlc-simu .mode-switch button:nth-child(1)'); await pause(250);
+      } catch (e) { pbModes.push('interaction impossible : ' + String(e.message).split('\n')[0]); }
+      res.verifier('segmenté des modes du simulateur : aria-pressed suit le mode choisi (rlc)', !pbModes.length, pbModes);
+    }
 
     /* ---------- 6) Bilan du journal : erreurs JS, requêtes externes ---------- */
     const js = journal.erreurs.map(e => '[' + e.lieu + '] ' + e.type + ' : ' + e.texte + (e.source ? ' (' + e.source + ')' : ''));

@@ -680,6 +680,22 @@ kbd, .kbd{
   }
 }
 
+/* Couleurs forcées (contraste élevé de Windows) : les repères d'état faits d'un fond, d'un
+   pseudo-élément coloré ou d'une ombre disparaissent (fonds ramenés à celui du système). Soulignement
+   de l'onglet actif et rails gardent un trait Highlight ; barres, pastilles et compteurs gardent leurs
+   couleurs ; intercalaire, année, segment, mode et carte de thème choisis reçoivent un contour
+   Highlight (sauf au focus, qui garde son anneau). (!important : ces fonds sont redéfinis plus bas.) */
+@media (forced-colors: active){
+  .tab.active::after, .mob-chap-row.cur::before, .search-result.sel::before{ forced-color-adjust:none; background:Highlight !important; }
+  .mat-tab.active:not(:focus-visible), .mat-tab[aria-selected="true"]:not(:focus-visible), .mob-year-btn.active:not(:focus-visible),
+  .seg > button[aria-pressed="true"]:not(:focus-visible), .seg > button[aria-checked="true"]:not(:focus-visible),
+  .seg > button.on:not(:focus-visible), .mode-switch > button.active:not(:focus-visible),
+  .theme-opt[aria-checked="true"]:not(:focus-visible){ outline:2px solid Highlight; outline-offset:-3px; }
+  .stack, .m-bar, .dot, .count, .legend i, .flash-progress .bar, .due-bars .b, .week .b{ forced-color-adjust:none; }
+  /* fenêtres sans bordure (ombre et voile effacés) : un filet les détache de la page */
+  .dash-modal, .quiz-modal, .fen-boite{ border:1px solid CanvasText; }
+}
+
 /* ===== FIN RÉGION BASE ===== */
 
 
@@ -1637,8 +1653,16 @@ section.panel.active{ animation:panelIn var(--dur-2) var(--ease) both; }
 .panel a{ color:var(--link); text-underline-offset:.18em; text-decoration-thickness:1px; }
 .panel sub, .panel sup{ line-height:0; font-size:max(.83em, 12px); }   /* jamais sous 12 px (surtitres, bandeaux) */
 
-/* Cible du saut carte → cours : décalage sous l'en-tête et les onglets + surbrillance */
-.panel h2, .panel h3, .panel .sec-num, .panel .course-section{ scroll-margin-top:7.5rem; }
+/* Défilement vers un élément (focus au clavier, Maj+Tab compris ; scrollIntoView de la recherche, du
+   saut carte → cours, de « Dans ce chapitre ») : la zone utile commence SOUS l'en-tête et les onglets
+   collants (WCAG 2.4.11 : le navigateur alignait l'élément focalisé sur le bord haut, caché sous
+   103 px de barres). Téléphone : barre haute (elle revient dès qu'on remonte) + onglets. */
+html{ scroll-padding-top:calc(var(--header-h) + var(--tabs-h) + .5rem); scroll-padding-bottom:.5rem; }
+@media (max-width:767px){ html{ scroll-padding-top:calc(var(--bar-h) + var(--tabs-h) + .5rem); } }
+/* zones défilantes internes : l'anneau de la rangée focalisée n'est plus coupé au bord */
+#mob-drawer-scroll, .more-toc-list, #dash-body, .fen-corps, #search-results{ scroll-padding-block:.5rem; }
+/* Cible du saut carte → cours : petit décalage en plus du scroll-padding ci-dessus + surbrillance */
+.panel h2, .panel h3, .panel .sec-num, .panel .course-section{ scroll-margin-top:.5rem; }
 .cours-target-flash{ animation:coursTargetFlash 2.6s var(--ease); border-radius:var(--r-xs); }
 @keyframes coursTargetFlash{
   0%, 12% { background:var(--selection); box-shadow:0 0 0 8px var(--selection); }
@@ -1762,20 +1786,23 @@ mjx-container.MathJax[jax] > mjx-assistive-mml:not([display="block"]){ width:1px
   transition:background var(--dur-1) var(--ease);
 }
 .reveal:hover{ background:var(--hover); }
-.reveal:focus-visible{ outline:2px solid var(--focus); outline-offset:2px; }
+/* intitulé = vrai bouton (Entrée / Espace, aria-expanded) ; l'anneau de focus englobe le bloc */
+.reveal-btn{ display:block; width:100%; margin:0; padding:0; border:0; background:none; color:inherit; font:inherit; text-align:left; cursor:pointer; }
+.reveal-btn:focus-visible{ outline:none; }
+.reveal:has(> .reveal-btn:focus-visible){ outline:2px solid var(--focus); outline-offset:2px; }
 .reveal .label{
   display:block; padding-right:7.5rem; font:var(--w-bold) var(--fs-kicker)/1.2 var(--font-ui);
   letter-spacing:var(--track-kicker); text-transform:uppercase; color:var(--text-3);
 }
 .reveal .prompt{ display:block; margin-top:.35em; padding-right:6.5rem; font-weight:var(--w-semi); }
 .reveal::after{
-  content:"Afficher ▾"; position:absolute; right:.75rem; top:.7em; display:inline-flex; align-items:center;
+  content:"Afficher ▾"; content:"Afficher ▾" / ""; position:absolute; right:.75rem; top:.7em; display:inline-flex; align-items:center;
   height:2rem; padding:0 .8rem; border-radius:var(--r-full); border:1px solid var(--line-2);
   background:var(--raise); color:var(--text); font:var(--w-semi) var(--fs-ui-s)/1 var(--font-ui);
 }
 .reveal .content{ display:none; }
 .reveal.open{ border-style:solid; border-color:var(--line-2); background:var(--sheet); }
-.reveal.open::after{ content:"Masquer ▴"; }
+.reveal.open::after{ content:"Masquer ▴"; content:"Masquer ▴" / ""; }   /* (repère visuel : l'état est dit par aria-expanded) */
 .reveal.open .content{ display:block; margin-top:.8em; padding-top:.8em; border-top:1px solid var(--line); cursor:auto; }
 .reveal .content > :last-child{ margin-bottom:0; }
 
@@ -74832,6 +74859,8 @@ function printChapter(){
      (.solution) imprimés OUVERTS */
   function cleanClone(node){
     const c = node.cloneNode(true);
+    // intitulé d'un mémo (.reveal) : son bouton est déballé (surtitre et question imprimés)
+    c.querySelectorAll('.reveal-btn').forEach(b=>{ while(b.firstChild) b.parentNode.insertBefore(b.firstChild, b); b.remove(); });
     c.querySelectorAll('button,.toggle-sol,.flash-reset').forEach(b=>b.remove());
     c.querySelectorAll('.reveal').forEach(r=>r.classList.add('open'));
     c.querySelectorAll('.solution').forEach(s=>{
@@ -77775,22 +77804,38 @@ document.getElementById('skip-link')?.addEventListener('click', e => {
 })();
 
 /* ===== Accessibilité clavier des blocs dépliables .reveal =====
-   Les .reveal se déplient au clic (onclick inline) : on les rend focusables
-   et activables au clavier (Entrée / Espace), avec état aria-expanded. */
+   Les .reveal se déplient au clic (onclick inline, tout le bloc reste cliquable). Le bloc n'est PAS
+   un bouton (sinon, une fois déplié, tout son contenu — texte, formules — devenait le nom d'un seul
+   bouton, aplati et illisible pas à pas) : son intitulé (.label, .prompt) passe dans un vrai
+   <button class="reveal-btn"> (Entrée / Espace natifs, aria-expanded, aria-controls vers .content) ;
+   son clic remonte à l'onclick du bloc. La pastille « Afficher ▾ » reste un repère visuel (texte
+   de remplacement vide). L'impression déballe le bouton (cleanClone). */
 (function(){
+  var nRev = 0;
   function initReveals(){
     document.querySelectorAll('.reveal').forEach(function(r){
       if(r.__kbReady) return;
       r.__kbReady = true;
-      r.setAttribute('tabindex','0');
-      r.setAttribute('role','button');
-      r.setAttribute('aria-expanded', r.classList.contains('open') ? 'true' : 'false');
+      r.removeAttribute('tabindex');
+      r.removeAttribute('role');
+      var content = r.querySelector(':scope > .content');
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'reveal-btn';
+      Array.prototype.slice.call(r.childNodes).some(function(n){
+        if(n === content) return true;                   // l'intitulé = ce qui précède le contenu
+        b.appendChild(n);
+        return false;
+      });
+      if(content){
+        if(!content.id) content.id = 'memo-' + (++nRev);
+        b.setAttribute('aria-controls', content.id);
+      }
+      b.setAttribute('aria-expanded', r.classList.contains('open') ? 'true' : 'false');
+      r.insertBefore(b, r.firstChild);
       // L'onclick inline (toggle .open) s'exécute d'abord ; on synchronise l'ARIA après.
       r.addEventListener('click', function(){
-        r.setAttribute('aria-expanded', r.classList.contains('open') ? 'true' : 'false');
-      });
-      r.addEventListener('keydown', function(e){
-        if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); r.click(); }
+        b.setAttribute('aria-expanded', r.classList.contains('open') ? 'true' : 'false');
       });
     });
   }
@@ -78254,6 +78299,24 @@ document.getElementById('skip-link')?.addEventListener('click', e => {
     });
     sc.appendChild(b);
   }
+  /* Segmenté des modes (.mode-switch, 13 simulateurs) : groupe nommé et état aria-pressed sur chaque
+     bouton (SPEC §6.3) — le mode choisi n'était dit que par le style (.active). Chaque simulateur pose
+     .active lui-même : un observateur de classe recopie l'état (aria-pressed n'est pas observé, donc
+     pas de boucle). Une fois par segmenté. */
+  function modesAria(ms){
+    if(!ms || ms.__aria) return;
+    ms.__aria = true;
+    ms.setAttribute('role', 'group');
+    if(!ms.hasAttribute('aria-label') && !ms.hasAttribute('aria-labelledby')) ms.setAttribute('aria-label', 'Mode du simulateur');
+    var maj = function(){
+      Array.prototype.forEach.call(ms.querySelectorAll('button'), function(b){
+        var v = b.classList.contains('active') ? 'true' : 'false';
+        if(b.getAttribute('aria-pressed') !== v) b.setAttribute('aria-pressed', v);
+      });
+    };
+    maj();
+    try { new MutationObserver(sur(maj)).observe(ms, { subtree:true, attributes:true, attributeFilter:['class'] }); } catch(e){}
+  }
   document.addEventListener('input', sur(function(e){
     var t = e.target;
     if(t && t.type === 'range'){ majCurseur(t); raf(sur(function(){ valeurCurseur(t); })); }   // (valeur écrite par le simulateur après nous)
@@ -78359,6 +78422,20 @@ document.getElementById('skip-link')?.addEventListener('click', e => {
     panel.querySelectorAll('.sim-wrapper > canvas').forEach(function(cv){ cv.__drawFn = c.drawFn; roToiles.observe(cv); });
   }
 
+  /* « Voir la solution » (815 boutons) : état aria-expanded et lien aria-controls dès le premier
+     affichage du panneau (ils n'apparaissaient qu'au premier clic, posés par toggleSol). */
+  var nSol = 0;
+  function etatSolution(btn){
+    if(btn.__etat) return;
+    btn.__etat = true;
+    var sol = btn.nextElementSibling;
+    if(!sol || !sol.classList.contains('solution')) return;
+    if(!sol.id) sol.id = 'solution-' + (++nSol);
+    if(!btn.hasAttribute('type')) btn.type = 'button';
+    btn.setAttribute('aria-controls', sol.id);
+    if(!btn.hasAttribute('aria-expanded')) btn.setAttribute('aria-expanded', sol.classList.contains('shown') ? 'true' : 'false');
+  }
+
   /* ---------- Orchestration ---------- */
   function structurer(panel){
     if(!panel || panel.nodeType !== 1) return;
@@ -78375,7 +78452,9 @@ document.getElementById('skip-link')?.addEventListener('click', e => {
         if(RE_ETAPE.test(s.textContent || '')) s.classList.add('step-num');
       });
       outilsExos(panel);
+      panel.querySelectorAll('.toggle-sol').forEach(etatSolution);
       panel.querySelectorAll('.sim-wrapper').forEach(boutonDefaut);
+      panel.querySelectorAll('.mode-switch').forEach(modesAria);
       panel.querySelectorAll('.sim-wrapper').forEach(nombresSimulateur);
       observerToiles(panel);
     }
