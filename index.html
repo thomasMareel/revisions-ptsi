@@ -1132,7 +1132,7 @@ html.sommaire-ouvert #app-main > main, html.sommaire-ouvert #chap-pager{ display
   background:var(--primary); color:var(--on-primary); text-decoration:none;
   font:var(--w-semi) var(--fs-ui-s)/1.2 var(--font-ui);
 }
-.skip-link:focus{ left:0; }
+.skip-link:focus{ left:.5rem; border-radius:var(--r-m); }   /* (décollé du bord : l'anneau de focus reste entier) */
 
 footer.pied{
   display:flex; align-items:center; justify-content:center; gap:.6rem; flex-wrap:wrap;
@@ -2976,10 +2976,14 @@ window.__repliFocus = function(el){
   return bs[0] || null;
 };
 window.__rendreFocus = function(op, repli){
-  var ok = function(x){ return x && document.contains(x) && x.getClientRects().length; };
-  var cible = ok(op) ? op : (ok(repli) ? repli : null);
-  if(cible){ try { cible.focus({ preventScroll:true }); } catch(e){ try { cible.focus(); } catch(_){} } }
-  return !!cible;
+  // essai réel : un élément d'une feuille refermée garde des boîtes (visibility:hidden, translaté)
+  // mais refuse le focus ; on vérifie donc qu'il l'a bien pris, sinon on passe au repli
+  var essayer = function(x){
+    if(!x || !document.contains(x) || !x.getClientRects().length) return false;
+    try { x.focus({ preventScroll:true }); } catch(e){ try { x.focus(); } catch(_){} }
+    return document.activeElement === x;
+  };
+  return essayer(op) || essayer(repli);
 };
 </script>
 
