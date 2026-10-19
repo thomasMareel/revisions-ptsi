@@ -721,6 +721,48 @@ module.exports = {
       return pb.slice(0, 5);
     });
 
+    /* ---------- Blocs dépliables : intitulé = vrai bouton, contenu HORS du bouton ; solutions ----------
+       Un .reveal entier en role=button faisait de tout son contenu déplié (texte, formules) le nom
+       d'un seul bouton ; « Voir la solution » n'avait aucun état avant le 1er clic, puis changeait de
+       libellé EN PLUS d'aria-expanded (état annoncé deux fois). */
+    await etape('blocs dépliables (.reveal, « Voir la solution ») : bouton d\'intitulé, aria-expanded dès l\'affichage, libellé fixe, Entrée / Espace', async () => {
+      const pb = [];
+      await naviguer(page, 'rlc', 'cours');
+      const src = await page.evaluate(() => {
+        const rs = Array.from(document.querySelectorAll('.chapter .reveal'));
+        return { n: rs.length,
+          role: rs.filter(r => r.hasAttribute('role') || r.hasAttribute('tabindex')).length,
+          sansBouton: rs.filter(r => { const b = r.querySelector(':scope > .reveal-btn'); return !b || !b.getAttribute('aria-controls') || !document.getElementById(b.getAttribute('aria-controls')); }).length,
+          contenuDansBouton: rs.filter(r => r.querySelector('.reveal-btn .content, .reveal-btn p, .reveal-btn mjx-container')).length };
+      });
+      if (!src.n) pb.push('aucun .reveal dans les chapitres');
+      if (src.role) pb.push(src.role + ' .reveal encore en role=button / tabindex (tout le contenu devient le nom du bouton)');
+      if (src.sansBouton) pb.push(src.sansBouton + ' .reveal sans bouton d\'intitulé relié à son contenu (aria-controls)');
+      if (src.contenuDansBouton) pb.push(src.contenuDansBouton + ' .reveal dont le contenu est DANS le bouton');
+      const sel = '#rlc-cours .reveal';
+      await page.evaluate(s => { const b = document.querySelector(s + ' > .reveal-btn'); b.scrollIntoView({ block: 'center' }); b.focus(); }, sel);
+      await page.keyboard.press('Enter'); await pause(300);
+      const ouvert = await page.evaluate(s => { const r = document.querySelector(s), b = r.querySelector(':scope > .reveal-btn'); return [r.classList.contains('open'), b.getAttribute('aria-expanded'), b.textContent.length < 200]; }, sel);
+      if (!ouvert[0] || ouvert[1] !== 'true') pb.push('Entrée sur l\'intitulé du 1er mémo : open=' + ouvert[0] + ', aria-expanded=' + ouvert[1]);
+      if (!ouvert[2]) pb.push('nom du bouton du mémo déplié trop long (contenu inclus ?)');
+      await page.keyboard.press(' '); await pause(300);
+      const ferme = await page.evaluate(s => { const r = document.querySelector(s); return [r.classList.contains('open'), r.querySelector(':scope > .reveal-btn').getAttribute('aria-expanded')]; }, sel);
+      if (ferme[0] || ferme[1] !== 'false') pb.push('Espace sur l\'intitulé du mémo déplié : open=' + ferme[0] + ', aria-expanded=' + ferme[1]);
+      await naviguer(page, 'rlc', 'exos');
+      const sols = await page.evaluate(() => Array.from(document.querySelectorAll('#rlc-exos .toggle-sol')).map(b => [b.getAttribute('aria-expanded'), !!document.getElementById(b.getAttribute('aria-controls') || '-')]));
+      if (!sols.length) pb.push('aucun « Voir la solution » dans rlc-exos');
+      const sansEtat = sols.filter(s => s[0] !== 'false' || !s[1]).length;
+      if (sansEtat) pb.push(sansEtat + ' « Voir la solution » sans aria-expanded="false" ni aria-controls avant le 1er clic');
+      const ts = '#rlc-exos .toggle-sol';
+      const avant = await page.evaluate(s => { const b = document.querySelector(s); b.scrollIntoView({ block: 'center' }); b.focus(); return b.textContent.trim(); }, ts);
+      await page.keyboard.press('Enter'); await pause(400);
+      const apres = await page.evaluate(s => { const b = document.querySelector(s); return [b.textContent.trim(), b.getAttribute('aria-expanded'), b.nextElementSibling.classList.contains('shown')]; }, ts);
+      if (apres[1] !== 'true' || !apres[2]) pb.push('Entrée sur « ' + avant + ' » : aria-expanded=' + apres[1] + ', solution affichée=' + apres[2]);
+      if (apres[0] !== avant) pb.push('libellé changé au dépliage (« ' + avant + ' » → « ' + apres[0] + ' ») en plus d\'aria-expanded');
+      await page.keyboard.press('Enter'); await pause(300);
+      return pb;
+    });
+
     /* ---------- Tiroir modal et menu ouvert à la souris : raccourcis muets derrière ---------- */
     await etape('tiroir modal (1024 px) et menu Plus ouvert à la souris : role=dialog, arrière-plan inerte, « n » sans effet', async () => {
       const pb = [];

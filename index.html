@@ -692,6 +692,13 @@ kbd, .kbd{
   .seg > button.on:not(:focus-visible), .mode-switch > button.active:not(:focus-visible),
   .theme-opt[aria-checked="true"]:not(:focus-visible){ outline:2px solid Highlight; outline-offset:-3px; }
   .stack, .m-bar, .dot, .count, .legend i, .flash-progress .bar, .due-bars .b, .week .b{ forced-color-adjust:none; }
+  /* curseurs des simulateurs : piste (dégradé effacé) redessinée en couleurs système, partie remplie en Highlight */
+  .control input[type="range"]::-webkit-slider-runnable-track, #lor-simu input[type="range"]::-webkit-slider-runnable-track{
+    forced-color-adjust:none; background:linear-gradient(90deg, Highlight var(--p, 50%), GrayText var(--p, 50%)) !important;
+  }
+  .control input[type="range"]::-webkit-slider-thumb, #lor-simu input[type="range"]::-webkit-slider-thumb{ forced-color-adjust:none; background:Canvas !important; border-color:Highlight !important; }
+  .control input[type="range"]::-moz-range-track, #lor-simu input[type="range"]::-moz-range-track{ background:GrayText !important; }
+  .control input[type="range"]::-moz-range-progress, #lor-simu input[type="range"]::-moz-range-progress{ background:Highlight !important; }
   /* fenêtres sans bordure (ombre et voile effacés) : un filet les détache de la page */
   .dash-modal, .quiz-modal, .fen-boite{ border:1px solid CanvasText; }
 }
@@ -1994,8 +2001,11 @@ figure.schema.defile, .cine-svg-wrap.defile{ overflow-x:auto; overflow-y:hidden;
 }
 .toggle-sol:hover{ border-color:var(--field); background:var(--sunk); }
 .toggle-sol:active{ transform:translateY(1px); }
-.toggle-sol::after{ content:"▾"; color:var(--text-3); }
-.toggle-sol.open::after{ content:"▴"; }
+/* Libellé FIXE « Voir la solution » (modèle <details>/<summary>) : l'état est dit par la flèche
+   (▾ repliée / ▴ dépliée, repère visuel sans texte de remplacement) et par aria-expanded — un libellé
+   « Masquer la solution » EN PLUS d'aria-expanded annonçait l'état deux fois. */
+.toggle-sol::after{ content:"▾"; content:"▾" / ""; color:var(--text-3); }
+.toggle-sol.open::after{ content:"▴"; content:"▴" / ""; }
 @media (pointer:coarse){ .toggle-sol{ height:var(--tap); } }
 .solution{
   display:none; margin-top:1rem; padding:1rem 1.2rem 1.05rem; border-radius:4px var(--r-m) var(--r-m) 4px;
@@ -62866,8 +62876,8 @@ function toggleSol(btn){
   const sol = btn.nextElementSibling;
   sol.classList.toggle('shown');
   const ouverte = sol.classList.contains('shown');
-  btn.textContent = ouverte?'Masquer la solution':'Voir la solution';
-  btn.classList.toggle('open', ouverte);                  // flèche ▾ / ▴ (CSS)
+  // libellé fixe « Voir la solution » : l'état passe par la flèche ▾ / ▴ (CSS) et aria-expanded seuls
+  btn.classList.toggle('open', ouverte);
   btn.setAttribute('aria-expanded', ouverte ? 'true' : 'false');
   if(window.MathJax && MathJax.typesetPromise) MathJax.typesetPromise([sol]).then(()=>{ if(ouverte && window.__apresRendu) window.__apresRendu(sol); }).catch(()=>{});
 }
@@ -76731,7 +76741,10 @@ document.addEventListener('keydown', e => {
       if(!hb || hb === hReel) return;                     // masquée (ordinateur) : valeur gardée
       hReel = hb;
       if(!feuille){ feuille = document.createElement('style'); feuille.id = 'barre-hauteur'; document.head.appendChild(feuille); }
-      feuille.textContent = 'nav.tabs, .sim-wrapper > canvas, .chapter .flash-card{ --bar-h-reel:' + hb + 'px; }';
+      // (+ scroll-padding de la page à la hauteur réelle : le focus au clavier n'est pas caché sous
+      //  une barre de 2 lignes ; propriété non héritée posée sur <html> seul, rien d'autre à recalculer)
+      feuille.textContent = 'nav.tabs, .sim-wrapper > canvas, .chapter .flash-card{ --bar-h-reel:' + hb + 'px; }'
+        + '@media (max-width:767px){ html{ scroll-padding-top:calc(' + hb + 'px + var(--tabs-h) + .5rem); } }';
     } catch(err){ /* non bloquant */ } }).observe(barre);
   }
   /* ── Titre dynamique de la barre du téléphone (chapitre affiché) ── */
