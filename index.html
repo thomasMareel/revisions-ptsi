@@ -866,8 +866,10 @@ kbd, .kbd{
   border:0; border-radius:8px; background:transparent; text-align:left; cursor:pointer;
   font:var(--w-regular) var(--fs-ui-s)/1.25 var(--font-ui); color:var(--text-2); }
 .recent-row:hover{ background:var(--hover); color:var(--text); }
-.recent-row .nm{ min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.recent-row .where{ margin-left:auto; flex:0 1 auto; min-width:0; max-width:45%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--text-3); font-size:var(--fs-ui-xs); }
+.recent-row .nm{ flex:1 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+/* le contexte garde sa largeur (38 % au plus) : le nom prend le reste, au lieu que les deux se
+   disputent la place et soient tronqués tous les deux (« SLCI — Systèmes asser… ‖ Automatiq… ») */
+.recent-row .where{ margin-left:auto; flex:0 0 auto; min-width:0; max-width:38%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--text-3); font-size:var(--fs-ui-xs); }
 .recent-row .dot{ width:.5rem; height:.5rem; }
 
 /* Intercalaires de matière : filet vif en haut, nom + effectif, l'actif prend la teinte */
@@ -76018,18 +76020,27 @@ document.addEventListener('keydown', e => {
       const d = bloc('Récents');
       const pos = Store.getJSON('lastPos', null);
       rec.forEach((x, i) => {
+        // nom court (mobLabel, sinon le titre avant « — » : « SLCI ») ; contexte omis s'il répète le
+        // nom (« Intelligence artificielle ‖ Intelligence artificielle », tronqués deux fois)
+        const c = x.item.c, nom = c.mobLabel || String(c.name || '').split(' — ')[0] || x.item.label;
         let ou = x.sub || '';
         if(i === 0 && pos && pos.chap === x.item.id && pos.panel) ou = ouRecent(pos);
+        if(ou && ou.trim().toLowerCase() === nom.trim().toLowerCase()) ou = '';
         const b = document.createElement('button');
         b.type = 'button';
         b.className = 'recent-row';
         b.setAttribute('data-mat', x.mat);
         b.setAttribute('data-chap', x.item.id);
         b.title = x.item.c.name;
-        b.innerHTML = '<span class="dot" aria-hidden="true"></span><span class="nm">' + esc(x.item.label) + '</span>'
+        b.innerHTML = '<span class="dot" aria-hidden="true"></span><span class="nm">' + esc(nom) + '</span>'
           + (ou ? '<span class="where">' + esc(ou) + '</span>' : '');
         b.addEventListener('click', () => ouvrirChapitre(x.item.id));
         d.appendChild(b);
+      });
+      // nom encore tronqué (barre étroite, nom long) : le contexte s'efface, le nom passe d'abord
+      d.querySelectorAll('.recent-row').forEach(r => {
+        const nm = r.querySelector('.nm'), w = r.querySelector('.where');
+        if(w && nm && nm.clientWidth && nm.scrollWidth > nm.clientWidth + 1){ w.remove(); r.dataset.sansOu = '1'; }
       });
     }
   }
@@ -76039,7 +76050,7 @@ document.addEventListener('keydown', e => {
   // Section courante enregistrée (window.__surSection) : la rangée Récents suit sans reconstruction
   function majRecentOu(pos){
     const b = pos && document.querySelector('#mob-drawer .recent-row[data-chap="' + pos.chap + '"]');
-    if(!b || b !== b.parentNode.querySelector('.recent-row')) return;     // seulement le plus récent
+    if(!b || b !== b.parentNode.querySelector('.recent-row') || b.dataset.sansOu) return;     // seulement le plus récent (et s'il a la place)
     let w = b.querySelector('.where');
     if(!w){ w = document.createElement('span'); w.className = 'where'; b.appendChild(w); }
     w.textContent = ouRecent(pos);
