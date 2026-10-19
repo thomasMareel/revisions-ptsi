@@ -1,5 +1,7 @@
 # Refonte « Cahier de prépa » — note de reprise
 
+> **Refonte publiée sur `main` le 2026-10-19 (cache `ptsi-cache-v89`).** Point de retour : branche `sauvegarde-avant-refonte` (= `346cfa9`). Ce dossier est conservé comme archive de la conception (spécification, maquettes cibles, journaux).
+
 *Mise à jour le 2026-10-18 au soir, après la fusion des trois lignes de travail.*
 **Le site en ligne n'a pas changé** : `main` = `346cfa9` (cache `ptsi-cache-v88`). La refonte vit sur la branche `wip/refonte` (les branches `wip/refonte-a`, `-b`, `-c` y sont fusionnées).
 
