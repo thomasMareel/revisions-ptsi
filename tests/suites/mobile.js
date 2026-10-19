@@ -147,6 +147,35 @@ module.exports = {
       th.erreur || ('« Sombre » : data-theme = ' + th.attr + ', Store = ' + th.store + ' ; « Clair » : data-theme = ' + th2.attr
         + ', Store = ' + th2.store + (th2.feuille ? ' ; la feuille ⋯ reste ouverte après Échap' : '')));
 
+    /* ---------- 3b) Focus au clavier : feuille ⋯ piégée, fenêtres ouvertes depuis la feuille ----------
+       (relecture accessibilité, tour 1) Tab depuis le dernier élément de la feuille y reste ; une
+       fenêtre ouverte depuis la feuille rend le focus au bouton ⋯ à sa fermeture (l'élément d'origine
+       est dans la feuille refermée : il refuse le focus). */
+    journal.lieu = 'focus mobile';
+    const pbFocus = [];
+    try {
+      await naviguer(page, 'rlc', 'meth');
+      await page.focus('#mob-more-btn'); await page.keyboard.press('Enter'); await pause(500);
+      await page.evaluate(() => {
+        const m = document.getElementById('mob-more-menu');
+        const f = Array.from(m.querySelectorAll('a[href], button, input, select, [tabindex]'))
+          .filter(e => e.tabIndex >= 0 && !e.disabled && e.getClientRects().length && getComputedStyle(e).visibility !== 'hidden');
+        if (f.length) f[f.length - 1].focus();
+      });
+      await page.keyboard.press('Tab'); await pause(80);
+      if (!(await page.evaluate(() => document.getElementById('mob-more-menu').contains(document.activeElement)))) pbFocus.push('feuille ⋯ : Tab depuis le dernier élément sort de la feuille');
+      await page.keyboard.press('Escape'); await pause(400);
+      for (const [nom, bouton, fenetre] of [['Bilan', '#mob-dash-btn', 'dash-overlay'], ['Aujourd\'hui', '#mob-today-btn', 'today-overlay']]) {
+        await page.focus('#mob-more-btn'); await page.keyboard.press('Enter'); await pause(500);
+        await page.focus(bouton); await page.keyboard.press('Enter'); await pause(700);
+        if (!(await page.evaluate(id => document.getElementById(id).classList.contains('open'), fenetre))) { pbFocus.push(nom + ' : la fenêtre ne s\'ouvre pas'); await fermerOverlays(page).catch(() => {}); continue; }
+        await page.keyboard.press('Escape'); await pause(500);
+        const a = await page.evaluate(() => document.activeElement && document.activeElement !== document.body ? document.activeElement.id || document.activeElement.className : 'BODY');
+        if (a !== 'mob-more-btn') pbFocus.push(nom + ' (depuis la feuille ⋯) : focus rendu à ' + a + ' au lieu du bouton ⋯');
+      }
+    } catch (e) { pbFocus.push('interaction impossible : ' + String(e.message).split('\n')[0]); }
+    res.verifier('focus au clavier : feuille ⋯ piégée, retour au bouton ⋯ après une fenêtre ouverte depuis la feuille', !pbFocus.length, pbFocus);
+
     /* ---------- 4) Débordement horizontal de chaque panneau ---------- */
     const tous = await page.evaluate(() => CHAPTERS.map(c => ({ id: c.id, prefix: c.prefix, matiere: c.matiere,
       onglets: Array.from(document.querySelectorAll('#chap-' + c.id + ' .tab')).map(t => t.dataset.panel) })));

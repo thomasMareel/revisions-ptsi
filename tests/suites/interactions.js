@@ -485,6 +485,98 @@ module.exports = {
       });
     }
 
+    /* ---------- Focus des fenêtres (relecture accessibilité, tour 1) ----------
+       Tab depuis le dernier élément et Maj+Tab depuis le premier restent dans la fenêtre ;
+       Échap rend le focus au bouton qui l'a ouverte (ou au bouton du menu d'origine). Les
+       éléments atteignables sont calculés ici, indépendamment du site (sans les <use href>). */
+    await etape('fenêtres : focus piégé (Tab, Maj+Tab) et rendu au bouton d\'origine (Échap)', async () => {
+      const pb = [];
+      await naviguer(page, 'rlc', 'cours');
+      const bord = (id, dernier) => page.evaluate(([id, dernier]) => {
+        const ov = document.getElementById(id);
+        const f = Array.from(ov.querySelectorAll('a[href], button, input, select, textarea, [tabindex]'))
+          .filter(e => e.tabIndex >= 0 && !e.disabled && e.getClientRects().length && getComputedStyle(e).visibility !== 'hidden');
+        const e = dernier ? f[f.length - 1] : f[0];
+        if (e) e.focus();
+        return !!e && document.activeElement === e;
+      }, [id, dernier]);
+      const dedans = id => page.evaluate(id => document.getElementById(id).contains(document.activeElement), id);
+      for (const [nom, menu, bouton, fenetre, retour] of [
+        ['Aujourd\'hui', null, '#today-btn', 'today-overlay', 'today-btn'],
+        ['Bilan', null, '#dash-btn', 'dash-overlay', 'dash-btn'],
+        ['quiz (configuration)', '#study-btn', '#quiz-btn', 'quiz-overlay', 'study-btn'],
+        ['formulaire', '#more-btn', '#formula-btn', 'formula-overlay', 'more-btn'],
+      ]) {
+        if (menu) { await page.focus(menu); await page.keyboard.press('Enter'); await pause(300); }
+        await page.focus(bouton); await page.keyboard.press('Enter'); await pause(600);
+        if (!(await ouvert(fenetre))) { pb.push(nom + ' : la fenêtre ne s\'ouvre pas'); await fermerOverlays(page).catch(() => {}); continue; }
+        if (!(await bord(fenetre, true))) pb.push(nom + ' : dernier élément non focalisable');
+        await page.keyboard.press('Tab'); await pause(80);
+        if (!(await dedans(fenetre))) pb.push(nom + ' : Tab depuis le dernier élément sort de la fenêtre');
+        await bord(fenetre, false);
+        await page.keyboard.press('Shift+Tab'); await pause(80);
+        if (!(await dedans(fenetre))) pb.push(nom + ' : Maj+Tab depuis le premier élément sort de la fenêtre');
+        await page.keyboard.press('Escape'); await pause(500);
+        const a = await page.evaluate(() => document.activeElement && document.activeElement !== document.body ? document.activeElement.id || document.activeElement.className : 'BODY');
+        if (a !== retour) pb.push(nom + ' : focus rendu à ' + a + ' au lieu de #' + retour);
+      }
+      return pb;
+    });
+
+    /* ---------- Année : passage automatique réversible (relecture fonctionnelle, tour 1) ---------- */
+    await etape('année : un chapitre de 2ᵉ année ouvert en passant ne laisse pas la 2ᵉ année acquise ; un choix manuel reste', async () => {
+      const annee = () => page.evaluate(() => ({ store: Store.get('year'), courante: window.__currentYear() }));
+      const choisir = y => page.evaluate(y => { const b = document.querySelector('.mob-year-btn[data-year="' + y + '"]'); if (b) b.click(); return !!b; }, y);
+      await naviguer(page, 'rlc', 'cours');
+      await choisir(1); await pause(200);
+      await naviguer(page, 'fpv', 'cours');                // chapitre de 2ᵉ année : passage automatique
+      const a = await annee();
+      await naviguer(page, 'rlc', 'cours');                // retour à la 1ʳᵉ année
+      const b = await annee();
+      await choisir(2); await pause(200);                   // 2ᵉ année choisie à la main
+      const chap = await visible();
+      await naviguer(page, 'signaux', 'cours');
+      const c = await annee();
+      await choisir(1); await pause(200);
+      return [
+        a.courante !== 2 && 'chapitre de 2ᵉ année : année courante ' + a.courante + ' au lieu de 2',
+        b.courante !== 1 && 'retour à un chapitre de 1ʳᵉ année : année courante ' + b.courante + ' (Store ' + b.store + ') au lieu de 1',
+        chap !== 'chap-rlc' && 'la bascule d\'année change le chapitre affiché (' + chap + ')',
+        c.courante !== 2 && '2ᵉ année choisie à la main puis chapitre de 1ʳᵉ année : année ' + c.courante + ' au lieu de 2',
+      ];
+    });
+
+    /* ---------- « Dans ce chapitre » sans rail (1100 px) ---------- */
+    await etape('« Dans ce chapitre » dans le menu Plus à 1100 px (pas de rail)', async () => {
+      const taille = page.viewportSize();
+      await page.setViewportSize({ width: 1100, height: 850 });
+      await pause(400);
+      await naviguer(page, 'rlc', 'cours');
+      await page.click('#more-btn'); await pause(300);
+      const s = await page.evaluate(() => {
+        const t = document.getElementById('more-toc');
+        return { visible: !!(t && !t.hidden && t.getClientRects().length), n: t ? t.querySelectorAll('.more-toc-list > *').length : 0, rail: !!document.querySelector('#chap-rail .toc-item, #chap-rail .rail-bloc') && !!(document.getElementById('chap-rail') || {}).offsetParent };
+      });
+      await page.keyboard.press('Escape'); await pause(200);
+      await page.setViewportSize(taille); await pause(400);
+      return [!s.visible && !s.rail && 'ni rail ni « Dans ce chapitre » dans le menu Plus à 1100 px',
+        s.visible && s.n < 3 && '« Dans ce chapitre » ne liste que ' + s.n + ' section(s)'];
+    });
+
+    /* ---------- Bilan : « Réviser mes points faibles » = cartes faibles seulement ---------- */
+    await etape('Bilan : « Réviser mes points faibles » lance autant de cartes que son compteur (jamais vues exclues)', async () => {
+      await naviguer(page, 'rlc', 'flash');
+      await page.evaluate(() => { const f = window.FLASH_INSTANCES.rlc; f.rate(0); f.rate(1); f.rate(2); });
+      await pause(200);
+      await page.click('#dash-btn'); await pause(700);
+      const n = await page.evaluate(() => { const b = document.getElementById('dash-revise-btn'); return b ? parseInt(b.querySelector('.count').textContent, 10) : null; });
+      if (n === null) return ['bouton « Réviser mes points faibles » absent après deux cartes faibles'];
+      await page.click('#dash-revise-btn'); await pause(700);
+      const p = await page.evaluate(() => (document.getElementById('quiz-progress-text') || {}).textContent || '');
+      const total = parseInt((p.split('/')[1] || '').trim(), 10);
+      return [total !== n && 'le quiz lancé compte ' + total + ' carte(s) pour un compteur de ' + n + ' (« ' + p + ' »)'];
+    });
+
     /* ---------- Recherche groupée et aide clavier ---------- */
     await etape('recherche groupée par nature (matière de chaque ligne, ↓) ; aide clavier « ? » et Échap', async () => {
       const pb = [];
