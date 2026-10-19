@@ -167,7 +167,7 @@ module.exports = {
     journal.lieu = 'flashcards (MathJax)';
     const prefixes = selection.filter(c => c.panels.includes('flash')).map(c => c.prefix);
     const fl = await page.evaluate(async prefixes => {
-      const r = { decks: 0, cartes: 0, merror: [], exceptions: [] };
+      const r = { decks: 0, cartes: 0, merror: [], exceptions: [], coupes: [] };
       const boite = document.createElement('div');
       boite.style.cssText = 'position:absolute;left:-99999px;top:0;width:800px';
       document.body.appendChild(boite);
@@ -181,7 +181,12 @@ module.exports = {
         cartes.forEach((c, i) => ['q', 'a'].forEach(f => {
           const d = document.createElement('div');
           d.dataset.k = pre + '#' + i + '.' + f;
-          try { d.innerHTML = flashPretty(c[f]); } catch (e) { r.exceptions.push(pre + '#' + i + '.' + f + ' : ' + e.message); }
+          try {
+            const t = flashPretty(c[f]);
+            d.innerHTML = t;
+            // nombre décimal coupé par une fraction : (0,06/n) rendu « 0, 06⁄n » (formule fausse)
+            if (/\d,\s?\\d?frac\{\d/.test(t)) r.coupes.push(pre + '#' + i + '.' + f + ' : ' + String(c[f]).slice(0, 60));
+          } catch (e) { r.exceptions.push(pre + '#' + i + '.' + f + ' : ' + e.message); }
           boite.appendChild(d);
         }));
         r.cartes += cartes.length;
@@ -197,6 +202,7 @@ module.exports = {
     }, prefixes);
     res.verifier('flashcards : flashPretty + MathJax (' + fl.cartes + ' cartes, ' + fl.decks + ' decks)',
       !fl.merror.length && !fl.exceptions.length, fl.exceptions.map(e => 'exception flashPretty ' + e).concat(fl.merror.map(e => 'mjx-merror ' + e)));
+    res.verifier('flashcards : aucun nombre décimal coupé par une fraction (0,06/n, 1,22λ/D…)', !fl.coupes.length, fl.coupes.map(e => 'virgule décimale coupée ' + e));
 
     /* ---------- 5) Simulateurs en clair puis en sombre ---------- */
     const simus = (ctx.options.chapitres ? selection : tous).filter(c => c.drawFn && c.panels.includes('simu'));

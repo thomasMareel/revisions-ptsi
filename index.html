@@ -1091,6 +1091,10 @@ html.sommaire-ouvert #app-main > main, html.sommaire-ouvert #chap-pager{ display
     transition:transform var(--dur-2) var(--ease);
   }
   #mob-header.mbar.cachee{ transform:translateY(-100%); }
+  /* Focus CLAVIER dans la barre effacée (Maj+Tab depuis les onglets) : elle revient aussitôt, sans
+     glisser, avant que le navigateur ne fasse défiler la page pour montrer le bouton translaté
+     (saut de ≈ 450 px vers le haut) ; le module de la barre retire ensuite .cachee. */
+  #mob-header.mbar.cachee:has(:focus-visible){ transform:none; transition:none; }
   .mbar .btn-icon{ width:var(--tap); height:var(--tap); border-radius:12px; color:var(--text-2); position:relative; }
   .mbar .btn-icon .ic{ width:1.45rem; height:1.45rem; }
   .mbar .btn-icon .count{ position:absolute; top:.15rem; right:.05rem; min-width:1.25rem; height:1.25rem; padding:0 .3rem; box-shadow:0 0 0 2px var(--sheet); }
@@ -1190,13 +1194,18 @@ footer.pied .brand-mark{ width:1.375rem; height:1.375rem; border-radius:6px; fon
 @media (max-width:767px){
   .maj-banniere{ left:.5rem; right:.5rem; transform:none; max-width:none; bottom:calc(.5rem + env(safe-area-inset-bottom)); }
   .maj-banniere .maj-recharger, .maj-banniere .maj-ignorer{ height:var(--tap); min-width:var(--tap); }
+  /* au-dessus de « Afficher la réponse » et de la notation (onglet Cartes, quiz) */
+  html.onglet-cartes .maj-banniere,
+  #quiz-overlay.open ~ .maj-banniere{ bottom:calc(5.25rem + env(safe-area-inset-bottom)); }
 }
 
 /* ===================================================================
    7. MOUVEMENT RÉDUIT : la barre se masque sans glisser, feuilles et tiroir sans glissement
    =================================================================== */
 @media (prefers-reduced-motion: reduce){
-  #mob-header.mbar.cachee{ transform:none; visibility:hidden; }
+  /* (translatée et non visibility:hidden : ses 4 boutons restent atteignables au clavier et
+     présents pour les lecteurs d'écran, souvent utilisés avec le mouvement réduit) */
+  #mob-header.mbar.cachee{ transform:translateY(-100%); visibility:visible; transition:none; }
   #mob-drawer, #mob-more-menu.bsheet, #mob-more-scrim, .hdr-more-menu.open, #theme-pop{ transition:none !important; animation:none !important; }
 }
 
@@ -2989,11 +2998,15 @@ figure.schema.defile, .cine-svg-wrap.defile{ overflow-x:auto; overflow-y:hidden;
   display:flex; flex-direction:column; align-items:center; gap:.5rem;
   width:max-content; max-width:calc(100vw - 1rem); pointer-events:none;
 }
-body:has(#sw-update-banner) .toasts{ bottom:5.25rem; }
+/* (bannière de mise à jour affichée : html.maj-dispo, posé par showUpdateBanner ; un
+   body:has(#sw-update-banner) faisait recalculer le style de toute la page à chaque
+   modification du DOM dès qu'un toast existait : +200 ms à l'ouverture de la page Chapitres) */
+html.maj-dispo .toasts{ bottom:5.25rem; }
 .toast{
   display:flex; align-items:center; gap:.6rem; min-height:2.75rem; padding:.6rem 1.1rem;
   border-radius:12px; background:var(--primary); color:var(--on-primary); box-shadow:var(--sh-3);
-  font:var(--w-medium) var(--fs-ui)/1.35 var(--font-ui); pointer-events:auto;
+  font:var(--w-medium) var(--fs-ui)/1.35 var(--font-ui);
+  pointer-events:none;   /* aucun toast ne porte d'action : un appui le traverse (il avalait « Hésitant ») */
   animation:toastIn var(--dur-2) var(--ease) both;
 }
 .toast .ic{ width:1.2rem; height:1.2rem; flex:none; }
@@ -3001,8 +3014,15 @@ body:has(#sw-update-banner) .toasts{ bottom:5.25rem; }
 @keyframes toastIn{ from{ opacity:0; transform:translateY(8px); } to{ opacity:1; transform:none; } }
 @media (max-width:767px){
   .toasts{ left:.5rem; right:.5rem; transform:none; width:auto; max-width:none; bottom:calc(.5rem + env(safe-area-inset-bottom)); }
-  body:has(#sw-update-banner) .toasts{ bottom:calc(4.75rem + env(safe-area-inset-bottom)); }
+  html.maj-dispo .toasts{ bottom:calc(4.75rem + env(safe-area-inset-bottom)); }
   .toast{ width:100%; }
+  /* Onglet Cartes et quiz : « Afficher la réponse » et la notation occupent le bas de l'écran ;
+     toasts et bannière de mise à jour passent AU-DESSUS (ils masquaient les libellés des notes) */
+  /* (html.onglet-cartes : posé par majPage ; quiz : la zone et la bannière suivent #quiz-overlay dans <body>) */
+  html.onglet-cartes .toasts,
+  #quiz-overlay.open ~ .toasts{ bottom:calc(5.25rem + env(safe-area-inset-bottom)); }
+  html.onglet-cartes.maj-dispo .toasts,
+  html.maj-dispo #quiz-overlay.open ~ .toasts{ bottom:calc(9.5rem + env(safe-area-inset-bottom)); }
 }
 
 /* ===== FIN RÉGION FENETRES ===== */
@@ -63621,6 +63641,17 @@ function flashConvertMath(m){
   m = m.replace(/_([A-Za-zÀ-ÿ]+|[0-9]+)/g, (x,c)=>'_'+O+c+C);               // _x, _Carnot, _éq (lettres OU chiffres : H_2O reste H_2 puis O)
   m = m.replace(/\{/g,'\\{').replace(/\}/g,'\\}').replace(/%/g,'\\%');       // accolades littérales (ensembles)
   m = m.replace(/</g,'\\lt ').replace(/>/g,'\\gt ').replace(/&/g,'\\&');     // sûr pour innerHTML
+  // Virgule décimale (0,06 ; 1,22 ; 3,00) : un seul nombre {,} — sans quoi MathJax la lit comme une
+  // ponctuation (« 0, 06 ») et flashFrac coupait le nombre devant « / » : (0,06/n) devenait
+  // « 0, 06⁄n » (Nernst), 1,22λ/D « 1, 22λ⁄D » (Rayleigh). Restent des ponctuations : les listes
+  // (1,2,3) et les couples, intervalles, ensembles entre délimiteurs : (0,0) [0,1] {0,1} — sauf
+  // l'argument d'une fonction d'une variable : ln(0,1), arctan(0,1) sont des décimaux.
+  m = m.replace(/\d+(?:,\d+)+/g, (x, off, str) => {
+    if(x.indexOf(',') !== x.lastIndexOf(',')) return x;
+    if(/[\[({]/.test(str[off - 1] || '') && /[\])}\\]/.test(str[off + x.length] || '')
+      && !(str[off - 1] === '(' && /(?:arccos|arcsin|arctan|sinh|cosh|tanh|cos|sin|tan|ln|log|exp)$/.test(str.slice(0, off - 1)))) return x;
+    return x.replace(',', O + ',' + C);
+  });
   const sup = {'²':'2','³':'3','¹':'1','⁰':'0','⁴':'4','⁵':'5','⁶':'6','⁷':'7','⁸':'8','⁹':'9','ⁿ':'n','ⁱ':'i','⁺':'+','⁻':'-'};
   m = m.replace(/[²³¹⁰⁴⁵⁶⁷⁸⁹ⁿⁱ⁺⁻]+/g, r=>'^{'+[...r].map(c=>sup[c]||'').join('')+'}');
   const sub = {'₀':'0','₁':'1','₂':'2','₃':'3','₄':'4','₅':'5','₆':'6','₇':'7','₈':'8','₉':'9','ₙ':'n','ₖ':'k','ᵢ':'i','ⱼ':'j','₊':'+','₋':'-'};
@@ -75863,11 +75894,17 @@ document.addEventListener('keydown', e => {
   const deplies1A = new Set();        // parties (mat|partie) où les chapitres de 1ʳᵉ année sont dépliés (2ᵉ année)
   const okYear = it => it.year === currentYear || it.year === 0;
 
-  /* Chapitre affiché (deux .chapter.active au chargement, un par <main> : le visible) */
+  /* Chapitre affiché (deux .chapter.active au chargement, un par <main> : le visible). Les 160
+     .chapter sont fixes : liste gardée (un querySelectorAll sur tout le document, MathJax compris,
+     coûtait ≈ 20 ms à chaque ouverture de la page Chapitres sur un téléphone lent). */
+  let chapEls = null;
   function activeChapEl(){
-    const l = Array.from(document.querySelectorAll('.chapter.active'));
+    if(!chapEls || !chapEls.length) chapEls = Array.from(document.querySelectorAll('.chapter'));
+    const l = chapEls.filter(x => x.classList.contains('active'));
     return l.find(x => x.offsetParent !== null) || l[0] || null;
   }
+  // boutons d'année et intercalaires : cherchés dans le tiroir seulement (pas dans tout le document)
+  const dansTiroir = sel => (document.getElementById('mob-drawer') || document).querySelectorAll(sel);
   const activeChapId = () => (activeChapEl() || {}).id || '';
 
   /* ── Année / matières ── */
@@ -75881,7 +75918,7 @@ document.addEventListener('keydown', e => {
     return n;
   }
   function refreshYearButtons(){
-    document.querySelectorAll('.mob-year-btn').forEach(b => {
+    dansTiroir('.mob-year-btn').forEach(b => {
       const on = parseInt(b.dataset.year) === currentYear;
       b.classList.toggle('active', on);
       b.setAttribute('aria-pressed', on ? 'true' : 'false');
@@ -75890,7 +75927,7 @@ document.addEventListener('keydown', e => {
   function refreshMatButtons(){
     const avail = matieresForYear(currentYear);
     if(!avail.includes(currentMat)) currentMat = avail[0] || currentMat;
-    document.querySelectorAll('.mob-mat-btn').forEach(b => {
+    dansTiroir('.mob-mat-btn').forEach(b => {
       const m = b.dataset.mat, on = m === currentMat;
       b.style.display = avail.includes(m) ? '' : 'none';
       b.classList.toggle('active', on);
@@ -76524,7 +76561,7 @@ document.addEventListener('keydown', e => {
   // Clavier : ← → entre les intercalaires (role=tablist)
   $('mob-mat-bar') && $('mob-mat-bar').addEventListener('keydown', e => {
     if(e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
-    const tabs = Array.from(document.querySelectorAll('.mob-mat-btn')).filter(b => b.style.display !== 'none');
+    const tabs = Array.from(dansTiroir('.mob-mat-btn')).filter(b => b.style.display !== 'none');
     const i = tabs.indexOf(document.activeElement);
     if(i < 0) return;
     e.preventDefault();
@@ -76705,15 +76742,27 @@ document.addEventListener('keydown', e => {
     } catch(e){}
   };
   // Effacement au défilement (téléphone)
-  let dernierY = window.scrollY || 0, tic = false;
+  /* La barre est collante, donc DANS le flux : quand sa hauteur change (56 px ↔ 68 px, titre de
+     section sur 1 ou 2 lignes à une frontière de section, même barre cachée), tout le document se
+     décale et Chrome compense en déplaçant scrollY de ±12 px (ancrage du défilement). Ce saut
+     n'est pas un geste : il réaffichait la barre 50 à 70 ms en descendant (ou la cachait en
+     remontant). Hauteur changée depuis l'appel précédent → on repart de la position actuelle sans
+     décider du sens. (La compensation est appliquée par la mise en page, au plus tard à la lecture
+     de offsetHeight / scrollY ci-dessous : le 1er appel qui voit la nouvelle hauteur la contient.) */
+  let dernierY = window.scrollY || 0, tic = false, hBarre = -1;
   function majDefilement(){
     tic = false;
     if(!barre) return;
+    const hb = mqTel.matches ? barre.offsetHeight : 0;   // (lu AVANT scrollY : mise en page à jour)
+    const ancrage = hb !== hBarre;
+    hBarre = hb;
     const y = Math.max(0, window.scrollY || 0);
     let cachee = barre.classList.contains('cachee');
     if(!mqTel.matches || y <= 120){ cachee = false; dernierY = y; }
+    else if(ancrage){ dernierY = y; }
     else if(y - dernierY > 8){ cachee = true; dernierY = y; }
     else if(y < dernierY){ cachee = false; dernierY = y; }
+    if(cachee && focusClavierBarre()) cachee = false;     // jamais effacée sous un focus clavier
     if(cachee !== barre.classList.contains('cachee')){
       barre.classList.toggle('cachee', cachee);
       root.classList.toggle('mbar-cachee', cachee);
@@ -76721,6 +76770,26 @@ document.addEventListener('keydown', e => {
     if(mqTel.matches) rendreBarre();
   }
   window.addEventListener('scroll', () => { if(!tic){ tic = true; requestAnimationFrame(majDefilement); } }, { passive:true });
+  /* Focus CLAVIER (Maj+Tab depuis les onglets, lecteur d'écran) sur un bouton de la barre effacée :
+     elle revient, et la page reste où elle était (le navigateur la faisait défiler de ≈ 450 px
+     vers le haut pour montrer le bouton translaté hors de l'écran). Un appui au doigt ou à la
+     souris (focus non visible) ne la bloque pas : elle s'efface toujours à la lecture. */
+  function focusClavierBarre(){
+    const a = document.activeElement;
+    if(!barre || !a || a === document.body || !barre.contains(a)) return false;
+    try { return a.matches(':focus-visible'); } catch(e){ return true; }
+  }
+  if(barre) barre.addEventListener('focusin', () => {
+    if(!mqTel.matches || !barre.classList.contains('cachee') || !focusClavierBarre()) return;
+    const y0 = Math.max(0, window.scrollY || 0);
+    barre.classList.remove('cachee');
+    root.classList.remove('mbar-cachee');
+    dernierY = y0;
+    requestAnimationFrame(() => {
+      if(Math.abs((window.scrollY || 0) - y0) > 2) try { window.scrollTo({ top:y0, behavior:'instant' }); } catch(e){ window.scrollTo(0, y0); }
+      dernierY = Math.max(0, window.scrollY || 0);
+    });
+  });
   // Changement d'onglet : la section courante sera redonnée par le scroll-spy
   document.addEventListener('click', e => {
     if(e.target && e.target.closest && e.target.closest('.tab')){ etatBarre.section = null; setTimeout(() => rendreBarre(), 0); }
@@ -79311,13 +79380,15 @@ document.getElementById('skip-link')?.addEventListener('click', e => {
   /* ══ Mise à jour à chaque changement de chapitre ou d'onglet ═════════════ */
   function majPage(){
     const ch = chapVisible(), c = infoChap(ch);
-    if(!ch || !c){ root.classList.remove('rail-on'); return; }
+    if(!ch || !c){ root.classList.remove('rail-on'); root.classList.remove('onglet-cartes'); return; }
     const nouveau = ch !== actuel;
     actuel = ch;
     const ongletAvant = ch.getAttribute('data-onglet'), railAvant = root.classList.contains('rail-on');
     sur(enrichirBandeau)(ch, c);
     sur(enrichirOnglets)(ch, c);
     ch.setAttribute('data-onglet', ongletActif(ch));
+    // onglet Cartes affiché : toasts et bannière de mise à jour au-dessus de la notation (téléphone)
+    root.classList.toggle('onglet-cartes', ch.getAttribute('data-onglet') === 'flash');
     majSelection(ch);
     majEpingle(ch);
     if(nouveau){
@@ -79394,9 +79465,10 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
       close.className = 'maj-ignorer';
       close.innerHTML = window.__icon ? window.__icon('x') : '×';
       close.setAttribute('aria-label', 'Ignorer');
-      close.addEventListener('click', () => bar.remove());
+      close.addEventListener('click', () => { bar.remove(); document.documentElement.classList.remove('maj-dispo'); });
       bar.appendChild(msg); bar.appendChild(btn); bar.appendChild(close);
       document.body.appendChild(bar);
+      document.documentElement.classList.add('maj-dispo');   // toasts au-dessus de la bannière
     }
 
     navigator.serviceWorker.register('sw.js').then(reg => {

@@ -258,6 +258,126 @@ module.exports = {
     } catch (e) { pbAnneau.push('interaction impossible : ' + String(e.message).split('\n')[0]); }
     res.verifier('zone défilante à fondu focalisée au clavier : masque retiré, anneau visible', !pbAnneau.length, pbAnneau);
 
+    /* ---------- 3f) Barre effacée : pas de clignotement aux frontières de section ----------
+       La barre (collante, dans le flux) passe de 56 à 68 px quand le titre de section prend 2 lignes ;
+       Chrome compense en déplaçant scrollY (ancrage) : ce saut ne doit pas être pris pour un geste.
+       Descente lente (6 px par image) de §5 à §7 de rlc : jamais réaffichée ; remontée : jamais cachée. */
+    journal.lieu = 'barre au défilement';
+    const pbBarre = [];
+    try {
+      await naviguer(page, 'rlc', 'cours'); await pause(600);
+      const r = await page.evaluate(async () => {
+        const img = () => new Promise(res => requestAnimationFrame(() => res()));
+        document.documentElement.style.scrollBehavior = 'auto';
+        const secs = Array.from(document.querySelectorAll('#rlc-cours .course-section[data-toc-label]')).map(s => Math.round(s.getBoundingClientRect().top + scrollY));
+        if (secs.length < 7) return { err: 'rlc-cours : ' + secs.length + ' sections seulement' };
+        const m = document.getElementById('mob-header');
+        scrollTo(0, secs[4] - 400); for (let i = 0; i < 10; i++) { scrollBy(0, 6); await img(); }
+        await new Promise(res => setTimeout(res, 300));
+        if (!m.classList.contains('cachee')) return { err: 'la barre ne s\'efface pas en descendant (y = ' + Math.round(scrollY) + ')' };
+        const evts = [], hauteurs = new Set([m.offsetHeight]);
+        const obs = new MutationObserver(() => evts.push((m.classList.contains('cachee') ? 'cachée' : 'VISIBLE') + ' y=' + Math.round(scrollY)));
+        obs.observe(m, { attributes: true, attributeFilter: ['class'] });
+        while (scrollY < secs[6] + 300) { scrollBy(0, 6); await img(); hauteurs.add(m.offsetHeight); }
+        await new Promise(res => setTimeout(res, 200));
+        const descente = evts.splice(0);
+        for (let i = 0; i < 3; i++) { scrollBy(0, -6); await img(); }
+        await new Promise(res => setTimeout(res, 200));
+        const visible = !m.classList.contains('cachee');
+        evts.length = 0;
+        while (scrollY > secs[4] + 100) { scrollBy(0, -6); await img(); hauteurs.add(m.offsetHeight); }
+        await new Promise(res => setTimeout(res, 200));
+        obs.disconnect();
+        return { descente, visible, remontee: evts.slice(), hauteurs: Array.from(hauteurs) };
+      });
+      if (r.err) pbBarre.push(r.err);
+      else {
+        if (r.descente.length) pbBarre.push('descente de §5 à §7 : la barre réapparaît (' + r.descente.slice(0, 4).join(', ') + ')');
+        if (!r.visible) pbBarre.push('la barre ne revient pas au premier geste vers le haut');
+        if (r.remontee.length) pbBarre.push('remontée de §7 à §5 : la barre se cache (' + r.remontee.slice(0, 4).join(', ') + ')');
+        if (r.hauteurs.length < 2) res.avertir && res.avertir('barre au défilement : hauteur constante (' + r.hauteurs.join('/') + ' px), contrôle sans objet');
+      }
+      await page.evaluate(() => window.scrollTo(0, 0)); await pause(300);
+    } catch (e) { pbBarre.push('interaction impossible : ' + String(e.message).split('\n')[0]); }
+    res.verifier('barre du téléphone : ni réaffichée en descendant, ni cachée en remontant aux frontières de section (rlc §5 → §7)', !pbBarre.length, pbBarre);
+
+    /* ---------- 3g) Barre effacée atteignable au clavier, mouvement réduit compris ----------
+       Mouvement réduit : la barre se masque sans glisser mais reste focalisable (pas de
+       visibility:hidden) ; Maj+Tab depuis l'onglet actif l'atteint, la fait revenir, sans saut. */
+    journal.lieu = 'barre au clavier';
+    const pbBarreCl = [];
+    try {
+      for (const reduit of [true, false]) {
+        await page.emulateMedia({ reducedMotion: reduit ? 'reduce' : 'no-preference' });
+        await naviguer(page, 'rlc', 'cours'); await pause(400);
+        await page.evaluate(async () => { if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); document.documentElement.style.scrollBehavior = 'auto'; scrollTo(0, 2500); await new Promise(r => setTimeout(r, 150)); for (let i = 0; i < 6; i++) { scrollBy(0, 6); await new Promise(r => requestAnimationFrame(r)); } await new Promise(r => setTimeout(r, 300)); });
+        const avant = await page.evaluate(() => ({ cachee: document.getElementById('mob-header').classList.contains('cachee'), y: Math.round(scrollY) }));
+        if (!avant.cachee) { pbBarreCl.push((reduit ? 'mouvement réduit' : 'mouvement normal') + ' : la barre ne s\'efface pas'); continue; }
+        await page.evaluate(() => document.querySelector('#chap-rlc nav.tabs .tab.active').focus({ preventScroll: true }));
+        await page.keyboard.press('Shift+Tab'); await pause(400);
+        const apres = await page.evaluate(() => ({ f: (document.activeElement || {}).id, cachee: document.getElementById('mob-header').classList.contains('cachee'), top: Math.round(document.getElementById('mob-header').getBoundingClientRect().top), y: Math.round(scrollY) }));
+        const nom = reduit ? 'mouvement réduit' : 'mouvement normal';
+        if (apres.f !== 'mob-more-btn') pbBarreCl.push(nom + ' : Maj+Tab depuis l\'onglet actif atteint ' + (apres.f || 'BODY') + ' au lieu de #mob-more-btn');
+        else {
+          if (apres.cachee || apres.top < 0) pbBarreCl.push(nom + ' : bouton ⋯ focalisé dans une barre restée cachée (haut ' + apres.top + ' px)');
+          if (Math.abs(apres.y - avant.y) > 4) pbBarreCl.push(nom + ' : la page saute de ' + (avant.y - apres.y) + ' px au focus de la barre');
+        }
+      }
+    } catch (e) { pbBarreCl.push('interaction impossible : ' + String(e.message).split('\n')[0]); }
+    await page.emulateMedia({ reducedMotion: 'no-preference' }).catch(() => {});
+    await page.evaluate(() => { if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); window.scrollTo(0, 0); }).catch(() => {});
+    res.verifier('barre effacée atteignable au clavier (Maj+Tab → ⋯), mouvement réduit compris, sans saut de la page', !pbBarreCl.length, pbBarreCl);
+
+    /* ---------- 3i) Toast « Carte signalée » : au-dessus de la notation, jamais sur elle ---------- */
+    journal.lieu = 'toast sur la fiche';
+    const pbToast = [];
+    try {
+      await naviguer(page, 'rlc', 'flash'); await page.evaluate(() => window.scrollTo(0, 0)); await pause(400);
+      if (await page.evaluate(() => FLASH_INSTANCES.rlc.isFlipped())) { await page.evaluate(() => FLASH_INSTANCES.rlc.flip()); await pause(400); }
+      await page.locator('#rlc-flash .fc-reveal').tap(); await pause(600);
+      await page.locator('#rlc-flash .flash-flag-btn').tap(); await pause(400);
+      const t = await page.evaluate(() => {
+        const z = document.querySelector('.toasts'), e = z && z.lastElementChild;
+        if (!e) return { err: 'aucun toast après « Signaler »' };
+        const b = e.getBoundingClientRect(), r = Array.from(document.querySelectorAll('#rlc-flash .flash-controls button')).map(x => x.getBoundingClientRect());
+        const ok = r[1], cible = ok && document.elementFromPoint(ok.left + ok.width / 2, ok.top + ok.height * 0.75);
+        return { recouvre: r.some(x => x.top < b.bottom && x.bottom > b.top), pe: getComputedStyle(e).pointerEvents, cible: !!(cible && cible.closest('.flash-controls')) };
+      });
+      if (t.err) pbToast.push(t.err);
+      else {
+        if (t.recouvre) pbToast.push('le toast recouvre les boutons de notation');
+        if (t.pe !== 'none') pbToast.push('le toast intercepte les appuis (pointer-events: ' + t.pe + ')');
+        if (!t.cible) pbToast.push('un appui sur « Hésitant » n\'atteint pas le bouton');
+      }
+      await page.locator('#rlc-flash .flash-flag-btn').tap().catch(() => {}); await pause(200);   // signalement retiré
+    } catch (e) { pbToast.push('interaction impossible : ' + String(e.message).split('\n')[0]); }
+    res.verifier('toast « Carte signalée » au-dessus de la notation, sans intercepter les appuis', !pbToast.length, pbToast);
+
+    /* ---------- 3h) Garde de vitesse : ouverture de la page Chapitres (processeur ×4) ----------
+       #app-main (le chapitre affiché, très lourd) ne doit pas être rendu inerte à l'ouverture :
+       inert y recalcule le style de tout le sous-arbre (≈ 0,8 s au lieu de ≈ 0,2 s). Mesurée APRÈS le
+       toast du contrôle 3i : un body:has(…) dans le CSS recalculait toute la page dès qu'un toast
+       existait (+ 200 ms). */
+    journal.lieu = 'vitesse de la page Chapitres';
+    const pbVit = [];
+    let cdp = null;
+    try {
+      await naviguer(page, 'oscelec', 'cours'); await pause(1500);
+      cdp = await page.context().newCDPSession(page);
+      await cdp.send('Emulation.setCPUThrottlingRate', { rate: 4 });
+      await pause(800);
+      const mesures = [];
+      for (let i = 0; i < 3; i++) {
+        mesures.push(await page.evaluate(() => new Promise(r => { const t = performance.now(); document.getElementById('mob-menu-btn').click(); requestAnimationFrame(() => requestAnimationFrame(() => r(Math.round(performance.now() - t)))); })));
+        await pause(700);
+        await page.evaluate(() => document.getElementById('mob-drawer-close').click()); await pause(900);
+      }
+      const med = mesures.slice().sort((a, b) => a - b)[1];
+      if (med > 250) pbVit.push('ouverture de la page Chapitres : ' + med + ' ms (médiane de ' + mesures.join(' / ') + ' ms) au lieu de ≤ 250 ms');
+    } catch (e) { pbVit.push('mesure impossible : ' + String(e.message).split('\n')[0]); }
+    if (cdp) { await cdp.send('Emulation.setCPUThrottlingRate', { rate: 1 }).catch(() => {}); await cdp.detach().catch(() => {}); }
+    res.verifier('page Chapitres : ouverture ≤ 250 ms au téléphone (processeur ×4, chapitre oscelec affiché)', !pbVit.length, pbVit);
+
     /* ---------- 4) Débordement horizontal de chaque panneau ---------- */
     const tous = await page.evaluate(() => CHAPTERS.map(c => ({ id: c.id, prefix: c.prefix, matiere: c.matiere,
       onglets: Array.from(document.querySelectorAll('#chap-' + c.id + ' .tab')).map(t => t.dataset.panel) })));
