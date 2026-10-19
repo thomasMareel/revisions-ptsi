@@ -393,7 +393,7 @@ Le bouton actuel, qui fait tourner les thèmes, devient un **sélecteur explicit
 - **Mouvement réduit** : la barre ne glisse pas. Elle disparaît et réapparaît sans animation (§6.4).
 - **Menu ⋯** : une **feuille qui monte du bas**, ouverte à la demande. C'est une modale, pas une barre. Elle contient :
   - Aujourd'hui (avec son compteur), Bilan, Quiz, Calcul mental, Formulaire du chapitre, Épingler, Cartes signalées, Sauvegarde ;
-  - **en bas**, à portée du pouce : Thème (segmenté Clair / Sombre / Auto, avec « actuellement : … ») et Texte (A− / A / A+).
+  - **en bas**, à portée du pouce : Thème (segmenté Clair / Sombre / Auto, avec « actuellement : … ») et Texte (A / A+ / A++ ; voir §4.6).
 
   Imprimer et Raccourcis restent absents sur téléphone, comme aujourd'hui.
 - **Pages plein écran** (Chapitres, Aujourd'hui, recherche, quiz, Bilan) : elles s'ouvrent par-dessus la page, ont un × en haut à droite, et se ferment aussi avec le bouton retour d'Android (`history.pushState` d'un état fictif, puis `popstate`).
@@ -484,7 +484,7 @@ Elle repose sur les mêmes données qu'aujourd'hui : `buildDrawerList`, `CHAP_GR
   - le titre « Thème » ;
   - la phrase « **Auto** suit le réglage clair/sombre de ton appareil, en continu, même site ouvert — actuellement : **clair** » ;
   - **3 cartes à mini-vue**, en `role="radio"` : Clair, Sombre, et Auto, dont la mini-vue est coupée en diagonale entre le clair et le sombre ;
-  - dessous, « Taille du texte · cours et cartes » : un segmenté A− / A / A+, qui reprend le réglage `readScale` aujourd'hui rangé dans le menu Plus.
+  - dessous, « Taille du texte · cours et cartes » : un segmenté **A / A+ / A++** (index 0-2 de `readScale` : 100 / 110 / 120 %), qui reprend le réglage aujourd'hui rangé dans le menu Plus. *Décision de la relecture, tour 1* : pas de taille réduite (d'où « A » et non « A− | A | A+ » des maquettes 07a/07b), et le réglage n'agrandit **que** les zones de lecture (panneaux des chapitres, fiche du quiz, Formulaire, par le facteur `--zl` des jetons `--fs-*`) : l'interface, la barre du téléphone et les onglets gardent leur taille, ce qui rend le sous-titre « cours et cartes » exact et évite tout débordement du chrome à 360 px en A++.
 
   Le choix actif a un contour de 2 px à l'encre. Le popover se ferme avec Échap, par un clic dehors ou après un choix. Les couleurs des mini-vues sont **volontairement littérales**, pour montrer chaque thème quel que soit le thème courant.
 - **Téléphone.** Le thème quitte la barre haute et passe en bas de la feuille ⋯ : segmenté Clair / Sombre / Auto (44 px), avec dessous « Auto suit le réglage de ton téléphone — actuellement : sombre ».
