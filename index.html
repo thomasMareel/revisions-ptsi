@@ -74744,9 +74744,21 @@ function printChapter(){
 
   /* ---- 2. Extraire les blocs sources ---- */
   const isExos = panelId.endsWith('-exos');
-  let sources = [];
+  let sources = [], selection = '';
   if(isExos){
-    activePanel.querySelectorAll('.exo').forEach(e => sources.push(e));
+    // Onglet filtré (difficulté, « Concours PT ») : on imprime ce qui est affiché, et la page de
+    // garde le dit — avant, les 8 exercices sortaient quand l'élève n'en avait gardé qu'un
+    const tous = Array.from(activePanel.querySelectorAll('.exo'));
+    const vus = tous.filter(e => !e.classList.contains('filtre-masque'));
+    (vus.length ? vus : tous).forEach(e => sources.push(e));
+    if(vus.length && vus.length < tous.length){
+      const b = activePanel.querySelector('.exo-tools .seg button[aria-pressed="true"]');
+      const pc = activePanel.querySelector('.exo-tools .chip[aria-pressed="true"]');
+      const parts = [];
+      if(b && b.dataset.niveau !== 'tous') parts.push(b.textContent.trim());
+      if(pc) parts.push('Concours PT');
+      selection = 'Sélection : ' + (parts.join(' · ') || 'filtre') + ' — ' + vus.length + ' exercice' + (vus.length > 1 ? 's' : '') + ' sur ' + tous.length;
+    }
   } else {
     const root = activePanel.querySelector('.toc-content') || activePanel;
     root.querySelectorAll('.course-section').forEach(s => sources.push(s));
@@ -74874,7 +74886,7 @@ ${atomesHTML(atoms)}
     });
   }
 
-  imprimerDocument({ titre: chapName, onglet: panelLabel, mat: c.matiere || '', chapId, corps: bodyContent, garde: 'page' });
+  imprimerDocument({ titre: chapName, onglet: panelLabel, mat: c.matiere || '', chapId, corps: bodyContent, garde: 'page', selection });
 }
 
 /* Écrit un document d'impression dans #print-iframe et l'imprime.
@@ -74926,6 +74938,7 @@ body{ font:var(--w-regular) 11pt/1.45 var(--font-text); font-variant-numeric:lin
 .cover-filet{ width:42mm; margin-top:9mm; border-top:2pt solid var(--chap-vif); }
 .cover-sep{ flex:1; }
 .cover-meta{ font:var(--w-regular) 9pt/1.4 var(--font-ui); color:var(--text-3); }
+.cover-selection{ margin-top:3mm; font:var(--w-semi) 10pt/1.4 var(--font-ui); color:var(--text-2); }
 .cover.compacte{ height:auto; padding:0 0 6mm; margin-bottom:8mm; break-after:auto; page-break-after:auto; border-bottom:2pt solid var(--chap-vif); }
 .cover.compacte .cover-eyebrow{ margin-bottom:2.5mm; }
 .cover.compacte .cover-title{ font-size:22pt; margin-bottom:1.5mm; }
@@ -75067,6 +75080,7 @@ h4.sol-part{ margin:0; font:var(--w-bold) 8pt/1.2 var(--font-ui); letter-spacing
   <div class="cover-eyebrow">${escHtml(surtitre + (compacte && opts.onglet ? ' · ' + opts.onglet : ''))}</div>
   <h1 class="cover-title">${escHtml(opts.titre || '')}</h1>
   <div class="cover-matiere">${escHtml([matiere, compacte ? '' : opts.onglet].filter(Boolean).join(' · '))}</div>
+  ${opts.selection ? '<div class="cover-selection">' + escHtml(opts.selection) + '</div>' : ''}
   ${compacte ? '' : '<div class="cover-filet"></div>\n  <div class="cover-sep"></div>'}
   <div class="cover-meta">Mes cours de prépa · imprimé le ${today}</div>
 </div>`;
