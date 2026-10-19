@@ -62594,6 +62594,10 @@ function scrollPageTop(){
   catch(e){ window.scrollTo(0, 0); }
 }
 
+/* Défilement par onglet, mémoire de la session (aucune clé Store), remise à zéro à chaque
+   changement de chapitre (qui repart du haut). Voir le gestionnaire des onglets. */
+const DEFIL_ONGLETS = new Map();
+
 /* ========== CHAPTER SWITCHING ========== */
 document.querySelectorAll('.chap-btn').forEach(b=>{
   b.addEventListener('click',()=>{
@@ -62615,7 +62619,7 @@ document.querySelectorAll('.chap-btn').forEach(b=>{
     const chapEl = document.getElementById('chap-'+b.dataset.chap);
     if(chapEl) chapEl.classList.add('active');
     // Nouveau chapitre : on repart du haut de la page (et non du défilement du précédent)
-    if(!avant || avant !== chapEl) scrollPageTop();
+    if(!avant || avant !== chapEl){ DEFIL_ONGLETS.clear(); scrollPageTop(); }
     setTimeout(()=>{ redrawChapter(b.dataset.chap); }, 50);
     // Rendu MathJax à la demande : seulement le panneau visible (le reste suit à l'ouverture des onglets)
     if(chapEl) typesetPanel(chapEl.querySelector('.panel.active'));
@@ -62623,15 +62627,48 @@ document.querySelectorAll('.chap-btn').forEach(b=>{
 });
 
 /* ========== TABS (per chapter) ========== */
+/* Défilement au changement d'onglet. Onglets en haut de page (début du panneau visible) : le
+   défilement est gardé. Onglets collés (on lisait plus bas) : garder la valeur menait au fond du
+   nouveau panneau (fiche de l'onglet Cartes à moitié cachée sous les onglets, fin des exercices).
+   On retrouve alors la lecture de l'onglet s'il a déjà été lu dans ce chapitre, sinon son début,
+   juste sous l'en-tête et les onglets. */
+function hauteurBarresHaut(chap){
+  const barre = [document.getElementById('mob-header'), document.getElementById('site-header')].find(x => x && x.getClientRects().length);
+  const nav = chap && chap.querySelector(':scope > nav.tabs');
+  return (barre ? barre.offsetHeight : 0) + (nav && nav.getClientRects().length ? nav.offsetHeight : 0);
+}
+// Avant l'échange des panneaux : les onglets collent-ils (lecture en cours dans l'ancien) ?
+// Si oui, la position de lecture de l'ancien panneau est notée (décalage dans le panneau).
+function noterOnglet(chap, ancien){
+  const nav = chap.querySelector(':scope > nav.tabs');
+  if(!nav || !ancien) return false;
+  const ra = ancien.getBoundingClientRect(), bas = nav.getBoundingClientRect().bottom;
+  if(ra.top < bas - 4){ DEFIL_ONGLETS.set(ancien.id, -ra.top); return true; }
+  DEFIL_ONGLETS.delete(ancien.id);
+  return false;
+}
+// Après l'échange (seulement si les onglets collaient) : lecture retrouvée, ou début du panneau
+function defilerOnglet(chap, nouveau){
+  const haut = (window.scrollY || window.pageYOffset || 0) + nouveau.getBoundingClientRect().top;
+  const lu = DEFIL_ONGLETS.get(nouveau.id);
+  const y = Math.max(0, Math.round(lu !== undefined ? haut + lu : haut - hauteurBarresHaut(chap)));
+  try { window.scrollTo({ top:y, left:0, behavior:'instant' }); } catch(e){ window.scrollTo(0, y); }
+}
 document.querySelectorAll('.tab').forEach(t=>{
   t.addEventListener('click',()=>{
     const chap = t.closest('.chapter');
+    const shownPanel = document.getElementById(t.dataset.panel);
+    const ancien = chap.querySelector('.panel.active');
+    let colles = false;
+    try { colles = !!(shownPanel && ancien && ancien !== shownPanel && noterOnglet(chap, ancien)); } catch(e){}
     chap.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
     chap.querySelectorAll('.panel').forEach(x=>x.classList.remove('active'));
     t.classList.add('active');
-    const shownPanel = document.getElementById(t.dataset.panel);
     shownPanel.classList.add('active');
+    // rendu (souvent synchrone) AVANT le défilement : sinon l'ancrage du défilement du navigateur
+    // décalait la page de la hauteur prise par les formules rendues au-dessus du point visé
     typesetPanel(shownPanel);
+    if(colles){ try { defilerOnglet(chap, shownPanel); } catch(e){} }
     // Redraw simulateur si on arrive sur un panel -simu (dérivé de CHAPTERS)
     const panelId = t.dataset.panel;
     if(panelId.endsWith('-simu')){
