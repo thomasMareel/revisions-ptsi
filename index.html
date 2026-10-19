@@ -465,8 +465,11 @@ window.MathJax = {
 /* Taille du texte A / A+ / A++ : plus de zoom de <html> (l'interface ne grossit pas) ; les jetons
    --fs-* sont multipliés dans les zones de lecture (« 2 bis » ci-dessus). */
 
+/* Contraste élevé (SPEC §6.4) : encre 3 = encre 2, filets = --field, dans CHAQUE thème. Spécificité
+   (0,3,0), placée après les jetons sombres (:root[data-theme="dark"] et le filet de sécurité du
+   thème Auto) : avec un simple :root, la règle perdait en sombre et rien ne changeait. */
 @media (prefers-contrast: more){
-  :root{ --text-3: var(--text-2); --line-2: var(--field); --line: var(--line-2); }
+  :root:root:root{ --text-3: var(--text-2); --line-2: var(--field); --line: var(--field); }
 }
 @media (prefers-reduced-motion: reduce){
   :root{ --dur-1: 0ms; --dur-2: 0ms; --dur-3: 0ms; }
@@ -1477,7 +1480,11 @@ section.panel[id$="-cours"]::before, section.panel[id$="-meth"]::before{
 @media (max-width:767px){
   main, main#si-content{ padding:0; }
   .chapter{ --onglets-h:var(--tabs-h); max-width:none; border-top:0; border-radius:0; box-shadow:none; overflow:visible; }
-  .chap-title-banner{ display:none; }
+  /* Pas d'intercalaire à l'écran (le titre est dans la barre), mais son titre h2 reste dans l'arbre
+     d'accessibilité (motif .sr) : la navigation par titres d'un lecteur d'écran trouve le chapitre.
+     Fil d'Ariane, actions et méta : retirés (rien d'invisible ne prend le focus). */
+  .chap-title-banner{ position:absolute; width:1px; height:1px; padding:0; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; }
+  .chap-title-banner > :not(.ctb-row), .chap-title-banner .ctb-actions{ display:none; }
   nav.tabs{
     top:var(--bar-h-reel, var(--bar-h)); justify-content:space-between; gap:0; padding:0 .25rem;
     background:var(--sheet); border-bottom:1px solid var(--line);
@@ -73927,18 +73934,31 @@ function navigateTo(chapId, panelId, onDone){
     setTimeout(() => { parRetour = false; }, 0);
   }
 
+  /* Titre du document = page affichée (« Circuit RLC série · Cours — Mes cours de prépa ») :
+     annoncé par les lecteurs d'écran, et lisible dans l'historique et les onglets du navigateur */
+  const NOMS_ONGLETS = { cours:'Cours', meth:'Méthodes', simu:'Simulateur', flash:'Cartes', exos:'Exercices' };
+  const NOMS_MATIERES = { physique:'Physique', maths:'Maths', si:'SI', info:'Info', anglais:'Anglais' };
+  function majTitreDocument(so, chapId, suf){
+    let t = 'Mes cours de prépa';
+    const c = chapId && CHAPTERS_BY_ID[chapId];
+    if(so) t = 'Sommaire · ' + (NOMS_MATIERES[so] || so) + ' — ' + t;
+    else if(c) t = c.name + (NOMS_ONGLETS[suf] ? ' · ' + NOMS_ONGLETS[suf] : '') + ' — ' + t;
+    if(document.title !== t) document.title = t;
+  }
   function syncHash(){
     const so = window.__sommaireOuvert ? window.__sommaireOuvert() : null;
     let h, cle;
-    if(so){ h = '#sommaire/' + so; cle = 'sommaire/' + so; }
+    if(so){ h = '#sommaire/' + so; cle = 'sommaire/' + so; try { majTitreDocument(so); } catch(e){} }
     else {
-      const ch = document.querySelector('.chapter.active');
+      // chapitre VISIBLE (deux .chapter.active au chargement, un par <main>)
+      const ch = Array.from(document.querySelectorAll('.chapter.active')).find(x => x.offsetParent !== null) || document.querySelector('.chapter.active');
       if(!ch) return;
       const chapId = ch.id.replace('chap-','');
       const p = ch.querySelector('.panel.active');
       const suf = p ? p.id.split('-').pop() : '';
       h = '#' + chapId + (suf ? '/'+suf : '');
       cle = chapId;
+      try { majTitreDocument(null, chapId, suf); } catch(e){}
     }
     if(location.hash === h) return;            // pas de changement
     if(aRemplacer){ aRemplacer = false; history.replaceState(null,'',h); }   // remplace l'entrée fictive d'une page plein écran
@@ -74407,6 +74427,9 @@ function navigateTo(chapId, panelId, onDone){
     // (« n » ne change pas de chapitre derrière) ; seule « ? » referme l'aide des raccourcis
     const boite = e.target && e.target.closest ? e.target.closest('[role="dialog"], [role="menu"]') : null;
     if(boite && !(e.key === '?' && boite.closest('#key-help-modal'))) return;
+    // Menu ouvert à la souris (le focus reste sur son bouton), feuille ⋯, tiroir ou page Chapitres
+    // en mode modal : « n » changeait le chapitre caché derrière
+    if(document.querySelector('.hdr-more-menu.open, #mob-more-menu.open, #mob-drawer[aria-modal="true"].open')) return;
 
     const chap = document.querySelector('.chapter.active');
     if(!chap) return;
@@ -75687,17 +75710,37 @@ document.addEventListener('keydown', e => {
   function ouvrirChapitre(id){
     const chapId = id.replace('chap-', '');
     const cible = idChap(chapId);
+    // Choix fait au clavier (ou au lecteur d'écran) depuis la navigation ou le Sommaire : la rangée
+    // disparaît (liste reconstruite, tiroir ou Sommaire refermés) et le focus tombait sur <body>
+    const ae = document.activeElement, so = $('sommaire-matiere');
+    const avaitFocus = !!(ae && ae !== document.body && ($('mob-drawer').contains(ae) || (so && so.contains(ae))));
     // Page plein écran ouverte : l'entrée d'historique fictive sera REMPLACÉE par le
     // chapitre choisi (au lieu d'être retirée), sauf si l'on reste sur le même chapitre
     if(cible !== activeChapId() && window.__consommerPageFictive) window.__consommerPageFictive();
     fermerSommaire(false);
     const f = $('mob-filter');
     if(f && f.value){ f.value = ''; const cl = $('mob-filter-clear'); if(cl) cl.hidden = true; }
+    const depuisListe = !!(ae && $('mob-drawer').contains(ae));
     if(drawerOpen) closeDrawer(true);
     const chapBtn = document.querySelector('.chap-btn[data-chap="' + chapId + '"]');
     if(chapBtn) chapBtn.click();
     updateMobTitle();
     queueSync();
+    if(avaitFocus) setTimeout(() => focusApresChoix(cible, depuisListe), 0);   // après la reconstruction (queueSync)
+  }
+  /* Barre latérale visible et choix fait dans la liste : focus sur la nouvelle rangée (on garde sa
+     place dans la liste) ; sinon (tiroir, page Chapitres ou Sommaire refermés) : onglet actif du
+     chapitre ouvert, à défaut le bouton qui ouvre la navigation. Rien si le focus a déjà été placé. */
+  function focusApresChoix(cible, depuisListe){
+    const ae = document.activeElement, so = $('sommaire-matiere');
+    // (une rangée du tiroir qui glisse encore hors de l'écran garde des boîtes : elle ne compte pas)
+    if(ae && ae !== document.body && ae.isConnected && ae.getClientRects().length
+       && !$('mob-drawer').contains(ae) && !(so && so.contains(ae))) return;
+    let el = null;
+    if(depuisListe && mqSide.matches && navVisible()) el = document.querySelector('#mob-chap-list .mob-chap-row[data-id="' + cible + '"] .mob-chap-item');
+    if(!el || !el.getClientRects().length){ const ch = $(cible); el = ch && ch.querySelector(':scope > nav.tabs .tab.active'); }
+    if(!el || !el.getClientRects().length) el = currentToggle();
+    if(el) try { el.focus({ preventScroll:true }); } catch(e){ try { el.focus(); } catch(_){} }
   }
 
   /* ── Rangée de chapitre : bouton de navigation + bouton épingle (frères, jamais imbriqués) ── */
@@ -76016,17 +76059,33 @@ document.addEventListener('keydown', e => {
     if(navToggle){
       const ouvert = lat ? !replie : drawerOpen;
       navToggle.setAttribute('aria-expanded', ouvert ? 'true' : 'false');
-      const t = lat ? (replie ? 'Afficher la navigation des chapitres' : 'Masquer la navigation des chapitres') : 'Chapitres';
-      navToggle.title = t; navToggle.setAttribute('aria-label', t);
+      // nom FIXE + aria-expanded (l'état n'est pas dit deux fois : « Masquer…, développé ») ;
+      // seule l'infobulle dit l'action
+      navToggle.setAttribute('aria-label', lat ? 'Navigation des chapitres' : 'Chapitres');
+      navToggle.title = lat ? (replie ? 'Afficher la navigation des chapitres' : 'Masquer la navigation des chapitres') : 'Chapitres';
     }
     const mb = $('mob-menu-btn');
     if(mb) mb.setAttribute('aria-expanded', drawerOpen ? 'true' : 'false');
   }
   function currentToggle(){ return window.innerWidth >= 768 ? navToggle : $('mob-menu-btn'); }
+  /* Tiroir (768–1199 px) ou page Chapitres (téléphone) ouverts : c'est une boîte modale. Elle est
+     déclarée comme telle (role=dialog, aria-modal : les lecteurs d'écran l'annoncent, et les gardes
+     des raccourcis clavier, qui cherchent [role="dialog"], la reconnaissent — « n » ne change plus
+     de chapitre derrière), et l'arrière-plan devient inerte (le curseur virtuel de VoiceOver ou
+     TalkBack ne parcourt plus le chapitre caché). Barre latérale (≥ 1200 px) : ni l'un ni l'autre. */
+  const ARRIERE_PLAN = ['app-main', 'site-header', 'mob-header', 'back-to-top', 'skip-link'];
+  function modaliserTiroir(on){
+    const d = $('mob-drawer');
+    if(!d) return;
+    if(on){ d.setAttribute('role', 'dialog'); d.setAttribute('aria-modal', 'true'); }
+    else { d.removeAttribute('role'); d.removeAttribute('aria-modal'); }
+    ARRIERE_PLAN.forEach(id => { const e = $(id); if(e) e.inert = !!on; });
+  }
   function openDrawer(){
     if(mqSide.matches){ setReplie(false); return; }
     drawerOpen = true;
     const drawer = $('mob-drawer');
+    modaliserTiroir(true);
     drawer.classList.add('open');
     $('mob-drawer-overlay').classList.add('open');
     buildDrawerList(currentMat);
@@ -76041,6 +76100,7 @@ document.addEventListener('keydown', e => {
   function closeDrawer(sansFocus){
     if(!drawerOpen) return;
     drawerOpen = false;
+    modaliserTiroir(false);
     $('mob-drawer').classList.remove('open');
     $('mob-drawer-overlay').classList.remove('open');
     majBoutons();
@@ -76432,7 +76492,7 @@ document.addEventListener('keydown', e => {
         const e = etat(it.c.prefix);
         html += '<li><button type="button" data-chap="' + it.id + '"' + (it.id === actif ? ' class="cur" aria-current="page"' : '') + '>' + esc(it.c.name) + '</button>'
           + (it.c.drawFn ? '<span class="simu" title="Simulateur">' + ic('wave') + '<span class="sr">simulateur</span></span>' : '')
-          + (e.dues ? '<span class="count count-soft" title="' + libDues(e.dues) + '">' + e.dues + '</span>' : '') + '</li>';
+          + (e.dues ? '<span class="count count-soft" title="' + libDues(e.dues) + '"><span class="sr">' + libDues(e.dues) + ' : </span>' + e.dues + '</span>' : '') + '</li>';
       });
       html += '</ol></section>';
     });
@@ -77393,7 +77453,11 @@ document.getElementById('skip-link')?.addEventListener('click', e => {
     if(!f.length) return;
     var first = f[0], last = f[f.length - 1];
     var active = document.activeElement;
-    if(!ov.contains(active)){ e.preventDefault(); first.focus(); return; }
+    // Actif hors de la liste : hors de l'overlay, ou sur la boîte elle-même (focus posé à
+    // l'ouverture, tabindex=-1) — d'où Maj+Tab natif sortait derrière la modale : on va au
+    // dernier (Maj+Tab) ou au premier (Tab) focusable.
+    var dlg = ov.querySelector('[role="dialog"]') || ov;
+    if(!ov.contains(active) || active === dlg || active === ov){ e.preventDefault(); (e.shiftKey ? last : first).focus(); return; }
     if(e.shiftKey && active === first){ e.preventDefault(); last.focus(); }
     else if(!e.shiftKey && active === last){ e.preventDefault(); first.focus(); }
   });
@@ -78487,7 +78551,8 @@ document.getElementById('skip-link')?.addEventListener('click', e => {
   let roBandeau = null;
   function excedentBandeau(ch){
     const b = ch.querySelector(':scope > .chap-title-banner');
-    if(!b || ch.getAttribute('data-onglet') !== 'flash' || !b.getClientRects().length) return 0;
+    // (téléphone : intercalaire masqué visuellement, 1 px — la fiche n'en dépend pas)
+    if(!b || ch.getAttribute('data-onglet') !== 'flash' || b.offsetHeight < 8) return 0;
     let x = 0;
     const ligne = b.querySelector('.ctb-row'), titre = b.querySelector('.ctb-title'), act = b.querySelector('.ctb-actions');
     if(ligne && titre){
