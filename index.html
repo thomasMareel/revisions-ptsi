@@ -73941,33 +73941,31 @@ function navigateTo(chapId, panelId, onDone){
       });
       return s;
     }
-    /* Titre d'une boîte sans gras d'ouverture : son début en TEXTE SIMPLE (formule rendue → texte
-       de son MathML d'accessibilité ; sinon TeX allégé), coupé entre deux mots. Couper le texte
-       brut à 90 signes laissait du TeX tronqué dans le résultat (« Résistance R : \underlin »). */
-    const TEXS = { sqrt:'√', pi:'π', omega:'ω', Omega:'Ω', alpha:'α', beta:'β', gamma:'γ', delta:'δ', Delta:'Δ', theta:'θ', lambda:'λ',
-      mu:'µ', rho:'ρ', sigma:'σ', tau:'τ', varphi:'φ', phi:'φ', varepsilon:'ε', epsilon:'ε', infty:'∞', int:'∫', sum:'Σ', to:'→',
-      le:'≤', leq:'≤', ge:'≥', geq:'≥', times:'×', cdot:'·', approx:'≈', neq:'≠', pm:'±', partial:'∂', nabla:'∇', in:'∈' };
-    const FORME_TEX = /^(text|textbf|textit|mathrm|mathbf|mathit|mathsf|mathcal|mathbb|boldsymbol|operatorname|underline|overline|vec|hat|bar|dot|ddot|tilde|widehat|overrightarrow|left|right|big|Big|bigg|Bigg|frac|dfrac|tfrac|displaystyle|quad|qquad|boxed)$/;
-    function titreSimple(el){
-      let t;
-      if(el.querySelector('mjx-container')){
-        const k = el.cloneNode(true);
-        k.querySelectorAll('mjx-container').forEach(m => { const a = m.querySelector('mjx-assistive-mml'); m.replaceWith(document.createTextNode(a ? a.textContent : '')); });
-        t = k.textContent;
-      } else {
-        // délimiteurs ôtés ; \{ \} gardés (ensembles) ; mise en forme (\text, \vec…) ôtée ; \ker, \sin… gardés en clair
-        t = (el.textContent || '').replace(/\\\\/g, ' ').replace(/\$\$|\\[()[\]]/g, ' ').replace(/\\\|/g, '‖').replace(/\\\{/g, '\u0001').replace(/\\\}/g, '\u0002')
-          .replace(/\\[,;:! ]/g, ' ').replace(/\\([a-zA-Z]+)/g, (x, n) => TEXS[n] || (FORME_TEX.test(n) ? '' : n))
-          .replace(/[{}]/g, '').replace(/\u0001/g, '{').replace(/\u0002/g, '}');
+    /* Titre d'une boîte sans gras d'ouverture : son début, formules en TeX (composées ensuite par
+       MathJax, comme les extraits ; formule en bloc ramenée en ligne), coupé entre deux mots et
+       JAMAIS dans une formule : couper le texte brut à 90 signes laissait du TeX tronqué dans le
+       résultat (« Résistance R : \underlin »). Une formule compte pour la moitié de son TeX. */
+    function titreBoite(b){
+      const s = texte(b).replace(/\$\$([\s\S]*?)\$\$/g, ' \\($1\\) ').replace(/\\\[([\s\S]*?)\\\]/g, ' \\($1\\) ').replace(/\s+/g, ' ').trim();
+      const parts = s.split(/(\\\([\s\S]*?\\\))/);
+      const fin = t => t.replace(/[\s,;:.(—–-]+$/, '') + ' …';
+      let out = '', vu = 0;
+      for(let k = 0; k < parts.length; k++){
+        const p = parts[k];
+        if(k % 2){
+          // formule sur plusieurs lignes (matrice, torseur…) : « … » à sa place dans un titre
+          if(/\\begin|\\\\/.test(p)){ if(vu >= 30) return fin(out); out += ' … '; vu += 2; continue; }
+          const l = Math.ceil(p.length / 2);
+          if(vu + l > 100 && vu >= 30) return fin(out);
+          out += p; vu += l;
+        } else if(vu + p.length > 90){
+          let c = p.slice(0, Math.max(0, 90 - vu));
+          const e = c.lastIndexOf(' ');
+          if(e > 0 || out) c = c.slice(0, Math.max(0, e));
+          return fin(out + c);
+        } else { out += p; vu += p.length; }
       }
-      t = t.replace(/\s+/g, ' ').trim();
-      if(t.length > 90){
-        t = t.slice(0, 90);
-        const k = t.lastIndexOf(' ');
-        if(k > 50) t = t.slice(0, k);
-        t = t.replace(/[\s,;:.(—–-]+$/, '') + ' …';
-      }
-      return t;
+      return out;
     }
     CHAPTERS.forEach(c => {
       const chap = document.getElementById('chap-' + c.id);
@@ -73985,7 +73983,7 @@ function navigateTo(chapId, panelId, onDone){
           });
           panel.querySelectorAll('.def-box, .prop-box').forEach(b => {
             const fort = b.querySelector(':scope > strong:first-child, :scope > p:first-child > strong:first-child');
-            const t = (fort ? fort.textContent : titreSimple(b)).replace(/^(DÉFINITION|PROPRIÉTÉ)\s*/i, '');
+            const t = (fort ? fort.textContent : titreBoite(b)).replace(/^(DÉFINITION|PROPRIÉTÉ)\s*/i, '');
             if(t.trim().length < 4) return;
             add('boite', t, Object.assign({}, base, { panel:pid, ou:paragraphe(b, pid), el:b, text:texte(b).slice(0, 600) }));
           });
