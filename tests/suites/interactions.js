@@ -733,7 +733,8 @@ module.exports = {
         return { n: rs.length,
           role: rs.filter(r => r.hasAttribute('role') || r.hasAttribute('tabindex')).length,
           sansBouton: rs.filter(r => { const b = r.querySelector(':scope > .reveal-btn'); return !b || !b.getAttribute('aria-controls') || !document.getElementById(b.getAttribute('aria-controls')); }).length,
-          contenuDansBouton: rs.filter(r => r.querySelector('.reveal-btn .content, .reveal-btn p, .reveal-btn mjx-container')).length };
+          // (une formule EN LIGNE dans la question de l'intitulé est permise : « Calculer ω0 et Q pour R = 10 Ω »)
+          contenuDansBouton: rs.filter(r => r.querySelector('.reveal-btn .content, .reveal-btn p, .reveal-btn mjx-container[display="true"]')).length };
       });
       if (!src.n) pb.push('aucun .reveal dans les chapitres');
       if (src.role) pb.push(src.role + ' .reveal encore en role=button / tabindex (tout le contenu devient le nom du bouton)');
