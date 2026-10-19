@@ -660,16 +660,27 @@ module.exports = {
       await naviguer(page, 'rlc', 'cours');
       const h0 = await page.evaluate(() => location.hash);
       await page.click('#nav-toggle-btn'); await pause(600);
-      const t = await page.evaluate(() => { const d = document.getElementById('mob-drawer'); return { open: d.classList.contains('open'), role: d.getAttribute('role'), modal: d.getAttribute('aria-modal'), inert: !!document.getElementById('app-main').inert }; });
+      // arrière-plan : #app-main (le chapitre, très lourd) hors de l'arbre d'accessibilité par
+      // aria-hidden (inert y recalculait le style de tout le chapitre : ≈ 0,8 s au téléphone),
+      // le reste (en-têtes, « haut de page », lien d'évitement) inerte ; focus jamais dans le chapitre
+      const arr = () => page.evaluate(() => { const am = document.getElementById('app-main'); return { cache: am.getAttribute('aria-hidden'), inertAm: !!am.inert,
+        inert: ['site-header', 'mob-header', 'back-to-top', 'skip-link'].filter(id => { const e = document.getElementById(id); return e && e.inert; }).length }; });
+      const t = await page.evaluate(() => { const d = document.getElementById('mob-drawer'); return { open: d.classList.contains('open'), role: d.getAttribute('role'), modal: d.getAttribute('aria-modal') }; });
+      const ta = await arr();
       if (!t.open) pb.push('le tiroir ne s\'ouvre pas à 1024 px');
       if (t.role !== 'dialog' || t.modal !== 'true') pb.push('tiroir ouvert : role=' + t.role + ', aria-modal=' + t.modal);
-      if (!t.inert) pb.push('tiroir ouvert : #app-main n\'est pas inerte');
+      if (ta.cache !== 'true') pb.push('tiroir ouvert : #app-main sans aria-hidden="true" (arrière-plan lu par les lecteurs d\'écran)');
+      if (ta.inertAm) pb.push('tiroir ouvert : #app-main rendu inerte (recalcul du style de tout le chapitre)');
+      if (ta.inert < 2) pb.push('tiroir ouvert : en-têtes non inertes (' + ta.inert + ')');
+      const fuite = await page.evaluate(() => { const b = document.querySelector('#app-main .tab'); if (b) b.focus(); const a = document.activeElement; return !!(a && document.getElementById('app-main').contains(a)); });
+      if (fuite) pb.push('tiroir ouvert : le focus peut entrer dans le chapitre caché derrière');
       for (const k of ['n', '3', 'g']) { await page.keyboard.press(k); await pause(250); }
       const h1 = await page.evaluate(() => location.hash);
       if (h1 !== h0) pb.push('touches n / 3 / g derrière le tiroir : ' + h0 + ' → ' + h1);
       await page.keyboard.press('Escape'); await pause(500);
-      const f = await page.evaluate(() => { const d = document.getElementById('mob-drawer'); return { role: d.getAttribute('role'), inert: !!document.getElementById('app-main').inert }; });
-      if (f.role || f.inert) pb.push('tiroir refermé : role=' + f.role + ', arrière-plan inerte=' + f.inert);
+      const f = await page.evaluate(() => document.getElementById('mob-drawer').getAttribute('role'));
+      const fa = await arr();
+      if (f || fa.cache !== null || fa.inert) pb.push('tiroir refermé : role=' + f + ', aria-hidden sur #app-main=' + fa.cache + ', éléments inertes=' + fa.inert);
       await page.setViewportSize(taille); await pause(400);
       await naviguer(page, 'rlc', 'cours');
       await page.click('#more-btn'); await pause(300);
@@ -735,7 +746,7 @@ module.exports = {
     });
 
     /* ---------- Recherche groupée et aide clavier ---------- */
-    await etape('recherche groupée par nature (matière de chaque ligne, ↓) ; aide clavier « ? » et Échap', async () => {
+    await etape('recherche groupée par nature (matière de chaque ligne, ↓) ; aide clavier (« ? » et menu Plus › Raccourcis) et Échap', async () => {
       const pb = [];
       await naviguer(page, 'rlc', 'cours');
       await page.keyboard.press('Control+k');
@@ -763,6 +774,17 @@ module.exports = {
         await page.keyboard.press('Escape');
         await pause(200);
         if (await ouvert('key-help-modal')) pb.push('Échap ne ferme pas l\'aide clavier');
+      }
+      // Entrée « Raccourcis » du menu Plus (souris, puis clavier) : ouvre l'aide ; Échap rend le focus à ⋯
+      for (const mode of ['souris', 'clavier']) {
+        if (mode === 'souris') { await page.click('#more-btn'); await pause(300); await page.click('#keys-btn'); }
+        else { await page.focus('#more-btn'); await page.keyboard.press('Enter'); await pause(300); await page.focus('#keys-btn'); await page.keyboard.press('Enter'); }
+        await pause(400);
+        if (!(await ouvert('key-help-modal'))) { pb.push('menu Plus › Raccourcis (' + mode + ') n\'ouvre pas l\'aide clavier'); continue; }
+        if (await ouvert('more-menu')) pb.push('menu Plus › Raccourcis (' + mode + ') : le menu reste ouvert');
+        await page.keyboard.press('Escape'); await pause(300);
+        const f = await page.evaluate(() => (document.activeElement || {}).id || 'BODY');
+        if (f !== 'more-btn') pb.push('menu Plus › Raccourcis (' + mode + ') puis Échap : focus sur ' + f + ' au lieu de #more-btn');
       }
       return pb;
     });
@@ -834,6 +856,50 @@ module.exports = {
       if (s5.notees !== s3.notees) pb.push('« 3 » derrière le quiz a noté une carte du chapitre');
       await page.keyboard.press('Escape'); await pause(250);
       if (await ouvert('quiz-overlay')) pb.push('Échap ne ferme pas le quiz');
+      return pb;
+    });
+
+    /* ---------- Espace sur les commandes de la fiche : retourne / relit, ne note jamais ----------
+       Le focus est posé sur la 1re note (« À revoir ») après un retournement, et Chrome le met sur
+       le bouton cliqué : Espace y gardait l'activation native et notait « À revoir » en silence. */
+    await etape('Espace sur « Afficher la réponse » ou une note focalisée (cartes, quiz) : retourne la carte, ne note pas', async () => {
+      const pb = [];
+      const etatFlash = () => page.evaluate(() => { const o = {}; for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (/^flash:/.test(k)) o[k] = localStorage.getItem(k); } return JSON.stringify(o); });
+      const fiche = () => page.evaluate(() => ({ verso: FLASH_INSTANCES.rlc.isFlipped(), prog: (document.getElementById('rlc-flash-prog') || {}).textContent || '' }));
+      await naviguer(page, 'rlc', 'flash');
+      const e0 = await etatFlash(), f0 = await fiche();
+      if (f0.verso) { await page.keyboard.press('ArrowRight'); await pause(300); }
+      await page.click('#rlc-flash .fc-reveal'); await pause(600);
+      const f1 = await fiche();
+      if (!f1.verso) pb.push('clic sur « Afficher la réponse » : la carte n\'est pas retournée');
+      await page.keyboard.press(' '); await pause(600);
+      const f2 = await fiche(), e2 = await etatFlash();
+      if (f2.verso) pb.push('cartes : Espace après le clic sur « Afficher la réponse » ne retourne pas la carte (verso resté affiché)');
+      if (f2.prog !== f1.prog) pb.push('cartes : Espace a changé de carte (« ' + f1.prog + ' » → « ' + f2.prog + ' »)');
+      if (e2 !== e0) pb.push('cartes : Espace sur la note focalisée a écrit flash:rlc (carte notée « À revoir »)');
+      // Entrée sur une note focalisée : activation native (note la carte)
+      await page.keyboard.press(' '); await pause(600);
+      await page.focus('#rlc-flash .flash-controls .ok'); await page.keyboard.press('Enter'); await pause(600);
+      if ((await etatFlash()) === e0) pb.push('cartes : Entrée sur « Hésitant » focalisé ne note pas la carte');
+      // Quiz : Espace (révéler), Espace (relire la question) → progression inchangée, rien d'écrit
+      await page.evaluate(() => window.quizOpen()); await pause(500);
+      await page.evaluate(() => {
+        ['physique', 'maths', 'si', 'info', 'anglais'].forEach(m => { const c = document.getElementById('qc-' + m); if (c && c.checked !== (m === 'physique')) c.click(); });
+        const a = document.querySelector('input[name="quiz-mode"][value="all"]'); if (a) a.click();
+        const n = document.querySelector('input[name="quiz-nb"][value="10"]'); if (n) n.click();
+      });
+      await page.click('#quiz-start-btn'); await pause(600);
+      const prog = () => page.evaluate(() => ((document.getElementById('quiz-progress-text') || {}).textContent || '').trim());
+      const q0 = await prog(), s0 = await etatFlash();
+      await page.evaluate(() => { if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); });
+      await page.keyboard.press(' '); await pause(500);
+      const rev = await page.evaluate(() => getComputedStyle(document.getElementById('quiz-actions-rate')).display !== 'none');
+      if (!rev) pb.push('quiz : Espace ne révèle pas la réponse');
+      await page.keyboard.press(' '); await pause(500);
+      const q1 = await prog(), s1 = await etatFlash();
+      if (q1 !== q0) pb.push('quiz : Espace, Espace a fait avancer le quiz (« ' + q0 + ' » → « ' + q1 + ' »)');
+      if (s1 !== s0) pb.push('quiz : Espace, Espace a écrit une clé flash: (carte notée « À revoir »)');
+      await page.keyboard.press('Escape'); await pause(250);
       return pb;
     });
 

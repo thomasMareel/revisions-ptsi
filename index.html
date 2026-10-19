@@ -3162,7 +3162,7 @@ window.__rendreFocus = function(op, repli){
       <button id="formula-btn" class="hdr-more-item menu-item" role="menuitem" title="Formulaire du chapitre actif (fiche de synthèse imprimable)"><svg class="ic" aria-hidden="true"><use href="#i-function"></use></svg>Formulaire</button>
       <button id="print-btn" class="hdr-more-item menu-item" role="menuitem" title="Imprimer le chapitre actif" onclick="printChapter()"><svg class="ic" aria-hidden="true"><use href="#i-printer"></use></svg>Imprimer</button>
       <button id="backup-btn" class="hdr-more-item menu-item" role="menuitem" title="Sauvegarder / restaurer ma progression"><svg class="ic" aria-hidden="true"><use href="#i-download"></use></svg>Sauvegarde</button>
-      <button id="keys-btn" class="hdr-more-item menu-item" role="menuitem" title="Raccourcis clavier" onclick="document.dispatchEvent(new KeyboardEvent('keydown',{key:'?',bubbles:true}))"><svg class="ic" aria-hidden="true"><use href="#i-keyboard"></use></svg>Raccourcis<span class="end"><kbd>?</kbd></span></button>
+      <button id="keys-btn" class="hdr-more-item menu-item" role="menuitem" title="Raccourcis clavier" onclick="if(window.__aideClavier) window.__aideClavier()"><svg class="ic" aria-hidden="true"><use href="#i-keyboard"></use></svg>Raccourcis<span class="end"><kbd>?</kbd></span></button>
       <button id="flag-btn" class="hdr-more-item menu-item" role="menuitem" title="Cartes signalées comme fausses ou peu claires"><svg class="ic" aria-hidden="true"><use href="#i-flag"></use></svg>Cartes signalées<span class="end"><span class="flag-badge count count-quiet" style="display:none">0</span></span></button>
       <div id="more-toc" class="more-toc" hidden><div class="menu-sep"></div><div class="menu-label">Dans ce chapitre</div><div class="more-toc-list"></div></div>
     </div>
@@ -69766,7 +69766,11 @@ const ppmFlash = makeFlash(ppmCards,'ppm','ppm-flash-content','ppm-flash-prog','
     const onglet = t && t.closest ? t.closest('[role="tablist"], nav.tabs') : null;
     if(onglet && k !== ' ' && !/^[123]$/.test(k)) return;               // flèches, Entrée : clavier des onglets
     const cmd = !onglet && t && t.closest ? t.closest('button, a[href], summary, [role="button"]') : null;
-    if(k === ' ' && cmd) return;                                        // bouton focalisé : activation native
+    // Bouton focalisé : activation native (Espace), SAUF sur les commandes de la fiche elle-même
+    // (« Afficher la réponse », notation) : le focus y est posé après chaque retournement / clic,
+    // et Espace y garde son sens documenté (retourner la carte) au lieu de noter « À revoir ».
+    // Entrée active toujours le bouton focalisé (clavier des boutons).
+    if(k === ' ' && cmd && !cmd.closest('.flash-controls, .fc-reveal')) return;
     e.preventDefault();
     e.stopImmediatePropagation();
     if(k === ' ') inst.flip();
@@ -74722,6 +74726,9 @@ function navigateTo(chapId, panelId, onDone){
     setTimeout(() => { const d = modal.querySelector('[role="dialog"]'); if(d && modal.classList.contains('open')) try { d.focus({ preventScroll:true }); } catch(e){} }, 30);
   }
   document.addEventListener('keydown', e=>{ if(e.key === 'Escape') closeKeyHelp(); });
+  // Entrée « Raccourcis » du menu Plus : appel direct (un faux keydown « ? » était avalé par la
+  // garde « menu ouvert » ci-dessus) ; le menu se referme par sa délégation, le focus revient à ⋯
+  window.__aideClavier = showKeyHelp;
 })();
 
 /* ============================================== */
@@ -75740,7 +75747,9 @@ document.addEventListener('keydown', e => {
      Écoute en phase de CAPTURE : tant que le quiz est ouvert, aucune touche simple ne
      passe aux raccourcis de la page derrière (onglets 1–5, n / p, ?, cartes…). Échap
      ferme ; Tab reste au piège du focus ; un champ (case à cocher, bouton radio) garde
-     ses touches ; un bouton focalisé garde Espace / Entrée (activation native). */
+     ses touches ; un bouton focalisé garde Entrée (activation native), et Espace aussi, sauf
+     « Afficher la réponse », la notation et « Revoir la question » : le focus y est posé après
+     chaque retournement, et Espace y garde son sens (révéler / relire), sans noter « À revoir ». */
   document.addEventListener('keydown', e=>{
     const overlay = document.getElementById('quiz-overlay');
     if(!overlay || !overlay.classList.contains('open')) return;
@@ -75754,7 +75763,8 @@ document.addEventListener('keydown', e => {
     const screen = document.getElementById('quiz-screen-question');
     if(!screen || screen.style.display === 'none') return;
     const cmd = t && t.closest ? t.closest('button, a[href]') : null;
-    if((e.key === ' ' || e.key === 'Enter') && cmd) return;
+    if(e.key === 'Enter' && cmd) return;
+    if(e.key === ' ' && cmd && !cmd.closest('#quiz-reveal-btn, #quiz-actions-rate, .quiz-btn-reread')) return;
     switch(e.key){
       case ' ': e.preventDefault(); quizReveal(); break;
       case 'Enter': if(t && t.id === 'quiz-card'){ e.preventDefault(); quizReveal(); } break;
@@ -76319,15 +76329,37 @@ document.addEventListener('keydown', e => {
      déclarée comme telle (role=dialog, aria-modal : les lecteurs d'écran l'annoncent, et les gardes
      des raccourcis clavier, qui cherchent [role="dialog"], la reconnaissent — « n » ne change plus
      de chapitre derrière), et l'arrière-plan devient inerte (le curseur virtuel de VoiceOver ou
-     TalkBack ne parcourt plus le chapitre caché). Barre latérale (≥ 1200 px) : ni l'un ni l'autre. */
-  const ARRIERE_PLAN = ['app-main', 'site-header', 'mob-header', 'back-to-top', 'skip-link'];
+     TalkBack ne parcourt plus le chapitre caché). Barre latérale (≥ 1200 px) : ni l'un ni l'autre.
+     #app-main (le chapitre affiché : des dizaines de milliers d'éléments MathJax) n'est PAS rendu
+     inerte : inert recalcule le style de tout ce sous-arbre à l'ouverture puis à la fermeture
+     (0,7 à 0,9 s au téléphone ×4). Il est retiré de l'arbre d'accessibilité (aria-hidden, sans
+     effet sur le style) ; le voile arrête les clics, le piège du focus Tab, et un focus qui y
+     entrerait quand même (Tab depuis <body>) est ramené dans le tiroir (focusin ci-dessous). */
+  const ARRIERE_PLAN = ['site-header', 'mob-header', 'back-to-top', 'skip-link'];
   function modaliserTiroir(on){
     const d = $('mob-drawer');
     if(!d) return;
     if(on){ d.setAttribute('role', 'dialog'); d.setAttribute('aria-modal', 'true'); }
     else { d.removeAttribute('role'); d.removeAttribute('aria-modal'); }
     ARRIERE_PLAN.forEach(id => { const e = $(id); if(e) e.inert = !!on; });
+    const am = $('app-main');
+    if(am){
+      if(on){
+        // (aria-hidden sur un ancêtre du focus est refusé par le navigateur : on lâche d'abord le
+        // focus ; il est posé dans le tiroir juste après, par openDrawer)
+        const a = document.activeElement;
+        if(a && a !== document.body && am.contains(a) && a.blur) a.blur();
+        am.setAttribute('aria-hidden', 'true');
+      } else am.removeAttribute('aria-hidden');
+    }
   }
+  document.addEventListener('focusin', e => {
+    const d = $('mob-drawer'), am = $('app-main');
+    if(!drawerOpen || !d || !am || d.getAttribute('aria-modal') !== 'true' || !am.contains(e.target)) return;
+    const f = window.__focusables ? window.__focusables(d) : [];
+    const c = f[0] || $('mob-drawer-close');
+    if(c) try { c.focus({ preventScroll:true }); } catch(_){ c.focus(); }
+  });
   function openDrawer(){
     if(mqSide.matches){ setReplie(false); return; }
     drawerOpen = true;
