@@ -77262,6 +77262,44 @@ document.getElementById('skip-link')?.addEventListener('click', e => {
     if(w) raf(sur(function(){ curseurs(w); }));
   }));
 
+  /* ---------- 8. Toiles des simulateurs : redessinées quand leur taille affichée change ----------
+     Chaque drawFn cale la toile sur sa taille affichée AU MOMENT de l'appel (resizeCanvas →
+     getBoundingClientRect). Or la feuille s'élargit APRÈS le clic sur l'onglet (data-onglet="simu"
+     et retrait du rail, posés par le module PAGE au tour suivant), et elle change aussi au repli de
+     la barre latérale, avec A / A+ / A++ ou la taille de la fenêtre : sans nouveau dessin, la toile
+     restait étirée (cercles en ellipses). Un seul ResizeObserver, posé au premier affichage du
+     panneau, redessine le simulateur (une fois par image) dès que la taille de la toile en pixels
+     ne correspond plus à sa taille affichée. Les boucles d'animation sont protégées (animId). */
+  var roToiles = null, toilesARedessiner = [], rafToiles = 0;
+  function redessinerToiles(){
+    rafToiles = 0;
+    var fns = toilesARedessiner; toilesARedessiner = [];
+    fns.forEach(function(fn){ try { if(typeof window[fn] === 'function') window[fn](); } catch(e){ /* dessin non bloquant */ } });
+  }
+  function toileDecalee(entree){
+    var cv = entree.target, l, h;
+    var bb = entree.borderBoxSize && (entree.borderBoxSize[0] || entree.borderBoxSize);
+    if(bb && bb.inlineSize !== undefined){ l = bb.inlineSize; h = bb.blockSize; }
+    else { var r = cv.getBoundingClientRect(); l = r.width; h = r.height; }
+    if(!l || !h) return false;                                     // panneau masqué : au prochain affichage
+    var dpr = window.devicePixelRatio || 1;
+    return Math.abs(cv.width - l * dpr) > 2 || Math.abs(cv.height - h * dpr) > 2;
+  }
+  function observerToiles(panel){
+    if(panel.__toiles || !/-simu$/.test(panel.id) || typeof ResizeObserver !== 'function') return;
+    var c = (typeof CHAPTERS_BY_PREFIX !== 'undefined') ? CHAPTERS_BY_PREFIX[panel.id.replace(/-simu$/, '')] : null;
+    if(!c || !c.drawFn) return;
+    panel.__toiles = true;
+    if(!roToiles) roToiles = new ResizeObserver(sur(function(entrees){
+      entrees.forEach(function(e){
+        var fn = e.target.__drawFn;
+        if(fn && toileDecalee(e) && toilesARedessiner.indexOf(fn) < 0) toilesARedessiner.push(fn);
+      });
+      if(toilesARedessiner.length && !rafToiles) rafToiles = raf(redessinerToiles);
+    }));
+    panel.querySelectorAll('.sim-wrapper > canvas').forEach(function(cv){ cv.__drawFn = c.drawFn; roToiles.observe(cv); });
+  }
+
   /* ---------- Orchestration ---------- */
   function structurer(panel){
     if(!panel || panel.nodeType !== 1) return;
@@ -77274,6 +77312,7 @@ document.getElementById('skip-link')?.addEventListener('click', e => {
       panel.querySelectorAll('.exo > .diff').forEach(enrichirDiff);
       outilsExos(panel);
       panel.querySelectorAll('.sim-wrapper').forEach(boutonDefaut);
+      observerToiles(panel);
     }
     curseurs(panel);
   }

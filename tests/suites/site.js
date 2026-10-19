@@ -218,7 +218,15 @@ module.exports = {
           await naviguer(page, c.id, 'simu');
           await pause(250);
           const s = await page.evaluate(([pid, fn]) => {
-            const out = { appel: 'ok', canvas: [], svg: 0 };
+            const out = { appel: 'ok', canvas: [], svg: 0, deformes: [] };
+            // Toile dessinée à la taille où elle est affichée, AVANT tout appel manuel du dessin
+            // (sinon une toile étirée après l'arrivée sur l'onglet passerait inaperçue)
+            const p0 = document.getElementById(pid), dpr = window.devicePixelRatio || 1;
+            if (p0) Array.from(p0.querySelectorAll('canvas')).filter(cv => cv.offsetParent !== null).forEach(cv => {
+              const r = cv.getBoundingClientRect();
+              if (Math.abs(cv.width / dpr - r.width) > 2 || Math.abs(cv.height / dpr - r.height) > 2)
+                out.deformes.push((cv.id || '?') + ' dessin ' + Math.round(cv.width / dpr) + '×' + Math.round(cv.height / dpr) + ' / affichage ' + Math.round(r.width) + '×' + Math.round(r.height));
+            });
             try { window[fn](); } catch (e) { out.appel = e.message; }
             const panneau = document.getElementById(pid);
             if (!panneau) { out.appel = 'panneau ' + pid + ' introuvable'; return out; }
@@ -237,6 +245,7 @@ module.exports = {
             return out;
           }, [c.prefix + '-simu', c.drawFn]);
           if (s.appel !== 'ok') pbSim.push(c.id + ' : ' + c.drawFn + '() lève « ' + s.appel + ' »');
+          s.deformes.forEach(d => pbSim.push(c.id + ' : toile étirée à l\'arrivée sur l\'onglet : ' + d));
           if (s.canvas.length && !s.canvas.some(k => k.peints > 0)) pbSim.push(c.id + ' : canvas vide(s) après ' + c.drawFn + '() : ' + s.canvas.map(k => (k.id || '?') + ' ' + k.l + '×' + k.h).join(', '));
           if (!s.canvas.length && !s.svg) pbSim.push(c.id + ' : aucun canvas ni SVG visible dans ' + c.prefix + '-simu');
         } catch (err) {
