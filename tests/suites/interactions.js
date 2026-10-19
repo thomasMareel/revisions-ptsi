@@ -510,6 +510,9 @@ module.exports = {
         if (menu) { await page.focus(menu); await page.keyboard.press('Enter'); await pause(300); }
         await page.focus(bouton); await page.keyboard.press('Enter'); await pause(600);
         if (!(await ouvert(fenetre))) { pb.push(nom + ' : la fenêtre ne s\'ouvre pas'); await fermerOverlays(page).catch(() => {}); continue; }
+        // juste après l'ouverture, le focus est sur la boîte (tabindex=-1) : Maj+Tab natif sortait derrière
+        await page.keyboard.press('Shift+Tab'); await pause(80);
+        if (!(await dedans(fenetre))) pb.push(nom + ' : Maj+Tab juste après l\'ouverture (focus sur la boîte) sort de la fenêtre');
         if (!(await bord(fenetre, true))) pb.push(nom + ' : dernier élément non focalisable');
         await page.keyboard.press('Tab'); await pause(80);
         if (!(await dedans(fenetre))) pb.push(nom + ' : Tab depuis le dernier élément sort de la fenêtre');
@@ -575,6 +578,160 @@ module.exports = {
       const p = await page.evaluate(() => (document.getElementById('quiz-progress-text') || {}).textContent || '');
       const total = parseInt((p.split('/')[1] || '').trim(), 10);
       return [total !== n && 'le quiz lancé compte ' + total + ' carte(s) pour un compteur de ' + n + ' (« ' + p + ' »)'];
+    });
+
+
+    /* ---------- Onglet Cartes (ordinateur) : notation au-dessus du pli, quel que soit le titre ---------- */
+    await etape('onglet Cartes à 1280 × 800 : « Afficher la réponse » et la notation au-dessus du pli (titres de 1, 2 et 3 lignes)', async () => {
+      const pb = [];
+      const taille = page.viewportSize();
+      await page.setViewportSize({ width: 1280, height: 800 }); await pause(400);
+      for (const id of ['rlc', 'thermoouv', 'signum']) {
+        await naviguer(page, id, 'flash');
+        await page.evaluate(() => { document.documentElement.style.scrollBehavior = 'auto'; window.scrollTo(0, 0); });
+        await pause(500);
+        const m = await page.evaluate(id => {
+          const p = document.getElementById(CHAPTERS_BY_ID[id].prefix + '-flash');
+          const r = p && Array.from(p.querySelectorAll('.fc-reveal')).find(b => b.getClientRects().length);
+          const t = document.querySelector('#chap-' + id + ' > .chap-title-banner .ctb-title');
+          return { bas: r ? Math.round(r.getBoundingClientRect().bottom) : null, vh: innerHeight,
+            lignes: t ? Math.round(t.getBoundingClientRect().height / (parseFloat(getComputedStyle(t).lineHeight) || 1)) : 0 };
+        }, id);
+        if (m.bas === null) { pb.push(id + ' : « Afficher la réponse » introuvable'); continue; }
+        if (m.bas > m.vh) pb.push(id + ' (titre sur ' + m.lignes + ' ligne(s)) : « Afficher la réponse » finit à ' + m.bas + ' px pour ' + m.vh);
+        await page.evaluate(id => window.FLASH_INSTANCES[CHAPTERS_BY_ID[id].prefix].flip(), id); await pause(500);
+        const n = await page.evaluate(id => {
+          const c = document.querySelector('#' + CHAPTERS_BY_ID[id].prefix + '-flash .flash-controls');
+          return c && c.getClientRects().length ? Math.round(c.getBoundingClientRect().bottom) : null;
+        }, id);
+        if (n === null || n > m.vh) pb.push(id + ' : notation ' + (n === null ? 'absente' : 'finit à ' + n + ' px') + ' pour ' + m.vh);
+        await page.evaluate(id => window.FLASH_INSTANCES[CHAPTERS_BY_ID[id].prefix].flip(), id); await pause(400);
+      }
+      await page.setViewportSize(taille); await pause(400);
+      return pb;
+    });
+
+    /* ---------- Clavier : focus après le choix d'un chapitre, parcours d'une fiche et du quiz ---------- */
+    await etape('clavier : focus après le choix d\'un chapitre (barre latérale), parcours d\'une fiche et du quiz sans chute sur <body>', async () => {
+      const pb = [];
+      const actif = () => page.evaluate(() => { const a = document.activeElement; return !a || a === document.body ? 'BODY' : (a.id ? '#' + a.id : '') + '.' + String(a.className || '').split(' ').join('.'); });
+      await naviguer(page, 'rlc', 'cours');
+      const ok = await page.evaluate(() => { const b = document.querySelector('#mob-chap-list .mob-chap-row[data-id="chap-signaux"] .mob-chap-item'); if (b) b.focus(); return !!b && document.activeElement === b; });
+      if (!ok) pb.push('rangée « Signaux » introuvable dans la barre latérale');
+      else {
+        await page.keyboard.press('Enter'); await pause(700);
+        const a = await actif();
+        const ch = await visible();
+        if (ch !== 'chap-signaux') pb.push('Entrée sur la rangée n\'ouvre pas le chapitre (' + ch + ')');
+        if (a === 'BODY') pb.push('après le choix d\'un chapitre au clavier, le focus tombe sur <body>');
+        const titre = await page.evaluate(() => document.title);
+        if (!/Signaux/.test(titre)) pb.push('titre du document non mis à jour : « ' + titre + ' »');
+      }
+      // fiche : Afficher la réponse → 1re note ; note → Afficher la réponse
+      await naviguer(page, 'rlc', 'flash');
+      const rev = await page.evaluate(() => { const b = Array.from(document.querySelectorAll('#rlc-flash .fc-reveal')).find(x => x.getClientRects().length); if (b) b.focus(); return !!b && document.activeElement === b; });
+      if (!rev) pb.push('« Afficher la réponse » non focalisable');
+      else {
+        await page.keyboard.press('Enter'); await pause(600);
+        const a1 = await actif();
+        if (!/flash-controls|hard|ok|easy/.test(a1) && !(await page.evaluate(() => !!(document.activeElement && document.activeElement.closest && document.activeElement.closest('.flash-controls'))))) pb.push('fiche : après « Afficher la réponse », focus sur ' + a1 + ' au lieu d\'une note');
+        await page.keyboard.press('Enter'); await pause(600);
+        const a2 = await page.evaluate(() => !!(document.activeElement && document.activeElement.classList && document.activeElement.classList.contains('fc-reveal')));
+        if (!a2) pb.push('fiche : après la note, focus sur ' + (await actif()) + ' au lieu de « Afficher la réponse »');
+      }
+      // quiz : Commencer → Afficher la réponse → note → Afficher la réponse
+      await page.evaluate(() => window.quizOpen()); await pause(500);
+      await page.focus('#quiz-start-btn'); await page.keyboard.press('Enter'); await pause(600);
+      if ((await actif()).indexOf('#quiz-reveal-btn') !== 0) pb.push('quiz : après « Commencer », focus sur ' + (await actif()));
+      await page.keyboard.press('Enter'); await pause(600);
+      if (!/quiz-rate-btn/.test(await actif())) pb.push('quiz : après « Afficher la réponse », focus sur ' + (await actif()));
+      await page.keyboard.press('Enter'); await pause(600);
+      if (!/quiz-reveal-btn|quiz-results/.test(await actif()) && (await actif()) === 'BODY') pb.push('quiz : après la note, le focus tombe sur <body>');
+      const nom = await page.evaluate(() => { const b = document.getElementById('quiz-reveal-btn'); return b ? [b.getAttribute('aria-keyshortcuts'), (b.querySelector('.kbd-hint') || {}).getAttribute && b.querySelector('.kbd-hint').getAttribute('aria-hidden')] : []; });
+      if (nom[0] !== 'Space' || nom[1] !== 'true') pb.push('« Afficher la réponse » : aria-keyshortcuts=' + nom[0] + ', aide clavier aria-hidden=' + nom[1]);
+      return pb;
+    });
+
+    /* ---------- Tiroir modal et menu ouvert à la souris : raccourcis muets derrière ---------- */
+    await etape('tiroir modal (1024 px) et menu Plus ouvert à la souris : role=dialog, arrière-plan inerte, « n » sans effet', async () => {
+      const pb = [];
+      const taille = page.viewportSize();
+      await page.setViewportSize({ width: 1024, height: 800 }); await pause(400);
+      await naviguer(page, 'rlc', 'cours');
+      const h0 = await page.evaluate(() => location.hash);
+      await page.click('#nav-toggle-btn'); await pause(600);
+      const t = await page.evaluate(() => { const d = document.getElementById('mob-drawer'); return { open: d.classList.contains('open'), role: d.getAttribute('role'), modal: d.getAttribute('aria-modal'), inert: !!document.getElementById('app-main').inert }; });
+      if (!t.open) pb.push('le tiroir ne s\'ouvre pas à 1024 px');
+      if (t.role !== 'dialog' || t.modal !== 'true') pb.push('tiroir ouvert : role=' + t.role + ', aria-modal=' + t.modal);
+      if (!t.inert) pb.push('tiroir ouvert : #app-main n\'est pas inerte');
+      for (const k of ['n', '3', 'g']) { await page.keyboard.press(k); await pause(250); }
+      const h1 = await page.evaluate(() => location.hash);
+      if (h1 !== h0) pb.push('touches n / 3 / g derrière le tiroir : ' + h0 + ' → ' + h1);
+      await page.keyboard.press('Escape'); await pause(500);
+      const f = await page.evaluate(() => { const d = document.getElementById('mob-drawer'); return { role: d.getAttribute('role'), inert: !!document.getElementById('app-main').inert }; });
+      if (f.role || f.inert) pb.push('tiroir refermé : role=' + f.role + ', arrière-plan inerte=' + f.inert);
+      await page.setViewportSize(taille); await pause(400);
+      await naviguer(page, 'rlc', 'cours');
+      await page.click('#more-btn'); await pause(300);
+      await page.keyboard.press('n'); await pause(400);
+      const h2 = await page.evaluate(() => location.hash);
+      if (h2 !== h0) pb.push('« n » avec le menu Plus ouvert à la souris : ' + h0 + ' → ' + h2);
+      await page.keyboard.press('Escape'); await pause(200);
+      return pb;
+    });
+
+    /* ---------- Contraste élevé : appliqué dans les deux thèmes ---------- */
+    await etape('contraste élevé (prefers-contrast: more) : encre 3 = encre 2 et filets = --field, en clair ET en sombre', async () => {
+      const pb = [];
+      await page.emulateMedia({ contrast: 'more' }); await pause(200);
+      for (const th of ['light', 'dark']) {
+        await page.evaluate(t => window.__setTheme(t), th); await pause(300);
+        const v = await page.evaluate(() => { const c = getComputedStyle(document.documentElement); const g = n => c.getPropertyValue(n).trim(); return { t3: g('--text-3'), t2: g('--text-2'), line: g('--line'), field: g('--field') }; });
+        if (v.t3 !== v.t2) pb.push(th + ' : --text-3 ' + v.t3 + ' ≠ --text-2 ' + v.t2);
+        if (v.line !== v.field) pb.push(th + ' : --line ' + v.line + ' ≠ --field ' + v.field);
+      }
+      await page.emulateMedia({ contrast: null }); await page.evaluate(() => window.__setTheme('light')); await pause(300);
+      return pb;
+    });
+
+    /* ---------- Recherche : frappe légère (composition à la pause), liste MathJax stable ---------- */
+    await etape('recherche : aucune composition MathJax pendant la frappe, composition à la pause, liste interne de MathJax stable', async () => {
+      const pb = [];
+      await naviguer(page, 'rlc', 'cours');
+      await page.click('#search-btn'); await pause(500);
+      await page.keyboard.type('pulsation propre', { delay: 40 });
+      await pause(120);
+      const pendant = await page.evaluate(() => document.querySelectorAll('#search-results mjx-container').length);
+      if (pendant) pb.push(pendant + ' formule(s) composée(s) 120 ms après la dernière touche (composition à chaque frappe)');
+      await pause(2500);
+      const apres = await page.evaluate(() => document.querySelectorAll('#search-results mjx-container').length);
+      if (!apres) pb.push('aucune formule composée dans les résultats après la pause');
+      const n = () => page.evaluate(() => { try { return Array.from(MathJax.startup.document.math).length; } catch (e) { return -1; } });
+      const avant = await n();
+      for (let i = 0; i < 10; i++) { await page.fill('#search-input', ['champ électrique', 'impédance', 'énergie cinétique'][i % 3] + ' '.repeat(i % 2)); await pause(700); }
+      await page.fill('#search-input', 'pulsation propre'); await pause(2500);
+      const fin = await n();
+      if (avant >= 0 && fin - avant > 50) pb.push('liste interne de MathJax : ' + avant + ' → ' + fin + ' après 10 recherches (formules des anciens résultats jamais retirées)');
+      await page.keyboard.press('Escape'); await pause(200);
+      return pb;
+    });
+
+    /* ---------- Impression de l'onglet Exercices filtré ---------- */
+    await etape('impression de l\'onglet Exercices filtré : exercices affichés seulement, sélection indiquée en page de garde', async () => {
+      await naviguer(page, 'rlc', 'exos'); await pause(300);
+      const ok = await page.evaluate(() => { const b = document.querySelector('#rlc-exos .exo-tools button[data-niveau="3"]'); if (b) b.click(); return !!b; });
+      if (!ok) return ['filtre de difficulté absent de rlc-exos'];
+      await pause(300);
+      const vus = await page.evaluate(() => Array.from(document.querySelectorAll('#rlc-exos .exo')).filter(e => !e.classList.contains('filtre-masque')).length);
+      await page.evaluate(() => { window.print = () => {}; printChapter(); });
+      await pause(2500);
+      const s = await page.evaluate(() => {
+        const f = document.getElementById('print-iframe'); const d = f && f.contentDocument;
+        return d ? { blocs: d.querySelectorAll('.sec-block').length, sel: (d.querySelector('.cover-selection') || {}).textContent || '' } : null;
+      });
+      await page.evaluate(() => { const b = document.querySelector('#rlc-exos .exo-tools button[data-niveau="tous"]'); if (b) b.click(); });
+      if (!s) return ['aucune iframe d\'impression générée'];
+      return [s.blocs !== vus && s.blocs + ' exercice(s) imprimé(s) pour ' + vus + ' affiché(s)', !/Difficile/.test(s.sel) && 'sélection absente de la page de garde (« ' + s.sel + ' »)'];
     });
 
     /* ---------- Recherche groupée et aide clavier ---------- */

@@ -176,6 +176,88 @@ module.exports = {
     } catch (e) { pbFocus.push('interaction impossible : ' + String(e.message).split('\n')[0]); }
     res.verifier('focus au clavier : feuille ⋯ piégée, retour au bouton ⋯ après une fenêtre ouverte depuis la feuille', !pbFocus.length, pbFocus);
 
+    /* ---------- 3c) Fenêtres de révision plein écran : fond sous TOUT le contenu (relecture téléphone, tour 2)
+       Étirée à la hauteur de l'écran, la boîte laissait la suite du Bilan, le bas d'Aujourd'hui ou une
+       longue réponse du quiz se dessiner sans fond, sur le chapitre. On fait défiler la fenêtre jusqu'en
+       bas : le bas de la boîte ([role=dialog]) doit couvrir le bas de son dernier descendant visible. */
+    journal.lieu = 'fenêtres plein écran';
+    const pbFen = [];
+    try {
+      await naviguer(page, 'rlc', 'cours');
+      // une longue réponse au quiz : toutes les cartes d'ecr dues
+      await page.evaluate(() => { const c = FLASH_REGISTRY.ecr; if (c) flashSaveState('ecr', c, c.map(() => ({ h: 1, o: 0, e: 0, last: 0, box: 0, due: Date.now() - 86400000 }))); if (window.__updateReviseBadge) __updateReviseBadge(); });
+      for (const [nom, id, ouvrir] of [
+        ['Aujourd\'hui', 'today-overlay', () => window.todayOpen()],
+        ['Bilan', 'dash-overlay', () => document.getElementById('mob-dash-btn').click()],
+        ['quiz (carte longue)', 'quiz-overlay', () => { window.quizStartDue('ecr'); }],
+      ]) {
+        await page.evaluate(ouvrir); await pause(900);
+        if (id === 'quiz-overlay') { await page.evaluate(() => window.quizReveal()); await pause(500); }
+        const r = await page.evaluate(id => {
+          const ov = document.getElementById(id);
+          if (!ov || !ov.classList.contains('open')) return { err: 'fenêtre non ouverte' };
+          ov.scrollTop = ov.scrollHeight;
+          const box = ov.querySelector('[role="dialog"]') || ov.firstElementChild;
+          const b = box.getBoundingClientRect();
+          const bas = Math.max(...Array.from(box.querySelectorAll('*')).filter(x => x.getClientRects().length && getComputedStyle(x).visibility !== 'hidden').map(x => x.getBoundingClientRect().bottom));
+          return { boite: Math.round(b.bottom), contenu: Math.round(bas), vh: innerHeight };
+        }, id);
+        if (r.err) pbFen.push(nom + ' : ' + r.err);
+        else if (r.contenu > r.boite + 1) pbFen.push(nom + ' : contenu jusqu\'à ' + r.contenu + ' px, fond de la boîte jusqu\'à ' + r.boite + ' px (le reste se dessine sans fond)');
+        if (id === 'quiz-overlay' && !r.err) {
+          const n = await page.evaluate(() => { const c = document.getElementById('quiz-actions-rate'); return c && c.getClientRects().length ? Math.round(c.getBoundingClientRect().bottom) : null; });
+          if (n === null || n > r.vh) pbFen.push('quiz (carte longue) : notation ' + (n === null ? 'absente' : 'sous le pli (' + n + ' px pour ' + r.vh + ')'));
+        }
+        await fermerOverlays(page).catch(() => {}); await pause(300);
+      }
+    } catch (e) { pbFen.push('interaction impossible : ' + String(e.message).split('\n')[0]); }
+    res.verifier('fenêtres plein écran (Aujourd\'hui, Bilan, quiz à longue réponse) : fond sous tout le contenu, notation du quiz visible', !pbFen.length, pbFen);
+
+    /* ---------- 3d) Changement d'onglet depuis le bas d'un panneau (onglets collés) ---------- */
+    journal.lieu = 'onglet depuis le bas';
+    const pbOng = [];
+    try {
+      await naviguer(page, 'rlc', 'cours');
+      await page.evaluate(() => { document.documentElement.style.scrollBehavior = 'auto'; window.scrollTo(0, Math.round((document.documentElement.scrollHeight - innerHeight) * 0.7)); });
+      await pause(400);
+      await page.locator('#chap-rlc .tab[data-panel="rlc-flash"]').tap(); await pause(900);
+      const r = await page.evaluate(() => {
+        const c = document.querySelector('#rlc-flash .flash-card').getBoundingClientRect();
+        const t = document.querySelector('#chap-rlc > nav.tabs').getBoundingClientRect();
+        return { haut: Math.round(c.top), bas: Math.round(c.bottom), onglets: Math.round(t.bottom), vh: innerHeight };
+      });
+      if (r.haut < r.onglets - 1 || r.bas > r.vh) pbOng.push('Cours (fond) → Cartes : fiche [' + r.haut + ', ' + r.bas + '] pour des onglets finissant à ' + r.onglets + ' et un écran de ' + r.vh + ' px');
+      await page.locator('#chap-rlc .tab[data-panel="rlc-exos"]').tap(); await pause(900);
+      const e = await page.evaluate(() => { const x = document.querySelector('#rlc-exos .exo'); const t = document.querySelector('#chap-rlc > nav.tabs').getBoundingClientRect(); return { haut: Math.round(x.getBoundingClientRect().top), onglets: Math.round(t.bottom), vh: innerHeight }; });
+      if (e.haut < e.onglets - 1 || e.haut > e.vh) pbOng.push('Cartes → Exercices : 1er exercice à ' + e.haut + ' px (onglets jusqu\'à ' + e.onglets + ')');
+      await page.evaluate(() => window.scrollTo(0, 0));
+    } catch (e) { pbOng.push('interaction impossible : ' + String(e.message).split('\n')[0]); }
+    res.verifier('changement d\'onglet depuis le bas d\'un panneau : le nouveau panneau commence sous les onglets (fiche entière)', !pbOng.length, pbOng);
+
+    /* ---------- 3e) Zone défilante à fondu : anneau de focus visible (masque retiré) ---------- */
+    journal.lieu = 'focus des zones défilantes';
+    let pbAnneau = [];
+    try {
+      await naviguer(page, 'rlc', 'cours'); await pause(800);
+      const r = await page.evaluate(() => {
+        const e = Array.from(document.querySelectorAll('#rlc-cours mjx-container.a-defiler')).find(x => x.classList.contains('suite-d') || x.classList.contains('suite-g'));
+        if (!e) return { err: 'aucune formule défilante à fondu dans rlc-cours' };
+        document.documentElement.style.scrollBehavior = 'auto';
+        e.scrollIntoView({ block: 'center' });
+        e.setAttribute('data-test-anneau', '1');
+        return {};
+      });
+      if (r.err) pbAnneau.push(r.err);
+      else {
+        // focus CLAVIER (Maj+Tab puis Tab, comme un élève) pour obtenir :focus-visible
+        await page.focus('[data-test-anneau]'); await page.keyboard.press('Shift+Tab'); await page.keyboard.press('Tab'); await pause(150);
+        const m = await page.evaluate(() => { const a = document.activeElement; return { cible: a && a.hasAttribute('data-test-anneau'), fv: a && a.matches(':focus-visible'), masque: a ? getComputedStyle(a).maskImage || getComputedStyle(a).webkitMaskImage : '' }; });
+        if (!m.cible) pbAnneau.push('la formule défilante ne reçoit pas le focus au clavier');
+        else if (m.fv && m.masque && m.masque !== 'none') pbAnneau.push('formule défilante focalisée : le masque du fondu reste posé (« ' + String(m.masque).slice(0, 40) + ' ») et efface l\'anneau');
+      }
+    } catch (e) { pbAnneau.push('interaction impossible : ' + String(e.message).split('\n')[0]); }
+    res.verifier('zone défilante à fondu focalisée au clavier : masque retiré, anneau visible', !pbAnneau.length, pbAnneau);
+
     /* ---------- 4) Débordement horizontal de chaque panneau ---------- */
     const tous = await page.evaluate(() => CHAPTERS.map(c => ({ id: c.id, prefix: c.prefix, matiere: c.matiere,
       onglets: Array.from(document.querySelectorAll('#chap-' + c.id + ' .tab')).map(t => t.dataset.panel) })));
