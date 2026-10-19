@@ -719,7 +719,7 @@ Le quiz (`.quiz-card`, `.quiz-rate-btn`, `#quiz-reveal-btn`) prend les **mêmes*
 - **Carte « Reprendre »** :
   - à droite, l'heure : « hier, 21 h 40 », grâce au champ `t` ajouté à `lastPos` (§7.6) ;
   - vignette « *§3* » en teinte de matière, titre du chapitre en serif 17 px, « Physique · Cours · Régime libre » ;
-  - sous un filet, les 2 récents suivants (lignes de 44 px, avec « matière · onglet » à droite).
+  - sous un filet, les 2 récents suivants (lignes de 44 px, avec « matière · partie » à droite : la clé `recents` ne retient que des ids de chapitre, l'onglet n'est connu que pour « Reprendre » ; décision de la relecture, tour 1, plutôt qu'une nouvelle clé).
 - **Carte « 7 prochains jours »** : histogramme de 7 barres (aujourd'hui en rouge vif, les autres en `--line-2`), avec la valeur au-dessus et le jour dessous. Il est calculé à partir des dates `due` déjà stockées : **aucune nouvelle clé**.
 - **Accès rapides** : 4 tuiles creuses de 64 px (Bilan, Formulaire, Signalées, Sauvegarde).
 - **« Tout est à jour »** (`.today-uptodate`) : grand ✓ vert vif, « Rien à revoir aujourd'hui », et la date de la prochaine échéance.
