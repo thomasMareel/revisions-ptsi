@@ -2194,8 +2194,9 @@ figure.schema.defile, .cine-svg-wrap.defile{ overflow-x:auto; overflow-y:hidden;
   .chapter[data-onglet="flash"] .flash-card{ height:clamp(16rem, calc(100dvh - 28.75rem), 30rem); }
 }
 .chapter .flash-side{ min-height:0; overflow-y:auto; overscroll-behavior:contain; scrollbar-width:thin; }
-/* face qui déborde : fondu en bas tant qu'il reste à lire (flashRepereDefil) ; masque d'opacité seule */
-.chapter .flash-side.suite-b{
+/* face qui déborde : fondu en bas tant qu'il reste à lire (flashRepereDefil) ; masque d'opacité seule
+   (fiche du quiz au téléphone comprise : hauteur fixe, région REVISION) */
+.chapter .flash-side.suite-b, .quiz-card .flash-side.suite-b{
   -webkit-mask-image:linear-gradient(to top, transparent, currentColor 2.25rem);
   mask-image:linear-gradient(to top, transparent, currentColor 2.25rem);
 }
@@ -2363,9 +2364,22 @@ figure.schema.defile, .cine-svg-wrap.defile{ overflow-x:auto; overflow-y:hidden;
 .quiz-close .ic, .dash-close .ic, .today-close .ic{ width:1.35rem; height:1.35rem; }
 @media (pointer:coarse){ .quiz-close, .dash-close, .today-close{ width:var(--tap); height:var(--tap); } }
 @media (max-width:767px){
-  .quiz-overlay, .dash-overlay{ padding:0; align-items:stretch; }
+  /* La boîte couvre au moins l'écran et GRANDIT avec son contenu (c'est le voile qui défile) :
+     étirée (stretch), elle gardait la hauteur exacte de l'écran, et la suite du Bilan, le bas
+     d'Aujourd'hui ou une longue réponse du quiz se dessinaient sans fond, sur le chapitre. */
+  .quiz-overlay, .dash-overlay{ padding:0; align-items:flex-start; }
   .quiz-modal, .dash-modal{ max-width:none; min-height:100dvh; max-height:none; border-radius:0; box-shadow:none; }
   .quiz-modal{ overflow:visible; }
+  /* Écran question (data-ecran posé par showScreen) : hauteur FIXE, celle de l'écran, comme la
+     fiche de l'onglet Cartes — une longue réponse défile dans la face, la fiche ne saute plus
+     entre recto et verso et la notation reste en bas, visible (A++ compris). Écran trop court
+     pour le minimum de la fiche : c'est la boîte qui défile, fond compris. */
+  .quiz-overlay[data-ecran="question"] .quiz-modal{ height:100dvh; overflow-y:auto; }
+  .quiz-overlay[data-ecran="question"] #quiz-screen-question{ min-height:0; }
+  #quiz-screen-question .quiz-q-body{ flex:1 1 0; min-height:0; }
+  .quiz-card-area, .quiz-card-inner{ min-height:0; }
+  .quiz-card{ flex:1 1 0; min-height:15rem; }
+  .quiz-card .flash-side{ min-height:0; overflow-y:auto; overscroll-behavior:contain; scrollbar-width:thin; }
 }
 
 /* --- 5. Quiz (SPEC §5.6) -------------------------------------------------------------------- */
@@ -2436,7 +2450,6 @@ figure.schema.defile, .cine-svg-wrap.defile{ overflow-x:auto; overflow-y:hidden;
 .quiz-nav > .quiz-actions > .btn{ flex:none; }
 @media (max-width:767px){
   .quiz-q-body{ padding:.75rem var(--gutter) 1rem; }
-  .quiz-card{ min-height:16rem; }
 }
 /* Résultats : « 18/24 » en serif display, une ligne par note (barre de la couleur de la note),
    puis les chapitres de la session ; Recommencer et Nouvelle sélection (secondaires), Fermer */
@@ -75029,6 +75042,9 @@ document.addEventListener('keydown', e => {
     ['quiz-screen-config','quiz-screen-question','quiz-screen-results'].forEach(s=>{
       document.getElementById(s).style.display = s===id ? '' : 'none';
     });
+    // écran affiché, lu par le CSS (téléphone : boîte de hauteur fixe sur l'écran question)
+    const ov = document.getElementById('quiz-overlay');
+    if(ov) ov.setAttribute('data-ecran', id.replace('quiz-screen-', ''));
   }
 
   /* ---- Ouvrir / Fermer ---- */
@@ -75132,9 +75148,10 @@ document.addEventListener('keydown', e => {
     document.getElementById('qs-rev').textContent    = quizStats.rev;
     document.getElementById('qs-skip').textContent   = quizStats.skip;
 
-    // Carte (face question)
+    // Carte (face question) ; nouvelle carte : lecture depuis le haut des deux faces
     const inner = document.getElementById('quiz-card-inner');
     inner.classList.remove('flipped');
+    inner.querySelectorAll('.flash-side').forEach(f => { f.scrollTop = 0; });
     // Anglais : texte brut (pas de conversion maths) ; sinon flashPretty (fractions, indices…)
     const qPlain = item.meta && item.meta.mat === 'anglais';
     const qEl = document.getElementById('quiz-question-text');
@@ -75158,8 +75175,13 @@ document.addEventListener('keydown', e => {
 
     // MathJax
     try{ if(window.MathJax?.typesetPromise){
-      MathJax.typesetPromise([document.getElementById('quiz-card')]).catch(()=>{});
+      MathJax.typesetPromise([document.getElementById('quiz-card')]).then(quizRepereDefil).catch(()=>{});
     }}catch(e){}
+  }
+  /* Faces de la fiche (téléphone : hauteur fixe, la face défile) : fondu en bas tant qu'il reste
+     à lire, comme l'onglet Cartes (flashRepereDefil) ; la face cachée mesure 0 et n'en a pas. */
+  function quizRepereDefil(){
+    document.querySelectorAll('#quiz-card .flash-side').forEach(f => { try { flashRepereDefil(f); } catch(e){} });
   }
 
   /* Face affichée (recto / verso) d'après quizRevealed : fiche, aide ou pied, boutons */
@@ -75179,6 +75201,7 @@ document.addEventListener('keydown', e => {
     document.getElementById('quiz-actions-rate').style.display   = v ? '' : 'none';
     document.getElementById('quiz-actions-reread').style.display = v ? '' : 'none';
     if(v) flashAjusterFormules(document.getElementById('quiz-answer-text'));
+    quizRepereDefil();
   }
   window.quizReveal = function(){
     if(window.__TTS) window.__TTS.stop();   // la face visible change
