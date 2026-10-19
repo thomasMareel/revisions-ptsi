@@ -1808,6 +1808,15 @@ figure.schema.lisible svg, .cine-svg-wrap.lisible svg{ min-width:var(--svg-min, 
 figure.schema.lisible svg{ max-width:var(--svg-min, none); margin-inline:auto; }
 figure.schema.defile, .cine-svg-wrap.defile{ overflow-x:auto; overflow-y:hidden; padding-block:.25rem; scrollbar-width:thin; }
 .cine-svg-wrap.defile{ justify-content:safe center; }
+/* Repère de défilement (formule ou schéma plus large que sa place) : fondu au bord du côté où il
+   reste à faire défiler (.suite-d / .suite-g, posées et tenues à jour par le script CONTENU).
+   Le masque ne porte que l'opacité (currentColor) : aucune couleur. */
+.suite-d{ -webkit-mask-image:linear-gradient(to left, transparent, currentColor 1.5rem); mask-image:linear-gradient(to left, transparent, currentColor 1.5rem); }
+.suite-g{ -webkit-mask-image:linear-gradient(to right, transparent, currentColor 1.5rem); mask-image:linear-gradient(to right, transparent, currentColor 1.5rem); }
+.suite-g.suite-d{
+  -webkit-mask-image:linear-gradient(to right, transparent, currentColor 1.5rem, currentColor calc(100% - 1.5rem), transparent);
+  mask-image:linear-gradient(to right, transparent, currentColor 1.5rem, currentColor calc(100% - 1.5rem), transparent);
+}
 /* Libellés blancs posés sur une pastille colorée (molécules, ions) : couleur de la feuille, lisible
    dans les deux thèmes (la pastille s'éclaircit en sombre) */
 .schema text[style*="fill:#fff"]{ fill:var(--sheet) !important; }
@@ -62694,6 +62703,31 @@ function __texteDetoure(c, txt, x, y){
   c.fillStyle = __CV().paper; c.fillRect(x - g - 3, y - h - 2, g + d + 6, h + b + 4);
   c.fillStyle = fs; c.fillText(txt, x, y);
 }
+/* Grandeur physique sur une toile (SPEC §5.5) : lettres en serif italique, chiffres et signes en
+   romain, « _X » en indice (« u_C / U_0 » → u꜀ / U₀). Graduations et unités restent en JetBrains
+   Mono 12 px. Couleur et textBaseline : ceux du contexte. Renvoie la largeur dessinée. */
+function __grandeur(c, spec, x, y, taille){
+  const fs = taille || 15, fi = Math.round(fs * 0.72), serif = '"Source Serif 4", Georgia, serif';
+  const ALIGN = c.textAlign, LETTRE = /[A-Za-zα-ωΑ-Ω]/;
+  const morceaux = [];
+  for(let i = 0; i < spec.length; i++){
+    const ch = spec[i];
+    if(ch === '_' && i + 1 < spec.length){ morceaux.push([spec[++i], true]); continue; }
+    morceaux.push([ch, false]);
+  }
+  const police = (ch, ind) => (LETTRE.test(ch) ? 'italic ' : '') + '500 ' + (ind ? fi : fs) + 'px ' + serif;
+  let l = 0;
+  morceaux.forEach(m => { c.font = police(m[0], m[1]); l += c.measureText(m[0]).width + (LETTRE.test(m[0]) && !m[1] ? 0.5 : 0); });
+  let px = ALIGN === 'right' || ALIGN === 'end' ? x - l : (ALIGN === 'center' ? x - l / 2 : x);
+  c.textAlign = 'left';
+  morceaux.forEach(m => {
+    c.font = police(m[0], m[1]);
+    c.fillText(m[0], px, m[1] ? y + Math.round(fs * 0.28) : y);
+    px += c.measureText(m[0]).width + (LETTRE.test(m[0]) && !m[1] ? 0.5 : 0);
+  });
+  c.textAlign = ALIGN;
+  return l;
+}
 /* Invalidation du cache au changement de thème (attribut data-theme sur <html>) */
 new MutationObserver(() => { __CVcache = null; __CVchapCache = new WeakMap(); })
   .observe(document.documentElement, {attributes:true, attributeFilter:['data-theme']});
@@ -62840,10 +62874,11 @@ function drawLibre(W,H,padL,padR,padT,padB,y0,p){
     uFn = t => (1 + w0*t)*Math.exp(-w0*t);
   }
   
+  ctx.fillStyle = getCanvasColors().ink;   // grandeurs en serif italique (SPEC §5.5)
+  __grandeur(ctx, 'u_C / U_0', padL+6, padT-9);
+  __grandeur(ctx, 't', W-padR-10, y0+18);
   ctx.fillStyle = getCanvasColors().muted;
   ctx.font = '12px JetBrains Mono';
-  ctx.fillText('u_C / U₀',padL+6,padT-9);
-  ctx.fillText('t',W-padR-10,y0+18);
   
   ctx.strokeStyle = __CVchap(ctx.canvas);   // courbe principale : encre du chapitre
   ctx.lineWidth = 2;
@@ -62920,10 +62955,11 @@ function drawEchelon(W,H,padL,padR,padT,padB,y0,p){
     uFn = t => 1 - (1 + w0*t)*Math.exp(-w0*t);
   }
   
+  ctx.fillStyle = getCanvasColors().ink;   // grandeurs en serif italique (SPEC §5.5)
+  __grandeur(ctx, 'u_C / E', padL+6, padT-9);
+  __grandeur(ctx, 't', W-padR-10, yBase+18);
   ctx.fillStyle = getCanvasColors().muted;
   ctx.font = '12px JetBrains Mono';
-  ctx.fillText('u_C / E',padL+6,padT-9);
-  ctx.fillText('t',W-padR-10,yBase+18);
   
   // Ligne asymptote E
   const yE = yBase - 1*yScale;
@@ -63001,8 +63037,7 @@ function drawForced(W,H,padL,padR,padT,padB,y0,p){
     ctx.beginPath();ctx.moveTo(x,padT);ctx.lineTo(x,H-padB);ctx.stroke();
     ctx.setLineDash([]);
     ctx.fillStyle = __CV().accent;
-    ctx.font = '12px JetBrains Mono';
-    ctx.fillText('f₀',x+4,padT+14);
+    __grandeur(ctx, 'f_0', x+5, H-padB-8);   // en bas du repère : la courbe passe en haut à f₀
   }
   
   const idxF = Math.round(Math.log(p.F/fmin)/Math.log(fmax/fmin)*N);
@@ -63018,9 +63053,10 @@ function drawForced(W,H,padL,padR,padT,padB,y0,p){
     __texteDetoure(ctx, tH, (x+8+wH > W-padR) ? x-8-wH : x+8, y-6);
   }
   
+  ctx.fillStyle = getCanvasColors().ink;   // grandeur en serif italique ; échelle en mono
+  __grandeur(ctx, '|u_C / e|', padL+5, padT+12);
   ctx.fillStyle = getCanvasColors().muted;
   ctx.font = '12px JetBrains Mono';
-  ctx.fillText('|u_C / e|',padL+5,padT+12);
   ctx.fillText('log(f)',W-padR-50,H-padB+22);
 }
 
@@ -77398,7 +77434,9 @@ document.getElementById('skip-link')?.addEventListener('click', e => {
     });
   }
 
-  /* ---------- 5. Formules en ligne plus larges que leur ligne (.mj-large) ---------- */
+  /* ---------- 5. Formules en ligne plus larges que leur ligne (.mj-large) ----------
+     Lecture seule (lireLarges) puis écriture (ecrireLarges) : mesurer() enchaîne toutes les
+     lectures avant toutes les écritures, pour ne forcer que deux mises en page par panneau. */
   function blocParent(el, cache){
     for(var e = el; e && e.nodeType === 1; e = e.parentElement){
       var d = cache.get(e);
@@ -77407,7 +77445,7 @@ document.getElementById('skip-link')?.addEventListener('click', e => {
     }
     return null;
   }
-  function marquerLarges(root){
+  function lireLarges(root){
     var cacheD = new Map(), cacheL = new Map(), decisions = [];
     root.querySelectorAll('mjx-container:not([display="true"])').forEach(function(m){
       if(!m.getClientRects().length) return;                       // replié (solution, mémo) : plus tard
@@ -77425,20 +77463,27 @@ document.getElementById('skip-link')?.addEventListener('click', e => {
       // ponctuation collée (.mj-colle, insécable) : elle doit tenir sur la même ligne que la formule
       var p = m.parentNode, colle = 0;
       if(p && p.classList && p.classList.contains('mj-colle')) colle = Math.max(0, p.getBoundingClientRect().width - l);
-      decisions.push([m, dispo > 0 && nat + colle > dispo + 1]);
+      var dec = dispo > 0 && nat + colle > dispo + 1;
+      if(dec !== large) decisions.push([m, dec]);                  // seulement ce qui change
     });
-    decisions.forEach(function(x){ x[0].classList.toggle('mj-large', x[1]); });
+    return decisions;
   }
+  function ecrireLarges(decisions){ decisions.forEach(function(x){ x[0].classList.toggle('mj-large', x[1]); }); }
+  function marquerLarges(root){ ecrireLarges(lireLarges(root)); }
 
   /* ---------- 6. Schémas SVG : aucun libellé sous 12 px ----------
      Mesure à l'état naturel ; s'il faut agrandir : .lisible (largeur minimale --svg-min, figure
      élargie jusqu'à la colonne, et au téléphone jusque dans la gouttière), puis .defile (la
-     figure défile en largeur) seulement si cela ne suffit pas. */
-  function schemasLisibles(root){
+     figure défile en largeur) seulement si cela ne suffit pas. Un schéma déjà mesuré pour la même
+     largeur de fenêtre et la même taille de texte n'est pas remesuré. */
+  function lireSchemas(root, cle){
     var cadres = Array.prototype.slice.call(root.querySelectorAll('figure.schema, .cine-svg-wrap'))
-      .filter(function(c){ return c.querySelector('svg text') && visible(c); });
-    if(!cadres.length) return;
-    cadres.forEach(function(c){ c.classList.remove('lisible', 'defile'); c.style.removeProperty('--svg-min'); });
+      .filter(function(c){ return c.__cleSchema !== cle && c.querySelector('svg text') && visible(c); });
+    if(!cadres.length) return null;
+    // remesure (largeur ou taille du texte changée) : retour à l'état naturel d'abord
+    cadres.forEach(function(c){
+      if(c.classList.contains('lisible') || c.classList.contains('defile')){ c.classList.remove('lisible', 'defile'); c.style.removeProperty('--svg-min'); }
+    });
     var besoins = cadres.map(function(c){
       var svg = c.querySelector('svg');
       var l = svg.getBoundingClientRect().width;
@@ -77453,14 +77498,52 @@ document.getElementById('skip-link')?.addEventListener('click', e => {
       });
       return (isFinite(mini) && mini < 12) ? Math.ceil(l * 12.1 / mini) : 0;
     });
-    cadres.forEach(function(c, i){
-      if(!besoins[i]) return;
-      c.classList.add('lisible');
-      c.style.setProperty('--svg-min', besoins[i] + 'px');
-    });
-    var trop = cadres.map(function(c, i){ return besoins[i] && besoins[i] > c.clientWidth + 1; });
-    cadres.forEach(function(c, i){ if(trop[i]) c.classList.add('defile'); });
+    return { cadres: cadres, besoins: besoins, cle: cle };
   }
+  function ecrireSchemas(sc){
+    if(!sc) return;
+    sc.cadres.forEach(function(c, i){
+      c.__cleSchema = sc.cle;
+      if(!sc.besoins[i]) return;
+      c.classList.add('lisible');
+      c.style.setProperty('--svg-min', sc.besoins[i] + 'px');
+    });
+  }
+  // après .lisible : la figure élargie suffit-elle ? (lecture ; l'écriture suit dans mesurer)
+  function lireTrop(sc){ return sc ? sc.cadres.map(function(c, i){ return !!(sc.besoins[i] && sc.besoins[i] > c.clientWidth + 1); }) : []; }
+  function ecrireTrop(sc, trop){ if(sc) sc.cadres.forEach(function(c, i){ if(trop[i]) c.classList.add('defile'); }); }
+  function schemasLisibles(root){
+    var sc = lireSchemas(root, cleMesure());
+    ecrireSchemas(sc);
+    ecrireTrop(sc, lireTrop(sc));
+  }
+
+  /* ---------- 6 bis. Repère de défilement ----------
+     Formule (en bloc, ou en ligne .mj-large) ou schéma (.defile) plus large que sa place : un
+     fondu au bord indique qu'il reste à faire défiler (.suite-d à droite, .suite-g à gauche) ;
+     tenu à jour au défilement par un seul écouteur (en capture : scroll ne remonte pas). */
+  var SEL_DEFILANTS = 'mjx-container[display="true"], mjx-container.mj-large, figure.schema.defile, .cine-svg-wrap.defile';
+  function lireDefilants(root){
+    var res = [];
+    root.querySelectorAll(SEL_DEFILANTS).forEach(function(el){
+      var cw = el.clientWidth;
+      if(!cw && !el.classList.contains('a-defiler')) return;      // replié : au prochain affichage
+      res.push([el, el.scrollWidth, cw, el.scrollLeft]);
+    });
+    return res;
+  }
+  function marquerDefilant(el, sw, cw, sl){
+    var d = cw > 0 && sw > cw + 1;
+    if(d !== el.classList.contains('a-defiler')) el.classList.toggle('a-defiler', d);
+    var g = d && sl > 1, dr = d && sl + cw < sw - 1;
+    if(g !== el.classList.contains('suite-g')) el.classList.toggle('suite-g', g);
+    if(dr !== el.classList.contains('suite-d')) el.classList.toggle('suite-d', dr);
+  }
+  function ecrireDefilants(liste){ liste.forEach(function(x){ marquerDefilant(x[0], x[1], x[2], x[3]); }); }
+  document.addEventListener('scroll', sur(function(e){
+    var el = e.target;
+    if(el && el.classList && el.classList.contains('a-defiler')) marquerDefilant(el, el.scrollWidth, el.clientWidth, el.scrollLeft);
+  }), { capture: true, passive: true });
 
   /* ---------- 7. Simulateurs : curseurs (--p) et valeurs par défaut ---------- */
   function majCurseur(inp){
@@ -77591,11 +77674,24 @@ document.getElementById('skip-link')?.addEventListener('click', e => {
     curseurs(panel);
   }
   function cleMesure(){ return document.documentElement.clientWidth + 'x' + (document.documentElement.style.getPropertyValue('--read-scale') || '1'); }
-  function mesurer(root){
+  /* Mesures d'un panneau (ou d'un bloc déplié) : toutes les lectures, puis toutes les écritures
+     (deux mises en page forcées au lieu d'une par étape) ; lancées APRÈS la première peinture
+     (rAF puis tâche) : le contenu s'affiche sans attendre ces mesures (téléphone lent). */
+  function mesurerMaintenant(root){
     if(!visible(root)) return;                                     // mesures au prochain affichage
-    marquerLarges(root);
-    schemasLisibles(root);
-    root.__cleMesure = cleMesure();
+    var cle = cleMesure();
+    var larges = lireLarges(root), sc = lireSchemas(root, cle);
+    ecrireLarges(larges); ecrireSchemas(sc);
+    var trop = lireTrop(sc), def;
+    ecrireTrop(sc, trop);
+    def = lireDefilants(root);
+    ecrireDefilants(def);
+    root.__cleMesure = cle;
+  }
+  function mesurer(root){
+    if(root.__mesureEnAttente) return;
+    root.__mesureEnAttente = true;
+    raf(function(){ setTimeout(sur(function(){ root.__mesureEnAttente = false; mesurerMaintenant(root); }), 0); });
   }
   function finir(root, forcer){
     if(!root || !root.isConnected) return;
@@ -77627,7 +77723,7 @@ document.getElementById('skip-link')?.addEventListener('click', e => {
   // Mémo déplié : ses formules deviennent mesurables
   document.addEventListener('click', sur(function(e){
     var r = e.target && e.target.closest && e.target.closest('.reveal');
-    if(r && r.classList.contains('open')) raf(sur(function(){ if(visible(r)){ marquerLarges(r); schemasLisibles(r); } }));
+    if(r && r.classList.contains('open')) raf(sur(function(){ mesurerMaintenant(r); }));
   }));
   // Largeur ou taille du texte (A / A+ / A++) changée : nouvelles mesures du panneau affiché
   var minuterie = null;
