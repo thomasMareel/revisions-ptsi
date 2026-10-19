@@ -413,6 +413,19 @@ module.exports = {
         rlc: !!document.querySelector('#dash-overlay .dash-chap[data-chap="rlc"]'),
       }));
       if (!/%/.test(s.texte) || !/acquises/.test(s.texte)) pb.push('contenu inattendu : ' + s.texte.slice(0, 80).replace(/\s+/g, ' '));
+      // liste défilée jusqu'en bas : le titre « Bilan » et le × restent à l'écran (seule la liste défile)
+      const fin = await page.evaluate(async () => {
+        const ov = document.getElementById('dash-overlay');
+        [ov].concat(Array.from(ov.querySelectorAll('*'))).forEach(e => { if (e.scrollHeight > e.clientHeight) e.scrollTop = e.scrollHeight; });
+        await new Promise(r => setTimeout(r, 250));
+        const x = ov.querySelector('.dash-close').getBoundingClientRect(), t = ov.querySelector('.dash-head h2').getBoundingClientRect();
+        const rl = document.querySelector('#dash-overlay .dash-chap[data-chap="rlc"]');
+        const v = r => r.top >= 0 && r.bottom <= innerHeight;
+        const res = { x: v(x), titre: v(t) };
+        if (rl) rl.scrollIntoView({ block: 'center' });
+        return res;
+      });
+      if (!fin.x || !fin.titre) pb.push('Bilan défilé jusqu\'en bas : ' + (!fin.titre ? 'titre ' : '') + (!fin.x ? '× ' : '') + 'hors de l\'écran');
       if (!s.rlc) pb.push('la ligne du chapitre rlc (noté plus haut) est absente');
       else {
         await page.click('#dash-overlay .dash-chap[data-chap="rlc"]');
@@ -484,6 +497,35 @@ module.exports = {
           (await ouvert(fenetre)) && 'Échap ne ferme pas la fenêtre'];
       });
     }
+
+    /* ---------- Formulaire : jamais d'entrée vers une fenêtre vide ----------
+       43 chapitres (anglais, info, une partie des maths et de la SI) n'ont aucune formule à
+       regrouper : l'action « Formulaire » de l'intercalaire, du menu Plus et d'Aujourd'hui y est
+       masquée ; ailleurs (rlc), elle est affichée et la fenêtre contient des formules. */
+    await etape('Formulaire : entrées masquées sans formule à regrouper (fonctions, anglais), affichées et fenêtre remplie sinon (rlc)', async () => {
+      const pb = [];
+      const ang = await page.evaluate(() => (CHAPTERS.find(x => x.matiere === 'anglais') || {}).id);
+      for (const [id, attendu] of [['rlc', true], ['fonctions', false], [ang, false]]) {
+        if (!id) continue;
+        await naviguer(page, id, 'cours');
+        const ctb = await page.evaluate(i => { const b = document.querySelector('#chap-' + i + ' .chap-title-banner [data-ctb="formulaire"]'); return !!(b && b.getClientRects().length); }, id);
+        await page.click('#more-btn'); await pause(250);
+        const menu = await page.evaluate(() => !!document.getElementById('formula-btn').getClientRects().length);
+        await page.keyboard.press('Escape'); await pause(200);
+        await page.evaluate(() => window.todayOpen()); await pause(300);
+        const auj = await page.evaluate(() => !!document.getElementById('today-formula').getClientRects().length);
+        await page.keyboard.press('Escape'); await pause(200);
+        if (ctb !== attendu || menu !== attendu || auj !== attendu) pb.push(id + ' : « Formulaire » ' + (attendu ? 'masqué' : 'affiché') + ' (intercalaire ' + ctb + ', menu Plus ' + menu + ', Aujourd\'hui ' + auj + ')');
+        if (attendu) {
+          await page.click('#chap-' + id + ' .chap-title-banner [data-ctb="formulaire"]');
+          await page.waitForFunction(() => !/Préparation/.test(document.getElementById('formula-body').textContent), null, { timeout: 15000 }).catch(() => {});
+          const n = await page.evaluate(() => document.querySelectorAll('#formula-body .fsheet-f').length);
+          if (!n) pb.push(id + ' : fenêtre Formulaire sans formule');
+          await page.keyboard.press('Escape'); await pause(200);
+        }
+      }
+      return pb;
+    });
 
     /* ---------- Focus des fenêtres (relecture accessibilité, tour 1) ----------
        Tab depuis le dernier élément et Maj+Tab depuis le premier restent dans la fenêtre ;

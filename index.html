@@ -1326,6 +1326,7 @@ main, main#si-content{ display:block; max-width:none; margin:0; padding:1.5rem 1
 .chap-title-banner .ctb-sub::first-letter{ text-transform:uppercase; }
 .ctb-actions{ flex:none; display:flex; gap:.4rem; margin-left:auto; padding-top:.35rem; }
 .ctb-actions .btn[aria-pressed="true"] .ic{ color:var(--ambre-vif); }
+.ctb-actions .btn[hidden]{ display:none; }
 
 /* Méta : badge d'année · sections · cartes · exercices · simulateur */
 .ctb-meta{
@@ -2434,6 +2435,15 @@ figure.schema.defile, .cine-svg-wrap.defile{ overflow-x:auto; overflow-y:hidden;
   background:var(--raise); color:var(--text); border-radius:var(--r-xl); box-shadow:var(--sh-3);
 }
 .dash-overlay .dash-modal{ max-height:none; overflow:visible; }
+/* Bilan sur ordinateur et tablette : boîte à la hauteur de l'écran, seule la liste défile (comme le
+   Formulaire) ; l'en-tête « Bilan » et son × restent visibles. (Le voile qui défilait emportait
+   le titre et le × hors de l'écran dès qu'on descendait dans les ≈ 9 000 px de la liste.)
+   Téléphone : la boîte grandit avec son contenu (bloc max-width:767px ci-dessous). */
+@media (min-width:768px){
+  #dash-overlay .dash-modal{ max-height:calc(100dvh - 6vh - 1.5rem); overflow:hidden; }
+  #dash-body{ flex:1 1 auto; min-height:0; overflow-y:auto; overscroll-behavior:contain; }
+  #dash-body > *{ flex-shrink:0; }   /* (colonne flexible bornée : aucun bloc écrasé) */
+}
 .quiz-modal{ max-width:40rem; background:var(--desk); }
 /* La boîte reçoit le focus à l'ouverture (module « Focus des overlays ») : pas d'anneau sur
    ce conteneur non interactif ; ses commandes gardent le leur. */
@@ -2650,6 +2660,9 @@ figure.schema.defile, .cine-svg-wrap.defile{ overflow-x:auto; overflow-y:hidden;
 }
 .quick button:hover{ box-shadow:inset 0 0 0 1px var(--field); }
 .quick button .ic{ color:var(--text-2); }
+/* « Formulaire » masqué (chapitre sans formule à regrouper) : 3 accès sur toute la largeur */
+.quick > [hidden]{ display:none; }
+.quick:has(> [hidden]){ grid-template-columns:repeat(3, minmax(0, 1fr)); }
 @media (max-width:767px){
   .today-top{ padding:.5rem .5rem 0 var(--gutter); }
   .today-h{ padding:0 var(--gutter); }
@@ -77280,6 +77293,38 @@ document.addEventListener('keydown', e => {
     });
     return groups;
   }
+  /* Le chapitre a-t-il un formulaire ? (mêmes sources que collect : .formula ou équation centrée
+     $$…$$ — rendue ou pas encore — dans une section du Cours ou des Méthodes ; jamais en anglais.)
+     Sans formulaire, les entrées « Formulaire » (intercalaire, menu Plus, feuille ⋯, Aujourd'hui)
+     sont masquées : elles ouvraient une fenêtre vide dans 43 chapitres. Calculé une fois par
+     chapitre (querySelector, puis le texte des sections seulement s'il le faut), mis en cache. */
+  function aFormulaire(chap){
+    if(!chap) return false;
+    if(typeof chap.__aFormulaire === 'boolean') return chap.__aFormulaire;
+    const c = CHAPTERS_BY_ID[chap.id.replace('chap-','')];
+    let r = false;
+    if(!c || c.matiere !== 'anglais'){
+      const secs = [];
+      [...chap.querySelectorAll('.panel')].filter(p=>/-(cours|meth)$/.test(p.id)).forEach(p=>secs.push(...p.querySelectorAll('.course-section')));
+      r = secs.some(s => !!s.querySelector('.formula, mjx-container[display="true"]'))
+        || secs.some(s => (s.textContent || '').indexOf('$$') >= 0);
+    }
+    chap.__aFormulaire = r;
+    return r;
+  }
+  window.__aFormulaire = function(chap){ return aFormulaire(chap === undefined ? activeChapter() : chap); };
+  // Entrées des menus (menu Plus, feuille ⋯) : à jour à chaque ouverture (chapitre affiché)
+  function majEntrees(){
+    const non = !aFormulaire(activeChapter());
+    ['formula-btn', 'mob-formula-btn'].forEach(id => { const b = document.getElementById(id); if(b) b.hidden = non; });
+  }
+  window.__majEntreesFormulaire = majEntrees;
+  ['more-btn', 'mob-more-btn'].forEach(id => {
+    const b = document.getElementById(id);
+    // capture : avant le gestionnaire qui ouvre le menu et y pose le focus sur la 1re entrée visible
+    if(b) b.addEventListener('click', () => { try { majEntrees(); } catch(e){} }, true);
+    if(b) b.addEventListener('keydown', e => { if(e.key === 'ArrowDown' || e.key === 'ArrowUp') try { majEntrees(); } catch(_){} }, true);
+  });
   function build(){
     const chap = activeChapter();
     if(!chap){ titleEl.textContent='Formulaire'; body.innerHTML='<p class="formula-empty">Aucun chapitre actif.</p>'; return; }
@@ -78562,6 +78607,8 @@ document.getElementById('skip-link')?.addEventListener('click', e => {
     $('today-date').textContent = dateStr;
     const h = d.getHours();
     if($('today-hello')) $('today-hello').textContent = (h >= 18 || h < 5 ? 'Bonsoir' : 'Bonjour') + NBSP + '! On révise' + NBSP + '?';
+    // accès rapide « Formulaire » : seulement si le chapitre affiché en a un
+    if($('today-formula') && window.__aFormulaire) try { $('today-formula').hidden = !window.__aFormulaire(); } catch(e){}
 
     /* Révisions du jour : nombre, durée, barres par matière, Commencer */
     const k = compter();
@@ -78772,6 +78819,10 @@ document.getElementById('skip-link')?.addEventListener('click', e => {
         '<button type="button" class="btn" data-ctb="formulaire" title="Formulaire du chapitre (fiche de synthèse imprimable)">' + ic('function') + 'Formulaire</button>'
       + '<button type="button" class="btn btn-icon" data-ctb="imprimer" aria-label="Imprimer le chapitre" title="Imprimer le chapitre">' + ic('printer') + '</button>'
       + '<button type="button" class="btn btn-icon" data-ctb="epingler" aria-pressed="false" aria-label="Épingler le chapitre" title="Épingler le chapitre">' + ic('star') + '</button>';
+    // chapitre sans formule à regrouper (anglais, info, une partie des maths et de la SI) : pas de
+    // bouton « Formulaire » (il ouvrait une fenêtre vide)
+    const fb = actions.querySelector('[data-ctb="formulaire"]');
+    if(fb && window.__aFormulaire && !window.__aFormulaire(ch)) fb.hidden = true;
     b.insertBefore(fil, b.firstChild);
     if(titre){ b.insertBefore(ligne, titre); ligne.appendChild(titre); } else b.appendChild(ligne);
     ligne.appendChild(actions);
