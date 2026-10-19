@@ -73941,6 +73941,34 @@ function navigateTo(chapId, panelId, onDone){
       });
       return s;
     }
+    /* Titre d'une boîte sans gras d'ouverture : son début en TEXTE SIMPLE (formule rendue → texte
+       de son MathML d'accessibilité ; sinon TeX allégé), coupé entre deux mots. Couper le texte
+       brut à 90 signes laissait du TeX tronqué dans le résultat (« Résistance R : \underlin »). */
+    const TEXS = { sqrt:'√', pi:'π', omega:'ω', Omega:'Ω', alpha:'α', beta:'β', gamma:'γ', delta:'δ', Delta:'Δ', theta:'θ', lambda:'λ',
+      mu:'µ', rho:'ρ', sigma:'σ', tau:'τ', varphi:'φ', phi:'φ', varepsilon:'ε', epsilon:'ε', infty:'∞', int:'∫', sum:'Σ', to:'→',
+      le:'≤', leq:'≤', ge:'≥', geq:'≥', times:'×', cdot:'·', approx:'≈', neq:'≠', pm:'±', partial:'∂', nabla:'∇', in:'∈' };
+    const FORME_TEX = /^(text|textbf|textit|mathrm|mathbf|mathit|mathsf|mathcal|mathbb|boldsymbol|operatorname|underline|overline|vec|hat|bar|dot|ddot|tilde|widehat|overrightarrow|left|right|big|Big|bigg|Bigg|frac|dfrac|tfrac|displaystyle|quad|qquad|boxed)$/;
+    function titreSimple(el){
+      let t;
+      if(el.querySelector('mjx-container')){
+        const k = el.cloneNode(true);
+        k.querySelectorAll('mjx-container').forEach(m => { const a = m.querySelector('mjx-assistive-mml'); m.replaceWith(document.createTextNode(a ? a.textContent : '')); });
+        t = k.textContent;
+      } else {
+        // délimiteurs ôtés ; \{ \} gardés (ensembles) ; mise en forme (\text, \vec…) ôtée ; \ker, \sin… gardés en clair
+        t = (el.textContent || '').replace(/\\\\/g, ' ').replace(/\$\$|\\[()[\]]/g, ' ').replace(/\\\|/g, '‖').replace(/\\\{/g, '\u0001').replace(/\\\}/g, '\u0002')
+          .replace(/\\[,;:! ]/g, ' ').replace(/\\([a-zA-Z]+)/g, (x, n) => TEXS[n] || (FORME_TEX.test(n) ? '' : n))
+          .replace(/[{}]/g, '').replace(/\u0001/g, '{').replace(/\u0002/g, '}');
+      }
+      t = t.replace(/\s+/g, ' ').trim();
+      if(t.length > 90){
+        t = t.slice(0, 90);
+        const k = t.lastIndexOf(' ');
+        if(k > 50) t = t.slice(0, k);
+        t = t.replace(/[\s,;:.(—–-]+$/, '') + ' …';
+      }
+      return t;
+    }
     CHAPTERS.forEach(c => {
       const chap = document.getElementById('chap-' + c.id);
       if(!chap) return;
@@ -73957,7 +73985,7 @@ function navigateTo(chapId, panelId, onDone){
           });
           panel.querySelectorAll('.def-box, .prop-box').forEach(b => {
             const fort = b.querySelector(':scope > strong:first-child, :scope > p:first-child > strong:first-child');
-            const t = (fort ? fort.textContent : b.textContent.slice(0, 90)).replace(/^(DÉFINITION|PROPRIÉTÉ)\s*/i, '');
+            const t = (fort ? fort.textContent : titreSimple(b)).replace(/^(DÉFINITION|PROPRIÉTÉ)\s*/i, '');
             if(t.trim().length < 4) return;
             add('boite', t, Object.assign({}, base, { panel:pid, ou:paragraphe(b, pid), el:b, text:texte(b).slice(0, 600) }));
           });
