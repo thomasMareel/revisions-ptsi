@@ -10,10 +10,18 @@ quand on ajoute un chapitre :
   3. Flashcards câblées : chaque chapitre listant le panneau 'flash' a bien
      un appel makeFlash(..., '<prefix>', ...).
   4. drawFn : chaque drawFn référencé dans CHAPTERS existe comme fonction.
+  5. « < » collé à une lettre dans une formule (utiliser \\lt).
+  6. Délimiteurs \\[ … \\] dans le HTML (convention du site : $$ … $$ ; MathJax
+     composait la formule mais laissait « \\[ » et « \\] » affichés en clair).
+
+Option --souligne (information, sans échec) : liste les notations « X_y » écrites
+hors formule et hors code (elles s'affichent avec un vrai indice grâce au script
+CONTENU, mais \\( X_y \\) ou un indice Unicode reste préférable dans la source).
 
 Usage :
     python tools/validate.py            # valide index.html
     python tools/validate.py fichier.html
+    python tools/validate.py --souligne
 
 Code de sortie : 0 si tout est bon, 1 s'il y a au moins une erreur.
 """
@@ -78,7 +86,9 @@ def all_html_ids(html: str):
 
 
 def main():
-    target = Path(sys.argv[1]) if len(sys.argv) > 1 else ROOT / "index.html"
+    args = [a for a in sys.argv[1:] if not a.startswith("--")]
+    souligne = "--souligne" in sys.argv[1:]
+    target = Path(args[0]) if args else ROOT / "index.html"
     if not target.exists():
         print(f"[ERREUR] fichier introuvable : {target}")
         return 1
@@ -165,6 +175,22 @@ def main():
         errors.append(
             "formule avec « < » collé à une lettre (utiliser \\lt) : " + snippet
         )
+
+    # --- 6. Délimiteurs \[ … \] (hors \\[1.1em] d'un array) dans le HTML ---
+    for m in re.finditer(r"(?<!\\)\\\[(.{0,60})", html_body):
+        errors.append("formule entre \\[ … \\] (écrire $$ … $$) : \\[" + m.group(1).split("\n")[0])
+
+    # --- Option : notations « X_y » hors formule et hors code (information) ---
+    if souligne:
+        corps = re.sub(r"<(style|pre|code|textarea)\b.*?</\1>|<!--.*?-->", " ", html_body, flags=re.S)
+        corps = re.sub(r'<span class="code-inline">.*?</span>', " ", corps, flags=re.S)
+        corps = re.sub(r"\\\(.*?\\\)|\$\$.*?\$\$", " ", corps, flags=re.S)
+        texte = " ".join(re.findall(r">([^<>]*)<", corps))
+        trouves = re.findall(r"(?<![\w\\$])[A-Za-zΑ-Ωα-ωÀ-ÿ]_(?:\{[^{}]{1,12}\}|[A-Za-z0-9]{1,6})(?!\w)", texte)
+        from collections import Counter
+        c = Counter(trouves)
+        warnings.append(f"{len(trouves)} notation(s) « X_y » hors formule (indice posé à l'affichage) : "
+                        + ", ".join(f"{k}×{n}" for k, n in c.most_common(25)) + (" …" if len(c) > 25 else ""))
 
     # --- Rapport ---
     print(f"Validation de {target.name}")
