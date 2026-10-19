@@ -890,6 +890,8 @@ kbd, .kbd{
 .mob-pin .ic{ width:1rem; height:1rem; }
 .mob-chap-row:hover .mob-pin, .mob-chap-row:focus-within .mob-pin, .mob-pin.pinned{ opacity:1; }
 .mob-pin:hover{ background:var(--hover); color:var(--text); }
+/* anneau à l'intérieur (comme la rangée) : jamais recouvert par le fond de la rangée courante voisine */
+.mob-pin:focus-visible{ outline-offset:-2px; }
 .mob-pin.pinned{ color:var(--ambre-vif); }
 .mob-chap-row.cur{ background:var(--chap-fond); color:var(--chap); }
 .mob-chap-row.cur .mob-chap-item{ font-weight:var(--w-semi); }
@@ -1571,7 +1573,7 @@ section.panel.active{ animation:panelIn var(--dur-2) var(--ease) both; }
 .panel sub, .panel sup{ line-height:0; font-size:max(.83em, 12px); }   /* jamais sous 12 px (surtitres, bandeaux) */
 
 /* Cible du saut carte → cours : décalage sous l'en-tête et les onglets + surbrillance */
-.panel h2, .panel h3, .panel .sec-num{ scroll-margin-top:7.5rem; }
+.panel h2, .panel h3, .panel .sec-num, .panel .course-section{ scroll-margin-top:7.5rem; }
 .cours-target-flash{ animation:coursTargetFlash 2.6s var(--ease); border-radius:var(--r-xs); }
 @keyframes coursTargetFlash{
   0%, 12% { background:var(--selection); box-shadow:0 0 0 8px var(--selection); }
@@ -2916,6 +2918,35 @@ body:has(#sw-update-banner) .toasts{ bottom:5.25rem; }
 window.__icon = function(name){
   return '<svg class="ic" aria-hidden="true"><use href="#i-' + name + '"></use></svg>';
 };
+/* Éléments atteignables par Tab dans un conteneur, dans l'ordre du document : pièges de focus
+   du tiroir / page Chapitres et des fenêtres. Jamais le <use href> d'une icône SVG (un « [href] »
+   seul l'attrapait : le dernier « focusable » ne prenait jamais le focus et Tab s'échappait),
+   ni un élément masqué, désactivé ou hors de l'ordre de tabulation (tabindex itinérant -1). */
+window.__focusables = function(c){
+  if(!c || !c.querySelectorAll) return [];
+  var SEL = 'a[href],area[href],button:not([disabled]),input:not([disabled]):not([type="hidden"]),'
+    + 'select:not([disabled]),textarea:not([disabled]),summary,[tabindex]:not([tabindex="-1"])';
+  return Array.prototype.filter.call(c.querySelectorAll(SEL), function(el){
+    if(el.tabIndex < 0 || !el.getClientRects().length) return false;
+    return getComputedStyle(el).visibility !== 'hidden';
+  });
+};
+/* Retour du focus après une fenêtre ouverte depuis un menu (Réviser, Plus), la feuille ⋯ ou la
+   page Chapitres : l'élément d'origine est masqué à la fermeture ; on rend alors le focus au
+   bouton qui ouvre ce conteneur (aria-controls), le premier visible. null si sans objet. */
+window.__repliFocus = function(el){
+  var m = el && el.closest && el.closest('[role="menu"], #mob-more-menu, #mob-drawer, #theme-pop');
+  if(!m || !m.id) return null;
+  var bs = document.querySelectorAll('[aria-controls="' + m.id + '"]');
+  for(var i = 0; i < bs.length; i++) if(bs[i] !== el && bs[i].getClientRects().length) return bs[i];
+  return bs[0] || null;
+};
+window.__rendreFocus = function(op, repli){
+  var ok = function(x){ return x && document.contains(x) && x.getClientRects().length; };
+  var cible = ok(op) ? op : (ok(repli) ? repli : null);
+  if(cible){ try { cible.focus({ preventScroll:true }); } catch(e){ try { cible.focus(); } catch(_){} } }
+  return !!cible;
+};
 </script>
 
 <a href="#" class="skip-link" id="skip-link">Aller au contenu</a>
@@ -3071,14 +3102,14 @@ window.__icon = function(name){
     <div id="mob-quick"></div>
     <!-- Intercalaires de matière (effectif selon l'année) -->
     <div id="mob-mat-bar" class="mat-tabs" role="tablist" aria-label="Matières" data-mat="physique">
-      <button type="button" class="mob-mat-btn mat-tab active" data-mat="physique" role="tab" aria-selected="true">Physique<span class="n"></span></button>
-      <button type="button" class="mob-mat-btn mat-tab" data-mat="maths" role="tab" aria-selected="false">Maths<span class="n"></span></button>
-      <button type="button" class="mob-mat-btn mat-tab" data-mat="si" role="tab" aria-selected="false">SI<span class="n"></span></button>
-      <button type="button" class="mob-mat-btn mat-tab" data-mat="info" role="tab" aria-selected="false">Info<span class="n"></span></button>
-      <button type="button" class="mob-mat-btn mat-tab" data-mat="anglais" role="tab" aria-selected="false">Anglais<span class="n"></span></button>
+      <button type="button" id="mat-tab-physique" class="mob-mat-btn mat-tab active" data-mat="physique" role="tab" aria-controls="mob-chap-list" aria-selected="true">Physique<span class="n"></span></button>
+      <button type="button" id="mat-tab-maths" class="mob-mat-btn mat-tab" data-mat="maths" role="tab" aria-controls="mob-chap-list" aria-selected="false">Maths<span class="n"></span></button>
+      <button type="button" id="mat-tab-si" class="mob-mat-btn mat-tab" data-mat="si" role="tab" aria-controls="mob-chap-list" aria-selected="false">SI<span class="n"></span></button>
+      <button type="button" id="mat-tab-info" class="mob-mat-btn mat-tab" data-mat="info" role="tab" aria-controls="mob-chap-list" aria-selected="false">Info<span class="n"></span></button>
+      <button type="button" id="mat-tab-anglais" class="mob-mat-btn mat-tab" data-mat="anglais" role="tab" aria-controls="mob-chap-list" aria-selected="false">Anglais<span class="n"></span></button>
     </div>
     <!-- Parties repliables et rangées de chapitres (ou résultats du filtre) -->
-    <div id="mob-chap-list"></div>
+    <div id="mob-chap-list" role="tabpanel" aria-labelledby="mat-tab-physique"></div>
   </div>
 </nav>
 
@@ -61259,7 +61290,8 @@ print(confusion_matrix(y_test, y_pred))   <span class="cmt"># [[VN, FP], [FN, VP
         </div>
 
         <div class="quiz-card-area">
-          <div class="flash-card quiz-card" id="quiz-card" role="button" tabindex="0" aria-label="Question — toucher pour afficher la réponse">
+          <span class="sr" id="quiz-annonce" aria-live="polite"></span>
+          <div class="flash-card quiz-card" id="quiz-card" role="group" aria-roledescription="fiche" aria-labelledby="quiz-question-text">
             <div class="fc-head">
               <span class="fc-badges"><span id="quiz-chapter-badge" class="quiz-chapter-badge badge badge-chap">—</span><span class="fc-qbadges" id="quiz-card-badges"></span></span>
               <span class="end">
@@ -63693,8 +63725,16 @@ function makeFlash(cards, idPrefix, contentId, progId, statsId){
     try {
       wrap.setAttribute('data-fc', '1');
       if(mat){ card.classList.add('flash-mat-' + mat); card.setAttribute('data-mat', mat); }
-      card.setAttribute('role', 'button');
-      card.setAttribute('tabindex', '0');
+      // Fiche = groupe nommé par sa question (et non un bouton : ses enfants, question, réponse,
+      // « Voir dans le cours », « Signaler », restent lus). Retournement : clic, « Afficher la
+      // réponse » (bouton focalisable) ou Espace ; la réponse est annoncée (zone polie).
+      card.setAttribute('role', 'group');
+      card.setAttribute('aria-roledescription', 'fiche');
+      card.removeAttribute('tabindex');
+      el.annonce = document.createElement('span');
+      el.annonce.className = 'sr';
+      el.annonce.setAttribute('aria-live', 'polite');
+      wrap.appendChild(el.annonce);
       // En-tête de fiche (badges ; 🔊 à droite pour l'anglais)
       const head = document.createElement('div');
       head.className = 'fc-head';
@@ -63765,8 +63805,6 @@ function makeFlash(cards, idPrefix, contentId, progId, statsId){
         });
         el.headEnd.appendChild(b);
       }
-      // Entrée sur la fiche focalisée (Espace : raccourci global des cartes)
-      card.addEventListener('keydown', e => { if(e.key === 'Enter' && e.target === card){ e.preventDefault(); flip(); } });
     } catch(e){ /* enrichissement non bloquant */ }
     return el;
   }
@@ -63850,20 +63888,27 @@ function makeFlash(cards, idPrefix, contentId, progId, statsId){
       if(l) l.textContent = 'Voir dans le cours' + (cb && cb.sec ? ' · ' + cb.sec : '');
     }
     el.wrap.classList.toggle('is-verso', flipped);
-    el.card.setAttribute('aria-label', flipped ? 'Réponse affichée — toucher pour revoir la question seule' : 'Question — toucher pour afficher la réponse');
+    const qd = c.querySelector('.fc-q');
+    if(qd){ qd.id = contentId + '-q'; el.card.setAttribute('aria-labelledby', qd.id); }
+    if(el.annonce) el.annonce.textContent = '';
     // Étiquette de langue (anglais) → bonne voix pour les lecteurs d'écran
     if(isPlainDeck && window.__TTS){
       c.querySelectorAll('.fc-q, .fc-a-t').forEach(d => { d.lang = window.__TTS.detectLang(d.textContent || ''); });
     }
     try {
       if(window.MathJax && window.MathJax.typesetPromise){
-        MathJax.typesetPromise([c]).then(() => { if(flipped) flashAjusterFormules(c); }).catch(()=>{});
-      }
+        MathJax.typesetPromise([c]).then(() => { if(flipped){ flashAjusterFormules(c); annoncerReponse(); } }).catch(()=>{});
+      } else if(flipped) annoncerReponse();
     } catch(e) { /* MathJax not ready, ignore */ }
     updateStats();
     setFlagState();
     // Carte ou face différente → toute lecture audio en cours devient obsolète
     if(isPlainDeck && window.__TTS) window.__TTS.stop();
+  }
+  // Réponse lue par les lecteurs d'écran au retournement (texte des formules = MathML d'accessibilité)
+  function annoncerReponse(){
+    const a = el && el.side.querySelector('.fc-a');
+    if(el && el.annonce && a && flipped) el.annonce.textContent = 'Réponse : ' + (a.textContent || '').replace(/\s+/g, ' ').trim();
   }
   function flip(){
     if(!rendu) show();
@@ -63992,7 +64037,7 @@ window.flashToCourse = function(prefix, card){
   if(!cb) return;
   const target = cb.target, cours = cb.cours;
   setTimeout(() => {
-    target.scrollIntoView({ behavior:'smooth', block:'start' });
+    target.scrollIntoView({ behavior:window.__reduceMotion ? 'auto' : 'smooth', block:'start' });
     if(target !== cours){
       target.classList.remove('cours-target-flash');
       void target.offsetWidth;                     // force le redémarrage de l'animation
@@ -69389,7 +69434,7 @@ const ppmFlash = makeFlash(ppmCards,'ppm','ppm-flash-content','ppm-flash-prog','
    (stopImmediatePropagation : sur l'onglet Cartes, 1–3 notent au lieu de changer d'onglet).
    Remplace l'ancien gestionnaire limité à 18 decks. */
 (function(){
-  const TOUCHES = new Set([' ', 'Enter', '1', '2', '3', 'ArrowLeft', 'ArrowRight']);
+  const TOUCHES = new Set([' ', '1', '2', '3', 'ArrowLeft', 'ArrowRight']);   // (la fiche n'est plus un bouton : plus d'Entrée sur elle)
   function fenetreOuverte(){
     if(document.querySelector('.quiz-overlay.open, .dash-overlay.open, .search-overlay.open, .backup-overlay.open, .formula-overlay.open, #key-help-modal.open, .hdr-more-menu.open, #mob-more-menu.open')) return true;
     const d = document.getElementById('mob-drawer');
@@ -69414,12 +69459,10 @@ const ppmFlash = makeFlash(ppmCards,'ppm','ppm-flash-content','ppm-flash-prog','
     const onglet = t && t.closest ? t.closest('[role="tablist"], nav.tabs') : null;
     if(onglet && k !== ' ' && !/^[123]$/.test(k)) return;               // flèches, Entrée : clavier des onglets
     const cmd = !onglet && t && t.closest ? t.closest('button, a[href], summary, [role="button"]') : null;
-    const surCarte = !!(cmd && cmd.classList.contains('flash-card'));
-    if((k === ' ' || k === 'Enter') && cmd && !surCarte) return;        // bouton focalisé : activation native
-    if(k === 'Enter' && !surCarte) return;                              // Entrée : seulement sur la fiche
+    if(k === ' ' && cmd) return;                                        // bouton focalisé : activation native
     e.preventDefault();
     e.stopImmediatePropagation();
-    if(k === ' ' || k === 'Enter') inst.flip();
+    if(k === ' ') inst.flip();
     else if(k === 'ArrowRight') inst.next();
     else if(k === 'ArrowLeft') inst.prev();
     else if(inst.isFlipped && inst.isFlipped()) inst.rate(+k - 1);
@@ -73580,13 +73623,36 @@ const ppmFlash = makeFlash(ppmCards,'ppm','ppm-flash-content','ppm-flash-prog','
     if(ouvert() && !pop.contains(e.target) && e.target !== btn) fermerPop();
   });
   if(pop) pop.addEventListener('keydown', e => {
-    if(e.key === 'Escape'){ e.stopPropagation(); fermerPop(true); return; }
-    // Flèches : d'une carte à l'autre (groupe radio), puis Entrée / Espace pour choisir
-    const opts = Array.from(pop.querySelectorAll('.theme-opt'));
-    const i = opts.indexOf(document.activeElement);
-    if(i < 0 || !/^Arrow(Left|Right|Up|Down)$/.test(e.key)) return;
-    e.preventDefault();
-    opts[(i + (/Right|Down/.test(e.key) ? 1 : opts.length - 1)) % opts.length].focus();
+    if(e.key === 'Escape'){ e.stopPropagation(); fermerPop(true); }
+  });
+  // Popover non modal : il se ferme quand le focus le quitte (Tab au-delà du dernier choix)
+  if(pop) pop.addEventListener('focusout', e => {
+    const v = e.relatedTarget;
+    if(ouvert() && v && !pop.contains(v) && v !== btn) fermerPop(false);
+  });
+  /* Groupes radio (thème, taille du texte : popover et feuille ⋯) au modèle clavier ARIA : un
+     seul arrêt de Tab par groupe (tabindex 0 sur le choix coché, -1 sur les autres) ; ← → ↑ ↓
+     Début Fin cochent ET déplacent le focus (sans refermer le popover). */
+  const GROUPES = Array.from(document.querySelectorAll('#theme-pop [role="radiogroup"], #mob-more-menu [role="radiogroup"]'));
+  function itinerant(g){
+    const r = Array.from(g.querySelectorAll('[role="radio"]'));
+    const c = r.find(x => x.getAttribute('aria-checked') === 'true') || r[0];
+    r.forEach(x => { x.tabIndex = x === c ? 0 : -1; });
+  }
+  GROUPES.forEach(g => {
+    itinerant(g);
+    try { new MutationObserver(() => itinerant(g)).observe(g, { attributes:true, subtree:true, attributeFilter:['aria-checked'] }); } catch(e){}
+    g.addEventListener('keydown', e => {
+      if(!/^(Arrow(Left|Right|Up|Down)|Home|End)$/.test(e.key)) return;
+      const r = Array.from(g.querySelectorAll('[role="radio"]')), i = r.indexOf(document.activeElement);
+      if(i < 0) return;
+      e.preventDefault(); e.stopPropagation();
+      const j = e.key === 'Home' ? 0 : e.key === 'End' ? r.length - 1 : (i + (/Right|Down/.test(e.key) ? 1 : r.length - 1)) % r.length;
+      const n = r[j];
+      try { n.focus({ preventScroll:true }); } catch(err){ n.focus(); }
+      if(n.hasAttribute('data-theme-set')) setTheme(n.getAttribute('data-theme-set'));   // (le clic refermerait le popover)
+      else n.click();
+    });
   });
   document.addEventListener('keydown', e => { if(e.key === 'Escape' && ouvert()) fermerPop(true); });
   window.__themePref = themePref;
@@ -73809,7 +73875,7 @@ function navigateTo(chapId, panelId, onDone){
   let index = null;      // construit à la première recherche
   let rows = [];         // résultats affichés, dans l'ordre de la liste
   let sel = 0;           // ligne choisie au clavier
-  let opener = null;     // élément à qui rendre le focus à la fermeture
+  let opener = null, repli = null;     // élément à qui rendre le focus à la fermeture (repli : bouton du menu d'origine)
   let minuterieTex = 0;
 
   const esc = s => String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -74052,7 +74118,7 @@ function navigateTo(chapId, panelId, onDone){
     const cible = r.el;
     navigateTo(r.chap, r.panel, cible ? () => {
       if(!document.contains(cible)) return;
-      cible.scrollIntoView({ behavior:'smooth', block: r.kind === 'sec' ? 'start' : 'center' });
+      cible.scrollIntoView({ behavior:window.__reduceMotion ? 'auto' : 'smooth', block: r.kind === 'sec' ? 'start' : 'center' });
       cible.classList.remove('cours-target-flash');
       void cible.offsetWidth;                      // relance l'animation
       cible.classList.add('cours-target-flash');
@@ -74063,6 +74129,7 @@ function navigateTo(chapId, panelId, onDone){
   function open(){
     if(isOpen()) return;
     opener = document.activeElement;
+    repli = window.__repliFocus ? window.__repliFocus(opener) : null;
     overlay.classList.add('open');
     input.value = '';
     search('');
@@ -74077,8 +74144,8 @@ function navigateTo(chapId, panelId, onDone){
     if(!isOpen()) return;
     overlay.classList.remove('open');
     clearTimeout(minuterieTex);
-    const o = opener; opener = null;
-    if(rendre !== false && o && document.contains(o) && o.getClientRects().length){ try { o.focus({ preventScroll:true }); } catch(e){} }
+    const o = opener, r = repli; opener = repli = null;
+    if(rendre !== false && window.__rendreFocus) window.__rendreFocus(o, r);
   }
 
   if(openBtn) openBtn.addEventListener('click', open);
@@ -74131,7 +74198,7 @@ function navigateTo(chapId, panelId, onDone){
     btn.classList.toggle('visible', window.scrollY > 400);
   }, {passive:true});
   btn.addEventListener('click', ()=>{
-    window.scrollTo({top:0, behavior:'smooth'});
+    window.scrollTo({top:0, behavior:window.__reduceMotion ? 'auto' : 'smooth'});
   });
 })();
 
@@ -74149,6 +74216,10 @@ function navigateTo(chapId, panelId, onDone){
     // Ignorer si Ctrl/Cmd/Alt (sauf raccourcis existants gérés ailleurs)
     if(e.ctrlKey || e.metaKey || e.altKey) return;
     if(isTyping(e)) return;
+    // Focus dans une boîte (popover Thème, menus, fenêtres, feuille ⋯) : ses touches lui appartiennent
+    // (« n » ne change pas de chapitre derrière) ; seule « ? » referme l'aide des raccourcis
+    const boite = e.target && e.target.closest ? e.target.closest('[role="dialog"], [role="menu"]') : null;
+    if(boite && !(e.key === '?' && boite.closest('#key-help-modal'))) return;
 
     const chap = document.querySelector('.chapter.active');
     if(!chap) return;
@@ -74200,13 +74271,13 @@ function navigateTo(chapId, panelId, onDone){
 
   // Fenêtre « Raccourcis clavier » (gabarit .fen, SPEC §5.11) : « ? » l'ouvre ou la ferme ;
   // Échap, × ou clic sur le voile la ferment ; focus posé dans la fenêtre puis rendu.
-  let keyHelpOpener = null;
+  let keyHelpOpener = null, keyHelpRepli = null;
   function closeKeyHelp(){
     const modal = document.getElementById('key-help-modal');
     if(!modal || !modal.classList.contains('open')) return;
     modal.classList.remove('open');
-    const o = keyHelpOpener; keyHelpOpener = null;
-    if(o && document.contains(o) && o.getClientRects().length){ try { o.focus({ preventScroll:true }); } catch(e){} }
+    const o = keyHelpOpener, r = keyHelpRepli; keyHelpOpener = keyHelpRepli = null;
+    if(window.__rendreFocus) window.__rendreFocus(o, r);    // menu Plus refermé : son bouton ⋯
   }
   function showKeyHelp(){
     let modal = document.getElementById('key-help-modal');
@@ -74243,6 +74314,7 @@ function navigateTo(chapId, panelId, onDone){
       document.body.appendChild(modal);
     }
     keyHelpOpener = document.activeElement;
+    keyHelpRepli = window.__repliFocus ? window.__repliFocus(keyHelpOpener) : null;
     modal.classList.add('open');
     setTimeout(() => { const d = modal.querySelector('[role="dialog"]'); if(d && modal.classList.contains('open')) try { d.focus({ preventScroll:true }); } catch(e){} }, 30);
   }
@@ -74753,7 +74825,9 @@ document.addEventListener('keydown', e => {
 
     // Filtrer selon le mode
     if(mode === 'weak'){
-      all = all.filter(c => c.lastEval === null || c.lastEval === 0 || c.lastEval === 1);
+      // « Ciblé » = à revoir + hésitant SEULEMENT (comme annoncé, et comme le compteur du Bilan) :
+      // les cartes jamais vues n'y entrent plus (2 444 cartes lancées pour 9 notées)
+      all = all.filter(c => c.lastEval === 0 || c.lastEval === 1);
     } else if(mode === 'new'){
       all = all.filter(c => c.lastEval === null);
     }
@@ -74993,8 +75067,11 @@ document.addEventListener('keydown', e => {
     if(card){
       card.classList.toggle('is-verso', v);
       card.classList.remove('flipping');
-      card.setAttribute('aria-label', v ? 'Réponse affichée — toucher pour revoir la question seule' : 'Question — toucher pour afficher la réponse');
+      card.setAttribute('aria-labelledby', v ? 'quiz-question-rappel' : 'quiz-question-text');
     }
+    // Réponse annoncée au retournement (zone polie hors de la fiche)
+    const an = document.getElementById('quiz-annonce'), aT = document.getElementById('quiz-answer-text');
+    if(an) an.textContent = v && aT ? 'Réponse : ' + (aT.textContent || '').replace(/\s+/g, ' ').trim() : '';
     document.getElementById('quiz-actions-reveal').style.display = v ? 'none' : '';
     document.getElementById('quiz-actions-rate').style.display   = v ? '' : 'none';
     document.getElementById('quiz-actions-reread').style.display = v ? '' : 'none';
@@ -75131,7 +75208,7 @@ document.addEventListener('keydown', e => {
 
         // Scroll sur la meilleure section (ou la première par défaut)
         const target = (best && bestScore > 0) ? best : sections[0];
-        target.scrollIntoView({ behavior:'smooth', block:'start' });
+        target.scrollIntoView({ behavior:window.__reduceMotion ? 'auto' : 'smooth', block:'start' });
 
         // Highlight 1.8s
         const prev = target.style.transition;
@@ -75316,13 +75393,6 @@ document.addEventListener('keydown', e => {
     return (CHAP_DATA[mat] || []).some(g => g.items.some(it => it.year === year || it.year === 0));
   }
   function matieresForYear(year){ return MATS.filter(m => chaptersInYear(m, year)); }
-  function firstChapInYear(mat, year){
-    for(const g of (CHAP_DATA[mat] || [])){
-      const it = g.items.find(x => x.year === year || x.year === 0);
-      if(it) return it.id;
-    }
-    return null;
-  }
   function effectif(mat){
     let n = 0;
     (CHAP_DATA[mat] || []).forEach(g => g.items.forEach(it => { if(okYear(it)) n++; }));
@@ -75350,6 +75420,8 @@ document.addEventListener('keydown', e => {
     });
     const bar = $('mob-mat-bar');
     if(bar) bar.setAttribute('data-mat', currentMat);
+    const liste = $('mob-chap-list');
+    if(liste) liste.setAttribute('aria-labelledby', 'mat-tab-' + currentMat);   // panneau de l'intercalaire actif
   }
 
   /* ══ Récents, épinglés, repli des parties ══════════════════════════════
@@ -75465,8 +75537,9 @@ document.addEventListener('keydown', e => {
       const pin = document.createElement('button');
       pin.type = 'button';
       pin.className = 'mob-pin' + (p ? ' pinned' : '');
+      // bouton bascule : nom FIXE + aria-pressed (seuls l'icône et l'infobulle changent)
       pin.setAttribute('aria-pressed', p ? 'true' : 'false');
-      pin.setAttribute('aria-label', (p ? 'Désépingler ' : 'Épingler ') + item.label);
+      pin.setAttribute('aria-label', 'Épingler ' + item.label);
       pin.title = p ? 'Désépingler' : 'Épingler en tête de la navigation';
       pin.innerHTML = ic(p ? 'star-fill' : 'star');
       pin.addEventListener('click', e => {
@@ -75803,9 +75876,7 @@ document.addEventListener('keydown', e => {
   /* Piège de focus : tant que le tiroir est ouvert, Tab boucle à l'intérieur */
   $('mob-drawer').addEventListener('keydown', e => {
     if(e.key !== 'Tab' || !drawerOpen) return;
-    const focusables = Array.from($('mob-drawer')
-      .querySelectorAll('button:not([disabled]), input, [href], [tabindex]:not([tabindex="-1"])'))
-      .filter(x => x.getClientRects().length);
+    const focusables = window.__focusables($('mob-drawer'));
     if(!focusables.length) return;
     const first = focusables[0], last = focusables[focusables.length - 1];
     if(e.shiftKey && document.activeElement === first){ e.preventDefault(); last.focus(); }
@@ -75863,25 +75934,30 @@ document.addEventListener('keydown', e => {
   }, {passive:true});
 
   /* ── Année : 1ʳᵉ / 2ᵉ (ouvre le 1ᵉʳ chapitre de l'année dans la matière courante) ── */
+  /* Année atteinte AUTOMATIQUEMENT (chapitre de 2ᵉ année ouvert en 1ʳᵉ année : filtre, recherche,
+     lien) : clé yearAuto = '1'. Revenir à un chapitre de 1ʳᵉ année ramène alors en 1ʳᵉ année (le
+     Bilan et le quiz ne couvrent plus en silence les deux années). Une année CHOISIE (segmenté)
+     efface la marque : un vrai élève de 2ᵉ année reste en 2ᵉ année sur un chapitre de 1ʳᵉ année. */
+  let anneeAuto = Store.get('yearAuto') === '1';
+  function marquerAnneeAuto(v){ anneeAuto = !!v; Store.set('yearAuto', v ? '1' : '0'); }
   function setYear(y){
     currentYear = (y === 2) ? 2 : 1;
     Store.set('year', String(currentYear));
+    marquerAnneeAuto(false);
     refreshYearButtons();
     refreshMatButtons();
   }
+  // Changer d'année ne change PAS le chapitre affiché (plus de saut vers le 1ᵉʳ chapitre de
+  // l'année, ni d'entrée parasite dans les Récents) : seule la liste suit ; préc./suiv. suivent
+  // déjà l'année courante.
   document.querySelectorAll('.mob-year-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       const y = (parseInt(btn.dataset.year) === 2) ? 2 : 1;
-      if(y === currentYear && !sommaireOuvert) return;
+      if(y === currentYear && !sommaireOuvert){ marquerAnneeAuto(false); return; }
       setYear(y);
       if(sommaireOuvert){ rendreSommaire(currentMat); buildDrawerList(currentMat); return; }
       buildDrawerList(currentMat);
-      const id = firstChapInYear(currentMat, currentYear);
-      if(id){
-        const cb = document.querySelector('.chap-btn[data-chap="' + id.replace('chap-', '') + '"]');
-        if(cb) cb.click();
-        updateMobTitle();
-      }
+      updateMobTitle();
     });
   });
 
@@ -76195,6 +76271,12 @@ document.addEventListener('keydown', e => {
     buildDrawerList(currentMat);
     rendreBarre(true);
     if(!depuisUrl && window.__syncHash) window.__syncHash();
+    // Ouvert à la main (fil d'Ariane, intercalaire actif) : le chapitre d'où l'on vient se masque,
+    // le focus passe sur le titre du Sommaire (sinon il tombait sur <body>)
+    if(!depuisUrl){
+      const t = $('sommaire-matiere').querySelector('.ov-h');
+      if(t){ t.setAttribute('tabindex', '-1'); try { t.focus({ preventScroll:true }); } catch(e){ t.focus(); } }
+    }
     return true;
   }
   function fermerSommaire(majUrl){
@@ -76227,7 +76309,8 @@ document.addEventListener('keydown', e => {
         // de 1ʳᵉ année »), car la 2ᵉ année révise tout le programme.
         const bothYears = (c.matiere === 'anglais' || c.id === 'constantes');
         const y = (window.__YEAR2A && window.__YEAR2A.has(c.id)) ? 2 : 1;
-        if(!bothYears && y === 2 && currentYear !== 2){ currentYear = 2; Store.set('year', '2'); refreshYearButtons(); }
+        if(!bothYears && y === 2 && currentYear !== 2){ currentYear = 2; Store.set('year', '2'); marquerAnneeAuto(true); refreshYearButtons(); }
+        else if(!bothYears && y === 1 && currentYear === 2 && anneeAuto){ currentYear = 1; Store.set('year', '1'); marquerAnneeAuto(false); refreshYearButtons(); }
         if(c.matiere !== currentMat) currentMat = c.matiere;
         recordRecent(activeChap.id);   // historique « Récents » + écran Aujourd'hui
       }
@@ -76257,8 +76340,9 @@ document.addEventListener('keydown', e => {
     const majEpingle = () => {
       const b = $('mob-pin-btn'); if(!b) return;
       const id = activeChapId(), p = id && isPinned(id);
+      // bouton bascule : libellé FIXE « Épingler ce chapitre » + aria-pressed ; l'étoile pleine (ambre) dit l'état
       b.setAttribute('aria-pressed', p ? 'true' : 'false');
-      const l = b.querySelector('.ic-lbl'); if(l) l.textContent = p ? 'Désépingler ce chapitre' : 'Épingler ce chapitre';
+      const l = b.querySelector('.ic-lbl'); if(l) l.textContent = 'Épingler ce chapitre';
       const u = b.querySelector('use'); if(u) u.setAttribute('href', p ? '#i-star-fill' : '#i-star');
     };
     function open(){
@@ -76584,6 +76668,8 @@ document.addEventListener('keydown', e => {
       if(weak) weak.checked = true;
       const nbAll = document.querySelector('input[name="quiz-nb"][value="all"]');
       if(nbAll) nbAll.checked = true;
+      const tout = document.querySelector('input[name="quiz-type"][value="all"]');   // le compteur compte toutes les cartes
+      if(tout) tout.checked = true;
       ['qc-physique','qc-maths','qc-si','qc-info','qc-anglais'].forEach(id => { const c = document.getElementById(id); if(c) c.checked = true; });
       quizStart();
     });
@@ -76746,10 +76832,21 @@ document.addEventListener('keydown', e => {
   window.goRelChapter = goRelChapter;
   document.getElementById('prev-chap-btn')?.addEventListener('click', () => goRelChapter(-1));
   document.getElementById('next-chap-btn')?.addEventListener('click', () => goRelChapter(1));
+  // Alt+← / Alt+→ : jamais derrière une fenêtre (quiz, Aujourd'hui, Bilan, recherche, Formulaire,
+  // Sauvegarde…), la feuille ⋯, le tiroir en mode modal, ni depuis un menu / un champ : en
+  // refermant, on se retrouvait dans un autre chapitre
+  function boiteOuverte(e){
+    if(document.querySelector('.fen.open, .quiz-overlay.open, .dash-overlay.open, #mob-more-menu.open, .hdr-more-menu.open')) return true;
+    const d = document.getElementById('mob-drawer');
+    if(d && d.classList.contains('open') && !(window.matchMedia && window.matchMedia('(min-width:1200px)').matches)) return true;
+    const t = e.target;
+    return !!(t && t.closest && (t.closest('[role="dialog"], [role="menu"]') || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName) || t.isContentEditable));
+  }
   document.addEventListener('keydown', e => {
-    if(e.altKey && !e.ctrlKey && !e.metaKey && !e.shiftKey){
-      if(e.key === 'ArrowLeft'){ e.preventDefault(); goRelChapter(-1); }
-      else if(e.key === 'ArrowRight'){ e.preventDefault(); goRelChapter(1); }
+    if(e.altKey && !e.ctrlKey && !e.metaKey && !e.shiftKey && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')){
+      if(boiteOuverte(e)) return;
+      e.preventDefault();
+      goRelChapter(e.key === 'ArrowLeft' ? -1 : 1);
     }
   });
   // Désactiver ‹ au premier chapitre et › au dernier (ordre CHAPTERS)
@@ -76779,10 +76876,13 @@ document.addEventListener('keydown', e => {
 </script>
 
 <script>
-/* Lien d'évitement : place le focus sur le chapitre actif */
+/* Lien d'évitement : place le focus sur le contenu affiché — le Sommaire de la matière s'il est
+   ouvert, sinon le chapitre VISIBLE (deux .chapter.active au départ : filtre offsetParent) */
 document.getElementById('skip-link')?.addEventListener('click', e => {
   e.preventDefault();
-  const active = document.querySelector('.chapter.active');
+  const som = document.getElementById('sommaire-matiere');
+  const active = (som && !som.hidden) ? som
+    : Array.from(document.querySelectorAll('.chapter.active')).find(x => x.offsetParent !== null);
   if(active){
     active.setAttribute('tabindex', '-1');
     active.focus();
@@ -76932,7 +77032,8 @@ document.getElementById('skip-link')?.addEventListener('click', e => {
     document.addEventListener('click', e => { if(!menu.contains(e.target) && !btn.contains(e.target)) close(); });
     document.addEventListener('keydown', e => { if(e.key === 'Escape') close(); });
   }
-  /* « Dans ce chapitre » : sections du panneau affiché (1200–1359 px seulement) */
+  /* « Dans ce chapitre » : sections du panneau affiché, de 768 à 1359 px (en dessous du rail
+     droit ; sous 1200 px aussi, sinon le sommaire du chapitre disparaissait entre 1100 et 1199 px) */
   function dansCeChapitre(){
     const box = document.getElementById('more-toc');
     const list = box && box.querySelector('.more-toc-list');
@@ -76940,7 +77041,7 @@ document.getElementById('skip-link')?.addEventListener('click', e => {
     const w = window.innerWidth;
     const ch = Array.from(document.querySelectorAll('.chapter.active')).find(x => x.offsetParent !== null);
     const p = ch && ch.querySelector('.panel.active');
-    const secs = (w >= 1200 && w < 1360 && p) ? Array.from(p.querySelectorAll('.course-section')).filter(s => s.querySelector('h2')) : [];
+    const secs = (w >= 768 && w < 1360 && p) ? Array.from(p.querySelectorAll('.course-section')).filter(s => s.querySelector('h2')) : [];
     list.innerHTML = '';
     if(secs.length < 2){ box.hidden = true; return; }
     secs.forEach((s, k) => {
@@ -76953,7 +77054,7 @@ document.getElementById('skip-link')?.addEventListener('click', e => {
       // titre de section en casse de phrase (« §2 Mise en équation »), comme le sommaire ; à défaut, le h2
       const t = (m && m[2] && window.__casPhrase) ? window.__casPhrase(m[2], s) : s.querySelector('h2').textContent.trim();
       b.innerHTML = '<span class="n">' + esc(m ? m[1].replace(/\s+/g, '') : '§' + (k + 1)) + '</span><span>' + esc(t) + '</span>';
-      b.addEventListener('click', () => s.scrollIntoView({ behavior:'smooth', block:'start' }));
+      b.addEventListener('click', () => s.scrollIntoView({ behavior:window.__reduceMotion ? 'auto' : 'smooth', block:'start' }));
       list.appendChild(b);
     });
     box.hidden = false;
@@ -77048,7 +77149,6 @@ document.getElementById('skip-link')?.addEventListener('click', e => {
    l'overlay ouvert. (La recherche gère déjà son propre focus.) */
 (function(){
   var IDS = ['quiz-overlay','dash-overlay','drill-overlay','backup-overlay','formula-overlay','flag-overlay','today-overlay'];
-  var FOCUSABLE = 'button,[href],input,select,textarea,[tabindex]:not([tabindex="-1"])';
   /* getClientRects (et non offsetParent, qui vaut null pour les éléments
      position:fixed — ex. boutons de l'en-tête mobile) */
   function visible(el){ return !!(el && el.getClientRects && el.getClientRects().length); }
@@ -77061,6 +77161,7 @@ document.getElementById('skip-link')?.addEventListener('click', e => {
       if(open && !ov.__wasOpen){
         ov.__wasOpen = true;
         ov.__opener = document.activeElement;
+        ov.__repli = window.__repliFocus(ov.__opener);   // ouvert depuis un menu / la feuille ⋯ / la page Chapitres
         setTimeout(function(){
           if(!ov.classList.contains('open')) return;
           var dlg = ov.querySelector('[role="dialog"]') || ov;
@@ -77069,8 +77170,10 @@ document.getElementById('skip-link')?.addEventListener('click', e => {
         }, 60);
       } else if(!open && ov.__wasOpen){
         ov.__wasOpen = false;
-        var op = ov.__opener; ov.__opener = null;
-        if(op && document.contains(op) && visible(op)){ try{ op.focus(); }catch(_){} }
+        var op = ov.__opener, repli = ov.__repli; ov.__opener = ov.__repli = null;
+        // (élément d'origine masqué avec son menu : le bouton qui ouvre ce menu)
+        if(!ov.contains(document.activeElement) && document.activeElement !== document.body && document.activeElement) return;
+        window.__rendreFocus(op, repli);
       }
     });
     obs.observe(ov, {attributes:true, attributeFilter:['class']});
@@ -77085,7 +77188,7 @@ document.getElementById('skip-link')?.addEventListener('click', e => {
       if(el && el.classList.contains('open')){ ov = el; break; }
     }
     if(!ov) return;
-    var f = Array.prototype.filter.call(ov.querySelectorAll(FOCUSABLE), visible);
+    var f = window.__focusables(ov);
     if(!f.length) return;
     var first = f[0], last = f[f.length - 1];
     var active = document.activeElement;
@@ -77332,7 +77435,27 @@ document.getElementById('skip-link')?.addEventListener('click', e => {
     var p = (max > min && isFinite(v)) ? Math.min(100, Math.max(0, (v - min) / (max - min) * 100)) : 50;
     inp.style.setProperty('--p', p.toFixed(2) + '%');
   }
-  function curseurs(root){ root.querySelectorAll('input[type="range"]').forEach(majCurseur); }
+  /* Nom accessible des curseurs (aucun <label for> dans les 87 simulateurs) : le libellé voisin
+     de la .control (aria-labelledby), et la valeur affichée avec son unité (#<id>-val, ou la
+     .value de la .control) en aria-valuetext — sinon un lecteur d'écran dit « curseur, 20 ». */
+  var nCurseurs = 0;
+  function nommerCurseur(inp){
+    if(inp.__nomme) return;
+    inp.__nomme = true;
+    if(inp.hasAttribute('aria-label') || inp.hasAttribute('aria-labelledby') || (inp.labels && inp.labels.length)) return;
+    var ctl = inp.closest('.control'), lab = ctl && ctl.querySelector('label');
+    if(!lab) return;
+    if(!lab.id) lab.id = (inp.id || ('curseur-' + (++nCurseurs))) + '-lab';
+    inp.setAttribute('aria-labelledby', lab.id);
+  }
+  function valeurCurseur(inp){
+    var v = (inp.id && document.getElementById(inp.id + '-val')) || (inp.closest('.control') && inp.closest('.control').querySelector('.value'));
+    var t = v ? (v.textContent || '').replace(/\s+/g, ' ').trim() : '';
+    if(t && inp.getAttribute('aria-valuetext') !== t) inp.setAttribute('aria-valuetext', t);
+  }
+  function curseurs(root){
+    root.querySelectorAll('input[type="range"]').forEach(function(inp){ majCurseur(inp); nommerCurseur(inp); valeurCurseur(inp); });
+  }
   function boutonDefaut(wrap){
     var sc = wrap.querySelector(':scope > .sim-controls');
     if(!sc || sc.querySelector('.sim-reset')) return;
@@ -77363,7 +77486,7 @@ document.getElementById('skip-link')?.addEventListener('click', e => {
   }
   document.addEventListener('input', sur(function(e){
     var t = e.target;
-    if(t && t.type === 'range') majCurseur(t);
+    if(t && t.type === 'range'){ majCurseur(t); raf(sur(function(){ valeurCurseur(t); })); }   // (valeur écrite par le simulateur après nous)
   }), true);
   // Un mode de simulateur peut changer des curseurs par programme : resynchroniser après le clic
   document.addEventListener('click', sur(function(e){
@@ -77942,10 +78065,10 @@ document.getElementById('skip-link')?.addEventListener('click', e => {
     const b = ch && ch.querySelector(':scope > .chap-title-banner [data-ctb="epingler"]');
     if(!b || !window.__isPinned) return;
     const p = !!window.__isPinned(ch.id);
-    const t = p ? 'Désépingler le chapitre' : 'Épingler le chapitre';
+    // bouton bascule : nom FIXE + aria-pressed ; seule l'infobulle dit l'action
     b.setAttribute('aria-pressed', p ? 'true' : 'false');
-    b.setAttribute('aria-label', t);
-    b.title = t;
+    b.setAttribute('aria-label', 'Épingler le chapitre');
+    b.title = p ? 'Désépingler le chapitre' : 'Épingler le chapitre';
     const u = b.querySelector('use');
     if(u) u.setAttribute('href', p ? '#i-star-fill' : '#i-star');
   }

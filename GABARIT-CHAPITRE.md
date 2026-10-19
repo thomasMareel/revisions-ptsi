@@ -242,12 +242,12 @@ Un simulateur est un dessin sur un `<canvas>` piloté par des curseurs. Le plus 
   <p class="lead">Une phrase qui dit ce qu'on observe en bougeant les curseurs.</p>
   <div class="sim-controls">
     <div class="control">
-      <label>Paramètre a</label>
+      <label for="mon-a">Paramètre a</label>
       <input type="range" id="mon-a" min="0" max="10" step="0.1" value="2">
       <span class="value" id="mon-a-val">2</span>
     </div>
     <div class="control">
-      <label>Animer</label>
+      <label for="mon-anim">Animer</label>
       <input type="checkbox" id="mon-anim" style="width:auto;align-self:start">
       <span class="value" id="mon-anim-val">non</span>
     </div>
