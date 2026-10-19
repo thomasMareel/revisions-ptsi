@@ -2003,6 +2003,12 @@ figure.schema.defile, .cine-svg-wrap.defile{ overflow-x:auto; overflow-y:hidden;
   grid-auto-flow:row; grid-template-columns:repeat(auto-fit, minmax(5.75rem, 1fr));   /* 4-5 modes : sur deux rangées */
 }
 .sim-wrapper > .mode-switch > button{ padding:.35rem .4rem; line-height:1.15; }
+/* 4 modes : 2 × 2 ; 5 modes : 3 + 2, la 2ᵉ rangée centrée (6 colonnes, chaque mode en couvre 2) —
+   auto-fit laissait un mode seul sur sa rangée (slci) ou des cases vides (filtres) */
+.sim-wrapper > .mode-switch:has(> :nth-child(4):last-child){ grid-template-columns:repeat(2, minmax(0, 1fr)); }
+.sim-wrapper > .mode-switch:has(> :nth-child(5):last-child){ grid-template-columns:repeat(6, minmax(0, 1fr)); }
+.sim-wrapper > .mode-switch:has(> :nth-child(5):last-child) > button{ grid-column:span 2; }
+.sim-wrapper > .mode-switch:has(> :nth-child(5):last-child) > button:nth-child(4){ grid-column:2 / span 2; }
 .sim-wrapper > .regime-badge{ grid-area:badge; justify-self:start; align-self:center; }
 .sim-wrapper > .sim-controls{ grid-area:reglages; }
 .sim-wrapper > .sim-info{ grid-area:info; }
@@ -2012,7 +2018,10 @@ figure.schema.defile, .cine-svg-wrap.defile{ overflow-x:auto; overflow-y:hidden;
    lit getBoundingClientRect() et redimensionne la toile (devicePixelRatio). */
 .sim-wrapper > canvas{
   grid-area:scene; display:block; width:100%; height:var(--h, 380px);
-  border:1px solid var(--line); border-radius:var(--r-l); background:var(--sheet);
+  /* liseré en contour INTÉRIEUR, pas en bordure : la toile est dessinée à la taille de sa boîte
+     bordure (resizeCanvas : getBoundingClientRect) ; avec 1 px de bordure, l'image (648 × 380)
+     était rééchantillonnée dans 646 × 378 et grille et étiquettes devenaient floues */
+  border:0; outline:1px solid var(--line); outline-offset:-1px; border-radius:var(--r-l); background:var(--sheet);
 }
 #tr-canvas{ --h:560px; }
 #stat-canvas, #cc-canvas, #es-canvas, #cpx-canvas, #cine-canvas{ --h:480px; }
@@ -2110,9 +2119,16 @@ figure.schema.defile, .cine-svg-wrap.defile{ overflow-x:auto; overflow-y:hidden;
 .sim-info > div{
   min-width:0; padding:.7rem .85rem; border-radius:var(--r-m); background:var(--sunk);
   font:var(--w-semi) calc(1.25rem * var(--zl))/1.15 var(--font-text); font-variant-numeric:lining-nums tabular-nums; color:var(--text);
-  overflow-wrap:anywhere;
+  overflow-wrap:break-word; hyphens:auto; -webkit-hyphens:auto;   /* (anywhere coupait « Automorphis|me ») */
 }
+/* tuile dont la valeur est une phrase (> 18 signes, classe .long posée par le script CONTENU) :
+   corps de lecture, sur deux lignes au plus le plus souvent (et non 3 ou 4 lignes de 20 px) */
+.sim-info > div.long{ font:var(--w-medium) var(--fs-small)/1.3 var(--font-text); }
 .sim-info .lbl{ display:block; margin-bottom:.3rem; font:var(--w-medium) var(--fs-ui-xs)/1.2 var(--font-ui); color:var(--text-3); }
+.sim-info .lbl .g{ font:italic var(--w-regular) 1.08em/1 var(--font-text); }   /* grandeur : serif italique (« ω₀ ») */
+.sim-info sub, .regime-badge sub, .control sub, .sim-info sup, .regime-badge sup, .control sup{ font-size:.72em; line-height:0; position:relative; vertical-align:baseline; }
+.sim-info sub, .regime-badge sub, .control sub{ bottom:-.25em; }
+.sim-info sup, .regime-badge sup, .control sup{ top:-.45em; }
 
 /* Simulateur SVG de Lorentz (hors CHAPTERS, DOM et styles inline gardés) : lisible dans les deux thèmes */
 #lor-simu label{ color:var(--text-2); font-family:var(--font-ui); }
@@ -5609,10 +5625,10 @@ window.__rendreFocus = function(op, repli){
   <canvas id="sim-canvas"></canvas>
   
   <div class="sim-info">
-    <div><span class="lbl">ω₀</span><span id="info-w0">—</span></div>
-    <div><span class="lbl">f₀</span><span id="info-f0">—</span></div>
-    <div><span class="lbl">Q</span><span id="info-Q">—</span></div>
-    <div><span class="lbl">τ ou Δω</span><span id="info-tau">—</span></div>
+    <div><span class="lbl">Pulsation propre <span class="g">ω₀</span></span><span id="info-w0">—</span></div>
+    <div><span class="lbl">Fréquence propre <span class="g">f₀</span></span><span id="info-f0">—</span></div>
+    <div><span class="lbl">Facteur de qualité <span class="g">Q</span></span><span id="info-Q">—</span></div>
+    <div><span class="lbl" id="info-tau-lbl">Constante de temps <span class="g">τ</span></span><span id="info-tau">—</span></div>
   </div>
 </div>
 </section>
@@ -62599,6 +62615,47 @@ function typesetPanel(panel){
   }
 }
 
+/* Nombres à la française (simulateurs) : virgule décimale, espace fine insécable des milliers
+   (dès 4 chiffres : « 1 414 rad/s »), signe moins U+2212, notation scientifique « 1,0 × 10⁵¹ ».
+   window.__nb(x, déc) formate un nombre ; window.__nbTexte(texte) reformate un texte déjà écrit
+   (idempotent : appliqué aux mesures des 27 simulateurs par le script CONTENU). */
+(function(){
+  const EXP = { '0':'⁰', '1':'¹', '2':'²', '3':'³', '4':'⁴', '5':'⁵', '6':'⁶', '7':'⁷', '8':'⁸', '9':'⁹', '-':'⁻' };
+  const NNBSP = '\u202f', MOINS = '\u2212';
+  const grouper = ent => ent.length >= 4 ? ent.replace(/\B(?=(\d{3})+(?!\d))/g, NNBSP) : ent;
+  const exposant = n => String(n).replace(/[-\d]/g, c => EXP[c]);
+  window.__nb = function(x, dec){
+    if(typeof x !== 'number' || !isFinite(x)) return x === Infinity ? '∞' : x === -Infinity ? MOINS + '∞' : '—';
+    dec = Math.max(0, dec | 0);
+    let t = Math.abs(x).toFixed(dec);
+    if(+t === 0) return (0).toFixed(dec).replace('.', ',');
+    const i = t.indexOf('.');
+    t = i < 0 ? grouper(t) : grouper(t.slice(0, i)) + ',' + t.slice(i + 1);
+    return (x < 0 ? MOINS : '') + t;
+  };
+  window.__nbTexte = function(s){
+    if(!s || !/\d/.test(s)) return s;
+    // notation scientifique (toExponential) : 9.09e-13 → 9,09 × 10⁻¹³ ; 0.00e+0 → 0
+    s = s.replace(/(^|[^\w.])([-−]?)(\d+(?:[.,]\d+)?)e([+-]?\d+)(?![\w])/gi, (m, av, sg, man, e) => {
+      if(/^0([.,]0+)?$/.test(man)) return av + '0';
+      const n = parseInt(e, 10), mf = man.replace('.', ',');
+      return av + (sg ? MOINS : '') + mf + (n ? NNBSP + '×' + NNBSP + '10' + exposant(n) : '');
+    });
+    // listes de nombres à virgule décimale : séparateur « ; » entre parenthèses (coordonnées),
+    // espace élargie entre crochets (colonnes d'une matrice ; « ; » y sépare les lignes)
+    if(/\d\.\d/.test(s)){
+      s = s.replace(/\(([^()]*)\)/g, (m, c) => /\d\.\d/.test(c) ? '(' + c.replace(/(\d),\s*(?=[-−+]?\d)/g, '$1 ; ') + ')' : m);
+      s = s.replace(/\[([^\[\]]*)\]/g, (m, c) => /\d\.\d/.test(c) ? '[' + c.replace(/(\d),\s*(?=[-−+]?\d)/g, '$1\u2002 ').replace(/(\d);\s*/g, '$1 ; ') + ']' : m);
+    }
+    // décimales : point entre chiffres → virgule, milliers groupés ; entiers longs groupés
+    s = s.replace(/(^|[^\w.,\u202f])(\d+)[.,](\d+)(?![\d.,]*[.,]\d)/g, (m, av, ent, dec) => av + grouper(ent) + ',' + dec);
+    s = s.replace(/(^|[^\w.,\u202f])(\d{4,})(?![\d.,])/g, (m, av, ent) => av + grouper(ent));
+    // signe moins : trait d'union devant un nombre (ou entre deux termes : « |S - S_N| »)
+    s = s.replace(/(^|[\s(\[=:;,\/×·≈<>≤≥±|])-(?=[\d.,∞])/g, '$1' + MOINS).replace(/(\s)-(\s)/g, '$1' + MOINS + '$2');
+    return s;
+  };
+})();
+
 /* Haut de page instantané : html a « scroll-behavior:smooth », on force 'instant'
    (repli : scrollTo(0, 0) pour les navigateurs qui refusent l'objet d'options). */
 function scrollPageTop(){
@@ -62943,30 +63000,32 @@ function drawSim(){
   ctx.stroke();
   
   let regime, regimeClass;
-  if(Q < 0.5){regime = 'Apériodique · Q = '+Q.toFixed(2)+' < 0,5';regimeClass='aperiodique'}
+  const nb = window.__nb || ((x, d) => x.toFixed(d));
+  if(Q < 0.5){regime = 'Apériodique · Q = '+nb(Q,2)+' < 0,5';regimeClass='aperiodique'}
   else if(Math.abs(Q-0.5) < 0.02){regime = 'Critique · Q ≈ 0,5';regimeClass='critique'}
-  else{regime = `Pseudo-périodique · Q = ${Q.toFixed(2)}`;regimeClass='pseudo'}
-  
-  if(mode==='libre'){
-    drawLibre(W,H,padL,padR,padT,padB,y0,{R,L,C,w0,Q,tau});
-    document.getElementById('info-tau').textContent = (tau*1000).toFixed(2)+' ms (τ)';
-  } else if(mode==='echelon'){
-    drawEchelon(W,H,padL,padR,padT,padB,y0,{R,L,C,w0,Q,tau});
-    document.getElementById('info-tau').textContent = (tau*1000).toFixed(2)+' ms (τ)';
+  else{regime = 'Pseudo-périodique · Q = '+nb(Q,2);regimeClass='pseudo'}
+
+  const lblTau = document.getElementById('info-tau-lbl');
+  if(mode==='libre' || mode==='echelon'){
+    if(mode==='libre') drawLibre(W,H,padL,padR,padT,padB,y0,{R,L,C,w0,Q,tau});
+    else drawEchelon(W,H,padL,padR,padT,padB,y0,{R,L,C,w0,Q,tau});
+    if(lblTau && lblTau.__m !== 't'){ lblTau.__m = 't'; lblTau.innerHTML = 'Constante de temps <span class="g">τ</span>'; }
+    document.getElementById('info-tau').textContent = nb(tau*1000, 1)+' ms';
   } else {
     drawForced(W,H,padL,padR,padT,padB,y0,{R,L,C,F,w0,Q,tau});
-    regime = `Régime forcé · f₀ = ${(w0/(2*Math.PI)).toFixed(0)} Hz`;
+    regime = 'Régime forcé · f₀ = '+nb(w0/(2*Math.PI), 0)+' Hz';
     regimeClass = 'pseudo';
-    document.getElementById('info-tau').textContent = (w0/Q).toFixed(0)+' rad/s (Δω)';
+    if(lblTau && lblTau.__m !== 'b'){ lblTau.__m = 'b'; lblTau.innerHTML = 'Bande passante <span class="g">Δω</span>'; }
+    document.getElementById('info-tau').textContent = nb(w0/Q, 0)+' rad/s';
   }
   
   const badge = document.getElementById('regime-display');
   badge.textContent = regime;
   badge.className = 'regime-badge ' + regimeClass;
   
-  document.getElementById('info-w0').textContent = w0.toFixed(0)+' rad/s';
-  document.getElementById('info-f0').textContent = (w0/(2*Math.PI)).toFixed(1)+' Hz';
-  document.getElementById('info-Q').textContent = Q.toFixed(3);
+  document.getElementById('info-w0').textContent = nb(w0, 0)+' rad/s';
+  document.getElementById('info-f0').textContent = nb(w0/(2*Math.PI), 0)+' Hz';
+  document.getElementById('info-Q').textContent = nb(Q, 2);
 }
 
 function drawLibre(W,H,padL,padR,padT,padB,y0,p){
@@ -73366,10 +73425,11 @@ const ppmFlash = makeFlash(ppmCards,'ppm','ppm-flash-content','ppm-flash-prog','
     let l=(xmin+xmax)/2; for(let i=0;i<200;i++){ const nl=f(l); if(!isFinite(nl))break; l=nl; }
     const h=1e-4, fp=Math.abs((f(l+h)-f(l-h))/(2*h));
     const conv = fp<1 && isFinite(l);
-    const ucur=u[Math.min(steps,N)];
+    const kCur=Math.min(Math.floor(steps),N);   // animation par pas fractionnaires : terme d'indice ENTIER
+    const ucur=u[kCur];
     $('suit-info-l').textContent = isFinite(l)? fmt(l,4) : 'pas de convergence simple';
     $('suit-info-fp').textContent = isFinite(fp)? fmt(fp,3)+(fp<1?'  < 1 → attractif':'  > 1 → répulsif') : '—';
-    $('suit-info-un').textContent = 'u_'+Math.min(steps,N)+' = '+fmt(ucur,5);
+    $('suit-info-un').textContent = 'u_'+kCur+' = '+fmt(ucur,5);
     $('suit-info-cv').textContent = conv ? (Math.abs(ucur-l)<1e-3?'convergé vers ℓ':'converge vers ℓ') : ($('suit-f').value==='logistique' ? 'régime non convergent (cycle/chaos selon r)' : 'divergence');
     $('suit-info-detail').innerHTML = $('suit-f').value==='logistique'
       ? 'Logistique r='+fmt(+$('suit-r').value,2)+' : converge pour r≲3, cycle de période 2 vers 3,2, doublements puis chaos vers 3,57+.'
@@ -77946,6 +78006,59 @@ document.getElementById('skip-link')?.addEventListener('click', e => {
     if(w) raf(sur(function(){ curseurs(w); }));
   }));
 
+  /* ---------- 7 bis. Nombres et indices des mesures, valeurs et badges des simulateurs ----------
+     Les 27 simulateurs écrivent leurs mesures en notation informatique (« 1414 », « 3.536 »,
+     « -1.500 », « 1.0e+51 ») ou à la française selon le cas, et des indices bruts (« ω_c »,
+     « Q_ch », « θ_min »). Un seul observateur par simulateur (posé à son premier affichage)
+     reformate chaque texte écrit : nombres à la française (window.__nbTexte), indices « x_y »
+     en <sub> ; tuile longue (phrase) en corps plus petit (.long). Idempotent : sa propre écriture
+     ne change plus rien au passage suivant. */
+  var SEL_NOMBRES = '.sim-info > div, .regime-badge, .control .value, .control > label, .control > span[id$="-val"]';
+  // indice « x_y », « x_{…} » → <sub> ; exposant « e^(…) », « x^2 » → <sup>
+  var RE_INDICE = /([A-Za-zÀ-ÖØ-öø-ÿα-ωΑ-Ω'′])([_^])(\{[^{}]+\}|\([^()]+\)|[0-9A-Za-zÀ-ÖØ-öø-ÿα-ω]+)/;
+  function indicesEnSub(t){
+    var m, n = t;
+    while(n && n.nodeType === 3 && (m = RE_INDICE.exec(n.nodeValue))){
+      var debut = m.index + m[1].length, fin = m.index + m[0].length;
+      var apres = n.splitText(fin), idx = n.splitText(debut);   // n = avant « x », idx = « _y »
+      var el = document.createElement(m[2] === '^' ? 'sup' : 'sub');
+      el.textContent = m[3].replace(/^[{(]|[})]$/g, '');
+      idx.parentNode.replaceChild(el, idx);
+      n = apres;
+    }
+  }
+  function formaterNombres(zone){
+    if(!zone || !window.__nbTexte) return;
+    var textes = [], w = document.createTreeWalker(zone, NodeFilter.SHOW_TEXT);
+    while(w.nextNode()) textes.push(w.currentNode);
+    textes.forEach(function(t){
+      if(t.parentNode && /^SU[BP]$/.test(t.parentNode.nodeName)) return;
+      var v = window.__nbTexte(t.nodeValue);
+      if(v !== t.nodeValue) t.nodeValue = v;
+      if(/[_^]/.test(t.nodeValue)) indicesEnSub(t);
+    });
+    if(zone.parentNode && zone.parentNode.classList && zone.parentNode.classList.contains('sim-info')){
+      var val = zone.lastElementChild || zone;
+      var long = (val.textContent || '').trim().length > 18;
+      if(long !== zone.classList.contains('long')) zone.classList.toggle('long', long);
+    }
+  }
+  function nombresSimulateur(wrap){
+    if(wrap.__nombres) return;
+    wrap.__nombres = true;
+    wrap.querySelectorAll(SEL_NOMBRES).forEach(formaterNombres);
+    if(typeof MutationObserver !== 'function') return;
+    new MutationObserver(sur(function(recs){
+      var zones = [];
+      recs.forEach(function(r){
+        var n = r.target.nodeType === 1 ? r.target : r.target.parentNode;
+        var z = n && n.closest ? n.closest(SEL_NOMBRES) : null;
+        if(z && wrap.contains(z) && zones.indexOf(z) < 0) zones.push(z);
+      });
+      zones.forEach(formaterNombres);
+    })).observe(wrap, { subtree: true, childList: true, characterData: true });
+  }
+
   /* ---------- 8. Toiles des simulateurs : redessinées quand leur taille affichée change ----------
      Chaque drawFn cale la toile sur sa taille affichée AU MOMENT de l'appel (resizeCanvas →
      getBoundingClientRect). Or la feuille s'élargit APRÈS le clic sur l'onglet (data-onglet="simu"
@@ -78001,6 +78114,7 @@ document.getElementById('skip-link')?.addEventListener('click', e => {
       });
       outilsExos(panel);
       panel.querySelectorAll('.sim-wrapper').forEach(boutonDefaut);
+      panel.querySelectorAll('.sim-wrapper').forEach(nombresSimulateur);
       observerToiles(panel);
     }
     curseurs(panel);
