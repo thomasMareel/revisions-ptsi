@@ -2185,7 +2185,20 @@ figure.schema.defile, .cine-svg-wrap.defile{ overflow-x:auto; overflow-y:hidden;
    dessous) : « Afficher la réponse » et la notation restent visibles sans défiler dès 800 px de haut
    (fiche de 16 à 30 rem). Téléphone : voir le bloc @media de cette partie. */
 .chapter .flash-card{ height:clamp(16rem, calc(100dvh - 32rem), 30rem); min-height:0; }
+/* Onglet Cartes (ordinateur et tablette) : intercalaire compact (sans la ligne méta, haut réduit),
+   la fiche gagne ces 3,25 rem — une réponse de deux lignes sous sa formule tient sans défiler à
+   800 px de haut, et la notation reste au même endroit. */
+@media (min-width:768px){
+  .chapter[data-onglet="flash"] > .chap-title-banner{ padding-top:1.25rem; }
+  .chapter[data-onglet="flash"] > .chap-title-banner .ctb-meta{ display:none; }
+  .chapter[data-onglet="flash"] .flash-card{ height:clamp(16rem, calc(100dvh - 28.75rem), 30rem); }
+}
 .chapter .flash-side{ min-height:0; overflow-y:auto; overscroll-behavior:contain; scrollbar-width:thin; }
+/* face qui déborde : fondu en bas tant qu'il reste à lire (flashRepereDefil) ; masque d'opacité seule */
+.chapter .flash-side.suite-b{
+  -webkit-mask-image:linear-gradient(to top, transparent, currentColor 2.25rem);
+  mask-image:linear-gradient(to top, transparent, currentColor 2.25rem);
+}
 .flash-card:focus-visible{ outline:2px solid var(--focus); outline-offset:2px; }
 /* En-tête : badges matière (ou chapitre), type, dernière note ; 🔊 à droite pour l'anglais */
 .fc-head{
@@ -63705,6 +63718,15 @@ function flashAjusterFormules(root){
     if(dispo > 0 && nat > dispo + 1) f.style.fontSize = Math.max(0.78, (dispo - 2) / nat).toFixed(3) + 'em';
   });
 }
+/* Face plus haute que la fiche (onglet Cartes : hauteur fixe, la face défile) : fondu en bas tant
+   qu'il reste à lire (.suite-b), tenu à jour au défilement — sinon la fin d'une longue réponse
+   (« Le condensateur est totalement chargé. ») restait cachée sous le pied, sans aucun repère. */
+function flashRepereDefil(face){
+  if(!face) return;
+  const maj = () => { face.classList.toggle('suite-b', face.scrollHeight - face.clientHeight - face.scrollTop > 2); };
+  if(!face.__repereDefil){ face.__repereDefil = true; face.addEventListener('scroll', maj, { passive:true }); }
+  maj();
+}
 /* Libellés de l'aide du recto selon le pointeur (masqués en CSS par pointer:coarse/fine) */
 const FLASH_AIDE_HTML = (window.__icon ? window.__icon('clock') : '')
   + '<span class="fc-aide-doigt">Formule la réponse de tête, puis touche la carte.</span>'
@@ -63927,6 +63949,7 @@ function makeFlash(cards, idPrefix, contentId, progId, statsId){
     const q = isPlainDeck ? card.q : flashPretty(card.q);
     try { if(window.MathJax && MathJax.typesetClear) MathJax.typesetClear([c]); } catch(e){}
     c.classList.toggle('verso', flipped);
+    c.scrollTop = 0;   // nouvelle carte ou autre face : lecture depuis le haut
     if(!flipped){
       c.innerHTML = '<span class="tag">Question</span><div class="fc-q">' + q + '</div>';
     } else {
@@ -63947,8 +63970,8 @@ function makeFlash(cards, idPrefix, contentId, progId, statsId){
     }
     try {
       if(window.MathJax && window.MathJax.typesetPromise){
-        MathJax.typesetPromise([c]).then(() => { if(flipped){ flashAjusterFormules(c); annoncerReponse(); } }).catch(()=>{});
-      } else if(flipped) annoncerReponse();
+        MathJax.typesetPromise([c]).then(() => { if(flipped){ flashAjusterFormules(c); annoncerReponse(); } flashRepereDefil(c); }).catch(()=>{});
+      } else { if(flipped) annoncerReponse(); flashRepereDefil(c); }
     } catch(e) { /* MathJax not ready, ignore */ }
     updateStats();
     setFlagState();
