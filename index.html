@@ -1131,6 +1131,18 @@ html.sommaire-ouvert #app-main > main, html.sommaire-ouvert #chap-pager{ display
   .bsheet-theme .seg > button{ padding:0 .4rem; min-height:var(--tap); }
   .bsheet-theme .help{ margin:.15rem 0 .5rem 4.5rem; font:var(--w-regular) var(--fs-ui-xs)/1.4 var(--font-ui); color:var(--text-2); }
   .bsheet-theme .help b{ color:var(--text); font-weight:var(--w-semi); }
+  /* Écran de faible hauteur utile (iPhone SE sous Safari : 553 px ; Android d'entrée de gamme :
+     640 px) : entrées sur deux colonnes, Thème et Texte visibles sans défiler dans la feuille
+     (SPEC : « à portée du pouce » — la rangée Texte était cachée, Thème coupée) */
+  @media (max-height:700px){
+    #mob-more-menu.bsheet{ display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); column-gap:.5rem; align-content:start; }
+    .bsheet .grab, .bsheet-theme{ grid-column:1 / -1; }
+    .bsheet .menu-item{ min-height:var(--tap); gap:.6rem; font-size:var(--fs-ui-s); line-height:1.2; white-space:normal; text-align:left; }
+    .bsheet .menu-item .end:not(:has(.flag-badge)){ display:none; }   /* « exporter, importer » : le mot suffit */
+    .bsheet-theme{ padding-top:.6rem; }
+    .bsheet-theme .row{ min-height:var(--tap); }
+    .bsheet-theme .help{ margin-bottom:.25rem; }
+  }
 }
 
 /* ===================================================================
@@ -2394,7 +2406,9 @@ figure.schema.defile, .cine-svg-wrap.defile{ overflow-x:auto; overflow-y:hidden;
      du haut, région PAGE) : « Afficher la réponse » finit à ≈ 12 px du bas sur 390 × 844 */
   .flash-card{ min-height:max(17rem, calc(100dvh - 18rem)); }
   /* … calée sur la hauteur RÉELLE de la barre (56 px, 68 px quand le titre prend 2 lignes) */
-  .chapter .flash-card{ height:max(17rem, calc(100dvh - 14.5rem - var(--bar-h-reel, 3.5rem))); min-height:0; }
+  /* plancher de 15 rem : à 553 px de haut (iPhone SE sous Safari), avec une barre de 68 px (titre
+     sur 2 lignes), « Afficher la réponse » et la notation restaient coupés de 5 px en bas */
+  .chapter .flash-card{ height:max(15rem, calc(100dvh - 14.5rem - var(--bar-h-reel, 3.5rem))); min-height:0; }
 }
 
 /* --- 4. Gabarit des fenêtres de révision (quiz, Bilan, Aujourd'hui ; Calcul mental partage
@@ -74485,9 +74499,15 @@ function navigateTo(chapId, panelId, onDone){
     if(!r) return;
     close(false);
     const cible = r.el;
+    // section : on vise la section elle-même (son surtitre « §1 · … » au-dessus du titre restait à
+    // moitié sous les onglets collants) ; la 1re section d'un panneau : le haut du chapitre (y = 0)
+    const sec = r.kind === 'sec' && cible && cible.closest ? cible.closest('.course-section') : null;
     navigateTo(r.chap, r.panel, cible ? () => {
       if(!document.contains(cible)) return;
-      cible.scrollIntoView({ behavior:window.__reduceMotion ? 'auto' : 'smooth', block: r.kind === 'sec' ? 'start' : 'center' });
+      const doux = window.__reduceMotion ? 'auto' : 'smooth';
+      if(sec && sec.parentNode && sec.parentNode.querySelector('.course-section') === sec){
+        try { window.scrollTo({ top:0, behavior:doux }); } catch(e){ window.scrollTo(0, 0); }
+      } else (sec || cible).scrollIntoView({ behavior:doux, block: sec ? 'start' : 'center' });
       cible.classList.remove('cours-target-flash');
       void cible.offsetWidth;                      // relance l'animation
       cible.classList.add('cours-target-flash');
