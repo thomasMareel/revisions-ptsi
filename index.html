@@ -1830,6 +1830,9 @@ figure.schema.defile, .cine-svg-wrap.defile{ overflow-x:auto; overflow-y:hidden;
   -webkit-mask-image:linear-gradient(to right, transparent, currentColor 1.5rem, currentColor calc(100% - 1.5rem), transparent);
   mask-image:linear-gradient(to right, transparent, currentColor 1.5rem, currentColor calc(100% - 1.5rem), transparent);
 }
+/* Zone défilante focalisée au clavier (Chrome la rend focalisable) : le masque effaçait l'anneau
+   (découpe sur la boîte bordure). Sans masque, anneau tracé à l'intérieur : il signale la zone. */
+.suite-d:focus-visible, .suite-g:focus-visible{ -webkit-mask-image:none; mask-image:none; outline-offset:-2px; }
 /* Libellés blancs posés sur une pastille colorée (molécules, ions) : couleur de la feuille, lisible
    dans les deux thèmes (la pastille s'éclaircit en sombre) */
 .schema text[style*="fill:#fff"]{ fill:var(--sheet) !important; }
@@ -2216,6 +2219,7 @@ figure.schema.defile, .cine-svg-wrap.defile{ overflow-x:auto; overflow-y:hidden;
   -webkit-mask-image:linear-gradient(to top, transparent, currentColor 2.25rem);
   mask-image:linear-gradient(to top, transparent, currentColor 2.25rem);
 }
+.chapter .flash-side.suite-b:focus-visible, .quiz-card .flash-side.suite-b:focus-visible{ -webkit-mask-image:none; mask-image:none; outline-offset:-2px; }
 .flash-card:focus-visible{ outline:2px solid var(--focus); outline-offset:2px; }
 /* En-tête : badges matière (ou chapitre), type, dernière note ; 🔊 à droite pour l'anglais */
 .fc-head{
@@ -77679,7 +77683,11 @@ document.getElementById('skip-link')?.addEventListener('click', e => {
      Formule (en bloc, ou en ligne .mj-large) ou schéma (.defile) plus large que sa place : un
      fondu au bord indique qu'il reste à faire défiler (.suite-d à droite, .suite-g à gauche) ;
      tenu à jour au défilement par un seul écouteur (en capture : scroll ne remonte pas). */
-  var SEL_DEFILANTS = 'mjx-container[display="true"], mjx-container.mj-large, figure.schema.defile, .cine-svg-wrap.defile';
+  // … et blocs de code, tableaux larges (enveloppe défilante, ou tableau en bloc dans un encadré) :
+  // coupés net au bord sans repère, alors que les formules du même panneau en avaient un
+  var SEL_DEFILANTS = 'mjx-container[display="true"], mjx-container.mj-large, figure.schema.defile, .cine-svg-wrap.defile, '
+    + '.codeblock, .panel div[style*="overflow-x"], .def-box > table, .prop-box > table, .method-box > table, .notice > table';
+  try { if(CSS.supports('selector(:has(> table))')) SEL_DEFILANTS += ', .panel div:has(> table)'; } catch(e){}
   function lireDefilants(root){
     var res = [];
     root.querySelectorAll(SEL_DEFILANTS).forEach(function(el){
