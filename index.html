@@ -79222,6 +79222,7 @@ document.getElementById('skip-link')?.addEventListener('click', e => {
     if(!ch || !c){ root.classList.remove('rail-on'); return; }
     const nouveau = ch !== actuel;
     actuel = ch;
+    const ongletAvant = ch.getAttribute('data-onglet'), railAvant = root.classList.contains('rail-on');
     sur(enrichirBandeau)(ch, c);
     sur(enrichirOnglets)(ch, c);
     ch.setAttribute('data-onglet', ongletActif(ch));
@@ -79239,6 +79240,15 @@ document.getElementById('skip-link')?.addEventListener('click', e => {
     sur(sectionCourante)();
     sur(majCompteurs)();
     sur(majRail)(nouveau);
+    // Arrivée sur l'onglet Simulateur : la feuille vient de s'élargir (data-onglet="simu", rail
+    // retiré). Le gestionnaire de l'onglet a demandé le dessin à l'image suivante, qui pouvait
+    // passer AVANT cette mise à jour (toile calée sur l'ancienne largeur) ; l'observateur des
+    // toiles la rattrapait, mais deux images plus tard (toile étirée un instant, et plus longtemps
+    // sur une page chargée). On redessine donc ici, la largeur définitive étant posée.
+    if(ongletActif(ch) === 'simu' && (ongletAvant !== 'simu' || railAvant !== root.classList.contains('rail-on'))
+       && c.drawFn && typeof window[c.drawFn] === 'function'){
+      try { window[c.drawFn](); } catch(e){ /* dessin non bloquant */ }
+    }
   }
   const majPageSur = sur(majPage);
   let planifie = false;
