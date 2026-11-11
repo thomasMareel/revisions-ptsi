@@ -997,7 +997,13 @@ module.exports = {
       if (!t.un) pb.push('Entrée sur « Lire » (vidéo 1) ne crée pas le lecteur');
       if (t.deux || !t.apercu2) pb.push('la vidéo 2 reste lancée quand la vidéo 1 démarre');
       if (t.focus !== 'IFRAME') pb.push('focus après « Lire » : ' + t.focus + ' (le lecteur attendu)');
-      // Hors ligne : message, pas de lecteur
+      // Hors ligne : message, pas de lecteur. Les aperçus sont chargés à la demande (loading="lazy") :
+      // on les charge tous AVANT de couper le réseau, sinon un aperçu entrant dans la zone de
+      // chargement pendant le passage hors ligne échoue (requête du test, pas défaut du site).
+      await page.evaluate(() => Promise.all([...document.querySelectorAll('#thc-video .vid-lancer img')].map(i => {
+        i.loading = 'eager';
+        return i.complete ? 0 : new Promise(r => { i.addEventListener('load', r, { once: true }); i.addEventListener('error', r, { once: true }); });
+      })));
       await page.context().setOffline(true);
       await page.click('#thc-video-3 .vid-lancer');
       await pause(300);
