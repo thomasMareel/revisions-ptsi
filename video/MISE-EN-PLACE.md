@@ -6,10 +6,13 @@ cours vidéo ont besoin :
 - **A. la voix** : déposer la clé Mistral dans l'environnement cloud (2 minutes, possible au téléphone) ;
 - **B. YouTube** : autoriser l'envoi automatique des vidéos (20 minutes ; faisable au téléphone).
 
-**Où en est-on (2026-11-11)** : partie A **faite** ; partie B faite jusqu'à B4 (projet Google « Cours
-video PTSI », application « En production », client « Application de bureau » créé, `YT_CLIENT_ID` et
-`YT_CLIENT_SECRET` enregistrées sur l'environnement « revisions-ptsi » par le site claude.ai/code :
-l'application mobile n'offre pas ce réglage). Reste B5 à B8, dans une nouvelle session.
+**Où en est-on (2026-11-11)** : partie A **faite** ; partie B faite jusqu'à B7 (projet Google « Cours
+video PTSI », application « En production », client « Application de bureau » ; `YT_CLIENT_ID`,
+`YT_CLIENT_SECRET` et `YT_REFRESH_TOKEN` enregistrées sur l'environnement « revisions-ptsi » par le
+site claude.ai/code : l'application mobile n'offre pas ce réglage ; autorisation donnée sur la chaîne
+« La Vengeance en Prépa »). Reste, dans une nouvelle session : vérifier que l'autorisation durable
+fonctionne (`python3 video/commun/youtube.py test` → « Jeton durable : variable YT_REFRESH_TOKEN »),
+puis B8 (premier envoi réel).
 
 **Environnement cloud dédié « revisions-ptsi »** (personnel, créé le 2026-11-11 à la demande de
 Thomas) : il porte le secret réseau Mistral et portera les variables YouTube ; « Default » n'en a
@@ -153,6 +156,13 @@ python3 video/commun/youtube.py test      # attendu : « Accès YouTube : OK —
 
 Faire confirmer à Thomas que le nom affiché est bien celui de sa chaîne.
 
+**B5 et B6 faites le 2026-11-11** : variables bien formées, adresse `localhost` collée par Thomas,
+échange réussi du premier coup. Chaîne autorisée : « La Vengeance en Prépa ». Thomas l'a renommée
+lui-même ce jour-là : **l'API ne peut pas renommer une chaîne** (`channels.update` répond
+`channelTitleUpdateForbidden`, quelle que soit l'autorisation). Cela se fait dans l'application YouTube
+(photo de profil → la chaîne → crayon → Nom) ou sur studio.youtube.com (Personnalisation → Profil),
+**2 fois au plus tous les 14 jours** ; l'autorisation, liée à la chaîne et non à son nom, reste valable.
+
 **B7 — Rendre l'autorisation durable.** L'autorisation n'existe pour l'instant que dans cette
 session. Prévenir Thomas, puis :
 
@@ -164,6 +174,15 @@ Thomas recopie la valeur affichée dans une troisième variable de l'environneme
 `YT_REFRESH_TOKEN=<valeur>`. Lui dire clairement : cette valeur permet de gérer les vidéos de sa
 chaîne ; elle ne va nulle part ailleurs, et il peut la révoquer à tout moment sur
 <https://myaccount.google.com/permissions>. Les sessions suivantes fonctionneront sans rien refaire.
+
+**Fait le 2026-11-11**, avec un obstacle : en mode **Auto**, le contrôle de sécurité de Claude Code
+refuse `montrer-jeton` (affichage d'un identifiant), **même après l'accord de Thomas** dans la
+conversation. Solution retenue : Thomas passe le sélecteur de mode (à côté de la zone de saisie) sur
+**« Accept edits »**, la session relance la commande, Thomas l'autorise dans la demande qui s'affiche,
+puis remet « Auto ». La variable a été enregistrée par claude.ai/code ; son nom est vérifiable par
+l'outil d'environnement, sa valeur seulement par `youtube.py test` dans une **nouvelle** session.
+Repli si l'on ne veut pas afficher le jeton : pas de `YT_REFRESH_TOKEN`, et refaire B5-B6 (≈ 1 minute)
+dans chaque session qui envoie une vidéo.
 
 **B8 — Premier envoi réel : c'est le test.** Le script n'a été essayé que contre un faux serveur :
 le premier envoi valide tout. Depuis le dossier d'un chapitre assemblé :
