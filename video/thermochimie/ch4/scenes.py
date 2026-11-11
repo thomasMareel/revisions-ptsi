@@ -23,14 +23,15 @@ class S0(Cours):
         q1 = M(r"1\ \mathrm{m^3}\ \text{de gaz}", r"\;\longrightarrow\;", r"?\ \mathrm{kWh}", sc=0.85, color=BLEU).move_to([-2.9, 0.55, 0]); q1[2].set_color(JAUNE)
         q2 = M(r"T_{\text{flamme}}", r"\;=\;", r"?\ \mathrm{K}", sc=0.85, color=ORANGE).move_to([3.1, 0.55, 0]); q2[2].set_color(JAUNE)
         self.at(self.a("a1", "Un mètre cube"), Ecrire(VGroup(q1[0], q1[1]), rt=1.0))
-        self.at(self.a("a1", "Combien"), Ecrire(q1[2], rt=0.5))
+        self.at(self.a("a1", "Mais combien"), Ecrire(q1[2], rt=0.5))
         self.at(self.a("a2", "à quelle température"), Ecrire(q2, rt=1.0))
         items = []
         for k, (txt, col) in enumerate([(r"Réacteur isotherme : transfert thermique $Q$", BLEU), (r"Réacteur adiabatique : température finale", VERT),
-                                         (r"Température de flamme", ORANGE), (r"Simulation : l'emballement thermique", ROUGE)]):
-            y = -0.6 - 0.75*k
+                                         (r"Température de flamme", ORANGE), (r"Simulation : l'emballement thermique", ROUGE),
+                                         (r"Exercice résolu : la calorimétrie", JAUNE)]):
+            y = -0.5 - 0.68*k
             items.append(VGroup(carte(k+1, col, -3.6, y), pos(T(txt, sc=0.8), -3.0, y)))
-        for it, (sid, fr) in zip(items, [("a4", "la chaleur échangée"), ("a4", "la température atteinte"), ("a4", "et la température de flamme"), ("a5", "une simulation")]):
+        for it, (sid, fr) in zip(items, [("a4", "la chaleur échangée"), ("a4", "la température atteinte"), ("a4", "et la température de flamme"), ("a5", "une simulation"), ("a5", "un exercice résolu")]):
             self.jusqua(self.a(sid, fr)); self.play(Create(it[0][0]), FadeIn(it[0][1]), Ecrire(it[1], rt=0.6), run_time=0.6)
         self.at(self.a("a5", "C'est parti"), *[Indicate(it[0], color=JAUNE, scale_factor=1.2) for it in items], run_time=0.8)
         self.fin()
@@ -92,7 +93,7 @@ class S3(Cours):
         self.at(self.a("d2", "une approximation"), FadeIn(na), run_time=0.4); self.at(self.a("d2", "delta-r-H est égale"), Ecrire(ap, rt=1.2))
         j1 = pos(T(r"gaz parfait : $H$ ne dépend que de $T$ (pas de $P_i$)", sc=0.7, color=BLEU), -5.6, -0.15)
         j2 = pos(T(r"liquide, solide : $H$ dépend très peu de $P$", sc=0.7, color=BLEU), -5.6, -0.8)
-        self.at(self.a("d3", "L'enthalpie d'un gaz"), Ecrire(j1, rt=1.6)); self.at(self.t("d4") + 0.2, Ecrire(j2, rt=1.4))
+        self.at(self.a("d3", "l'enthalpie d'un gaz"), Ecrire(j1, rt=1.6)); self.at(self.t("d4") + 0.2, Ecrire(j2, rt=1.4))
         fi = M(r"\Delta H", r"\;=\;", r"\xi_F\,\Delta_r H^\circ(T)", sc=1.35).move_to([-1.0, -2.45, 0]); fi[2].set_color(VERT)
         self.at(self.a("d5", "delta H égale"), Ecrire(fi, rt=1.3)); self.play(Create(enc(fi, buff=0.25)), run_time=0.4)
         nf = T(r"$\xi_F$ : avancement final", sc=0.6, color=GRIS).next_to(fi, RIGHT, buff=0.7)
@@ -113,8 +114,8 @@ class S4(Cours):
         ex = pos(T(r"exothermique : $\Delta_r H^\circ < 0 \Rightarrow Q < 0$", sc=0.72, color=ROUGE), -6.4, 0.05)
         exn = pos(T(r"le système \textbf{cède} de la chaleur", sc=0.65, color=ROUGE), -6.0, -0.5)
         out = VGroup(*[Arrow(rea.get_center() + d*1.0, rea.get_center() + d*1.6, color=ROUGE, stroke_width=5, buff=0, max_tip_length_to_length_ratio=0.35) for d in [LEFT, RIGHT, DOWN]])
-        self.at(self.a("e3", "Pour une réaction exothermique"), Ecrire(ex, rt=1.4))
-        self.at(self.a("e3", "le système cède"), FadeIn(exn), *[GrowArrow(a) for a in out], run_time=0.7)
+        self.at(self.a("e3", "Réaction exothermique"), Ecrire(ex, rt=1.4))
+        self.at(self.a("e3", "Le système cède"), FadeIn(exn), *[GrowArrow(a) for a in out], run_time=0.7)
         en = pos(T(r"endothermique : $\Delta_r H^\circ > 0 \Rightarrow Q > 0$", sc=0.72, color=BLEU), -6.4, -1.35)
         enn = pos(T(r"le système \textbf{reçoit} de la chaleur", sc=0.65, color=BLEU), -6.0, -1.9)
         inn = VGroup(*[Arrow(rea.get_center() + d*1.6, rea.get_center() + d*1.0, color=BLEU, stroke_width=5, buff=0, max_tip_length_to_length_ratio=0.35) for d in [LEFT, RIGHT, DOWN]])
@@ -129,9 +130,9 @@ class S5(Cours):
     def construct(self):
         self.entete(r"4.3 -- Exemple : le chauffage au gaz", "1/4 · Réacteur isotherme")
         l1 = pos(T(r"$1\ \mathrm{m^3}$ de méthane, à $1$ bar et $298$ K", sc=0.8, color=BLEU), -6.3, 2.15)
-        self.ecr(self.a("f1", "on brûle"), l1, rt=1.3)
+        self.ecr(self.a("f1", "On brûle"), l1, rt=1.3)
         l2 = pos(M(r"n = \frac{PV}{RT} = \frac{10^5 \times 1}{8{,}314 \times 298}", r"\;=\; 40{,}3\ \mathrm{mol}", sc=0.8), -6.3, 1.2)
-        self.at(self.a("f2", "Avec la loi"), Ecrire(l2[0], rt=1.4)); self.at(self.a("f2", "cela représente"), Ecrire(l2[1], rt=0.7))
+        self.at(self.a("f2", "Avec la loi"), Ecrire(l2[0], rt=1.4)); self.at(self.a("f2", "cela fait"), Ecrire(l2[1], rt=0.7))
         eq = pos(M(ch("CH_4(g)") + r" + 2\," + ch("O_2(g)") + r"\longrightarrow " + ch("CO_2(g)") + r" + 2\," + ch("H_2O(l)"), sc=0.8), -6.3, 0.15)
         hs = pos(M(r"\Delta_r H^\circ = -393{,}5 + 2(-285{,}8) + 74{,}6", r"\;=\;-890{,}5\ \mathrm{kJ\cdot mol^{-1}}", sc=0.8), -6.3, -0.65); hs[1].set_color(ROUGE)
         self.at(self.a("f3", "La loi de Hess"), Ecrire(eq, rt=1.3)); self.at(self.a("f3", "avec de l'eau"), Ecrire(hs[0], rt=1.4))
@@ -142,7 +143,7 @@ class S5(Cours):
         self.at(self.a("f5", "Q égale"), Ecrire(VGroup(q[0], q[1]), rt=1.2)); self.at(self.a("f5", "environ dix"), Ecrire(q[2], rt=0.6))
         self.play(Create(enc(q, buff=0.2)), run_time=0.4)
         fac = T(r"facture de gaz : $\approx 10$ kWh par m$^3$", sc=0.65, color=VERT).move_to([0, -3.4, 0])
-        self.ecr(self.a("f6", "l'ordre de grandeur"), fac, rt=1.3)
+        self.ecr(self.a("f6", "ce que facturent"), fac, rt=1.3)
         self.fin()
 
 class S6(Cours):
@@ -150,7 +151,7 @@ class S6(Cours):
     def construct(self):
         self.entete(r"4.4 -- Réacteur adiabatique : chemin fictif", "2/4 · Réacteur adiabatique")
         l1 = pos(M(r"Q = 0", r"\;\Longrightarrow\;", r"\Delta H = 0", sc=1.0), -6.3, 2.15)
-        self.at(self.a("g1", "Il n'y a pas"), Ecrire(l1[0], rt=0.5)); self.at(self.a("g1", "donc delta H"), Ecrire(VGroup(l1[1], l1[2]), rt=0.7))
+        self.at(self.a("g1", "Aucun échange"), Ecrire(l1[0], rt=0.5)); self.at(self.a("g1", "donc delta H"), Ecrire(VGroup(l1[1], l1[2]), rt=0.7))
         l2 = pos(T(r"l'énergie libérée \textbf{chauffe} le contenu", sc=0.65, color=ORANGE), -6.3, 1.5)
         self.ecr(self.a("g2", "elle chauffe"), l2, rt=1.0)
         I = boite(T(r"\textbf{état initial}\\réactifs, $T_I$", sc=0.6), BLEU, BLEU, w=3.0, h=1.05).move_to([-4.6, -1.0, 0])
@@ -158,7 +159,7 @@ class S6(Cours):
         F = boite(T(r"\textbf{état final}\\système final, $T_F$", sc=0.6), ROUGE, ROUGE, w=3.0, h=1.05).move_to([1.4, 1.75, 0])
         reel = DashedLine(I.get_top() + UP*0.08, F.get_left() + LEFT*0.08, color=GRIS, stroke_width=3).add_tip(tip_length=0.2)
         tre = T(r"réel : $\Delta H = 0$", sc=0.55, color=GRIS).move_to([-3.4, 0.75, 0])
-        self.at(self.a("g3", "on suit un chemin"), FadeIn(I), FadeIn(F), run_time=0.6); self.play(Create(reel), FadeIn(tre), run_time=0.7)
+        self.at(self.a("g3", "on imagine un chemin"), FadeIn(I), FadeIn(F), run_time=0.6); self.play(Create(reel), FadeIn(tre), run_time=0.7)
         fl1 = Arrow(I.get_right(), A.get_left(), color=CRAIE, stroke_width=4, buff=0.1, max_tip_length_to_length_ratio=0.08)
         e1 = T(r"(1) réaction à $T_I$", sc=0.55).next_to(fl1, UP, buff=0.1)
         h1 = M(r"\Delta H_1 = \xi_F\,\Delta_r H^\circ(T_I)", sc=0.62, color=VERT).move_to([-1.6, -1.9, 0])
@@ -170,7 +171,7 @@ class S6(Cours):
         self.at(self.a("g5", "on chauffe"), GrowArrow(fl2), FadeIn(e2), run_time=0.6)
         self.at(self.a("g6", "la somme"), Ecrire(h2, rt=1.5))
         bil = M(r"\Delta H_1 + \Delta H_2 = 0", r"\;\Longrightarrow\;", r"T_F = T_I - \frac{\xi_F\,\Delta_r H^\circ(T_I)}{\sum_j n_j\,C^\circ_{p,j}}", sc=0.85).move_to([0, -2.95, 0])
-        self.at(self.t("g7"), Ecrire(bil[0], rt=0.8)); self.at(self.a("g7", "On en tire"), Ecrire(VGroup(bil[1], bil[2]), rt=1.3))
+        self.at(self.t("g7"), Ecrire(bil[0], rt=0.8)); self.at(self.a("g7", "on en tire"), Ecrire(VGroup(bil[1], bil[2]), rt=1.3))
         self.play(Create(enc(bil[2], buff=0.15)), run_time=0.4)
         self.fin()
 
@@ -180,7 +181,7 @@ class S7(Cours):
         self.entete(r"4.4 -- La méthode", "2/4 · Réacteur adiabatique")
         data = [(BLEU, r"Tableau d'avancement : $\xi_F$", "h2", "le tableau", 1.95),
                 (ROUGE, r"Inventaire \textbf{complet} de l'état final : produits, réactifs en excès, \textbf{spectateurs}", "h3", "l'inventaire", 0.85),
-                (VERT, r"$\Delta H_1 + \Delta H_2 = 0$ le long du chemin fictif", "h4", "écrire que", -0.25),
+                (VERT, r"$\Delta H_1 + \Delta H_2 = 0$ le long du chemin fictif", "h4", "la variation", -0.25),
                 (ORANGE, r"Vérifier : $T_F > T_I$ pour une réaction exothermique", "h5", "Pour une réaction", -1.35)]
         for k, (col, txt, sid, fr, y) in enumerate(data):
             c = carte(k+1, col, -5.9, y); L = pos(T(txt, sc=0.72), -5.35, y)
@@ -212,7 +213,7 @@ class S8(Cours):
         self.at(self.t("i6"), Ecrire(tf[0], rt=1.0)); self.at(self.a("i6", "environ"), Ecrire(tf[1], rt=0.6))
         self.play(Create(enc(tf, buff=0.18)), run_time=0.4)
         me = pos(T(r"mesurée : $\approx 2\,200$ K \;($C_p$ croissants, dissociation)", sc=0.65, color=ORANGE), -6.3, -2.6)
-        self.ecr(self.a("i7", "La valeur mesurée"), me, rt=1.6)
+        self.ecr(self.a("i7", "on mesure plutôt"), me, rt=1.6)
         x0, w = -4.0, 8.0
         b1 = Rectangle(width=w*0.69, height=0.4, color=GRIS, fill_color=GRIS, fill_opacity=0.7, stroke_width=1.5).move_to([x0 + w*0.69/2, -3.4, 0])
         b2 = Rectangle(width=w*0.31, height=0.4, color=ROUGE, fill_color=ROUGE, fill_opacity=0.6, stroke_width=1.5).move_to([x0 + w*0.69 + w*0.31/2, -3.4, 0])
@@ -239,7 +240,7 @@ class S9(Cours):
         self.at(self.a("j2", "Le calcul"), Ecrire(tf[0], rt=0.9), Ecrire(tf[1], rt=0.9))
         i1 = pos(T(r"irréaliste : les produits se \textbf{dissocient}", sc=0.72, color=ORANGE), -6.0, -2.2)
         i2 = pos(T(r"mais flamme bien plus chaude : le \textbf{chalumeau}", sc=0.72, color=VERT), -6.0, -2.95)
-        self.ecr(self.a("j3", "Cette valeur"), i1, rt=1.3); self.ecr(self.a("j3", "Mais la flamme"), i2, rt=1.3)
+        self.ecr(self.a("j3", "c'est irréaliste"), i1, rt=1.3); self.ecr(self.a("j3", "Mais la flamme"), i2, rt=1.3)
         self.fin()
 
 class S10(Cours):
@@ -283,6 +284,63 @@ class S11(Cours):
         for k, (col, F, sid, y) in enumerate(data):
             c = carte(k+1, col, -5.9, y); pos(F, -5.3, y)
             self.at(self.t(sid), Create(c[0]), FadeIn(c[1]), run_time=0.4); self.play(Ecrire(F, rt=1.8))
-        nx = T(r"Chapitre 5 \;$\longrightarrow$\; deuxième principe : évolution et équilibre", sc=0.8, color=JAUNE).move_to([0, -2.6, 0])
-        self.ecr(self.a("l5", "le deuxième principe"), nx, rt=1.8)
+        self.fin()
+
+class S12(Cours):
+    sid = "S12"
+    def construct(self):
+        self.entete(r"Exercice résolu -- Mesure d'une enthalpie de réaction", "Exercice résolu")
+        cal = VGroup(Rectangle(width=2.5, height=2.9, color=CRAIE, stroke_width=3), Rectangle(width=2.1, height=2.5, color=GRIS, stroke_width=2))
+        liq = Rectangle(width=2.1, height=1.5, stroke_width=0, fill_color=BLEU, fill_opacity=0.3)
+        cal.move_to([4.3, 0.2, 0]); liq.align_to(cal[1], DOWN).align_to(cal[1], LEFT)
+        th = Line([4.75, 2.0, 0], [4.75, -0.6, 0], color=ROUGE, stroke_width=5)
+        tc = T(r"calorimètre", sc=0.55, color=GRIS).next_to(cal, DOWN, buff=0.15)
+        self.at(self.a("m2", "Dans un calorimètre"), Create(cal), run_time=0.6); self.play(FadeIn(liq), Create(th), FadeIn(tc), run_time=0.5)
+        e1 = pos(T(r"$100$ mL d'acide chlorhydrique à $1{,}00$ mol$\cdot$L$^{-1}$", sc=0.72), -6.4, 2.1)
+        e2 = pos(T(r"$+\ 100$ mL de soude à $1{,}00$ mol$\cdot$L$^{-1}$", sc=0.72), -6.4, 1.5)
+        self.at(self.a("m2", "on mélange"), Ecrire(e1, rt=1.2)); self.at(self.a("m2", "cent millilitres de soude"), Ecrire(e2, rt=1.1))
+        e3 = pos(M(r"T_I = 20{,}0\ ^\circ\mathrm{C}", r"\;\longrightarrow\;", r"T_F = 25{,}8\ ^\circ\mathrm{C}", sc=0.85), -6.4, 0.7); e3[2].set_color(ROUGE)
+        self.at(self.a("m3", "Les deux solutions"), Ecrire(e3[0], rt=0.7)); self.at(self.a("m3", "le thermomètre"), Ecrire(VGroup(e3[1], e3[2]), rt=0.8))
+        e4 = pos(M(r"C_{\text{cal}} = 120\ \mathrm{J\cdot K^{-1}}", sc=0.85), -6.4, -0.1)
+        self.ecr(self.a("m4", "La capacité"), e4, rt=0.9)
+        q = M(r"\Delta_r H^\circ", r"\;=\;", r"?", sc=1.3).move_to([-3.5, -1.3, 0]); q[2].set_color(JAUNE)
+        self.at(self.a("m4", "Question"), Ecrire(q, rt=0.8)); self.play(Create(enc(q, col=JAUNE)), run_time=0.4)
+        r1 = pos(T(r"calorimètre isolé \;$\Rightarrow$\; réacteur \textbf{adiabatique}", sc=0.72, color=VERT), -6.4, -2.55)
+        r2 = pos(T(r"$\Rightarrow$ la méthode du \textbf{chemin fictif}", sc=0.72, color=VERT), -6.4, -3.2)
+        self.ecr(self.a("m5", "Un calorimètre"), r1, rt=1.4); self.ecr(self.a("m5", "vous savez faire"), r2, rt=1.0)
+        self.fin()
+
+class S13(Cours):
+    sid = "S13"
+    def construct(self):
+        self.entete(r"Exercice résolu -- La solution, étape par étape", "Exercice résolu")
+        c1 = carte(1, BLEU, -6.1, 2.15)
+        s1 = pos(M(ch("H^+") + " + " + ch("HO^-") + r"\longrightarrow " + ch("H_2O"), r"\qquad K^\circ = 10^{14}", sc=0.78), -5.55, 2.15)
+        s1b = pos(M(r"\text{totale :}\quad \xi_F = 0{,}100\ \mathrm{mol}", sc=0.78, color=BLEU), 1.4, 2.15)
+        self.at(self.t("n1"), Create(c1[0]), FadeIn(c1[1]), run_time=0.4); self.at(self.a("n1", "Les ions"), Ecrire(s1[0], rt=1.0))
+        self.at(self.a("n1", "avec une constante"), Ecrire(s1[1], rt=0.7)); self.at(self.a("n2", "Elle est donc totale"), Ecrire(s1b, rt=1.2))
+        c2 = carte(2, ORANGE, -6.1, 1.15)
+        s2 = pos(M(r"\underbrace{200 \times 4{,}18}_{\text{solution}} = 836", r"\;+\; \underbrace{120}_{\text{calorimètre}}", r"\;=\; 956\ \mathrm{J\cdot K^{-1}}", sc=0.72), -5.55, 0.95)
+        s2b = pos(M(r"\Delta T = 5{,}8\ \mathrm{K}", sc=0.78, color=ORANGE), 2.6, 1.15)
+        self.at(self.t("n3"), Create(c2[0]), FadeIn(c2[1]), run_time=0.4)
+        self.at(self.a("n4", "deux cents grammes"), Ecrire(s2[0], rt=1.4)); self.at(self.a("n4", "n'oubliez pas"), Ecrire(s2[1], rt=0.9), Indicate(c2, color=ROUGE))
+        self.at(self.a("n5", "Au total"), Ecrire(s2[2], rt=0.8)); self.at(self.a("n5", "à chauffer"), Ecrire(s2b, rt=0.7))
+        c3 = carte(3, VERT, -6.1, -0.35)
+        s3 = pos(M(r"\xi_F\,\Delta_r H^\circ", r"\;+\; 956 \times 5{,}8", r"\;=\; 0", sc=0.85), -5.55, -0.35)
+        self.at(self.t("n6"), Create(c3[0]), FadeIn(c3[1]), run_time=0.4)
+        self.at(self.a("n6", "Ksi final"), Ecrire(s3[0], rt=0.7)); self.at(self.a("n6", "plus neuf cent"), Ecrire(s3[1], rt=0.8)); self.at(self.a("n6", "égale zéro"), Ecrire(s3[2], rt=0.4))
+        res = M(r"\Delta_r H^\circ = -\frac{956 \times 5{,}8}{0{,}100}", r"\;=\; -55{,}4\ \mathrm{kJ\cdot mol^{-1}}", sc=0.8); pos(res, -5.4, -1.25); res[1].set_color(JAUNE)
+        self.at(self.a("n7", "On isole"), Ecrire(res[0], rt=0.9)); self.at(self.a("n7", "on trouve"), Ecrire(res[1], rt=0.8))
+        self.play(Create(enc(res, col=JAUNE, buff=0.15)), run_time=0.4)
+        c4 = carte(4, ROUGE, -6.1, -2.45)
+        s4 = pos(T(r"Vérifier : $\Delta_r H^\circ < 0$, exothermique, et $T$ monte \;\checkmark", sc=0.72), -5.55, -2.45)
+        self.at(self.t("n8"), Create(c4[0]), FadeIn(c4[1]), run_time=0.4); self.at(self.a("n8", "Le signe"), Ecrire(s4, rt=1.6))
+        tb = pos(M(r"\text{tables : } -55{,}8\ \mathrm{kJ\cdot mol^{-1}}", r"\quad(\text{écart} < 1\,\%)", sc=0.75, color=VERT), -5.55, -3.1)
+        self.at(self.a("n9", "Et les tables"), Ecrire(tb[0], rt=1.0)); self.at(self.a("n9", "Moins d'un pour cent"), Ecrire(tb[1], rt=0.7))
+        ec = pos(T(r"pertes thermiques ; solution $\neq$ eau pure", sc=0.6, color=GRIS), -5.55, -3.62)
+        self.at(self.a("n10", "des pertes"), FadeIn(ec), run_time=0.5)
+        self.jusqua(self.t("n11") - 0.2)
+        self.play(*[FadeOut(m) for m in self.mobjects], run_time=0.4)
+        nx = T(r"Chapitre 5 \;$\longrightarrow$\; deuxième principe : évolution et équilibre", sc=0.85, color=JAUNE).move_to([0, 0.3, 0])
+        self.ecr(self.a("n11", "le deuxième principe"), nx, rt=1.8)
         self.fin()

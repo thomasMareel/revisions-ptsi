@@ -14,7 +14,12 @@ from segments import SCENES
 c = client()
 INFO = json.load(open("chapitre.json", encoding="utf-8")) if os.path.exists("chapitre.json") else {}
 VOICE = INFO.get("voix", "voice_3141")   # voice_3141 = Camille, voix prédéfinie de Mistral
-MODEL, TEMPO, SR, FPS, LEAD = "voxtral-mini-tts-3", 0.95, 24000, 30, 0.8
+# Dynamisme (demande de Thomas, 2026-11-11, à partir du chapitre 4) : « expressivite » = paramètre
+# expressiveness de Voxtral (guidage, ≥ 1 ; 3 donne ≈ 30 % d'intonation en plus, mesuré) et « tempo »
+# (1,0 : plus de ralentissement). Absents de chapitre.json : réglage d'origine (chapitres 1 à 3).
+EXPR = INFO.get("expressivite")
+TEMPO = float(INFO.get("tempo", 0.95))
+MODEL, SR, FPS, LEAD = "voxtral-mini-tts-3", 24000, 30, 0.8
 os.makedirs("audio", exist_ok=True)
 
 def run(cmd): subprocess.run(cmd, check=True, capture_output=True)
@@ -47,10 +52,11 @@ def mesure(mp3):
     return (idx[-1]-idx[0]+1)*hop/sr, best*hop/sr
 
 def synth(sid, dit, essai):
-    h = hashlib.md5((dit + f"|{essai}").encode()).hexdigest()[:10]
+    h = hashlib.md5((dit + f"|{essai}" + (f"|e{EXPR}" if EXPR else "")).encode()).hexdigest()[:10]
     mp3 = f"audio/{sid}_{h}.mp3"
     if not os.path.exists(mp3):
-        r = api(c.audio.speech.complete, model=MODEL, input=dit, voice_id=VOICE, response_format="mp3")
+        k = {"expressiveness": float(EXPR)} if EXPR else {}
+        r = api(c.audio.speech.complete, model=MODEL, input=dit, voice_id=VOICE, response_format="mp3", **k)
         open(mp3, "wb").write(base64.b64decode(r.audio_data))
     js = mp3[:-4] + ".json"
     if not os.path.exists(js):

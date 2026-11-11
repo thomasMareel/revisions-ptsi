@@ -9,16 +9,25 @@ sont **jamais** versionnés (voir `.gitignore`) : le dépôt ne garde que les so
 
 ## Choix validés par Thomas (ne pas les changer sans lui demander)
 
-- **Voix** : Camille, voix prédéfinie de Mistral (`voice_3141`), modèle `voxtral-mini-tts-3`,
-  ralentie de 5 % (`atempo` 0,95, hauteur inchangée), volume normalisé à −16 LUFS.
+- **Voix** : Camille, voix prédéfinie de Mistral (`voice_3141`), modèle `voxtral-mini-tts-3`, volume
+  normalisé à −16 LUFS. **Depuis le chapitre 4 (demande de Thomas du 2026-11-11 : « plus dynamique »)** :
+  `"expressivite": 3.0` et `"tempo": 1.0` dans `chapitre.json` (paramètre `expressiveness` de l'API :
+  ≈ 30 % d'intonation en plus, mesuré sur 6 tirages ; au-delà de 3, presque rien de plus ; plus de
+  ralentissement, l'expressivité ralentissant déjà un peu le débit). Chapitres 1 à 3 : réglage d'origine
+  (pas d'expressivité, ralentie de 5 %), qui reste la valeur par défaut d'`audio.py`.
 - **Tableau** : fond `#1F2A24`, craie `#EDEBE4`, titres jaunes `#F2D16B`, rouge `#F08A7E`,
   bleu `#8EC5F2`, vert `#9BD49A`, orange `#F2B36B`, gris `#8FA097`, police Palatino (`mathpazo`), 1080p, 30 images/s.
 - **Écriture** : `Ecrire(mob)` (apparition nette, glyphe par glyphe). Pas l'animation `Write` de
   Manim, jugée « trop brouillon ». `Create` pour les axes, cadres et traits.
 - **Sous-titres** : texte exact avec les symboles (ξ, νᵢ, ΔrG°), 2 lignes de 42 caractères au plus,
   désactivables. La forme prononcée (« ksi », « delta-r-G standard ») ne sert qu'à la voix.
-- **Format** : une vidéo de 7 à 9 minutes par chapitre, une dizaine de scènes, tableau effacé entre
-  deux scènes, un exercice « À vous » avec minuteur, un bilan numéroté « À retenir » à la fin.
+- **Format** : une vidéo de 8 à 10 minutes par chapitre, une dizaine de scènes, tableau effacé entre
+  deux scènes, un exercice « À vous » avec minuteur, un bilan numéroté « À retenir », puis **un exercice
+  résolu de bout en bout** (demande de Thomas du 2026-11-11, dès que le chapitre s'y prête) : une scène
+  d'énoncé (données au tableau, question encadrée, « réfléchissons » : quel outil du chapitre ?) et une
+  scène de résolution par étapes numérotées, chaque étape **justifiée à l'oral** (pourquoi on fait ce
+  calcul), résultat encadré, vérification (signe, ordre de grandeur, comparaison aux tables). La phrase
+  « Dans le prochain chapitre… » clôt la vidéo, après l'exercice.
 - **Ton** : cours dynamique et complet, appuyé sur le programme officiel de PT ; tous les objets définis.
 
 ## Arborescence
@@ -100,7 +109,12 @@ Ordre de grandeur pour un chapitre de 8 minutes : 70 phrases, environ 0,15 $ de 
 (0,016 $ pour 1 000 caractères, plus la transcription de contrôle et les régénérations),
 20 à 40 minutes de travail machine.
 
-## Règles d'écriture du script (leçons des chapitres 1 à 3)
+## Règles d'écriture du script (leçons des chapitres 1 à 4)
+
+- **Ton vivant** (depuis le chapitre 4) : interpeller (« Regardez ! », « Attention au piège ! »,
+  « Et voilà ! », « À vous de jouer ! »), poser la question avant la réponse (« Réaction exothermique ?
+  Alors… »), des exclamations sur les résultats clés, des phrases courtes. La voix suit la ponctuation :
+  un texte enjoué donne une voix plus haute et plus vivante (mesuré : + 25 à 45 Hz).
 
 - Dans `dit` : nombres **en toutes lettres** ; « ksi » pour ξ, « nu i » pour νᵢ, « delta-r-G standard »
   pour ΔrG° ; différentielles « dé G », « P dé V ».
@@ -167,12 +181,14 @@ Toutes en **non répertorié**, sous-titres français compris, envoyées le 2026
 | Thermochimie | 1 — Rappels de première année | 8 min 18 | <https://youtu.be/YtisR2_KXQ0> |
 | Thermochimie | 2 — Enthalpie libre et potentiel chimique | 7 min 27 | <https://youtu.be/l9C4IiB3gVA> |
 | Thermochimie | 3 — Grandeurs de réaction et grandeurs standard | 8 min 30 | <https://youtu.be/tbJv-uT1Uyw> |
-| Thermochimie | 4 — Premier principe : effets thermiques des réactions | 7 min 21 | <https://youtu.be/1g0EXKxPFiU> |
+| Thermochimie | 4 — Premier principe : effets thermiques des réactions | 8 min 48 | <https://youtu.be/L5z0oicvuOI> |
 
 Suite prévue : chapitre 5, « Deuxième principe : évolution et équilibre » (`pdf/ch5.tex`, données
 `pdf/data/gxi.dat` et `caco3.dat`), puis les chapitres 6 à 8 du PDF (le chapitre 9 du PDF est le
 recueil d'exercices, le 10 le formulaire : pas de vidéo prévue). Le chapitre 4 commence par le rappel
-d'une vingtaine de secondes sur les νᵢ algébriques demandé par Thomas.
+d'une vingtaine de secondes sur les νᵢ algébriques demandé par Thomas. Il a été refait le jour même
+(voix plus dynamique, exercice résolu de calorimétrie en fin de vidéo) : la 1ʳᵉ version
+(`1g0EXKxPFiU`, 7 min 21) reste en non répertorié sur YouTube, retirée du site.
 
 Remarque de Thomas sur le chapitre 3 : l'explication des νᵢ (coefficients stœchiométriques
 **algébriques** : négatifs pour les réactifs, positifs pour les produits) n'était pas assez claire.

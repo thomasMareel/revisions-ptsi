@@ -13,7 +13,7 @@ Notes destinées à Claude pour les sessions futures. Objectif du projet : rendr
 
 ## Cours vidéo (dossier `video/`)
 
-Depuis novembre 2026, le dépôt porte aussi la fabrication des **cours vidéo « prof au tableau »** (tableau noir Manim, voix de synthèse Camille de Mistral, sous-titres) et les sources LaTeX des cours PDF associés. **Mode d'emploi complet : `video/README.md`** (choix validés par l'utilisateur, étapes, règles d'écriture, contrôles) ; mise en ligne : `video/YOUTUBE.md`.
+Depuis novembre 2026, le dépôt porte aussi la fabrication des **cours vidéo « prof au tableau »** (tableau noir Manim, voix de synthèse Camille de Mistral, sous-titres) et les sources LaTeX des cours PDF associés. **Mode d'emploi complet : `video/README.md`** (choix validés par l'utilisateur, étapes, règles d'écriture, contrôles) ; mise en ligne : `video/YOUTUBE.md`. Depuis le chapitre 4 (demande de l'utilisateur du 2026-11-11) : voix plus dynamique (`"expressivite": 3.0`, `"tempo": 1.0` dans `chapitre.json`, texte écrit sur un ton vivant) et **exercice résolu de bout en bout** en fin de vidéo, raisonnement expliqué à l'oral.
 
 - Indépendant du site : rien dans `video/` n'est chargé par `index.html` ni mis en cache par `sw.js` (pas de bump de `CACHE_VERSION` pour un changement limité à `video/`).
 - **Environnement cloud dédié « revisions-ptsi »** (créé le 2026-11-11) : il porte le secret réseau Mistral et les variables YouTube ; une session vidéo doit tourner dessus (« Default » n'a aucun de ces secrets).
