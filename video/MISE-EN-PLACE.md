@@ -10,9 +10,9 @@ cours vidéo ont besoin :
 video PTSI », application « En production », client « Application de bureau » ; `YT_CLIENT_ID`,
 `YT_CLIENT_SECRET` et `YT_REFRESH_TOKEN` enregistrées sur l'environnement « revisions-ptsi » par le
 site claude.ai/code : l'application mobile n'offre pas ce réglage ; autorisation donnée sur la chaîne
-« La Vengeance en Prépa »). Reste, dans une nouvelle session : vérifier que l'autorisation durable
-fonctionne (`python3 video/commun/youtube.py test` → « Jeton durable : variable YT_REFRESH_TOKEN »),
-puis B8 (premier envoi réel).
+« La Vengeance en Prépa »). Autorisation durable **vérifiée** dans une nouvelle session le
+2026-11-11 (`python3 video/commun/youtube.py test` → « Accès YouTube : OK », « Jeton durable : variable
+YT_REFRESH_TOKEN »). Reste : B8 (premier envoi réel).
 
 **Environnement cloud dédié « revisions-ptsi »** (personnel, créé le 2026-11-11 à la demande de
 Thomas) : il porte le secret réseau Mistral et portera les variables YouTube ; « Default » n'en a
@@ -181,6 +181,11 @@ conversation. Solution retenue : Thomas passe le sélecteur de mode (à côté d
 **« Accept edits »**, la session relance la commande, Thomas l'autorise dans la demande qui s'affiche,
 puis remet « Auto ». La variable a été enregistrée par claude.ai/code ; son nom est vérifiable par
 l'outil d'environnement, sa valeur seulement par `youtube.py test` dans une **nouvelle** session.
+**Vérifié le 2026-11-11** dans une nouvelle session sur « revisions-ptsi », sans autorisation locale
+(`~/.config/cours-video/youtube.json` absent) : variable présente et bien formée (forme `1//…`, ni
+espace ni guillemet), échange accepté par Google, chaîne « La Vengeance en Prépa » lue, « Jeton
+durable : variable YT_REFRESH_TOKEN ». Le titre renvoyé par l'API finit par une espace (à retoucher
+dans YouTube Studio si ce n'est pas voulu ; sans effet sur l'envoi).
 Repli si l'on ne veut pas afficher le jeton : pas de `YT_REFRESH_TOKEN`, et refaire B5-B6 (≈ 1 minute)
 dans chaque session qui envoie une vidéo.
 
