@@ -182,9 +182,9 @@ Toutes en **non répertorié**, sous-titres français compris, envoyées le 2026
 | Thermochimie | 2 — Enthalpie libre et potentiel chimique | 7 min 27 | <https://youtu.be/l9C4IiB3gVA> |
 | Thermochimie | 3 — Grandeurs de réaction et grandeurs standard | 8 min 30 | <https://youtu.be/tbJv-uT1Uyw> |
 | Thermochimie | 4 — Premier principe : effets thermiques des réactions | 8 min 48 | <https://youtu.be/L5z0oicvuOI> |
+| Thermochimie | 5 — Deuxième principe : évolution et équilibre | 9 min 15 | <https://youtu.be/IxOhQ0SkXQ0> |
 
-Suite prévue : chapitre 5, « Deuxième principe : évolution et équilibre » (`pdf/ch5.tex`, données
-`pdf/data/gxi.dat` et `caco3.dat`), puis les chapitres 6 à 8 du PDF (le chapitre 9 du PDF est le
+Suite prévue : les chapitres 6 à 8 du PDF, `pdf/ch6.tex` à `ch8.tex` (le chapitre 9 du PDF est le
 recueil d'exercices, le 10 le formulaire : pas de vidéo prévue). Le chapitre 4 commence par le rappel
 d'une vingtaine de secondes sur les νᵢ algébriques demandé par Thomas. Il a été refait le jour même
 (voix plus dynamique, exercice résolu de calorimétrie en fin de vidéo) : la 1ʳᵉ version
