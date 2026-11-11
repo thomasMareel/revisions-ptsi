@@ -119,25 +119,48 @@ L'audio d'origine n'est pas dans le dépôt. Pour corriger un chapitre livré, r
 nouvelle `timeline.json`. YouTube ne remplace pas une vidéo : la correction a une nouvelle adresse,
 à reporter dans le site.
 
-## Intégration au site (à concevoir avec Thomas, rien n'est encore fait)
+## Intégration au site (faite le 2026-11-11)
 
-Contraintes du site à respecter (détail dans `CLAUDE.md`) :
+Les vidéos sont rangées dans un onglet **« Vidéos »** du chapitre du site correspondant, entre Cours
+et Méthodes (choix de Thomas) : grands lecteurs empilés dans l'ordre, titre et durée au-dessus, liste
+repliable des parties dessous (un clic lance la vidéo à ce moment). Thermochimie : chapitre
+`thermochimie` du site (« Thermodynamique de la transformation chimique », physique › Chimie,
+2ᵉ année), rédigé à partir de `thermochimie/pdf/`.
 
-- **aucune requête externe au chargement** (suites `site` et `pwa`) et fonctionnement hors ligne :
-  le lecteur YouTube ne peut donc être inséré **qu'au clic** (bouton « Voir le cours en vidéo » qui
-  crée l'`<iframe>` `https://www.youtube-nocookie.com/embed/<id>`), avec un message clair hors ligne ;
-  `sw.js` laisse déjà passer les requêtes externes ;
-- le lecteur YouTube fournit la vitesse (×0,25 à ×2), les sous-titres et les chapitres : ne pas les recoder ;
-- pas de refonte non demandée : proposer une maquette (emplacement dans la page chapitre, téléphone
-  d'abord) avant de toucher à `index.html` ; puis tests, bump de `CACHE_VERSION`, publication ;
-- les liens vivent dans une table de données (identifiant du chapitre du site → vidéos), pas dans le HTML des chapitres ;
-- vérifier d'abord qu'un chapitre du site correspond au cours (pour la thermochimie de PT, il est
-  peut-être à créer : `GABARIT-CHAPITRE.md`).
+- **Rien n'est chargé depuis YouTube avant un clic** : chaque vidéo montre d'abord une image
+  d'aperçu rangée dans le site (`media/videos/`) ; le lecteur `youtube-nocookie` n'est créé qu'au clic
+  sur « Lire » ou sur une partie. Hors ligne, un message le dit. Une seule vidéo tourne à la fois.
+- La vitesse, les sous-titres et le plein écran sont ceux du lecteur YouTube.
+- À l'impression, l'onglet donne la liste des vidéos avec leurs liens et leurs parties.
+
+**Ajouter une vidéo** (chapitre qui a déjà l'onglet, par exemple le chapitre 4 de thermochimie),
+une fois `youtube.py envoi` fait :
+
+1. Image d'aperçu : une image de l'introduction (titre et plan au tableau, juste avant la fin de la
+   scène S0), depuis le dossier du chapitre vidéo :
+   ```
+   ffmpeg -ss <fin de la dernière phrase de S0 - 0,3 s> -i out/<fichier>.mp4 -frames:v 1 \
+     -vf scale=1280:720 -c:v libwebp -quality 80 ../../../media/videos/thermochimie-4.webp
+   ```
+2. Une entrée dans la table `window.__VIDEOS` d'`index.html` (`grep -n 'window.__VIDEOS = {'`) :
+   `{ yt:'<id de youtube.json>', titre:'…', duree:<s>, apercu:'media/videos/thermochimie-4.webp',
+   parties:[[0,'Introduction'], [<t0 entier de chaque scène>, '<titre de la scène>'], …] }`
+   (les mêmes parties que dans `out/youtube.txt`).
+3. Publication comme pour toute modification du site : `validate.py`, `check_js.py`, tests
+   (`interactions` contient le test de l'onglet Vidéos), bump de `CACHE_VERSION` dans `sw.js`.
+
+**Donner l'onglet à un autre chapitre du site** : dans `CHAPTERS`, ajouter `'video'` à `panels`
+(après `'cours'`) ; dans le bloc du chapitre, ajouter l'onglet
+`<button class="tab" data-panel="<prefix>-video"><span class="num">02</span>Vidéos</button>` après
+Cours et le panneau `<section class="panel" id="<prefix>-video"><div class="vid-liste"
+data-videos="<id du chapitre>"></div></section>` après celui du Cours ; puis l'entrée de la table.
+Vérifier d'abord qu'un chapitre du site correspond au cours (sinon le créer : `GABARIT-CHAPITRE.md`).
 
 ## Vidéos livrées
 
 Toutes en **non répertorié**, sous-titres français compris, envoyées le 2026-11-11 par `youtube.py`
-(identifiants dans `thermochimie/chN/youtube.json`). Pas encore intégrées au site.
+(identifiants dans `thermochimie/chN/youtube.json`). Sur le site : onglet « Vidéos » du chapitre
+`thermochimie` (table `window.__VIDEOS`).
 
 | Cours | Chapitre | Durée | Lien YouTube |
 |---|---|---|---|

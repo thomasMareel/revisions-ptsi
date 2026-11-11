@@ -60,7 +60,7 @@ const { pause, attendreApp, naviguer, choisirTheme, etatMathJax } = require('../
 /* ---------- Anomalies TOLÉRÉES (liste vide depuis la fusion de la refonte, wip/refonte, Chromium 141) ----------
    Une ligne = [mesure, écrans, thèmes, appareils, { sélecteur: pire valeur tolérée, … }]
    - mesure : contraste | taille | debordement | cible24 | cible44 ;
-   - écrans : noms d'ECRANS séparés par des espaces, alias 'chapitres' (les 8
+   - écrans : noms d'ECRANS séparés par des espaces, alias 'chapitres' (les 9
      écrans de chapitre) / 'fenetres' (tiroir, recherche, quiz, Bilan…), ou '*' ;
    - thèmes : 'clair', 'sombre' ou '*' ; appareils : 'ordi', 'tel' ou '*' ;
    - pire valeur : rapport de contraste, taille (px), bord droit (px) ou côté de
@@ -109,6 +109,7 @@ const ECRANS = [
   { nom: 'maxwell-cours', chap: 'maxwell', onglet: 'cours' },   // 2ᵉ année
   { nom: 'slci-cours', chap: 'slci', onglet: 'cours' },         // SI (<main id="si-content">)
   { nom: 'anglais-flash', chap: 'anglais', onglet: 'flash' },   // 1er chapitre d'anglais de CHAPTERS
+  { nom: 'thermochimie-video', chap: 'thermochimie', onglet: 'video', preparer: deplierPartiesVideo },   // onglet « Vidéos »
   { nom: 'tiroir', chap: 'rlc', onglet: 'meth', racine: '#mob-drawer', preparer: ouvrirTiroir },
   { nom: 'recherche', chap: 'rlc', onglet: 'meth', racine: '#search-overlay', preparer: ouvrirRecherche },
   // Fenêtres secondaires (gabarit .fen) : formulaire, sauvegarde, cartes signalées, calcul mental, raccourcis
@@ -146,6 +147,19 @@ async function deplierSolution(page) {
   });
   await pause(300);
   return ok ? [] : ['aucune solution dépliable dans rlc-exos (.toggle-sol)'];
+}
+/* Onglet Vidéos : parties de la 1re vidéo dépliées (boutons de partie mesurés), aperçu en haut de l'écran */
+async function deplierPartiesVideo(page) {
+  const ok = await page.evaluate(() => {
+    const d = document.querySelector('#thc-video .vid-parties');
+    if (!d) return false;
+    d.open = true;
+    const a = d.closest('.vid');
+    if (a) a.scrollIntoView({ block: 'start' });
+    return true;
+  });
+  await pause(300);
+  return ok ? [] : ['aucune liste de parties dans thc-video (.vid-parties)'];
 }
 async function ouvrirTiroir(page, app) {
   // À partir de 1200 px, la navigation est une barre latérale PERMANENTE (#nav-toggle-btn la

@@ -209,6 +209,19 @@ const monFlash = makeFlash(monCards, 'mon', 'mon-flash-content', 'mon-flash-prog
 
 ---
 
+## Onglet « Vidéos » (optionnel)
+
+Si le chapitre a des cours vidéo en ligne (YouTube, non répertoriés), il reçoit un onglet « Vidéos » **entre Cours et Méthodes** :
+
+- dans `CHAPTERS` : `panels:['cours','video','meth','flash','exos']` ;
+- dans le bloc D, l'onglet `<button class="tab" data-panel="mon-video"><span class="num">02</span>Vidéos</button>` juste après Cours (et renuméroter les suivants), et le panneau, juste après celui du Cours :
+  ```html
+  <section class="panel" id="mon-video">
+    <div class="vid-liste" data-videos="monid"></div>
+  </section>
+  ```
+- les vidéos elles-mêmes (identifiant YouTube, titre, durée, image d'aperçu, parties) vont dans la table `window.__VIDEOS` d'`index.html` (repère : `window.__VIDEOS = {`), jamais dans le HTML du chapitre. Le site construit les lecteurs tout seul ; le lecteur YouTube n'est chargé qu'au clic. Mode d'emploi complet : `video/README.md`, section « Intégration au site ».
+
 ## Vérification après ajout
 
 1. **Change le numéro de version** au moment de publier : en haut de `sw.js`, incrémente `CACHE_VERSION` (ex. `'ptsi-cache-v88'` → `'ptsi-cache-v89'`). Sans ça, l'application installée ne proposera pas la mise à jour.

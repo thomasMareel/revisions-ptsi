@@ -219,8 +219,9 @@ validé), sous-titres acceptés (piste « Français », état `serving`), titre,
 
 - Constaté le 2026-11-11 : secret réseau Mistral **oui** (pas de repli) ; visibilité non répertoriée
   **respectée** ; sous-titres envoyés par l'API.
-- Chaque envoi écrit `youtube.json` dans le dossier du chapitre : le versionner, et reporter le lien
-  dans le tableau « Vidéos livrées » de `video/README.md`.
+- Chaque envoi écrit `youtube.json` dans le dossier du chapitre : le versionner, reporter le lien
+  dans le tableau « Vidéos livrées » de `video/README.md` et ajouter la vidéo à l'onglet « Vidéos »
+  du site (table `window.__VIDEOS` et image d'aperçu : `video/README.md`, « Intégration au site »).
 - **Chapitres 1 à 3 de thermochimie : en ligne** (2026-11-11). Leurs MP4 avaient été fabriqués avant
   ce dépôt ; Thomas les a joints à la conversation (MP4 + SRT). Avant l'envoi, la session a vérifié
   qu'ils correspondent aux `timeline.json` du dépôt (durée au centième, chapitres intégrés, SRT

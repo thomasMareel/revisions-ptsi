@@ -28,6 +28,7 @@ const TYPES_MIME = {
   '.otf': 'font/otf',
   '.png': 'image/png',
   '.jpg': 'image/jpeg',
+  '.webp': 'image/webp',
   '.jpeg': 'image/jpeg',
   '.gif': 'image/gif',
   '.svg': 'image/svg+xml',

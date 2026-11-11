@@ -1330,6 +1330,7 @@ main, main#si-content{ display:block; max-width:none; margin:0; padding:1.5rem 1
   mask-image:linear-gradient(180deg, var(--text) 0, var(--text) 40%, transparent 100%);
 }
 .chapter[data-onglet="exos"] > .chap-title-banner,
+.chapter[data-onglet="video"] > .chap-title-banner,
 .chapter[data-onglet="simu"] > .chap-title-banner{ padding-left:2.5rem; }
 
 /* Fil d'Ariane : pastille · Matière (→ Sommaire) › partie (→ navigation) · tag */
@@ -1385,6 +1386,7 @@ nav.tabs{
 }
 nav.tabs::-webkit-scrollbar{ display:none; }
 .chapter[data-onglet="exos"] > nav.tabs,
+.chapter[data-onglet="video"] > nav.tabs,
 .chapter[data-onglet="simu"] > nav.tabs{ padding-left:1.75rem; }
 @media (min-width:768px){
   .chapter.onglets-colles > nav.tabs{ background:var(--sheet); box-shadow:var(--sh-1); }
@@ -1498,6 +1500,7 @@ section.panel[id$="-cours"]::before, section.panel[id$="-meth"]::before{
   width:1px; background:var(--marge); pointer-events:none;
 }
 .chapter[data-onglet="exos"] > #chap-pager,
+.chapter[data-onglet="video"] > #chap-pager,
 .chapter[data-onglet="simu"] > #chap-pager,
 .chapter[data-onglet="flash"] > #chap-pager{ max-width:none; padding-left:2.5rem; }
 .chap-pager-btn{
@@ -2056,6 +2059,82 @@ figure.schema.defile, .cine-svg-wrap.defile{ overflow-x:auto; overflow-y:hidden;
   .exo-tools .seg{ flex:1 1 100%; }
   .exo-tools .info{ margin-left:auto; }
   .solution{ padding:.9rem 1rem 1rem; }
+}
+
+/* --- 7. Vidéos du cours (onglet « Vidéos », module « VIDÉOS DES CHAPITRES ») -----------------
+   Grands lecteurs empilés : surtitre « Vidéo n · durée », titre serif, cadre 16:9 (image
+   d'aperçu locale + bouton ▶, remplacés au clic par le lecteur YouTube), puis la liste
+   repliable des parties (un clic lance la vidéo à ce moment). Couleurs : jetons seulement. */
+.vid-liste{ display:flex; flex-direction:column; gap:2.75rem; max-width:48rem; }
+.vid-intro, .vid-attente{ margin:0; font:var(--w-regular) var(--fs-ui-s)/1.5 var(--font-ui); color:var(--text-2); text-wrap:pretty; }
+.panel .vid-liste p{ hyphens:manual; -webkit-hyphens:manual; }   /* « YouTube » jamais coupé (la césure est activée au téléphone) */
+.vid{ display:flex; flex-direction:column; gap:.75rem; scroll-margin-top:7.5rem; }
+.vid-tete{ display:flex; flex-direction:column; gap:.3rem; }
+.vid-num{ color:var(--chap); }
+.vid-titre{ margin:0; font:var(--w-semi) var(--fs-h3)/var(--lh-head) var(--font-text); color:var(--text); text-wrap:balance; }
+.vid-cadre{
+  position:relative; aspect-ratio:16 / 9; overflow:hidden;
+  border-radius:var(--r-l); background:var(--sunk); box-shadow:var(--sh-2);
+}
+.vid-cadre iframe{ position:absolute; inset:0; width:100%; height:100%; border:0; }
+.vid-lancer{
+  position:absolute; inset:0; display:block; width:100%; height:100%; margin:0; padding:0;
+  border:0; border-radius:inherit; background:none; cursor:pointer;
+}
+.vid-lancer img{ display:block; width:100%; height:100%; object-fit:cover; }
+/* Pastille « ▶ Lire » en bas à gauche (le centre de l'aperçu porte le titre et le plan) ;
+   l'aperçu est un tableau noir dans les deux thèmes : pastille claire, encre sombre */
+.vid-play{
+  position:absolute; left:1rem; bottom:1rem; display:inline-flex; align-items:center; gap:.4rem;
+  height:var(--tap); padding:0 1.15rem 0 .9rem; border-radius:var(--r-full);
+  background:var(--on-primary); color:var(--primary); box-shadow:var(--sh-3);
+  font:var(--w-semi) var(--fs-ui)/1 var(--font-ui);
+  transition:transform var(--dur-1) var(--ease);
+}
+:root[data-theme="dark"] .vid-play{ background:var(--primary); color:var(--on-primary); }
+.vid-play .ic{ width:1.25rem; height:1.25rem; }
+.vid-lancer:hover .vid-play{ transform:scale(1.05); }
+/* le cadre rogne ses bords (overflow) : l'anneau de focus est tracé à l'intérieur */
+.vid-lancer:focus-visible{ outline:3px solid var(--focus); outline-offset:-3px; }
+.vid-cadre:has(iframe:focus-visible){ outline:3px solid var(--focus); outline-offset:2px; }
+.vid-msg{
+  position:absolute; left:.75rem; right:.75rem; bottom:.75rem; margin:0; padding:.6rem .85rem;
+  border-radius:var(--r-m); background:var(--raise); color:var(--text); box-shadow:var(--sh-2);
+  font:var(--w-medium) var(--fs-ui-s)/1.4 var(--font-ui);
+}
+.vid-parties{ border-top:1px solid var(--line); }
+.vid-parties > summary{
+  display:flex; align-items:center; gap:.5rem; min-height:var(--tap); padding:0 .25rem;
+  cursor:pointer; list-style:none; border-radius:var(--r-s);
+  font:var(--w-medium) var(--fs-ui)/1.2 var(--font-ui); color:var(--text-2);
+}
+.vid-parties > summary::-webkit-details-marker{ display:none; }
+.vid-parties > summary::before{
+  content:""; width:.5rem; height:.5rem; margin:0 .2rem 0 .15rem; flex:none;
+  border-right:2px solid currentColor; border-bottom:2px solid currentColor; transform:rotate(-45deg);
+  transition:transform var(--dur-1) var(--ease);
+}
+.vid-parties[open] > summary::before{ transform:rotate(45deg); }
+.vid-parties > summary:hover{ color:var(--text); }
+.vid-parties > summary:focus-visible{ outline:2px solid var(--focus); outline-offset:-2px; }
+.vid-parties .cnt{ font-weight:var(--w-regular); color:var(--text-3); font-variant-numeric:tabular-nums; }
+.vid-parties ol{ list-style:none; margin:0 0 .25rem; padding:0; }
+.vid-saut{
+  display:flex; align-items:baseline; gap:.85rem; width:100%; min-height:var(--tap); margin:0; padding:.55rem .5rem;
+  border:0; border-radius:var(--r-s); background:none; cursor:pointer; text-align:left;
+  font:var(--w-regular) var(--fs-ui)/1.35 var(--font-ui); color:var(--text);
+}
+.vid-saut:hover{ background:var(--hover); }
+.vid-saut:focus-visible{ outline:2px solid var(--focus); outline-offset:-2px; }
+.vid-t{ flex:none; min-width:2.75rem; font-weight:var(--w-semi); color:var(--chap); font-variant-numeric:tabular-nums; }
+@media (max-width:767px){
+  .vid-liste{ gap:2.25rem; }
+  .vid-cadre{ margin-inline:calc(var(--gutter) * -1); border-radius:0; box-shadow:none; }
+  /* aperçu plus petit : le plan de la vidéo descend jusqu'en bas à gauche ; le coin haut droit reste libre */
+  .vid-play{ left:auto; bottom:auto; top:.75rem; right:.75rem; }
+}
+@media (forced-colors: active){
+  .vid-play{ forced-color-adjust:none; background:ButtonText; color:ButtonFace; }
 }
 
 /* ===== FIN RÉGION CONTENU ===== */
@@ -42780,6 +42859,937 @@ v_eff = np.sqrt(y)                 <span class="cmt"># valeur efficace glissante
 </section>
 </div><!-- fin chap-signum -->
 
+<!-- ====================== CHAPITRE : Thermodynamique de la transformation chimique (PT, 2ᵉ année) ====================== -->
+<div class="chapter" id="chap-thermochimie">
+<nav class="tabs">
+  <button class="tab active" data-panel="thc-cours"><span class="num">01</span>Cours</button>
+  <button class="tab" data-panel="thc-video"><span class="num">02</span>Vidéos</button>
+  <button class="tab" data-panel="thc-meth"><span class="num">03</span>Méthodes</button>
+  <button class="tab" data-panel="thc-flash"><span class="num">04</span>Flashcards</button>
+  <button class="tab" data-panel="thc-exos"><span class="num">05</span>Exercices</button>
+</nav>
+<section class="panel active" id="thc-cours">
+
+<div class="course-section">
+  <div class="sec-num">§1 · RAPPELS DE PREMIÈRE ANNÉE</div>
+  <h2>Avancement, activité, quotient de réaction</h2>
+  <div class="intro">Trois outils de PTSI reviennent à chaque ligne de ce chapitre : l'avancement, qui décrit une réaction avec une seule variable ; l'activité, qui mesure le poids d'un constituant dans le mélange ; le quotient de réaction, qui situe le système par rapport à l'équilibre. Les rappels d'oxydoréduction sont regroupés au §9.</div>
+
+  <h3>Constituant et phase</h3>
+  <div class="def-box">
+    Un <strong>constituant</strong> est une espèce chimique <em>dans un état physique donné</em> : H₂O(ℓ) et H₂O(g) sont deux constituants différents.<br>
+    Une <strong>phase</strong> est une région de l'espace où les grandeurs intensives (masse volumique, concentrations…) varient continûment. Un mélange de gaz ne forme qu'une seule phase ; deux solides distincts en forment deux.
+  </div>
+
+  <h3>Coefficients stœchiométriques algébriques</h3>
+  <p>On écrit désormais toute équation de réaction sous la forme compacte</p>
+  <div class="formula" data-nom="Équation de réaction">$$0 = \sum_i \nu_i\,\mathrm{A}_i$$</div>
+  <p>où le <strong>coefficient stœchiométrique algébrique</strong> \(\nu_i\) est positif pour un produit, négatif pour un réactif et nul pour une espèce spectatrice. Pour la synthèse de l'ammoniac, N₂(g) + 3 H₂(g) = 2 NH₃(g) : \(\nu_{\mathrm{N_2}} = -1\), \(\nu_{\mathrm{H_2}} = -3\) et \(\nu_{\mathrm{NH_3}} = +2\). Ce signe permet d'écrire avec une seule somme ce qui concerne à la fois les réactifs et les produits.</p>
+  <div class="def-box">
+    L'<strong>avancement</strong> \(\xi\) (en mol) est défini, pour tout constituant, par
+    $$n_i = n_{i,0} + \nu_i\,\xi \qquad\Longleftrightarrow\qquad \mathrm{d}n_i = \nu_i\,\mathrm{d}\xi$$
+    Il est positif si la réaction progresse dans le sens direct, négatif dans le sens indirect. L'<strong>avancement maximal</strong> \(\xi_{\max}\) correspond à l'épuisement du réactif limitant.
+  </div>
+
+  <h3>Activité d'un constituant</h3>
+  <p>L'<strong>activité</strong> \(a_i\) est un nombre sans dimension. Dans les cas idéaux du programme :</p>
+  <div style="overflow-x:auto"><table>
+    <tr><th>Constituant</th><th>Activité</th></tr>
+    <tr><td>gaz parfait (seul ou en mélange)</td><td>\(a_i = \dfrac{P_i}{P^\circ} = x_i\,\dfrac{P}{P^\circ}\), avec \(P_i\) sa pression partielle</td></tr>
+    <tr><td>soluté en solution diluée</td><td>\(a_i = \dfrac{c_i}{c^\circ}\)</td></tr>
+    <tr><td>solvant (l'eau, en général)</td><td>\(a = 1\)</td></tr>
+    <tr><td>solide ou liquide pur, seul dans sa phase</td><td>\(a = 1\)</td></tr>
+  </table></div>
+  <p>avec la pression standard \(P^\circ = 1\ \text{bar}\) et la concentration standard \(c^\circ = 1\ \text{mol·L}^{-1}\).</p>
+
+  <h3>Quotient de réaction et constante d'équilibre</h3>
+  <div class="formula" data-nom="Quotient de réaction">$$Q_r = \prod_i a_i^{\,\nu_i}$$</div>
+  <p>Comme \(\nu_i\) est positif pour les produits et négatif pour les réactifs, les produits se retrouvent au numérateur et les réactifs au dénominateur. \(Q_r\) dépend de l'état du système : il évolue pendant la transformation.</p>
+  <div class="prop-box">
+    <strong>Ce qui était admis en PTSI.</strong> À l'équilibre, \(Q_{r,\text{éq}} = K^\circ(T)\) : la constante d'équilibre ne dépend que de la température (loi d'action des masses). Hors équilibre, le système évolue dans le sens direct si \(Q_r \lt K^\circ\), dans le sens indirect si \(Q_r \gt K^\circ\).<br>
+    Ce chapitre <em>démontre</em> ce critère à partir du deuxième principe (§7) et apprend à <em>calculer</em> \(K^\circ\) à partir de tables (§4 à §7).
+  </div>
+
+  <div class="reveal" onclick="this.classList.toggle('open')">
+    <span class="label">Application</span>
+    <span class="prompt">Écrire le quotient de réaction de la décomposition du calcaire, CaCO₃(s) = CaO(s) + CO₂(g).</span>
+    <div class="content"><p>Les deux solides, purs et seuls dans leur phase, ont une activité égale à 1. Il ne reste que le gaz : \(Q_r = \dfrac{P_{\mathrm{CO_2}}}{P^\circ}\). À l'équilibre, la pression en dioxyde de carbone vaut donc \(K^\circ P^\circ\), quelles que soient les quantités de solides présentes.</p></div>
+  </div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§2 · ENTHALPIE LIBRE ET POTENTIEL CHIMIQUE</div>
+  <h2>La fonction d'état des transformations à T et P fixées</h2>
+  <div class="intro">Au laboratoire comme à l'usine, la plupart des transformations chimiques se déroulent à température et pression fixées : bécher ouvert sur l'air, bain thermostaté, réacteur régulé. La fonction d'état adaptée à ces deux variables est l'enthalpie libre. Quand la composition change, on lui associe une grandeur par constituant : le potentiel chimique.</div>
+
+  <h3>Enthalpie libre</h3>
+  <div class="def-box">
+    L'<strong>enthalpie libre</strong> (ou énergie de Gibbs) d'un système est la fonction d'état
+    $$G = H - TS = U + PV - TS$$
+    où \(U\) est l'énergie interne, \(H = U + PV\) l'enthalpie et \(S\) l'entropie. C'est une grandeur extensive, en joules.
+  </div>
+  <div class="prop-box">
+    <strong>Identité thermodynamique</strong> (système fermé de composition fixée) :
+    $$\mathrm{d}G = V\,\mathrm{d}P - S\,\mathrm{d}T$$
+    Les variables naturelles de \(G\) sont \(T\) et \(P\) : à \(T\) et \(P\) fixées, \(G\) ne varie pas tant que la composition reste la même.
+  </div>
+  <div class="reveal" onclick="this.classList.toggle('open')">
+    <span class="label">Démonstration</span>
+    <span class="prompt">Établir l'identité thermodynamique de \(G\).</span>
+    <div class="content"><p>On différentie : \(\mathrm{d}G = \mathrm{d}U + P\,\mathrm{d}V + V\,\mathrm{d}P - T\,\mathrm{d}S - S\,\mathrm{d}T\). Pour une évolution réversible élémentaire, \(\mathrm{d}U = -P\,\mathrm{d}V + T\,\mathrm{d}S\) : les termes en \(P\,\mathrm{d}V\) et en \(T\,\mathrm{d}S\) se compensent, et il reste \(\mathrm{d}G = V\,\mathrm{d}P - S\,\mathrm{d}T\). Comme \(G\) est une fonction d'état, cette relation entre deux états voisins vaut pour n'importe quelle transformation.</p></div>
+  </div>
+  <div class="notice"><strong>Deux erreurs fréquentes.</strong> Le signe devant \(PV\) est un plus : \(G = U + PV - TS\), puisque \(H = U + PV\). Et \(\mathrm{d}G = V\,\mathrm{d}P - S\,\mathrm{d}T\) suppose la composition fixée : dès qu'une réaction a lieu, il faut ajouter un terme par constituant.</div>
+
+  <h3>Potentiel chimique</h3>
+  <div class="def-box">
+    Le <strong>potentiel chimique</strong> du constituant \(\mathrm{A}_i\) dans un mélange est
+    $$\mu_i = \left(\frac{\partial G}{\partial n_i}\right)_{T,\,P,\,n_{j\neq i}} \qquad(\text{J·mol}^{-1})$$
+    C'est une grandeur intensive : l'augmentation de \(G\) par mole de \(\mathrm{A}_i\) ajoutée, à \(T\), \(P\) et autres quantités de matière fixées (pour un ajout infinitésimal). C'est la pente de la courbe de \(G\) en fonction de \(n_i\).
+  </div>
+  <div class="prop-box">
+    <strong>Système de composition variable :</strong>
+    $$\mathrm{d}G = V\,\mathrm{d}P - S\,\mathrm{d}T + \sum_i \mu_i\,\mathrm{d}n_i \qquad\qquad G = \sum_i n_i\,\mu_i$$
+    La seconde relation (identité d'Euler) est admise ; elle traduit l'extensivité de \(G\). Pour un corps pur, \(G = n\,\mu\) : le potentiel chimique d'un corps pur est son <strong>enthalpie libre molaire</strong>.
+  </div>
+
+  <h3>Expression du potentiel chimique (admise)</h3>
+  <div class="formula" data-nom="Potentiel chimique">$$\mu_i = \mu_i^\circ(T) + RT\ln a_i$$</div>
+  <p>\(\mu_i^\circ(T)\) est le <strong>potentiel chimique standard</strong> : la valeur de \(\mu_i\) quand \(a_i = 1\), c'est-à-dire dans l'état standard (§3). Il ne dépend que de la température. Avec les activités du §1 :</p>
+  <div class="formula">$$\mu_{\text{gaz}} = \mu^\circ + RT\ln\frac{P_i}{P^\circ} \qquad \mu_{\text{soluté}} = \mu^\circ + RT\ln\frac{c_i}{c^\circ} \qquad \mu_{\text{solide ou liquide pur}} = \mu^\circ$$</div>
+  <p>Plus un constituant est concentré, plus son potentiel chimique est élevé, mais la variation est lente : à 298 K, \(RT \approx 2{,}48\ \text{kJ·mol}^{-1}\), et doubler la pression partielle d'un gaz n'augmente son potentiel chimique que de \(RT\ln 2 \approx 1{,}7\ \text{kJ·mol}^{-1}\).</p>
+  <div class="reveal" onclick="this.classList.toggle('open')">
+    <span class="label">Pour comprendre (hors programme)</span>
+    <span class="prompt">D'où vient le terme \(RT\ln a_i\) ?</span>
+    <div class="content"><p>Pour un gaz parfait pur, l'identité thermodynamique appliquée à une mole donne, à \(T\) fixée, \(\mathrm{d}\mu = V_m\,\mathrm{d}P = \dfrac{RT}{P}\,\mathrm{d}P\). En intégrant de \(P^\circ\) à \(P\) : \(\mu = \mu^\circ + RT\ln(P/P^\circ)\). Les autres expressions s'obtiennent par analogie, dans le modèle de la solution idéale. Seul le résultat est exigible.</p></div>
+  </div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§3 · ÉTATS STANDARD</div>
+  <h2>Une référence de calcul, à chaque température</h2>
+  <div class="intro">Toutes les grandeurs « standard » (\(\mu^\circ\), \(\Delta_rH^\circ\), \(K^\circ\)…) reposent sur un état de référence conventionnel. Bien le définir évite deux contresens fréquents : « standard » ne veut dire ni « à 25 °C », ni « état réellement observé ».</div>
+
+  <div class="def-box">
+    L'<strong>état standard</strong> d'un constituant à la température \(T\) est un état de référence pris à cette même température et sous la <strong>pression standard</strong> \(P^\circ = 1\ \text{bar}\) :
+    <ul>
+      <li><strong>gaz</strong> : le constituant pur, se comportant comme un gaz parfait ;</li>
+      <li><strong>solide ou liquide</strong> : le constituant pur, dans le même état physique ;</li>
+      <li><strong>soluté</strong> : le soluté à \(c^\circ = 1\ \text{mol·L}^{-1}\), se comportant comme en solution infiniment diluée ;</li>
+      <li><strong>solvant</strong> : le solvant pur.</li>
+    </ul>
+  </div>
+  <div class="notice"><strong>Trois pièges.</strong> Il n'existe pas de température standard : il y a un état standard à chaque température, et les tables sont données à 298 K par simple commodité. L'état standard peut être fictif (aucun gaz réel n'est parfait, aucun soluté à 1 mol·L⁻¹ n'est infiniment dilué) : c'est une référence de calcul. Pour l'ion H⁺, l'état standard correspond à pH = 0, d'où les potentiels standard mesurés à pH = 0.</div>
+
+  <h3>État standard de référence d'un élément</h3>
+  <div class="def-box">
+    L'<strong>état standard de référence</strong> (ESR) d'un élément à la température \(T\) est l'état standard du <strong>corps simple</strong> correspondant, dans l'état physique le plus stable à cette température.<br>
+    Conventions : pour H, N, O, F et Cl, l'ESR est le gaz diatomique (H₂, N₂, O₂, F₂, Cl₂) à toute température ; pour le carbone, c'est le graphite.
+  </div>
+  <ul>
+    <li>Oxygène : O₂(g), et non l'ozone O₃, corps simple moins stable.</li>
+    <li>Brome : Br₂(ℓ) à 298 K, mais Br₂(g) au-dessus de sa température d'ébullition, 332 K.</li>
+    <li>Fer : Fe(s) jusqu'à 1 811 K, puis Fe(ℓ).</li>
+  </ul>
+
+  <div class="reveal" onclick="this.classList.toggle('open')">
+    <span class="label">Application</span>
+    <span class="prompt">À 298 K, \(\mu^\circ(\text{diamant}) - \mu^\circ(\text{graphite}) = +2{,}9\ \text{kJ·mol}^{-1}\). Pourquoi le diamant ne se transforme-t-il pas en graphite ?</span>
+    <div class="content"><p>Les deux sont des solides purs (\(a = 1\)), donc \(\mu = \mu^\circ\) : le diamant a le potentiel chimique le plus élevé. La matière évolue spontanément vers les potentiels chimiques les plus bas (démontré au §7) : la transformation diamant → graphite est thermodynamiquement possible. Mais elle est infiniment lente à température ambiante ; on dit que le diamant est <strong>métastable</strong>. La thermodynamique dit ce qui <em>peut</em> se produire, la cinétique dit <em>à quelle vitesse</em>.</p></div>
+  </div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§4 · GRANDEURS DE RÉACTION</div>
+  <h2>Dériver par rapport à l'avancement</h2>
+  <div class="intro">Le système est le siège d'une seule réaction, d'avancement \(\xi\), à température et pression fixées. Toute grandeur extensive \(X\) (\(G\), \(H\), \(S\), \(V\)…) dépend alors de \(\xi\). La question centrale : comment \(X\) varie-t-elle quand la réaction avance ?</div>
+
+  <div class="def-box">
+    La <strong>grandeur de réaction</strong> associée à \(X\) est sa dérivée par rapport à l'avancement :
+    $$\Delta_r X = \left(\frac{\partial X}{\partial \xi}\right)_{T,P} = \sum_i \nu_i\,X_{m,i} \qquad\text{avec}\qquad X_{m,i} = \left(\frac{\partial X}{\partial n_i}\right)_{T,P,n_{j\neq i}}$$
+    \(X_{m,i}\) est la <strong>grandeur molaire partielle</strong> de \(\mathrm{A}_i\) (pour \(X = G\), c'est \(\mu_i\)). \(\Delta_rX\) s'exprime « par mole d'avancement » : J·mol⁻¹ (J·K⁻¹·mol⁻¹ pour \(\Delta_rS\)). Elle dépend de \(T\), de \(P\) et de la composition.
+  </div>
+  <div class="formula" data-nom="Enthalpie libre de réaction">$$\Delta_r G = \sum_i \nu_i\,\mu_i$$</div>
+  <p>Justification : à \(T\) et \(P\) fixées, \(\mathrm{d}X = \sum_i X_{m,i}\,\mathrm{d}n_i = \left(\sum_i \nu_i X_{m,i}\right)\mathrm{d}\xi\). Pour la synthèse de l'ammoniac, \(\Delta_rG = 2\mu_{\mathrm{NH_3}} - \mu_{\mathrm{N_2}} - 3\mu_{\mathrm{H_2}}\).</p>
+  <div class="notice"><strong>Ce n'est pas une différence.</strong> Malgré la lettre \(\Delta\), \(\Delta_r\) désigne une dérivée : \(\Delta_rG\) est la <em>pente</em> de la courbe \(G(\xi)\). Ne pas confondre \(\Delta_rH\) (J·mol⁻¹) et \(\Delta H\) (J, variation entre deux états) : \(\Delta H = \int \Delta_rH\,\mathrm{d}\xi\). Enfin, une grandeur de réaction est attachée à l'équation <em>écrite</em> : multiplier tous les coefficients par 2 la multiplie par 2.</div>
+
+  <h3>Grandeurs standard de réaction</h3>
+  <div class="def-box">
+    La <strong>grandeur standard de réaction</strong> est calculée en prenant chaque constituant dans son état standard à la température \(T\) :
+    $$\Delta_r X^\circ(T) = \sum_i \nu_i\,X^\circ_{m,i}(T) \qquad\text{par exemple}\qquad \Delta_rG^\circ = \sum_i \nu_i\,\mu_i^\circ$$
+    Elle ne dépend que de \(T\) : on peut la mettre dans des tables. On peut se la représenter comme la variation de \(X\) pour une réaction <em>fictive</em> d'une mole d'avancement, à \(T\) et \(P^\circ\), où réactifs et produits resteraient purs et séparés dans leur état standard.
+  </div>
+  <div class="formula" data-nom="Relation fondamentale">$$\Delta_r G^\circ(T) = \Delta_r H^\circ(T) - T\,\Delta_r S^\circ(T)$$</div>
+  <p>Elle découle de \(G = H - TS\) appliquée à chaque constituant dans son état standard : \(\mu_i^\circ = H^\circ_{m,i} - T\,S^\circ_{m,i}\), que l'on multiplie par \(\nu_i\) avant de sommer.</p>
+
+  <h3>Ce que disent les signes</h3>
+  <p>Une réaction est <strong>exothermique</strong> si \(\Delta_rH^\circ \lt 0\), <strong>endothermique</strong> si \(\Delta_rH^\circ \gt 0\), <strong>athermique</strong> si \(\Delta_rH^\circ \approx 0\) (le sens physique, chaleur cédée ou reçue, est établi au §6).</p>
+  <div class="prop-box">
+    <strong>Signe de l'entropie standard de réaction.</strong> L'entropie molaire d'un gaz (de l'ordre de 200 J·K⁻¹·mol⁻¹) est très supérieure à celle d'un solide ou d'un liquide (quelques dizaines). En notant \(\Delta\nu_{\text{gaz}} = \sum_{\text{gaz}} \nu_i\) :
+    $$\Delta\nu_{\text{gaz}} \gt 0 \Rightarrow \Delta_rS^\circ \gt 0 \qquad \Delta\nu_{\text{gaz}} \lt 0 \Rightarrow \Delta_rS^\circ \lt 0 \qquad \Delta\nu_{\text{gaz}} = 0 \Rightarrow |\Delta_rS^\circ|\ \text{faible}$$
+    Créer du gaz augmente fortement le nombre de configurations accessibles, donc le désordre.
+  </div>
+  <div class="reveal" onclick="this.classList.toggle('open')">
+    <span class="label">Application</span>
+    <span class="prompt">Signe puis valeur de \(\Delta_rS^\circ\) pour N₂(g) + 3 H₂(g) = 2 NH₃(g), avec \(S^\circ_m\) (J·K⁻¹·mol⁻¹) : N₂ 191,6 ; H₂ 130,7 ; NH₃ 192,8.</span>
+    <div class="content"><p>On passe de 4 moles de gaz à 2 : \(\Delta\nu_{\text{gaz}} = -2\), on prévoit \(\Delta_rS^\circ \lt 0\). Le calcul le confirme : \(\Delta_rS^\circ\) \(= 2(192{,}8) - 191{,}6 - 3(130{,}7)\) \(= -198{,}1\ \text{J·K}^{-1}\text{·mol}^{-1}\).</p></div>
+  </div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§5 · LOI DE HESS ET APPROXIMATION D'ELLINGHAM</div>
+  <h2>Calculer une grandeur standard avec des tables</h2>
+  <div class="intro">On ne peut pas tabuler toutes les réactions possibles. On tabule une seule réaction par espèce, sa réaction de formation, et l'on reconstruit toutes les autres à partir d'elles.</div>
+
+  <div class="def-box">
+    La <strong>réaction standard de formation</strong> d'un constituant forme <em>une mole</em> de ce constituant, dans son état standard, à partir des éléments qui le composent pris dans leur <strong>état standard de référence</strong>. La <strong>grandeur standard de formation</strong> \(\Delta_fX^\circ\) est la grandeur standard de cette réaction.<br>
+    Exemple : ½ N₂(g) + 3/2 H₂(g) → NH₃(g), avec \(\Delta_fH^\circ(\mathrm{NH_3}) = -45{,}9\ \text{kJ·mol}^{-1}\).
+  </div>
+  <div class="prop-box">
+    <strong>Corps simple dans son ESR :</strong> \(\Delta_fX^\circ = 0\), car sa « réaction de formation » ne transforme rien (O₂ → O₂). En revanche, \(\Delta_fX^\circ \neq 0\) pour un corps composé, et aussi pour un corps simple hors de son ESR : ozone, diamant, Br₂(g) à 298 K…
+  </div>
+  <div class="formula" data-nom="Loi de Hess">$$\Delta_r H^\circ = \sum_i \nu_i\,\Delta_f H^\circ_i \qquad\qquad \Delta_r G^\circ = \sum_i \nu_i\,\Delta_f G^\circ_i$$</div>
+  <p>L'enthalpie est une fonction d'état : sa variation ne dépend pas du chemin. On passe des réactifs aux produits par un détour fictif : on décompose les réactifs en éléments dans leur ESR (contribution \(-\Delta_fH^\circ\) pour chaque réactif), puis on reforme les produits (\(+\Delta_fH^\circ\) pour chacun). Les coefficients algébriques réunissent les deux étapes en une seule somme.</p>
+
+  <figure class="schema" style="max-width:420px">
+  <svg viewBox="0 0 360 190" role="img" aria-label="Cycle de Hess : la réaction directe des réactifs aux produits équivaut à un détour par les éléments dans leur état standard de référence">
+    <rect x="10" y="20" width="120" height="34" rx="6" class="fl-accent2-soft"/>
+    <rect x="10" y="20" width="120" height="34" rx="6" class="sk-accent2" style="stroke-width:1.2"/>
+    <text x="70" y="42" text-anchor="middle" class="lab-b">réactifs</text>
+    <rect x="230" y="20" width="120" height="34" rx="6" class="fl-accent2-soft"/>
+    <rect x="230" y="20" width="120" height="34" rx="6" class="sk-accent2" style="stroke-width:1.2"/>
+    <text x="290" y="42" text-anchor="middle" class="lab-b">produits</text>
+    <rect x="95" y="138" width="170" height="40" rx="6" class="fl-green-soft"/>
+    <rect x="95" y="138" width="170" height="40" rx="6" class="sk-green" style="stroke-width:1.2"/>
+    <text x="180" y="155" text-anchor="middle" class="lab-b">éléments</text>
+    <text x="180" y="171" text-anchor="middle" class="lab-muted">dans leur ESR</text>
+    <line x1="134" y1="37" x2="224" y2="37" class="sk-accent" marker-end="url(#sk-arrow-accent)"/>
+    <text x="180" y="28" text-anchor="middle" class="lab-accent" style="font-size:15px">Δ<tspan baseline-shift="sub" font-size="80%">r</tspan>H° ?</text>
+    <line x1="60" y1="58" x2="128" y2="134" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+    <text x="12" y="106" class="lab-muted" style="font-size:15px">− Σ Δ<tspan baseline-shift="sub" font-size="80%">f</tspan>H°</text>
+    <text x="16" y="121" class="lab-muted">(réactifs)</text>
+    <line x1="232" y1="134" x2="300" y2="58" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+    <text x="270" y="106" class="lab-muted" style="font-size:15px">+ Σ Δ<tspan baseline-shift="sub" font-size="80%">f</tspan>H°</text>
+    <text x="272" y="121" class="lab-muted">(produits)</text>
+  </svg>
+  <figcaption>Cycle de Hess : le chemin direct et le détour par les éléments ont la même variation d'enthalpie.</figcaption>
+  </figure>
+
+  <div class="reveal" onclick="this.classList.toggle('open')">
+    <span class="label">Application</span>
+    <span class="prompt">Chloration du méthane : CH₄(g) + Cl₂(g) → CH₃Cl(g) + HCl(g). Calculer \(\Delta_rH^\circ\) à 298 K.</span>
+    <div class="content"><p>Avec les données du tableau ci-dessous et \(\Delta_fH^\circ(\mathrm{Cl_2}) = 0\) (corps simple dans son ESR) : \(\Delta_rH^\circ\) \(= -81{,}9 - 92{,}3 - (-74{,}6)\) \(= -99{,}6\ \text{kJ·mol}^{-1}\). La réaction est exothermique.</p></div>
+  </div>
+
+  <h3>Et pour l'entropie ?</h3>
+  <p>Les tables donnent directement les <strong>entropies molaires standard absolues</strong> \(S^\circ_m\) (le troisième principe fixe \(S_m = 0\) pour un cristal parfait à 0 K). On calcule donc \(\Delta_rS^\circ = \sum_i \nu_i\,S^\circ_{m,i}\).</p>
+  <div class="notice"><strong>Pièges.</strong> \(\Delta_fH^\circ(\mathrm{O_2}) = 0\), mais \(S^\circ_m(\mathrm{O_2}) = 205{,}2\ \text{J·K}^{-1}\text{·mol}^{-1}\) : l'entropie molaire d'un corps simple n'est jamais nulle, et l'oublier est l'erreur la plus fréquente. Les enthalpies sont en kJ·mol⁻¹, les entropies en J·K⁻¹·mol⁻¹ : convertir avant de combiner. Vérifier l'état physique : \(\Delta_fH^\circ\) vaut \(-285{,}8\ \text{kJ·mol}^{-1}\) pour H₂O(ℓ) et \(-241{,}8\ \text{kJ·mol}^{-1}\) pour H₂O(g), l'écart étant l'enthalpie de vaporisation.</div>
+
+  <h3>Combinaisons linéaires de réactions</h3>
+  <div class="prop-box">
+    Si l'équation (3) s'écrit \((3) = a\,(1) + b\,(2)\), alors, puisque \(\Delta_rX^\circ\) est linéaire en les \(\nu_i\) :
+    $$\Delta_rX^\circ_3 = a\,\Delta_rX^\circ_1 + b\,\Delta_rX^\circ_2 \quad (X = H, S, G) \qquad\qquad K^\circ_3 = \left(K^\circ_1\right)^a\left(K^\circ_2\right)^b$$
+    (la seconde relation découle de \(\Delta_rG^\circ = -RT\ln K^\circ\), établie au §7).
+  </div>
+  <div class="reveal" onclick="this.classList.toggle('open')">
+    <span class="label">Application</span>
+    <span class="prompt">On ne sait pas brûler le carbone en CO sans former un peu de CO₂. Calculer \(\Delta_fH^\circ(\mathrm{CO})\) à partir de C(gr) + O₂ → CO₂ (\(-393{,}5\ \text{kJ·mol}^{-1}\)) et CO + ½ O₂ → CO₂ (\(-283{,}0\ \text{kJ·mol}^{-1}\)).</span>
+    <div class="content"><p>La formation C(gr) + ½ O₂ → CO est la première réaction moins la seconde : \(\Delta_fH^\circ(\mathrm{CO})\) \(= -393{,}5 - (-283{,}0)\) \(= -110{,}5\ \text{kJ·mol}^{-1}\).</p></div>
+  </div>
+
+  <h3>Approximation d'Ellingham</h3>
+  <div class="def-box">
+    Dans l'<strong>approximation d'Ellingham</strong>, imposée par le programme, \(\Delta_rH^\circ\) et \(\Delta_rS^\circ\) sont indépendantes de la température sur tout intervalle où aucun constituant ne change d'état. Alors
+    $$\Delta_rG^\circ(T) = \Delta_rH^\circ - T\,\Delta_rS^\circ$$
+    est une <strong>fonction affine</strong> de \(T\), de pente \(-\Delta_rS^\circ\) et d'ordonnée à l'origine \(\Delta_rH^\circ\).
+  </div>
+  <p>L'approximation est raisonnable : \(\Delta_rH^\circ\) et \(\Delta_rS^\circ\) varient peu avec \(T\), alors que le terme \(T\Delta_rS^\circ\) change beaucoup.</p>
+  <div class="def-box">
+    La <strong>température d'inversion</strong> \(T_i\) est la température où \(\Delta_rG^\circ(T_i) = 0\), c'est-à-dire \(K^\circ(T_i) = 1\). Dans l'approximation d'Ellingham, \(T_i = \dfrac{\Delta_rH^\circ}{\Delta_rS^\circ}\).
+  </div>
+
+  <figure class="schema" style="max-width:440px">
+  <svg viewBox="0 0 360 200" role="img" aria-label="Droite d'Ellingham de la synthèse de l'ammoniac : l'enthalpie libre standard de réaction croît avec la température et s'annule à 463 kelvins">
+    <line x1="50" y1="180" x2="50" y2="18" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+    <line x1="50" y1="130" x2="342" y2="130" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+    <text x="56" y="22" style="font-size:15px">Δ<tspan baseline-shift="sub" font-size="80%">r</tspan>G° (kJ/mol)</text>
+    <text x="346" y="122" text-anchor="end">T (K)</text>
+    <polygon points="50,130 50,162.4 126.3,130" class="fl-green-soft"/>
+    <polygon points="126.3,130 330,43.5 330,130" class="fl-accent-soft"/>
+    <line x1="50" y1="162.4" x2="330" y2="43.5" class="sk-accent2"/>
+    <circle cx="126.3" cy="130" r="4" class="fl-accent"/>
+    <text x="126" y="148" text-anchor="middle" class="lab-accent" style="font-size:15px">T_i = 463 K</text>
+    <text x="60" y="176" class="lab-green">K° &gt; 1</text>
+    <text x="250" y="112" class="lab-accent">K° &lt; 1</text>
+    <text x="44" y="134" text-anchor="end" class="lab-muted">0</text>
+    <text x="50" y="196" text-anchor="middle" class="lab-muted">300</text>
+    <text x="330" y="196" text-anchor="middle" class="lab-muted">900</text>
+  </svg>
+  <figcaption>Synthèse de l'ammoniac (\(\Delta_rH^\circ = -91{,}8\ \text{kJ·mol}^{-1}\), \(\Delta_rS^\circ = -198{,}1\ \text{J·K}^{-1}\text{·mol}^{-1}\)) : pente positive car \(\Delta_rS^\circ \lt 0\).</figcaption>
+  </figure>
+  <div class="reveal" onclick="this.classList.toggle('open')">
+    <span class="label">Application</span>
+    <span class="prompt">Synthèse de l'ammoniac : calculer \(\Delta_rG^\circ\) à 298 K et la température d'inversion.</span>
+    <div class="content"><p>\(\Delta_rH^\circ = 2\,\Delta_fH^\circ(\mathrm{NH_3}) = -91{,}8\ \text{kJ·mol}^{-1}\). \(\Delta_rG^\circ(298)\) \(= -91{,}8 - 298\times(-0{,}1981)\) \(= -32{,}7\ \text{kJ·mol}^{-1}\) et \(T_i\) \(= \dfrac{-91{,}8\times10^3}{-198{,}1}\) \(\approx 463\ \text{K}\) (190 °C). En dessous de \(T_i\), le terme enthalpique favorable l'emporte (\(K^\circ \gt 1\)) ; au-dessus, c'est le terme entropique défavorable.</p></div>
+  </div>
+
+  <h3>Données à 298 K</h3>
+  <div style="overflow-x:auto"><table>
+    <tr><th>Constituant</th><th>\(\Delta_fH^\circ\) (kJ·mol⁻¹)</th><th>\(S^\circ_m\) (J·K⁻¹·mol⁻¹)</th><th>\(\Delta_fG^\circ\) (kJ·mol⁻¹)</th><th>\(C^\circ_{p,m}\) (J·K⁻¹·mol⁻¹)</th></tr>
+    <tr><td>N₂(g)</td><td>0</td><td>191,6</td><td>0</td><td>29,1</td></tr>
+    <tr><td>H₂(g)</td><td>0</td><td>130,7</td><td>0</td><td>28,8</td></tr>
+    <tr><td>O₂(g)</td><td>0</td><td>205,2</td><td>0</td><td>29,4</td></tr>
+    <tr><td>C (graphite)</td><td>0</td><td>5,7</td><td>0</td><td>8,5</td></tr>
+    <tr><td>NH₃(g)</td><td>−45,9</td><td>192,8</td><td>−16,4</td><td>35,1</td></tr>
+    <tr><td>CH₄(g)</td><td>−74,6</td><td>186,3</td><td>−50,5</td><td>35,7</td></tr>
+    <tr><td>CH₃Cl(g)</td><td>−81,9</td><td>234,6</td><td>—</td><td>—</td></tr>
+    <tr><td>HCl(g)</td><td>−92,3</td><td>186,9</td><td>−95,3</td><td>29,1</td></tr>
+    <tr><td>CO(g)</td><td>−110,5</td><td>197,7</td><td>−137,2</td><td>29,1</td></tr>
+    <tr><td>CO₂(g)</td><td>−393,5</td><td>213,8</td><td>−394,4</td><td>37,1</td></tr>
+    <tr><td>H₂O(ℓ)</td><td>−285,8</td><td>70,0</td><td>−237,1</td><td>75,3</td></tr>
+    <tr><td>H₂O(g)</td><td>−241,8</td><td>188,8</td><td>−228,6</td><td>33,6</td></tr>
+    <tr><td>CaCO₃(s)</td><td>−1 207,6</td><td>91,7</td><td>−1 129,1</td><td>83,5</td></tr>
+    <tr><td>CaO(s)</td><td>−634,9</td><td>38,1</td><td>−603,3</td><td>42,0</td></tr>
+  </table></div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§6 · EFFETS THERMIQUES DES RÉACTIONS</div>
+  <h2>Premier principe : chaleur échangée ou échauffement</h2>
+  <div class="intro">Une réaction libère ou absorbe de l'énergie. Dans un réacteur thermostaté, cette énergie est échangée avec l'extérieur sous forme de chaleur ; dans un réacteur calorifugé, elle change la température de son contenu. Dans les deux cas, l'outil est le premier principe écrit avec l'enthalpie.</div>
+
+  <div class="def-box">
+    Pour une transformation d'un état initial (I) à un état final (F) :
+    <ul>
+      <li><strong>monobare</strong> : la pression extérieure est constante et \(P_I = P_F = P_{\text{ext}}\) (réacteur ouvert sur l'atmosphère) ;</li>
+      <li><strong>isobare</strong> : la pression du système est définie et constante à chaque instant ;</li>
+      <li><strong>monotherme</strong> : le système n'échange de chaleur qu'avec un thermostat de température \(T_{\text{ext}}\) ;</li>
+      <li><strong>isotherme</strong> : la température est définie et constante (en pratique, \(T_I = T_F = T_{\text{ext}}\) dans un réacteur thermostaté) ;</li>
+      <li><strong>adiabatique</strong> : aucun transfert thermique (calorimètre, réaction très rapide).</li>
+    </ul>
+  </div>
+  <p>Pour un système fermé, au repos, subissant une transformation monobare où seules les forces de pression travaillent, le premier principe s'écrit \(\Delta H = Q\), où \(Q\) est le transfert thermique <em>reçu</em>. À \(T\) et \(P\) fixées, \(\mathrm{d}H = \Delta_rH\,\mathrm{d}\xi\), et l'on fait toujours l'approximation \(\Delta_rH \approx \Delta_rH^\circ\) : l'enthalpie d'un gaz parfait ne dépend que de \(T\), celle d'une phase condensée dépend très peu de \(P\), et le mélange idéal se fait sans effet thermique.</p>
+
+  <h3>Réacteur monobare et isotherme</h3>
+  <div class="formula" data-nom="Transfert thermique (réacteur isotherme)">$$Q = \Delta H = \xi_F\,\Delta_rH^\circ(T)$$</div>
+  <p>Réaction exothermique : \(Q \lt 0\), le système <em>cède</em> de la chaleur au milieu extérieur. Réaction endothermique : \(Q \gt 0\), il en <em>reçoit</em>.</p>
+  <div class="reveal" onclick="this.classList.toggle('open')">
+    <span class="label">Application</span>
+    <span class="prompt">On brûle 1 m³ de méthane, pris à 1 bar et 298 K : CH₄(g) + 2 O₂(g) → CO₂(g) + 2 H₂O(ℓ). Quelle chaleur récupère-t-on si les produits sont ramenés à 298 K ?</span>
+    <div class="content"><p>\(n\) \(= \dfrac{PV}{RT}\) \(= \dfrac{10^5\times1}{8{,}314\times298}\) \(\approx 40{,}3\ \text{mol}\). Loi de Hess : \(\Delta_rH^\circ\) \(= -393{,}5 + 2(-285{,}8) - (-74{,}6)\) \(= -890{,}5\ \text{kJ·mol}^{-1}\). Réaction totale : \(Q = \xi_F\,\Delta_rH^\circ\) \(\approx -35{,}9\ \text{MJ}\), soit environ 10 kWh cédés : c'est l'ordre de grandeur du « pouvoir calorifique » du gaz naturel facturé au mètre cube.</p></div>
+  </div>
+
+  <h3>Réacteur monobare et adiabatique : température finale</h3>
+  <p>Si le réacteur est calorifugé (ou la réaction très rapide), \(Q = 0\), donc \(\Delta H = 0\) : l'énergie libérée par une réaction exothermique chauffe le contenu du réacteur. Comme \(H\) est une fonction d'état, on remplace la transformation réelle (réaction et échauffement simultanés) par un <strong>chemin fictif</strong> en deux étapes.</p>
+  <figure class="schema" style="max-width:440px">
+  <svg viewBox="0 0 360 214" role="img" aria-label="Chemin fictif : réaction à la température initiale, puis échauffement du système final jusqu'à la température finale ; la somme des deux variations d'enthalpie est nulle">
+    <rect x="6" y="156" width="150" height="50" rx="6" class="fl-accent2-soft"/>
+    <rect x="6" y="156" width="150" height="50" rx="6" class="sk-accent2" style="stroke-width:1.2"/>
+    <text x="81" y="176" text-anchor="middle" class="lab-b">état initial</text>
+    <text x="81" y="196" text-anchor="middle" class="lab-muted" style="font-size:15px">réactifs, T_I</text>
+    <rect x="204" y="156" width="150" height="50" rx="6" class="fl-accent2-soft"/>
+    <rect x="204" y="156" width="150" height="50" rx="6" class="sk-accent2" style="stroke-width:1.2"/>
+    <text x="279" y="176" text-anchor="middle" class="lab-b">intermédiaire</text>
+    <text x="279" y="196" text-anchor="middle" class="lab-muted" style="font-size:15px">système final, T_I</text>
+    <rect x="204" y="10" width="150" height="50" rx="6" class="fl-accent-soft"/>
+    <rect x="204" y="10" width="150" height="50" rx="6" class="sk-accent" style="stroke-width:1.2"/>
+    <text x="279" y="30" text-anchor="middle" class="lab-b">état final</text>
+    <text x="279" y="50" text-anchor="middle" class="lab-muted" style="font-size:15px">système final, T_F</text>
+    <line x1="160" y1="181" x2="198" y2="181" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+    <text x="178" y="172" text-anchor="middle">(a)</text>
+    <line x1="279" y1="152" x2="279" y2="66" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+    <text x="287" y="114">(b)</text>
+    <line x1="81" y1="152" x2="198" y2="44" class="sk-dash" marker-end="url(#sk-arrow-ink)"/>
+    <text x="8" y="100" class="lab-muted">réel : ΔH = 0</text>
+  </svg>
+  <figcaption>Chemin fictif : (a) réaction complète à \(T_I\), \(\Delta H_a = \xi_F\,\Delta_rH^\circ(T_I)\) ; (b) échauffement de tout le système final, \(\Delta H_b = \left(\sum_j n_j C^\circ_{p,m,j}\right)(T_F - T_I)\).</figcaption>
+  </figure>
+  <div class="formula" data-nom="Température finale (réacteur adiabatique)">$$T_F = T_I - \frac{\xi_F\,\Delta_rH^\circ(T_I)}{\sum_j n_j\,C^\circ_{p,m,j}}$$</div>
+  <div class="notice"><strong>La somme porte sur tout l'état final</strong> : produits, réactifs en excès <em>et</em> espèces spectatrices (diazote de l'air, solvant, calorimètre). Si un constituant change d'état pendant l'échauffement, on coupe l'étape (b) à la température du changement d'état et l'on ajoute l'enthalpie correspondante.</div>
+  <div class="def-box">La <strong>température de flamme adiabatique</strong> d'une combustion est la température atteinte par les gaz brûlés quand la combustion, totale, a lieu de façon adiabatique et monobare.</div>
+  <div class="reveal" onclick="this.classList.toggle('open')">
+    <span class="label">Application</span>
+    <span class="prompt">Flamme méthane–air : mélange stœchiométrique CH₄ + 2 O₂ + 8 N₂ (environ 4 N₂ par O₂ dans l'air) à 298 K. Estimer la température de flamme.</span>
+    <div class="content"><p>État final : CO₂ + 2 H₂O(g) + 8 N₂. On forme directement l'eau gazeuse dans l'étape (a) : \(\Delta_rH^\circ\) \(= -393{,}5 + 2(-241{,}8) + 74{,}6\) \(= -802{,}5\ \text{kJ·mol}^{-1}\). Capacité thermique de l'état final : \(37{,}1 + 2(33{,}6) + 8(29{,}1)\) \(= 337{,}1\ \text{J·K}^{-1}\). D'où \(T_F\) \(= 298 + \dfrac{802{,}5\times10^3}{337{,}1}\) \(\approx 2\,680\ \text{K}\).</p><p>La valeur mesurée est plus proche de 2 200 K : les capacités thermiques augmentent avec \(T\), une partie de CO₂ et H₂O se dissocie (réactions endothermiques) et il y a des pertes. Le diazote, spectateur, absorbe près de 70 % de l'énergie libérée.</p></div>
+  </div>
+
+  <h3>Capacité numérique : l'emballement thermique</h3>
+  <p>Si la loi de vitesse est connue, on peut suivre \(T(t)\). La constante de vitesse croît avec la température (loi d'Arrhenius, \(k = A\,\mathrm{e}^{-E_a/RT}\)) : une réaction exothermique en réacteur adiabatique <strong>s'auto-accélère</strong>. Pour \(\mathrm{A} \to \mathrm{B}\) d'ordre 1, dans un réacteur de capacité thermique totale \(C\), le bilan d'enthalpie du chemin fictif, appliqué à chaque pas de temps, donne :</p>
+  <div class="formula">$$\frac{\mathrm{d}\xi}{\mathrm{d}t} = k(T)\,(n_0 - \xi) \qquad\qquad C\,\frac{\mathrm{d}T}{\mathrm{d}t} = -\Delta_rH^\circ\,\frac{\mathrm{d}\xi}{\mathrm{d}t}$$</div>
+<pre class="codeblock"><span class="kw">import</span> numpy <span class="kw">as</span> np
+R, Ea, A = 8.314, 80e3, 2.0e-4*np.exp(80e3/(8.314*298))   <span class="cmt"># k(298 K) = 2,0e-4 s⁻¹</span>
+dH, C, n0 = -120e3, 3.0e3, 1.0                             <span class="cmt"># J/mol, J/K, mol</span>
+dt, T, xi = 1.0, 298.0, 0.0
+Ts = [T]
+<span class="kw">for</span> i <span class="kw">in</span> range(3600):                                    <span class="cmt"># une heure, pas de 1 s</span>
+    v = A*np.exp(-Ea/(R*T))*(n0 - xi)                       <span class="cmt"># vitesse dξ/dt</span>
+    xi = xi + v*dt
+    T = T - dH/C*v*dt                                       <span class="cmt"># bilan d'enthalpie</span>
+    Ts.append(T)</pre>
+  <p>La température finale vaut \(T_I + \Delta T_{\text{ad}}\), avec \(\Delta T_{\text{ad}} = -n_0\Delta_rH^\circ/C = 40\ \text{K}\) : on retrouve le chemin fictif. Mais entre-temps la constante de vitesse est multipliée par environ 45 : la courbe \(T(t)\) prend une allure en S, signature de l'<strong>emballement thermique</strong> que le génie chimique cherche à éviter (refroidissement, dilution, ajout progressif des réactifs).</p>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§7 · ÉVOLUTION ET ÉQUILIBRE</div>
+  <h2>Deuxième principe : le critère d'évolution démontré</h2>
+  <div class="intro">Tout découle d'une seule idée : à température et pression fixées, l'enthalpie libre d'un système ne peut que diminuer. Cadre de toute la section : système fermé, siège d'une réaction unique, maintenu à \(T = T_{\text{ext}}\) et \(P = P_{\text{ext}}\), où seules les forces de pression travaillent.</div>
+
+  <div class="prop-box">
+    <strong>Création d'entropie due à la réaction :</strong>
+    $$T\,\delta S_c = -\Delta_rG\,\mathrm{d}\xi \geq 0 \qquad\Longleftrightarrow\qquad \mathrm{d}G = -T\,\delta S_c \leq 0$$
+    À \(T\) et \(P\) fixées, \(G\) joue le rôle de <strong>potentiel thermodynamique</strong> : elle décroît au cours de toute évolution spontanée et elle est minimale à l'équilibre.
+  </div>
+  <div class="reveal" onclick="this.classList.toggle('open')">
+    <span class="label">Démonstration</span>
+    <span class="prompt">Relier la création d'entropie à l'enthalpie libre de réaction.</span>
+    <div class="content"><p>Premier principe (monobare, forces de pression seules) : \(\mathrm{d}H = \delta Q\). Deuxième principe (monotherme) : \(\mathrm{d}S = \delta Q/T + \delta S_c\), avec \(\delta S_c \geq 0\). À \(T\) fixée : \(\mathrm{d}G = \mathrm{d}H - T\,\mathrm{d}S = -T\,\delta S_c\). Par ailleurs, à \(T\) et \(P\) fixées, \(\mathrm{d}G = \sum_i \mu_i\,\mathrm{d}n_i = \Delta_rG\,\mathrm{d}\xi\). En égalant les deux expressions : \(T\,\delta S_c = -\Delta_rG\,\mathrm{d}\xi\).</p></div>
+  </div>
+  <div class="prop-box">
+    <strong>Sens d'évolution à \(T\) et \(P\) fixées :</strong> le deuxième principe impose \(\Delta_rG\,\mathrm{d}\xi \leq 0\).
+    <ul>
+      <li>\(\Delta_rG \lt 0\) : \(\mathrm{d}\xi \gt 0\), évolution dans le <strong>sens direct</strong> ;</li>
+      <li>\(\Delta_rG \gt 0\) : \(\mathrm{d}\xi \lt 0\), évolution dans le <strong>sens indirect</strong> ;</li>
+      <li>\(\Delta_rG = 0\) : <strong>équilibre chimique</strong>.</li>
+    </ul>
+  </div>
+  <div class="notice"><strong>\(\Delta_rG\), pas \(\Delta_rG^\circ\).</strong> C'est le signe de \(\Delta_rG\), qui dépend de la composition actuelle, qui donne le sens d'évolution ; \(\Delta_rG^\circ\) ne dépend que de \(T\). Et le critère dit si une évolution est <em>possible</em>, pas si elle est <em>rapide</em> (le diamant du §3).</div>
+
+  <h3>Expression de l'enthalpie libre de réaction</h3>
+  <p>En injectant \(\mu_i = \mu_i^\circ + RT\ln a_i\) dans \(\Delta_rG = \sum_i \nu_i\mu_i\), les \(\nu_i\) passent en exposants dans le logarithme :</p>
+  <div class="formula" data-nom="Enthalpie libre de réaction et quotient">$$\Delta_rG = \Delta_rG^\circ + RT\ln Q_r$$</div>
+  <div class="def-box">
+    La <strong>constante thermodynamique d'équilibre</strong> à la température \(T\) est
+    $$K^\circ(T) = \exp\left(-\frac{\Delta_rG^\circ(T)}{RT}\right) \qquad\Longleftrightarrow\qquad \Delta_rG^\circ = -RT\ln K^\circ$$
+    Sans dimension, elle ne dépend que de \(T\) (et de l'écriture de l'équation).
+  </div>
+  <div class="formula" data-nom="Critère d'évolution">$$\Delta_rG = RT\ln\frac{Q_r}{K^\circ}$$</div>
+  <div class="prop-box">
+    <strong>Loi d'action des masses et critère en \(Q_r\).</strong> À l'équilibre, \(\Delta_rG = 0\), donc \(Q_{r,\text{éq}} = K^\circ(T)\). Hors équilibre : \(Q_r \lt K^\circ \Leftrightarrow \Delta_rG \lt 0\), sens direct ; \(Q_r \gt K^\circ \Leftrightarrow \Delta_rG \gt 0\), sens indirect. Le quotient de réaction évolue toujours vers la constante d'équilibre.
+  </div>
+  <figure class="schema" style="max-width:420px">
+  <svg viewBox="0 0 360 110" role="img" aria-label="Axe du quotient de réaction : à gauche de la constante d'équilibre, évolution dans le sens direct ; à droite, dans le sens indirect ; équilibre quand le quotient égale la constante">
+    <line x1="14" y1="60" x2="346" y2="60" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+    <text x="344" y="80" text-anchor="end" style="font-size:15px">Q_r</text>
+    <line x1="14" y1="54" x2="14" y2="66" class="sk-ink"/>
+    <text x="14" y="82" text-anchor="middle" class="lab-muted">0</text>
+    <line x1="180" y1="48" x2="180" y2="72" class="sk-accent"/>
+    <text x="180" y="92" text-anchor="middle" class="lab-accent lab-b">K°</text>
+    <line x1="80" y1="42" x2="166" y2="42" class="sk-green" marker-end="url(#sk-arrow-green)"/>
+    <text x="96" y="16" text-anchor="middle" class="lab-green">sens direct</text>
+    <text x="96" y="31" text-anchor="middle" class="lab-muted" style="font-size:15px">Δ<tspan baseline-shift="sub" font-size="80%">r</tspan>G &lt; 0</text>
+    <line x1="280" y1="42" x2="194" y2="42" class="sk-accent2" marker-end="url(#sk-arrow-accent2)"/>
+    <text x="268" y="16" text-anchor="middle" class="lab-accent2">sens indirect</text>
+    <text x="268" y="31" text-anchor="middle" class="lab-muted" style="font-size:15px">Δ<tspan baseline-shift="sub" font-size="80%">r</tspan>G &gt; 0</text>
+  </svg>
+  <figcaption>Le quotient de réaction évolue vers \(K^\circ\) ; à l'équilibre, \(Q_r = K^\circ\) et \(\Delta_rG = 0\).</figcaption>
+  </figure>
+  <p>Le signe de \(\Delta_rG^\circ\) renseigne seulement sur \(K^\circ\) : \(K^\circ \gt 1 \Leftrightarrow \Delta_rG^\circ \lt 0\), la réaction est dite <em>thermodynamiquement favorisée</em>. Repères : si \(K^\circ \gtrsim 10^4\), la réaction est souvent quasi totale ; si \(K^\circ \lesssim 10^{-4}\), elle est quasi nulle ; l'état final dépend aussi des quantités initiales.</p>
+  <div class="prop-box">
+    <strong>Les visages de \(\Delta_rG^\circ\), à connaître :</strong>
+    $$\Delta_rG^\circ = \sum_i \nu_i\,\mu_i^\circ = \sum_i \nu_i\,\Delta_fG^\circ_i = \Delta_rH^\circ - T\,\Delta_rS^\circ = -RT\ln K^\circ$$
+    et, pour une réaction d'oxydoréduction (§9), \(\Delta_rG^\circ = -\gamma F\,(E_1^\circ - E_2^\circ)\).
+  </div>
+  <div class="reveal" onclick="this.classList.toggle('open')">
+    <span class="label">Application</span>
+    <span class="prompt">Synthèse de l'ammoniac à 298 K (\(\Delta_rG^\circ = -32{,}7\ \text{kJ·mol}^{-1}\)) : calculer \(K^\circ\).</span>
+    <div class="content"><p>\(K^\circ\) \(= \exp\left(\dfrac{32{,}7\times10^3}{8{,}314\times298}\right)\) \(\approx 5{,}4\times10^5\). La synthèse est très favorisée à température ambiante… mais infiniment lente sans catalyseur ni chauffage (§8).</p></div>
+  </div>
+
+  <h3>La courbe \(G(\xi)\)</h3>
+  <p>À \(T\) et \(P\) fixées, \(G\) ne dépend plus que de \(\xi\), et la pente de la courbe vaut \(\Delta_rG\). Pour l'isomérisation gazeuse A(g) = B(g) sous \(P^\circ\), avec 1 mol de A au départ (\(a_A = 1 - \xi\), \(a_B = \xi\)) et \(\mu_A^\circ\) pris comme origine :</p>
+  <div class="formula">$$G(\xi) - G(0) = \xi\,\Delta_rG^\circ + RT\left[(1-\xi)\ln(1-\xi) + \xi\ln\xi\right]$$</div>
+  <figure class="schema" style="max-width:440px">
+  <svg viewBox="0 0 360 200" role="img" aria-label="Courbe de l'enthalpie libre en fonction de l'avancement : elle descend jusqu'à un minimum, l'équilibre, situé à l'intérieur de l'intervalle, puis remonte">
+    <line x1="50" y1="186" x2="50" y2="16" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+    <line x1="50" y1="186" x2="344" y2="186" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+    <text x="56" y="20">G − G(0)</text>
+    <text x="340" y="178" text-anchor="end">ξ (mol)</text>
+    <line x1="50" y1="42.5" x2="330" y2="125.8" class="sk-dash"/>
+    <text x="210" y="76" class="lab-muted">sans mélange</text>
+    <path d="M50.0,42.5 L55.6,54.3 L61.2,63.2 L66.8,70.9 L72.4,77.9 L78.0,84.4 L83.6,90.4 L89.2,96.0 L94.8,101.2 L100.4,106.2 L106.0,110.8 L111.6,115.2 L117.2,119.4 L122.8,123.3 L128.4,127.0 L134.0,130.6 L139.6,133.9 L145.2,137.0 L150.8,140.0 L156.4,142.7 L162.0,145.3 L167.6,147.7 L173.2,150.0 L178.8,152.1 L184.4,154.0 L190.0,155.7 L195.6,157.3 L201.2,158.7 L206.8,160.0 L212.4,161.1 L218.0,162.0 L223.6,162.7 L229.2,163.3 L234.8,163.7 L240.4,163.9 L246.0,163.9 L251.6,163.7 L257.2,163.3 L262.8,162.7 L268.4,161.9 L274.0,160.8 L279.6,159.5 L285.2,157.9 L290.8,156.0 L296.4,153.7 L302.0,151.1 L307.6,147.9 L313.2,144.3 L318.8,139.8 L324.4,134.3 L330.0,125.8" class="sk-accent2"/>
+    <line x1="243.6" y1="164" x2="243.6" y2="186" class="sk-dash"/>
+    <circle cx="243.6" cy="163.9" r="4" class="fl-accent"/>
+    <text x="243" y="152" text-anchor="middle" class="lab-accent">équilibre</text>
+    <text x="243.6" y="200" text-anchor="middle" class="lab-muted" style="font-size:15px">ξ_éq</text>
+    <text x="50" y="199" text-anchor="middle" class="lab-muted">0</text>
+    <text x="330" y="199" text-anchor="middle" class="lab-muted">1</text>
+    <text x="60" y="177" class="lab-green">pente &lt; 0 : ξ augmente</text>
+  </svg>
+  <figcaption>Avec \(\Delta_rG^\circ = -2{,}0\ \text{kJ·mol}^{-1}\) à 298 K : \(K^\circ = 2{,}24\) et \(\xi_{\text{éq}} = K^\circ/(1 + K^\circ) \approx 0{,}69\ \text{mol}\). Le système « descend » la courbe jusqu'au minimum.</figcaption>
+  </figure>
+  <p><strong>Pourquoi le minimum est-il à l'intérieur ?</strong> Le terme de mélange a une pente infinie en \(\xi = 0\) et en \(\xi = 1\) : dès qu'un constituant d'un mélange (gaz, soluté) est absent, \(\Delta_rG\) est infini et pousse à le former. Un équilibre entre gaz ou solutés n'est donc jamais rigoureusement total. Il en va autrement quand les constituants qui disparaissent sont des solides ou des liquides purs : leur activité reste égale à 1 jusqu'au bout, et la réaction peut s'arrêter par épuisement.</p>
+
+  <h3>État final : équilibre ou transformation totale</h3>
+  <div class="def-box">
+    <ul>
+      <li><strong>Équilibre chimique</strong> : tous les constituants de l'équation sont présents ; \(\Delta_rG = 0\) et \(Q_r = K^\circ\).</li>
+      <li><strong>Transformation totale</strong> : un réactif est entièrement consommé, \(\xi_F = \xi_{\max}\). Le système s'arrête <em>hors équilibre</em>, avec \(\Delta_rG \lt 0\), faute de réactif.</li>
+      <li><strong>Rupture d'équilibre</strong> : l'espèce épuisée est une phase condensée pure (solide, liquide) ou un précipité entièrement dissous.</li>
+    </ul>
+  </div>
+  <div class="reveal" onclick="this.classList.toggle('open')">
+    <span class="label">Application</span>
+    <span class="prompt">CaCO₃(s) = CaO(s) + CO₂(g) à 1 100 K (\(K^\circ = 0{,}722\)), dans une enceinte initialement vide de 10 L. État final pour \(n_0 = 0{,}100\ \text{mol}\), puis \(n_0 = 0{,}050\ \text{mol}\) de calcaire ?</span>
+    <div class="content"><p>Si l'équilibre est atteint, \(P_{\mathrm{CO_2}} = K^\circ P^\circ = 0{,}722\ \text{bar}\), ce qui demande \(\xi_{\text{éq}}\) \(= \dfrac{P_{\mathrm{CO_2}}V}{RT}\) \(= \dfrac{0{,}722\times10^5\times10^{-2}}{8{,}314\times1100}\) \(\approx 78{,}9\ \text{mmol}\).</p><p>Avec 0,100 mol : \(\xi_{\text{éq}} \lt n_0\), équilibre ; il reste 21 mmol de calcaire et \(P = 0{,}722\ \text{bar}\). Avec 0,050 mol : \(\xi_{\text{éq}} \gt n_0\), <strong>rupture d'équilibre</strong> ; tout le calcaire se décompose, \(P = n_0RT/V \approx 0{,}457\ \text{bar} \lt K^\circ P^\circ\) et \(\Delta_rG = RT\ln(Q_r/K^\circ) \approx -4{,}2\ \text{kJ·mol}^{-1}\) : la réaction continuerait s'il restait du réactif.</p></div>
+  </div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§8 · OPTIMISATION D'UN ÉQUILIBRE</div>
+  <h2>Déplacer un équilibre : agir sur \(K^\circ\) ou sur \(Q_r\)</h2>
+  <div class="intro">Pour améliorer le rendement d'une synthèse, on joue sur les conditions opératoires. Deux leviers existent : modifier \(K^\circ\), ce que seule la température permet, ou modifier \(Q_r\) (pression, composition) pour l'écarter de \(K^\circ\) dans le bon sens.</div>
+
+  <h3>Influence de la température : relation de Van 't Hoff</h3>
+  <div class="formula" data-nom="Relation de Van 't Hoff">$$\frac{\mathrm{d}\ln K^\circ}{\mathrm{d}T} = \frac{\Delta_rH^\circ}{RT^2}$$</div>
+  <p>Réaction <strong>endothermique</strong> : \(K^\circ\) augmente avec \(T\). Réaction <strong>exothermique</strong> : \(K^\circ\) diminue quand \(T\) augmente. Réaction athermique : \(K^\circ\) varie peu.</p>
+  <div class="reveal" onclick="this.classList.toggle('open')">
+    <span class="label">Démonstration</span>
+    <span class="prompt">Établir la relation de Van 't Hoff dans l'approximation d'Ellingham.</span>
+    <div class="content"><p>\(\ln K^\circ = -\dfrac{\Delta_rG^\circ}{RT} = -\dfrac{\Delta_rH^\circ}{RT} + \dfrac{\Delta_rS^\circ}{R}\). Avec \(\Delta_rH^\circ\) et \(\Delta_rS^\circ\) constantes, la dérivée par rapport à \(T\) vaut \(\dfrac{\Delta_rH^\circ}{RT^2}\). (La relation reste vraie hors de cette approximation : on le montre avec la relation de Gibbs–Helmholtz, hors programme.)</p></div>
+  </div>
+  <div class="formula" data-nom="Van 't Hoff intégrée">$$\ln\frac{K^\circ(T_2)}{K^\circ(T_1)} = -\frac{\Delta_rH^\circ}{R}\left(\frac{1}{T_2} - \frac{1}{T_1}\right)$$</div>
+  <p>\(\ln K^\circ\) est une fonction affine de \(1/T\), de pente \(-\Delta_rH^\circ/R\) et d'ordonnée à l'origine \(\Delta_rS^\circ/R\) : en mesurant \(K^\circ\) à plusieurs températures, une régression linéaire donne les deux grandeurs (et l'alignement des points teste l'approximation d'Ellingham).</p>
+  <div class="reveal" onclick="this.classList.toggle('open')">
+    <span class="label">Application</span>
+    <span class="prompt">Synthèse de l'ammoniac : sachant \(K^\circ(298) = 5{,}4\times10^5\), calculer \(K^\circ\) à 450 °C de deux façons.</span>
+    <div class="content"><p>Directement : \(\Delta_rG^\circ(723)\) \(= -91{,}8 + 723\times0{,}1981\) \(= 51{,}4\ \text{kJ·mol}^{-1}\), d'où \(K^\circ\) \(= \exp\left(-\dfrac{51{,}4\times10^3}{8{,}314\times723}\right)\) \(\approx 1{,}9\times10^{-4}\). Par Van 't Hoff intégrée : \(K^\circ(723)\) \(= 5{,}4\times10^5\times\exp\left[\dfrac{91{,}8\times10^3}{8{,}314}\left(\dfrac{1}{723} - \dfrac{1}{298}\right)\right]\) \(\approx 1{,}9\times10^{-4}\). De 25 à 450 °C, \(K^\circ\) est divisée par environ \(3\times10^9\).</p></div>
+  </div>
+  <p><strong>Choix de la température.</strong> Pour augmenter le rendement à l'équilibre, on travaille à basse température pour une réaction exothermique, à haute température pour une réaction endothermique. Mais la vitesse augmente toujours avec \(T\) (loi d'Arrhenius) : pour une réaction exothermique, il faut un <strong>compromis</strong> entre thermodynamique et cinétique, que l'on améliore avec un catalyseur (qui accélère la réaction sans changer \(K^\circ\)).</p>
+
+  <h3>Influence de la pression et de la composition</h3>
+  <p>On part d'un équilibre (\(Q_r = K^\circ\)), on le perturbe instantanément à \(T\) fixée, et l'on regarde comment \(Q_r\) a varié : le système évolue ensuite pour ramener \(Q_r\) vers \(K^\circ\). Pour des gaz parfaits, \(a_i = \dfrac{n_i}{n_{\text{tot,gaz}}}\,\dfrac{P}{P^\circ}\), d'où :</p>
+  <div class="formula" data-nom="Quotient d'un mélange gazeux">$$Q_r = \Big(\prod_{\text{gaz}} n_i^{\,\nu_i}\Big)\left(\frac{P}{n_{\text{tot,gaz}}\,P^\circ}\right)^{\Delta\nu_{\text{gaz}}}\times(\text{activités des autres constituants})$$</div>
+  <div style="overflow-x:auto"><table>
+    <tr><th>Perturbation (\(T\) fixée)</th><th>Effet sur \(Q_r\) et conséquence</th></tr>
+    <tr><td>hausse de la pression totale</td><td>\(Q_r \propto P^{\Delta\nu_{\text{gaz}}}\) : si \(\Delta\nu_{\text{gaz}} \lt 0\), \(Q_r\) diminue, évolution dans le sens direct (vers moins de gaz) ; aucun effet si \(\Delta\nu_{\text{gaz}} = 0\)</td></tr>
+    <tr><td>ajout d'un gaz inerte à \(P\) fixée</td><td>\(n_{\text{tot,gaz}}\) augmente : même effet qu'une baisse de pression (sens indirect si \(\Delta\nu_{\text{gaz}} \lt 0\))</td></tr>
+    <tr><td>ajout d'un gaz inerte à \(V\) fixé</td><td>pressions partielles \(P_i = n_iRT/V\) inchangées : aucun effet</td></tr>
+    <tr><td>élimination d'un produit (liquéfaction, distillation, précipitation)</td><td>\(Q_r\) diminue : sens direct</td></tr>
+    <tr><td>ajout d'un réactif (soluté, ou gaz à \(V\) fixé)</td><td>\(Q_r\) diminue : sens direct</td></tr>
+    <tr><td>ajout ou retrait d'un solide ou liquide pur (sans le faire disparaître)</td><td>activité égale à 1 : aucun effet</td></tr>
+  </table></div>
+  <div class="notice"><strong>Raisonner sur \(Q_r\).</strong> L'ajout d'un gaz inerte n'a pas le même effet à \(P\) fixée et à \(V\) fixé, et un catalyseur ne change ni \(K^\circ\) ni \(Q_r\). Le principe de modération de Le Chatelier (« le système s'oppose à la perturbation ») n'est qu'un moyen mnémotechnique : aux concours, on attend la justification par \(Q_r\) et \(K^\circ\).</div>
+
+  <h3>Application : le procédé Haber–Bosch</h3>
+  <p>N₂(g) + 3 H₂(g) = 2 NH₃(g) est exothermique (\(\Delta_rH^\circ = -91{,}8\ \text{kJ·mol}^{-1}\)) et diminue la quantité de gaz (\(\Delta\nu_{\text{gaz}} = -2\)).</p>
+  <ul>
+    <li><strong>Température</strong> : la thermodynamique réclame une basse température, mais la réaction y est trop lente ; compromis vers 400 à 500 °C avec un catalyseur au fer.</li>
+    <li><strong>Pression</strong> : haute, de 150 à 300 bar, pour diminuer \(Q_r\) ; au-delà, le coût des installations devient prohibitif.</li>
+    <li><strong>Composition</strong> : on liquéfie l'ammoniac en sortie et l'on recycle N₂ et H₂ ; on purge les gaz inertes (argon de l'air), qui défavorisent la synthèse à \(P\) fixée.</li>
+  </ul>
+  <div class="reveal" onclick="this.classList.toggle('open')">
+    <span class="label">Résultats numériques</span>
+    <span class="prompt">Mélange stœchiométrique (1 mol N₂, 3 mol H₂) à 723 K : avancement à l'équilibre selon la pression.</span>
+    <div class="content"><p>On résout \(\dfrac{(2\xi)^2\,(4 - 2\xi)^2}{(1 - \xi)\,(3 - 3\xi)^3}\left(\dfrac{P^\circ}{P}\right)^2 = K^\circ = 1{,}9\times10^{-4}\) numériquement :</p>
+    <div style="overflow-x:auto"><table>
+      <tr><th>\(P\) (bar)</th><th>1</th><th>50</th><th>200</th><th>300</th></tr>
+      <tr><td>\(\xi_{\text{éq}}\) (mol)</td><td>0,009</td><td>0,27</td><td>0,53</td><td>0,60</td></tr>
+      <tr><td>fraction molaire de NH₃</td><td>0,004</td><td>0,16</td><td>0,36</td><td>0,43</td></tr>
+    </table></div>
+    <p>Sous 1 bar à 450 °C, la synthèse est quasi nulle ; sous 200 bar, plus du tiers du mélange est de l'ammoniac.</p></div>
+  </div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§9 · THERMODYNAMIQUE DE L'OXYDORÉDUCTION</div>
+  <h2>Potentiels et enthalpie libre : deux langages pour la même tendance</h2>
+  <div class="intro">Les potentiels d'électrode de PTSI et l'enthalpie libre de réaction décrivent la même chose : la tendance d'un système d'oxydoréduction à évoluer. Faire le lien permet de calculer des potentiels standard à partir de données thermodynamiques, et inversement.</div>
+
+  <h3>Rappels de première année</h3>
+  <div class="def-box">
+    Un <strong>oxydant</strong> capte des électrons, un <strong>réducteur</strong> en cède ; ils forment un couple relié par la demi-équation \(\alpha\,\mathrm{Ox} + \gamma\,e^- = \beta\,\mathrm{Red}\) (équilibrée si besoin avec H⁺ et H₂O). Le <strong>nombre d'oxydation</strong> (n.o.) d'un élément est la charge fictive qu'il porterait si chaque doublet de liaison revenait à l'atome le plus électronégatif. Règles : la somme des n.o. est égale à la charge de l'édifice ; O vaut −II (−I dans un peroxyde), H vaut +I ; un corps simple a des n.o. nuls. Une oxydation fait croître le n.o., une réduction le fait décroître.
+  </div>
+  <div class="formula" data-nom="Formule de Nernst">$$E = E^\circ + \frac{RT}{\gamma F}\ln\frac{a_{\mathrm{Ox}}^{\,\alpha}}{a_{\mathrm{Red}}^{\,\beta}} \;\approx\; E^\circ + \frac{0{,}06}{\gamma}\log\frac{a_{\mathrm{Ox}}^{\,\alpha}}{a_{\mathrm{Red}}^{\,\beta}}\quad\text{à 298 K}$$</div>
+  <p>Les autres espèces de la demi-équation (H⁺…) figurent dans le logarithme avec leur coefficient. Le potentiel est mesuré par rapport à l'électrode standard à hydrogène (ESH), de potentiel nul par convention. Le « 0,06 » vaut \(RT\ln 10/F = 0{,}0592\ \text{V}\) à 298 K. Règle du gamma : l'oxydant le plus fort (en haut de l'échelle des \(E^\circ\)) réagit sur le réducteur le plus fort (en bas).</p>
+
+  <h3>Enthalpie libre d'une réaction d'oxydoréduction</h3>
+  <p>On considère \(a_1\,\mathrm{Ox}_1 + b_2\,\mathrm{Red}_2 = b_1\,\mathrm{Red}_1 + a_2\,\mathrm{Ox}_2\), écrite pour échanger \(\gamma\) électrons.</p>
+  <div class="formula" data-nom="Réaction rédox et enthalpie libre">$$\Delta_rG = -\gamma F\,(E_1 - E_2) \qquad\qquad \Delta_rG^\circ = -\gamma F\,(E_1^\circ - E_2^\circ)$$</div>
+  <p>\(E_1\) et \(E_2\) sont les potentiels de Nernst des deux couples avec la composition actuelle ; \(F \approx 96\,500\ \text{C·mol}^{-1}\) est la constante de Faraday. Le facteur \(-\gamma F\) est justifié par l'étude des piles (§10).</p>
+  <div class="reveal" onclick="this.classList.toggle('open')">
+    <span class="label">Vérification</span>
+    <span class="prompt">Montrer que cette relation est cohérente avec la formule de Nernst.</span>
+    <div class="content"><p>En écrivant Nernst pour chaque couple (avec \(\gamma\) électrons) et en soustrayant : \(E_1 - E_2\) \(= (E_1^\circ - E_2^\circ) - \dfrac{RT}{\gamma F}\ln Q_r\). En multipliant par \(-\gamma F\) : \(-\gamma F(E_1 - E_2)\) \(= -\gamma F(E_1^\circ - E_2^\circ) + RT\ln Q_r\), qui a exactement la structure \(\Delta_rG = \Delta_rG^\circ + RT\ln Q_r\).</p></div>
+  </div>
+  <div class="prop-box">
+    <strong>Conséquences.</strong>
+    <ul>
+      <li>Sens d'évolution : \(\Delta_rG \lt 0 \Leftrightarrow E_1 \gt E_2\) ; l'oxydant du couple de plus haut potentiel est réduit. C'est la justification thermodynamique de la règle du gamma.</li>
+      <li>Équilibre : \(E_1 = E_2\), la solution n'a plus qu'un seul potentiel.</li>
+      <li>Constante d'équilibre : \(\ln K^\circ = \dfrac{\gamma F}{RT}\,(E_1^\circ - E_2^\circ)\), soit à 298 K :</li>
+    </ul>
+    $$\log K^\circ = \frac{\gamma\,(E_1^\circ - E_2^\circ)}{0{,}06}$$
+  </div>
+  <p>Ordres de grandeur à 298 K : un écart \(\Delta E^\circ = 0{,}1\ \text{V}\) avec \(\gamma = 1\) correspond à \(\Delta_rG^\circ \approx -9{,}6\ \text{kJ·mol}^{-1}\) et \(K^\circ \approx 50\) ; pour la pile Daniell (\(\gamma = 2\), \(\Delta E^\circ = 1{,}10\ \text{V}\)), \(\Delta_rG^\circ \approx -212\ \text{kJ·mol}^{-1}\) et \(K^\circ \approx 10^{37}\).</p>
+
+  <h3>Enthalpie libre standard d'une demi-équation</h3>
+  <div class="def-box">
+    À la demi-équation \(\alpha\,\mathrm{Ox} + \gamma\,e^- = \beta\,\mathrm{Red}\), on associe par convention
+    $$\Delta_{1/2}G^\circ = -\gamma F\,E^\circ(\mathrm{Ox/Red})$$
+    C'est l'enthalpie libre standard de la réaction de l'oxydant avec H₂ (couple H⁺/H₂, de potentiel standard nul). Pour toute réaction d'oxydoréduction, \(\Delta_rG^\circ = \Delta_{1/2}G_1^\circ - \Delta_{1/2}G_2^\circ\).
+  </div>
+  <p>Ces enthalpies libres s'additionnent comme des grandeurs de réaction ordinaires et se combinent avec celles d'autres réactions (dissolution, formation, acido-basicité). C'est ce qui permet de calculer un <strong>potentiel standard inconnu</strong>.</p>
+  <div class="notice"><strong>On additionne les enthalpies libres, jamais les potentiels.</strong> Quand un terme comme \(\dfrac{0{,}059}{2}\,\mathrm{p}K_s\) apparaît avec un grand \(\mathrm{p}K\), garder 0,059 : l'arrondi à 0,06 fausserait le résultat d'un centième de volt.</div>
+  <div class="reveal" onclick="this.classList.toggle('open')">
+    <span class="label">Application</span>
+    <span class="prompt">Calculer \(E^\circ(\mathrm{Fe^{3+}/Fe})\) à partir de \(E^\circ(\mathrm{Fe^{3+}/Fe^{2+}}) = 0{,}77\ \text{V}\) et \(E^\circ(\mathrm{Fe^{2+}/Fe}) = -0{,}44\ \text{V}\).</span>
+    <div class="content"><p>Fe³⁺ + 3 e⁻ = Fe est la somme de Fe³⁺ + e⁻ = Fe²⁺ et de Fe²⁺ + 2 e⁻ = Fe. Les enthalpies libres s'additionnent : \(-3F\,E_3^\circ\) \(= -F(0{,}77) - 2F(-0{,}44)\), d'où \(E_3^\circ\) \(= \dfrac{0{,}77 - 0{,}88}{3}\) \(\approx -0{,}04\ \text{V}\). Les potentiels se combinent pondérés par le nombre d'électrons.</p></div>
+  </div>
+  <div class="reveal" onclick="this.classList.toggle('open')">
+    <span class="label">Application</span>
+    <span class="prompt">Calculer \(E^\circ(\mathrm{O_2/H_2O})\) sachant \(\Delta_fG^\circ(\mathrm{H_2O(\ell)}) = -237{,}1\ \text{kJ·mol}^{-1}\).</span>
+    <div class="content"><p>La demi-équation O₂ + 4 H⁺ + 4 e⁻ = 2 H₂O, associée à l'ESH, correspond à O₂ + 2 H₂ → 2 H₂O(ℓ), avec \(\gamma = 4\) : \(\Delta_rG^\circ\) \(= 2\times(-237{,}1)\) \(= -474{,}2\ \text{kJ·mol}^{-1}\) \(= -4F\,(E^\circ - 0)\), d'où \(E^\circ\) \(= \dfrac{474{,}2\times10^3}{4\times96\,485}\) \(\approx 1{,}23\ \text{V}\).</p></div>
+  </div>
+  <div class="reveal" onclick="this.classList.toggle('open')">
+    <span class="label">Application</span>
+    <span class="prompt">Électrode au calomel : calculer \(E^\circ(\mathrm{Hg_2Cl_2/Hg})\) à partir de \(E^\circ(\mathrm{Hg_2^{2+}/Hg}) = 0{,}797\ \text{V}\) et du \(\mathrm{p}K_s = 17{,}9\) de Hg₂Cl₂.</span>
+    <div class="content"><p>Hg₂Cl₂(s) + 2 e⁻ = 2 Hg(ℓ) + 2 Cl⁻ est la somme de la dissolution Hg₂Cl₂ = Hg₂²⁺ + 2 Cl⁻ (\(\Delta_rG^\circ = -RT\ln K_s\)) et de Hg₂²⁺ + 2 e⁻ = 2 Hg (\(-2F\,E_1^\circ\)). D'où \(-2F\,E^\circ = -RT\ln K_s - 2F\,E_1^\circ\), soit \(E^\circ\) \(= E_1^\circ - \dfrac{0{,}059}{2}\,\mathrm{p}K_s\) \(= 0{,}797 - 0{,}0295\times17{,}9\) \(\approx 0{,}27\ \text{V}\).</p></div>
+  </div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§10 · PILES ÉLECTROCHIMIQUES</div>
+  <h2>Convertir l'enthalpie libre en travail électrique</h2>
+  <div class="intro">Une pile récupère sous forme électrique l'énergie d'une réaction d'oxydoréduction spontanée. L'enthalpie libre fixe à la fois la tension qu'elle peut délivrer et l'énergie maximale qu'elle peut fournir.</div>
+
+  <div class="def-box">
+    Une <strong>pile</strong> est un générateur où une réaction d'oxydoréduction spontanée a lieu <em>sans contact direct</em> entre les réactifs : oxydation et réduction se déroulent dans deux <strong>demi-piles</strong>, reliées par une <strong>jonction électrolytique</strong> (pont salin, paroi poreuse) qui laisse passer les ions ; les électrons passent par le circuit extérieur.<br>
+    L'<strong>anode</strong> est le siège de l'oxydation (pôle −), la <strong>cathode</strong> celui de la réduction (pôle +). La <strong>tension à vide</strong> est \(e = V_+ - V_- = E_+ - E_- \gt 0\), mesurée à courant nul.
+  </div>
+  <figure class="schema" style="max-width:420px">
+  <svg viewBox="0 0 360 230" role="img" aria-label="Pile Daniell : électrode de zinc dans une solution d'ions zinc à gauche, anode et pôle moins ; électrode de cuivre dans une solution d'ions cuivre à droite, cathode et pôle plus ; pont salin entre les deux béchers ; les électrons circulent du zinc vers le cuivre dans le circuit extérieur">
+    <path d="M24,120 L24,206 L120,206 L120,120" class="sk-ink"/>
+    <path d="M240,120 L240,206 L336,206 L336,120" class="sk-ink"/>
+    <rect x="25" y="140" width="94" height="65" class="fl-muted-soft"/>
+    <rect x="241" y="140" width="94" height="65" class="fl-accent2-soft"/>
+    <rect x="62" y="96" width="14" height="96" class="fl-ink" style="opacity:.55"/>
+    <rect x="284" y="96" width="14" height="96" class="fl-amber"/>
+    <text x="56" y="112" text-anchor="end" class="lab-b">Zn</text>
+    <text x="304" y="112" class="lab-b">Cu</text>
+    <text x="44" y="188" text-anchor="middle" class="lab-muted">Zn²⁺</text>
+    <text x="316" y="188" text-anchor="middle" class="lab-muted">Cu²⁺</text>
+    <path d="M100,176 L100,128 L260,128 L260,176" class="sk-ink" style="stroke-width:9;opacity:.18"/>
+    <text x="180" y="122" text-anchor="middle" class="lab-muted">pont salin</text>
+    <path d="M69,96 L69,40 L150,40 M210,40 L291,40 L291,96" class="sk-ink"/>
+    <rect x="150" y="30" width="60" height="20" rx="3" class="fl-paper"/>
+    <rect x="150" y="30" width="60" height="20" rx="3" class="sk-ink"/>
+    <text x="180" y="45" text-anchor="middle">R</text>
+    <line x1="92" y1="24" x2="140" y2="24" class="sk-accent2" marker-end="url(#sk-arrow-accent2)"/>
+    <text x="116" y="16" text-anchor="middle" class="lab-accent2">e⁻</text>
+    <line x1="268" y1="58" x2="220" y2="58" class="sk-accent" marker-end="url(#sk-arrow-accent)"/>
+    <text x="244" y="74" text-anchor="middle" class="lab-accent">i</text>
+    <text x="40" y="76" text-anchor="middle" class="lab-b" style="font-size:16px">−</text>
+    <text x="320" y="76" text-anchor="middle" class="lab-b" style="font-size:16px">+</text>
+    <text x="72" y="224" text-anchor="middle" class="lab-muted">anode : oxydation</text>
+    <text x="288" y="224" text-anchor="middle" class="lab-muted">cathode : réduction</text>
+  </svg>
+  <figcaption>Pile Daniell : Zn → Zn²⁺ + 2 e⁻ à l'anode, Cu²⁺ + 2 e⁻ → Cu à la cathode ; dans le pont salin, les ions migrent pour maintenir l'électroneutralité.</figcaption>
+  </figure>
+  <p>Notation conventionnelle : ⊖ Zn(s) | Zn²⁺, SO₄²⁻ ‖ Cu²⁺, SO₄²⁻ | Cu(s) ⊕. Réaction de fonctionnement : Zn(s) + Cu²⁺ → Zn²⁺ + Cu(s), avec \(\gamma = 2\).</p>
+
+  <h3>Bilan énergétique</h3>
+  <div class="prop-box">
+    Pour un système évoluant de façon monotherme et monobare, recevant un travail électrique \(W_{\text{élec}}\) en plus du travail des forces de pression :
+    $$\Delta G \leq W_{\text{élec}}$$
+    avec égalité si la transformation est réversible. Une pile fournit \(-W_{\text{élec}} \leq -\Delta G\) : l'énergie électrique maximale récupérable est \(-\Delta G\).
+  </div>
+  <div class="reveal" onclick="this.classList.toggle('open')">
+    <span class="label">Démonstration</span>
+    <span class="prompt">Établir l'inégalité \(\Delta G \leq W_{\text{élec}}\).</span>
+    <div class="content"><p>Sur une évolution élémentaire à \(P\) fixée : \(\mathrm{d}H = \delta Q + \delta W_{\text{élec}}\) (premier principe). Deuxième principe : \(\mathrm{d}S = \delta Q/T + \delta S_c\) avec \(\delta S_c \geq 0\). À \(T\) fixée : \(\mathrm{d}G = \mathrm{d}H - T\,\mathrm{d}S = \delta W_{\text{élec}} - T\,\delta S_c \leq \delta W_{\text{élec}}\). On intègre. L'enthalpie libre porte bien son nom : \(-\Delta G\) est la part de l'énergie de la réaction « libre » d'être convertie en travail ; le reste est échangé sous forme de chaleur.</p></div>
+  </div>
+
+  <h3>Tension à vide et enthalpie libre de réaction</h3>
+  <div class="formula" data-nom="Tension à vide d'une pile">$$e = -\frac{\Delta_rG}{\gamma F} \qquad\qquad e^\circ = -\frac{\Delta_rG^\circ}{\gamma F} = E^\circ_+ - E^\circ_-$$</div>
+  <div class="formula">$$e = e^\circ - \frac{RT}{\gamma F}\ln Q_r \;\approx\; e^\circ - \frac{0{,}06}{\gamma}\log Q_r\quad\text{à 298 K}$$</div>
+  <div class="reveal" onclick="this.classList.toggle('open')">
+    <span class="label">Démonstration</span>
+    <span class="prompt">Relier la tension à vide à l'enthalpie libre de réaction.</span>
+    <div class="content"><p>Quand l'avancement croît de \(\mathrm{d}\xi\), \(\gamma\,\mathrm{d}\xi\) moles d'électrons traversent le circuit : la charge \(\mathrm{d}q = \gamma F\,\mathrm{d}\xi\) passe dans la pile du pôle − au pôle + sous la tension \(u\). La pile reçoit donc \(\delta W_{\text{élec}} = -u\,\gamma F\,\mathrm{d}\xi\). À la limite réversible (courant nul), \(u \to e\) et \(\mathrm{d}G = \delta W_{\text{élec}}\) ; or \(\mathrm{d}G = \Delta_rG\,\mathrm{d}\xi\) à \(T\) et \(P\) fixées. D'où \(\Delta_rG = -\gamma F e\). Avec \(e = E_+ - E_-\), on retrouve \(\Delta_rG = -\gamma F(E_+ - E_-)\), relation utilisée au §9.</p></div>
+  </div>
+  <p>Pendant la décharge, \(Q_r\) augmente, donc \(e\) diminue. La pile est <strong>usée</strong> quand elle atteint l'équilibre : \(e = 0 \Leftrightarrow \Delta_rG = 0 \Leftrightarrow Q_r = K^\circ\). Pour la pile Daniell, \(K^\circ \approx 10^{37}\) : \(\log Q_r\) ne varie que de quelques unités pendant presque toute la décharge, et la tension reste proche de 1,10 V (encore 1,03 V à 99 % de la décharge) ; elle ne chute qu'à l'épuisement des ions Cu²⁺.</p>
+
+  <h3>Capacité d'une pile</h3>
+  <div class="def-box">
+    La <strong>capacité</strong> d'une pile est la charge totale qu'elle peut débiter jusqu'à l'épuisement du réactif limitant :
+    $$q_{\max} = \gamma F\,\xi_{\max}$$
+    en coulombs ou, en pratique, en ampères-heures : \(1\ \text{A·h} = 3\,600\ \text{C}\).
+  </div>
+  <p>Si la tension reste quasi constante pendant la décharge, l'énergie électrique maximale vaut \(W_{\max} = -\xi_{\max}\,\Delta_rG \approx q_{\max}\,e\), et la durée de fonctionnement sous un courant \(i\) est \(\Delta t = q_{\max}/i\).</p>
+  <div class="reveal" onclick="this.classList.toggle('open')">
+    <span class="label">Application</span>
+    <span class="prompt">Pile Daniell dont le réactif limitant est 1,0 g de zinc (\(M = 65{,}4\ \text{g·mol}^{-1}\)) : capacité, énergie, durée sous 10 mA ?</span>
+    <div class="content"><p>\(\xi_{\max}\) \(= \dfrac{1{,}0}{65{,}4}\) \(\approx 15{,}3\ \text{mmol}\), donc \(q_{\max}\) \(= 2\times96\,485\times15{,}3\times10^{-3}\) \(\approx 2{,}95\times10^3\ \text{C}\) \(\approx 0{,}82\ \text{A·h}\). Énergie : \(W \approx q_{\max}\,e^\circ\) \(\approx 2\,950\times1{,}10\) \(\approx 3{,}2\ \text{kJ}\). Sous 10 mA : \(\Delta t = q_{\max}/i \approx 82\ \text{h}\).</p></div>
+  </div>
+  <div class="notice"><strong>Ordres de grandeur.</strong> Pile alcaline AA : environ 1,5 V et 2,5 A·h, soit 3,5 W·h. Élément lithium-ion : environ 3,7 V ; une batterie de téléphone stocke de l'ordre de 15 W·h. En électrolyte aqueux, la décomposition de l'eau limite en pratique la tension vers 2 V (accumulateur au plomb : 2,1 V) ; les accumulateurs lithium-ion dépassent 3 V grâce à un électrolyte organique.</div>
+</div>
+
+</section>
+
+<!-- ---------- VIDÉOS (rempli depuis la table window.__VIDEOS, module « VIDÉOS DES CHAPITRES ») ---------- -->
+<section class="panel" id="thc-video">
+  <div class="vid-liste" data-videos="thermochimie"><p class="vid-attente">Les vidéos du cours au tableau, à lancer une par une.</p></div>
+</section>
+
+<section class="panel" id="thc-meth">
+<div class="course-section">
+  <div class="sec-num">MÉTHODES · THERMOCHIMIE</div>
+  <h2>Stratégies pour les exercices de thermochimie</h2>
+
+  <div class="method-box">
+    <strong>Méthode 1 — Calculer les grandeurs standard d'une réaction</strong>
+    <ol>
+      <li><span class="step">Équation.</span> Écrire l'équation équilibrée avec les états physiques ; repérer les corps simples dans leur ESR (\(\Delta_fH^\circ = \Delta_fG^\circ = 0\)).</li>
+      <li><span class="step">Enthalpie.</span> Loi de Hess : \(\Delta_rH^\circ = \sum_i \nu_i\,\Delta_fH^\circ_i\), en kJ·mol⁻¹. Signe : exo- ou endothermique.</li>
+      <li><span class="step">Entropie.</span> Prévoir son signe avec \(\Delta\nu_{\text{gaz}}\), puis calculer \(\Delta_rS^\circ = \sum_i \nu_i\,S^\circ_{m,i}\) <em>sans oublier les corps simples</em>, en J·K⁻¹·mol⁻¹. Comparer au signe prévu.</li>
+      <li><span class="step">Enthalpie libre.</span> \(\Delta_rG^\circ(T) = \Delta_rH^\circ - T\,\Delta_rS^\circ\) (Ellingham), après conversion en J·mol⁻¹ ; ou \(\sum_i \nu_i\,\Delta_fG^\circ_i\) à 298 K.</li>
+      <li><span class="step">Exploiter.</span> \(K^\circ = \exp(-\Delta_rG^\circ/RT)\) ; température d'inversion \(T_i = \Delta_rH^\circ/\Delta_rS^\circ\).</li>
+    </ol>
+  </div>
+
+  <div class="method-box">
+    <strong>Méthode 2 — Prévoir le sens d'évolution</strong>
+    <ol>
+      <li><span class="step">Quotient.</span> Écrire \(Q_r = \prod a_i^{\,\nu_i}\) avec les bonnes activités (gaz : \(P_i/P^\circ\) ; soluté : \(c_i/c^\circ\) ; solide, liquide pur et solvant : 1).</li>
+      <li><span class="step">Constante.</span> Calculer \(K^\circ(T)\) à la température de l'expérience (pas forcément 298 K).</li>
+      <li><span class="step">Comparer.</span> \(Q_r \lt K^\circ\) : sens direct ; \(Q_r \gt K^\circ\) : sens indirect. Ou, ce qui revient au même, signe de \(\Delta_rG = RT\ln(Q_r/K^\circ)\).</li>
+      <li><span class="step">Justifier.</span> C'est le signe de \(\Delta_rG\), jamais celui de \(\Delta_rG^\circ\), qui conclut.</li>
+    </ol>
+  </div>
+
+  <div class="method-box">
+    <strong>Méthode 3 — Déterminer l'état final : équilibre ou transformation totale</strong>
+    <ol>
+      <li><span class="step">Tableau.</span> Dresser le tableau d'avancement ; calculer \(\xi_{\max}\) (et \(\xi_{\min}\) si le sens est inconnu).</li>
+      <li><span class="step">Sens.</span> Comparer \(Q_{r,0}\) à \(K^\circ\).</li>
+      <li><span class="step">Hypothèse.</span> Supposer l'équilibre atteint et résoudre \(Q_r(\xi_{\text{éq}}) = K^\circ\).</li>
+      <li><span class="step">Vérification.</span> Si \(\xi_{\text{éq}} \leq \xi_{\max}\), l'hypothèse est validée. Sinon, la transformation est totale (\(\xi_F = \xi_{\max}\)) : vérifier \(Q_r(\xi_{\max}) \lt K^\circ\). Rupture d'équilibre si l'espèce épuisée est une phase condensée pure.</li>
+      <li><span class="step">Raccourci.</span> Si \(K^\circ\) est très grande, supposer la réaction quasi totale, puis calculer la petite quantité restante du réactif limitant avec \(K^\circ\).</li>
+    </ol>
+  </div>
+
+  <div class="method-box">
+    <strong>Méthode 4 — Température finale en réacteur adiabatique</strong>
+    <ol>
+      <li><span class="step">Avancement.</span> Tableau d'avancement : \(\xi_F\) (souvent \(\xi_{\max}\) pour une combustion).</li>
+      <li><span class="step">Inventaire.</span> Lister <em>tout</em> l'état final : produits, réactifs en excès, espèces spectatrices (N₂ de l'air, solvant, calorimètre).</li>
+      <li><span class="step">Chemin fictif.</span> Réaction à \(T_I\), puis échauffement : \(\xi_F\,\Delta_rH^\circ(T_I) + \left(\sum_j n_jC^\circ_{p,m,j}\right)(T_F - T_I) = 0\).</li>
+      <li><span class="step">Changement d'état.</span> S'il en survient un pendant l'échauffement, couper l'étape à la température de transition et ajouter l'enthalpie de changement d'état.</li>
+      <li><span class="step">Contrôle.</span> \(T_F \gt T_I\) pour une réaction exothermique ; ordre de grandeur plausible.</li>
+    </ol>
+  </div>
+
+  <div class="method-box">
+    <strong>Méthode 5 — Calculer \(K^\circ\) à une température quelconque</strong>
+    <ol>
+      <li><span class="step">Voie directe.</span> \(\Delta_rG^\circ(T) = \Delta_rH^\circ - T\,\Delta_rS^\circ\), puis \(K^\circ(T) = \exp(-\Delta_rG^\circ/RT)\).</li>
+      <li><span class="step">Voie de Van 't Hoff.</span> À partir d'une valeur connue \(K^\circ(T_1)\) : \(\ln\dfrac{K^\circ(T_2)}{K^\circ(T_1)} = -\dfrac{\Delta_rH^\circ}{R}\left(\dfrac{1}{T_2} - \dfrac{1}{T_1}\right)\).</li>
+      <li><span class="step">Contrôle.</span> Les deux voies coïncident dans l'approximation d'Ellingham ; le sens de variation doit suivre le signe de \(\Delta_rH^\circ\).</li>
+    </ol>
+  </div>
+
+  <div class="method-box">
+    <strong>Méthode 6 — Prévoir l'effet d'une perturbation sur un équilibre</strong>
+    <ol>
+      <li><span class="step">Levier.</span> La température modifie \(K^\circ\) (Van 't Hoff) ; les autres paramètres modifient \(Q_r\).</li>
+      <li><span class="step">Expression.</span> Écrire \(Q_r\) en fonction de la grandeur modifiée (\(P\), \(n_i\), \(n_{\text{tot,gaz}}\)…), les autres restant fixes ; pour des gaz, \(Q_r = \prod n_i^{\,\nu_i}\,\big(P/(n_{\text{tot,gaz}}P^\circ)\big)^{\Delta\nu_{\text{gaz}}}\).</li>
+      <li><span class="step">Variation.</span> Partant de \(Q_r = K^\circ\), dire si la perturbation fait croître ou décroître \(Q_r\).</li>
+      <li><span class="step">Conclure.</span> \(Q_r \lt K^\circ\) : sens direct ; \(Q_r \gt K^\circ\) : sens indirect. Distinguer un ajout d'inerte à \(P\) fixée (effet) et à \(V\) fixé (aucun effet).</li>
+    </ol>
+  </div>
+
+  <div class="method-box">
+    <strong>Méthode 7 — Calculer un potentiel standard inconnu</strong>
+    <ol>
+      <li><span class="step">Cible.</span> Écrire la demi-équation cherchée avec ses \(\gamma\) électrons.</li>
+      <li><span class="step">Décomposer.</span> L'obtenir comme combinaison linéaire de demi-équations connues et de réactions de constante connue (\(K_s\), \(K_a\), \(\Delta_fG^\circ\)…).</li>
+      <li><span class="step">Additionner.</span> Sommer les enthalpies libres standard : \(-\gamma_kF\,E^\circ_k\) pour une demi-équation, \(-RT\ln K^\circ\) pour une réaction.</li>
+      <li><span class="step">Conclure.</span> Diviser par \(-\gamma F\). Ne jamais additionner directement des potentiels.</li>
+    </ol>
+  </div>
+
+  <div class="method-box">
+    <strong>Méthode 8 — Faire le bilan d'une pile</strong>
+    <ol>
+      <li><span class="step">Électrodes.</span> Identifier les couples ; réduction à la cathode (pôle +, plus haut potentiel), oxydation à l'anode (pôle −).</li>
+      <li><span class="step">Réaction.</span> Écrire la réaction de fonctionnement et repérer \(\gamma\).</li>
+      <li><span class="step">Tension.</span> \(e = E_+ - E_-\) (Nernst), ou \(e = -\Delta_rG/(\gamma F)\) à partir de données thermodynamiques.</li>
+      <li><span class="step">Capacité.</span> Réactif limitant → \(\xi_{\max}\) → \(q_{\max} = \gamma F\,\xi_{\max}\) ; énergie \(W \approx q_{\max}\,e\) ; durée \(\Delta t = q_{\max}/i\).</li>
+    </ol>
+  </div>
+</div>
+</section>
+
+<section class="panel" id="thc-flash">
+<div class="flash-wrapper">
+  <div class="flash-progress" id="thc-flash-prog">Carte 1 / —</div>
+  <div class="flash-card" onclick="flashFlip('thc')">
+    <div class="flash-side" id="thc-flash-content"><span class="tag">Question</span><div>Chargement…</div></div>
+    <div class="flash-hint">Touche pour révéler · Espace / ← → pour naviguer</div>
+  </div>
+  <div class="flash-controls">
+    <button class="hard" onclick="flashRate('thc', 0)">À revoir</button>
+    <button class="ok" onclick="flashRate('thc', 1)">Hésitant</button>
+    <button class="easy" onclick="flashRate('thc', 2)">Acquis</button>
+  </div>
+  <div class="flash-stats-wrap">
+    <span id="thc-stats">—</span>
+    <div style="margin-top:.8rem"><button class="flash-reset" onclick="flashReset('thc')">↺ Réinitialiser</button></div>
+  </div>
+</div>
+</section>
+
+<section class="panel" id="thc-exos">
+<div class="exo-wrapper">
+
+<div class="exo">
+  <span class="num">EXO 01</span><span class="diff">★ ☆ ☆</span>
+  <h3>Le four à chaux</h3>
+  <div class="statement">On étudie la décomposition du calcaire, CaCO₃(s) = CaO(s) + CO₂(g), dans l'approximation d'Ellingham. Données à 298 K : \(\Delta_fH^\circ\) (kJ·mol⁻¹) : CaCO₃ −1 207,6 ; CaO −634,9 ; CO₂ −393,5. \(S^\circ_m\) (J·K⁻¹·mol⁻¹) : CaCO₃ 91,7 ; CaO 38,1 ; CO₂ 213,8. \(R = 8{,}314\ \text{J·K}^{-1}\text{·mol}^{-1}\).</div>
+  <div class="q"><strong>Q1.</strong> Prévoir le signe de \(\Delta_rS^\circ\), puis calculer \(\Delta_rH^\circ\) et \(\Delta_rS^\circ\).</div>
+  <div class="q"><strong>Q2.</strong> Exprimer \(\Delta_rG^\circ(T)\) et calculer la température d'inversion.</div>
+  <div class="q"><strong>Q3.</strong> Calculer \(K^\circ\) à 1 200 K. Quelle est la pression de CO₂ à l'équilibre, en enceinte fermée, à cette température ?</div>
+  <div class="q"><strong>Q4.</strong> Un four à chaux est ouvert sur l'air, où la pression partielle de CO₂ vaut environ \(4\times10^{-4}\ \text{bar}\). Le calcaire peut-il s'y décomposer à 1 000 K, en dessous de la température d'inversion ? Jusqu'où ?</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> La réaction crée une mole de gaz (\(\Delta\nu_{\text{gaz}} = +1\)) : \(\Delta_rS^\circ \gt 0\). Hess : \(\Delta_rH^\circ\) \(= -634{,}9 - 393{,}5 + 1\,207{,}6\) \(= +179{,}2\ \text{kJ·mol}^{-1}\) (endothermique). \(\Delta_rS^\circ\) \(= 38{,}1 + 213{,}8 - 91{,}7\) \(= +160{,}2\ \text{J·K}^{-1}\text{·mol}^{-1}\), positive comme prévu.</p>
+    <p><strong>Q2.</strong> \(\Delta_rG^\circ(T)\) \(= 179{,}2\times10^3 - 160{,}2\,T\) (J·mol⁻¹). Elle s'annule pour \(T_i\) \(= \dfrac{179{,}2\times10^3}{160{,}2}\) \(\approx 1\,119\ \text{K}\).</p>
+    <p><strong>Q3.</strong> \(\Delta_rG^\circ(1200)\) \(= 179{,}2\times10^3 - 1200\times160{,}2\) \(= -13{,}0\ \text{kJ·mol}^{-1}\), d'où \(K^\circ\) \(= \exp\left(\dfrac{13{,}0\times10^3}{8{,}314\times1200}\right)\) \(\approx 3{,}7\). Les solides ont une activité égale à 1 : \(K^\circ = P_{\mathrm{CO_2,éq}}/P^\circ\), soit \(P_{\mathrm{CO_2}} \approx 3{,}7\ \text{bar}\) (si assez de calcaire est présent).</p>
+    <p><strong>Q4.</strong> À 1 000 K, \(\Delta_rG^\circ = +19{,}0\ \text{kJ·mol}^{-1}\) et \(K^\circ \approx 0{,}10\). Dans le four ouvert, \(Q_r = P_{\mathrm{CO_2}}/P^\circ \approx 4\times10^{-4} \lt K^\circ\) : \(\Delta_rG\) \(= RT\ln\dfrac{Q_r}{K^\circ}\) \(\approx -46\ \text{kJ·mol}^{-1} \lt 0\), le calcaire se décompose bien qu'on soit sous \(T_i\). Le CO₂ formé est sans cesse évacué : \(Q_r\) reste petit, l'équilibre n'est jamais atteint et la décomposition est totale (rupture d'équilibre). La température d'inversion n'est pas un seuil d'évolution : c'est \(\Delta_rG\), et non \(\Delta_rG^\circ\), qui décide.</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 02</span><span class="diff">★ ★ ☆</span>
+  <h3>Synthèse de l'ammoniac</h3>
+  <div class="statement">On étudie N₂(g) + 3 H₂(g) = 2 NH₃(g) dans l'approximation d'Ellingham. Données à 298 K : \(\Delta_fH^\circ(\mathrm{NH_3}) = -45{,}9\ \text{kJ·mol}^{-1}\) ; \(S^\circ_m\) (J·K⁻¹·mol⁻¹) : N₂ 191,6 ; H₂ 130,7 ; NH₃ 192,8.</div>
+  <div class="q"><strong>Q1.</strong> Prévoir le signe de \(\Delta_rS^\circ\), puis calculer \(\Delta_rH^\circ\) et \(\Delta_rS^\circ\).</div>
+  <div class="q"><strong>Q2.</strong> Exprimer \(\Delta_rG^\circ(T)\). Calculer la température d'inversion et \(K^\circ\) à 298 K.</div>
+  <div class="q"><strong>Q3.</strong> Calculer \(K^\circ\) à 723 K de deux façons.</div>
+  <div class="q"><strong>Q4.</strong> Dans un réacteur à 723 K, les pressions partielles valent \(P_{\mathrm{N_2}} = 50\ \text{bar}\), \(P_{\mathrm{H_2}} = 150\ \text{bar}\) et \(P_{\mathrm{NH_3}} = 20\ \text{bar}\). Dans quel sens le système évolue-t-il ?</div>
+  <div class="q"><strong>Q5.</strong> Quel est l'effet, à température et pression totale fixées, de l'accumulation d'argon dans le réacteur ? Justifier les conditions industrielles : 450 °C, 200 bar, catalyseur au fer, liquéfaction de l'ammoniac.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> \(\Delta\nu_{\text{gaz}} = -2\) : \(\Delta_rS^\circ \lt 0\). \(\Delta_rH^\circ = 2\,\Delta_fH^\circ(\mathrm{NH_3}) = -91{,}8\ \text{kJ·mol}^{-1}\) (N₂ et H₂ sont dans leur ESR). \(\Delta_rS^\circ\) \(= 2(192{,}8) - 191{,}6 - 3(130{,}7)\) \(= -198{,}1\ \text{J·K}^{-1}\text{·mol}^{-1}\).</p>
+    <p><strong>Q2.</strong> \(\Delta_rG^\circ(T) = -91{,}8\times10^3 + 198{,}1\,T\) (J·mol⁻¹), nulle pour \(T_i \approx 463\ \text{K}\). À 298 K : \(\Delta_rG^\circ = -32{,}7\ \text{kJ·mol}^{-1}\) et \(K^\circ \approx 5{,}4\times10^5\).</p>
+    <p><strong>Q3.</strong> Directement : \(\Delta_rG^\circ(723) = 51{,}4\ \text{kJ·mol}^{-1}\), donc \(K^\circ \approx 1{,}9\times10^{-4}\). Par Van 't Hoff intégrée depuis 298 K : \(5{,}4\times10^5\times\exp\left[\dfrac{91{,}8\times10^3}{8{,}314}\left(\dfrac{1}{723} - \dfrac{1}{298}\right)\right]\) \(\approx 1{,}9\times10^{-4}\).</p>
+    <p><strong>Q4.</strong> \(Q_r\) \(= \dfrac{(P_{\mathrm{NH_3}}/P^\circ)^2}{(P_{\mathrm{N_2}}/P^\circ)(P_{\mathrm{H_2}}/P^\circ)^3}\) \(= \dfrac{20^2}{50\times150^3}\) \(\approx 2{,}4\times10^{-6} \lt K^\circ\). Donc \(\Delta_rG = RT\ln(Q_r/K^\circ) \approx -26\ \text{kJ·mol}^{-1} \lt 0\) : évolution dans le sens direct, de l'ammoniac se forme.</p>
+    <p><strong>Q5.</strong> \(Q_r = \dfrac{n_{\mathrm{NH_3}}^2}{n_{\mathrm{N_2}}\,n_{\mathrm{H_2}}^3}\left(\dfrac{n_{\text{tot,gaz}}P^\circ}{P}\right)^{2}\) : l'argon augmente \(n_{\text{tot,gaz}}\), donc \(Q_r\) ; l'équilibre est déplacé dans le sens indirect, d'où la purge des inertes. Réaction exothermique : \(K^\circ\) diminue avec \(T\), mais sous 400 °C la réaction est trop lente même catalysée ; 450 °C est un compromis. \(\Delta\nu_{\text{gaz}} \lt 0\) : une haute pression diminue \(Q_r\) et favorise la synthèse. Le catalyseur accélère sans changer \(K^\circ\). La liquéfaction retire NH₃, ce qui diminue \(Q_r\), et permet de recycler N₂ et H₂.</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 03</span><span class="diff">★ ★ ☆</span>
+  <h3>Flamme et calorimétrie</h3>
+  <div class="statement">Données à 298 K : \(C^\circ_{p,m}\) (J·K⁻¹·mol⁻¹) : CO₂ 37,1 ; H₂O(g) 33,6. Pour CH₄(g) + 2 O₂(g) → CO₂(g) + 2 H₂O(g), \(\Delta_rH^\circ = -802{,}5\ \text{kJ·mol}^{-1}\). Dans l'air, la température de flamme adiabatique calculée est d'environ 2 680 K.</div>
+  <p class="exo-part">Partie A — Flamme dans le dioxygène pur</p>
+  <div class="q"><strong>Q1.</strong> Un mélange stœchiométrique CH₄ + 2 O₂, initialement à 298 K, brûle de façon adiabatique et monobare. Calculer la température de flamme et la comparer à celle obtenue dans l'air.</div>
+  <div class="q"><strong>Q2.</strong> La température réelle d'une flamme oxy-méthane est de l'ordre de 3 000 K. Commenter.</div>
+  <p class="exo-part">Partie B — Mesure d'une enthalpie de réaction</p>
+  <div class="statement">Dans un calorimètre de capacité thermique \(C_{\text{cal}} = 120\ \text{J·K}^{-1}\), on mélange 100 mL d'acide chlorhydrique à 1,00 mol·L⁻¹ et 100 mL de soude à 1,00 mol·L⁻¹, tous deux à 20,0 °C. La température finale vaut 25,8 °C. On assimile les solutions à de l'eau (\(c = 4{,}18\ \text{J·g}^{-1}\text{·K}^{-1}\), \(\rho = 1\ \text{g·mL}^{-1}\)). Données : \(\Delta_fH^\circ\) (kJ·mol⁻¹) : H₂O(ℓ) −285,8 ; HO⁻(aq) −230,0 ; convention \(\Delta_fH^\circ(\mathrm{H^+}) = 0\).</div>
+  <div class="q"><strong>Q3.</strong> Écrire la réaction et justifier qu'elle est totale.</div>
+  <div class="q"><strong>Q4.</strong> En déduire \(\Delta_rH^\circ\) et la comparer à la valeur tabulée.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> État final : CO₂ + 2 H₂O(g), de capacité thermique \(37{,}1 + 2\times33{,}6 = 104{,}3\ \text{J·K}^{-1}\). \(T_F\) \(= 298 + \dfrac{802{,}5\times10^3}{104{,}3}\) \(\approx 8\,000\ \text{K}\). Sans les 8 moles de diazote, il y a environ trois fois moins de matière à chauffer : la température calculée est trois fois plus élevée.</p>
+    <p><strong>Q2.</strong> La valeur calculée est irréaliste : à ces températures, CO₂ et H₂O se dissocient (réactions très endothermiques qui consomment de l'énergie) et les capacités thermiques augmentent. Les hypothèses « combustion totale » et « \(C_p\) constants » ne tiennent plus. Qualitativement, la conclusion reste juste : la flamme dans le dioxygène pur est bien plus chaude, d'où son usage en soudage et en découpage.</p>
+    <p><strong>Q3.</strong> H⁺ + HO⁻ → H₂O, de constante \(K^\circ = 1/K_e = 10^{14}\) : réaction quasi totale. \(\xi_F = 0{,}100\ \text{mol}\).</p>
+    <p><strong>Q4.</strong> Calorimètre adiabatique et monobare : \(0 = \xi_F\,\Delta_rH^\circ + (m\,c + C_{\text{cal}})(T_F - T_I)\), avec \(m\,c = 200\times4{,}18 = 836\ \text{J·K}^{-1}\). D'où \(\Delta_rH^\circ\) \(= -\dfrac{(836 + 120)\times5{,}8}{0{,}100}\) \(\approx -55{,}4\ \text{kJ·mol}^{-1}\). Valeur tabulée : \(-285{,}8 - (-230{,}0) - 0 = -55{,}8\ \text{kJ·mol}^{-1}\). L'écart, inférieur à 1 %, vient des pertes thermiques et de l'assimilation des solutions à de l'eau pure.</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 04</span><span class="diff">★ ★ ☆</span>
+  <h3>Équilibre de Boudouard</h3>
+  <div class="statement">On étudie C(graphite) + CO₂(g) = 2 CO(g), réaction clé du haut fourneau, dans l'approximation d'Ellingham. Données à 298 K : \(\Delta_fH^\circ\) (kJ·mol⁻¹) : CO −110,5 ; CO₂ −393,5. \(S^\circ_m\) (J·K⁻¹·mol⁻¹) : C(gr) 5,7 ; CO 197,7 ; CO₂ 213,8.</div>
+  <div class="q"><strong>Q1.</strong> Calculer \(\Delta_rH^\circ\) et \(\Delta_rS^\circ\) ; commenter leurs signes. Calculer la température d'inversion.</div>
+  <div class="q"><strong>Q2.</strong> Calculer \(K^\circ\) à 1 000 K et à 800 K.</div>
+  <div class="q"><strong>Q3.</strong> On place 1 mol de CO₂ au contact d'un excès de graphite à 1 000 K, sous \(P = 1\ \text{bar}\). Déterminer la composition à l'équilibre.</div>
+  <div class="q"><strong>Q4.</strong> Même question sous 10 bar, puis sous 1 bar en présence de 4 mol de N₂. Interpréter.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> \(\Delta_rH^\circ\) \(= 2(-110{,}5) - (-393{,}5)\) \(= +172{,}5\ \text{kJ·mol}^{-1}\) : endothermique. \(\Delta_rS^\circ\) \(= 2(197{,}7) - 213{,}8 - 5{,}7\) \(= +175{,}9\ \text{J·K}^{-1}\text{·mol}^{-1}\) : positive, cohérente avec \(\Delta\nu_{\text{gaz}} = +1\). \(T_i = 172{,}5\times10^3/175{,}9 \approx 981\ \text{K}\).</p>
+    <p><strong>Q2.</strong> \(K^\circ(1000)\) \(= \exp\left(-\dfrac{172{,}5\times10^3 - 1000\times175{,}9}{8{,}314\times1000}\right)\) \(\approx 1{,}50\) ; \(K^\circ(800) \approx 8{,}4\times10^{-3}\). Réaction endothermique : \(K^\circ\) croît avec \(T\).</p>
+    <p><strong>Q3.</strong> Le graphite, en excès, a une activité égale à 1. Avec \(n_{\mathrm{CO_2}} = 1 - \xi\), \(n_{\mathrm{CO}} = 2\xi\) et \(n_{\text{tot,gaz}} = 1 + \xi\) : \(K^\circ\) \(= \dfrac{4\xi^2}{(1-\xi)(1+\xi)}\,\dfrac{P}{P^\circ}\), d'où \(\xi_{\text{éq}}\) \(= \sqrt{\dfrac{K^\circ}{K^\circ + 4P/P^\circ}}\) \(= \sqrt{\dfrac{1{,}50}{5{,}50}}\) \(\approx 0{,}52\ \text{mol}\). Composition : 0,48 mol de CO₂ et 1,05 mol de CO, soit \(x_{\mathrm{CO}} \approx 0{,}69\).</p>
+    <p><strong>Q4.</strong> Sous 10 bar : \(\xi_{\text{éq}} = \sqrt{1{,}50/41{,}5} \approx 0{,}19\ \text{mol}\) (\(x_{\mathrm{CO}} \approx 0{,}32\)) : \(\Delta\nu_{\text{gaz}} \gt 0\), la hausse de pression défavorise la formation de CO. Avec 4 mol de N₂ sous 1 bar : \(\dfrac{4\xi^2}{(1-\xi)(5+\xi)} = 1{,}50\) donne numériquement \(\xi_{\text{éq}} \approx 0{,}74\ \text{mol}\) : la dilution par un inerte à pression fixée équivaut à une baisse de pression et favorise ici le sens direct. Le haut fourneau produit donc efficacement le réducteur CO à haute température et sous pression modérée.</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 05</span><span class="diff">★ ☆ ☆</span>
+  <h3>Degrés d'oxydation du cuivre</h3>
+  <div class="statement">Données à 298 K : \(E^\circ(\mathrm{Cu^{2+}/Cu}) = 0{,}34\ \text{V}\) ; \(E^\circ(\mathrm{Cu^{2+}/Cu^+}) = 0{,}16\ \text{V}\) ; \(F = 96\,485\ \text{C·mol}^{-1}\).</div>
+  <div class="q"><strong>Q1.</strong> Calculer \(E^\circ(\mathrm{Cu^+/Cu})\).</div>
+  <div class="q"><strong>Q2.</strong> Écrire la réaction de dismutation de Cu⁺ ; calculer \(\Delta_rG^\circ\) et \(K^\circ\).</div>
+  <div class="q"><strong>Q3.</strong> On prépare une solution de Cu⁺ à 0,010 mol·L⁻¹. Que se passe-t-il ? Calculer la concentration résiduelle en Cu⁺.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> Cu²⁺ + 2 e⁻ = Cu est la somme de Cu²⁺ + e⁻ = Cu⁺ et de Cu⁺ + e⁻ = Cu. Les enthalpies libres s'additionnent : \(-2F(0{,}34) = -F(0{,}16) - F\,E^\circ(\mathrm{Cu^+/Cu})\), donc \(E^\circ(\mathrm{Cu^+/Cu}) = 2\times0{,}34 - 0{,}16 = 0{,}52\ \text{V}\).</p>
+    <p><strong>Q2.</strong> 2 Cu⁺ = Cu²⁺ + Cu(s), avec \(\gamma = 1\) : Cu⁺ est l'oxydant du couple Cu⁺/Cu (0,52 V) et le réducteur du couple Cu²⁺/Cu⁺ (0,16 V). \(\Delta_rG^\circ\) \(= -F(0{,}52 - 0{,}16)\) \(\approx -34{,}7\ \text{kJ·mol}^{-1}\) ; \(K^\circ = 10^{0{,}36/0{,}06} = 10^6\).</p>
+    <p><strong>Q3.</strong> \(K^\circ\) est grande : la dismutation est quasi totale, il se forme du cuivre métallique et des ions Cu²⁺ à environ 0,005 mol·L⁻¹. Alors \(\dfrac{[\mathrm{Cu^{2+}}]\,c^\circ}{[\mathrm{Cu^+}]^2} = 10^6\) donne \([\mathrm{Cu^+}] = \sqrt{0{,}005\times10^{-6}} \approx 7\times10^{-5}\ \text{mol·L}^{-1}\). L'ion Cu⁺ n'est pas stable en solution aqueuse ; la règle du gamma le montre aussi, puisque l'oxydant Cu⁺ est placé au-dessus du réducteur Cu⁺ sur l'échelle des potentiels.</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 06</span><span class="diff">★ ★ ☆</span>
+  <h3>Pile bouton argent–zinc</h3>
+  <div class="statement">Une pile de montre fonctionne selon Zn(s) + Ag₂O(s) → ZnO(s) + 2 Ag(s), dans un électrolyte de potasse concentrée. Données à 298 K : \(\Delta_fG^\circ\) (kJ·mol⁻¹) : ZnO(s) −320,5 ; Ag₂O(s) −11,2. \(M(\mathrm{Ag_2O}) = 231{,}7\ \text{g·mol}^{-1}\) ; \(M(\mathrm{Zn}) = 65{,}4\ \text{g·mol}^{-1}\) ; \(F = 96\,485\ \text{C·mol}^{-1}\).</div>
+  <div class="q"><strong>Q1.</strong> Écrire les demi-équations en milieu basique ; identifier l'anode et la cathode.</div>
+  <div class="q"><strong>Q2.</strong> Calculer la tension à vide standard. Pourquoi la tension à vide reste-t-elle constante pendant toute la décharge ?</div>
+  <div class="q"><strong>Q3.</strong> La pile contient 0,50 g d'oxyde d'argent, réactif limitant. Calculer sa capacité en mA·h et la masse minimale de zinc nécessaire.</div>
+  <div class="q"><strong>Q4.</strong> Une montre consomme en moyenne 2 µA. Estimer la durée de vie de la pile.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> Anode (pôle −, oxydation) : Zn + 2 HO⁻ → ZnO + H₂O + 2 e⁻. Cathode (pôle +, réduction) : Ag₂O + H₂O + 2 e⁻ → 2 Ag + 2 HO⁻. Bilan avec \(\gamma = 2\).</p>
+    <p><strong>Q2.</strong> \(\Delta_rG^\circ\) \(= -320{,}5 - (-11{,}2)\) \(= -309{,}3\ \text{kJ·mol}^{-1}\), d'où \(e^\circ\) \(= \dfrac{309{,}3\times10^3}{2\times96\,485}\) \(\approx 1{,}60\ \text{V}\). Tous les constituants du bilan sont des solides purs (\(a = 1\)) ; les ions HO⁻ et l'eau s'éliminent. \(Q_r = 1\) en permanence, donc \(e = e^\circ\) pendant toute la décharge : une qualité recherchée en horlogerie.</p>
+    <p><strong>Q3.</strong> \(\xi_{\max} = n(\mathrm{Ag_2O}) = 0{,}50/231{,}7 \approx 2{,}16\ \text{mmol}\) ; \(q_{\max} = 2F\,\xi_{\max} \approx 416\ \text{C} \approx 116\ \text{mA·h}\). Zinc : au moins \(2{,}16\ \text{mmol}\times65{,}4\ \text{g·mol}^{-1} \approx 141\ \text{mg}\). Énergie : \(q_{\max}\,e^\circ \approx 0{,}67\ \text{kJ}\).</p>
+    <p><strong>Q4.</strong> \(\Delta t = q_{\max}/i = 416/(2\times10^{-6}) \approx 2{,}1\times10^8\ \text{s}\), soit environ 6,6 ans (un peu moins en pratique, à cause de l'autodécharge).</p>
+  </div>
+</div>
+
+<div class="exo concours">
+  <span class="num">CONCOURS PT</span><span class="diff">★ ★ ★</span>
+  <h3>Pile à combustible à hydrogène</h3>
+  <div class="exo-source">
+    Exercice <strong>original</strong> au format des épreuves PT (thème <em>thermochimie et piles</em>). Pour t'entraîner sur les sujets réellement tombés :
+    <a href="https://www.banquept.fr/rubrique38.html" target="_blank" rel="noopener">annales officielles de la Banque PT</a>.
+  </div>
+  <div class="statement">Dans une pile à combustible à électrolyte acide, le dihydrogène est oxydé à une électrode et le dioxygène réduit à l'autre, avec formation d'eau liquide. Données à 298 K : \(\Delta_fH^\circ(\mathrm{H_2O(\ell)}) = -285{,}8\ \text{kJ·mol}^{-1}\) ; \(\Delta_fG^\circ(\mathrm{H_2O(\ell)}) = -237{,}1\ \text{kJ·mol}^{-1}\) ; \(S^\circ_m\) (J·K⁻¹·mol⁻¹) : H₂ 130,7 ; O₂ 205,2 ; H₂O(ℓ) 70,0. \(M(\mathrm{H_2}) = 2{,}016\ \text{g·mol}^{-1}\) ; \(F = 96\,485\ \text{C·mol}^{-1}\). Approximation d'Ellingham.</div>
+
+  <p class="exo-part">Partie A — Réaction et tension</p>
+  <div class="q"><strong>A1.</strong> Écrire les demi-équations, préciser l'anode et la cathode, et écrire la réaction de fonctionnement pour une mole de H₂.</div>
+  <div class="q"><strong>A2.</strong> Calculer la tension à vide standard \(e^\circ\) à 298 K. Retrouver ce résultat avec les potentiels standard des couples O₂/H₂O et H⁺/H₂.</div>
+
+  <p class="exo-part">Partie B — Énergie et rendement</p>
+  <div class="q"><strong>B1.</strong> Quelle énergie électrique maximale peut-on obtenir avec 1 kg de H₂ ? Quelle capacité, en A·h, cela représente-t-il ?</div>
+  <div class="q"><strong>B2.</strong> On définit le rendement maximal \(\eta = \Delta_rG^\circ/\Delta_rH^\circ\). Le calculer et l'interpréter. Pourquoi n'est-il pas limité par le rendement de Carnot ?</div>
+
+  <p class="exo-part">Partie C — Conditions de fonctionnement</p>
+  <div class="q"><strong>C1.</strong> Calculer \(\dfrac{\mathrm{d}e^\circ}{\mathrm{d}T}\), puis \(e^\circ\) à 80 °C, température de fonctionnement usuelle.</div>
+  <div class="q"><strong>C2.</strong> La cathode est alimentée par de l'air (\(P_{\mathrm{O_2}} = 0{,}2\ \text{bar}\)) et l'anode par H₂ sous 1 bar. Calculer la tension à vide à 298 K.</div>
+
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>A1.</strong> Anode (pôle −, oxydation) : H₂ → 2 H⁺ + 2 e⁻. Cathode (pôle +, réduction) : O₂ + 4 H⁺ + 4 e⁻ → 2 H₂O. Bilan pour une mole de H₂ : H₂(g) + ½ O₂(g) → H₂O(ℓ), avec \(\gamma = 2\).</p>
+    <p><strong>A2.</strong> \(\Delta_rG^\circ = \Delta_fG^\circ(\mathrm{H_2O(\ell)}) = -237{,}1\ \text{kJ·mol}^{-1}\), donc \(e^\circ\) \(= \dfrac{237{,}1\times10^3}{2\times96\,485}\) \(\approx 1{,}23\ \text{V}\). On retrouve \(E^\circ(\mathrm{O_2/H_2O}) - E^\circ(\mathrm{H^+/H_2}) = 1{,}23 - 0\).</p>
+    <p><strong>B1.</strong> \(n = 1000/2{,}016 \approx 496\ \text{mol}\) ; \(W_{\max} = n\times237{,}1\ \text{kJ} \approx 118\ \text{MJ} \approx 33\ \text{kWh}\). Capacité : \(q_{\max} = 2F\,n \approx 9{,}6\times10^7\ \text{C} \approx 2{,}7\times10^4\ \text{A·h}\).</p>
+    <p><strong>B2.</strong> \(\eta = 237{,}1/285{,}8 \approx 0{,}83\). Au mieux, 83 % de l'énergie de la réaction devient électrique ; le reste, \(-T\Delta_rS^\circ\) avec \(\Delta_rS^\circ \lt 0\), est nécessairement cédé sous forme de chaleur. La pile convertit directement de l'énergie chimique en travail, sans passer par un cycle entre deux sources de chaleur : la limite de Carnot ne s'applique pas.</p>
+    <p><strong>C1.</strong> \(e^\circ = -\dfrac{\Delta_rH^\circ - T\,\Delta_rS^\circ}{2F}\), donc \(\dfrac{\mathrm{d}e^\circ}{\mathrm{d}T} = \dfrac{\Delta_rS^\circ}{2F}\), avec \(\Delta_rS^\circ\) \(= 70{,}0 - 130{,}7 - \tfrac12(205{,}2)\) \(= -163{,}3\ \text{J·K}^{-1}\text{·mol}^{-1}\) : \(\dfrac{\mathrm{d}e^\circ}{\mathrm{d}T} \approx -0{,}85\ \text{mV·K}^{-1}\). À 353 K : \(e^\circ \approx 1{,}229 - 55\times0{,}85\times10^{-3} \approx 1{,}18\ \text{V}\).</p>
+    <p><strong>C2.</strong> \(Q_r = \dfrac{1}{(P_{\mathrm{H_2}}/P^\circ)(P_{\mathrm{O_2}}/P^\circ)^{1/2}}\) (l'eau liquide a une activité 1), donc \(e\) \(= e^\circ - \dfrac{0{,}059}{2}\log Q_r\) \(= 1{,}229 + \dfrac{0{,}059}{4}\log 0{,}2\) \(\approx 1{,}22\ \text{V}\). L'alimentation en air au lieu de dioxygène pur ne coûte que quelques millivolts.</p>
+  </div>
+</div>
+
+</div>
+</section>
+
+</div><!-- fin chap-thermochimie -->
+
 </main><!-- fin du main principal (physique, maths, info, anglais) ; la SI suit dans main#si-content -->
 
 <!-- ======================================================= -->
@@ -62427,6 +63437,7 @@ const CHAPTERS = [
   { id:'ali', prefix:'ali', name:'Amplificateur linéaire intégré et rétroaction', matiere:'physique', sub:'ondes', subLabel:'Ondes & signaux', domain:'ondes', matiereLabel:'Électronique', panels:['cours','meth','flash','exos'], drawFn:null, mobLabel:'ALI & rétroaction' },
   { id:'oscelec', prefix:'ose', name:'Oscillateurs électroniques', matiere:'physique', sub:'ondes', subLabel:'Ondes & signaux', domain:'ondes', matiereLabel:'Électronique', panels:['cours','meth','flash','exos'], drawFn:null, mobLabel:'Oscillateurs électroniques' },
   { id:'signum', prefix:'snum', name:'Échantillonnage et traitement numérique du signal', matiere:'physique', sub:'ondes', subLabel:'Ondes & signaux', domain:'ondes', matiereLabel:'Électronique', panels:['cours','meth','flash','exos'], drawFn:null, mobLabel:'Signal numérique' },
+  { id:'thermochimie', prefix:'thc', name:'Thermodynamique de la transformation chimique', matiere:'physique', sub:'chimie', subLabel:'Chimie', domain:'chimie', matiereLabel:'Thermochimie', panels:['cours','video','meth','flash','exos'], drawFn:null, mobLabel:'Thermochimie' },
   { id:'chaines', prefix:'chs', name:'Chaînes de solides — mobilité et hyperstatisme', matiere:'si', sub:'meca', subLabel:'Mécanique', domain:'meca', matiereLabel:'Mécanique', panels:['cours','meth','flash','exos'], drawFn:null, mobLabel:'Chaînes de solides' },
   { id:'dyn2a', prefix:'dy2', name:'Cinétique et dynamique du solide (3D)', matiere:'si', sub:'meca', subLabel:'Mécanique', domain:'meca', matiereLabel:'Mécanique des solides', panels:['cours','meth','flash','exos'], drawFn:null, mobLabel:'Cinétique & PFD 3D' },
   { id:'correcteurs', prefix:'corr', name:'Correction des SLCI — réglage des correcteurs', matiere:'si', sub:'auto', subLabel:'Automatique', domain:'auto', matiereLabel:'Automatique', panels:['cours','meth','flash','exos'], drawFn:null, mobLabel:'Réglage des correcteurs' },
@@ -62461,7 +63472,7 @@ const CHAPTERS = [
     ['meca',   'Mécanique',         ['cinept','mecpt','energie','oscill','mcinc','chcentral','mvtsolide']],
     ['thermo', 'Thermodynamique',   ['thermo1','thermo2','thermo3','machines','changement','diffth','fluides','fluiddyn','ecoulement','ecoulreel','thermoouv']],
     ['emag',   'Électromagnétisme', ['estat','estat2a','emag','induction','maxwell','oemvide','oemcond','lorentz']],
-    ['chimie', 'Chimie',            ['atome','molecules','cristallin','cinetique','equilchim','acidobase','precipitation','oxred','eph']],
+    ['chimie', 'Chimie',            ['atome','molecules','cristallin','cinetique','equilchim','acidobase','precipitation','oxred','eph','thermochimie']],
     ['ref',    'Référence',         ['constantes']],
     // ---- MATHS (à plat) ----
     [null, 'Logique',          ['logique']],
@@ -62495,7 +63506,7 @@ const CHAPTERS = [
     'integ2a','suites2a','series2a','edo2a','ev2a','applin2a','matrices2a','det2a',
     // PT spé (2ᵉ année)
     'conred','surfaces',
-    'estat2a','maxwell','oemvide','oemcond','interf','dispinterf','ecoulement','ecoulreel','diffth','thermoouv','ali','oscelec','signum',
+    'estat2a','maxwell','oemvide','oemcond','interf','dispinterf','ecoulement','ecoulreel','diffth','thermoouv','ali','oscelec','signum','thermochimie',
     'chaines','dyn2a','correcteurs','multiphy','sysnum','ia','rdm','triphase','machalt','conception','ppm']);
   // Année d'un chapitre (même règle que le tiroir) : 0 = les deux années (anglais,
   // constantes), sinon 2 (__YEAR2A) ou 1. Année courante = clé Store 'year' (1 par
@@ -69336,6 +70347,54 @@ const snumCards = [
   {q:"Propriété du gain de tout filtre numérique en fonction de f ?", a:"Il est périodique de période f_e (et symétrique par rapport à f_e/2) : un filtre numérique ne remplace pas le filtre anti-repliement."}
 ];
 const snumFlash = makeFlash(snumCards,'snum','snum-flash-content','snum-flash-prog','snum-stats');
+/* ===== Thermochimie (PT, 2ᵉ année) : flashcards ===== */
+const thcCards = [
+  {q:"Qu'est-ce qu'un coefficient stœchiométrique algébrique ?", a:"Dans l'équation écrite \\(0 = \\sum_i \\nu_i\\,\\mathrm{A}_i\\), le coefficient \\(\\nu_i\\) est positif pour un produit, négatif pour un réactif, nul pour une espèce spectatrice."},
+  {q:"Définition de l'avancement \\(\\xi\\) ?", a:"\\(n_i = n_{i,0} + \\nu_i\\,\\xi\\) pour tout constituant, soit \\(\\mathrm{d}n_i = \\nu_i\\,\\mathrm{d}\\xi\\) ; en mol, positif dans le sens direct.", cat:'form'},
+  {q:"Activité d'un gaz parfait, d'un soluté, d'un solide pur ?", a:"Gaz : \\(a = P_i/P^\\circ\\) ; soluté dilué : \\(a = c_i/c^\\circ\\) ; solide ou liquide pur, et solvant : \\(a = 1\\).", cat:'form'},
+  {q:"Quotient de réaction ?", a:"\\(Q_r = \\prod_i a_i^{\\,\\nu_i}\\) : produits au numérateur, réactifs au dénominateur. Il dépend de l'état du système.", cat:'form'},
+  {q:"Définition de l'enthalpie libre ?", a:"\\(G = H - TS = U + PV - TS\\), fonction d'état extensive, en joules (attention au signe + devant \\(PV\\)).", cat:'form'},
+  {q:"Identité thermodynamique de \\(G\\) (composition fixée) ?", a:"\\(\\mathrm{d}G = V\\,\\mathrm{d}P - S\\,\\mathrm{d}T\\) : variables naturelles \\(T\\) et \\(P\\).", cat:'form'},
+  {q:"Définition du potentiel chimique \\(\\mu_i\\) ?", a:"\\(\\mu_i = \\left(\\dfrac{\\partial G}{\\partial n_i}\\right)_{T,P,n_{j\\neq i}}\\), grandeur intensive en J·mol⁻¹.", cat:'form'},
+  {q:"Différentielle et expression de \\(G\\) pour un mélange ?", a:"\\(\\mathrm{d}G = V\\,\\mathrm{d}P - S\\,\\mathrm{d}T + \\sum_i \\mu_i\\,\\mathrm{d}n_i\\) et \\(G = \\sum_i n_i\\,\\mu_i\\) (identité d'Euler, admise).", cat:'form'},
+  {q:"Potentiel chimique d'un corps pur ?", a:"Son enthalpie libre molaire : \\(\\mu = G/n = G_m\\)."},
+  {q:"Expression du potentiel chimique en fonction de l'activité ?", a:"\\(\\mu_i = \\mu_i^\\circ(T) + RT\\ln a_i\\) (admise) ; \\(\\mu_i^\\circ\\) ne dépend que de \\(T\\).", cat:'form'},
+  {q:"État standard d'un gaz, d'un soluté ?", a:"Gaz : le constituant pur, parfait, sous \\(P^\\circ = 1\\) bar. Soluté : \\(c^\\circ = 1\\) mol·L⁻¹ avec le comportement d'une solution infiniment diluée. Toujours à la température \\(T\\) du système."},
+  {q:"Existe-t-il une température standard ?", a:"Non : il existe un état standard à chaque température. Les tables sont données à 298 K par simple commodité."},
+  {q:"État standard de référence (ESR) d'un élément ?", a:"L'état standard du corps simple le plus stable à la température considérée. Conventions : gaz diatomique pour H, N, O, F, Cl à toute température ; graphite pour le carbone."},
+  {q:"ESR du brome à 298 K et à 400 K (ébullition à 332 K) ?", a:"Br₂ liquide à 298 K, Br₂ gazeux à 400 K : l'ESR dépend de la température."},
+  {q:"Définition d'une grandeur de réaction ?", a:"\\(\\Delta_rX = \\left(\\dfrac{\\partial X}{\\partial \\xi}\\right)_{T,P} = \\sum_i \\nu_i\\,X_{m,i}\\) : une dérivée (une pente), pas une différence ; en J·mol⁻¹.", cat:'form'},
+  {q:"Enthalpie libre de réaction en fonction des potentiels chimiques ?", a:"\\(\\Delta_rG = \\sum_i \\nu_i\\,\\mu_i\\)", cat:'form'},
+  {q:"Relation entre \\(\\Delta_rG^\\circ\\), \\(\\Delta_rH^\\circ\\) et \\(\\Delta_rS^\\circ\\) ?", a:"\\(\\Delta_rG^\\circ = \\Delta_rH^\\circ - T\\,\\Delta_rS^\\circ\\) (convertir kJ et J avant de combiner).", cat:'form'},
+  {q:"Comment prévoir le signe de \\(\\Delta_rS^\\circ\\) ?", a:"Par \\(\\Delta\\nu_{\\text{gaz}} = \\sum_{\\text{gaz}}\\nu_i\\) : la réaction crée du gaz \\(\\Rightarrow \\Delta_rS^\\circ \\gt 0\\) ; elle en consomme \\(\\Rightarrow \\Delta_rS^\\circ \\lt 0\\)."},
+  {q:"Réaction standard de formation ?", a:"Elle forme une mole du constituant, dans son état standard, à partir des éléments pris dans leur état standard de référence."},
+  {q:"Que vaut \\(\\Delta_fH^\\circ\\) d'un corps simple dans son ESR ? Et son entropie molaire ?", a:"\\(\\Delta_fH^\\circ = 0\\), mais \\(S^\\circ_m \\neq 0\\) (par exemple 205 J·K⁻¹·mol⁻¹ pour O₂) : ne jamais l'oublier dans \\(\\Delta_rS^\\circ\\)."},
+  {q:"Loi de Hess ?", a:"\\(\\Delta_rH^\\circ = \\sum_i \\nu_i\\,\\Delta_fH^\\circ_i\\) (de même pour \\(\\Delta_rG^\\circ\\)) ; elle découle du fait que \\(H\\) est une fonction d'état.", cat:'form'},
+  {q:"Combinaison linéaire \\((3) = a\\,(1) + b\\,(2)\\) : que deviennent \\(\\Delta_rX^\\circ\\) et \\(K^\\circ\\) ?", a:"\\(\\Delta_rX^\\circ_3 = a\\,\\Delta_rX^\\circ_1 + b\\,\\Delta_rX^\\circ_2\\) et \\(K^\\circ_3 = (K^\\circ_1)^a\\,(K^\\circ_2)^b\\).", cat:'form'},
+  {q:"Approximation d'Ellingham ?", a:"\\(\\Delta_rH^\\circ\\) et \\(\\Delta_rS^\\circ\\) indépendantes de \\(T\\) hors changement d'état : \\(\\Delta_rG^\\circ(T)\\) est affine, de pente \\(-\\Delta_rS^\\circ\\)."},
+  {q:"Température d'inversion ?", a:"La température où \\(\\Delta_rG^\\circ = 0\\) (\\(K^\\circ = 1\\)) : \\(T_i = \\dfrac{\\Delta_rH^\\circ}{\\Delta_rS^\\circ}\\) dans l'approximation d'Ellingham.", cat:'form'},
+  {q:"Transfert thermique en réacteur monobare et isotherme ?", a:"\\(Q = \\Delta H = \\xi_F\\,\\Delta_rH^\\circ\\) : \\(Q \\lt 0\\) (chaleur cédée) pour une réaction exothermique.", cat:'form'},
+  {q:"Température finale en réacteur adiabatique monobare ?", a:"Chemin fictif : \\(\\xi_F\\,\\Delta_rH^\\circ(T_I) + \\left(\\sum_j n_j C^\\circ_{p,m,j}\\right)(T_F - T_I) = 0\\), la somme portant sur tout l'état final (spectateurs compris).", cat:'form'},
+  {q:"Ordre de grandeur de la température de flamme méthane–air ?", a:"Environ 2 700 K par le calcul adiabatique (≈ 2 200 K mesurés) ; le diazote absorbe la majeure partie de l'énergie.", cat:'val'},
+  {q:"Création d'entropie d'une réaction à \\(T\\) et \\(P\\) fixées ?", a:"\\(T\\,\\delta S_c = -\\Delta_rG\\,\\mathrm{d}\\xi \\geq 0\\), soit \\(\\mathrm{d}G = -T\\,\\delta S_c \\leq 0\\) : \\(G\\) diminue jusqu'à l'équilibre.", cat:'form'},
+  {q:"Critère d'évolution spontanée à \\(T\\) et \\(P\\) fixées ?", a:"\\(\\Delta_rG\\,\\mathrm{d}\\xi \\leq 0\\) : \\(\\Delta_rG \\lt 0\\), sens direct ; \\(\\Delta_rG \\gt 0\\), sens indirect ; \\(\\Delta_rG = 0\\), équilibre. C'est le signe de \\(\\Delta_rG\\), pas de \\(\\Delta_rG^\\circ\\)."},
+  {q:"Expression de \\(\\Delta_rG\\) en fonction de \\(Q_r\\) ?", a:"\\(\\Delta_rG = \\Delta_rG^\\circ + RT\\ln Q_r = RT\\ln\\dfrac{Q_r}{K^\\circ}\\)", cat:'form'},
+  {q:"Définition de la constante d'équilibre \\(K^\\circ\\) ?", a:"\\(K^\\circ(T) = \\exp\\left(-\\dfrac{\\Delta_rG^\\circ}{RT}\\right)\\), soit \\(\\Delta_rG^\\circ = -RT\\ln K^\\circ\\).", cat:'form'},
+  {q:"Transformation totale ou équilibre : comment conclure ?", a:"Supposer l'équilibre, résoudre \\(Q_r(\\xi) = K^\\circ\\) ; si \\(\\xi_{\\text{éq}} \\gt \\xi_{\\max}\\), la transformation est totale et s'arrête hors équilibre (\\(\\Delta_rG \\lt 0\\)). Rupture d'équilibre si l'espèce épuisée est une phase condensée pure."},
+  {q:"Relation de Van 't Hoff ?", a:"\\(\\dfrac{\\mathrm{d}\\ln K^\\circ}{\\mathrm{d}T} = \\dfrac{\\Delta_rH^\\circ}{RT^2}\\) : \\(K^\\circ\\) croît avec \\(T\\) si la réaction est endothermique.", cat:'form'},
+  {q:"Effet d'une hausse de pression sur un équilibre entre gaz ?", a:"\\(Q_r \\propto P^{\\Delta\\nu_{\\text{gaz}}}\\) : si \\(\\Delta\\nu_{\\text{gaz}} \\lt 0\\), \\(Q_r\\) diminue et l'équilibre se déplace dans le sens direct (vers moins de gaz)."},
+  {q:"Ajout d'un gaz inerte : à \\(P\\) fixée, à \\(V\\) fixé ?", a:"À \\(P\\) fixée, \\(n_{\\text{tot,gaz}}\\) augmente : même effet qu'une baisse de pression. À \\(V\\) fixé, les pressions partielles ne changent pas : aucun effet."},
+  {q:"Conditions du procédé Haber–Bosch et justification ?", a:"400 à 500 °C (compromis vitesse / rendement, réaction exothermique), 150 à 300 bar (\\(\\Delta\\nu_{\\text{gaz}} = -2\\)), catalyseur au fer, liquéfaction de NH₃ et recyclage, purge des inertes."},
+  {q:"Enthalpie libre d'une réaction d'oxydoréduction en fonction des potentiels ?", a:"\\(\\Delta_rG = -\\gamma F\\,(E_1 - E_2)\\) et \\(\\Delta_rG^\\circ = -\\gamma F\\,(E_1^\\circ - E_2^\\circ)\\).", cat:'form'},
+  {q:"Constante d'équilibre d'une réaction d'oxydoréduction à 298 K ?", a:"\\(\\log K^\\circ = \\dfrac{\\gamma\\,(E_1^\\circ - E_2^\\circ)}{0{,}06}\\)", cat:'form'},
+  {q:"Enthalpie libre standard associée à une demi-équation ?", a:"\\(\\Delta_{1/2}G^\\circ = -\\gamma F\\,E^\\circ\\) : on additionne ces enthalpies libres, jamais les potentiels.", cat:'form'},
+  {q:"Inégalité entre variation d'enthalpie libre et travail électrique ?", a:"\\(\\Delta G \\leq W_{\\text{élec}}\\) (monotherme, monobare), égalité si réversible : une pile fournit au plus \\(-\\Delta G\\).", cat:'form'},
+  {q:"Tension à vide d'une pile ?", a:"\\(e = -\\dfrac{\\Delta_rG}{\\gamma F} = E_+ - E_-\\) ; \\(e = e^\\circ - \\dfrac{0{,}06}{\\gamma}\\log Q_r\\) à 298 K.", cat:'form'},
+  {q:"Que valent \\(e\\), \\(\\Delta_rG\\) et \\(Q_r\\) pour une pile usée ?", a:"\\(e = 0\\), \\(\\Delta_rG = 0\\) et \\(Q_r = K^\\circ\\) : la pile a atteint l'équilibre."},
+  {q:"Capacité d'une pile ?", a:"\\(q_{\\max} = \\gamma F\\,\\xi_{\\max}\\) ; \\(1\\ \\text{A·h} = 3\\,600\\ \\text{C}\\) ; énergie \\(W \\approx q_{\\max}\\,e\\).", cat:'form'},
+  {q:"Valeurs utiles : \\(RT\\) à 298 K, constante de Faraday, « 0,06 » ?", a:"\\(RT \\approx 2{,}48\\ \\text{kJ·mol}^{-1}\\) ; \\(F \\approx 96\\,500\\ \\text{C·mol}^{-1}\\) ; \\(RT\\ln 10/F \\approx 0{,}059\\ \\text{V}\\).", cat:'val'}
+];
+const thcFlash = makeFlash(thcCards,'thc','thc-flash-content','thc-flash-prog','thc-stats');
 /* --- Chaînes de solides — mobilité et hyperstatisme (chaines) --- */
 const chsCards = [
   {q:"Qu'est-ce qu'une classe d'équivalence cinématique ?", a:"Un ensemble de pièces sans aucun mouvement relatif entre elles pendant la phase étudiée ; on la modélise par un seul solide."},
@@ -74163,7 +75222,7 @@ function navigateTo(chapId, panelId, onDone){
 
   /* Titre du document = page affichée (« Circuit RLC série · Cours — Mes cours de prépa ») :
      annoncé par les lecteurs d'écran, et lisible dans l'historique et les onglets du navigateur */
-  const NOMS_ONGLETS = { cours:'Cours', meth:'Méthodes', simu:'Simulateur', flash:'Cartes', exos:'Exercices' };
+  const NOMS_ONGLETS = { cours:'Cours', video:'Vidéos', meth:'Méthodes', simu:'Simulateur', flash:'Cartes', exos:'Exercices' };
   const NOMS_MATIERES = { physique:'Physique', maths:'Maths', si:'SI', info:'Info', anglais:'Anglais' };
   function majTitreDocument(so, chapId, suf){
     let t = 'Mes cours de prépa';
@@ -74841,6 +75900,7 @@ function printChapter(){
   else if(panelId.endsWith('-exos')) panelLabel = 'Exercices';
   else if(panelId.endsWith('-flash')) panelLabel = 'Cartes';
   else if(panelId.endsWith('-simu')) panelLabel = 'Simulateur';
+  else if(panelId.endsWith('-video')) panelLabel = 'Vidéos';
 
   /* ---- 2. Extraire les blocs sources ---- */
   const isExos = panelId.endsWith('-exos');
@@ -74859,6 +75919,9 @@ function printChapter(){
       if(pc) parts.push('Concours PT');
       selection = 'Sélection : ' + (parts.join(' · ') || 'filtre') + ' — ' + vus.length + ' exercice' + (vus.length > 1 ? 's' : '') + ' sur ' + tous.length;
     }
+  } else if(panelId.endsWith('-video') && typeof window.__videosImpression === 'function'){
+    // Onglet Vidéos : titres, durées, liens et parties (pas de lecteur sur papier)
+    sources.push(window.__videosImpression(chapId));
   } else {
     const root = activePanel.querySelector('.toc-content') || activePanel;
     root.querySelectorAll('.course-section').forEach(s => sources.push(s));
@@ -75894,7 +76957,7 @@ document.addEventListener('keydown', e => {
 (function(){
   const MATS = ['physique','maths','si','info','anglais'];
   const MAT_NOMS = { physique:'Physique', maths:'Maths', si:'SI', info:'Info', anglais:'Anglais' };
-  const ONGLETS = { cours:'Cours', meth:'Méthodes', simu:'Simulateur', flash:'Cartes', exos:'Exercices' };
+  const ONGLETS = { cours:'Cours', video:'Vidéos', meth:'Méthodes', simu:'Simulateur', flash:'Cartes', exos:'Exercices' };
   const $ = id => document.getElementById(id);
   const ic = n => (window.__icon ? window.__icon(n) : '');
   const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -78750,7 +79813,7 @@ document.getElementById('skip-link')?.addEventListener('click', e => {
   if(!ov) return;
   const MATS = ['physique','maths','si','info','anglais'];
   const NOMS = { physique:'Physique', maths:'Maths', si:'SI', info:'Info', anglais:'Anglais' };
-  const ONGLETS = { cours:'Cours', meth:'Méthodes', simu:'Simulateur', flash:'Cartes', exos:'Exercices' };
+  const ONGLETS = { cours:'Cours', video:'Vidéos', meth:'Méthodes', simu:'Simulateur', flash:'Cartes', exos:'Exercices' };
   const JOURS = ['di','lu','ma','me','je','ve','sa'];
   const NBSP = ' ';
   const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -78937,6 +80000,180 @@ document.getElementById('skip-link')?.addEventListener('click', e => {
 </script>
 
 <script>
+/* =====================================================================
+   VIDÉOS DES CHAPITRES (onglet « Vidéos »)
+   Table window.__VIDEOS : identifiant du chapitre (CHAPTERS.id) → ses vidéos, dans l'ordre.
+   Chaque vidéo : yt (identifiant YouTube, non répertoriée), titre, duree (s), apercu (image du
+   site, media/videos/), parties [[début en s, titre], …] (les chapitres YouTube de la vidéo).
+   Le chapitre porte un onglet « Vidéos » ordinaire (CHAPTERS.panels : 'video' ; DOM :
+   <section class="panel" id="<prefix>-video"> contenant .vid-liste[data-videos="<id>"]),
+   que ce module remplit au chargement : grands lecteurs empilés, image d'aperçu locale.
+   Le lecteur YouTube (youtube-nocookie) n'est créé qu'au CLIC : aucune requête externe au
+   chargement, et hors ligne un message le dit au lieu d'un cadre vide. Une seule vidéo
+   lancée à la fois (les autres retrouvent leur aperçu). Ajouter une vidéo à un chapitre qui a
+   déjà l'onglet = une entrée ici + son image d'aperçu (video/README.md, « Intégration au site »).
+   ===================================================================== */
+(function(){
+  'use strict';
+  try {
+  window.__VIDEOS = {
+    thermochimie: [
+      { yt:'YtisR2_KXQ0', titre:'Rappels de première année', duree:498, apercu:'media/videos/thermochimie-1.webp',
+        parties:[[0,'Introduction'],[25,'Système, constituant, phase'],[66,'Équation de réaction'],[97,'Avancement'],
+          [150,'Activité'],[187,'Quotient de réaction'],[240,"Constante d'équilibre et critère d'évolution"],
+          [278,'Oxydants et réducteurs'],[302,"Nombre d'oxydation"],[351,'Formule de Nernst'],
+          [405,"Règle du gamma et constante d'équilibre"],[468,'À retenir']] },
+      { yt:'l9C4IiB3gVA', titre:'Enthalpie libre et potentiel chimique', duree:447, apercu:'media/videos/thermochimie-2.webp',
+        parties:[[0,'Introduction'],[28,'La fonction enthalpie libre'],[75,'Identité thermodynamique'],
+          [124,'Potentiel chimique : définition'],[163,"Enthalpie libre d'un mélange"],[204,'Expression du potentiel chimique'],
+          [264,'États standard'],[308,'État standard de référence'],[364,'Diamant ou graphite ?'],[408,'À retenir']] },
+      { yt:'tbJv-uT1Uyw', titre:'Grandeurs de réaction et grandeurs standard', duree:510, apercu:'media/videos/thermochimie-3.webp',
+        parties:[[0,'Introduction'],[27,'Grandeur de réaction : définition'],[67,'Enthalpie libre de réaction'],
+          [125,'Grandeurs standard de réaction'],[178,'Signe des grandeurs standard'],[236,'Grandeurs standard de formation'],
+          [284,'Loi de Hess'],[331,'Entropie et pièges classiques'],[374,'Combinaisons linéaires de réactions'],
+          [409,"Approximation d'Ellingham"],[466,'À retenir']] }
+    ]
+  };
+
+  const NBSP = ' ';
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  const ic = n => (window.__icon ? window.__icon(n) : '');
+  const mmss = t => { t = Math.max(0, Math.floor(t)); return Math.floor(t / 60) + ':' + String(t % 60).padStart(2, '0'); };
+  const duree = s => { s = Math.round(s); return Math.floor(s / 60) + NBSP + 'min' + NBSP + String(s % 60).padStart(2, '0'); };
+  const dureeLue = s => { s = Math.round(s); const m = Math.floor(s / 60), r = s % 60;
+    return m + ' minute' + (m > 1 ? 's' : '') + (r ? ' ' + r + ' seconde' + (r > 1 ? 's' : '') : ''); };
+  const chapDe = id => (typeof CHAPTERS_BY_ID !== 'undefined' && CHAPTERS_BY_ID[id]) || null;
+  const videosDe = id => (window.__VIDEOS && Array.isArray(window.__VIDEOS[id])) ? window.__VIDEOS[id] : [];
+  window.__videosDe = videosDe;
+
+  function urlLecteur(v, t){
+    let u = 'https://www.youtube-nocookie.com/embed/' + encodeURIComponent(v.yt)
+      + '?autoplay=1&rel=0&playsinline=1&hl=fr&cc_lang_pref=fr';
+    if(t > 0) u += '&start=' + Math.floor(t);
+    return u;
+  }
+
+  /* ── Construction de l'onglet ─────────────────────────────────────── */
+  function construire(liste){
+    if(!liste || liste.dataset.construit) return;
+    const id = liste.getAttribute('data-videos') || '';
+    const videos = videosDe(id), c = chapDe(id);
+    const pre = c ? c.prefix : id;
+    liste.dataset.construit = '1';
+    if(!videos.length){
+      liste.innerHTML = '<p class="vid-intro">Les vidéos de ce chapitre ne sont pas encore en ligne.</p>';
+      return;
+    }
+    const total = videos.reduce((s, v) => s + (v.duree || 0), 0);
+    let h = '<p class="vid-intro">' + videos.length + ' vidéo' + (videos.length > 1 ? 's' : '') + ' du cours au tableau, '
+      + Math.round(total / 60) + NBSP + 'min en tout. Le lecteur YouTube ne se charge qu\'au clic ; '
+      + 'sous-titres (CC) et vitesse de lecture se règlent dans le lecteur.</p>';
+    videos.forEach((v, i) => {
+      const n = i + 1, aid = pre + '-video-' + n;
+      const parties = Array.isArray(v.parties) ? v.parties : [];
+      h += '<article class="vid" id="' + aid + '" data-i="' + i + '" aria-labelledby="' + aid + '-titre">'
+        + '<div class="vid-tete"><span class="kicker vid-num">Vidéo ' + n + (v.duree ? ' · ' + duree(v.duree) : '') + '</span>'
+        + '<h3 class="vid-titre" id="' + aid + '-titre">' + esc(v.titre) + '</h3></div>'
+        + '<div class="vid-cadre">' + boutonLancer(v, n) + '</div>';
+      if(parties.length){
+        h += '<details class="vid-parties"><summary>Parties de la vidéo <span class="cnt">' + parties.length + '</span></summary><ol>'
+          + parties.map(p => '<li><button type="button" class="vid-saut" data-t="' + (+p[0] || 0) + '"'
+            + ' aria-label="' + esc(mmss(p[0]) + ' ' + p[1] + ' : lancer la vidéo à ce moment') + '">'
+            + '<span class="vid-t">' + mmss(p[0]) + '</span><span class="vid-p">' + esc(p[1]) + '</span></button></li>').join('')
+          + '</ol></details>';
+      }
+      h += '</article>';
+    });
+    liste.innerHTML = h;
+  }
+  function boutonLancer(v, n){
+    return '<button type="button" class="vid-lancer" aria-label="Lire la vidéo ' + n + ', « ' + esc(v.titre) + ' »'
+      + (v.duree ? ', ' + dureeLue(v.duree) : '') + ' (lecteur YouTube)">'
+      + (v.apercu ? '<img src="' + esc(v.apercu) + '" alt="" width="1280" height="720" loading="lazy" decoding="async">' : '')
+      + '<span class="vid-play" aria-hidden="true">' + ic('play') + '<span>Lire</span></span></button>';
+  }
+
+  /* ── Lecture ───────────────────────────────────────────────────────── */
+  function videoDeArticle(a){
+    const liste = a && a.closest('.vid-liste');
+    const videos = liste ? videosDe(liste.getAttribute('data-videos')) : [];
+    return videos[+a.getAttribute('data-i')] || null;
+  }
+  // Une autre vidéo lancée : le lecteur précédent est retiré (il s'arrête) et l'aperçu revient
+  function arreterAutres(sauf){
+    document.querySelectorAll('.vid-cadre.lance').forEach(cadre => {
+      const a = cadre.closest('.vid');
+      if(!a || a === sauf) return;
+      const v = videoDeArticle(a);
+      cadre.classList.remove('lance');
+      cadre.innerHTML = v ? boutonLancer(v, +a.getAttribute('data-i') + 1) : '';
+    });
+  }
+  function message(cadre, texte){
+    let m = cadre.querySelector('.vid-msg');
+    if(!m){ m = document.createElement('p'); m.className = 'vid-msg'; m.setAttribute('role', 'status'); cadre.appendChild(m); }
+    m.textContent = texte;
+  }
+  function lancer(a, t){
+    const v = videoDeArticle(a), cadre = a && a.querySelector('.vid-cadre');
+    if(!v || !cadre) return;
+    if(navigator.onLine === false){
+      message(cadre, 'Hors connexion : la vidéo se lira quand l\'appareil sera de nouveau connecté à Internet.');
+      return;
+    }
+    arreterAutres(a);
+    const n = +a.getAttribute('data-i') + 1;
+    const f = document.createElement('iframe');
+    f.src = urlLecteur(v, t || 0);
+    f.title = 'Vidéo ' + n + ' : ' + v.titre;
+    f.setAttribute('allow', 'autoplay; encrypted-media; picture-in-picture; fullscreen');
+    f.setAttribute('referrerpolicy', 'strict-origin-when-cross-origin');
+    const avaitFocus = cadre.contains(document.activeElement) || a.contains(document.activeElement);
+    cadre.innerHTML = '';
+    cadre.appendChild(f);
+    cadre.classList.add('lance');
+    // Le bouton cliqué a disparu (aperçu) : le focus passe au lecteur, jamais au <body>
+    if(avaitFocus){ try { f.focus({ preventScroll:true }); } catch(e){} }
+    // Partie choisie sous le lecteur : le lecteur revient à l'écran s'il en était sorti
+    const r = cadre.getBoundingClientRect();
+    if(r.top < 80 || r.bottom > (window.innerHeight || 800)){
+      try { cadre.scrollIntoView({ block:'center', behavior: window.__reduceMotion ? 'auto' : 'smooth' }); } catch(e){}
+    }
+  }
+  document.addEventListener('click', e => {
+    const t = e.target && e.target.closest ? e.target : null;
+    if(!t) return;
+    const b = t.closest('.vid-lancer, .vid-saut');
+    if(!b) return;
+    const a = b.closest('.vid');
+    if(!a) return;
+    e.preventDefault();
+    try { lancer(a, b.classList.contains('vid-saut') ? +b.getAttribute('data-t') || 0 : 0); } catch(err){ /* lecture non bloquante */ }
+  });
+
+  /* ── Impression de l'onglet : titres, durées, liens et parties (pas de lecteur) ── */
+  window.__videosImpression = function(id){
+    const videos = videosDe(id);
+    const d = document.createElement('div');
+    d.className = 'course-section';
+    let h = '<p>' + videos.length + ' vidéo' + (videos.length > 1 ? 's' : '') + ' du cours au tableau, sur YouTube (lien à ouvrir dans un navigateur).</p>';
+    videos.forEach((v, i) => {
+      h += '<h3>Vidéo ' + (i + 1) + ' — ' + esc(v.titre) + '</h3>'
+        + '<p>' + (v.duree ? duree(v.duree) + ' · ' : '') + 'https://youtu.be/' + esc(v.yt) + '</p>';
+      if(Array.isArray(v.parties) && v.parties.length)
+        h += '<ul>' + v.parties.map(p => '<li>' + mmss(p[0]) + ' — ' + esc(p[1]) + '</li>').join('') + '</ul>';
+    });
+    d.innerHTML = h;
+    return d;
+  };
+
+  const tout = () => document.querySelectorAll('.vid-liste[data-videos]').forEach(l => { try { construire(l); } catch(e){} });
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', tout); else tout();
+  } catch(e){ /* module non bloquant */ }
+})();
+</script>
+
+<script>
 /* ===== PAGE CHAPITRE : intercalaire, onglets, rail droit, pied de chapitre =====
    (SPEC §4.4, §5.1, §7.4, §7.5, §7.10, §7.11 ; styles : région PAGE du grand <style>)
    Travail PARESSEUX : seul le chapitre affiché est traité, à son premier affichage (marqueurs
@@ -79043,11 +80280,13 @@ document.getElementById('skip-link')?.addEventListener('click', e => {
     const nCartes = Array.isArray(deck) ? deck.length : 0;
     const nExos = exos ? exos.querySelectorAll('.exo').length : 0;
     const nSim = (c.panels || []).filter(p => p === 'simu').length;
+    const nVid = window.__videosDe ? window.__videosDe(c.id).length : 0;
     const parts = [];
     if(nSec > 1) parts.push(pluriel(nSec, 'section', 'sections'));
     if(nCartes) parts.push(pluriel(nCartes, 'carte', 'cartes'));
     if(nExos) parts.push(pluriel(nExos, 'exercice', 'exercices'));
     if(nSim) parts.push(pluriel(nSim, 'simulateur', 'simulateurs'));
+    if(nVid) parts.push(pluriel(nVid, 'vidéo', 'vidéos'));
     const meta = document.createElement('div');
     meta.className = 'ctb-meta';
     meta.innerHTML = badge + parts.map((t, i) => (i ? '<span class="sep" aria-hidden="true">·</span>' : '') + '<span>' + t + '</span>').join('');
@@ -79116,6 +80355,7 @@ document.getElementById('skip-link')?.addEventListener('click', e => {
       if(k === 'meth' && p){ n = p.querySelectorAll('.method-box').length; unite = n > 1 ? 'méthodes' : 'méthode'; }
       else if(k === 'exos' && p){ n = p.querySelectorAll('.exo').length; unite = n > 1 ? 'exercices' : 'exercice'; }
       else if(k === 'flash'){ const d = (window.FLASH_REGISTRY || {})[c.prefix]; n = Array.isArray(d) ? d.length : 0; unite = n > 1 ? 'cartes' : 'carte'; }
+      else if(k === 'video'){ n = window.__videosDe ? window.__videosDe(c.id).length : 0; unite = n > 1 ? 'vidéos' : 'vidéo'; }
       if(n){
         const s = document.createElement('span');
         s.className = 'cnt';
@@ -79418,6 +80658,27 @@ document.getElementById('skip-link')?.addEventListener('click', e => {
   document.addEventListener('click', e => {
     if(exosRail.length && e.target && e.target.closest && e.target.closest('.exo-tools')) setTimeout(sur(syncFiltreExos), 0);
   });
+  function blocVideos(c){
+    const vs = window.__videosDe ? window.__videosDe(c.id) : [];
+    if(!vs.length || !$(c.prefix + '-video')) return;
+    const bloc = document.createElement('nav');
+    bloc.className = 'rail-bloc rail-videos';
+    bloc.setAttribute('aria-label', 'Vidéos du chapitre');
+    bloc.innerHTML = '<span class="kicker rail-titre">' + pluriel(vs.length, 'vidéo', 'vidéos') + '</span>';
+    const ul = document.createElement('ul');
+    ul.className = 'exo-list';
+    vs.forEach((v, i) => {
+      const li = document.createElement('li'), a = document.createElement('a');
+      a.href = '#' + c.id + '/video';
+      a.dataset.video = c.prefix + '-video-' + (i + 1);
+      if(v.titre) a.title = v.titre;   // titre complet (la ligne est coupée à 2 lignes)
+      a.innerHTML = '<span class="k">V' + (i + 1) + '</span><span class="t">' + esc(v.titre) + '</span>';
+      li.appendChild(a);
+      ul.appendChild(li);
+    });
+    bloc.appendChild(ul);
+    rail.appendChild(bloc);
+  }
   function blocCartes(c, k){
     const e = etatCartes(c.prefix);
     if(!e || !e.total) return;
@@ -79453,8 +80714,8 @@ document.getElementById('skip-link')?.addEventListener('click', e => {
     exosVisibles.clear();
     if(ioExos){ ioExos.disconnect(); ioExos = null; }
     rail.setAttribute('data-mat', c.matiere || '');
-    rail.setAttribute('aria-label', k === 'exos' ? 'Exercices du chapitre' : 'Dans ce chapitre');
-    if(k === 'exos') blocExos(c); else blocSommaire(c);
+    rail.setAttribute('aria-label', k === 'exos' ? 'Exercices du chapitre' : k === 'video' ? 'Vidéos du chapitre' : 'Dans ce chapitre');
+    if(k === 'exos') blocExos(c); else if(k === 'video' && window.__videosDe && window.__videosDe(c.id).length) blocVideos(c); else blocSommaire(c);
     blocCartes(c, k);
   }
   function majRail(force){
@@ -79480,6 +80741,18 @@ document.getElementById('skip-link')?.addEventListener('click', e => {
         if(tab) tab.click();
         setTimeout(() => defilerVers(sec), 80);
       } else defilerVers(sec);
+      return;
+    }
+    const vd = t.closest('a[data-video]');
+    if(vd){
+      e.preventDefault();
+      const art = $(vd.dataset.video);
+      if(art) defilerVers(art);
+      rail.querySelectorAll('a[data-video]').forEach(l => {
+        const v = l === vd;
+        l.classList.toggle('on', v);
+        if(v) l.setAttribute('aria-current', 'location'); else l.removeAttribute('aria-current');
+      });
       return;
     }
     const x = t.closest('a[data-exo]');

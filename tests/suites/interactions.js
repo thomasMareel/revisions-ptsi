@@ -952,6 +952,73 @@ module.exports = {
         !s.erreur && !s.base && 'balise <base> absente (les chemins vendor/… ne résoudraient pas)'];
     });
 
+    /* ---------- Onglet Vidéos (thermochimie) ---------- */
+    await etape('onglet Vidéos : aperçus locaux sans requête externe, lecteur YouTube créé au clic seulement (partie → start), une vidéo à la fois, hors ligne, impression', async () => {
+      const pb = [];
+      const LECTEUR = /^https:\/\/www\.youtube-nocookie\.com\/embed\//;
+      // Lecteur factice : la requête part bien vers YouTube (c'est voulu, au clic), sans réseau réel
+      await page.route(LECTEUR, r => r.fulfill({ status: 200, contentType: 'text/html', body: '<!doctype html><title>lecteur</title>' }));
+      const ext0 = journal.externes.length;
+      await naviguer(page, 'thermochimie', 'video');
+      await pause(600);
+      const s = await page.evaluate(() => {
+        const p = document.getElementById('thc-video'), ch = document.getElementById('chap-thermochimie');
+        const tab = document.querySelector('.tab[data-panel="thc-video"]');
+        const img = p && p.querySelector('.vid-lancer img');
+        return { actif: !!(p && p.classList.contains('active')), n: p ? p.querySelectorAll('.vid').length : 0,
+          iframes: document.querySelectorAll('#thc-video iframe').length, onglet: ch && ch.getAttribute('data-onglet'),
+          cnt: tab && tab.querySelector('.cnt') ? tab.querySelector('.cnt').textContent : '',
+          img: img ? { src: img.getAttribute('src'), w: img.naturalWidth } : null, titre: document.title, hash: location.hash,
+          ordre: Array.from(document.querySelectorAll('#chap-thermochimie > nav.tabs > .tab')).map(t => t.dataset.panel.split('-').pop()).join(',') };
+      });
+      if (!s.actif) pb.push('panneau #thc-video non affiché après navigation');
+      if (s.n !== 3) pb.push(s.n + ' vidéo(s) affichée(s) au lieu de 3');
+      if (s.iframes) pb.push(s.iframes + ' lecteur(s) créé(s) avant tout clic');
+      if (s.ordre !== 'cours,video,meth,flash,exos') pb.push('ordre des onglets : ' + s.ordre + ' (Vidéos attendu entre Cours et Méthodes)');
+      if (s.onglet !== 'video') pb.push('data-onglet = ' + s.onglet + ' sur la feuille');
+      if (!/^3/.test(s.cnt)) pb.push('effectif de l\'onglet Vidéos : « ' + s.cnt + ' »');
+      if (!s.img || !/^media\/videos\//.test(s.img.src) || !s.img.w) pb.push('aperçu local non chargé : ' + JSON.stringify(s.img));
+      if (!/Vidéos/.test(s.titre) || s.hash !== '#thermochimie/video') pb.push('titre / hash : ' + s.titre + ' · ' + s.hash);
+      if (journal.externes.length > ext0) pb.push('requête externe à l\'affichage de l\'onglet : ' + journal.externes.slice(ext0).map(e => e.url).join(' '));
+
+      // Partie de la vidéo 2 → lecteur à ce moment
+      await page.click('#thc-video-2 .vid-parties > summary');
+      await page.click('#thc-video-2 .vid-saut[data-t="124"]');
+      await pause(400);
+      const src2 = await page.evaluate(() => { const f = document.querySelector('#thc-video-2 iframe'); return f ? f.src : ''; });
+      if (!/youtube-nocookie\.com\/embed\/l9C4IiB3gVA\?/.test(src2) || !/[?&]start=124\b/.test(src2)) pb.push('partie 2:04 de la vidéo 2 : lecteur ' + (src2 || 'absent'));
+      // Vidéo 1 lancée : la 2 retrouve son aperçu ; le focus suit le lecteur
+      await page.focus('#thc-video-1 .vid-lancer');
+      await page.keyboard.press('Enter');
+      await pause(400);
+      const t = await page.evaluate(() => ({ un: !!document.querySelector('#thc-video-1 iframe'), deux: !!document.querySelector('#thc-video-2 iframe'),
+        apercu2: !!document.querySelector('#thc-video-2 .vid-lancer'), focus: (document.activeElement || {}).tagName }));
+      if (!t.un) pb.push('Entrée sur « Lire » (vidéo 1) ne crée pas le lecteur');
+      if (t.deux || !t.apercu2) pb.push('la vidéo 2 reste lancée quand la vidéo 1 démarre');
+      if (t.focus !== 'IFRAME') pb.push('focus après « Lire » : ' + t.focus + ' (le lecteur attendu)');
+      // Hors ligne : message, pas de lecteur
+      await page.context().setOffline(true);
+      await page.click('#thc-video-3 .vid-lancer');
+      await pause(300);
+      const h = await page.evaluate(() => ({ f: !!document.querySelector('#thc-video-3 iframe'), m: (document.querySelector('#thc-video-3 .vid-msg') || {}).textContent || '' }));
+      await page.context().setOffline(false);
+      if (h.f || !/Hors connexion/.test(h.m)) pb.push('hors ligne : ' + (h.f ? 'lecteur créé' : 'message absent'));
+      // Impression de l'onglet : titres et liens, pas de lecteur
+      await page.evaluate(() => { window.print = () => {}; printChapter(); });
+      await pause(2500);
+      const imp = await page.evaluate(() => {
+        const d = (document.getElementById('print-iframe') || {}).contentDocument;
+        return d && d.body ? { liens: (d.body.innerText.match(/youtu\.be\/[\w-]+/g) || []).length, iframes: d.querySelectorAll('iframe').length } : null;
+      });
+      if (!imp) pb.push('aucun document d\'impression pour l\'onglet Vidéos');
+      else if (imp.liens !== 3 || imp.iframes) pb.push('impression de l\'onglet Vidéos : ' + imp.liens + ' lien(s), ' + imp.iframes + ' lecteur(s)');
+      // Seules les requêtes vers le lecteur, déclenchées par les clics, sont admises
+      journal.externes = journal.externes.filter((e, i) => i < ext0 || !LECTEUR.test(e.url));
+      await page.unroute(LECTEUR);
+      await naviguer(page, 'thermochimie', 'cours');
+      return pb;
+    });
+
     /* ---------- Lecture audio des cartes d'anglais (présence du bouton) ---------- */
     await etape('bouton de lecture audio sur une flashcard d\'anglais', async () => {
       const ang = await page.evaluate(() => { const c = CHAPTERS.find(x => x.matiere === 'anglais' && x.panels.includes('flash')); return c && c.id; });
