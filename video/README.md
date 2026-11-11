@@ -173,8 +173,8 @@ Vérifier d'abord qu'un chapitre du site correspond au cours (sinon le créer : 
 ## Vidéos livrées
 
 Toutes en **non répertorié**, sous-titres français compris, envoyées le 2026-11-11 par `youtube.py`
-(identifiants dans `thermochimie/chN/youtube.json`). Sur le site : onglet « Vidéos » du chapitre
-`thermochimie` (table `window.__VIDEOS`).
+(identifiants dans `<cours>/chN/youtube.json`). Sur le site : onglet « Vidéos » des chapitres
+`thermochimie` et `matrices` (1ʳᵉ année) (table `window.__VIDEOS`).
 
 | Cours | Chapitre | Durée | Lien YouTube |
 |---|---|---|---|
@@ -186,6 +186,7 @@ Toutes en **non répertorié**, sous-titres français compris, envoyées le 2026
 | Thermochimie | 6 — Influence des paramètres et optimisation | 9 min 40 | <https://youtu.be/A9G7gfQWMk8> |
 | Thermochimie | 7 — Thermodynamique de l'oxydoréduction | 9 min 16 | <https://youtu.be/cAqOR3e0tY4> |
 | Thermochimie | 8 — Piles électrochimiques | 9 min 18 | <https://youtu.be/AYElYXFUTeQ> |
+| Matrices (PTSI) | 1 — Calcul matriciel : les méthodes de première année | 8 min 11 | <https://youtu.be/glra17NIKWo> |
 
 Cours de thermochimie complet : chapitres 1 à 8 du PDF (le chapitre 9 du PDF est le recueil
 d'exercices, le 10 le formulaire : pas de vidéo). Les chapitres 1 à 3 gardent l'ancien réglage de
@@ -193,6 +194,15 @@ voix et n'ont pas d'exercice résolu final (les refaire seulement si Thomas le d
 d'une vingtaine de secondes sur les νᵢ algébriques demandé par Thomas. Il a été refait le jour même
 (voix plus dynamique, exercice résolu de calorimétrie en fin de vidéo) : la 1ʳᵉ version
 (`1g0EXKxPFiU`, 7 min 21) reste en non répertorié sur YouTube, retirée du site.
+
+**Matrices** (`matrices/`, demande de Thomas du 2026-11-11) : en 1ʳᵉ année, une vidéo brève centrée sur
+les méthodes et des exemples calculés (chapitre `matrices` du site) ; en 2ᵉ année, des cours complets et
+approfondis avec exemples traités en direct (chapitres 2 à 4, chapitre `matrices2a` du site). Au tableau,
+les matrices passent par `Matrix` de Manim (helper `mat` des `scenes.py` : lignes, colonnes et coefficients
+encadrables pour montrer « ligne × colonne ») ou par `pmatrix` dans `MathTex` (helper `pm`). Ne jamais couper
+une chaîne `MathTex` à l'intérieur d'un environnement (`pmatrix`…) : chaque morceau est compilé seul.
+La transcription de contrôle perd souvent un « un » en fin de phrase (« … égale un. ») : vérifier sur le
+signal (énergie de la fin du `.wav`) avant de régénérer.
 
 Remarque de Thomas sur le chapitre 3 : l'explication des νᵢ (coefficients stœchiométriques
 **algébriques** : négatifs pour les réactifs, positifs pour les produits) n'était pas assez claire.
