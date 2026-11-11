@@ -6,8 +6,10 @@ cours vidéo ont besoin :
 - **A. la voix** : déposer la clé Mistral dans l'environnement cloud (2 minutes, possible au téléphone) ;
 - **B. YouTube** : autoriser l'envoi automatique des vidéos (20 minutes ; faisable au téléphone).
 
-**Où en est-on (2026-11-11)** : partie A **faite** ; partie B faite jusqu'à B3 (projet Google « Cours
-video PTSI », application « En production », client « Application de bureau » créé). Reste B4 à B8.
+**Où en est-on (2026-11-11)** : partie A **faite** ; partie B faite jusqu'à B4 (projet Google « Cours
+video PTSI », application « En production », client « Application de bureau » créé, `YT_CLIENT_ID` et
+`YT_CLIENT_SECRET` enregistrées sur l'environnement « revisions-ptsi » par le site claude.ai/code :
+l'application mobile n'offre pas ce réglage). Reste B5 à B8, dans une nouvelle session.
 
 **Environnement cloud dédié « revisions-ptsi »** (personnel, créé le 2026-11-11 à la demande de
 Thomas) : il porte le secret réseau Mistral et portera les variables YouTube ; « Default » n'en a
@@ -106,7 +108,12 @@ Workspace ; `youtube.py` appelle l'API REST de YouTube ; choix figé par Google 
 
 **B4 — Thomas : les ranger dans l'environnement.** Dans les réglages de l'environnement cloud
 **« revisions-ptsi »** (pas « Default »), champ « Environment variables », ajouter deux lignes (sans
-guillemets ni espaces) :
+guillemets ni espaces). Ce réglage n'existe pas dans l'application Claude du téléphone : passer par
+**claude.ai/code** dans le navigateur (session ouverte → flèche ⌄ après le titre → « Edit cloud
+environment » → « Environment variables » → « Save changes »). Le formulaire sécurisé des secrets
+réseau ne convient pas ici : l'ID client doit être lisible par la session (adresse de B5) et le
+code secret part dans le corps de la requête, pas dans un en-tête. La session peut vérifier les
+**noms** des variables enregistrées (outil d'environnement), jamais leurs valeurs.
 
 ```
 YT_CLIENT_ID=<ID client>
@@ -120,7 +127,9 @@ session déjà ouverte ne voit pas les nouvelles variables. Les étapes B5 à B7
 (`oauth2.googleapis.com`, `www.googleapis.com`) sont joignables depuis cet environnement (vérifié
 le 2026-11-11).
 
-**B5 — Session, puis Thomas : autoriser.**
+**B5 — Session, puis Thomas : autoriser.** Contrôler d'abord, **sans afficher les valeurs**, que les
+deux variables sont là et bien formées (ID en `….apps.googleusercontent.com`, secret en `GOCSPX-…`,
+ni espace ni guillemet), par exemple avec un petit script Python qui n'imprime que des booléens.
 
 ```
 python3 video/commun/youtube.py lien
