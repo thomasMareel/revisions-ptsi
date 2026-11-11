@@ -4,7 +4,16 @@ Guide que **la session Claude Code suit avec Thomas** pour brancher les deux ser
 cours vidéo ont besoin :
 
 - **A. la voix** : déposer la clé Mistral dans l'environnement cloud (2 minutes, possible au téléphone) ;
-- **B. YouTube** : autoriser l'envoi automatique des vidéos (20 minutes, ordinateur conseillé).
+- **B. YouTube** : autoriser l'envoi automatique des vidéos (20 minutes ; faisable au téléphone).
+
+**Où en est-on (2026-11-11)** : partie A **faite** ; partie B faite jusqu'à B3 (projet Google « Cours
+video PTSI », application « En production », client « Application de bureau » créé). Reste B4 à B8.
+
+**Environnement cloud dédié « revisions-ptsi »** (personnel, créé le 2026-11-11 à la demande de
+Thomas) : il porte le secret réseau Mistral et portera les variables YouTube ; « Default » n'en a
+aucun. **Toute session vidéo doit tourner sur cet environnement** : le choisir à l'ouverture de la
+session (sélecteur d'environnement). Une session ouverte sur « Default » ne voit ni la clé ni les
+identifiants (`test_voix.py` : 401 ; `youtube.py` : « YT_CLIENT_ID et YT_CLIENT_SECRET sont absents »).
 
 ## Règles pour la session
 
@@ -24,6 +33,12 @@ cours vidéo ont besoin :
 ## A. La voix : clé Mistral
 
 Thomas a déjà créé sa clé dans la console Mistral (formule à l'usage, plafond de dépenses réglé).
+
+**Fait le 2026-11-11** par la voie la plus simple : la session a ouvert le **formulaire sécurisé de
+dépôt d'un secret** de Claude Code (hôte `api.mistral.ai`, type Bearer, nom « Mistral ») et Thomas y a
+collé sa clé ; le secret est enregistré sur l'environnement « revisions-ptsi ». Contrôle A2 réussi
+(« clé acceptée », « Voix : OK », transcription exacte, clé passée par le secret réseau). Le repli
+A3 n'a pas servi. Les étapes ci-dessous restent la voie manuelle, si le secret est à refaire.
 
 **A1 — Thomas.** Dans Claude Code, ouvrir les réglages de l'environnement cloud utilisé pour ce
 dépôt (sélecteur d'environnement, puis l'icône de réglages de l'environnement). Dans la section
@@ -54,9 +69,9 @@ Si la réponse reste 401 une minute après l'ajout, demander à Thomas d'ouvrir 
 « Environment variables », ajouter une ligne `MISTRAL_API_KEY=<la clé>` (sans guillemets), puis
 ouvrir une nouvelle session. Moins protégé : toute session de l'environnement peut lire la valeur.
 
-Jamais essayé avant cette mise en place : le secret réseau avec ce projet. Les scripts envoient
-leurs requêtes sans en-tête `Authorization` quand `MISTRAL_API_KEY` est absente, pour laisser le
-secret réseau le poser.
+Essayé et validé le 2026-11-11 : le secret réseau avec ce projet. Les scripts envoient leurs
+requêtes sans en-tête `Authorization` quand `MISTRAL_API_KEY` est absente, pour laisser le secret
+réseau le poser.
 
 ## B. YouTube : envoi automatique
 
@@ -72,21 +87,38 @@ e-mail comme contact. Puis, dans « Audience », **« Publier l'application »**
 C'est indispensable : en mode « Test », l'autorisation expire au bout de 7 jours. Aucune validation
 par Google n'est à demander pour un usage personnel ; un écran d'avertissement apparaîtra à l'étape B5.
 
+Constaté le 2026-11-11 (Google Auth Platform) :
+
+- **pas de logo** : pour une application Externe en production, un logo déclenche la vérification
+  de la marque, et il reste masqué tant qu'elle n'est pas faite ;
+- **« Publier l'application » reste grisé** (« terminer sa configuration sur la page de branding »)
+  tant que la page **Branding** n'a pas ses liens, même pour un usage personnel. Valeurs retenues :
+  page d'accueil et règles de confidentialité = `https://thomasmareel.github.io/revisions-ptsi/`,
+  conditions d'utilisation vides, domaine autorisé `thomasmareel.github.io`. Publication acceptée
+  ensuite, sans demande de vérification.
+
 **B3 — Thomas : identifiants.** « Identifiants » (ou « Clients ») → « Créer des identifiants » →
 « ID client OAuth » → type **« Application de bureau »**. Google affiche un **ID client** et un
-**code secret** : les garder sous les yeux pour l'étape suivante.
+**code secret** : les garder sous les yeux pour l'étape suivante. Le code secret n'est montré
+**qu'une fois** (sinon : en ajouter un nouveau dans la fiche du client). Case « Utiliser ce client
+pour un agent basé sur l'IA » : **décochée** (elle ne concerne que les serveurs MCP de Google
+Workspace ; `youtube.py` appelle l'API REST de YouTube ; choix figé par Google après le 12/11/2026).
 
-**B4 — Thomas : les ranger dans l'environnement.** Dans les réglages de l'environnement cloud,
-champ « Environment variables », ajouter deux lignes (sans guillemets ni espaces) :
+**B4 — Thomas : les ranger dans l'environnement.** Dans les réglages de l'environnement cloud
+**« revisions-ptsi »** (pas « Default »), champ « Environment variables », ajouter deux lignes (sans
+guillemets ni espaces) :
 
 ```
 YT_CLIENT_ID=<ID client>
 YT_CLIENT_SECRET=<code secret>
 ```
 
-Enregistrer, puis **ouvrir une nouvelle session** sur le dépôt avec le message :
-« reprends video/MISE-EN-PLACE.md à l'étape B5 ». Une session déjà ouverte ne voit pas les
-nouvelles variables.
+Enregistrer, puis **ouvrir une nouvelle session** sur le dépôt, **sur l'environnement
+« revisions-ptsi »**, avec le message : « reprends video/MISE-EN-PLACE.md à l'étape B5 ». Une
+session déjà ouverte ne voit pas les nouvelles variables. Les étapes B5 à B7 n'ont pas besoin de
+`installer.sh` (`youtube.py` n'utilise que la bibliothèque standard) ; les adresses Google
+(`oauth2.googleapis.com`, `www.googleapis.com`) sont joignables depuis cet environnement (vérifié
+le 2026-11-11).
 
 **B5 — Session, puis Thomas : autoriser.**
 
@@ -99,7 +131,9 @@ l'écran « Google n'a pas validé cette application » (« Paramètres avancés
 coche les autorisations et accepte. Le navigateur arrive alors sur une page **qui ne s'affiche pas**
 (adresse commençant par `http://localhost:8765/`) : c'est normal. Thomas copie **l'adresse complète**
 de cette page et la colle dans la conversation. Elle contient un code à usage unique, valable
-quelques minutes et inutilisable sans le code secret.
+quelques minutes et inutilisable sans le code secret. Thomas a demandé qu'on ne lui fasse jamais
+coller de clé ni de code secret : lui expliquer avant que cette adresse n'est ni sa clé ni le code
+secret du client, et pourquoi elle peut transiter par la conversation.
 
 **B6 — Session : terminer et vérifier.**
 

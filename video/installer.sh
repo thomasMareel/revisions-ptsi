@@ -29,7 +29,9 @@ python3 -c "import soundfile" 2>/dev/null || PIP="$PIP soundfile"
 python3 -c "import numpy, scipy" 2>/dev/null || PIP="$PIP numpy scipy"
 if [ -n "$PIP" ]; then
   echo "Installation Python :$PIP"
-  PIP_BREAK_SYSTEM_PACKAGES=1 python3 -m pip install -q $PIP || echo "!! pip a échoué"
+  # --use-pep517 : « srt » (dépendance de manim) n'a qu'un setup.py, que le setuptools de Debian
+  # ne sait plus installer sous Python 3.13 (« AttributeError: install_layout », constaté le 2026-11-11).
+  PIP_BREAK_SYSTEM_PACKAGES=1 python3 -m pip install -q --use-pep517 $PIP || echo "!! pip a échoué"
 fi
 
 echo; echo "== Contrôle =="

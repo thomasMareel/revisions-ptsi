@@ -58,8 +58,8 @@ bash video/installer.sh
 ```
 
 Le script installe ce qui manque (LaTeX, ffmpeg, Manim, client Mistral) et termine par un contrôle,
-dont l'accès à la voix. Il n'a été essayé que sur une machine où LaTeX et ffmpeg étaient déjà
-présents : sur une machine neuve, lire sa sortie et corriger au besoin.
+dont l'accès à la voix. Essayé sur une machine neuve le 2026-11-11 (≈ 10 minutes : LaTeX, ffmpeg,
+Manim) ; si une ligne ABSENT ou !! reste, lire sa sortie et corriger au besoin.
 
 **Clé Mistral et autorisation YouTube : jamais dans le dépôt** (il est public), ni dans un fichier,
 ni dans un message de commit, ni dans une sortie affichée. Elles vivent dans l'environnement cloud
