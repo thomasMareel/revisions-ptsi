@@ -184,8 +184,9 @@ Toutes en **non répertorié**, sous-titres français compris, envoyées le 2026
 | Thermochimie | 4 — Premier principe : effets thermiques des réactions | 8 min 48 | <https://youtu.be/L5z0oicvuOI> |
 | Thermochimie | 5 — Deuxième principe : évolution et équilibre | 9 min 15 | <https://youtu.be/IxOhQ0SkXQ0> |
 | Thermochimie | 6 — Influence des paramètres et optimisation | 9 min 40 | <https://youtu.be/A9G7gfQWMk8> |
+| Thermochimie | 7 — Thermodynamique de l'oxydoréduction | 9 min 16 | <https://youtu.be/cAqOR3e0tY4> |
 
-Suite prévue : les chapitres 7 et 8 du PDF, `pdf/ch7.tex` et `ch8.tex` (le chapitre 9 du PDF est le
+Suite prévue : le chapitre 8 du PDF, `pdf/ch8.tex` (le chapitre 9 du PDF est le
 recueil d'exercices, le 10 le formulaire : pas de vidéo prévue). Le chapitre 4 commence par le rappel
 d'une vingtaine de secondes sur les νᵢ algébriques demandé par Thomas. Il a été refait le jour même
 (voix plus dynamique, exercice résolu de calorimétrie en fin de vidéo) : la 1ʳᵉ version
