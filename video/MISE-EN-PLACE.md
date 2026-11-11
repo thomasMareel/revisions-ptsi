@@ -12,7 +12,9 @@ video PTSI », application « En production », client « Application de bureau 
 site claude.ai/code : l'application mobile n'offre pas ce réglage ; autorisation donnée sur la chaîne
 « La Vengeance en Prépa »). Autorisation durable **vérifiée** dans une nouvelle session le
 2026-11-11 (`python3 video/commun/youtube.py test` → « Accès YouTube : OK », « Jeton durable : variable
-YT_REFRESH_TOKEN »). Reste : B8 (premier envoi réel).
+YT_REFRESH_TOKEN »). B8 **faite** le même jour : chapitres 1 à 3 de thermochimie en ligne, non
+répertoriés, sous-titres compris (liens : tableau « Vidéos livrées » de `video/README.md`). **La mise
+en place est terminée** ; reste à Thomas un coup d'œil dans YouTube Studio (fin de B8).
 
 **Environnement cloud dédié « revisions-ptsi »** (personnel, créé le 2026-11-11 à la demande de
 Thomas) : il porte le secret réseau Mistral et portera les variables YouTube ; « Default » n'en a
@@ -208,15 +210,22 @@ Options de `envoi` : `--prive` (vidéo privée, pour un essai), `--synthetique` 
 synthétique réaliste ; inutile pour un tableau animé), `--encore` (renvoie un chapitre déjà en
 ligne : cela crée une **deuxième** vidéo).
 
+**Fait le 2026-11-11** avec les chapitres 1 à 3 de thermochimie (voir C) : trois envois réussis du
+premier coup, visibilité **non répertoriée respectée** (aucun bridage « private » du projet non
+validé), sous-titres acceptés (piste « Français », état `serving`), titre, description, catégorie
+Éducation, langue et « pas pour les enfants » relus par l'API. Le geste manuel de repli n'a pas servi.
+
 ## C. Une fois tout branché
 
-- Noter dans ce fichier la date et ce qui a été constaté (secret réseau : oui ou repli ; visibilité
-  respectée : oui ou non), et retirer les mentions « jamais essayé ».
+- Constaté le 2026-11-11 : secret réseau Mistral **oui** (pas de repli) ; visibilité non répertoriée
+  **respectée** ; sous-titres envoyés par l'API.
 - Chaque envoi écrit `youtube.json` dans le dossier du chapitre : le versionner, et reporter le lien
   dans le tableau « Vidéos livrées » de `video/README.md`.
-- **Chapitres 1 à 3 de thermochimie** : leurs MP4 ont été fabriqués avant ce dépôt et ne sont pas
-  dans la machine de la session. Thomas les possède (fichiers `Thermochimie_Chapitre1..3.mp4` et
-  `.srt`). Soit il les envoie à la main (`video/YOUTUBE.md`, partie A) et donne les liens, soit il les
-  met à disposition de la session, qui les place dans `out/` du chapitre et lance `envoi`.
-  Ne pas les régénérer sans son accord : la voix serait différente de celle qu'il a validée.
+- **Chapitres 1 à 3 de thermochimie : en ligne** (2026-11-11). Leurs MP4 avaient été fabriqués avant
+  ce dépôt ; Thomas les a joints à la conversation (MP4 + SRT). Avant l'envoi, la session a vérifié
+  qu'ils correspondent aux `timeline.json` du dépôt (durée au centième, chapitres intégrés, SRT
+  identique octet pour octet à celui que recalcule `assemble.py`), les a placés dans `out/` et a écrit
+  `out/youtube.txt` avec le code même d'`assemble.py` (sans relancer le montage). Même démarche pour
+  tout MP4 livré hors session. Ne pas les régénérer sans l'accord de Thomas : la voix serait
+  différente de celle qu'il a validée.
 - Ensuite : chapitre 4 de thermochimie (`video/README.md`).

@@ -63,8 +63,8 @@ Manim) ; si une ligne ABSENT ou !! reste, lire sa sortie et corriger au besoin.
 
 **Clé Mistral et autorisation YouTube : jamais dans le dépôt** (il est public), ni dans un fichier,
 ni dans un message de commit, ni dans une sortie affichée. Elles vivent dans l'environnement cloud
-de Claude Code. Leur mise en place, à faire une fois, est décrite pas à pas dans
-**`MISE-EN-PLACE.md`** ; `python3 video/commun/test_voix.py` et `python3 video/commun/youtube.py test`
+de Claude Code (environnement « revisions-ptsi »). Leur mise en place, **faite le 2026-11-11**, est
+décrite pas à pas dans **`MISE-EN-PLACE.md`** (à refaire seulement si une clé est révoquée) ; `python3 video/commun/test_voix.py` et `python3 video/commun/youtube.py test`
 disent si tout est branché.
 
 ⚠️ Après l'installation de LaTeX, les polices Latin Modern peuvent fausser les suites `mobile` et
@@ -94,7 +94,7 @@ Toutes les commandes se lancent **depuis le dossier du chapitre** (ex. `video/th
    désactivables, chapitres), `out/<fichier>.srt`, `out/youtube.txt` (titre, description, chapitres).
 8. **Mise en ligne** : `python3 ../../commun/youtube.py envoi` (vidéo non répertoriée, description,
    sous-titres), puis versionner `youtube.json`, reporter le lien dans le tableau ci-dessous et
-   l'ajouter au site. Tant que YouTube n'est pas branché : à la main, voir `YOUTUBE.md`.
+   l'ajouter au site. Envoi automatique branché et essayé (2026-11-11) ; repli à la main : `YOUTUBE.md`.
 
 Ordre de grandeur pour un chapitre de 8 minutes : 70 phrases, environ 0,15 $ de voix
 (0,016 $ pour 1 000 caractères, plus la transcription de contrôle et les régénérations),
@@ -136,11 +136,14 @@ Contraintes du site à respecter (détail dans `CLAUDE.md`) :
 
 ## Vidéos livrées
 
+Toutes en **non répertorié**, sous-titres français compris, envoyées le 2026-11-11 par `youtube.py`
+(identifiants dans `thermochimie/chN/youtube.json`). Pas encore intégrées au site.
+
 | Cours | Chapitre | Durée | Lien YouTube |
 |---|---|---|---|
-| Thermochimie | 1 — Rappels de première année | 8 min 18 | à ajouter |
-| Thermochimie | 2 — Enthalpie libre et potentiel chimique | 7 min 27 | à ajouter |
-| Thermochimie | 3 — Grandeurs de réaction et grandeurs standard | 8 min 30 | à ajouter |
+| Thermochimie | 1 — Rappels de première année | 8 min 18 | <https://youtu.be/YtisR2_KXQ0> |
+| Thermochimie | 2 — Enthalpie libre et potentiel chimique | 7 min 27 | <https://youtu.be/l9C4IiB3gVA> |
+| Thermochimie | 3 — Grandeurs de réaction et grandeurs standard | 8 min 30 | <https://youtu.be/tbJv-uT1Uyw> |
 
 Suite prévue : chapitre 4, « Effets thermiques des réactions » (chaleur de réaction, température de
 flamme, simulation du réacteur adiabatique : `pdf/ch4.tex`, `pdf/data/adiab.dat`,

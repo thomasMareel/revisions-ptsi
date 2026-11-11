@@ -43,9 +43,10 @@ Repères techniques :
 - `videos.insert` en envoi « resumable », puis `captions.insert` ; portées OAuth `youtube.upload` et
   `youtube.force-ssl` ; identifiants dans `YT_CLIENT_ID`, `YT_CLIENT_SECRET`, `YT_REFRESH_TOKEN` ;
 - la référence officielle de `videos.insert` indiquait le 11/11/2026 que les envois d'un projet non
-  validé ne sont **plus** forcés en privé ; des guides plus anciens disent l'inverse. Le script
-  signale tout écart entre la visibilité demandée et celle appliquée ;
+  validé ne sont **plus** forcés en privé ; des guides plus anciens disent l'inverse. **Constaté le
+  11/11/2026** sur trois envois réels : le non répertorié est respecté. Le script signale quand même
+  tout écart entre la visibilité demandée et celle appliquée ;
 - quota par défaut : une centaine d'envois par jour, très au-dessus du besoin ;
 - les domaines `*.googleapis.com` font partie de la liste « Trusted » des environnements cloud ;
-- le script n'a été essayé que contre un faux serveur reproduisant ces échanges : le premier envoi
-  réel sert de test (étape B8 de `MISE-EN-PLACE.md`).
+- essayé en réel le 11/11/2026 (étape B8 de `MISE-EN-PLACE.md`) : chapitres 1 à 3 de thermochimie
+  envoyés du premier coup, vidéo et sous-titres (piste « Français » acceptée), ≈ 20 Mo chacun.
