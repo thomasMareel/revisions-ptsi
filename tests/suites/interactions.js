@@ -966,17 +966,18 @@ module.exports = {
         const tab = document.querySelector('.tab[data-panel="thc-video"]');
         const img = p && p.querySelector('.vid-lancer img');
         return { actif: !!(p && p.classList.contains('active')), n: p ? p.querySelectorAll('.vid').length : 0,
+          attendu: (window.__VIDEOS && window.__VIDEOS.thermochimie || []).length,
           iframes: document.querySelectorAll('#thc-video iframe').length, onglet: ch && ch.getAttribute('data-onglet'),
           cnt: tab && tab.querySelector('.cnt') ? tab.querySelector('.cnt').textContent : '',
           img: img ? { src: img.getAttribute('src'), w: img.naturalWidth } : null, titre: document.title, hash: location.hash,
           ordre: Array.from(document.querySelectorAll('#chap-thermochimie > nav.tabs > .tab')).map(t => t.dataset.panel.split('-').pop()).join(',') };
       });
       if (!s.actif) pb.push('panneau #thc-video non affiché après navigation');
-      if (s.n !== 3) pb.push(s.n + ' vidéo(s) affichée(s) au lieu de 3');
+      if (s.attendu < 3 || s.n !== s.attendu) pb.push(s.n + ' vidéo(s) affichée(s) pour ' + s.attendu + ' dans la table window.__VIDEOS');
       if (s.iframes) pb.push(s.iframes + ' lecteur(s) créé(s) avant tout clic');
       if (s.ordre !== 'cours,video,meth,flash,exos') pb.push('ordre des onglets : ' + s.ordre + ' (Vidéos attendu entre Cours et Méthodes)');
       if (s.onglet !== 'video') pb.push('data-onglet = ' + s.onglet + ' sur la feuille');
-      if (!/^3/.test(s.cnt)) pb.push('effectif de l\'onglet Vidéos : « ' + s.cnt + ' »');
+      if (parseInt(s.cnt, 10) !== s.attendu) pb.push('effectif de l\'onglet Vidéos : « ' + s.cnt + ' » pour ' + s.attendu + ' vidéos');
       if (!s.img || !/^media\/videos\//.test(s.img.src) || !s.img.w) pb.push('aperçu local non chargé : ' + JSON.stringify(s.img));
       if (!/Vidéos/.test(s.titre) || s.hash !== '#thermochimie/video') pb.push('titre / hash : ' + s.titre + ' · ' + s.hash);
       if (journal.externes.length > ext0) pb.push('requête externe à l\'affichage de l\'onglet : ' + journal.externes.slice(ext0).map(e => e.url).join(' '));
@@ -1011,7 +1012,7 @@ module.exports = {
         return d && d.body ? { liens: (d.body.innerText.match(/youtu\.be\/[\w-]+/g) || []).length, iframes: d.querySelectorAll('iframe').length } : null;
       });
       if (!imp) pb.push('aucun document d\'impression pour l\'onglet Vidéos');
-      else if (imp.liens !== 3 || imp.iframes) pb.push('impression de l\'onglet Vidéos : ' + imp.liens + ' lien(s), ' + imp.iframes + ' lecteur(s)');
+      else if (imp.liens !== s.attendu || imp.iframes) pb.push('impression de l\'onglet Vidéos : ' + imp.liens + ' lien(s), ' + imp.iframes + ' lecteur(s)');
       // Seules les requêtes vers le lecteur, déclenchées par les clics, sont admises
       journal.externes = journal.externes.filter((e, i) => i < ext0 || !LECTEUR.test(e.url));
       await page.unroute(LECTEUR);

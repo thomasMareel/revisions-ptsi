@@ -136,10 +136,10 @@ repliable des parties dessous (un clic lance la vidéo à ce moment). Thermochim
 **Ajouter une vidéo** (chapitre qui a déjà l'onglet, par exemple le chapitre 4 de thermochimie),
 une fois `youtube.py envoi` fait :
 
-1. Image d'aperçu : une image de l'introduction (titre et plan au tableau, juste avant la fin de la
-   scène S0), depuis le dossier du chapitre vidéo :
+1. Image d'aperçu : une image de l'introduction (titre et plan au tableau, juste avant l'effacement
+   final de la scène S0, après toute surbrillance), depuis le dossier du chapitre vidéo :
    ```
-   ffmpeg -ss <fin de la dernière phrase de S0 - 0,3 s> -i out/<fichier>.mp4 -frames:v 1 \
+   ffmpeg -ss <durée de S0 - 0,6 s> -i out/<fichier>.mp4 -frames:v 1 \
      -vf scale=1280:720 -c:v libwebp -quality 80 ../../../media/videos/thermochimie-4.webp
    ```
 2. Une entrée dans la table `window.__VIDEOS` d'`index.html` (`grep -n 'window.__VIDEOS = {'`) :
@@ -167,10 +167,12 @@ Toutes en **non répertorié**, sous-titres français compris, envoyées le 2026
 | Thermochimie | 1 — Rappels de première année | 8 min 18 | <https://youtu.be/YtisR2_KXQ0> |
 | Thermochimie | 2 — Enthalpie libre et potentiel chimique | 7 min 27 | <https://youtu.be/l9C4IiB3gVA> |
 | Thermochimie | 3 — Grandeurs de réaction et grandeurs standard | 8 min 30 | <https://youtu.be/tbJv-uT1Uyw> |
+| Thermochimie | 4 — Premier principe : effets thermiques des réactions | 7 min 21 | <https://youtu.be/1g0EXKxPFiU> |
 
-Suite prévue : chapitre 4, « Effets thermiques des réactions » (chaleur de réaction, température de
-flamme, simulation du réacteur adiabatique : `pdf/ch4.tex`, `pdf/data/adiab.dat`,
-`pdf/code/reacteur_adiabatique.py`), puis les chapitres 5 à 8 du PDF.
+Suite prévue : chapitre 5, « Deuxième principe : évolution et équilibre » (`pdf/ch5.tex`, données
+`pdf/data/gxi.dat` et `caco3.dat`), puis les chapitres 6 à 8 du PDF (le chapitre 9 du PDF est le
+recueil d'exercices, le 10 le formulaire : pas de vidéo prévue). Le chapitre 4 commence par le rappel
+d'une vingtaine de secondes sur les νᵢ algébriques demandé par Thomas.
 
 Remarque de Thomas sur le chapitre 3 : l'explication des νᵢ (coefficients stœchiométriques
 **algébriques** : négatifs pour les réactifs, positifs pour les produits) n'était pas assez claire.
