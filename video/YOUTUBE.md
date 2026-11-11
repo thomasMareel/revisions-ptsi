@@ -24,32 +24,28 @@ Contenu modifié ou synthétique : YouTube demande une déclaration pour un cont
 (faire dire à une vraie personne ce qu'elle n'a pas dit, scène réaliste inventée). Un tableau animé
 avec une narratrice de synthèse n'entre pas dans ces cas ; répondre « Oui » ne pénalise pas la vidéo.
 
-## B. Automatique, par l'API YouTube (à mettre en place une fois, pas encore essayé)
+## B. Automatique, depuis une session Claude Code
 
-Permet à une session Claude Code d'envoyer elle-même la vidéo, les sous-titres et la description.
-À faire par Thomas, de préférence sur un ordinateur :
+Une fois l'autorisation en place (**`MISE-EN-PLACE.md`, partie B**, à faire une seule fois), depuis
+le dossier du chapitre, après `assemble.py` :
 
-1. <https://console.cloud.google.com> → créer un projet → « API et services » → activer
-   **YouTube Data API v3**.
-2. Écran de consentement OAuth : type « Externe » ; ajouter son propre compte comme utilisateur ;
-   puis **publier l'application** (« En production »). En mode « Test », l'autorisation expire au
-   bout de 7 jours et tout serait à refaire chaque semaine.
-3. Identifiants → créer un **ID client OAuth** de type « Application de bureau » : noter
-   l'identifiant client et le code secret.
-4. Lancer une session Claude Code et lui demander « mets en place l'envoi YouTube » : elle fournit
-   une adresse à ouvrir, on accepte (écran « application non validée » → Paramètres avancés →
-   Continuer), puis on lui recopie l'adresse de la page d'erreur `localhost` obtenue. Elle en tire
-   un **jeton d'actualisation**.
-5. Dans l'environnement cloud, ajouter trois variables : `YT_CLIENT_ID`, `YT_CLIENT_SECRET`,
-   `YT_REFRESH_TOKEN`. Jamais dans le dépôt.
+```
+python3 ../../commun/youtube.py envoi
+```
 
-Repères pour la session qui écrira le script d'envoi (`video/commun/youtube.py`, à créer) :
+Le script envoie le MP4 en **non répertorié** avec le titre et la description de `out/youtube.txt`
+(catégorie Éducation, langue française), ajoute les sous-titres du SRT, relit la visibilité réellement
+appliquée par YouTube et écrit `youtube.json` (identifiant, lien, adresse d'intégration). Il refuse
+de renvoyer un chapitre déjà en ligne, sauf avec `--encore`.
 
-- `videos.insert` (`part=snippet,status`, envoi « resumable »), `status.privacyStatus = "unlisted"`,
-  `status.selfDeclaredMadeForKids = false`, `status.containsSyntheticMedia` selon la règle ci-dessus ;
-  portées OAuth `youtube.upload` et `youtube.force-ssl` (sous-titres : `captions.insert`) ;
+Repères techniques :
+
+- `videos.insert` en envoi « resumable », puis `captions.insert` ; portées OAuth `youtube.upload` et
+  `youtube.force-ssl` ; identifiants dans `YT_CLIENT_ID`, `YT_CLIENT_SECRET`, `YT_REFRESH_TOKEN` ;
 - la référence officielle de `videos.insert` indiquait le 11/11/2026 que les envois d'un projet non
-  validé ne sont **plus** forcés en privé ; plusieurs guides plus anciens disent l'inverse. Vérifier
-  sur la première vidéo envoyée que « non répertoriée » est bien respecté ;
+  validé ne sont **plus** forcés en privé ; des guides plus anciens disent l'inverse. Le script
+  signale tout écart entre la visibilité demandée et celle appliquée ;
+- quota par défaut : une centaine d'envois par jour, très au-dessus du besoin ;
 - les domaines `*.googleapis.com` font partie de la liste « Trusted » des environnements cloud ;
-- la première vidéo envoyée sert de test : la contrôler dans Studio avant d'automatiser la suite.
+- le script n'a été essayé que contre un faux serveur reproduisant ces échanges : le premier envoi
+  réel sert de test (étape B8 de `MISE-EN-PLACE.md`).

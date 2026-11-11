@@ -4,16 +4,14 @@
 À lancer DEPUIS le dossier du chapitre (qui contient segments.py) :
     python3 ../../commun/audio.py        (ajouter -v pour voir toutes les phrases)
 
-Clé Mistral : jamais dans le dépôt. Soit l'environnement cloud porte un « secret réseau » pour
-api.mistral.ai (la clé est ajoutée aux requêtes hors de la machine, MISTRAL_API_KEY reste vide),
-soit la variable d'environnement MISTRAL_API_KEY est définie."""
+Clé Mistral : jamais dans le dépôt (voir mistral_client.py et video/MISE-EN-PLACE.md)."""
 import os, sys, json, base64, subprocess, re, unicodedata, hashlib, time
 import numpy as np, soundfile as sf
 from concurrent.futures import ThreadPoolExecutor
-from mistralai.client import Mistral
+from mistral_client import client
 sys.path.insert(0, os.getcwd())
 from segments import SCENES
-c = Mistral(api_key=os.environ.get("MISTRAL_API_KEY") or "cle-ajoutee-par-le-secret-reseau")
+c = client()
 INFO = json.load(open("chapitre.json", encoding="utf-8")) if os.path.exists("chapitre.json") else {}
 VOICE = INFO.get("voix", "voice_3141")   # voice_3141 = Camille, voix prédéfinie de Mistral
 MODEL, TEMPO, SR, FPS, LEAD = "voxtral-mini-tts-3", 0.95, 24000, 30, 0.8

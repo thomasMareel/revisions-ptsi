@@ -17,8 +17,9 @@ Depuis novembre 2026, le dépôt porte aussi la fabrication des **cours vidéo �
 
 - Indépendant du site : rien dans `video/` n'est chargé par `index.html` ni mis en cache par `sw.js` (pas de bump de `CACHE_VERSION` pour un changement limité à `video/`).
 - Avant tout travail vidéo : `bash video/installer.sh` (outils + contrôle de l'accès à la voix).
+- **Mise en place à faire une fois avec l'utilisateur** (clé Mistral en secret réseau, autorisation YouTube pour l'envoi automatique) : suivre `video/MISE-EN-PLACE.md` **pas à pas, une étape à la fois** ; ne jamais lui faire coller un secret dans la conversation. Envoi d'un chapitre : `python3 ../../commun/youtube.py envoi` depuis son dossier.
 - **Aucun fichier produit n'est versionné** (audio, images, MP4, PDF : `.gitignore`) ; les vidéos vont sur **YouTube en non répertorié**, le site n'en garde que les liens ; les MP4 et SRT finis sont envoyés à l'utilisateur dans la conversation.
-- **Clé Mistral : jamais dans le dépôt (public)**, ni dans un fichier, un commit ou une sortie affichée ; elle vient de l'environnement cloud (secret réseau `api.mistral.ai`, ou variable `MISTRAL_API_KEY`).
+- **Clé Mistral : jamais dans le dépôt (public)**, ni dans un fichier, un commit ou une sortie affichée ; elle vient de l'environnement cloud (secret réseau `api.mistral.ai`, ou variable `MISTRAL_API_KEY`). Même règle pour les identifiants YouTube (`YT_CLIENT_ID`, `YT_CLIENT_SECRET`, `YT_REFRESH_TOKEN`).
 - Intégration des vidéos au site : **pas encore faite** ; contraintes et piste dans `video/README.md` (lecteur YouTube inséré au clic seulement : le site reste sans requête externe au chargement).
 
 ## Architecture

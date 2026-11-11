@@ -26,14 +26,18 @@ sont **jamais** versionnés (voir `.gitignore`) : le dépôt ne garde que les so
 ```
 video/
   installer.sh          installation des outils (à relancer sans risque)
+  MISE-EN-PLACE.md      à faire une fois : clé Mistral et autorisation YouTube (guide pas à pas)
   YOUTUBE.md            mise en ligne des vidéos
   commun/               scripts partagés par tous les cours
+    mistral_client.py   accès à la voix (secret réseau ou variable MISTRAL_API_KEY)
+    test_voix.py        essai réel de la voix, une phrase
     audio.py            voix : synthèse, contrôle, régénération, timeline.json
     base.py             classes Manim : Cours, Ecrire, T(), M(), couleurs
     ancres.py           contrôle des points de synchronisation avant le rendu
     rendu.sh            rendu des scènes (2 en parallèle)
     planche.py          planche d'images de contrôle
     assemble.py         vidéo finale, sous-titres, fiche YouTube
+    youtube.py          envoi sur YouTube (non répertorié), sous-titres compris
   thermochimie/
     pdf/                sources LaTeX du cours PDF (51 pages) : contenu de référence des vidéos
     ch1/ ch2/ ch3/      un dossier par chapitre vidéo
@@ -41,6 +45,7 @@ video/
       segments.py       le script : scènes et phrases (texte écrit, texte prononcé, pause)
       scenes.py         une classe Manim par scène, calée sur la voix
       timeline.json     début et fin de chaque phrase dans la vidéo livrée
+      youtube.json      identifiant et lien de la vidéo en ligne (écrit par youtube.py)
 ```
 
 Un nouveau cours = un nouveau dossier à côté de `thermochimie/` ; un nouveau chapitre = une copie
@@ -56,13 +61,11 @@ Le script installe ce qui manque (LaTeX, ffmpeg, Manim, client Mistral) et termi
 dont l'accès à la voix. Il n'a été essayé que sur une machine où LaTeX et ffmpeg étaient déjà
 présents : sur une machine neuve, lire sa sortie et corriger au besoin.
 
-**Clé Mistral : jamais dans le dépôt** (il est public), ni dans un fichier, ni dans un message de
-commit. Elle vit dans l'environnement cloud de Claude Code, de préférence comme **secret réseau**
-(hôte `api.mistral.ai`, en-tête `Authorization`, préfixe `Bearer`) : la clé est alors ajoutée aux
-requêtes en dehors de la machine et la session ne la voit pas. `audio.py` fonctionne aussi avec une
-variable d'environnement `MISTRAL_API_KEY`. Le secret réseau n'a pas encore été essayé avec ce
-projet : si `installer.sh` affiche « clé acceptée » mais que `audio.py` reçoit une erreur 401, c'est
-que l'en-tête factice envoyé par le client Mistral gêne ; passer alors par `MISTRAL_API_KEY`.
+**Clé Mistral et autorisation YouTube : jamais dans le dépôt** (il est public), ni dans un fichier,
+ni dans un message de commit, ni dans une sortie affichée. Elles vivent dans l'environnement cloud
+de Claude Code. Leur mise en place, à faire une fois, est décrite pas à pas dans
+**`MISE-EN-PLACE.md`** ; `python3 video/commun/test_voix.py` et `python3 video/commun/youtube.py test`
+disent si tout est branché.
 
 ⚠️ Après l'installation de LaTeX, les polices Latin Modern peuvent fausser les suites `mobile` et
 `visuel` des tests du site : voir « Conteneur Claude Code » dans `CLAUDE.md` (`FONTCONFIG_FILE`).
@@ -89,7 +92,9 @@ Toutes les commandes se lancent **depuis le dossier du chapitre** (ex. `video/th
    chevauchement, rien hors cadre, rien d'illisible. Corriger et ne re-rendre que les scènes touchées.
 7. **Assemblage** : `python3 ../../commun/assemble.py` → `out/<fichier>.mp4` (sous-titres
    désactivables, chapitres), `out/<fichier>.srt`, `out/youtube.txt` (titre, description, chapitres).
-8. **Mise en ligne** : voir `YOUTUBE.md`, puis ajouter le lien au site.
+8. **Mise en ligne** : `python3 ../../commun/youtube.py envoi` (vidéo non répertoriée, description,
+   sous-titres), puis versionner `youtube.json`, reporter le lien dans le tableau ci-dessous et
+   l'ajouter au site. Tant que YouTube n'est pas branché : à la main, voir `YOUTUBE.md`.
 
 Ordre de grandeur pour un chapitre de 8 minutes : 70 phrases, environ 0,15 $ de voix
 (0,016 $ pour 1 000 caractères, plus la transcription de contrôle et les régénérations),
