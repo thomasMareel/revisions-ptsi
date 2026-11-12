@@ -172,9 +172,12 @@ Vérifier d'abord qu'un chapitre du site correspond au cours (sinon le créer : 
 
 ## Vidéos livrées
 
-Toutes en **non répertorié**, sous-titres français compris, envoyées le 2026-11-11 par `youtube.py`
-(identifiants dans `<cours>/chN/youtube.json`). Sur le site : onglet « Vidéos » des chapitres
-`thermochimie` et `matrices` (1ʳᵉ année) (table `window.__VIDEOS`).
+Toutes en **non répertorié**, sous-titres français compris, envoyées par `youtube.py` le 2026-11-11
+(thermochimie, matrices 1) et le 2026-11-12 (matrices 2 à 4, automatique 1 à 7) ; identifiants dans
+`<cours>/chN/youtube.json`. Sur le site : onglet « Vidéos » des chapitres `thermochimie`, `matrices`,
+`matrices2a` et des sept chapitres d'automatique de 1ʳᵉ année (table `window.__VIDEOS`). YouTube
+n'accepte qu'une dizaine d'envois par jour et par chaîne (`uploadLimitExceeded`) : en prévoir plusieurs
+jours pour un gros lot.
 
 | Cours | Chapitre | Durée | Lien YouTube |
 |---|---|---|---|
@@ -187,6 +190,16 @@ Toutes en **non répertorié**, sous-titres français compris, envoyées le 2026
 | Thermochimie | 7 — Thermodynamique de l'oxydoréduction | 9 min 16 | <https://youtu.be/cAqOR3e0tY4> |
 | Thermochimie | 8 — Piles électrochimiques | 9 min 18 | <https://youtu.be/AYElYXFUTeQ> |
 | Matrices (PTSI) | 1 — Calcul matriciel : les méthodes de première année | 8 min 11 | <https://youtu.be/glra17NIKWo> |
+| Matrices (PT) | 2 — Changement de base, rang et matrices équivalentes | 9 min 31 | <https://youtu.be/dVcvv4LDbG4> |
+| Matrices (PT) | 3 — Trace, matrices semblables et calcul par blocs | 8 min 57 | <https://youtu.be/Fr12BKPraHo> |
+| Matrices (PT) | 4 — Polynômes de matrices, nilpotentes et puissances | 9 min 30 | <https://youtu.be/1hIEsGq6eTg> |
+| Automatique (PTSI) | 1 — Modélisation et transformée de Laplace | 9 min 45 | <https://youtu.be/7IaEIZSCAxE> |
+| Automatique (PTSI) | 2 — Schéma-blocs et systèmes asservis | 8 min 42 | <https://youtu.be/ConrBhCZ7xE> |
+| Automatique (PTSI) | 3 — Systèmes du premier ordre | 7 min 35 | <https://youtu.be/Qo0SvSv6bp0> |
+| Automatique (PTSI) | 4 — Systèmes du deuxième ordre | 7 min 45 | <https://youtu.be/UErWl-Ze6Dk> |
+| Automatique (PTSI) | 5 — Réponse fréquentielle et diagrammes de Bode | 8 min 30 | <https://youtu.be/jwZeQ_RFNAc> |
+| Automatique (PTSI) | 6 — Stabilité des systèmes asservis | 8 min 14 | <https://youtu.be/GptliWlL0m8> |
+| Automatique (PTSI) | 7 — Performances : précision et rapidité | 7 min 53 | <https://youtu.be/gQ35DTd6J4A> |
 
 Cours de thermochimie complet : chapitres 1 à 8 du PDF (le chapitre 9 du PDF est le recueil
 d'exercices, le 10 le formulaire : pas de vidéo). Les chapitres 1 à 3 gardent l'ancien réglage de
@@ -207,8 +220,9 @@ signal (énergie de la fin du `.wav`) avant de régénérer.
 **Automatique (SLCI)** (`slci/`, demande de Thomas du 2026-11-12, en même temps que la réécriture des
 cours d'automatique du site) : une vidéo par chapitre du groupe Automatique, dans l'ordre du site —
 1 `slci`, 2 `schblocs`, 3 `sys1`, 4 `sys2`, 5 `bode`, 6 `stabilite`, 7 `precision` (1ʳᵉ année),
-8 `correcteurs` (2ᵉ année) ; pas de vidéo pour `sysnum`. Fabriquées le 2026-11-12, **en attente
-d'envoi** (quota YouTube atteint ce jour-là). Une fois les `youtube.json` écrits,
+8 `correcteurs` (2ᵉ année) ; pas de vidéo pour `sysnum`. Fabriquées et envoyées le 2026-11-12, sauf la
+vidéo 8 (« Correction des SLCI : régler les correcteurs », 8 min 38), **en attente d'envoi** : limite
+quotidienne de YouTube atteinte ce jour-là, nouvel essai programmé le lendemain. Une fois les `youtube.json` écrits,
 `python3 video/slci/integrer_videos.py [n…]` (depuis la racine du dépôt) donne l'onglet « Vidéos » aux
 chapitres concernés et remplit la table `window.__VIDEOS` (aperçus `media/videos/slci-N.webp` déjà
 faits) ; puis publication comme pour toute modification du site. Au tableau : diagrammes de Bode et
