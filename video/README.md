@@ -204,6 +204,21 @@ une chaîne `MathTex` à l'intérieur d'un environnement (`pmatrix`…) : chaque
 La transcription de contrôle perd souvent un « un » en fin de phrase (« … égale un. ») : vérifier sur le
 signal (énergie de la fin du `.wav`) avant de régénérer.
 
+**Automatique (SLCI)** (`slci/`, demande de Thomas du 2026-11-12, en même temps que la réécriture des
+cours d'automatique du site) : une vidéo par chapitre du groupe Automatique, dans l'ordre du site —
+1 `slci`, 2 `schblocs`, 3 `sys1`, 4 `sys2`, 5 `bode`, 6 `stabilite`, 7 `precision` (1ʳᵉ année),
+8 `correcteurs` (2ᵉ année) ; pas de vidéo pour `sysnum`. Fabriquées le 2026-11-12, **en attente
+d'envoi** (quota YouTube atteint ce jour-là). Une fois les `youtube.json` écrits,
+`python3 video/slci/integrer_videos.py [n…]` (depuis la racine du dépôt) donne l'onglet « Vidéos » aux
+chapitres concernés et remplit la table `window.__VIDEOS` (aperçus `media/videos/slci-N.webp` déjà
+faits) ; puis publication comme pour toute modification du site. Au tableau : diagrammes de Bode et
+réponses tracés dans un cadre (`cadre()` des `scenes.py` : axes invisibles + rectangle) — un `Axes` de
+Manim à abscisses négatives (log ω) met l'axe vertical en plein milieu du tracé. À l'oral : écrire
+« K fois p », « K fois e » (« K p » et une fin de phrase en « K e » sont mal lus), éviter « Étape un »
+et « Tau : » en tête de phrase, et commencer un bilan par « Ce qu'il faut retenir. » (« À retenir. »
+était transcrit avec un préfixe parasite) ; « ksi » est signalé par la transcription de contrôle :
+normal, c'est ξ.
+
 Remarque de Thomas sur le chapitre 3 : l'explication des νᵢ (coefficients stœchiométriques
 **algébriques** : négatifs pour les réactifs, positifs pour les produits) n'était pas assez claire.
 Prévoir un rappel explicite d'une quinzaine de secondes dans la suite.
