@@ -173,9 +173,9 @@ Vérifier d'abord qu'un chapitre du site correspond au cours (sinon le créer : 
 ## Vidéos livrées
 
 Toutes en **non répertorié**, sous-titres français compris, envoyées par `youtube.py` le 2026-11-11
-(thermochimie, matrices 1) et le 2026-11-12 (matrices 2 à 4, automatique 1 à 7) ; identifiants dans
+(thermochimie, matrices 1), le 2026-11-12 (matrices 2 à 4, automatique 1 à 7) et le 2026-11-13 (automatique 8) ; identifiants dans
 `<cours>/chN/youtube.json`. Sur le site : onglet « Vidéos » des chapitres `thermochimie`, `matrices`,
-`matrices2a` et des sept chapitres d'automatique de 1ʳᵉ année (table `window.__VIDEOS`). YouTube
+`matrices2a`, des sept chapitres d'automatique de 1ʳᵉ année et de `correcteurs` (table `window.__VIDEOS`). YouTube
 n'accepte qu'une dizaine d'envois par jour et par chaîne (`uploadLimitExceeded`) : en prévoir plusieurs
 jours pour un gros lot.
 
@@ -200,6 +200,7 @@ jours pour un gros lot.
 | Automatique (PTSI) | 5 — Réponse fréquentielle et diagrammes de Bode | 8 min 30 | <https://youtu.be/jwZeQ_RFNAc> |
 | Automatique (PTSI) | 6 — Stabilité des systèmes asservis | 8 min 14 | <https://youtu.be/GptliWlL0m8> |
 | Automatique (PTSI) | 7 — Performances : précision et rapidité | 7 min 53 | <https://youtu.be/gQ35DTd6J4A> |
+| Automatique (PT) | 8 — Correction des SLCI : régler les correcteurs | 8 min 38 | <https://youtu.be/0EIiA9qVPc0> |
 
 Cours de thermochimie complet : chapitres 1 à 8 du PDF (le chapitre 9 du PDF est le recueil
 d'exercices, le 10 le formulaire : pas de vidéo). Les chapitres 1 à 3 gardent l'ancien réglage de
@@ -221,8 +222,8 @@ signal (énergie de la fin du `.wav`) avant de régénérer.
 cours d'automatique du site) : une vidéo par chapitre du groupe Automatique, dans l'ordre du site —
 1 `slci`, 2 `schblocs`, 3 `sys1`, 4 `sys2`, 5 `bode`, 6 `stabilite`, 7 `precision` (1ʳᵉ année),
 8 `correcteurs` (2ᵉ année) ; pas de vidéo pour `sysnum`. Fabriquées et envoyées le 2026-11-12, sauf la
-vidéo 8 (« Correction des SLCI : régler les correcteurs », 8 min 38), **en attente d'envoi** : limite
-quotidienne de YouTube atteinte ce jour-là, nouvel essai programmé le lendemain. Une fois les `youtube.json` écrits,
+vidéo 8 (« Correction des SLCI : régler les correcteurs », 8 min 38), envoyée le 2026-11-13 (limite
+quotidienne de YouTube atteinte la veille). Une fois les `youtube.json` écrits,
 `python3 video/slci/integrer_videos.py [n…]` (depuis la racine du dépôt) donne l'onglet « Vidéos » aux
 chapitres concernés et remplit la table `window.__VIDEOS` (aperçus `media/videos/slci-N.webp` déjà
 faits) ; puis publication comme pour toute modification du site. Au tableau : diagrammes de Bode et
