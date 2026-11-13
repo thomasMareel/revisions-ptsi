@@ -38,35 +38,35 @@ programme est bien retranscrit »).
 
 | Partie du programme PT | Chapitre du site (id) | Avant | Après |
 |---|---|---|---|
-| Algèbre linéaire A a) Produit d'espaces vectoriels, somme et somme directe de sous-espaces, base adaptée | `ev2a` | 🔶 (produit absent) | ⏳ |
-| Algèbre linéaire A d) Hyperplans, équations, intersection de p hyperplans | `ev2a` | 🔶 | ⏳ |
-| Algèbre linéaire A b) Sous-espaces stables, endomorphisme induit, matrices par blocs | `applin2a` (+ `matrices2a` §5) | 🔶 ⚠️ (dual, polynômes d'endomorphisme) | ⏳ |
+| Algèbre linéaire A a) Produit d'espaces vectoriels, somme et somme directe de sous-espaces, base adaptée | `ev2a` | 🔶 (produit absent) | ✅ réécrit le 2026-11-13 |
+| Algèbre linéaire A d) Hyperplans, équations, intersection de p hyperplans | `ev2a` | 🔶 | ✅ réécrit le 2026-11-13 |
+| Algèbre linéaire A b) Sous-espaces stables, endomorphisme induit, matrices par blocs | `applin2a` (+ `matrices2a` §5) | 🔶 ⚠️ (dual, polynômes d'endomorphisme) | ✅ réécrit le 2026-11-13 |
 | Algèbre linéaire A c) Trace d'une matrice, d'un endomorphisme | `matrices2a` §3 (+ `applin2a`) | ✅ | ✅ encadré « Au programme » ajouté le 2026-11-13 |
-| Projecteurs et symétries (1ʳᵉ année) et leur réduction (C c) | `projsym` | 🔶 | ⏳ |
-| Algèbre linéaire B Déterminants (matrice, propriétés, famille de vecteurs, endomorphisme) | `det2a` | 🔶 ⚠️ (comatrice, Cramer, formes multilinéaires) | ⏳ |
-| Algèbre linéaire C a) b) Éléments propres, polynôme caractéristique, multiplicité | `elempropres` | 🔶 | ⏳ |
-| Algèbre linéaire C c) d) Diagonalisation, trigonalisation | `reduction` | 🔶 | ⏳ |
-| Préhilbertiens A Produit scalaire, Cauchy-Schwarz, orthogonalité, Gram-Schmidt, projection orthogonale, distance | `prehilb` | 🔶 | ⏳ |
-| Préhilbertiens B a)–d) Isométries, matrices orthogonales, dimensions 2 et 3 | `isometries` | 🔶 | ⏳ |
-| Préhilbertiens B e) Matrices symétriques réelles, théorème spectral | `isometries` + `conred` | ✅ (`conred`) | ⏳ |
-| Fonctions vectorielles a) Limite, dérivation, Leibniz, Taylor-Young, DL | `fxvect` | 🔶 | ⏳ |
-| Fonctions vectorielles b) c) Courbes paramétrées, tangente, étude locale, branches infinies, support | `courbes` | 🔶 ⚠️ (polaires) | ⏳ |
-| Fonctions vectorielles d) e) Longueur, abscisse curviligne, Frenet, courbure, développée, enveloppe | `geoplane` | 🔶 ⚠️ (courbure par le déterminant) ; ❌ enveloppe, développée | ⏳ |
-| Séries numériques a) b) Comparaison série-intégrale, séries alternées, convergence absolue, d'Alembert, produit de Cauchy | `series2a` (+ `suites2a`) | 🔶 ⚠️ (familles sommables) | ⏳ |
-| Séries entières a)–d) | `serient` | 🔶 | ⏳ |
+| Projecteurs et symétries (1ʳᵉ année) et leur réduction (C c) | `projsym` | 🔶 | ✅ réécrit le 2026-11-13 |
+| Algèbre linéaire B Déterminants (matrice, propriétés, famille de vecteurs, endomorphisme) | `det2a` | 🔶 ⚠️ (comatrice, Cramer, formes multilinéaires) | ✅ réécrit le 2026-11-13 |
+| Algèbre linéaire C a) b) Éléments propres, polynôme caractéristique, multiplicité | `elempropres` | 🔶 | ✅ réécrit le 2026-11-13 |
+| Algèbre linéaire C c) d) Diagonalisation, trigonalisation | `reduction` | 🔶 | ✅ réécrit le 2026-11-13 |
+| Préhilbertiens A Produit scalaire, Cauchy-Schwarz, orthogonalité, Gram-Schmidt, projection orthogonale, distance | `prehilb` | 🔶 | ✅ réécrit le 2026-11-13 |
+| Préhilbertiens B a)–d) Isométries, matrices orthogonales, dimensions 2 et 3 | `isometries` | 🔶 | ✅ réécrit le 2026-11-13 |
+| Préhilbertiens B e) Matrices symétriques réelles, théorème spectral | `isometries` + `conred` | ✅ (`conred`) | ✅ réécrit le 2026-11-13 |
+| Fonctions vectorielles a) Limite, dérivation, Leibniz, Taylor-Young, DL | `fxvect` | 🔶 | ✅ réécrit le 2026-11-13 |
+| Fonctions vectorielles b) c) Courbes paramétrées, tangente, étude locale, branches infinies, support | `courbes` | 🔶 ⚠️ (polaires) | ✅ réécrit le 2026-11-13 |
+| Fonctions vectorielles d) e) Longueur, abscisse curviligne, Frenet, courbure, développée, enveloppe | `geoplane` | 🔶 ⚠️ (courbure par le déterminant) ; ❌ enveloppe, développée | ✅ réécrit le 2026-11-13 |
+| Séries numériques a) b) Comparaison série-intégrale, séries alternées, convergence absolue, d'Alembert, produit de Cauchy | `series2a` (+ `suites2a`) | 🔶 ⚠️ (familles sommables) | ✅ réécrit le 2026-11-13 |
+| Séries entières a)–d) | `serient` | 🔶 | ✅ réécrit le 2026-11-13 |
 | Intégration a)–c) Intégrales généralisées, intégrabilité, fonctions de référence | `intgene` | 🔶 | ⏳ |
 | Intégration d) Intégration terme à terme | `intgene` | ❌ | ⏳ |
 | Intégration e) Intégrales à paramètre (continuité, dérivation) | `intparam` | 🔶 | ⏳ |
-| Outils de 1ʳᵉ année réinvestis (relations de comparaison, développements asymptotiques, suites récurrentes) | `suites2a` | 🔶 ⚠️ (Cesàro) | ⏳ |
+| Outils de 1ʳᵉ année réinvestis (relations de comparaison, développements asymptotiques, suites récurrentes) | `suites2a` | 🔶 ⚠️ (Cesàro) | ✅ réécrit le 2026-11-13 |
 | Outils de 1ʳᵉ année réinvestis (sommes de Riemann, Taylor avec reste intégral, inégalités intégrales) | `integ2a` | 🔶 | ⏳ |
-| Probabilités A a) b) Ensembles dénombrables, univers, tribu, événements | `tribus` | 🔶 | ⏳ |
-| Probabilités A c) d) f) Probabilité, continuité monotone, conditionnement, Bayes, indépendance | `espproba` | 🔶 (continuité monotone, quasi-complet absents) | ⏳ |
-| Probabilités A e) g) Lois, géométrique, Poisson, couples, indépendance, coalitions | `vadisc1` | 🔶 | ⏳ |
-| Probabilités B Espérance, variance, covariance, fonctions génératrices, Markov, Bienaymé-Tchebychev, loi faible | `vadisc2` | 🔶 | ⏳ |
-| Équations différentielles A Ordre 2 à coefficients continus, Cauchy linéaire, DSE, solution connue | `edo2a` | 🔶 ⚠️ (systèmes différentiels) | ⏳ |
-| Fonctions de deux ou trois variables a)–g) | `fpv` | 🔶 | ⏳ |
-| Courbes et surfaces A a) Courbes du plan définies par une équation cartésienne | `coniques` | ❌ | ⏳ |
-| Courbes et surfaces A b) Coniques (foyer, directrice, excentricité, équations réduites, paramétrages) | `coniques` | 🔶 ⚠️ (équation polaire) | ⏳ |
+| Probabilités A a) b) Ensembles dénombrables, univers, tribu, événements | `tribus` | 🔶 | ✅ réécrit le 2026-11-13 |
+| Probabilités A c) d) f) Probabilité, continuité monotone, conditionnement, Bayes, indépendance | `espproba` | 🔶 (continuité monotone, quasi-complet absents) | ✅ réécrit le 2026-11-13 |
+| Probabilités A e) g) Lois, géométrique, Poisson, couples, indépendance, coalitions | `vadisc1` | 🔶 | ✅ réécrit le 2026-11-13 |
+| Probabilités B Espérance, variance, covariance, fonctions génératrices, Markov, Bienaymé-Tchebychev, loi faible | `vadisc2` | 🔶 | ✅ réécrit le 2026-11-13 |
+| Équations différentielles A Ordre 2 à coefficients continus, Cauchy linéaire, DSE, solution connue | `edo2a` | 🔶 ⚠️ (systèmes différentiels) | ✅ réécrit le 2026-11-13 |
+| Fonctions de deux ou trois variables a)–g) | `fpv` | 🔶 | ✅ réécrit le 2026-11-13 |
+| Courbes et surfaces A a) Courbes du plan définies par une équation cartésienne | `coniques` | ❌ | ✅ réécrit le 2026-11-13 |
+| Courbes et surfaces A b) Coniques (foyer, directrice, excentricité, équations réduites, paramétrages) | `coniques` | 🔶 ⚠️ (équation polaire) | ✅ réécrit le 2026-11-13 |
 | Courbes et surfaces A b) Réduction d'une équation du second degré | `conred` | ✅ | ✅ encadré « Au programme » ajouté le 2026-11-13 |
 | Courbes et surfaces B Surfaces paramétrées et cartésiennes, plan tangent, réglées, révolution, courbes de l'espace | `surfaces` | ✅ (sections planes, matrices de rotation absentes) | ✅ complété le 2026-11-13 (§9 sections planes et lignes de niveau, matrices de rotation) |
-| Géométrie de l'espace de 1ʳᵉ année réinvestie (produits vectoriel et mixte, droites, plans, distances) | `geo3d` | 🔶 | ⏳ |
+| Géométrie de l'espace de 1ʳᵉ année réinvestie (produits vectoriel et mixte, droites, plans, distances) | `geo3d` | 🔶 | ✅ réécrit le 2026-11-13 |
