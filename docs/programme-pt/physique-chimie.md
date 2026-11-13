@@ -34,29 +34,29 @@ programme est bien retranscrit »).
 
 | Partie du programme PT | Chapitre du site (id) | Avant | Après |
 |---|---|---|---|
-| 1.1 Statique des fluides (forces de pression, RFSF, atmosphère isotherme, résultante, Archimède) | **nouveau** `fluidstat` | ❌ (seulement `fluides`, 1ʳᵉ année, court) || ✅ réécrit ou créé le 2026-11-13 |
-| 1.2 Principes sous forme différentielle, G potentiel thermodynamique, identités thermodynamiques, potentiel chimique | **nouveau** `thermodiff` (+ `thermochimie` §2 côté chimie) | 🔶 côté chimie seulement || ✅ réécrit ou créé le 2026-11-13 |
-| 1.3 Diagrammes d'état des fluides réels : phases, équilibre par μ, enthalpie/entropie de changement d'état, titre, règle des moments, diagrammes (P,v), (T,s), (h,s), (log P,h), tables | **nouveau** `thermodiff` | ❌ (`changement` 1ʳᵉ année, court ; `thermoouv` §6) || ✅ réécrit ou créé le 2026-11-13 |
-| 1.4 Écoulement stationnaire en conduite : grandeurs eulériennes, lignes et tubes de courant, débits, conservation, laminaire/turbulent, Reynolds | `ecoulement` | 🔶 + hors programme (dérivée particulaire, tourbillon, potentiel) || ✅ réécrit ou créé le 2026-11-13 |
-| 1.5 Énergétique en conduite : viscosité, cisaillement, conditions aux limites, Bernoulli, pertes de charge (abaques), bilans de puissance, pompe, travail indiqué, 1ᵉʳ et 2ᵈ principes en écoulement, plusieurs entrées-sorties | `ecoulreel` (+ `thermoouv`) | 🔶 + hors programme (couche limite, traînée) || ✅ réécrit ou créé le 2026-11-13 |
-| 1.6 Thermodynamique industrielle : compresseur, turbine, rendement isentropique, mélangeur, séparateur, échangeur, détendeur, tuyère, cycles moteurs et récepteurs, améliorations | `thermoouv` | 🔶 || ✅ réécrit ou créé le 2026-11-13 |
-| 1.7 Conduction thermique 1D cartésienne : flux, loi de Fourier, bilan, équation de la diffusion, temps caractéristique, différences finies, résistance thermique, loi de Newton | `diffth` | 🔶 || ✅ réécrit ou créé le 2026-11-13 |
-| 2.1 Stabilité des systèmes linéaires d'ordre 1 et 2 | `ali` | 🔶 (dans la rétroaction) || ✅ réécrit ou créé le 2026-11-13 |
-| 2.2 Rétroaction et ALI : modèle du 1ᵉʳ ordre, saturations, vitesse de balayage, produit gain-bande, montages, impédances, comparateurs simple et à hystérésis | `ali` | 🔶 || ✅ réécrit ou créé le 2026-11-13 |
-| 2.3 Oscillateurs quasi-sinusoïdaux et de relaxation | `oscelec` | 🔶 || ✅ réécrit ou créé le 2026-11-13 |
-| 2.4 Électronique numérique : échantillonnage, Nyquist-Shannon, repliement, analyse spectrale numérique, filtrage numérique | `signum` | 🔶 || ✅ réécrit ou créé le 2026-11-13 |
-| 3.1 Modèle scalaire, chemin optique, Malus, lentilles, trains d'onde et largeur spectrale, détecteurs | `interf` | 🔶 || ✅ réécrit ou créé le 2026-11-13 |
-| 3.2 Superposition : incohérence, Fresnel, contraste, N ondes, réseau | `interf` (+ `dispinterf` §3) | 🔶 || ✅ réécrit ou créé le 2026-11-13 |
-| 3.3 Trous d'Young : ordre, interfrange, non-localisation, brouillage spatial et spectral | `dispinterf` | 🔶 || ✅ réécrit ou créé le 2026-11-13 |
-| 3.4 Michelson : lame d'air, coin d'air, localisation, lumière blanche, doublet, cohérence | `dispinterf` | 🔶 || ✅ réécrit ou créé le 2026-11-13 |
-| 4.1 Électrostatique (Coulomb → condensateur plan, lignes et équipotentielles, énergie potentielle, gravitation) | `estat2a` | 🔶 || ✅ réécrit le 2026-11-13 |
-| 4.2 Magnétostatique : densité de courant, symétries, théorème d'Ampère, fil épais, solénoïde infini, lignes de champ | **nouveau** `magnetostat` | ❌ (`emag` 1ʳᵉ année, court) || ✅ réécrit le 2026-11-13 |
-| 4.3 Maxwell : conservation de la charge, formes locale et intégrale, équations de propagation, ARQS magnétique, statique, Poisson et Laplace | `maxwell` | 🔶 || ✅ réécrit le 2026-11-13 |
-| 4.4 Énergie : force et puissance volumiques, loi d'Ohm locale, effet Joule, Poynting, bilans | `maxwell` | 🔶 || ✅ réécrit le 2026-11-13 |
-| 4.5 Propagation : d'Alembert, OPP, OPPM, spectre, polarisation rectiligne, polariseurs, énergie | `oemvide` | 🔶 || ✅ réécrit le 2026-11-13 |
-| 4.5 Propagation : milieu ohmique et effet de peau, réflexion sur un conducteur parfait, onde stationnaire, cavité, guide entre deux plans | `oemcond` | 🔶 + hors programme (plasma, Drude) || ✅ réécrit le 2026-11-13 |
-| 5.1 et 5.2 Thermochimie | `thermochimie` | ✅ (réécrit le 2026-11-11) || ✅ réécrit ou créé le 2026-11-13 |
-| 6.1 Thermodynamique de l'oxydoréduction | `thermochimie` §9 | ✅ || ✅ réécrit ou créé le 2026-11-13 |
-| 6.2 Courbes courant-potentiel | **nouveau** `electrochimie` | ❌ || ✅ réécrit ou créé le 2026-11-13 |
-| 6.3 Piles, accumulateurs, électrolyse (bilans, rendement faradique) | `thermochimie` §10 + **nouveau** `electrochimie` | 🔶 (piles seulement) || ✅ réécrit ou créé le 2026-11-13 |
-| 6.4 Corrosion, protection, passivation | **nouveau** `electrochimie` | ❌ || ✅ réécrit ou créé le 2026-11-13 |
+| 1.1 Statique des fluides (forces de pression, RFSF, atmosphère isotherme, résultante, Archimède) | **nouveau** `fluidstat` | ❌ (seulement `fluides`, 1ʳᵉ année, court) | ✅ réécrit ou créé le 2026-11-13 |
+| 1.2 Principes sous forme différentielle, G potentiel thermodynamique, identités thermodynamiques, potentiel chimique | **nouveau** `thermodiff` (+ `thermochimie` §2 côté chimie) | 🔶 côté chimie seulement | ✅ réécrit ou créé le 2026-11-13 |
+| 1.3 Diagrammes d'état des fluides réels : phases, équilibre par μ, enthalpie/entropie de changement d'état, titre, règle des moments, diagrammes (P,v), (T,s), (h,s), (log P,h), tables | **nouveau** `thermodiff` | ❌ (`changement` 1ʳᵉ année, court ; `thermoouv` §6) | ✅ réécrit ou créé le 2026-11-13 |
+| 1.4 Écoulement stationnaire en conduite : grandeurs eulériennes, lignes et tubes de courant, débits, conservation, laminaire/turbulent, Reynolds | `ecoulement` | 🔶 + hors programme (dérivée particulaire, tourbillon, potentiel) | ✅ réécrit ou créé le 2026-11-13 |
+| 1.5 Énergétique en conduite : viscosité, cisaillement, conditions aux limites, Bernoulli, pertes de charge (abaques), bilans de puissance, pompe, travail indiqué, 1ᵉʳ et 2ᵈ principes en écoulement, plusieurs entrées-sorties | `ecoulreel` (+ `thermoouv`) | 🔶 + hors programme (couche limite, traînée) | ✅ réécrit ou créé le 2026-11-13 |
+| 1.6 Thermodynamique industrielle : compresseur, turbine, rendement isentropique, mélangeur, séparateur, échangeur, détendeur, tuyère, cycles moteurs et récepteurs, améliorations | `thermoouv` | 🔶 | ✅ réécrit ou créé le 2026-11-13 |
+| 1.7 Conduction thermique 1D cartésienne : flux, loi de Fourier, bilan, équation de la diffusion, temps caractéristique, différences finies, résistance thermique, loi de Newton | `diffth` | 🔶 | ✅ réécrit ou créé le 2026-11-13 |
+| 2.1 Stabilité des systèmes linéaires d'ordre 1 et 2 | `ali` | 🔶 (dans la rétroaction) | ✅ réécrit ou créé le 2026-11-13 |
+| 2.2 Rétroaction et ALI : modèle du 1ᵉʳ ordre, saturations, vitesse de balayage, produit gain-bande, montages, impédances, comparateurs simple et à hystérésis | `ali` | 🔶 | ✅ réécrit ou créé le 2026-11-13 |
+| 2.3 Oscillateurs quasi-sinusoïdaux et de relaxation | `oscelec` | 🔶 | ✅ réécrit ou créé le 2026-11-13 |
+| 2.4 Électronique numérique : échantillonnage, Nyquist-Shannon, repliement, analyse spectrale numérique, filtrage numérique | `signum` | 🔶 | ✅ réécrit ou créé le 2026-11-13 |
+| 3.1 Modèle scalaire, chemin optique, Malus, lentilles, trains d'onde et largeur spectrale, détecteurs | `interf` | 🔶 | ✅ réécrit ou créé le 2026-11-13 |
+| 3.2 Superposition : incohérence, Fresnel, contraste, N ondes, réseau | `interf` (+ `dispinterf` §3) | 🔶 | ✅ réécrit ou créé le 2026-11-13 |
+| 3.3 Trous d'Young : ordre, interfrange, non-localisation, brouillage spatial et spectral | `dispinterf` | 🔶 | ✅ réécrit ou créé le 2026-11-13 |
+| 3.4 Michelson : lame d'air, coin d'air, localisation, lumière blanche, doublet, cohérence | `dispinterf` | 🔶 | ✅ réécrit ou créé le 2026-11-13 |
+| 4.1 Électrostatique (Coulomb → condensateur plan, lignes et équipotentielles, énergie potentielle, gravitation) | `estat2a` | 🔶 | ✅ réécrit le 2026-11-13 |
+| 4.2 Magnétostatique : densité de courant, symétries, théorème d'Ampère, fil épais, solénoïde infini, lignes de champ | **nouveau** `magnetostat` | ❌ (`emag` 1ʳᵉ année, court) | ✅ réécrit le 2026-11-13 |
+| 4.3 Maxwell : conservation de la charge, formes locale et intégrale, équations de propagation, ARQS magnétique, statique, Poisson et Laplace | `maxwell` | 🔶 | ✅ réécrit le 2026-11-13 |
+| 4.4 Énergie : force et puissance volumiques, loi d'Ohm locale, effet Joule, Poynting, bilans | `maxwell` | 🔶 | ✅ réécrit le 2026-11-13 |
+| 4.5 Propagation : d'Alembert, OPP, OPPM, spectre, polarisation rectiligne, polariseurs, énergie | `oemvide` | 🔶 | ✅ réécrit le 2026-11-13 |
+| 4.5 Propagation : milieu ohmique et effet de peau, réflexion sur un conducteur parfait, onde stationnaire, cavité, guide entre deux plans | `oemcond` | 🔶 + hors programme (plasma, Drude) | ✅ réécrit le 2026-11-13 |
+| 5.1 et 5.2 Thermochimie | `thermochimie` | ✅ (réécrit le 2026-11-11) | ✅ réécrit ou créé le 2026-11-13 |
+| 6.1 Thermodynamique de l'oxydoréduction | `thermochimie` §9 | ✅ | ✅ réécrit ou créé le 2026-11-13 |
+| 6.2 Courbes courant-potentiel | **nouveau** `electrochimie` | ❌ | ✅ réécrit ou créé le 2026-11-13 |
+| 6.3 Piles, accumulateurs, électrolyse (bilans, rendement faradique) | `thermochimie` §10 + **nouveau** `electrochimie` | 🔶 (piles seulement) | ✅ réécrit ou créé le 2026-11-13 |
+| 6.4 Corrosion, protection, passivation | **nouveau** `electrochimie` | ❌ | ✅ réécrit ou créé le 2026-11-13 |
