@@ -34,6 +34,9 @@ programme est bien retranscrit »).
   coniques (`courbes`, `coniques`), formule de la courbure par le déterminant (`geoplane`), systèmes
   différentiels linéaires (`edo2a`). Elles passent en fin de chapitre (« Pour aller plus loin »).
 
+- **Bilan (2026-11-13)** : les 25 cours courts sont réécrits (encadré « Au programme », démonstrations, exemples traités, figures calculées, hors-programme en fin de chapitre) ; toutes les lignes du programme sont couvertes, y compris les notions qui manquaient (produit d'espaces, intégration terme à terme, enveloppes et développée, courbes d'équation f(x, y) = 0, continuité monotone et système quasi-complet, lemme des coalitions, fonctions génératrices, bornes atteintes). Deux chapitres renommés : `coniques` → « Courbes du plan et coniques », `geoplane` → « Propriétés métriques des courbes planes ».
+- **Reste à harmoniser** (onglets Méthodes et Exercices, hors du périmètre « Cours ») : `edo2a` porte encore sur les systèmes X′ = AX (hors programme) ; `elempropres` et `reduction` écrivent χ = det(A − λI) (cours : det(XIₙ − A)) ; `tribus` note la tribu 𝒯 (cours : 𝒜) ; `fpv` « Méthode 3 » n'utilise pas la hessienne.
+
 ## Correspondance programme → chapitres
 
 | Partie du programme PT | Chapitre du site (id) | Avant | Après |
@@ -54,11 +57,11 @@ programme est bien retranscrit »).
 | Fonctions vectorielles d) e) Longueur, abscisse curviligne, Frenet, courbure, développée, enveloppe | `geoplane` | 🔶 ⚠️ (courbure par le déterminant) ; ❌ enveloppe, développée | ✅ réécrit le 2026-11-13 |
 | Séries numériques a) b) Comparaison série-intégrale, séries alternées, convergence absolue, d'Alembert, produit de Cauchy | `series2a` (+ `suites2a`) | 🔶 ⚠️ (familles sommables) | ✅ réécrit le 2026-11-13 |
 | Séries entières a)–d) | `serient` | 🔶 | ✅ réécrit le 2026-11-13 |
-| Intégration a)–c) Intégrales généralisées, intégrabilité, fonctions de référence | `intgene` | 🔶 | ⏳ |
-| Intégration d) Intégration terme à terme | `intgene` | ❌ | ⏳ |
-| Intégration e) Intégrales à paramètre (continuité, dérivation) | `intparam` | 🔶 | ⏳ |
+| Intégration a)–c) Intégrales généralisées, intégrabilité, fonctions de référence | `intgene` | 🔶 | ✅ réécrit le 2026-11-13 |
+| Intégration d) Intégration terme à terme | `intgene` | ❌ | ✅ réécrit le 2026-11-13 |
+| Intégration e) Intégrales à paramètre (continuité, dérivation) | `intparam` | 🔶 | ✅ réécrit le 2026-11-13 |
 | Outils de 1ʳᵉ année réinvestis (relations de comparaison, développements asymptotiques, suites récurrentes) | `suites2a` | 🔶 ⚠️ (Cesàro) | ✅ réécrit le 2026-11-13 |
-| Outils de 1ʳᵉ année réinvestis (sommes de Riemann, Taylor avec reste intégral, inégalités intégrales) | `integ2a` | 🔶 | ⏳ |
+| Outils de 1ʳᵉ année réinvestis (sommes de Riemann, Taylor avec reste intégral, inégalités intégrales) | `integ2a` | 🔶 | ✅ réécrit le 2026-11-13 |
 | Probabilités A a) b) Ensembles dénombrables, univers, tribu, événements | `tribus` | 🔶 | ✅ réécrit le 2026-11-13 |
 | Probabilités A c) d) f) Probabilité, continuité monotone, conditionnement, Bayes, indépendance | `espproba` | 🔶 (continuité monotone, quasi-complet absents) | ✅ réécrit le 2026-11-13 |
 | Probabilités A e) g) Lois, géométrique, Poisson, couples, indépendance, coalitions | `vadisc1` | 🔶 | ✅ réécrit le 2026-11-13 |
