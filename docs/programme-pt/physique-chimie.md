@@ -48,12 +48,12 @@ programme est bien retranscrit »).
 | 3.2 Superposition : incohérence, Fresnel, contraste, N ondes, réseau | `interf` (+ `dispinterf` §3) | 🔶 | |
 | 3.3 Trous d'Young : ordre, interfrange, non-localisation, brouillage spatial et spectral | `dispinterf` | 🔶 | |
 | 3.4 Michelson : lame d'air, coin d'air, localisation, lumière blanche, doublet, cohérence | `dispinterf` | 🔶 | |
-| 4.1 Électrostatique (Coulomb → condensateur plan, lignes et équipotentielles, énergie potentielle, gravitation) | `estat2a` | 🔶 | |
-| 4.2 Magnétostatique : densité de courant, symétries, théorème d'Ampère, fil épais, solénoïde infini, lignes de champ | **nouveau** `magnetostat` | ❌ (`emag` 1ʳᵉ année, court) | |
-| 4.3 Maxwell : conservation de la charge, formes locale et intégrale, équations de propagation, ARQS magnétique, statique, Poisson et Laplace | `maxwell` | 🔶 | |
-| 4.4 Énergie : force et puissance volumiques, loi d'Ohm locale, effet Joule, Poynting, bilans | `maxwell` | 🔶 | |
-| 4.5 Propagation : d'Alembert, OPP, OPPM, spectre, polarisation rectiligne, polariseurs, énergie | `oemvide` | 🔶 | |
-| 4.5 Propagation : milieu ohmique et effet de peau, réflexion sur un conducteur parfait, onde stationnaire, cavité, guide entre deux plans | `oemcond` | 🔶 + hors programme (plasma, Drude) | |
+| 4.1 Électrostatique (Coulomb → condensateur plan, lignes et équipotentielles, énergie potentielle, gravitation) | `estat2a` | 🔶 || ✅ réécrit le 2026-11-13 |
+| 4.2 Magnétostatique : densité de courant, symétries, théorème d'Ampère, fil épais, solénoïde infini, lignes de champ | **nouveau** `magnetostat` | ❌ (`emag` 1ʳᵉ année, court) || ✅ réécrit le 2026-11-13 |
+| 4.3 Maxwell : conservation de la charge, formes locale et intégrale, équations de propagation, ARQS magnétique, statique, Poisson et Laplace | `maxwell` | 🔶 || ✅ réécrit le 2026-11-13 |
+| 4.4 Énergie : force et puissance volumiques, loi d'Ohm locale, effet Joule, Poynting, bilans | `maxwell` | 🔶 || ✅ réécrit le 2026-11-13 |
+| 4.5 Propagation : d'Alembert, OPP, OPPM, spectre, polarisation rectiligne, polariseurs, énergie | `oemvide` | 🔶 || ✅ réécrit le 2026-11-13 |
+| 4.5 Propagation : milieu ohmique et effet de peau, réflexion sur un conducteur parfait, onde stationnaire, cavité, guide entre deux plans | `oemcond` | 🔶 + hors programme (plasma, Drude) || ✅ réécrit le 2026-11-13 |
 | 5.1 et 5.2 Thermochimie | `thermochimie` | ✅ (réécrit le 2026-11-11) | |
 | 6.1 Thermodynamique de l'oxydoréduction | `thermochimie` §9 | ✅ | |
 | 6.2 Courbes courant-potentiel | **nouveau** `electrochimie` | ❌ | |
