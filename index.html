@@ -80887,7 +80887,7 @@ $$\omega_0 = \sqrt{13} \approx 3{,}61\ \text{rad/s}, \qquad \xi = \frac{2}{\sqrt
   <div class="notice"><strong>Limites de la réduction.</strong>
     <ul style="margin:.3rem 0">
       <li><strong>Zéro voisin des pôles dominants</strong> : il modifie fortement la réponse sans déplacer les pôles. Dans l'exemple, un zéro en \(-2{,}5\) (numérateur \(195\,(1+p/2{,}5)\)) fait passer le dépassement de 12 % à 37 % : le modèle réduit doit garder ce zéro, sinon il est faux.</li>
-      <li><strong>Dipôle pôle-zéro</strong> : un pôle presque compensé par un zéro voisin a un mode de faible amplitude, mais lent ; il laisse une « traîne » qui allonge le temps de réponse. C'est ce qui arrive quand la compensation d'un PI (§4) est imparfaite : un PI réglé pour compenser une constante de temps de 0,5 s, appliqué à un processus dont la constante de temps vaut en réalité 0,75 s, porte son temps de réponse de 0,32 s (compensation exacte) à 0,52 s.</li>
+      <li><strong>Dipôle pôle-zéro</strong> : un pôle presque compensé par un zéro voisin a un mode de faible amplitude, mais lent ; il laisse une « traîne » qui allonge le temps de réponse. C'est ce qui arrive quand la compensation d'un PI (§4) est imparfaite. Un PI de constante \(T_I = 0{,}5\ \text{s}\), réglé pour compenser la constante de temps de 0,5 s d'un processus du 1ᵉʳ ordre (gain de boucle \(K_pK = 4{,}7\)), donne un temps de réponse de 0,32 s si la compensation est exacte. Si la constante de temps ne vaut en réalité que 0,25 s, un pôle de la boucle fermée se place en \(-1{,}8\ \text{s}^{-1}\), tout près du zéro du PI en \(-2\ \text{s}^{-1}\), et le temps de réponse passe à 0,47 s.</li>
       <li><strong>Paire complexe peu amortie</strong> : c'est sa partie réelle \(\xi_r\omega_r\) qui compte, pas \(\omega_r\). Un mode de flexion à pulsation élevée mais très peu amorti (\(\xi_r \approx 0{,}05\)) s'éteint lentement, et sa résonance peut faire repasser le gain de la FTBO au-dessus de 0 dB : on ne le néglige pas.</li>
       <li><strong>Début de la réponse</strong> : le modèle réduit ignore le léger retard initial dû aux pôles rapides ; il prévoit bien la valeur finale et le temps de réponse, moins bien la pente à l'origine, le temps de montée et, si le rapport des parties réelles est faible, le dépassement.</li>
       <li><strong>Calcul des marges</strong> : en fréquentiel, un pôle rapide n'est négligeable que bien au-delà de \(\omega_{c0}\). Un pôle seulement 5 fois plus rapide que la coupure y retire encore \(\arctan(1/5) \approx 11°\) de phase : on le garde pour calculer la marge de phase, même si on le néglige pour estimer la réponse temporelle.</li>
@@ -81298,13 +81298,25 @@ $$\omega_0 = \sqrt{13} \approx 3{,}61\ \text{rad/s}, \qquad \xi = \frac{2}{\sqrt
     <ol style="margin-top:.4rem">
       <li><span class="step">Précision.</span> Écart statique nul exigé → FTBO de classe ≥ 1 (et intégrateur en amont de la perturbation si elle doit aussi être rejetée) ; écart borné → condition sur \(K_{BO}\) (\(\varepsilon_s = E_0/(1+K_{BO})\) en classe 0, \(\varepsilon_v = V/K_{BO}\) en classe 1).</li>
       <li><span class="step">Amortissement.</span> Dépassement maximal → marge de phase cible (≈ 45° pour 20-25 %, ≈ 60° pour 10 %, ≥ 70° pour un dépassement quasi nul).</li>
-      <li><span class="step">Rapidité.</span> \(t_{r5\%}\) maximal → \(\omega_c\) minimale, avec \(t_{r5\%}\,\omega_c\) de 3 à 6 selon l'amortissement visé.</li>
+      <li><span class="step">Rapidité.</span> \(t_{r5\%}\) maximal → \(\omega_c\) minimale, avec \(t_{r5\%}\,\omega_c\) de 2 à 6 selon l'amortissement visé (≈ 3,7 pour \(M_\varphi = 60°\)).</li>
       <li><span class="step">Stabilité.</span> Noter les marges minimales imposées ; elles serviront de vérification finale.</li>
     </ol>
   </div>
 
   <div class="method-box">
-    <strong>Méthode 2 — Régler un correcteur proportionnel</strong>
+    <strong>Méthode 2 — Réduire l'ordre du modèle avant de régler (pôles dominants)</strong>
+    <ol style="margin-top:.4rem">
+      <li><span class="step">Pôles.</span> Calculer les pôles (racines du dénominateur) et repérer les pôles dominants : ceux dont la partie réelle est la plus proche de zéro.</li>
+      <li><span class="step">Rapport.</span> Un pôle (ou une paire) dont la partie réelle est, en valeur absolue, au moins 5 fois (par prudence 10 fois) celle des pôles dominants est négligeable pour la réponse temporelle.</li>
+      <li><span class="step">Zéros.</span> Vérifier qu'aucun zéro n'est voisin des pôles dominants ; sinon, le garder dans le modèle réduit.</li>
+      <li><span class="step">Réduire.</span> Remplacer par 1 le facteur canonique du pôle rapide, \((1+\tau_r p)\) ou \(\left(1+\frac{2\xi_r}{\omega_r}p+\frac{p^2}{\omega_r^2}\right)\) : le gain statique est conservé.</li>
+      <li><span class="step">Limites.</span> Paire complexe peu amortie : comparer \(\xi_r\omega_r\), pas \(\omega_r\). Pour les marges, garder un pôle qui n'est que 5 à 10 fois plus rapide que la coupure (il y retire encore 6° à 11° de phase).</li>
+    </ol>
+    <p><em>Exemple éclair :</em> \(H_{BF}(p) = \dfrac{90}{(p+10)(p^2+2p+9)}\) a pour pôles \(-1 \pm 2{,}83j\) et \(-10\) : rapport 10. Le facteur \((p+10)\) devient 10, d'où \(H_r(p) = \dfrac{9}{p^2+2p+9}\) : \(\omega_0 = 3\ \text{rad/s}\), \(\xi = 1/3\), dépassement prévu ≈ 33 % (modèle complet : ≈ 31 %).</p>
+  </div>
+
+  <div class="method-box">
+    <strong>Méthode 3 — Régler un correcteur proportionnel</strong>
     <ol style="margin-top:.4rem">
       <li><span class="step">Phase cible.</span> Écrire \(\arg H(j\omega) = -180° + M_\varphi\) et la résoudre : graphiquement sur le Bode, ou analytiquement (somme d'arctangentes ; pour deux termes, prendre la tangente des deux membres).</li>
       <li><span class="step">Gain.</span> Calculer \(|H(j\omega_\varphi)|\) puis \(K_p = 1/|H(j\omega_\varphi)|\) (ou lire \(G_{dB}\) et poser \(20\log K_p = -G_{dB}\)).</li>
@@ -81314,10 +81326,10 @@ $$\omega_0 = \sqrt{13} \approx 3{,}61\ \text{rad/s}, \qquad \xi = \frac{2}{\sqrt
   </div>
 
   <div class="method-box">
-    <strong>Méthode 3 — Régler un correcteur PI</strong>
+    <strong>Méthode 4 — Régler un correcteur PI</strong>
     <ol style="margin-top:.4rem">
       <li><span class="step">Choisir la stratégie.</span> Pôle dominant net, stable et bien connu → compensation (\(T_I = \tau_1\)) ; sinon → cassure une décade sous la coupure.</li>
-      <li><span class="step">Compensation.</span> Simplifier la FTBO (classe 1), puis régler \(K_p\) comme en méthode 2.</li>
+      <li><span class="step">Compensation.</span> Simplifier la FTBO (classe 1), puis régler \(K_p\) comme en méthode 3.</li>
       <li><span class="step">Cassure sous la coupure.</span> Réserver ≈ 6° (\(T_I\omega_c = 10\)) ; trouver \(\omega_c\) où \(\arg H = -180° + M_\varphi + 6°\) ; poser \(T_I = 10/\omega_c\) ; \(K_p \approx 1/|H(j\omega_c)|\).</li>
       <li><span class="step">Tracer.</span> Asymptotes du PI : \(-20\ \text{dB/déc}\) jusqu'à \(1/T_I\), puis plateau à \(20\log K_p\).</li>
       <li><span class="step">Piège.</span> Ne pas oublier que le PI retire de la phase à \(\omega_c\) : régler \(K_p\) sur la phase de \(H\) seule surestime \(M_\varphi\).</li>
@@ -81325,7 +81337,7 @@ $$\omega_0 = \sqrt{13} \approx 3{,}61\ \text{rad/s}, \qquad \xi = \frac{2}{\sqrt
   </div>
 
   <div class="method-box">
-    <strong>Méthode 4 — Dimensionner une avance de phase</strong>
+    <strong>Méthode 5 — Dimensionner une avance de phase</strong>
     <ol style="margin-top:.4rem">
       <li><span class="step">Coupure.</span> Fixer \(\omega_c\) (rapidité exigée, ou \(\omega_{c0}\) conservée).</li>
       <li><span class="step">Phase manquante.</span> \(\varphi_m = M_\varphi - \big(180° + \arg H(j\omega_c)\big)\), plus 3 à 5° de sécurité si \(\omega_c\) n'est pas imposée exactement.</li>
@@ -81335,7 +81347,7 @@ $$\omega_0 = \sqrt{13} \approx 3{,}61\ \text{rad/s}, \qquad \xi = \frac{2}{\sqrt
   </div>
 
   <div class="method-box">
-    <strong>Méthode 5 — Tracer le Bode asymptotique d'une FTBO corrigée</strong>
+    <strong>Méthode 6 — Tracer le Bode asymptotique d'une FTBO corrigée</strong>
     <ol style="margin-top:.4rem">
       <li><span class="step">Forme canonique.</span> Écrire \(C(p)H(p)\) comme produit de briques : gain, \(1/p^\alpha\), \((1+\tau p)^{\pm1}\), 2ᵉ ordre.</li>
       <li><span class="step">Cassures.</span> Ranger les pulsations de cassure par ordre croissant.</li>
@@ -81346,7 +81358,7 @@ $$\omega_0 = \sqrt{13} \approx 3{,}61\ \text{rad/s}, \qquad \xi = \frac{2}{\sqrt
   </div>
 
   <div class="method-box">
-    <strong>Méthode 6 — Valider sur une réponse indicielle simulée</strong>
+    <strong>Méthode 7 — Valider sur une réponse indicielle simulée</strong>
     <ol style="margin-top:.4rem">
       <li><span class="step">Valeur finale.</span> La lire et la comparer à la consigne → écart statique.</li>
       <li><span class="step">Dépassement.</span> \(D\% = \dfrac{s_{max} - s_\infty}{s_\infty}\times 100\).</li>
@@ -81357,7 +81369,7 @@ $$\omega_0 = \sqrt{13} \approx 3{,}61\ \text{rad/s}, \qquad \xi = \frac{2}{\sqrt
   </div>
 
   <div class="method-box">
-    <strong>Méthode 7 — Régler des boucles imbriquées</strong>
+    <strong>Méthode 8 — Régler des boucles imbriquées</strong>
     <ol style="margin-top:.4rem">
       <li><span class="step">Boucle interne.</span> La régler seule, puis calculer sa FTBF (gain statique et constante de temps).</li>
       <li><span class="step">Substitution.</span> Remplacer, dans la boucle externe, tout le bloc interne par cette FTBF.</li>
@@ -81373,7 +81385,7 @@ $$\omega_0 = \sqrt{13} \approx 3{,}61\ \text{rad/s}, \qquad \xi = \frac{2}{\sqrt
       <li>Confondre \(\omega_{c0}\) (gain de la FTBO égal à 0 dB) et la pulsation de cassure d'un bloc.</li>
       <li>Oublier le gain \(\sqrt a\) apporté par l'avance de phase en \(\omega_m\) en réglant \(K_p\).</li>
       <li>Utiliser la formule de \(\varphi_m\) avec la convention \(\frac{1+Tp}{1+aTp}\), \(a \lt 1\) : vérifier toujours quel terme a la plus grande constante de temps (celle du numérateur pour une avance).</li>
-      <li>Annoncer « écart nul » avec un PI alors que la perturbation entre en amont de l'intégrateur.</li>
+      <li>Annoncer un écart nul vis-à-vis d'une perturbation constante en s'appuyant sur un intégrateur situé <em>en aval</em> de son point d'entrée (par exemple l'intégration vitesse → position du processus) : seul un intégrateur placé entre l'écart et la perturbation, comme celui d'un PI, l'annule.</li>
     </ul>
   </div>
 </div>
@@ -81433,8 +81445,12 @@ $$\omega_0 = \sqrt{13} \approx 3{,}61\ \text{rad/s}, \qquad \xi = \frac{2}{\sqrt
   <div class="solution">
     <h4>Correction</h4>
     <p><strong>Q1.</strong> \(1/(aT) = 1/0{,}1 = 10\ \text{rad/s}\) et \(1/T = 40\ \text{rad/s}\). Asymptotes : \(20\log 2 \approx 6{,}0\ \text{dB}\) jusqu'à 10 rad/s, pente \(+20\ \text{dB/déc}\) jusqu'à 40 rad/s, puis \(20\log(aK_p) = 20\log 8 \approx 18{,}1\ \text{dB}\) (on monte bien de \(20\log 4 \approx 12\ \text{dB}\) sur \(\log 4 \approx 0{,}6\) décade).</p>
-    <p><strong>Q2.</strong> \(\omega_m = \dfrac{1}{T\sqrt a} = \dfrac{1}{0{,}025 \times 2} = 20\ \text{rad/s}\) ; \(\sin\varphi_m = \dfrac{3}{5}\) → \(\varphi_m \approx 36{,}9°\) ; \(G_{dB}(\omega_m) = 20\log(K_p\sqrt a) = 20\log 4 \approx 12{,}0\ \text{dB}\), à mi-chemin des deux plateaux.</p>
-    <p><strong>Q3.</strong> À 10 rad/s : \(\arctan 1 - \arctan 0{,}25 = 45° - 14{,}0° \approx 31{,}0°\). À 40 rad/s : \(\arctan 4 - \arctan 1 = 76{,}0° - 45° \approx 31{,}0°\). Mêmes valeurs : 10 et 40 rad/s sont symétriques de \(\omega_m = 20\) en échelle logarithmique (rapport 2 de part et d'autre), la cloche de phase est symétrique.</p>
+    <p><strong>Q2.</strong> \(\omega_m = \dfrac{1}{T\sqrt a} = \dfrac{1}{0{,}025 \times 2} = 20\ \text{rad/s}\) ; \(\sin\varphi_m = \dfrac{3}{5}\) → \(\varphi_m \approx 36{,}9°\) ; enfin, à mi-chemin des deux plateaux :</p>
+    <div class="formula">$$G_{dB}(\omega_m) = 20\log(K_p\sqrt a) = 20\log 4 \approx 12{,}0\ \text{dB}$$</div>
+    <p><strong>Q3.</strong> À 10 rad/s puis à 40 rad/s :</p>
+    <div class="formula">$$\arctan 1 - \arctan 0{,}25 = 45° - 14{,}0° \approx 31{,}0°$$</div>
+    <div class="formula">$$\arctan 4 - \arctan 1 = 76{,}0° - 45° \approx 31{,}0°$$</div>
+    <p>Mêmes valeurs : 10 et 40 rad/s sont symétriques de \(\omega_m = 20\) en échelle logarithmique (rapport 2 de part et d'autre), la cloche de phase est symétrique.</p>
     <p><strong>Q4.</strong> Valeur initiale : \(u(0^+) = aK_p \times 0{,}5 = 4\ \text{V}\). Valeur finale (\(p \to 0\)) : \(K_p \times 0{,}5 = 1\ \text{V}\). Le pic initial est 4 fois la valeur finale : c'est le prix de l'action dérivée.</p>
     <p><strong>Q5.</strong> \(a = \dfrac{1+\sin 55°}{1-\sin 55°} = \dfrac{1{,}819}{0{,}181} \approx 10\).</p>
   </div>
@@ -81555,6 +81571,32 @@ $$\omega_0 = \sqrt{13} \approx 3{,}61\ \text{rad/s}, \qquad \xi = \frac{2}{\sqrt
   </div>
 </div>
 
+<div class="exo">
+  <span class="num">EXO 08</span><span class="diff">★ ★ ☆</span>
+  <h3>Table tournante : peut-on réduire le modèle aux pôles dominants ?</h3>
+  <div class="statement">Après réglage de son correcteur, l'asservissement en position d'une table tournante a pour fonction de transfert en boucle fermée (temps en secondes)
+    <div class="formula">$$H_{BF}(p) = \frac{1200}{(p+30)(p^2+6p+40)}$$</div>
+    On donne, pour un 2ᵉ ordre de gain statique 1 : \(D = e^{-\pi\xi/\sqrt{1-\xi^2}}\) et, lu sur l'abaque du temps de réponse, \(t_{r5\%}\,\omega_0 \approx 5{,}3\) pour \(\xi \approx 0{,}47\).</div>
+  <div class="q"><strong>Q1.</strong> Calculer les pôles et le gain statique de \(H_{BF}\).</div>
+  <div class="q"><strong>Q2.</strong> Justifier la réduction du modèle aux pôles dominants et écrire le modèle réduit \(H_r(p)\), avec le même gain statique. Calculer \(\omega_0\) et \(\xi\).</div>
+  <div class="q"><strong>Q3.</strong> Prévoir le dépassement et le temps de réponse à 5 % avec \(H_r\). La simulation du modèle complet donne \(D \approx 18{,}0\ \%\) et \(t_{r5\%} \approx 0{,}87\ \text{s}\). Conclure.</div>
+  <div class="q"><strong>Q4.</strong> Un filtre de mesure plus lourd déplace le troisième pôle en \(-6\) (numérateur 240, pour garder le gain statique). La simulation donne alors \(D \approx 8{,}8\ \%\) et \(t_{r5\%} \approx 0{,}95\ \text{s}\). Le modèle réduit de Q2 est-il encore acceptable ?</div>
+  <div class="q"><strong>Q5.</strong> On revient au pôle en \(-30\), mais le correcteur ajoute un zéro : le numérateur devient \(1200\,(1 + p/4)\). La simulation donne \(D \approx 54\ \%\). Quel modèle réduit faut-il écrire ? (Sa simulation donne \(D \approx 55\ \%\).)</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> Le trinôme \(p^2+6p+40\) a pour discriminant \(36 - 160 = -124\) : pôles \(-3 \pm j\sqrt{31} \approx -3 \pm 5{,}57j\), auxquels s'ajoute le pôle réel \(-30\). Gain statique : \(H_{BF}(0) = \dfrac{1200}{30 \times 40} = 1\) (écart statique nul).</p>
+    <p><strong>Q2.</strong> Les pôles dominants sont \(-3 \pm 5{,}57j\) (partie réelle la plus proche de zéro). Rapport des parties réelles : \(30/3 = 10\), au-delà du seuil de 5 et même du seuil prudent de 10 ; aucun zéro ne perturbe. On écrit \(p + 30 = 30\,(1 + p/30)\) et l'on remplace le facteur canonique \((1 + p/30)\) par 1, ce qui conserve \(H(0)\) :</p>
+    <div class="formula">$$H_r(p) = \frac{40}{p^2+6p+40}$$</div>
+    <p>Par identification avec \(\dfrac{1}{1 + \frac{2\xi}{\omega_0}p + \frac{p^2}{\omega_0^2}}\) : \(\omega_0 = \sqrt{40} \approx 6{,}32\ \text{rad/s}\) et \(2\xi\omega_0 = 6\), soit \(\xi = 3/\sqrt{40} \approx 0{,}47\).</p>
+    <p><strong>Q3.</strong> \(D = e^{-\pi \times 0{,}474/\sqrt{1 - 0{,}225}} \approx 18{,}4\ \%\) et \(t_{r5\%} \approx 5{,}3/6{,}32 \approx 0{,}84\ \text{s}\). Écarts avec le modèle complet : 0,4 point sur le dépassement et 4 % sur le temps de réponse. Le pôle rapide se contente de retarder très légèrement le début de la réponse : le modèle réduit suffit pour régler ou vérifier les performances temporelles.</p>
+    <p><strong>Q4.</strong> Le rapport des parties réelles tombe à \(6/3 = 2\), bien sous 5 : le troisième pôle n'est plus négligeable. Le modèle réduit prévoirait toujours 18 % de dépassement, plus du double des 8,8 % du modèle complet, et un temps de réponse trop court (0,84 s au lieu de 0,95 s). La réduction n'est plus légitime : on garde le modèle d'ordre 3.</p>
+    <p><strong>Q5.</strong> Le zéro en \(-4\) est voisin des pôles dominants (partie réelle \(-3\), module 6,3) : il modifie fortement la réponse sans déplacer les pôles, et le modèle réduit doit le garder. On néglige seulement le pôle en \(-30\) :</p>
+    <div class="formula">$$H_r(p) = \frac{40\,(1 + p/4)}{p^2+6p+40}$$</div>
+    <p>Il prévoit 55 % de dépassement pour 54 % sur le modèle complet, alors que le modèle de Q2, sans le zéro, annoncerait 18 % : une erreur grossière. La règle du rapport des pôles ne suffit donc pas : il faut toujours regarder aussi les zéros.</p>
+  </div>
+</div>
+
 <div class="exo concours">
   <span class="num">CONCOURS PT</span><span class="diff">★ ★ ★</span>
   <h3>Nacelle gyrostabilisée d'une caméra embarquée</h3>
@@ -81600,9 +81642,13 @@ $$\omega_0 = \sqrt{13} \approx 3{,}61\ \text{rad/s}, \qquad \xi = \frac{2}{\sqrt
     <h4>Correction</h4>
     <p><strong>A1.</strong> La FTBO contient un intégrateur (classe 1) : écart statique nul pour un échelon. Un correcteur P ou à avance de phase ne change pas la classe (pas de zéro à l'origine) : le critère reste satisfait.</p>
     <p><strong>A2.</strong> Pente \(-20\ \text{dB/déc}\) (asymptote \(20/\omega\)) jusqu'à 10 rad/s, où le niveau vaut \(20\log 2 \approx 6\ \text{dB}\) ; puis \(-40\ \text{dB/déc}\) jusqu'à 100 rad/s ; puis \(-60\ \text{dB/déc}\). Sur le tronçon à −40 : \(\dfrac{20}{\omega}\cdot\dfrac{10}{\omega} = 1\) → \(\omega_{c0} \approx \sqrt{200} \approx 14\ \text{rad/s}\) (asymptotique).</p>
-    <p><strong>A3.</strong> \(p(1+0{,}1p)(1+0{,}01p) = p + 0{,}11p^2 + 0{,}001p^3\) ; en \(j\omega\) : \(-0{,}11\,\omega^2 + j\omega(1 - 0{,}001\,\omega^2)\). Partie imaginaire nulle : \(\omega_\pi = \sqrt{1000} \approx 31{,}6\ \text{rad/s}\), où le dénominateur vaut \(-110\) : \(|H(j\omega_\pi)| = 20/110 \approx 0{,}18\), \(M_G = 20\log 5{,}5 \approx 14{,}8\ \text{dB}\). À 12,4 rad/s : \(\arctan 1{,}24 \approx 51{,}1°\) et \(\arctan 0{,}124 \approx 7{,}1°\), donc \(\varphi \approx -148{,}2°\) et \(M_\varphi \approx 32°\) (insuffisante).</p>
+    <p><strong>A3.</strong> On développe le dénominateur :</p>
+    <div class="formula">$$p(1+0{,}1p)(1+0{,}01p) = p + 0{,}11p^2 + 0{,}001p^3$$</div>
+    <p>En \(j\omega\) : \(-0{,}11\,\omega^2 + j\omega(1 - 0{,}001\,\omega^2)\). Partie imaginaire nulle : \(\omega_\pi = \sqrt{1000} \approx 31{,}6\ \text{rad/s}\), où le dénominateur vaut \(-110\) : \(|H(j\omega_\pi)| = 20/110 \approx 0{,}18\), \(M_G = 20\log 5{,}5 \approx 14{,}8\ \text{dB}\). À 12,4 rad/s : \(\arctan 1{,}24 \approx 51{,}1°\) et \(\arctan 0{,}124 \approx 7{,}1°\), donc \(\varphi \approx -148{,}2°\) et \(M_\varphi \approx 32°\) (insuffisante).</p>
     <p><strong>A4.</strong> Pour \(M_\varphi \approx 50°\), \(t_{r5\%}\,\omega_c \approx 4\) : il faut \(\omega_c \geq 4/0{,}2 = 20\ \text{rad/s}\). On visera 25 rad/s pour garder de la marge.</p>
-    <p><strong>B1.</strong> \(\arctan(0{,}1\omega) + \arctan(0{,}01\omega) = 45°\) ; en prenant la tangente : \(\dfrac{0{,}11\,\omega}{1 - 0{,}001\,\omega^2} = 1\), d'où l'équation. Racine positive : \(\omega_\varphi = \dfrac{-0{,}11 + \sqrt{0{,}0121 + 0{,}004}}{0{,}002} \approx 8{,}44\ \text{rad/s}\). \(|H(j8{,}44)| = \dfrac{20}{8{,}44 \times 1{,}309 \times 1{,}004} \approx 1{,}80\) → \(K_p \approx 0{,}55\).</p>
+    <p><strong>B1.</strong> \(\arctan(0{,}1\omega) + \arctan(0{,}01\omega) = 45°\) ; en prenant la tangente : \(\dfrac{0{,}11\,\omega}{1 - 0{,}001\,\omega^2} = 1\), d'où l'équation. Racine positive :</p>
+    <div class="formula">$$\omega_\varphi = \frac{-0{,}11 + \sqrt{0{,}0121 + 0{,}004}}{0{,}002} \approx 8{,}44\ \text{rad/s}$$</div>
+    <p>Puis \(|H(j8{,}44)| = \dfrac{20}{8{,}44 \times 1{,}309 \times 1{,}004} \approx 1{,}80\) → \(K_p \approx 0{,}55\).</p>
     <p><strong>B2.</strong> Coupure à 8,4 rad/s, bien en dessous des 20 rad/s requis : \(t_{r5\%} \approx 0{,}71\ \text{s} \gt 0{,}2\ \text{s}\). Le correcteur P assure la stabilité mais en ralentissant le système : il faut relever la phase autour de la coupure → avance de phase.</p>
     <p><strong>C1.</strong> \(\arctan 2{,}5 \approx 68{,}2°\) et \(\arctan 0{,}25 \approx 14{,}0°\), donc \(\arg H(j25) \approx -172{,}2°\). Marge « naturelle » 7,8° ; avance nécessaire \(\varphi_m = 45° - 7{,}8° \approx 37{,}2°\).</p>
     <p><strong>C2.</strong> \(a \geq \dfrac{1+\sin 37{,}2°}{1-\sin 37{,}2°} \approx 4{,}06\) : \(a = 4\) ne donnerait que \(\varphi_m \approx 36{,}9°\), soit \(M_\varphi \approx 44{,}6° \lt 45°\). On prend donc \(a = 5\) (arrondi par excès, \(\varphi_m \approx 41{,}8°\)), ce qui laisse en plus quelques degrés de réserve. \(T = \dfrac{1}{25\sqrt5} \approx 17{,}9\ \text{ms}\) (cassures à 11,2 et 55,9 rad/s). \(K_p = \dfrac{1}{\sqrt5 \times 0{,}288} \approx 1{,}55\).</p>
@@ -82274,7 +82320,7 @@ $$\omega_0 = \sqrt{13} \approx 3{,}61\ \text{rad/s}, \qquad \xi = \frac{2}{\sqrt
       <li><span class="step">Étape 1.</span> Découper la courbe en phases (démarrage, régime établi, perturbation, freinage) et associer un événement du scénario à chaque changement.</li>
       <li><span class="step">Étape 2.</span> Vérifier le régime établi par un calcul à la main (toutes les dérivées nulles).</li>
       <li><span class="step">Étape 3.</span> Relier les grandeurs : courant ↔ couple (\(C_m = K i\)), vitesse ↔ f.é.m. ; une puissance négative sur un lien signale un retour d'énergie vers la source.</li>
-      <li><span class="step">Étape 4.</span> Repérer les signatures de non-linéarités : palier (saturation), démarrage retardé ou erreur résiduelle (frottement sec, seuil), oscillations entretenues (jeu, hystérésis).</li>
+      <li><span class="step">Étape 4.</span> Repérer les signatures de non-linéarités : palier (saturation), démarrage retardé ou erreur résiduelle (frottement sec, seuil), oscillations entretenues (jeu, hystérésis), réponse simplement décalée dans le temps (retard pur : transport, calcul, échantillonnage).</li>
       <li><span class="step">Étape 5.</span> Conclure vis-à-vis du cahier des charges, valeurs chiffrées à l'appui.</li>
     </ol>
   </div>
@@ -82288,6 +82334,40 @@ $$\omega_0 = \sqrt{13} \approx 3{,}61\ \text{rad/s}, \qquad \xi = \frac{2}{\sqrt
       <li><span class="step">Étape 4.</span> Recaler, puis valider sur un essai différent.</li>
     </ol>
     <p><em>Piège</em> : ajuster un paramètre jusqu'à coller à un seul essai masque souvent un phénomène non modélisé.</p>
+  </div>
+  <div class="method-box">
+    <strong>Méthode 8 — Identifier un modèle de comportement sur une réponse indicielle</strong>
+    <ol style="margin-top:.4rem">
+      <li><span class="step">Étape 1.</span> Reconnaître l'allure : tangente non nulle à l'origine et aucun dépassement → premier ordre ; tangente horizontale à l'origine ou dépassement → deuxième ordre ; départ décalé dans le temps → retard pur à ajouter.</li>
+      <li><span class="step">Étape 2.</span> Gain statique \(K = \Delta s_\infty/\Delta e\), calculé sur les <em>variations</em> autour du point de fonctionnement.</li>
+      <li><span class="step">Étape 3.</span> Premier ordre : \(\tau\) = instant où la sortie atteint 63 % de sa variation finale ; contrôle \(t_{r5\%} \approx 3\tau\).</li>
+      <li><span class="step">Étape 4.</span> Deuxième ordre avec dépassement : \(\xi\) tiré de \(D = e^{-\pi\xi/\sqrt{1-\xi^2}}\), soit \(\xi = \dfrac{-\ln D}{\sqrt{\pi^2 + \ln^2 D}}\) ; puis \(\omega_0\) tiré de la pseudo-période \(T_p = \dfrac{2\pi}{\omega_0\sqrt{1-\xi^2}}\).</li>
+      <li><span class="step">Étape 5.</span> Superposer la réponse du modèle à l'essai, et retenir que le modèle ne vaut que dans le domaine exploré (amplitude, point de fonctionnement).</li>
+    </ol>
+    <p><em>Exemple éclair :</em> un échelon de 2 V fait varier une vitesse de 3 rad/s, avec un dépassement de 16 % et une pseudo-période de 0,5 s : \(K = 1{,}5\ \text{rad·s}^{-1}\text{·V}^{-1}\), \(\xi = 1{,}833/\sqrt{9{,}870 + 3{,}358} \approx 0{,}50\), \(\omega_0 = 2\pi/(0{,}5 \times 0{,}864) \approx 14{,}5\ \text{rad/s}\).</p>
+  </div>
+
+  <div class="method-box">
+    <strong>Méthode 9 — Préparer et exploiter une simulation</strong>
+    <ol style="margin-top:.4rem">
+      <li><span class="step">Étape 1.</span> Choisir les grandeurs observées : celles des critères du cahier des charges, plus les grandeurs internes qui dimensionnent ou limitent les constituants (courant, couple, tension de commande, pression, puissance).</li>
+      <li><span class="step">Étape 2.</span> Fixer le scénario (entrées et conditions initiales de l'essai) et la durée : 3 à 5 fois la plus grande constante de temps, ou un cycle complet pour un bilan d'énergie ; pour un balayage, la régler sur le cas le plus lent.</li>
+      <li><span class="step">Étape 3.</span> Régler le solveur : à pas fixe, \(h\) de l'ordre de \(\tau_{\min}/10\) ; pour un modèle raide, pas variable réglé par une tolérance, ou modèle réduit. Contrôle : diviser le pas par 2 ne doit plus changer les résultats.</li>
+      <li><span class="step">Étape 4.</span> Étudier un paramètre à la fois (balayage) : tracer chaque performance en fonction du paramètre, repérer la plage qui respecte le cahier des charges, comparer les paramètres par leur sensibilité relative.</li>
+    </ol>
+    <p><em>Exemple éclair :</em> moteur à courant continu avec \(\tau_e = 1\ \text{ms}\) et \(\tau_m = 40\ \text{ms}\) : \(h = 0{,}1\ \text{ms}\) et une durée de \(5\tau_m = 0{,}2\ \text{s}\). Si l'on balaie l'inertie jusqu'à 4 fois sa valeur, \(\tau_m\) monte à 160 ms : simuler 1 s.</p>
+    <p><em>Piège</em> : valider un réglage sur la seule courbe de sortie alors que le courant ou la tension de commande sature.</p>
+  </div>
+
+  <div class="method-box">
+    <strong>Méthode 10 — Décider si une transmission doit être modélisée déformable</strong>
+    <ol style="margin-top:.4rem">
+      <li><span class="step">Étape 1.</span> Évaluer la raideur : arbre en torsion \(k_\theta = GI_0/\ell\) avec \(I_0 = \pi d^4/32\) ; courroie ou accouplement élastique : documentation du constructeur.</li>
+      <li><span class="step">Étape 2.</span> Calculer les pulsations du modèle à deux inerties : antirésonance vue du moteur \(\omega_a = \sqrt{k_\theta/J_c}\), résonance \(\omega_r = \sqrt{k_\theta\,(J_m+J_c)/(J_mJ_c)}\).</li>
+      <li><span class="step">Étape 3.</span> Comparer à la coupure de la boucle : si \(\omega_a\) vaut au moins 5 à 10 fois \(\omega_{c0}\), garder le modèle rigide (inertie \(J_m + J_c\)) ; sinon, modèle à deux inerties et raideur.</li>
+      <li><span class="step">Étape 4.</span> Remédier si besoin : raidir la transmission (\(k_\theta\) varie comme \(d^4/\ell\)), réduire la bande passante ou filtrer la commande.</li>
+    </ol>
+    <p><em>Exemple éclair :</em> \(J_m = 1\cdot10^{-3}\ \text{kg·m}^2\), \(J_c = 4\cdot10^{-3}\ \text{kg·m}^2\), \(k_\theta = 100\ \text{N·m/rad}\) : \(\omega_a = \sqrt{100/(4\cdot10^{-3})} \approx 158\ \text{rad/s}\) et \(\omega_r \approx 354\ \text{rad/s}\). Pour une boucle à \(\omega_{c0} = 50\ \text{rad/s}\), le rapport ne vaut que 3,2 : il faut le modèle déformable.</p>
   </div>
 </div>
 </section>
@@ -82468,6 +82548,49 @@ $$\omega_0 = \sqrt{13} \approx 3{,}61\ \text{rad/s}, \qquad \xi = \frac{2}{\sqrt
     <p><strong>Q3.</strong> Saturation dès que \(K_a|\varepsilon| \gt 12\ \text{V}\), soit \(|\varepsilon| \gt 0{,}6\ \text{rad}\) (34°). Pour 90° (1,57 rad), la tension reste à 12 V tant que l'erreur dépasse 0,6 rad : le moteur tend vers \(\omega_m \approx 12/K = 300\ \text{rad/s}\) (un peu moins à cause de \(C_s\)), soit une vanne à \(k\,\omega_m \approx 6\ \text{rad/s}\). Durée de la phase saturée : environ \((1{,}57-0{,}6)/6 \approx 0{,}16\ \text{s}\), plus un retard de l'ordre de \(\tau_m\) dû à la mise en vitesse, soit à peu près 0,2 s. Le modèle linéaire prévoit \(0{,}21\ \text{s}\) quelle que soit l'amplitude ; en réalité la phase saturée s'ajoute à la phase linéaire finale : le temps de réponse sera nettement plus long (une simulation avec saturation donne environ 0,33 s, et 0,36 s en ajoutant le frottement sec).</p>
     <p><strong>Q4.</strong> La bande d'arrêt est inversement proportionnelle à \(K_a\) : elle tombe à 0,01 rad (0,6°). Mais la FTBO devient \(40/[p(1+0{,}05p)]\) : \(\omega_0 = \sqrt{800} \approx 28{,}3\ \text{rad/s}\) et \(\xi = \dfrac{\omega_0}{2\times40} \approx 0{,}35\), soit un dépassement d'environ 30 % en régime linéaire, c'est-à-dire pour de petites consignes (la tension sature désormais dès 0,15 rad d'erreur). Autres solutions : correcteur à action intégrale (qui force le moteur à sortir de la zone morte, au risque d'un cycle limite de petite amplitude) ou compensation du frottement par anticipation (ajout d'une tension \(\pm R\,C_s/K\) selon le sens du mouvement souhaité).</p>
     <p><strong>Q5.</strong> Temps de réponse : \((0{,}36-0{,}41)/0{,}41 \approx -12\ \%\). Le modèle est un peu trop rapide : inertie sous-estimée (pièces de la vanne, accouplement), frottement visqueux négligé ou limitation de courant du variateur. Erreur finale : 0,2° et 1,8° sont toutes deux dans la bande d'arrêt ±2,3° de Q2. Avec un frottement sec, le point d'arrêt dans cette bande dépend finement de l'approche (vitesse d'arrivée, adhérence plus forte que le frottement de glissement, jeu du réducteur) : une seule valeur ne suffit ni à valider ni à rejeter le modèle. On compare plutôt la dispersion des arrêts sur plusieurs essais à la largeur de bande prévue (le même modèle prévoit d'ailleurs un arrêt vers 2° pour une consigne de 10°). On recale enfin les paramètres dynamiques sur cet essai, puis on valide sur une consigne d'amplitude différente.</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 08</span><span class="diff">★ ★ ☆</span>
+  <h3>Enrouleuse : faut-il modéliser l'accouplement élastique ?</h3>
+  <div class="statement">Le moteur d'une enrouleuse de film (inertie \(J_m = 3\cdot10^{-4}\ \text{kg·m}^2\)) entraîne le mandrin (inertie \(J_c = 1{,}2\cdot10^{-3}\ \text{kg·m}^2\), réducteur compris) par un accouplement élastique de raideur de torsion \(k_\theta = 60\ \text{N·m/rad}\) ; amortissement et frottements sont négligés. La vitesse est asservie à partir d'un codeur monté sur l'arbre moteur ; \(C_m\) est le couple moteur, \(\theta_m\) et \(\theta_c\) les angles du moteur et du mandrin.</div>
+  <div class="q"><strong>Q1.</strong> Appliquer le principe fondamental de la dynamique à chaque inertie. En déduire l'équation de l'angle de torsion \(\varphi = \theta_m - \theta_c\) pour \(C_m = 0\), et la pulsation propre \(\omega_r\) du mode élastique.</div>
+  <div class="q"><strong>Q2.</strong> Montrer que, conditions initiales nulles,
+    <div class="formula">$$\frac{\Omega_m(p)}{C_m(p)} = \frac{J_cp^2 + k_\theta}{p\,\big[J_mJ_cp^2 + k_\theta(J_m+J_c)\big]}$$</div>
+    Interpréter les racines du numérateur et du dénominateur, et le comportement en basses pulsations.</div>
+  <div class="q"><strong>Q3.</strong> Calculer \(\omega_a\) et \(\omega_r\) (en rad/s et en Hz). La boucle de vitesse coupe à \(\omega_{c0} = 30\ \text{rad/s}\) : le modèle de solide indéformable convient-il ?</div>
+  <div class="q"><strong>Q4.</strong> Pour accélérer la production, on veut porter \(\omega_{c0}\) à 100 rad/s. Conclure. Quelle raideur faudrait-il pour retrouver un rapport \(\omega_a/\omega_{c0}\) de 8 ? Citer deux autres solutions.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> L'accouplement exerce sur le mandrin le couple \(k_\theta(\theta_m - \theta_c)\) et, sur le moteur, son opposé : \(J_m\ddot\theta_m = C_m - k_\theta(\theta_m - \theta_c)\) et \(J_c\ddot\theta_c = k_\theta(\theta_m - \theta_c)\). Pour \(C_m = 0\), en divisant par \(J_m\) et \(J_c\) puis en retranchant :</p>
+    <div class="formula">$$\ddot\varphi + k_\theta\left(\frac{1}{J_m} + \frac{1}{J_c}\right)\varphi = 0,\qquad \omega_r = \sqrt{k_\theta\,\frac{J_m + J_c}{J_mJ_c}}$$</div>
+    <p><strong>Q2.</strong> En Laplace, la seconde équation donne \(\Theta_c = \dfrac{k_\theta}{J_cp^2 + k_\theta}\,\Theta_m\). En reportant dans la première, \(\big[J_mp^2 + k_\theta - \frac{k_\theta^2}{J_cp^2 + k_\theta}\big]\Theta_m = C_m\), soit, après réduction au même dénominateur, \(\Theta_m\,\dfrac{p^2\big[J_mJ_cp^2 + k_\theta(J_m + J_c)\big]}{J_cp^2 + k_\theta} = C_m\). Avec \(\Omega_m = p\,\Theta_m\), on obtient l'expression annoncée. Le numérateur s'annule pour \(p = \pm j\omega_a\), \(\omega_a = \sqrt{k_\theta/J_c}\) : antirésonance vue du moteur (le mandrin oscille alors seul et le moteur reste immobile). Le dénominateur s'annule pour \(p = 0\) (intégrateur du mouvement d'ensemble) et \(p = \pm j\omega_r\) : résonance. En basses pulsations (\(p \to 0\)), le rapport tend vers \(\dfrac{1}{(J_m + J_c)\,p}\) : on retrouve le modèle rigide d'inertie \(J_m + J_c = 1{,}5\cdot10^{-3}\ \text{kg·m}^2\).</p>
+    <p><strong>Q3.</strong> Avec \(J_m + J_c = 1{,}5\cdot10^{-3}\) et \(J_mJ_c = 3{,}6\cdot10^{-7}\) (unités SI) :</p>
+    <div class="formula">$$\omega_a = \sqrt{\frac{60}{1{,}2\cdot10^{-3}}} \approx 224\ \text{rad/s},\qquad \omega_r = \sqrt{\frac{60 \times 1{,}5\cdot10^{-3}}{3{,}6\cdot10^{-7}}} = 500\ \text{rad/s}$$</div>
+    <p>soit 35,6 Hz et 79,6 Hz. Rapport \(\omega_a/\omega_{c0} \approx 7{,}5\), compris entre 5 et 10 : le modèle rigide convient pour régler la boucle, en restant attentif au mode élastique lors de la validation.</p>
+    <p><strong>Q4.</strong> Le rapport tombe à 2,2 : la résonance, très peu amortie, relève le gain de la FTBO près de la coupure et peut déstabiliser la boucle ; le modèle rigide n'est plus fiable, il faut le modèle à deux inerties. Pour \(\omega_a \geq 8 \times 100 = 800\ \text{rad/s}\), il faut \(k_\theta \geq 800^2 \times 1{,}2\cdot10^{-3} \approx 770\ \text{N·m/rad}\), près de 13 fois plus raide (accouplement rigide, arbre plus court ou plus gros : \(k_\theta\) varie comme \(d^4/\ell\)). Autres solutions : garder une bande passante plus modeste, ou filtrer la commande autour de la résonance (filtre réjecteur) en le prenant en compte dans le réglage.</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 09</span><span class="diff">★ ★ ☆</span>
+  <h3>Vérin pneumatique : coussin d'air et choix de simulation</h3>
+  <div class="statement">Un vérin pneumatique de diamètre 32 mm déplace horizontalement une pince de masse \(m = 1{,}5\ \text{kg}\) (frottements négligés). En fin de mouvement, la chambre arrière a une longueur \(\ell = 0{,}12\ \text{m}\) et contient de l'air sous la pression absolue \(p = 7\ \text{bar}\) ; on étudie les petits mouvements de la pince autour de cette position, l'autre chambre étant à l'échappement.</div>
+  <div class="q"><strong>Q1.</strong> Quelles grandeurs effort et flux porte le lien entre le distributeur et le vérin ? Pourquoi les logiciels utilisent-ils souvent un débit massique en pneumatique ?</div>
+  <div class="q"><strong>Q2.</strong> Pour une petite évolution polytropique (\(pV^n\) constant), montrer que la chambre se comporte comme un ressort de raideur \(k = n\,p\,S^2/V\). Calculer \(k\) en isotherme (\(n = 1\)) et en adiabatique (\(n = 1{,}4\)).</div>
+  <div class="q"><strong>Q3.</strong> En déduire la fréquence propre des oscillations de la pince. Même question si le vérin était rempli d'huile (\(B = 1{,}4\cdot10^{9}\ \text{Pa}\), \(k = BS^2/V\)). Conclure sur l'usage des deux technologies.</div>
+  <div class="q"><strong>Q4.</strong> On simule le vérin pneumatique (adiabatique) à pas fixe. Proposer un pas et une durée de simulation pour observer ces oscillations. Que deviendrait le pas avec le modèle hydraulique compressible ? Comment l'éviter si la compressibilité de l'huile n'intéresse pas ?</div>
+  <div class="q"><strong>Q5.</strong> Comment la fréquence propre varie-t-elle avec la pression d'alimentation (4 à 8 bar absolus) et avec la longueur de la chambre ? Calculer les valeurs extrêmes pour la pression, puis la fréquence quand la chambre ne mesure plus que 3 cm.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> Effort : la pression \(p\) (Pa) ; flux : le débit (volumique \(Q_v\) en m³/s, ou massique \(q_m\) en kg/s), avec la puissance \(p\,Q_v\). L'air est compressible : son débit volumique change avec la pression le long du circuit, alors que le débit massique se conserve d'un composant à l'autre. On l'emploie donc pour écrire les nœuds.</p>
+    <p><strong>Q2.</strong> En différentiant \(pV^n = \text{cste}\) : \(\mathrm{d}p/p = -n\,\mathrm{d}V/V\). Si la tige s'enfonce de \(\mathrm{d}x\), \(\mathrm{d}V = -S\,\mathrm{d}x\), et l'effort de l'air sur le piston augmente de \(\mathrm{d}F = S\,\mathrm{d}p = \dfrac{n\,p\,S^2}{V}\,\mathrm{d}x\). Ici \(S = \pi \times 0{,}016^2 \approx 8{,}04\cdot10^{-4}\ \text{m}^2\) et \(V = S\ell\), donc \(k = n\,p\,S/\ell\) : \(k \approx 4\,690\ \text{N/m}\) en isotherme et \(6\,570\ \text{N/m}\) en adiabatique.</p>
+    <p><strong>Q3.</strong> \(f_0 = \dfrac{1}{2\pi}\sqrt{k/m}\) : 8,9 Hz (isotherme) à 10,5 Hz (adiabatique ; c'est ce cas qui vaut pour une oscillation de quelques hertz, trop rapide pour les échanges de chaleur). Avec de l'huile, \(k = BS/\ell \approx 9{,}4\cdot10^{6}\ \text{N/m}\), environ 1 400 fois plus raide, et \(f_0 \approx 400\ \text{Hz}\). La pince « rebondit » sur son coussin d'air : le vérin pneumatique convient pour des mouvements tout ou rien entre butées, pas pour un positionnement précis à mi-course, qui demande un vérin hydraulique ou électrique.</p>
+    <p><strong>Q4.</strong> Période des oscillations : \(1/10{,}5 \approx 0{,}095\ \text{s}\). Il faut un pas petit devant elle : au plus \(T/10 \approx 10\ \text{ms}\), et plutôt 1 ms pour une courbe propre, vérifiée en divisant le pas par 2. Durée : plusieurs périodes, et, s'il y a un amortissement, jusqu'à leur extinction, soit au moins une seconde ici. Avec le modèle hydraulique compressible, la période tombe à 2,5 ms : le pas devrait descendre à 0,25 ms au plus, alors que le mouvement utile dure des dixièmes de seconde : modèle raide. Si la compressibilité n'intéresse pas, on modélise l'huile incompressible (vérin = transformateur parfait \(F = pS\), \(Q_v = Sv\)), ou l'on emploie un solveur à pas variable.</p>
+    <p><strong>Q5.</strong> \(k\) est proportionnelle à \(p\) et inversement proportionnelle à \(\ell\), donc \(f_0\) varie comme \(\sqrt{p/\ell}\). En adiabatique : 8,0 Hz sous 4 bar et 11,3 Hz sous 8 bar ; pour \(\ell = 3\ \text{cm}\) (quatre fois moins), \(f_0\) double : environ 21 Hz. Un balayage de la position montrerait donc une raideur très variable le long de la course : un modèle linéarisé n'est valable qu'autour d'une position donnée.</p>
   </div>
 </div>
 
@@ -84352,10 +84475,10 @@ u_prec, eps_prec = 0.0, 0.0
     <strong>Méthode 4 — Discrétiser une fonction de transfert ou une équation différentielle</strong>
     <ol style="margin-top:.4rem">
       <li><span class="step">Équation différentielle.</span> Écrire \(D(p)\,V(p) = N(p)\,U(p)\) et traduire \(p^n\) par \(\mathrm{d}^n/\mathrm{d}t^n\) (conditions initiales nulles).</li>
-      <li><span class="step">Dérivées.</span> Remplacer chaque dérivée à l'instant \(kT_e\) par sa différence arrière (temps réel), ou avant si l'énoncé l'impose.</li>
+      <li><span class="step">Dérivées.</span> Remplacer chaque dérivée à l'instant \(kT_e\) par sa différence arrière (temps réel), ou avant si l'énoncé l'impose ; une dérivée seconde par \((v_k - 2v_{k-1} + v_{k-2})/T_e^2\) (un second ordre donne une récurrence qui mémorise deux sorties).</li>
       <li><span class="step">Récurrence.</span> Isoler la valeur courante \(v_k\) (ou \(v_{k+1}\)) ; identifier les coefficients \(a_i\), \(b_i\).</li>
       <li><span class="step">Initialisation.</span> Fixer les valeurs nécessaires avant le premier calcul (souvent \(v_{-1} = u_{-1} = 0\)).</li>
-      <li><span class="step">Contrôles.</span> Gain statique identique au gain continu ; stabilité (pour un premier ordre, coefficient de \(v_{k-1}\) de valeur absolue inférieure à 1).</li>
+      <li><span class="step">Contrôles.</span> Gain statique identique au gain continu ; stabilité (pour un premier ordre, coefficient de \(v_{k-1}\) de valeur absolue inférieure à 1) ; fidélité au filtre continu si \(T_e \leq \tau/10\) (second ordre : \(\omega_0T_e \leq 0{,}1\)).</li>
     </ol>
   </div>
 
@@ -84374,9 +84497,11 @@ u_prec, eps_prec = 0.0, 0.0
     <ol style="margin-top:.4rem">
       <li><span class="step">Loi temporelle.</span> Partir de \(C(p)\), écrire la relation entre \(u\) et \(\varepsilon\) ; choisir la forme incrémentale (plus robuste).</li>
       <li><span class="step">Coefficients.</span> Les calculer une fois avant la boucle (\(q_0 = K_p(1+T_e/T_i)\), \(q_1 = -K_p\) pour un PI).</li>
+      <li><span class="step">Avance de phase.</span> Par différence arrière sur \(u + T\dot u = K_p(\varepsilon + aT\dot\varepsilon)\) : \(u_k = \alpha\,u_{k-1} + b_0\,\varepsilon_k + b_1\,\varepsilon_{k-1}\), avec \(\alpha = \dfrac{T}{T+T_e}\), \(b_0 = K_p\,\dfrac{T_e+aT}{T+T_e}\), \(b_1 = -K_p\,\dfrac{aT}{T+T_e}\). Contrôles : \(b_0 + b_1 = K_p(1-\alpha)\) (gain statique \(K_p\)) et \(T_e \leq T/10\), sinon l'avance apportée fond.</li>
       <li><span class="step">Structure.</span> Initialisation, puis boucle cadencée à \(T_e\) : acquisition → écart → calcul → saturation → écriture sur le CNA → décalage des mémoires.</li>
       <li><span class="step">Saturation.</span> Borner \(u_k\) aux limites du préactionneur <em>avant</em> de le mémoriser.</li>
     </ol>
+    <p><em>Exemple éclair :</em> avance de phase \(K_p = 1\), \(a = 5\), \(T = 20\ \text{ms}\), programmée avec \(T_e = 2\ \text{ms}\) : \(\alpha = 20/22 \approx 0{,}909\), \(b_0 = 102/22 \approx 4{,}64\), \(b_1 = -100/22 \approx -4{,}55\) ; \(b_0 + b_1 \approx 0{,}091 = 1 - \alpha\) : gain statique 1. Pic de commande \(u_0 = b_0\,\varepsilon_0 \approx 4{,}6\,\varepsilon_0\) (\(5\,\varepsilon_0\) en continu).</p>
   </div>
 
   <div class="method-box">
@@ -84389,6 +84514,29 @@ u_prec, eps_prec = 0.0, 0.0
   </div>
 
   <div class="method-box">
+    <strong>Méthode 8 — Traiter un fichier de mesures (moyenne, écart type, moyenne glissante)</strong>
+    <ol style="margin-top:.4rem">
+      <li><span class="step">Lire.</span> <code>d = np.loadtxt(nom, delimiter=';', skiprows=1)</code> (en-tête sauté), puis une colonne par grandeur : <code>t, x = d[:, 0], d[:, 1]</code>.</li>
+      <li><span class="step">Choisir la tranche.</span> Moyenne et écart type ne décrivent qu'un régime établi : écarter d'abord le transitoire (<code>x[k0:]</code>).</li>
+      <li><span class="step">Statistiques.</span> <code>np.mean(x)</code> ; <code>np.std(x, ddof=1)</code> pour le diviseur \(N-1\) (par défaut <code>np.std</code> divise par \(N\)) ; incertitude-type de la moyenne \(s/\sqrt N\) si les mesures sont indépendantes.</li>
+      <li><span class="step">Lisser.</span> <code>np.convolve(x, np.ones(N)/N, mode='valid')</code> rend \(N-1\) valeurs de moins : les dater par <code>t[N-1:]</code> reproduit le calcul en temps réel (retard \((N-1)T_e/2\)) ; les dater par le milieu de la fenêtre supprime ce retard (post-traitement seulement).</li>
+      <li><span class="step">Conclure</span> dans l'unité de la grandeur : valeur moyenne, dispersion d'une mesure, incertitude du résultat.</li>
+    </ol>
+    <p><em>Exemple éclair :</em> cinq mesures 4,02 ; 3,98 ; 4,05 ; 3,97 ; 4,03 bar. Moyenne 4,01 bar ; somme des carrés des écarts \(46\cdot10^{-4}\ \text{bar}^2\), d'où \(s = \sqrt{46\cdot10^{-4}/4} \approx 0{,}034\ \text{bar}\) (0,030 bar avec le diviseur 5) et \(s/\sqrt5 \approx 0{,}015\ \text{bar}\).</p>
+  </div>
+
+  <div class="method-box">
+    <strong>Méthode 9 — Intégrer et dériver au fil des échantillons</strong>
+    <ol style="margin-top:.4rem">
+      <li><span class="step">Intégrer.</span> Forme récursive : seul \(I_{k-1}\) est mémorisé. Trapèzes \(I_k = I_{k-1} + \frac{T_e}{2}(e_k + e_{k-1})\), plus précis que les rectangles (erreur en \(T_e^2\) au lieu de \(T_e\)).</li>
+      <li><span class="step">Dériver.</span> En temps réel, seule la différence arrière \(D_k = (e_k - e_{k-1})/T_e\) est utilisable.</li>
+      <li><span class="step">Chiffrer le bruit.</span> Une erreur \(\pm\delta\) sur chaque mesure peut donner \(2\delta/T_e\) sur \(D_k\) ; un capteur de quantum \(q\) fait sauter \(D_k\) par paliers de \(q/T_e\) (codeur : vitesse multiple de \(q_\theta/T_e\)).</li>
+      <li><span class="step">Remédier.</span> Filtrer avant de dériver, ou dériver sur \(m\) périodes, \((e_k - e_{k-m})/(mT_e)\), au prix d'un retard ; surveiller la dérive d'une intégrale (un décalage de zéro intégré croît comme le temps).</li>
+    </ol>
+    <p><em>Exemple éclair :</em> \(e_0 = 0\), \(e_1 = 1\), \(e_2 = 3\) avec \(T_e = 0{,}1\ \text{s}\) : trapèzes \(I_2 = 0{,}05 + 0{,}2 = 0{,}25\) ; dérivée arrière \(D_2 = (3 - 1)/0{,}1 = 20\ \text{s}^{-1}\).</p>
+  </div>
+
+  <div class="method-box">
     <strong>Pièges classiques</strong>
     <ul style="margin-top:.4rem">
       <li>Confondre la plage du CAN \(\Delta s\) et l'étendue réellement occupée par le signal.</li>
@@ -84397,6 +84545,7 @@ u_prec, eps_prec = 0.0, 0.0
       <li>Oublier que la différence avant peut diverger (\(T_e \geq 2\tau\) pour un premier ordre).</li>
       <li>Mélanger les indices : dans l'expression de \(u_k\), tous les termes doivent être connus à l'instant \(kT_e\).</li>
       <li>Garder les mêmes coefficients après avoir changé \(T_e\).</li>
+      <li>Calculer un écart type avec <code>np.std</code> sans <code>ddof=1</code>, ou sur une tranche qui contient encore le transitoire.</li>
       <li>Oublier le retard d'une moyenne glissante, \((N-1)T_e/2\), dans le bilan des retards d'une boucle.</li>
     </ul>
   </div>
@@ -84580,6 +84729,73 @@ U_MIN, U_MAX = -10.0, 10.0
       <li>Si \(KT_e > 1/4\) : racines complexes conjuguées de module \(\sqrt{KT_e}\) (leur produit vaut \(KT_e\)) : stable si et seulement si \(KT_e \lt 1\).</li>
     </ul>
     <p>Condition de stabilité : \(0 \lt T_e \lt 1/K = 5\ \text{s}\). Le retard de calcul <strong>divise par deux</strong> la période maximale, et l'absence d'oscillation exige maintenant \(T_e \leq 1/(4K) = 1{,}25\ \text{s}\).</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 08</span><span class="diff">★ ★ ☆</span>
+  <h3>Banc d'essai d'un ressort : fichier de mesures et filtre du second ordre</h3>
+  <div class="statement">Un banc mesure l'effort \(F\) d'un ressort de suspension de VTT maintenu comprimé à course fixée. Le capteur est échantillonné à \(f_e = 500\ \text{Hz}\) (\(T_e = 2\ \text{ms}\)). Le fichier essai.csv contient une ligne d'en-tête, puis une ligne par échantillon : le temps \(t\) (s) et l'effort \(F\) (N), séparés par un point-virgule. La première demi-seconde est un transitoire (mise en compression).</div>
+  <div class="q"><strong>Q1.</strong> Écrire les instructions Python (numpy) qui lisent le fichier, ne gardent que les échantillons tels que \(t \geq 0{,}5\ \text{s}\), puis calculent la moyenne et l'écart type de l'effort.</div>
+  <div class="q"><strong>Q2.</strong> Dix valeurs du régime établi sont : 812, 806, 809, 815, 803, 810, 808, 811, 805 et 811 N. Calculer leur moyenne, leur écart type (diviseur \(N-1\)) et l'incertitude-type de la moyenne. Que renverrait np.std sans option ?</div>
+  <div class="q"><strong>Q3.</strong> Pour afficher une valeur lissée en temps réel, on calcule une moyenne glissante sur 25 échantillons. Donner la durée de la fenêtre, le retard moyen, le temps de réponse complet à un échelon et le facteur de réduction d'un bruit indépendant d'un échantillon à l'autre. Élimine-t-elle un parasite secteur à 50 Hz ?</div>
+  <div class="q"><strong>Q4.</strong> On envisage plutôt un passe-bas du second ordre de gain 1, de fréquence propre \(f_0 = 4\ \text{Hz}\) et d'amortissement \(\xi = 1\), discrétisé par différences arrière. Écrire sa récurrence avec ses coefficients numériques, vérifier le gain statique et la condition de fidélité au filtre continu.</div>
+  <div class="q"><strong>Q5.</strong> Calculer \(v_0\), \(v_1\), \(v_2\) pour un échelon unité appliqué au repos (\(v_{-1} = v_{-2} = 0\)). Une simulation donne pour ce filtre un temps de réponse à 5 % de 192 ms, sans dépassement, et un bruit divisé par 9 ; la moyenne glissante atteint 95 % en 46 ms. Comparer les deux filtres.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> On sélectionne le régime établi par un masque booléen (tableau de True et False de même longueur que t) :</p>
+    <pre class="codeblock"><span class="kw">import</span> numpy <span class="kw">as</span> np
+d = np.loadtxt(<span class="str">'essai.csv'</span>, delimiter=<span class="str">';'</span>, skiprows=1)
+t, F = d[:, 0], d[:, 1]
+Fe = F[t &gt;= 0.5]              <span class="cmt"># régime établi seulement</span>
+m = np.mean(Fe)               <span class="cmt"># moyenne (N)</span>
+s = np.std(Fe, ddof=1)        <span class="cmt"># écart type, diviseur N-1</span></pre>
+    <p><strong>Q2.</strong> Somme 8 090 N, d'où \(\bar F = 809{,}0\ \text{N}\). Écarts à la moyenne : 3 ; −3 ; 0 ; 6 ; −6 ; 1 ; −1 ; 2 ; −4 ; 2, dont les carrés ont pour somme 116 N². Écart type \(s = \sqrt{116/9} \approx 3{,}59\ \text{N}\) ; incertitude-type de la moyenne \(s/\sqrt{10} \approx 1{,}14\ \text{N}\). Sans option, np.std divise par \(N = 10\) : \(\sqrt{11{,}6} \approx 3{,}41\ \text{N}\), soit 5 % de moins, un écart qui devient négligeable sur quelques centaines de valeurs.</p>
+    <p><strong>Q3.</strong> Fenêtre : \(25 \times 2 = 50\ \text{ms}\). Retard moyen \((N-1)T_e/2 = 24\ \text{ms}\) ; la réponse à un échelon est complète après \(N - 1 = 24\) périodes, soit 48 ms. Un bruit indépendant est divisé par \(\sqrt{25} = 5\). La moyenne glissante annule exactement les sinusoïdes de période 50 ms (20 Hz) et leurs harmoniques de rang non multiple de 25 ; une période du secteur (20 ms) dure 10 échantillons, et la fenêtre en contient 2,5 : le 50 Hz n'est pas éliminé (il en reste environ 13 %). Il faudrait \(N = 10, 20, 30\)…</p>
+    <p><strong>Q4.</strong> Avec \(x = \omega_0T_e = 2\pi \times 4 \times 0{,}002 \approx 0{,}0503\) : \(2\xi x \approx 0{,}1005\), \(x^2 \approx 0{,}00253\) et \(D = 1 + 2\xi x + x^2 \approx 1{,}1031\). La récurrence du cours, \(v_k = \big[(2+2\xi x)\,v_{k-1} - v_{k-2} + x^2u_k\big]/D\), devient</p>
+    <div class="formula">$$v_k = 1{,}9043\,v_{k-1} - 0{,}9066\,v_{k-2} + 0{,}00229\,u_k$$</div>
+    <p>Gain statique : avec \(u_k = U\) et \(v_k \to V\), \((1 - 1{,}9043 + 0{,}9066)\,V = 0{,}00229\,U\) ; le coefficient de gauche vaut exactement \(x^2/D\), comme celui de droite : \(V = U\). Fidélité : \(\omega_0T_e \approx 0{,}05 \leq 0{,}1\) ; le filtre calculé a un pôle double en \(-24{,}5\ \text{s}^{-1}\), au lieu de \(-\omega_0 \approx -25{,}1\ \text{s}^{-1}\) en continu.</p>
+    <p><strong>Q5.</strong> \(v_0 = 0{,}00229\), puis</p>
+    <div class="formula">$$v_1 = 1{,}9043 \times 0{,}00229 + 0{,}00229 \approx 0{,}00665$$</div>
+    <div class="formula">$$v_2 = 1{,}9043 \times 0{,}00665 - 0{,}9066 \times 0{,}00229 + 0{,}00229 \approx 0{,}0129$$</div>
+    <p>Le départ est très lent, comme pour le second ordre continu (tangente horizontale à l'origine), alors que la moyenne glissante monte de \(1/25 = 0{,}04\) par période. Bilan : la moyenne glissante est quatre fois plus rapide (46 ms contre 192 ms) mais lisse moins (bruit divisé par 5 contre 9) et mémorise 25 valeurs contre 2 ; le second ordre atténue aussi bien mieux le 50 Hz (il en laisse 0,6 % environ). Pour une valeur affichée, où quelques dixièmes de seconde importent peu, le second ordre convient mieux.</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 09</span><span class="diff">★ ★ ★</span>
+  <h3>Avance de phase programmée : influence de la période d'échantillonnage</h3>
+  <div class="statement">Le réglage continu de la boucle de position d'un axe de robot a donné un correcteur à avance de phase \(C(p) = K_p\,\dfrac{1+aTp}{1+Tp}\), avec \(K_p = 0{,}8\ \text{V/rad}\), \(a = 9\) et \(T = 5\ \text{ms}\), centré sur la coupure visée. Le calculateur l'exécute toutes les \(T_e\) ; \(\varepsilon_k\) est l'écart de position (rad) et \(u_k\) la commande (V).</div>
+  <div class="q"><strong>Q1.</strong> Calculer \(\omega_m\) et \(\varphi_m\) du correcteur continu, puis la commande juste après un échelon d'écart \(\varepsilon_0 = 0{,}1\ \text{rad}\) et sa valeur finale.</div>
+  <div class="q"><strong>Q2.</strong> À partir de la loi temporelle du correcteur, établir par différence arrière la récurrence \(u_k = \alpha\,u_{k-1} + b_0\,\varepsilon_k + b_1\,\varepsilon_{k-1}\) et exprimer \(\alpha\), \(b_0\), \(b_1\).</div>
+  <div class="q"><strong>Q3.</strong> Pour \(T_e = 0{,}5\ \text{ms}\) : calculer les coefficients et vérifier le gain statique. L'écart passe de 0 à 0,1 rad à \(k = 0\) et y reste : calculer \(u_0\), \(u_1\), \(u_2\), puis exprimer \(u_k\). Comparer au correcteur continu.</div>
+  <div class="q"><strong>Q4.</strong> Pour \(T_e = 2{,}5\ \text{ms}\), calculer les coefficients et \(u_0\). On admet qu'à \(\omega_m\) la récurrence apporte une avance de 52,4° pour \(T_e = 0{,}5\ \text{ms}\) et de 49,4° pour \(T_e = 2{,}5\ \text{ms}\). En tenant compte du retard \(T_e/2\) du bloqueur, calculer l'avance nette dans les deux cas. Conclure.</div>
+  <div class="q"><strong>Q5.</strong> Écrire les lignes Python qui calculent les coefficients une fois pour toutes, puis, à chaque période, la commande saturée à \(\pm 10\ \text{V}\).</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> \(\omega_m = \dfrac{1}{T\sqrt a} = \dfrac{1}{0{,}005 \times 3} \approx 66{,}7\ \text{rad/s}\) ; \(\sin\varphi_m = \dfrac{a-1}{a+1} = 0{,}8\), d'où \(\varphi_m \approx 53{,}1°\). Valeur initiale \(u(0^+) = aK_p\,\varepsilon_0 = 0{,}72\ \text{V}\) ; valeur finale \(K_p\,\varepsilon_0 = 0{,}08\ \text{V}\). Entre les deux, \(u(t) = K_p\varepsilon_0\big[1 + (a-1)\,e^{-t/T}\big]\) décroît avec la constante de temps \(T\).</p>
+    <p><strong>Q2.</strong> La loi \(u + T\,\dot u = K_p(\varepsilon + aT\,\dot\varepsilon)\) donne, par différence arrière sur les deux dérivées puis multiplication par \(T_e\) :</p>
+    <div class="formula">$$(T + T_e)\,u_k = T\,u_{k-1} + K_p(T_e + aT)\,\varepsilon_k - K_paT\,\varepsilon_{k-1}$$</div>
+    <p>d'où \(\alpha = \dfrac{T}{T+T_e}\), \(b_0 = K_p\,\dfrac{T_e+aT}{T+T_e}\) et \(b_1 = -K_p\,\dfrac{aT}{T+T_e}\).</p>
+    <p><strong>Q3.</strong> \(\alpha = 5/5{,}5 \approx 0{,}9091\), \(b_0 = 0{,}8 \times 45{,}5/5{,}5 \approx 6{,}618\), \(b_1 = -0{,}8 \times 45/5{,}5 \approx -6{,}545\). Gain statique : \(\dfrac{b_0 + b_1}{1 - \alpha} = \dfrac{0{,}0727}{0{,}0909} = 0{,}8\), soit \(K_p\). Pour \(k \geq 1\), \(\varepsilon_k = \varepsilon_{k-1} = 0{,}1\) : \(u_k = \alpha\,u_{k-1} + 0{,}00727\). Donc \(u_0 = b_0 \times 0{,}1 \approx 0{,}662\ \text{V}\), \(u_1 \approx 0{,}609\ \text{V}\), \(u_2 \approx 0{,}561\ \text{V}\) et, la suite étant arithmético-géométrique de point fixe 0,08 :</p>
+    <div class="formula">$$u_k = 0{,}08 + 0{,}582\,\alpha^k\quad(\text{V})$$</div>
+    <p>Comme \(\alpha^k = e^{k\ln\alpha}\) avec \(\ln\alpha \approx -0{,}0953\), l'excédent décroît avec une constante de temps \(T_e/0{,}0953 \approx 5{,}2\ \text{ms}\), presque \(T\). Le pic (0,662 V au lieu de 0,72 V) est un peu plus faible qu'en continu : le correcteur programmé reproduit fidèlement le correcteur continu.</p>
+    <p><strong>Q4.</strong> \(\alpha = 5/7{,}5 \approx 0{,}667\), \(b_0 = 0{,}8 \times 47{,}5/7{,}5 \approx 5{,}067\), \(b_1 = -0{,}8 \times 45/7{,}5 = -4{,}8\) (gain statique toujours \(0{,}267/0{,}333 = 0{,}8\)) ; \(u_0 \approx 0{,}507\ \text{V}\). Retard du bloqueur à \(\omega_m\) : \(\omega_mT_e/2\), soit 0,0167 rad (0,95°) pour 0,5 ms et 0,0833 rad (4,8°) pour 2,5 ms. Avances nettes : \(52{,}4 - 0{,}95 \approx 51{,}4°\) et \(49{,}4 - 4{,}8 \approx 44{,}6°\), contre 53,1° en continu. Avec \(T_e = T/10\), il ne manque que 1,7° ; avec \(T_e = T/2\), il manque 8,5° de marge de phase : le réglage continu n'est plus respecté. On garde \(T_e \leq T/10 = 0{,}5\ \text{ms}\), ou l'on reprend le réglage en comptant ce retard.</p>
+    <p><strong>Q5.</strong></p>
+    <pre class="codeblock">KP, A, T, TE = 0.8, 9.0, 0.005, 0.0005
+AL = T/(T + TE)                    <span class="cmt"># coefficients calculés une fois</span>
+B0 = KP*(TE + A*T)/(T + TE)
+B1 = -KP*A*T/(T + TE)
+u_prec, eps_prec = 0.0, 0.0
+<span class="kw">while</span> True:
+    attendre_top_horloge()          <span class="cmt"># toutes les TE</span>
+    eps = lire_consigne() - lire_position()
+    u = AL*u_prec + B0*eps + B1*eps_prec
+    u = min(max(u, -10.0), 10.0)    <span class="cmt"># saturation</span>
+    ecrire_CNA(u)
+    u_prec, eps_prec = u, eps</pre>
   </div>
 </div>
 
@@ -85228,7 +85444,7 @@ T, X = euler(F, X0, 0.05, 40, 30.0)  <span class="cmt"># 2 s simulées</span></c
     <ol style="margin-top:.4rem">
       <li><span class="step">Fonction.</span> \(g(C_0) = t_o(C_0) - 2{,}5\), où chaque valeur de \(t_o\) demande une simulation complète.</li>
       <li><span class="step">Encadrement.</span> \(g(30) \lt 0\) et \(g(70) \gt 0\), et \(g\) est croissante d'après le balayage.</li>
-      <li><span class="step">Dichotomie</span> : 9 simulations pour une précision de 0,1 N·m ; résultat \(C_0 \leq 43{,}7\ \text{N·m}\). La dichotomie ne demande que le signe de \(g\) ; Newton exigerait une dérivée, elle-même estimée par deux simulations voisines.</li>
+      <li><span class="step">Dichotomie</span> : 9 itérations pour une précision de 0,1 N·m (\(\log_2(40/0{,}1) \approx 8{,}6\)), soit 10 simulations en comptant le calcul initial de \(g(30)\) ; résultat \(C_0 \leq 43{,}7\ \text{N·m}\). La dichotomie ne demande que le signe de \(g\) ; Newton exigerait une dérivée, elle-même estimée par deux simulations voisines.</li>
     </ol>
   </div>
 <pre class="codeblock"><code><span class="kw">def</span> duree_ouverture(C0, h, tmax=20.0):
@@ -85487,7 +85703,7 @@ k, ts, C = 30.0, 1.8, 58.86   <span class="cmt"># N·m/rad, rad, N·m</span>
 
 eps = 0.1*pi/180              <span class="cmt"># 0,1° en radians</span>
 theta_eq = dichotomie(f, 0.0, pi/2, eps, <span class="kw">None</span>)</code></pre>
-    <p><strong>Q4.</strong> \(f\) est le couple qui tend à ouvrir. Pour \(\theta \lt 76{,}07°\), \(f \lt 0\) : lâchée à 60°, la lisse retombe et se ferme. Pour \(\theta \gt 76{,}07°\), \(f \gt 0\) : lâchée à 85°, elle s'ouvre complètement. L'équilibre est <strong>instable</strong> (\(f'(\theta_{eq}) = -k + C\sin\theta_{eq} \approx 27\ \text{N·m/rad} \gt 0\)). La dichotomie trouve aussi bien un équilibre instable qu'un équilibre stable : l'interprétation physique reste à faire. Pour une barrière qui doit rester ouverte en cas de panne, il faudrait un ressort plus raide.</p>
+    <p><strong>Q4.</strong> \(f\) est le couple qui tend à ouvrir. Pour \(\theta \lt 76{,}07°\), \(f \lt 0\) : lâchée à 60°, la lisse retombe et se ferme. Pour \(\theta \gt 76{,}07°\), \(f \gt 0\) : lâchée à 85°, elle s'ouvre complètement. L'équilibre est <strong>instable</strong> : \(f'(\theta_{eq}) = -k + C\sin\theta_{eq}\) vaut environ \(27\ \text{N·m/rad}\), une valeur positive. La dichotomie trouve aussi bien un équilibre instable qu'un équilibre stable : l'interprétation physique reste à faire. Pour une barrière qui doit rester ouverte en cas de panne, il faudrait un ressort plus raide.</p>
   </div>
 </div>
 
@@ -85520,8 +85736,10 @@ r, L, e = 40.0, 160.0, 10.0   <span class="cmt"># mm</span>
 
 theta1 = newton(g, dg, pi/2, 150.0)     <span class="cmt"># 100,50°</span>
 theta2 = newton(g, dg, 3*pi/2, 150.0)   <span class="cmt"># 267,13°</span></code></pre>
-    <p><strong>Q3.</strong> \(g(\pi/2) = 157{,}16 - 150 = 7{,}16\ \text{mm}\), d'où \(\theta_1 = \pi/2 - 7{,}16/(-40) = 1{,}750\ \text{rad} = 100{,}26°\), déjà à 0,24° de la solution. 100,50° est l'angle de contact à la descente : c'est celui qu'on cherche ; 267,13° est le passage à la même position pendant la remontée (outil revenu au-dessus de la tôle). Le point de départ choisit la solution.</p>
-    <p><strong>Q4.</strong> Près de \(\theta = 0\), le coulisseau est au voisinage du point mort haut (maximum de \(x\) à 2,9°) : \(x'(0) \approx 2{,}5\ \text{mm/rad}\) seulement. La première correction vaut \((199{,}69 - 150)/2{,}5 \approx 20\ \text{rad}\), plus de trois tours : la suite erre avant de converger vers une solution imprévisible. On part plutôt d'une valeur lue dans un tableau grossier de \(x(\theta)\), ou d'un premier encadrement par dichotomie.</p>
+    <p><strong>Q3.</strong> \(g(\pi/2) = 157{,}16 - 150 = 7{,}16\ \text{mm}\), d'où</p>
+    <div class="formula">$$\theta_1 = \frac{\pi}{2} - \frac{7{,}16}{-40} = 1{,}750\ \text{rad} = 100{,}26°$$</div>
+    <p>déjà à 0,24° de la solution. 100,50° est l'angle de contact à la descente : c'est celui qu'on cherche ; 267,13° est le passage à la même position pendant la remontée (outil revenu au-dessus de la tôle). Le point de départ choisit la solution.</p>
+    <p><strong>Q4.</strong> Près de \(\theta = 0\), le coulisseau est au voisinage du point mort haut (maximum de \(x\) à 2,9°) : \(x'(0) \approx 2{,}5\ \text{mm/rad}\) seulement. La première correction vaut \((199{,}69 - 150)/2{,}5 \approx 20\ \text{rad}\), plus de trois tours : l'itéré saute très loin, et la suite converge ici vers \(-1\,172{,}87°\), c'est-à-dire 267,13° à quatre tours près : la position de remontée, pas celle qu'on cherche. D'un départ à l'autre, la solution atteinte est imprévisible. On part plutôt d'une valeur lue dans un tableau grossier de \(x(\theta)\), ou d'un premier encadrement par dichotomie.</p>
   </div>
 </div>
 
@@ -85531,7 +85749,9 @@ theta2 = newton(g, dg, 3*pi/2, 150.0)   <span class="cmt"># 267,13°</span></cod
   <div class="statement">Une potence d'atelier est fixée à un mur vertical. Le bras horizontal 1 (longueur \(\ell = 2\ \text{m}\), masse 60 kg, centre de gravité au milieu) est articulé en A sur le mur. Le tirant 2 (masse 15 kg, centre de gravité au milieu) est articulé en C sur le mur, 1,2 m au-dessus de A, et en D sur le bras, à \(x_D = 1{,}6\ \text{m}\) de A. Un palan portant une charge \(P = 5\,000\ \text{N}\) roule sur le bras, à l'abscisse \(x_P\) comprise entre 0,3 m et 2 m. Problème plan, liaisons pivots parfaites, \(g = 9{,}81\ \text{m/s}^2\) ; repère d'origine A, \(\vec x\) le long du bras, \(\vec y\) vers le haut. Inconnues : actions du mur sur le bras en A \((X_A, Y_A)\), du mur sur le tirant en C \((X_C, Y_C)\), du tirant sur le bras en D \((X_D, Y_D)\).</div>
   <div class="q"><strong>Q1.</strong> Pourquoi ne peut-on pas affirmer que l'action du tirant est dirigée selon CD ? Compter équations et inconnues.</div>
   <div class="q"><strong>Q2.</strong> Écrire les six équations (moments en A pour le bras, en C pour le tirant) et les matrices \(A\) et \(B\), pour \(X = (X_A, Y_A, X_C, Y_C, X_D, Y_D)\).</div>
-  <div class="q"><strong>Q3.</strong> Écrire la fonction <code>potence(xP, P)</code> qui renvoie \(X\). Pour \(x_P = 2\ \text{m}\), elle donne \(X = (8\,922\,;\,-1\,029\,;\,-8\,922\,;\,6\,765\,;\,-8\,922\,;\,6\,618)\) en N. Interpréter les signes et calculer l'effort transmis par le tirant en D.</div>
+  <div class="q"><strong>Q3.</strong> Écrire la fonction <code>potence(xP, P)</code> qui renvoie \(X\). Pour \(x_P = 2\ \text{m}\), elle donne, en N :
+    <div class="formula">$$X = (8\,922\,;\,-1\,029\,;\,-8\,922\,;\,6\,765\,;\,-8\,922\,;\,6\,618)$$</div>
+    Interpréter les signes et calculer l'effort transmis par le tirant en D.</div>
   <div class="q"><strong>Q4.</strong> Recalculer cet effort en négligeant la masse du tirant. Conclure.</div>
   <div class="q"><strong>Q5.</strong> Comment déterminer, avec cette fonction, l'effort maximal à prévoir pour le tirant et les fixations du mur ?</div>
   <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
@@ -85628,8 +85848,8 @@ i_max = max(X[:, 0])          <span class="cmt"># 18,6 A</span></code></pre>
   <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
   <div class="solution">
     <h4>Correction</h4>
-    <p><strong>Q1.</strong> \(v = 0{,}252\,;\ 0{,}746\,;\ 1{,}004\,;\ 1{,}002\,;\ 0{,}994\,;\ 1{,}004\,;\ 0{,}746\,;\ 0{,}252\ \text{m/s}\). Chaque différence estime le mieux la vitesse au milieu de son intervalle (0,25 s ; 0,75 s ; … ; 3,75 s). La cabine accélère pendant une seconde, monte à 1,0 m/s environ, puis freine pendant la dernière seconde.</p>
-    <p><strong>Q2.</strong> \(a = 0{,}99\,;\ 0{,}52\,;\ 0\,;\ 0\,;\ 0\,;\ -0{,}52\,;\ -0{,}99\ \text{m/s}^2\) aux instants 0,5 s ; 1 s ; … ; 3,5 s (à ±0,02 près). Le profil est trapézoïdal en vitesse : accélération de 1 m/s² environ, palier, décélération. La valeur 0,52 m/s² vient d'un calcul à cheval sur la fin de la phase d'accélération : elle moyenne 1 et 0.</p>
+    <p><strong>Q1.</strong> Vitesses successives (m/s) : 0,252 ; 0,746 ; 1,004 ; 1,002 ; 0,994 ; 1,004 ; 0,746 ; 0,252. Chaque différence estime le mieux la vitesse au milieu de son intervalle (0,25 s ; 0,75 s ; … ; 3,75 s). La cabine accélère pendant une seconde, monte à 1,0 m/s environ, puis freine pendant la dernière seconde.</p>
+    <p><strong>Q2.</strong> Accélérations successives (m/s²) : 0,99 ; 0,52 ; 0 ; 0 ; 0 ; −0,52 ; −0,99, aux instants 0,5 s ; 1 s ; … ; 3,5 s (à ±0,02 près). Le profil est trapézoïdal en vitesse : accélération de 1 m/s² environ, palier, décélération. La valeur 0,52 m/s² vient d'un calcul à cheval sur la fin de la phase d'accélération : elle moyenne 1 et 0.</p>
 <pre class="codeblock"><code>t = [0.5*k <span class="kw">for</span> k <span class="kw">in</span> range(9)]                      <span class="cmt"># s</span>
 z = [0.000, 0.126, 0.499, 1.001, 1.502,
      1.999, 2.501, 2.874, 3.000]                   <span class="cmt"># m</span>
@@ -85638,7 +85858,9 @@ P = [160, 2340, 4110, 4030, 4080,
 v = derivee_arriere(t, z)     <span class="cmt"># m/s</span>
 E = trapezes(t, P)            <span class="cmt"># J</span>
 rendement = 300*9.81*(z[8] - z[0])/E</code></pre>
-    <p><strong>Q3.</strong> \(E \approx 0{,}5 \times \big(\tfrac{160 + 150}{2} + 24\,500\big) = 12\,328\ \text{J} \approx 3{,}42\ \text{W·h}\). Rectangles : 12 330 J à gauche, 12 325 J à droite. Les trois résultats sont proches parce que la puissance est faible aux deux extrémités ; la vraie limite de précision est le pas de 0,5 s devant les variations rapides de \(P\) au démarrage.</p>
+    <p><strong>Q3.</strong> La somme des valeurs intermédiaires vaut 24 500 W :</p>
+    <div class="formula">$$E \approx 0{,}5 \times \left(\frac{160 + 150}{2} + 24\,500\right) = 12\,328\ \text{J} \approx 3{,}42\ \text{W·h}$$</div>
+    <p>Rectangles : 12 330 J à gauche, 12 325 J à droite. Les trois résultats sont proches parce que la puissance est faible aux deux extrémités ; la vraie limite de précision est le pas de 0,5 s devant les variations rapides de \(P\) au démarrage.</p>
     <p><strong>Q4.</strong> Énergie potentielle gagnée : \(m\,g\,\Delta z = 300 \times 9{,}81 \times 3 = 8\,829\ \text{J}\) ; énergie cinétique nulle au départ et à l'arrivée. Rendement \(\eta = 8\,829/12\,328 \approx 0{,}72\), plausible pour un moteur, un réducteur et des guidages. À l'arrêt, 150 à 160 W sont absorbés : pertes à vide du variateur, frein électromagnétique maintenu ouvert ; elles pèsent dans le bilan d'un cycle court.</p>
     <p><strong>Q5.</strong> L'écart entre deux positions est connu à 1 mm près : vitesse à \(1\ \text{mm}/10\ \text{ms} = 0{,}1\ \text{m/s}\) près (10 % de la vitesse de croisière), accélération à \(0{,}1/0{,}01 = 10\ \text{m/s}^2\) près, soit dix fois la valeur cherchée : inexploitable. Il faut dériver sur des intervalles plus longs (0,1 s donne la vitesse à 0,01 m/s près), filtrer, ou mesurer l'accélération directement avec un accéléromètre.</p>
   </div>
@@ -85689,9 +85911,44 @@ h, tf = 0.1, 2.0
   </div>
 </div>
 
+<div class="exo">
+  <span class="num">EXO 07</span><span class="diff">★ ★ ☆</span>
+  <h3>Mise en vitesse d'un convoyeur : simulation, balayage et valeur limite</h3>
+  <div class="statement">Ramené à l'arbre moteur, le convoyeur d'une ligne d'emballage a une inertie équivalente \(J = 0{,}05\ \text{kg·m}^2\) et oppose un couple résistant constant \(C_r = 10\ \text{N·m}\). Le moteur a pour caractéristique \(C_m = C_d\,(1 - \omega/\omega_0)\), avec \(C_d = 40\ \text{N·m}\) et \(\omega_0 = 150\ \text{rad/s}\). Exigence : atteindre la vitesse de production \(\omega_p = 100\ \text{rad/s}\) moins de 0,5 s après la mise en marche, à partir du repos.</div>
+  <div class="q"><strong>Q1.</strong> Écrire l'équation du mouvement et sa forme de Cauchy. Montrer que c'est un premier ordre ; donner sa constante de temps \(\tau\), sa vitesse finale \(\omega_\infty\) et la durée exacte \(t_p\) de mise en vitesse. L'exigence est-elle satisfaite ?</div>
+  <div class="q"><strong>Q2.</strong> Préparer la simulation : grandeur observée, événement à dater, pas, durée maximale.</div>
+  <div class="q"><strong>Q3.</strong> Écrire une fonction duree(Cr, h) qui renvoie \(t_p\) par Euler explicite, avec interpolation, ou None si \(\omega_p\) n'est jamais atteinte. Elle donne 0,390 s pour \(h = 0{,}02\ \text{s}\), 0,401 s pour 0,01 s, 0,4109 s pour 1 ms et 0,4119 s pour 0,1 ms. Interpréter.</div>
+  <div class="q"><strong>Q4.</strong> Avec \(h = 0{,}1\ \text{ms}\), une hausse de 10 % de \(J\) allonge \(t_p\) de 10,0 %, une hausse de 10 % de \(C_r\) de 14,7 %, et une hausse de 10 % de \(C_d\) le raccourcit de 17,8 %. Expliquer le premier résultat et classer les paramètres.</div>
+  <div class="q"><strong>Q5.</strong> On cherche le plus grand couple résistant admissible par dichotomie sur \(g(C_r) = t_p(C_r) - 0{,}5\). Pourquoi chercher dans \([10\,;\,13]\) plutôt que dans \([10\,;\,20]\) ? Combien d'itérations pour 0,01 N·m ? Le programme donne 11,34 N·m : le vérifier.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> Théorème du moment dynamique sur l'arbre : \(J\,\dot\omega = C_d\,(1 - \omega/\omega_0) - C_r\). L'état se réduit à \(\omega\) (la position n'intervient pas) : \(\dot\omega = F(t, \omega) = \big[C_d(1 - \omega/\omega_0) - C_r\big]/J\), avec \(\omega(0) = 0\). En réordonnant, \(\dfrac{J\omega_0}{C_d}\,\dot\omega + \omega = \omega_0\left(1 - \dfrac{C_r}{C_d}\right)\) : premier ordre de constante de temps \(\tau = J\omega_0/C_d = 0{,}1875\ \text{s}\) et de vitesse finale \(\omega_\infty = 112{,}5\ \text{rad/s}\). De \(\omega = \omega_\infty\big(1 - e^{-t/\tau}\big)\) on tire</p>
+    <div class="formula">$$t_p = \tau\ln\frac{\omega_\infty}{\omega_\infty - \omega_p} = 0{,}1875\,\ln 9 \approx 0{,}412\ \text{s}$$</div>
+    <p>L'exigence (0,5 s) est satisfaite. Ce cas à solution exacte servira à tester le programme.</p>
+    <p><strong>Q2.</strong> Grandeur observée : \(\omega\) (et le couple moteur si l'on veut vérifier l'actionneur). Événement : le passage de \(\omega\) par \(\omega_p\), daté par interpolation linéaire entre les deux derniers pas. Pas : \(h \leq \tau/10 \approx 0{,}02\ \text{s}\) pour l'allure, puis on le divise jusqu'à ce que \(t_p\) ne bouge plus à la précision voulue. Durée maximale : quelques \(\tau\) suffisent quand \(\omega_p\) est atteinte, mais il faut un garde-fou (5 s par exemple), car pour un couple résistant trop fort \(\omega_p\) n'est jamais atteinte.</p>
+    <pre class="codeblock">J, Cd, w0, wp = 0.05, 40.0, 150.0, 100.0   <span class="cmt"># SI</span>
+<span class="kw">def</span> F(t, w, Cr):
+    <span class="kw">return</span> (Cd*(1 - w/w0) - Cr)/J
+<span class="kw">def</span> duree(Cr, h, tmax=5.0):
+    <span class="str">"""Instant où omega atteint wp (None si jamais)."""</span>
+    t, w = 0.0, 0.0
+    <span class="kw">while</span> t &lt; tmax:
+        ws = w + h*F(t, w, Cr)              <span class="cmt"># un pas d'Euler</span>
+        <span class="kw">if</span> ws &gt;= wp:                       <span class="cmt"># seuil franchi</span>
+            <span class="kw">return</span> t + h*(wp - w)/(ws - w)  <span class="cmt"># interpolation</span>
+        t, w = t + h, ws
+    <span class="kw">return</span> None</pre>
+    <p><strong>Q3.</strong> Les écarts à la valeur exacte (0,4120 s) valent environ 0,022 ; 0,011 ; 0,001 1 et 0,000 1 s : ils sont proportionnels à \(h\) (méthode d'ordre 1). Le pas \(\tau/10\) donne la bonne allure, mais une date fausse de 5 % ; pour juger une exigence à 0,5 s près de la limite, on prend \(h = 1\ \text{ms}\) (0,3 %) ou moins. Euler sous-estime ici la durée : le pas prend la pente du début de pas, plus forte que la pente moyenne d'une courbe qui s'infléchit.</p>
+    <p><strong>Q4.</strong> \(J\) n'intervient que dans \(\tau\), proportionnelle à \(J\), et pas dans \(\omega_\infty\) : \(t_p\) est donc proportionnel à \(J\), d'où exactement +10 %. \(C_r\) et \(C_d\) agissent à la fois sur \(\omega_\infty\) et (pour \(C_d\)) sur \(\tau\) : la sensibilité est plus forte. Classement : \(C_d\) (17,8 %), \(C_r\) (14,7 %), puis \(J\) (10 %). Le choix du moteur et la maîtrise des frottements comptent plus que la masse transportée.</p>
+    <p><strong>Q5.</strong> Si \(C_r \geq C_d(1 - \omega_p/\omega_0) = 40/3 \approx 13{,}3\ \text{N·m}\), alors \(\omega_\infty \leq \omega_p\) : la vitesse de production n'est jamais atteinte et duree renvoie None, que la dichotomie ne sait pas comparer à 0. Sur \([10\,;\,13]\), \(g(10) \approx -0{,}09\ \text{s} \lt 0\) et \(g(13) \approx +0{,}32\ \text{s} \gt 0\). Il faut \(n \geq \log_2(3/0{,}01) \approx 8{,}2\), soit 9 itérations (10 simulations avec \(g(10)\)). Vérification exacte : \(t_p = 0{,}5\ \text{s}\) impose \(\ln\dfrac{\omega_\infty}{\omega_\infty - 100} = \dfrac{0{,}5}{0{,}1875}\), d'où \(\omega_\infty \approx 107{,}5\ \text{rad/s}\) et \(C_r = C_d(1 - \omega_\infty/\omega_0) \approx 11{,}34\ \text{N·m}\). Avec \(h = 1\ \text{ms}\), on trouverait 11,36 N·m : l'erreur numérique, qui raccourcit \(t_p\), surestime légèrement le couple admissible.</p>
+  </div>
+</div>
+
 <div class="exo concours">
-  <span class="num">EXO 07</span><span class="diff">★ ★ ★</span>
-  <h3>Concours PT — Motorisation d'un portail battant</h3>
+  <span class="num">CONCOURS PT</span><span class="diff">★ ★ ★</span>
+  <h3>Motorisation d'un portail battant</h3>
+  <div class="exo-source">Exercice <strong>original</strong> au format des épreuves de Sciences industrielles PT (thème <em>résolution numérique</em>).</div>
   <div class="statement">Un vantail de portail tourne autour de l'axe vertical de ses gonds (O). Vue de dessus, repère horizontal \((O, \vec x, \vec y)\) : le vantail fermé est selon \(\vec x\) et s'ouvre vers \(\vec y\), d'un angle \(\theta\) allant de 0 à \(\pi/2\). Un vérin électrique (moteur et système vis-écrou) est articulé sur le pilier en \(P(-a\,;\,b)\) et sur le vantail en \(Q(c\cos\theta\,;\,c\sin\theta)\), avec \(a = b = 0{,}15\ \text{m}\) et \(c = 0{,}9\ \text{m}\) ; il ouvre le portail en se raccourcissant. Inertie du vantail autour de l'axe des gonds \(J = 120\ \text{kg·m}^2\) ; couple résistant (frottements, vent) \(C_r = 60\ \text{N·m}\). Effort de traction du vérin fonction de sa vitesse de rétraction \(v\) : \(F = F_0\,(1 - v/v_0)\), avec \(F_0 = 2\,000\ \text{N}\) et \(v_0 = 0{,}025\ \text{m/s}\). Cahier des charges : ouverture complète en moins de 20 s ; la carte de commande ne mesure que la longueur \(\lambda\) du vérin (codeur sur le moteur) et doit en déduire \(\theta\).</div>
   <div class="exo-part">Partie A — Démarche et géométrie</div>
   <div class="q"><strong>Q1.</strong> Décomposer l'étude en sous-problèmes ; pour chacun, donner la forme mathématique et la méthode numérique.</div>
@@ -100425,9 +100682,16 @@ const corrCards = [
   {q:"Intérêts d'une commande en cascade courant, vitesse, position ?", a:"Perturbations corrigées près de leur point d'entrée, grandeurs internes limitables (saturer la consigne de courant protège le moteur), réglage boucle par boucle."},
   {q:"Boucle à correcteur P (gain K_c) autour d'un premier ordre K/(1+τp) : que devient la constante de temps ?", a:"\\(\\tau_{BF} = \\dfrac{\\tau}{1+K_cK}\\) : elle est divisée par \\(1+K_cK\\), et le gain statique tend vers 1.", cat:'form'},
   {q:"Pourquoi l'écart dû à une perturbation constante peut-il subsister malgré un intégrateur dans la FTBO ?", a:"Seul un intégrateur situé en amont du point d'entrée de la perturbation annule l'écart qu'elle provoque."},
-  {q:"Qu'est-ce qu'une anticipation de consigne ?", a:"Un terme \\(F(p)\\,E(p)\\) ajouté à la commande, calculé hors de la boucle à partir de la consigne. L'écart devient \\(\\dfrac{1 - FG}{1 + CG}\\,E\\) : le suivi s'améliore sans changer les pôles ni les marges."},
-  {q:"Comment annuler l'écart de traînage d'un axe \\(\\dfrac{K}{p\\,(1 + \\tau p)}\\) sans toucher au gain ?", a:"Par une anticipation de vitesse \\(F(p) = p/K\\) : l'écart à la rampe s'annule en régime permanent, la marge de phase reste celle du réglage proportionnel."},
-  {q:"Forme réalisée (série) d'un correcteur PID ?", a:"\\(K_p\\,\\dfrac{1 + T_Ip}{T_Ip}\\cdot\\dfrac{1 + aTp}{1 + Tp}\\) avec \\(a \\gt 1\\) : un PI suivi d'une avance de phase."}
+  {q:"Qu'est-ce qu'une anticipation de consigne ?", a:"Hors programme en PT (un sujet qui l'utilise la présente) : un terme \\(F(p)\\,E(p)\\) ajouté à la commande, calculé hors de la boucle à partir de la consigne. L'écart devient \\(\\dfrac{1 - FG}{1 + CG}\\,E\\) : le suivi s'améliore sans changer les pôles ni les marges."},
+  {q:"Comment annuler l'écart de traînage d'un axe \\(\\dfrac{K}{p\\,(1 + \\tau p)}\\) sans toucher au gain ?", a:"Hors programme en PT (anticipation) : par une anticipation de vitesse \\(F(p) = p/K\\), l'écart à la rampe s'annule en régime permanent et la marge de phase reste celle du réglage proportionnel. Au programme, on augmenterait la classe ou le gain de la FTBO."},
+  {q:"Forme réalisée (série) d'un correcteur PID ?", a:"Le correcteur PID est hors programme en PT, mais sa forme série est l'association, au programme, d'un PI et d'une avance de phase : \\(K_p\\,\\dfrac{1 + T_Ip}{T_Ip}\\cdot\\dfrac{1 + aTp}{1 + Tp}\\) avec \\(a \\gt 1\\)."},
+  {q:"Qu'appelle-t-on pôles dominants d'une fonction de transfert stable ?", a:"Ceux dont la partie réelle est la plus proche de zéro : leurs modes, qui décroissent comme \\( e^{\\mathrm{Re}(p_i)\\,t} \\), s'éteignent le plus lentement et fixent la durée du régime transitoire."},
+{q:"Quand peut-on négliger un pôle pour réduire l'ordre d'un modèle ?", a:"Quand sa partie réelle est, en valeur absolue, au moins 5 fois (par prudence 10 fois) celle des pôles dominants, et qu'aucun zéro n'est voisin des pôles dominants. On remplace son facteur canonique \\( (1+\\tau_r p) \\) par 1 : le gain statique est conservé."},
+{q:"Limites d'une réduction aux pôles dominants ?", a:"Un zéro voisin des pôles dominants doit être gardé ; un dipôle pôle-zéro laisse une traîne lente ; pour une paire complexe peu amortie, c'est \\( \\xi_r\\omega_r \\) qui compte ; le début de la réponse est mal décrit ; pour les marges, un pôle 5 fois plus rapide que la coupure y retire encore \\( \\arctan(1/5) \\approx 11° \\) de phase."},
+{q:"Loi temporelle du correcteur à avance de phase ?", a:"\\( u + T\\,\\dfrac{\\mathrm{d}u}{\\mathrm{d}t} = K_p\\left(\\varepsilon + aT\\,\\dfrac{\\mathrm{d}\\varepsilon}{\\mathrm{d}t}\\right) \\) avec \\( a \\gt 1 \\) : une action dérivée filtrée.", cat:'form'},
+{q:"Quelle allure veut-on pour la FTBO en hautes pulsations, et pourquoi ?", a:"Un gain faible : c'est là qu'agissent le bruit de mesure et l'effort de commande. L'avance de phase y multiplie le gain par \\( a \\) : c'est sa principale contrepartie."},
+{q:"Pourquoi le correcteur proportionnel montre-t-il vite ses limites ?", a:"Choisir \\( K_p \\), c'est choisir le seul point de coupure : marges, rapidité et précision en découlent ensemble. En classe 0, \\( \\varepsilon_s = \\dfrac{E_0}{1+K_pK} \\) réclame un grand \\( K_p \\) que les marges plafonnent : il faut alors un PI."},
+{q:"Pourquoi ne pas conclure un réglage sur la seule marge de phase ?", a:"Une FTBO d'ordre élevé peut avoir une \\( M_\\varphi \\) correcte mais une \\( M_G \\) faible, ou un dépassement supérieur à la règle \\( \\xi \\approx M_\\varphi(°)/100 \\) ; et une simulation linéaire ignore les saturations. On vérifie tous les critères sur la réponse temporelle, commande comprise."}
 ];
 const corrFlash = makeFlash(corrCards,'corr','corr-flash-content','corr-flash-prog','corr-stats');
 /* --- Modélisation multiphysique (multiphy) --- */
@@ -100471,7 +100735,15 @@ const mphCards = [
   {q:"Comment obtient-on l'inertie équivalente ramenée sur l'arbre moteur ?", a:"En égalant les énergies cinétiques : \\(J_{eq}=\\sum_i J_i\\left(\\dfrac{\\omega_i}{\\omega_m}\\right)^2+\\sum_j m_j\\left(\\dfrac{v_j}{\\omega_m}\\right)^2\\).", cat:'form'},
   {q:"Constante de temps mécanique d'une MCC (inductance et frottements négligés) ?", a:"\\(\\tau_m=\\dfrac{R\\,J}{K^2}\\) et \\(\\dfrac{\\Omega(p)}{U(p)}=\\dfrac{1/K}{1+\\tau_m\\,p}\\)", cat:'form'},
   {q:"Trois non-linéarités usuelles et leur effet ?", a:"Saturation : réponse plus lente aux grands échelons. Frottement sec : seuil de démarrage, erreur statique. Jeu : imprécision, oscillations entretenues."},
-  {q:"Comment valider un modèle ?", a:"Simuler l'essai réel, superposer les courbes, chiffrer les écarts sur les critères du cahier des charges, en chercher la cause, recaler, puis valider sur un autre essai."}
+  {q:"Comment valider un modèle ?", a:"Simuler l'essai réel, superposer les courbes, chiffrer les écarts sur les critères du cahier des charges, en chercher la cause, recaler, puis valider sur un autre essai."},
+  {q:"Raideur d'une chambre de vérin pneumatique de volume V et de section S ?", a:"\\( k = \\dfrac{n\\,p\\,S^2}{V} \\) (pression absolue \\( p \\)), avec \\( n = 1 \\) en évolution lente (isotherme) et \\( n = \\gamma = 1{,}4 \\) en évolution rapide (adiabatique). Pour une huile de module \\( B \\) : \\( k = BS^2/V \\), des milliers de fois plus grande.", cat:'form'},
+{q:"Pourquoi un vérin pneumatique positionne-t-il mal une charge à mi-course ?", a:"L'air est compressible : chaque chambre se comporte comme un ressort, et la charge oscille sur ce coussin d'air à quelques hertz. D'où l'usage : pneumatique pour le tout ou rien entre butées, hydraulique ou électrique pour un positionnement précis."},
+{q:"Transmission à deux inerties reliées par une raideur : pulsations caractéristiques ?", a:"Résonance \\( \\omega_r = \\sqrt{k_\\theta\\,\\dfrac{J_m+J_c}{J_mJ_c}} \\) ; vue de l'arbre moteur, antirésonance en \\( \\omega_a = \\sqrt{k_\\theta/J_c} \\), avant la résonance.", cat:'form'},
+{q:"Quand faut-il un modèle de solide déformable ?", a:"Quand la performance cherchée est une déformation ou une contrainte (flèche, raideur, tenue), ou quand la plus basse pulsation propre vue par la commande (\\( \\omega_a \\)) n'est pas au moins 5 à 10 fois la pulsation de coupure \\( \\omega_{c0} \\) de la boucle."},
+{q:"Effet d'un retard pur dans une boucle ?", a:"Il ne change pas le gain mais retire \\( \\omega\\tau \\) radians de phase : la marge de phase diminue de \\( \\omega_{c0}\\tau \\) à la coupure. Origines : transport de matière, temps de calcul et échantillonnage d'une commande numérique."},
+{q:"Comment choisir la durée et le pas d'une simulation ?", a:"Durée : 3 à 5 fois la plus grande constante de temps, ou un cycle complet (pour un balayage, la régler sur le cas le plus lent). Pas fixe : de l'ordre de \\( \\tau_{\\min}/10 \\) ; diviser le pas par 2 ne doit plus changer les résultats."},
+{q:"Qu'appelle-t-on modèle raide, et que faire ?", a:"Un modèle qui mêle des constantes de temps très différentes (1 ms électrique, 1 s mécanique) : la plus petite impose un pas minuscule. On emploie un solveur à pas variable réglé par une tolérance, ou l'on réduit le modèle (inductance négligée, huile incompressible)."},
+{q:"Démarrage à vide d'une MCC (frottements négligés) : énergie perdue par effet Joule ?", a:"Exactement l'énergie cinétique finale \\( \\tfrac12 J\\Omega^2 \\) : la source fournit \\( U\\!\\int i\\,\\mathrm{d}t = J\\Omega^2 \\) (car \\( K\\!\\int i\\,\\mathrm{d}t = J\\Omega \\) et \\( U = K\\Omega \\)), dont la moitié seulement est stockée."}
 ];
 const mphFlash = makeFlash(mphCards,'mph','mph-flash-content','mph-flash-prog','mph-stats');
 /* --- Chaînes fonctionnelles : choisir et dimensionner les composants (chfonc) --- */
@@ -100549,7 +100821,14 @@ const snumxCards = [
   {q:"Correcteur PI numérique sous forme incrémentale ?", a:"\\(u_k = u_{k-1} + K_p\\left(1+\\dfrac{T_e}{T_i}\\right)\\varepsilon_k - K_p\\,\\varepsilon_{k-1}\\)", cat:'form'},
   {q:"Avantages de la forme incrémentale d'un correcteur numérique ?", a:"Deux valeurs à mémoriser seulement, pas de somme qui grandit ; en saturant la commande avant de la mémoriser, l'action intégrale ne s'emballe pas (anti-windup)."},
   {q:"Influence de la période d'échantillonnage sur la stabilité d'un asservissement numérique ?", a:"Augmenter \\(T_e\\) allonge le retard (≈ \\(T_e/2\\) + temps de calcul) et réduit les marges ; au-delà d'une valeur limite, la boucle devient instable même si la boucle continue est stable."},
-  {q:"Procédé intégrateur commandé en proportionnel (gain de boucle K) : condition de stabilité en numérique ?", a:"\\(\\varepsilon_{k+1} = (1 - KT_e)\\,\\varepsilon_k\\) : stable si \\(0 \\lt KT_e \\lt 2\\), sans oscillation si \\(KT_e \\leq 1\\)."}
+  {q:"Procédé intégrateur commandé en proportionnel (gain de boucle K) : condition de stabilité en numérique ?", a:"\\(\\varepsilon_{k+1} = (1 - KT_e)\\,\\varepsilon_k\\) : stable si \\(0 \\lt KT_e \\lt 2\\), sans oscillation si \\(KT_e \\leq 1\\)."},
+  {q:"Moyenne et écart type de N mesures d'une même grandeur ?", a:"\\( \\bar x = \\dfrac{1}{N}\\sum x_i \\) et \\( s = \\sqrt{\\dfrac{1}{N-1}\\sum (x_i-\\bar x)^2} \\) ; avec numpy : np.mean(x) et np.std(x, ddof=1) (par défaut, np.std divise par \\( N \\)).", cat:'form'},
+{q:"Écart type de la moyenne de N mesures indépendantes ?", a:"\\( s_{\\bar x} = \\dfrac{s}{\\sqrt N} \\) : c'est l'incertitude-type du résultat \\( \\bar x \\). La même propriété explique le lissage du bruit par une moyenne glissante.", cat:'form'},
+{q:"Moyenne glissante d'un fichier de mesures avec numpy : instruction et piège ?", a:"np.convolve(x, np.ones(N)/N, mode='valid') rend \\( N-1 \\) valeurs de moins : datées par le dernier échantillon de chaque fenêtre (t[N-1:]), elles reproduisent le calcul en temps réel, avec son retard \\( (N-1)T_e/2 \\)."},
+{q:"Passe-bas du second ordre discrétisé par différences arrière ?", a:"Avec \\( x = \\omega_0T_e \\) : \\( v_k = \\dfrac{(2+2\\xi x)\\,v_{k-1} - v_{k-2} + Kx^2\\,u_k}{1+2\\xi x+x^2} \\). Stable pour toute période, fidèle au filtre continu si \\( \\omega_0T_e \\leq 0{,}1 \\).", cat:'form'},
+{q:"Correcteur à avance de phase discrétisé par différence arrière ?", a:"\\( u_k = \\alpha\\,u_{k-1} + b_0\\,\\varepsilon_k + b_1\\,\\varepsilon_{k-1} \\) avec \\( \\alpha = \\dfrac{T}{T+T_e} \\), \\( b_0 = K_p\\,\\dfrac{T_e+aT}{T+T_e} \\), \\( b_1 = -K_p\\,\\dfrac{aT}{T+T_e} \\) ; gain statique \\( K_p \\).", cat:'form'},
+{q:"Avance de phase programmée : quelle période d'échantillonnage ?", a:"\\( T_e \\leq T/10 \\). Sinon la différence arrière dérive mal l'écart et le bloqueur retranche encore \\( \\omega_mT_e/2 \\) à l'avance : pour \\( T_e = T \\), il ne reste qu'environ 40 % de l'avance prévue."},
+{q:"Ordres de grandeur de la fréquence d'échantillonnage ?", a:"Audio (CD) : 44,1 kHz ; boucle de courant d'un variateur : 10 à 20 kHz ; boucle de vitesse ou de position d'un axe : 1 à 10 kHz ; régulation thermique d'un four ou d'un local : 0,1 à 10 Hz.", cat:'val'}
 ];
 const snumxFlash = makeFlash(snumxCards,'snumx','snumx-flash-content','snumx-flash-prog','snumx-stats');
 /* --- Résolution numérique en sciences de l'ingénieur (resnum) --- */
@@ -100578,7 +100857,14 @@ const rnumCards = [
   {q:"Lien entre Euler explicite et méthode des rectangles ?", a:"Euler explicite intègre \\(\\dot X = F\\) sur un pas par le rectangle à gauche \\(h\\,F(t_k, X_k)\\) ; intégrer une mesure par les rectangles à gauche revient à appliquer Euler explicite à \\(\\dot I = y\\)."},
   {q:"Comment étudier l'influence d'un paramètre sur une performance ?", a:"Balayage : une simulation par valeur, les autres paramètres fixés. Comparer les paramètres par leur sensibilité relative (effet d'une même hausse relative de chacun). Trouver la valeur limite par dichotomie sur la performance simulée moins l'exigence."},
   {q:"Comment valider un résultat numérique ?", a:"Homogénéité et ordre de grandeur ; cas limite à solution analytique ; relation indépendante (bilan de puissance) ; convergence quand on divise le pas par 2 ; comparaison à l'expérience, en séparant erreur numérique et erreur de modèle."},
-  {q:"Comment comparer deux flottants en Python ?", a:"Jamais avec ==, mais à une tolérance près : \\(|a - b| \\lt \\varepsilon\\). En Python, 0.1 + 0.2 == 0.3 vaut False : ni 0,1 ni 0,2 n'ont d'écriture binaire finie."}
+  {q:"Comment comparer deux flottants en Python ?", a:"Jamais avec ==, mais à une tolérance près : \\(|a - b| \\lt \\varepsilon\\). En Python, 0.1 + 0.2 == 0.3 vaut False : ni 0,1 ni 0,2 n'ont d'écriture binaire finie."},
+  {q:"Pourquoi résoudre A·X = B avec numpy.linalg.solve plutôt qu'en calculant l'inverse de A ?", a:"La bibliothèque résout le système par une variante du pivot de Gauss, plus rapide et plus précise que le produit \\( A^{-1}B \\). On écrit toutes les données en unités SI pour garder des coefficients d'ordres de grandeur comparables."},
+{q:"Newton sans dérivée connue : comment approcher f'(xₙ) ?", a:"Par le taux d'accroissement \\( \\dfrac{f(x_n + \\delta) - f(x_n)}{\\delta} \\), avec \\( \\delta \\approx 10^{-6}\\,|x| \\) : petit devant l'échelle de variation de \\( f \\) (erreur de troncature), mais pas au point que les arrondis dominent. La convergence reste rapide."},
+{q:"Comment dater un seuil franchi entre deux pas de simulation ?", a:"Par interpolation linéaire entre les deux derniers états : si \\( x_k \\lt x_s \\leq x_{k+1} \\), \\( t_s \\approx t_k + h\\,\\dfrac{x_s - x_k}{x_{k+1} - x_k} \\).", cat:'form'},
+{q:"Différence centrée : expression et usage ?", a:"\\( y'(t_k) \\approx \\dfrac{y_{k+1} - y_{k-1}}{2h} \\) : moyenne des différences avant et arrière, plus précise en \\( t_k \\), mais utilisable seulement en post-traitement (elle demande la valeur suivante).", cat:'form'},
+{q:"Effet d'un petit décalage de zéro sur une grandeur que l'on intègre ?", a:"Un décalage \\( b \\) produit une dérive \\( b\\,(t - t_0) \\) qui grandit avec le temps : la vitesse obtenue en intégrant un accéléromètre dérive. Dériver amplifie le bruit, intégrer accumule les erreurs lentes."},
+{q:"Euler explicite sur un modèle à constantes de temps très différentes (moteur : 1 ms et 40 ms) ?", a:"C'est la plus petite qui impose le pas, sous peine de divergence, même si seule la grandeur lente intéresse. Si la grandeur rapide (pointe de courant) n'est pas utile, on peut réduire le modèle (négliger \\( L \\)) et prendre un pas bien plus grand."},
+{q:"Écart entre simulation et essai : erreur numérique ou erreur de modèle ?", a:"On rend d'abord l'erreur numérique négligeable (le résultat ne bouge plus quand on divise le pas par 2). L'écart restant vient du modèle (hypothèses, paramètres) : seul lui justifie de recaler ou d'enrichir le modèle, recalage validé ensuite sur un autre essai."}
 ];
 const rnumFlash = makeFlash(rnumCards,'rnum','rnum-flash-content','rnum-flash-prog','rnum-stats');
 /* --- Intelligence artificielle — apprentissage automatique (ia) --- */
