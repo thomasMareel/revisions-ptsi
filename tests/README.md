@@ -211,6 +211,8 @@ dans `tests/suites/interactions.js` :
 
 ```js
 await etape('le bouton Bilan affiche un pourcentage', async () => {
+  await page.click('#more-btn');            // Bilan : menu ⋯ de l'en-tête
+  await pause(250);
   await page.click('#dash-btn');
   await pause(400);
   const texte = await page.evaluate(() => document.getElementById('dash-overlay').innerText);
@@ -269,8 +271,8 @@ Ailleurs : `res.verifier('nom du contrôle', condition, ['message si échec'])`.
   (popover de `#theme-btn` sur ordinateur, segmenté de la feuille ⋯ au téléphone), ou appeler
   `window.__setTheme('dark')`.
 - Fiches de révision : les boutons de notation n'existent qu'au **verso** (retourner la carte
-  d'abord, `flashFlip` ou clic sur la fiche). « Aujourd'hui » s'ouvre par `#today-btn` (en-tête)
-  ou `window.todayOpen()` ; il ne s'ouvre jamais seul au lancement.
+  d'abord, `flashFlip` ou clic sur la fiche). « Aujourd'hui » s'ouvre par `#today-btn` (menu ⋯
+  `#more-btn` de l'en-tête ; au téléphone `#mob-today-btn` de la feuille ⋯) ou `window.todayOpen()` ; il ne s'ouvre jamais seul au lancement.
 - À partir de 1200 px, la navigation des chapitres est une **barre latérale permanente** (rien à
   « ouvrir ») ; en dessous, un tiroir (`#nav-toggle-btn`) ou, au téléphone, une page plein écran
   (`#mob-menu-btn`).

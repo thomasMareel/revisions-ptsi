@@ -242,7 +242,7 @@ async function ouvrirQuiz(page, app) {
 }
 async function ouvrirBilan(page, app) {
   if (app.mobile) { await cliquer(page, '#mob-more-btn'); await pause(200); await cliquer(page, '#mob-dash-btn'); }
-  else await cliquer(page, '#dash-btn');
+  else { await cliquer(page, '#more-btn'); await pause(200); await cliquer(page, '#dash-btn'); }
   await pause(500);
   return (await estOuvert(page, '#dash-overlay')) ? [] : ['le Bilan ne s\'ouvre pas'];
 }

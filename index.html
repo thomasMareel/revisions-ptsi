@@ -843,6 +843,7 @@ kbd, .kbd{
   font-family:var(--font-ui); overflow:hidden;
 }
 #mob-drawer-scroll{ flex:1 1 auto; min-height:0; overflow-y:auto; overscroll-behavior:contain;
+  overflow-anchor:none;   /* position tenue par le module (ancrage sur la rangée touchée) */
   padding:.25rem .75rem 2rem 1rem; scrollbar-width:thin; }
 #mob-drawer-overlay{ display:none; position:fixed; inset:0; background:var(--scrim); z-index:calc(var(--z-drawer) - 1); }
 #mob-drawer-overlay.open{ display:block; animation:voileIn var(--dur-2) var(--ease); }
@@ -853,16 +854,6 @@ kbd, .kbd{
 .dr-top{ display:flex; align-items:center; gap:.5rem; flex:none; padding:.5rem .5rem .25rem 1rem; }
 .dr-titre{ margin:0; font:var(--w-semi) 1.625rem/1.1 var(--font-text); letter-spacing:-.015em; color:var(--text); }
 .dr-top .btn{ margin-left:auto; }
-
-/* Tuiles riches (page Chapitres du téléphone) : Aujourd'hui · Bilan */
-.dr-rich{ display:grid; grid-template-columns:1fr 1fr; gap:.5rem; margin:.25rem 0 0; }
-.dr-tuile{ display:flex; flex-direction:column; align-items:flex-start; gap:.3rem; min-height:4rem; padding:.65rem .8rem;
-  border:0; border-radius:var(--r-m); background:var(--sunk); color:var(--text); text-align:left; cursor:pointer; }
-.dr-tuile:hover{ background:var(--hover); }
-.dr-tuile .t{ display:flex; align-items:center; gap:.45rem; width:100%; font:var(--w-semi) var(--fs-ui)/1.1 var(--font-ui); }
-.dr-tuile .t .ic{ color:var(--text-2); }
-.dr-tuile .t .count{ margin-left:auto; }
-.dr-tuile .s{ font:var(--w-regular) var(--fs-ui-xs)/1.25 var(--font-ui); color:var(--text-2); }
 
 /* Année + filtre */
 .dr-row{ display:grid; grid-template-columns:minmax(0,1fr); gap:.75rem; margin-top:.75rem; }
@@ -957,6 +948,8 @@ kbd, .kbd{
   font:var(--w-medium) var(--fs-ui-s)/1.25 var(--font-ui); }
 .nav-more:hover{ background:var(--hover); color:var(--text); }
 .nav-more .ic{ width:.9rem; height:.9rem; color:var(--text-3); }
+.nav-part:not(.deplie-1a) .mob-chap-row.an1{ display:none; }
+.nav-list.anim{ overflow:hidden; }   /* pendant le dépliement / repli animé d'une partie */
 
 /* Résultats du filtre : groupés par matière, correspondance surlignée, année indiquée */
 .nav-results > .kicker{ margin:1rem .5rem .25rem; }
@@ -984,7 +977,7 @@ kbd, .kbd{
   #mob-drawer-scroll{ padding-top:1rem; }
   .dr-row{ margin-top:0; }
   html.nav-replie #mob-drawer{ display:none; }
-  #mob-drawer-header, #dr-tuiles, #mob-drawer-overlay, #mob-drawer-overlay.open{ display:none !important; }
+  #mob-drawer-header, #mob-drawer-overlay, #mob-drawer-overlay.open{ display:none !important; }
 }
 /* --- 768–1199 px : tiroir de 320 px qui glisse depuis la gauche, avec le voile --- */
 @media (min-width:768px) and (max-width:1199px){
@@ -995,7 +988,6 @@ kbd, .kbd{
     transition:transform var(--dur-3) var(--ease), visibility 0s linear var(--dur-3);
   }
   #mob-drawer.open{ transform:none; visibility:visible; transition:transform var(--dur-3) var(--ease), visibility 0s; }
-  #dr-tuiles{ display:none; }
   .dr-titre{ font-size:1.375rem; }
 }
 /* --- ≤ 767 px : page plein écran « Chapitres » (☰), ouvrir un chapitre = 2 gestes --- */
@@ -3275,8 +3267,6 @@ window.__rendreFocus = function(op, repli){
   <div class="brand"><span class="brand-mark" aria-hidden="true"></span><h1 class="brand-name">Mes cours de <em>prépa</em></h1></div>
   <button id="search-btn" class="hdr-search" type="button" title="Rechercher (Ctrl+K)" aria-label="Rechercher un chapitre, une formule, une carte (Ctrl+K)" aria-keyshortcuts="Control+K"><svg class="ic" aria-hidden="true"><use href="#i-search"></use></svg><span class="hdr-search-ph"><span class="ph-long">Rechercher chapitre, formule, carte…</span><span class="ph-court">Rechercher…</span></span><kbd class="kbd kbd-hint">Ctrl K</kbd></button>
   <span class="spacer"></span>
-  <button id="today-btn" class="btn btn-ghost hdr-act" type="button" title="Aujourd'hui : cartes dues, reprendre, récents" aria-label="Aujourd'hui"><svg class="ic" aria-hidden="true"><use href="#i-calendar"></use></svg><span class="ic-lbl">Aujourd'hui</span></button>
-  <button id="dash-btn" class="btn btn-ghost hdr-act" type="button" title="Bilan de révision" aria-label="Bilan de révision"><svg class="ic" aria-hidden="true"><use href="#i-chart"></use></svg><span class="ic-lbl">Bilan</span></button>
   <div class="hdr-more">
     <button id="study-btn" class="btn btn-primary" type="button" title="Réviser : révisions du jour, quiz, calcul mental" aria-label="Réviser" aria-haspopup="true" aria-expanded="false" aria-controls="study-menu"><svg class="ic" aria-hidden="true"><use href="#i-refresh"></use></svg><span class="ic-lbl">Réviser</span><span class="count rev-badge" id="rev-badge" hidden>0</span><svg class="ic ic-s ic-chev" aria-hidden="true"><use href="#i-chev-down"></use></svg></button>
     <div id="study-menu" class="hdr-more-menu menu" role="menu" aria-label="Réviser">
@@ -3309,6 +3299,9 @@ window.__rendreFocus = function(op, repli){
   <div class="hdr-more">
     <button id="more-btn" class="btn btn-ghost btn-icon" type="button" title="Plus d'actions" aria-label="Plus d'actions" aria-haspopup="true" aria-expanded="false" aria-controls="more-menu"><svg class="ic" aria-hidden="true"><use href="#i-dots"></use></svg></button>
     <div id="more-menu" class="hdr-more-menu menu" role="menu" aria-label="Plus d'actions">
+      <button id="today-btn" class="hdr-more-item menu-item" role="menuitem" title="Aujourd'hui : cartes dues, reprendre, récents"><svg class="ic" aria-hidden="true"><use href="#i-calendar"></use></svg>Aujourd'hui</button>
+      <button id="dash-btn" class="hdr-more-item menu-item" role="menuitem" title="Bilan de révision : progression des cartes"><svg class="ic" aria-hidden="true"><use href="#i-chart"></use></svg>Bilan</button>
+      <div class="menu-sep" role="separator"></div>
       <button id="formula-btn" class="hdr-more-item menu-item" role="menuitem" title="Formulaire du chapitre actif (fiche de synthèse imprimable)"><svg class="ic" aria-hidden="true"><use href="#i-function"></use></svg>Formulaire</button>
       <button id="print-btn" class="hdr-more-item menu-item" role="menuitem" title="Imprimer le chapitre actif" onclick="printChapter()"><svg class="ic" aria-hidden="true"><use href="#i-printer"></use></svg>Imprimer</button>
       <button id="backup-btn" class="hdr-more-item menu-item" role="menuitem" title="Sauvegarder / restaurer ma progression"><svg class="ic" aria-hidden="true"><use href="#i-download"></use></svg>Sauvegarde</button>
@@ -3376,10 +3369,6 @@ window.__rendreFocus = function(op, repli){
     <button id="mob-drawer-close" class="btn btn-ghost btn-icon" type="button" aria-label="Fermer la liste des chapitres"><svg class="ic" aria-hidden="true"><use href="#i-x"></use></svg></button>
   </div>
   <div id="mob-drawer-scroll">
-    <div class="dr-rich" id="dr-tuiles">
-      <button type="button" class="dr-tuile" id="dr-today-tile"><span class="t"><svg class="ic" aria-hidden="true"><use href="#i-calendar"></use></svg>Aujourd'hui<span class="count rev-badge" id="rev-badge-tile" hidden>0</span></span><span class="s" id="dr-today-sub">Aucune carte due</span></button>
-      <button type="button" class="dr-tuile" id="dr-dash-tile"><span class="t"><svg class="ic" aria-hidden="true"><use href="#i-chart"></use></svg>Bilan</span><span class="s" id="dr-dash-sub">Progression des cartes</span></button>
-    </div>
     <div class="dr-row">
       <!-- Année (clé year) -->
       <div id="mob-year-bar" class="seg" role="group" aria-label="Année">
@@ -98478,9 +98467,7 @@ document.addEventListener('keydown', e => {
       pin.addEventListener('click', e => {
         e.stopPropagation();
         togglePin(item.id);
-        reconstruire();
-        const n = document.querySelector('#mob-chap-list .mob-chap-row[data-id="' + item.id + '"] .mob-pin');
-        if(n) n.focus();
+        majEpingle(item.id);   // sur place : la liste ne bouge pas sous le doigt
       });
       row.appendChild(pin);
     }
@@ -98625,20 +98612,106 @@ document.addEventListener('keydown', e => {
     });
   }
 
-  /* ── Construire la navigation (si visible ; sinon à la prochaine ouverture) ── */
+  /* ── Construire la navigation (si visible ; sinon à la prochaine ouverture) ──
+     La position de lecture de la liste est TENUE : une reconstruction (épingle, récents, chapitre
+     suivant…) garde à sa place la rangée touchée — à défaut, la première rangée visible — au lieu
+     de remonter en haut ou de sauter vers le chapitre affiché. Le chapitre affiché n'est ramené au
+     milieu que sur demande (ouverture du tiroir, nouveau chapitre hors de la zone visible). Replier
+     une partie, montrer les chapitres de 1ʳᵉ année, épingler se font SUR PLACE, sans reconstruction. */
   const navVisible = () => drawerOpen || (mqSide.matches && !root.classList.contains('nav-replie'));
-  function buildDrawerList(mat){
+  const SEL_REPERES = '.mob-chap-row, .nav-part-h, .nav-more';
+  const cleRepere = el => el.classList.contains('mob-chap-row') ? 'r:' + el.dataset.id
+    : (el.classList.contains('nav-more') ? 'm:' : 'h:') + el.dataset.cle;
+  // Repère : l'élément focalisé dans la liste s'il est visible, sinon la 1ʳᵉ rangée visible
+  function prendreRepere(sc, list){
+    if(!sc || !list || !list.firstChild) return null;
+    const s = sc.getBoundingClientRect();
+    if(s.height <= 0) return null;
+    const ae = document.activeElement;
+    let el = ae && ae !== list && list.contains(ae) && ae.closest ? ae.closest(SEL_REPERES) : null;
+    if(el){ const r = el.getBoundingClientRect(); if(!r.height || r.bottom <= s.top || r.top >= s.bottom) el = null; }
+    if(!el) el = Array.from(list.querySelectorAll(SEL_REPERES)).find(x => { const r = x.getBoundingClientRect(); return r.height > 0 && r.top >= s.top - 1; }) || null;
+    return el ? { cle: cleRepere(el), dy: el.getBoundingClientRect().top - s.top } : null;
+  }
+  function tenirRepere(sc, list, rep){
+    if(!rep || !sc) return false;
+    const el = Array.from(list.querySelectorAll(SEL_REPERES)).find(x => cleRepere(x) === rep.cle);
+    if(!el || !el.getClientRects().length) return false;
+    sc.scrollTop += (el.getBoundingClientRect().top - sc.getBoundingClientRect().top) - rep.dy;
+    return true;
+  }
+  /* Épingle changée depuis une rangée : étoiles mises à jour sur place, bloc « Épinglés » refait,
+     la rangée touchée reste sous le doigt (le bloc du haut a changé de hauteur). */
+  function majEpingle(id){
+    const sc = $('mob-drawer-scroll'), list = $('mob-chap-list');
+    if(!list) return;
+    const rep = prendreRepere(sc, list);
+    const p = isPinned(id);
+    list.querySelectorAll('.mob-chap-row[data-id="' + id + '"] .mob-pin').forEach(b => {
+      b.classList.toggle('pinned', p);
+      b.setAttribute('aria-pressed', p ? 'true' : 'false');
+      b.title = p ? 'Désépingler' : 'Épingler en tête de la navigation';
+      b.innerHTML = ic(p ? 'star-fill' : 'star');
+    });
+    cacheEtats = null;
+    construireRapides(activeChapId());
+    tenirRepere(sc, list, rep);
+  }
+  /* Parties repliables et chapitres de 1ʳᵉ année : bascules sur place, hauteur animée (mouvement
+     réduit : instantané). Les rangées de 1ʳᵉ année (2ᵉ année) sont toujours dans la liste, masquées
+     tant que la partie ne les montre pas (.nav-part.deplie-1a). */
+  const animsListe = new WeakMap();
+  function stopAnim(ul){ const a = animsListe.get(ul); if(a){ animsListe.delete(ul); a.cancel(); } ul.classList.remove('anim'); }
+  function animerListe(ul, depart, arrivee, fin){
+    if(window.__reduceMotion || !ul.animate || Math.abs(depart - arrivee) < 1){ if(fin) fin(); return; }
+    ul.classList.add('anim');
+    const an = ul.animate([{ height: depart + 'px' }, { height: arrivee + 'px' }],
+      { duration: Math.min(260, 120 + Math.abs(arrivee - depart) / 6), easing: 'cubic-bezier(.2,.7,.2,1)' });
+    animsListe.set(ul, an);
+    an.onfinish = () => { if(animsListe.get(ul) !== an) return; animsListe.delete(ul); ul.classList.remove('anim'); if(fin) fin(); };
+  }
+  function replierPartie(h, ul, cle){
+    const replier = h.getAttribute('aria-expanded') === 'true';
+    const depart = ul.hidden ? 0 : ul.getBoundingClientRect().height;
+    stopAnim(ul);
+    setCollapsed(cle, replier);
+    h.setAttribute('aria-expanded', replier ? 'false' : 'true');
+    h.classList.toggle('collapsed', replier);
+    if(replier) animerListe(ul, depart, 0, () => { ul.hidden = true; });
+    else { ul.hidden = false; animerListe(ul, depart, ul.getBoundingClientRect().height); }
+  }
+  function libelle1A(more, deplie){
+    const n = +more.dataset.n;
+    more.setAttribute('aria-expanded', deplie ? 'true' : 'false');
+    more.innerHTML = deplie ? ic('chev-down') + 'Masquer les chapitres de 1ʳᵉ année'
+      : ic('chev-right') + '+ ' + n + ' chapitre' + (n > 1 ? 's' : '') + ' de 1ʳᵉ année';
+  }
+  function basculer1A(part, ul, more, cle){
+    const montrer = !part.classList.contains('deplie-1a');
+    const depart = ul.getBoundingClientRect().height;
+    stopAnim(ul);
+    if(montrer) deplies1A.add(cle); else deplies1A.delete(cle);
+    part.classList.toggle('deplie-1a', montrer);
+    libelle1A(more, montrer);
+    animerListe(ul, depart, ul.getBoundingClientRect().height);
+  }
+  let derniereMat = null, derniereAnnee = null, numListe = 0;
+  function buildDrawerList(mat, opts){
+    opts = opts || {};
     if(mat) currentMat = mat;
     if(!navVisible()){ aConstruire = true; return; }
     aConstruire = false;
     cacheEtats = null;
-    const drawer = $('mob-drawer'), list = $('mob-chap-list');
+    const drawer = $('mob-drawer'), list = $('mob-chap-list'), sc = $('mob-drawer-scroll');
     if(!list) return;
+    const q = ($('mob-filter') || {}).value ? $('mob-filter').value.trim() : '';
+    // même liste qu'avant (même matière, même année, pas de filtre) : sa position sera tenue
+    const memeListe = !q && derniereMat === currentMat && derniereAnnee === currentYear && !list.classList.contains('nav-results');
+    const rep = memeListe ? prendreRepere(sc, list) : null;
     list.innerHTML = '';
     list.classList.remove('nav-results');
-    const q = ($('mob-filter') || {}).value ? $('mob-filter').value.trim() : '';
     if(drawer) drawer.classList.toggle('filtre-actif', !!q);
-    if(q){ buildFilteredList(list, q); cacheEtats = null; return; }
+    if(q){ derniereMat = null; buildFilteredList(list, q); cacheEtats = null; return; }
     const actif = activeChapId();
     construireRapides(actif);
     refreshMatButtons();
@@ -98658,71 +98731,53 @@ document.addEventListener('keydown', e => {
       h.innerHTML = ic('chev-down') + '<span>' + esc(group.sub || 'Chapitres') + '</span>'
         + (items.length ? '<span class="n">' + items.length + '</span>' : '');
       h.dataset.cle = collKey;
-      h.addEventListener('click', () => { setCollapsed(collKey, !collapsed); buildDrawerList(m); refocus('.nav-part-h', collKey); });
       part.appendChild(h);
-      if(!collapsed){
-        const ul = document.createElement('ul');
-        ul.className = 'nav-list';
-        const deplie = deplies1A.has(collKey) || autres.some(it => it.id === actif);
-        group.items.forEach(it => {
-          if(okYear(it) || (deplie && it.year === 1 && currentYear === 2)) ul.appendChild(makeChapRow(it, { actif }));
-        });
-        if(autres.length){
-          const li = document.createElement('li');
-          const more = document.createElement('button');
-          more.type = 'button';
-          more.className = 'nav-more';
-          more.setAttribute('aria-expanded', deplie ? 'true' : 'false');
-          more.innerHTML = deplie ? ic('chev-down') + 'Masquer les chapitres de 1ʳᵉ année'
-            : ic('chev-right') + '+ ' + autres.length + ' chapitre' + (autres.length > 1 ? 's' : '') + ' de 1ʳᵉ année';
-          more.dataset.cle = collKey;
-          more.addEventListener('click', () => {
-            if(deplie) deplies1A.delete(collKey); else deplies1A.add(collKey);
-            buildDrawerList(m);
-            refocus('.nav-more', collKey);
-          });
-          li.appendChild(more);
-          ul.appendChild(li);
-        }
-        part.appendChild(ul);
+      const ul = document.createElement('ul');
+      ul.className = 'nav-list';
+      ul.id = 'nav-liste-' + (++numListe);
+      h.setAttribute('aria-controls', ul.id);
+      if(collapsed) ul.hidden = true;
+      const deplie = deplies1A.has(collKey) || autres.some(it => it.id === actif);
+      if(deplie) part.classList.add('deplie-1a');
+      group.items.forEach(it => {
+        if(okYear(it)) ul.appendChild(makeChapRow(it, { actif }));
+        else if(currentYear === 2 && it.year === 1){ const r = makeChapRow(it, { actif }); r.classList.add('an1'); ul.appendChild(r); }
+      });
+      if(autres.length){
+        const li = document.createElement('li');
+        const more = document.createElement('button');
+        more.type = 'button';
+        more.className = 'nav-more';
+        more.dataset.cle = collKey;
+        more.dataset.n = String(autres.length);
+        libelle1A(more, deplie);
+        more.addEventListener('click', () => basculer1A(part, ul, more, collKey));
+        li.appendChild(more);
+        ul.appendChild(li);
       }
+      h.addEventListener('click', () => replierPartie(h, ul, collKey));
+      part.appendChild(ul);
       list.appendChild(part);
     });
     cacheEtats = null;
-    // Chapitre actif au milieu de la zone visible (utile avec plus de cent chapitres)
-    const act = list.querySelector('.mob-chap-row.cur');
-    const sc = $('mob-drawer-scroll');
-    if(act && sc){
+    const changement = derniereMat !== currentMat || derniereAnnee !== currentYear;
+    derniereMat = currentMat; derniereAnnee = currentYear;
+    if(!sc) return;
+    if(rep) tenirRepere(sc, list, rep);
+    else if(changement && !opts.centrer){
+      // autre matière ou autre année : début de la nouvelle liste, intercalaires en vue
+      const bar = $('mob-mat-bar'), s = sc.getBoundingClientRect();
+      if(bar){ const r = bar.getBoundingClientRect(); if(r.top < s.top) sc.scrollTop += r.top - s.top - 8; }
+    }
+    // Chapitre affiché ramené au milieu de la zone visible : sur demande, et s'il n'y est pas déjà
+    const act = opts.centrer ? list.querySelector('.mob-chap-row.cur') : null;
+    if(act && act.getClientRects().length){
       const r = act.getBoundingClientRect(), s = sc.getBoundingClientRect();
       if(r.top < s.top + 40 || r.bottom > s.bottom - 40) sc.scrollTop += (r.top - s.top) - sc.clientHeight / 2;
     }
   }
-  // Après reconstruction de la liste, rendre le focus clavier au bouton équivalent
-  function refocus(sel, cle){
-    const n = Array.from(document.querySelectorAll('#mob-chap-list ' + sel)).find(x => x.dataset.cle === cle);
-    if(n) try { n.focus({ preventScroll:true }); } catch(e){ n.focus(); }
-  }
   function reconstruire(){ aConstruire = true; buildDrawerList(currentMat); }
   window.__majNav = reconstruire;
-
-  /* ── Tuiles de la page Chapitres (téléphone) : Aujourd'hui · Bilan ── */
-  function majTuiles(){
-    if(!mqTel.matches) return;
-    const due = (typeof srsCountDue === 'function') ? srsCountDue() : 0;
-    const sub = $('dr-today-sub');
-    if(sub) sub.textContent = due ? libDues(due) + ' · ≈ ' + Math.max(1, Math.round(due * 20 / 60)) + ' min' : 'Aucune carte due';
-    const b = $('rev-badge-tile');
-    if(b){ b.textContent = due > 99 ? '99+' : String(due); b.hidden = !due; }
-    let acq = 0, tot = 0;
-    const y = window.__currentYear ? window.__currentYear() : 1;
-    CHAPTERS.forEach(c => {
-      if(!c.panels.includes('flash')) return;
-      if(window.__inRevision && !window.__inRevision(c, y)) return;
-      const e = etatDeck(c.prefix); acq += e.acq; tot += e.tot;
-    });
-    const d = $('dr-dash-sub');
-    if(d) d.textContent = tot ? Math.round(acq / tot * 100) + ' % des cartes acquises' : 'Progression des cartes';
-  }
 
   /* ── Filtre instantané ── */
   (function(){
@@ -98811,8 +98866,7 @@ document.addEventListener('keydown', e => {
     modaliserTiroir(true);
     drawer.classList.add('open');
     $('mob-drawer-overlay').classList.add('open');
-    buildDrawerList(currentMat);
-    majTuiles();
+    buildDrawerList(currentMat, { centrer:true });
     majBoutons();
     const sc = $('mob-drawer-scroll');
     if(sc && mqTel.matches && !$('mob-filter').value) sc.scrollTop = 0;
@@ -98835,7 +98889,7 @@ document.addEventListener('keydown', e => {
     root.classList.toggle('nav-replie', !!v);
     Store.set('navCollapsed', v ? '1' : '0');
     majBoutons();
-    if(!v) buildDrawerList(currentMat);
+    if(!v) buildDrawerList(currentMat, { centrer:true });
   }
   /* Fil d'Ariane de l'intercalaire (« Ondes & signaux ») : la navigation s'ouvre sur cette
      partie de la matière, dépliée, visible, avec le focus sur son en-tête. */
@@ -98879,19 +98933,6 @@ document.addEventListener('keydown', e => {
   };
   if(mqSide.addEventListener) mqSide.addEventListener('change', surChangementLargeur);
   if(mqTel.addEventListener) mqTel.addEventListener('change', surChangementLargeur);
-
-  /* Tuiles */
-  $('dr-today-tile') && $('dr-today-tile').addEventListener('click', () => {
-    if(window.__consommerPageFictive) window.__consommerPageFictive(true);
-    closeDrawer(true);
-    if(window.todayOpen) window.todayOpen();
-  });
-  $('dr-dash-tile') && $('dr-dash-tile').addEventListener('click', () => {
-    if(window.__consommerPageFictive) window.__consommerPageFictive(true);
-    closeDrawer(true);
-    const b = $('dash-btn') || $('mob-dash-btn');
-    if(b) b.click();
-  });
 
   /* ── Swipe pour ouvrir le tiroir depuis le bord gauche ── */
   let swipeStartX = 0, swipeStartY = 0, swipeBlocked = false;
@@ -99380,9 +99421,13 @@ document.addEventListener('keydown', e => {
       }
     }
     refreshMatButtons();
-    buildDrawerList(currentMat);
+    // nouveau chapitre (préc./suiv., lien, recherche…) : sa rangée est ramenée en vue s'il le faut
+    const idActif = activeChapId(), nouveau = idActif !== dernierActif;
+    dernierActif = idActif;
+    buildDrawerList(currentMat, { centrer: nouveau });
     updateMobTitle();
   }
+  let dernierActif = null;
   let syncQueued = false;
   function queueSync(){
     if(syncQueued) return;
@@ -100049,7 +100094,7 @@ document.getElementById('skip-link')?.addEventListener('click', e => {
   function updateBadge(){
     if(typeof srsCountDue !== 'function') return;
     const n = srsCountDue();
-    ['rev-badge','rev-badge-mob','rev-badge-study','rev-badge-sheet','rev-badge-tile'].forEach(id=>{
+    ['rev-badge','rev-badge-mob','rev-badge-study','rev-badge-sheet'].forEach(id=>{
       const el=document.getElementById(id); if(!el) return;
       if(n>0){ el.textContent = n>99 ? '99+' : String(n); el.hidden=false; }
       else el.hidden=true;

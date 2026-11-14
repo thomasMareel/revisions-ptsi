@@ -236,6 +236,79 @@ module.exports = {
       return pb;
     });
 
+    /* ---------- Navigation fluide (demande de l'utilisateur du 2026-11-14) ----------
+       Replier une partie, montrer les chapitres de 1ʳᵉ année, épingler une rangée ou choisir un chapitre
+       dans la liste ne doivent ni la remonter en haut ni la faire sauter : la rangée touchée reste sous
+       le pointeur. Et la navigation n'a plus de tuiles Aujourd'hui / Bilan (menu ⋯ seulement). */
+    await etape('navigation fluide : replier, 1ʳᵉ année, épingler, choisir un chapitre sans saut de la liste ; ni tuiles ni boutons Aujourd\'hui / Bilan hors du menu ⋯', async () => {
+      const pb = [];
+      await naviguer(page, 'rlc', 'cours');
+      const pos = (sel, cle) => page.evaluate(([sel, cle]) => {
+        const sc = document.getElementById('mob-drawer-scroll');
+        const el = [...document.querySelectorAll('#mob-chap-list ' + sel)].find(x => (x.dataset.cle || x.dataset.id) === cle);
+        return { st: Math.round(sc.scrollTop), y: el ? Math.round(el.getBoundingClientRect().top) : null };
+      }, [sel, cle]);
+      // une partie au milieu de la liste
+      const cle = await page.evaluate(() => { const sc = document.getElementById('mob-drawer-scroll'); sc.scrollTop = 450;
+        const s = sc.getBoundingClientRect();
+        const h = [...document.querySelectorAll('#mob-chap-list .nav-part-h')].find(x => x.getBoundingClientRect().top > s.top + 120);
+        return h ? h.dataset.cle : null; });
+      if (!cle) return ['aucune partie repliable au milieu de la liste'];
+      for (const etapeNom of ['replier', 'déplier']) {
+        const a = await pos('.nav-part-h', cle);
+        await page.evaluate(cle => [...document.querySelectorAll('#mob-chap-list .nav-part-h')].find(x => x.dataset.cle === cle).click(), cle);
+        await pause(450);
+        const b = await pos('.nav-part-h', cle);
+        if (b.st !== a.st || b.y !== a.y) pb.push(etapeNom + ' une partie : la liste bouge (défilement ' + a.st + ' → ' + b.st + ', en-tête ' + a.y + ' → ' + b.y + ')');
+        const masquee = await page.evaluate(cle => { const h = [...document.querySelectorAll('#mob-chap-list .nav-part-h')].find(x => x.dataset.cle === cle);
+          const ul = document.getElementById(h.getAttribute('aria-controls')); return { exp: h.getAttribute('aria-expanded'), vis: !!(ul && ul.getClientRects().length) }; }, cle);
+        if ((etapeNom === 'replier') === (masquee.exp !== 'false' || masquee.vis)) pb.push(etapeNom + ' : aria-expanded=' + masquee.exp + ', liste visible=' + masquee.vis);
+      }
+      // épingler une rangée visible : elle reste sous le pointeur (le bloc « Épinglés » grandit au-dessus)
+      const id = await page.evaluate(() => { const sc = document.getElementById('mob-drawer-scroll').getBoundingClientRect();
+        const r = [...document.querySelectorAll('#mob-chap-list .mob-chap-row')].find(x => x.getBoundingClientRect().top > sc.top + 150 && !x.classList.contains('cur'));
+        return r ? r.dataset.id : null; });
+      const a = await pos('.mob-chap-row', id);
+      await page.click('#mob-chap-list .mob-chap-row[data-id="' + id + '"] .mob-pin'); await pause(300);
+      const b = await pos('.mob-chap-row', id);
+      if (Math.abs(b.y - a.y) > 1) pb.push('épingler : la rangée saute de ' + (b.y - a.y) + ' px');
+      if (!(await page.evaluate(id => (Store.getJSON('pinned', []) || []).includes(id), id))) pb.push('épingler : la rangée n\'est pas épinglée');
+      await page.click('#mob-chap-list .mob-chap-row[data-id="' + id + '"] .mob-pin'); await pause(300);
+      // choisir un chapitre dans la liste : sa rangée reste en place et devient la rangée courante
+      const c = await pos('.mob-chap-row', id);
+      await page.click('#mob-chap-list .mob-chap-row[data-id="' + id + '"] .mob-chap-item'); await pause(900);
+      const d = await pos('.mob-chap-row', id);
+      if (Math.abs(d.y - c.y) > 1) pb.push('choisir un chapitre dans la liste : sa rangée saute de ' + (d.y - c.y) + ' px');
+      if (!(await page.evaluate(id => !!document.querySelector('#mob-chap-list .mob-chap-row.cur[data-id="' + id + '"]'), id))) pb.push('choisir un chapitre : la rangée choisie n\'est pas la rangée courante');
+      // 2ᵉ année : « + N chapitres de 1ʳᵉ année » sans remonter la liste, rangées montrées puis masquées
+      await page.evaluate(() => document.querySelector('#mob-drawer .mob-year-btn[data-year="2"]').click()); await pause(300);
+      const cm = await page.evaluate(() => { const sc = document.getElementById('mob-drawer-scroll'); sc.scrollTop = 300;
+        const s = sc.getBoundingClientRect();
+        const m = [...document.querySelectorAll('#mob-chap-list .nav-more')].find(x => x.getBoundingClientRect().top > s.top + 40 && x.getBoundingClientRect().bottom < s.bottom);
+        return m ? m.dataset.cle : null; });
+      if (!cm) pb.push('2ᵉ année : aucun « + N chapitres de 1ʳᵉ année » visible');
+      else {
+        const nb = () => page.evaluate(cle => { const m = [...document.querySelectorAll('#mob-chap-list .nav-more')].find(x => x.dataset.cle === cle);
+          return [...m.closest('.nav-list').querySelectorAll('.mob-chap-row')].filter(r => r.getClientRects().length).length; }, cm);
+        const n0 = await nb(), s0 = await pos('.nav-more', cm);
+        await page.evaluate(cle => [...document.querySelectorAll('#mob-chap-list .nav-more')].find(x => x.dataset.cle === cle).click(), cm); await pause(450);
+        const n1 = await nb(), s1 = await pos('.nav-more', cm);
+        if (s1.st !== s0.st) pb.push('« + chapitres de 1ʳᵉ année » : la liste défile (' + s0.st + ' → ' + s1.st + ')');
+        if (!(n1 > n0)) pb.push('« + chapitres de 1ʳᵉ année » : rangées visibles ' + n0 + ' → ' + n1);
+        await page.evaluate(cle => [...document.querySelectorAll('#mob-chap-list .nav-more')].find(x => x.dataset.cle === cle).click(), cm); await pause(450);
+        if ((await nb()) !== n0) pb.push('« Masquer les chapitres de 1ʳᵉ année » : les rangées restent visibles');
+      }
+      await page.evaluate(() => document.querySelector('#mob-drawer .mob-year-btn[data-year="1"]').click()); await pause(300);
+      // épuré : plus de tuiles dans la navigation, Aujourd'hui et Bilan seulement dans le menu ⋯
+      const ep = await page.evaluate(() => ({
+        tuiles: document.querySelectorAll('#mob-drawer .dr-tuile, #dr-tuiles').length,
+        horsMenu: ['today-btn', 'dash-btn'].filter(id => { const b = document.getElementById(id); return !b || !b.closest('#more-menu'); }),
+      }));
+      if (ep.tuiles) pb.push('la navigation contient encore des tuiles Aujourd\'hui / Bilan');
+      if (ep.horsMenu.length) pb.push('hors du menu ⋯ : ' + ep.horsMenu.join(', '));
+      return pb;
+    });
+
     await etape('Sommaire de la matière : 2ᵉ clic sur l\'intercalaire actif, #sommaire/…, précédent', async () => {
       const pb = [];
       await naviguer(page, 'rlc', 'cours');
@@ -405,6 +478,8 @@ module.exports = {
     /* ---------- Bilan ---------- */
     await etape('Bilan : statistiques et clic vers un chapitre', async () => {
       const pb = [];
+      // Bilan et Aujourd'hui sont dans le menu ⋯ (« Plus d'actions ») de l'en-tête depuis le 2026-11-14
+      await page.click('#more-btn'); await pause(250);
       await page.click('#dash-btn');
       await pause(400);
       if (!(await ouvert('dash-overlay'))) return ['le Bilan ne s\'ouvre pas'];
@@ -438,7 +513,8 @@ module.exports = {
     });
 
     /* ---------- Aujourd'hui ---------- */
-    await etape("écran « Aujourd'hui » (bouton de l'en-tête)", async () => {
+    await etape("écran « Aujourd'hui » (menu ⋯ de l'en-tête)", async () => {
+      await page.click('#more-btn'); await pause(250);
       await page.click('#today-btn');
       await pause(400);
       const s = await page.evaluate(() => ({
@@ -544,8 +620,8 @@ module.exports = {
       }, [id, dernier]);
       const dedans = id => page.evaluate(id => document.getElementById(id).contains(document.activeElement), id);
       for (const [nom, menu, bouton, fenetre, retour] of [
-        ['Aujourd\'hui', null, '#today-btn', 'today-overlay', 'today-btn'],
-        ['Bilan', null, '#dash-btn', 'dash-overlay', 'dash-btn'],
+        ['Aujourd\'hui', '#more-btn', '#today-btn', 'today-overlay', 'more-btn'],
+        ['Bilan', '#more-btn', '#dash-btn', 'dash-overlay', 'more-btn'],
         ['quiz (configuration)', '#study-btn', '#quiz-btn', 'quiz-overlay', 'study-btn'],
         ['formulaire', '#more-btn', '#formula-btn', 'formula-overlay', 'more-btn'],
       ]) {
@@ -613,6 +689,7 @@ module.exports = {
       await naviguer(page, 'rlc', 'flash');
       await page.evaluate(() => { const f = window.FLASH_INSTANCES.rlc; f.rate(0); f.rate(1); f.rate(2); });
       await pause(200);
+      await page.click('#more-btn'); await pause(250);
       await page.click('#dash-btn'); await pause(700);
       const n = await page.evaluate(() => { const b = document.getElementById('dash-revise-btn'); return b ? parseInt(b.querySelector('.count').textContent, 10) : null; });
       if (n === null) return ['bouton « Réviser mes points faibles » absent après deux cartes faibles'];
