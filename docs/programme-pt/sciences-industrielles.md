@@ -24,9 +24,18 @@ Inventaire établi le 2026-11-13, avant la réécriture des cours de SI de 2ᵉ 
 - **Les 11 cours de 2ᵉ année complétés** : encadré « Au programme » en tête, manques comblés (voir les
   tableaux ci-dessous, colonne « ce qui manque »), hors-programme signalé et regroupé en fin de chapitre
   (« Pour aller plus loin »), sans rien retirer de juste.
-- **Restent hors de ce chantier** (notions de 1ʳᵉ année remobilisées en S4, section 15) : systèmes
-  séquentiels et diagrammes d'états, réseaux de communication ; compléments ponctuels de `transm`,
-  `capteurs`, `usinage`, `trtherm`.
+- **Méthodes, exercices et cartes des 14 chapitres de 2ᵉ année harmonisés le 2026-11-14** : méthodes et
+  exercices alignés sur les cours complétés (renvois §, notations, méthodes et exercices ajoutés là où une
+  capacité manquait), calculs refaits, erreurs corrigées (exemple du dipôle pôle-zéro des correcteurs, poutre
+  légère de `ppm`, valeurs d'`energ2a`, dichotomie de `resnum`) ; hors-programme signalé dans les titres
+  d'exercices et en tête des réponses de cartes (calcul intégral de l'inertie, K_t et Von Mises, aspects
+  chiffrés des procédés, anticipation et PID, renforcement, descente stochastique et Ridge, Clarke et Park).
+- **1ʳᵉ année, faits le 2026-11-14** (notions remobilisées en S4, section 15) : chapitres créés `sequentiel`
+  « Systèmes séquentiels : diagrammes d'états et programmation » (groupe Automatique) et `reseaux`
+  « Réseaux de communication » (groupe « Chaîne d'information », ex-« Capteurs ») ; `usinage` (génération des
+  surfaces, machines à commande numérique, mise en position, phases) et `trtherm` (approche fonctionnelle,
+  métallurgie en « Pour aller plus loin », trempe superficielle, règles de conception) complétés ; `mcc` :
+  quadrants corrigés ; exercice de Routh de `stabilite` signalé hors programme.
 - Les tableaux qui suivent décrivent l'**état de départ** (avant compléments).
 
 ## Chapitres concernés
