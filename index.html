@@ -70331,7 +70331,7 @@ Ts = [T]
 </div>
 <div class="exo">
   <span class="num">EXO 04</span><span class="diff">★ ★ ☆</span>
-  <h3>Critère de Routh</h3>
+  <h3>Critère de Routh (hors programme, pour aller plus loin)</h3>
   <div class="statement">Système dont le polynôme caractéristique est \(D(p) = p^3 + 3p^2 + 2p + K\).</div>
   <div class="q"><strong>Q1.</strong> Construire le tableau de Routh.</div>
   <div class="q"><strong>Q2.</strong> Pour quelles valeurs de \(K\) le système est-il stable ?</div>
@@ -70787,6 +70787,1039 @@ Ts = [T]
 </div>
 </section>
 </div><!-- fin chap-precision -->
+
+<!-- ====================== CHAPITRE : Systèmes séquentiels (1re année) ====================== -->
+<div class="chapter" id="chap-sequentiel">
+<nav class="tabs">
+  <button class="tab active" data-panel="seq-cours"><span class="num">01</span>Cours</button>
+  <button class="tab" data-panel="seq-meth"><span class="num">02</span>Méthodes</button>
+  <button class="tab" data-panel="seq-flash"><span class="num">03</span>Flashcards</button>
+  <button class="tab" data-panel="seq-exos"><span class="num">04</span>Exercices</button>
+</nav>
+<section class="panel active" id="seq-cours">
+<div class="course-section">
+  <div class="sec-num">AU PROGRAMME · PTSI</div>
+  <h2>Ce que le programme officiel demande</h2>
+  <div class="intro">Ce chapitre traite le comportement <strong>séquentiel</strong> des systèmes, l'autre grande famille de commande à côté des systèmes asservis : décrire et interpréter un comportement par un <strong>diagramme d'états</strong> (A3 et B2, semestre 2), analyser l'algorithme qui le programme (A3, S1, en lien avec l'informatique) et modifier ce programme pour faire évoluer le système (F2, S4). Il prolonge le panorama des diagrammes SysML d'« Analyse fonctionnelle &amp; ingénierie système » (§2) et s'appuie sur les chapitres d'informatique « Conditions &amp; boucles » et « Fonctions ».</div>
+  <div class="reveal" onclick="this.classList.toggle('open')">
+    <span class="label">Programme officiel</span>
+    <span class="prompt">Les capacités exigibles, dans l'ordre du chapitre</span>
+    <div class="content">
+      <ul>
+        <li><strong>Identifier et décrire les liens entre les chaînes fonctionnelles</strong> : systèmes asservis et séquentiels (A3, S1) (§2).</li>
+        <li><strong>Interpréter tout ou partie de l'évolution temporelle d'un système séquentiel</strong> : diagramme d'états ; état, transition, événement, condition de garde, activité et action ; évolution des états et des variables représentée par un chronogramme (A3, S2) (§3, §4, §7).</li>
+        <li><strong>Décrire le comportement d'un système séquentiel</strong> par un diagramme d'états, description graphique qui s'affranchit de tout langage de programmation (B2, S2) (§3 à §5).</li>
+        <li><strong>Analyser un algorithme</strong> : définition et appel d'une fonction, variables (type et portée), structures algorithmiques, boucles et tests (A3, S1) (§1, §6).</li>
+        <li><strong>Modifier la commande pour faire évoluer le comportement du système</strong> : modification d'un programme de système séquentiel, structures algorithmiques (F2, S4) (§6, §7).</li>
+        <li><strong>Produire des documents techniques</strong> : spécifications d'algorithmes ; l'écriture des diagrammes SysML se limite à leur complétion et à leur modification (E2, S4) (§5).</li>
+      </ul>
+      <p>La syntaxe de SysML n'est pas exigible : l'énoncé fournit la structure des diagrammes, à lire ou à compléter. La logique combinatoire du §1 n'est pas un item du programme ; c'est l'outil de lecture des conditions. Hors programme, en fin de chapitre : GRAFCET, réseaux de Petri, machines de Moore et de Mealy, autres pseudo-états SysML.</p>
+    </div>
+  </div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§1 · LOGIQUE COMBINATOIRE UTILE</div>
+  <h2>Variables logiques et fonctions combinatoires (rappel)</h2>
+  <div class="intro">Les capteurs et les commandes d'un système séquentiel sont souvent tout ou rien : un fin de course est actionné ou non, un bouton enfoncé ou relâché. Les conditions des diagrammes d'états s'écrivent avec trois opérations logiques.</div>
+  <div class="def-box">
+    <strong>Variable logique</strong> (binaire, ou TOR : tout ou rien) : grandeur qui ne prend que deux valeurs, notées 0 et 1 (faux et vrai). Opérations de base : le produit ET \(a\cdot b\), vrai si \(a\) et \(b\) le sont ; la somme OU \(a + b\), vraie si l'une au moins l'est ; le complément NON \(\overline{a}\). En Python : <code>a and b</code>, <code>a or b</code>, <code>not a</code>. Une <strong>fonction combinatoire</strong> calcule ses sorties à partir des seules valeurs <em>présentes</em> de ses entrées ; une table de vérité de \(2^n\) lignes la décrit entièrement pour \(n\) entrées.
+  </div>
+  <div class="prop-box">
+    <strong>Règles de calcul.</strong> ET et OU sont commutatifs, associatifs et distributifs l'un sur l'autre : \(a\,(b + c) = a\,b + a\,c\) et \(a + b\,c = (a + b)(a + c)\). Absorption : \(a + a\,b = a\). Complément : \(a\,\overline{a} = 0\) et \(a + \overline{a} = 1\). Lois de De Morgan :
+    <div class="formula" data-nom="Lois de De Morgan">$$\overline{a\cdot b} = \overline{a} + \overline{b}\qquad\qquad \overline{a + b} = \overline{a}\cdot\overline{b}$$</div>
+  </div>
+  <div class="method-box">
+    <strong>Exemple — autoriser la descente d'une presse</strong>
+    <p>Une presse de découpe ne descend que si l'opérateur appuie sur les deux boutons \(b_1\) et \(b_2\) (ses deux mains sont alors hors de la zone dangereuse), si le carter est fermé (\(c = 1\)) et si l'arrêt d'urgence n'est pas enfoncé (\(u = 0\)).</p>
+    <ol>
+      <li>Condition de descente : \(D = b_1\,b_2\,c\,\overline{u}\), soit en Python <code>D = b1 and b2 and c and not u</code>.</li>
+      <li>La table de vérité a \(2^4 = 16\) lignes ; une seule donne \(D = 1\).</li>
+      <li>Par De Morgan, \(\overline{D} = \overline{b_1} + \overline{b_2} + \overline{c} + u\) : la presse s'arrête dès qu'une main se lève, que le carter s'ouvre ou que l'arrêt d'urgence est enfoncé. Chaque terme est une cause d'arrêt, ce qui se confronte facilement au cahier des charges.</li>
+    </ol>
+  </div>
+  <p>Une vraie commande bimanuelle exige en plus que les deux boutons soient enfoncés à moins de 0,5 s d'intervalle, sinon un opérateur pourrait en bloquer un et travailler d'une main. Cette exigence porte sur le <em>passé</em> des entrées (quel bouton a été enfoncé en premier, et quand) : aucune fonction combinatoire ne peut la satisfaire. C'est l'objet de la suite du chapitre.</p>
+  <div class="notice">
+    <strong>Erreur classique</strong> : lire le OU comme exclusif. Le OU logique est inclusif, \(a + b = 1\) quand \(a\) et \(b\) valent 1 tous les deux. Le OU exclusif \(a \oplus b = a\,\overline{b} + \overline{a}\,b\) (<code>a != b</code> en Python) vaut 0 dans ce cas.
+  </div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§2 · SYSTÈME SÉQUENTIEL ET NOTION D'ÉTAT</div>
+  <h2>Quand la sortie dépend de l'histoire des entrées</h2>
+  <div class="intro">Dans un système séquentiel, une même combinaison d'entrées peut produire des sorties différentes selon ce qui s'est passé avant. Le système mémorise une information sur son passé : son état.</div>
+  <p>Un tapis roulant est commandé par deux boutons-poussoirs, marche \(m\) et arrêt \(a\), qui ne valent 1 que pendant l'appui. Le moteur \(M\) doit tourner d'un appui sur marche à l'appui suivant sur arrêt.</p>
+<figure class="schema">
+<svg viewBox="0 0 360 150" role="img" aria-label="Chronogramme d'une commande marche-arrêt à mémoire : impulsions sur m et a, sortie M qui reste à 1 entre une impulsion de marche et une impulsion d'arrêt">
+<text x="36" y="39" class="lab-it lab-b" text-anchor="end">m</text>
+<line x1="46" y1="42" x2="350" y2="42" class="sk-axis"/>
+<polyline points="46,42 71.3,42 71.3,26 86.5,26 86.5,42 198,42 198,26 213.2,26 213.2,42 350,42" class="sk-ink"/>
+<text x="36" y="73" class="lab-it lab-b" text-anchor="end">a</text>
+<line x1="46" y1="76" x2="350" y2="76" class="sk-axis"/>
+<polyline points="46,76 134.7,76 134.7,60 149.9,60 149.9,76 274,76 274,60 289.2,60 289.2,76 350,76" class="sk-ink"/>
+<text x="36" y="107" class="lab-it lab-b" text-anchor="end">M</text>
+<line x1="46" y1="110" x2="350" y2="110" class="sk-axis"/>
+<polyline points="46,110 71.3,110 71.3,94 134.7,94 134.7,110 198,110 198,94 274,94 274,110 350,110" class="sk-accent2"/>
+<line x1="111.9" y1="14" x2="111.9" y2="128" class="sk-dash"/>
+<text x="111.9" y="142" class="lab-it" text-anchor="middle">t₁</text>
+<line x1="172.7" y1="14" x2="172.7" y2="128" class="sk-dash"/>
+<text x="172.7" y="142" class="lab-it" text-anchor="middle">t₂</text>
+<text x="142.3" y="10" class="lab-muted" text-anchor="middle">mêmes entrées m = a = 0</text>
+<text x="236" y="142" class="lab-muted lab-it" text-anchor="middle">temps</text>
+</svg>
+<figcaption>Commande marche-arrêt à mémoire. Aux instants t₁ et t₂, les entrées sont les mêmes (m = a = 0) mais la sortie diffère : M = 1 en t₁, M = 0 en t₂. La sortie dépend de l'histoire des entrées.</figcaption>
+</figure>
+  <p>Le calculateur répète ses calculs à chaque cycle, numéroté \(k\). La commande s'écrit avec la valeur précédente de la sortie :</p>
+  <div class="formula" data-nom="Mémoire marche-arrêt à arrêt prioritaire">$$M_{k+1} = \overline{a_k}\cdot\left(m_k + M_k\right)$$</div>
+  <p>Le terme \(M_k\) du second membre est la mémoire : la sortie se maintient elle-même (auto-maintien). Si \(m\) et \(a\) valent 1 ensemble, \(M\) passe à 0 : l'arrêt est <strong>prioritaire</strong>, comme l'impose la sécurité. L'écriture \(M_{k+1} = m_k + \overline{a_k}\,M_k\) donnerait au contraire la priorité à la marche.</p>
+  <div class="def-box">
+    <strong>Système séquentiel</strong> : système dont les sorties dépendent des entrées présentes et de leur histoire. <strong>État</strong> : information minimale sur le passé qui, avec les entrées à venir, suffit à prévoir les sorties à venir. Le tapis a deux états, Marche et Arrêt (un bit de mémoire) ; \(n\) bits distinguent au plus \(2^n\) états. Les systèmes de ce chapitre ont un nombre fini d'états, que l'on nomme plutôt que de les coder.
+  </div>
+  <h3>Événement et condition</h3>
+  <p>Une <strong>condition</strong> est vraie pendant une durée : « le carter est fermé ». Un <strong>événement</strong> est instantané : « on vient d'appuyer », c'est-à-dire le passage de 0 à 1 d'une entrée (front montant, noté \(\uparrow b\)). En temps discret, le front s'obtient avec la valeur du cycle précédent :</p>
+  <div class="formula" data-nom="Front montant">$$\uparrow b_k = b_k\cdot\overline{b_{k-1}}$$</div>
+  <div class="method-box">
+    <strong>Exemple — télérupteur de cage d'escalier</strong>
+    <p>Un seul bouton \(b\) allume la lampe \(L\) si elle est éteinte et l'éteint si elle est allumée. Le calculateur travaille par cycles de 10 ms ; un appui dure environ 0,2 s.</p>
+    <ol>
+      <li>Sur le niveau, \(L_{k+1} = L_k \oplus b_k\) inverserait la lampe à chaque cycle de l'appui, une vingtaine de fois : l'état final dépendrait de la parité du nombre de cycles, donc du hasard.</li>
+      <li>Sur le front, \(L_{k+1} = L_k \oplus \uparrow b_k\) inverse la lampe une seule fois par appui, quelle que soit sa durée.</li>
+      <li>Une même entrée produit deux effets opposés selon \(L\) : le télérupteur a deux états, Allumée et Éteinte.</li>
+    </ol>
+  </div>
+  <h3>Systèmes séquentiels et systèmes asservis</h3>
+  <p>Les deux familles se distinguent par ce que commande la chaîne d'information ; elles coexistent dans un même produit.</p>
+  <table>
+    <tr><th></th><th>Système asservi</th><th>Système séquentiel</th></tr>
+    <tr><td>Ce qui est commandé</td><td>une grandeur continue (position, vitesse, température)</td><td>une suite de phases (ouvrir, attendre, fermer)</td></tr>
+    <tr><td>Information</td><td>consigne et mesure</td><td>entrées et sorties souvent tout ou rien, événements</td></tr>
+    <tr><td>Objectif</td><td>suivre la consigne malgré les perturbations</td><td>enchaîner des opérations dans un ordre sûr</td></tr>
+    <tr><td>Modèle</td><td>fonction de transfert, schéma-blocs</td><td>diagramme d'états</td></tr>
+  </table>
+  <p>Dans un ascenseur, la partie séquentielle choisit l'étage, ferme les portes et autorise le départ ; la vitesse de la cabine est asservie pendant le trajet. La séquence fournit sa consigne à l'asservissement, et l'arrivée de la cabine devient un événement pour la séquence.</p>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§3 · DIAGRAMME D'ÉTATS : ÉLÉMENTS DE BASE</div>
+  <h2>États, transitions, événements, gardes et effets</h2>
+  <div class="intro">Le diagramme d'états SysML (stm, pour <em>state machine</em>) décrit le comportement d'un bloc : les situations où il peut se trouver et la façon dont il passe de l'une à l'autre. C'est une description graphique, indépendante du langage qui la programmera.</div>
+<figure class="schema">
+<svg viewBox="0 0 380 196" role="img" aria-label="Diagramme d'états d'un éclairage extérieur à détecteur de présence : états Éteint et Allumé, transition présence avec la garde nuit, temporisation after 2 min, transition réflexive présence">
+<circle cx="12" cy="92" r="5" class="fl-ink"/>
+<line x1="17" y1="92" x2="39" y2="92" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<rect x="40" y="74" width="92" height="36" rx="9" class="sk-ink fl-paper"/>
+<text x="86" y="96.5" class="lab-b" text-anchor="middle">Éteint</text>
+<rect x="238" y="58" width="130" height="68" rx="9" class="sk-ink fl-paper"/>
+<text x="303" y="75" class="lab-b" text-anchor="middle">Allumé</text>
+<line x1="238" y1="82" x2="368" y2="82" class="sk-axis"/>
+<text x="245" y="98" class="lab-it">entry / lampe ← 1</text>
+<text x="245" y="113" class="lab-it">exit / lampe ← 0</text>
+<line x1="132" y1="84" x2="237" y2="84" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<text x="185" y="77" class="lab-it" text-anchor="middle">présence [nuit]</text>
+<line x1="238" y1="102" x2="133" y2="102" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<text x="185" y="118" class="lab-it" text-anchor="middle">after(2 min)</text>
+<polyline points="282,58 282,34 326,34 326,57" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<text x="304" y="27" class="lab-it" text-anchor="middle">présence</text>
+<text x="12" y="128" class="lab-muted">état initial</text>
+<line x1="12" y1="118" x2="12" y2="99" class="sk-axis"/>
+<text x="163" y="52" class="lab-muted" text-anchor="middle">événement</text>
+<line x1="166" y1="56" x2="166" y2="65" class="sk-axis"/>
+<text x="222" y="52" class="lab-muted" text-anchor="middle">garde</text>
+<line x1="219" y1="56" x2="219" y2="65" class="sk-axis"/>
+<text x="185" y="148" class="lab-muted" text-anchor="middle">temporisation</text>
+<line x1="185" y1="137" x2="185" y2="124" class="sk-axis"/>
+<text x="250" y="14" class="lab-muted" text-anchor="end">transition réflexive</text>
+<line x1="254" y1="16" x2="279" y2="44" class="sk-axis"/>
+<text x="303" y="150" class="lab-muted" text-anchor="middle">comportements</text>
+<text x="303" y="164" class="lab-muted" text-anchor="middle">de l’état</text>
+<line x1="303" y1="139" x2="303" y2="127" class="sk-axis"/>
+</svg>
+<figcaption>Éclairage extérieur à détecteur de présence. Chaque transition porte « événement [garde] / effet », chaque partie étant facultative. La transition réflexive relance la temporisation à chaque nouvelle présence.</figcaption>
+</figure>
+  <div class="def-box">
+    <strong>Éléments du diagramme.</strong>
+    <ul>
+      <li><strong>État</strong> (rectangle à coins arrondis) : situation durable où le système attend un événement ou réalise une activité. Un seul état est actif à la fois (hors régions concurrentes, §4).</li>
+      <li><strong>État initial</strong> (disque plein) : pseudo-état qui désigne l'état actif au démarrage. <strong>État final</strong> (disque cerclé) : fin du comportement.</li>
+      <li><strong>Transition</strong> (flèche) : passage instantané de l'état source à l'état cible, de libellé <code>événement [garde] / effet</code>, chaque partie étant facultative.</li>
+      <li><strong>Événement</strong> : fait instantané qui déclenche la transition : réception d'un signal (appui, message), changement <code>when(c)</code> (instant où la condition \(c\) devient vraie), écoulement d'une durée <code>after(Δt)</code> comptée depuis l'entrée dans l'état source.</li>
+      <li><strong>Condition de garde</strong> <code>[g]</code> : expression logique évaluée à l'instant de l'événement ; la transition n'est franchie que si elle est vraie.</li>
+      <li><strong>Effet</strong> <code>/ action</code> : action exécutée pendant le franchissement.</li>
+    </ul>
+  </div>
+  <h3>Actions et activités</h3>
+  <p>Le programme distingue deux sortes de comportements. Une <strong>action</strong> est instantanée et ne s'interrompt pas : mettre une sortie à 1, incrémenter un compteur, afficher un message. Une <strong>activité</strong> dure : chauffer, faire tourner un moteur, préparer une boisson. Dans le compartiment d'un état :</p>
+  <ul>
+    <li><code>entry / action</code> s'exécute à chaque entrée dans l'état ;</li>
+    <li><code>exit / action</code> s'exécute à chaque sortie, quelle que soit la transition empruntée ;</li>
+    <li><code>do / activité</code> démarre après l'action d'entrée et dure tant que l'état est actif ; une transition qui quitte l'état l'interrompt.</li>
+  </ul>
+  <div class="prop-box">
+    <strong>Franchissement d'une transition.</strong> Quand l'événement se produit et que la garde est vraie, dans cet ordre : interruption de l'activité <code>do</code> et action <code>exit</code> de l'état source, effet de la transition, action <code>entry</code> de l'état cible, démarrage de son activité <code>do</code>. Un événement qui ne déclenche aucune transition de l'état actif est <strong>perdu</strong> : il n'est pas gardé pour plus tard.
+  </div>
+  <h3>Transitions particulières</h3>
+  <ul>
+    <li><strong>Transition sans événement</strong> (dite d'achèvement) : franchie quand l'état source a terminé son activité <code>do</code>, aussitôt s'il n'en a pas ; elle peut porter une garde.</li>
+    <li><strong>Transition réflexive</strong> : l'état est quitté puis réactivé ; <code>exit</code> et <code>entry</code> s'exécutent et les temporisations <code>after</code> repartent de zéro.</li>
+    <li><strong>Transition interne</strong>, écrite dans le compartiment (<code>pièce / c ← c + v</code>) : l'effet s'exécute sans quitter l'état, donc sans <code>exit</code> ni <code>entry</code> et sans relancer les temporisations.</li>
+    <li><strong>Plusieurs déclencheurs</strong> séparés par une virgule (<code>tel, after(30 s)</code>) : l'un ou l'autre fait franchir la transition.</li>
+  </ul>
+  <div class="method-box">
+    <strong>Exemple — suivre l'éclairage de la figure</strong>
+    <p>Il fait nuit. Une personne passe devant le détecteur à 0 s, une autre à 1 min 30 s, puis plus personne.</p>
+    <ol>
+      <li>À 0 s, <code>présence</code> survient et la garde <code>[nuit]</code> est vraie : Éteint → Allumé, l'action <code>entry</code> allume la lampe, la temporisation part.</li>
+      <li>À 1 min 30 s, <code>présence</code> dans Allumé : transition réflexive. <code>exit</code> puis <code>entry</code> s'exécutent dans le même instant (aucun effet visible) et la temporisation repart.</li>
+      <li>À 3 min 30 s, deux minutes après la dernière entrée dans Allumé, <code>after(2 min)</code> survient : Allumé → Éteint et <code>exit</code> éteint la lampe, restée allumée 3 min 30 s.</li>
+      <li>Le jour, <code>présence</code> survient dans Éteint mais la garde est fausse : l'événement est perdu.</li>
+    </ol>
+  </div>
+  <div class="notice">
+    <strong>Convention à vérifier</strong> : pour la norme, <code>when(c)</code> se produit à l'instant où \(c\) passe de faux à vrai ; si \(c\) est déjà vraie à l'entrée dans l'état, l'événement n'a pas lieu. Beaucoup d'énoncés et de programmes traitent <code>when(c)</code>, ou une garde seule <code>[c]</code>, comme une condition surveillée pendant tout le séjour dans l'état. La différence ne compte que si \(c\) peut déjà être vraie à l'entrée : c'est le cas à examiner.
+  </div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§4 · ÉTATS COMPOSITES, RÉGIONS CONCURRENTES, TEMPORISATIONS</div>
+  <h2>Structurer un comportement riche</h2>
+  <div class="intro">Un diagramme à plat devient vite illisible : un arrêt sur défaut devrait partir de chaque état, deux fonctions indépendantes multiplieraient les combinaisons. L'état composite et les régions concurrentes évitent cette explosion.</div>
+  <h3>État composite</h3>
+<figure class="schema">
+<svg viewBox="0 0 380 300" role="img" aria-label="Diagramme d'états d'un lave-linge avec l'état composite Cycle qui contient Remplissage, Lavage, Vidange et Essorage, une transition fuite qui part du contour vers Défaut, et une transition d'achèvement vers Attente">
+<circle cx="94" cy="30" r="5" class="fl-ink"/>
+<line x1="99" y1="30" x2="120" y2="30" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<rect x="121" y="12" width="92" height="36" rx="9" class="sk-ink fl-paper"/>
+<text x="167" y="34.5" class="lab-b" text-anchor="middle">Attente</text>
+<rect x="262" y="6" width="108" height="52" rx="9" class="sk-ink fl-paper"/>
+<text x="316" y="23" class="lab-b" text-anchor="middle">Défaut</text>
+<line x1="262" y1="30" x2="370" y2="30" class="sk-axis"/>
+<text x="269" y="46" class="lab-it">entry / alarme</text>
+<rect x="10" y="92" width="360" height="200" rx="12" class="sk-ink fl-soft"/>
+<rect x="10" y="92" width="360" height="200" rx="12" class="sk-ink"/>
+<text x="22" y="110" class="lab-b">Cycle</text>
+<text x="64" y="110" class="lab-it">entry / verrouiller la porte</text>
+<circle cx="30" cy="146" r="5" class="fl-ink"/>
+<line x1="35" y1="146" x2="51" y2="146" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<rect x="52" y="126" width="108" height="40" rx="9" class="sk-ink fl-paper"/>
+<text x="106" y="150.5" class="lab-b" text-anchor="middle">Remplissage</text>
+<rect x="240" y="126" width="108" height="40" rx="9" class="sk-ink fl-paper"/>
+<text x="294" y="150.5" class="lab-b" text-anchor="middle">Lavage</text>
+<rect x="240" y="214" width="108" height="40" rx="9" class="sk-ink fl-paper"/>
+<text x="294" y="238.5" class="lab-b" text-anchor="middle">Vidange</text>
+<rect x="52" y="214" width="108" height="40" rx="9" class="sk-ink fl-paper"/>
+<text x="106" y="238.5" class="lab-b" text-anchor="middle">Essorage</text>
+<line x1="160" y1="146" x2="239" y2="146" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<text x="200" y="139" class="lab-it" text-anchor="middle">when(plein)</text>
+<line x1="262" y1="166" x2="262" y2="213" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<text x="269" y="194" class="lab-it">after(40 min)</text>
+<line x1="240" y1="234" x2="161" y2="234" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<text x="200" y="227" class="lab-it" text-anchor="middle">when(vide)</text>
+<line x1="106" y1="254" x2="106" y2="270" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<circle cx="106" cy="279" r="8" class="sk-ink fl-paper"/>
+<circle cx="106" cy="279" r="4.5" class="fl-ink"/>
+<text x="120" y="275" class="lab-it">after(8 min)</text>
+<line x1="194" y1="48" x2="194" y2="91" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<text x="201" y="66" class="lab-it">départ</text>
+<text x="201" y="81" class="lab-it">[porte fermée]</text>
+<line x1="140" y1="92" x2="140" y2="49" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<text x="133" y="74" class="lab-it" text-anchor="end">/ déverrouiller</text>
+<line x1="340" y1="92" x2="340" y2="59" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<text x="333" y="80" class="lab-it" text-anchor="end">fuite</text>
+</svg>
+<figcaption>État composite d'un lave-linge. Entrer dans Cycle active son sous-état initial (Remplissage) ; la transition « fuite », tracée depuis le contour, quitte Cycle quel que soit le sous-état actif ; l'état final intérieur achève Cycle et déclenche la transition sans événement vers Attente.</figcaption>
+</figure>
+  <div class="prop-box">
+    <strong>Règles de l'état composite.</strong>
+    <ul>
+      <li><strong>Entrée</strong> : une transition qui aboutit au contour exécute l'action <code>entry</code> du composite puis active le sous-état désigné par l'état initial intérieur (ici Remplissage).</li>
+      <li><strong>Sortie par le contour</strong> : une transition qui part du contour (ici <code>fuite</code>) est franchissable quel que soit le sous-état actif ; elle quitte le sous-état puis le composite (actions <code>exit</code> de l'intérieur vers l'extérieur).</li>
+      <li><strong>Achèvement</strong> : l'état final intérieur achève le composite, dont la transition sans événement est alors franchie (ici vers Attente, avec l'effet <code>/ déverrouiller</code>).</li>
+    </ul>
+  </div>
+  <p>Sans composite, <code>fuite</code> serait tracée quatre fois, une par sous-état, et un oubli passerait inaperçu. Une transition peut aussi quitter directement un sous-état vers l'extérieur.</p>
+  <h3>Régions concurrentes</h3>
+  <p>Pendant le lavage, deux fonctions indépendantes se déroulent en même temps : le tambour tourne alternativement dans un sens puis dans l'autre, et une résistance maintient l'eau en température par tout ou rien.</p>
+<figure class="schema">
+<svg viewBox="0 0 380 236" role="img" aria-label="État Lavage découpé en deux régions concurrentes séparées par un trait pointillé : brassage avec les états Tourne et Repos, chauffage avec les états Chauffe et Veille">
+<rect x="6" y="6" width="368" height="224" rx="12" class="sk-ink fl-soft"/>
+<rect x="6" y="6" width="368" height="224" rx="12" class="sk-ink"/>
+<text x="18" y="24" class="lab-b">Lavage</text>
+<line x1="190" y1="34" x2="190" y2="226" class="sk-dash"/>
+<text x="98" y="46" class="lab-muted" text-anchor="middle">brassage</text>
+<text x="282" y="46" class="lab-muted" text-anchor="middle">chauffage</text>
+<circle cx="18" cy="84" r="5" class="fl-ink"/>
+<line x1="23" y1="84" x2="39" y2="84" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<rect x="40" y="60" width="132" height="52" rx="9" class="sk-ink fl-paper"/>
+<text x="106" y="77" class="lab-b" text-anchor="middle">Tourne</text>
+<line x1="40" y1="84" x2="172" y2="84" class="sk-axis"/>
+<text x="47" y="100" class="lab-it">entry / inverser sens</text>
+<rect x="40" y="168" width="132" height="36" rx="9" class="sk-ink fl-paper"/>
+<text x="106" y="190.5" class="lab-b" text-anchor="middle">Repos</text>
+<line x1="62" y1="112" x2="62" y2="167" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<text x="68" y="132" class="lab-it">after(12 s)</text>
+<line x1="150" y1="168" x2="150" y2="113" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<text x="144" y="156" class="lab-it" text-anchor="end">after(3 s)</text>
+<circle cx="201" cy="84" r="5" class="fl-ink"/>
+<line x1="206" y1="84" x2="221" y2="84" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<rect x="222" y="60" width="142" height="52" rx="9" class="sk-ink fl-paper"/>
+<text x="293" y="77" class="lab-b" text-anchor="middle">Chauffe</text>
+<line x1="222" y1="84" x2="364" y2="84" class="sk-axis"/>
+<text x="229" y="100" class="lab-it">do / résistance</text>
+<rect x="222" y="168" width="142" height="36" rx="9" class="sk-ink fl-paper"/>
+<text x="293" y="190.5" class="lab-b" text-anchor="middle">Veille</text>
+<line x1="244" y1="112" x2="244" y2="167" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<text x="250" y="132" class="lab-it">when(T ≥ T₂)</text>
+<line x1="346" y1="168" x2="346" y2="113" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<text x="340" y="156" class="lab-it" text-anchor="end">when(T ≤ T₁)</text>
+</svg>
+<figcaption>Deux régions concurrentes dans l'état Lavage. Tant que Lavage est actif, chaque région a exactement un sous-état actif : la configuration active est un couple, par exemple (Repos, Chauffe). Les seuils T₁ et T₂ encadrent la température de consigne de l'eau (hystérésis, par exemple 37 °C et 40 °C).</figcaption>
+</figure>
+  <div class="def-box">
+    <strong>Régions concurrentes</strong> (ou orthogonales) : parties d'un état composite séparées par un trait pointillé et actives simultanément. Chacune a son état initial et exactement un sous-état actif tant que le composite l'est. La <strong>configuration active</strong> est la liste des sous-états actifs, un par région.
+  </div>
+  <p>Avec deux sous-états par région, Lavage compte \(2\times2 = 4\) configurations pour 4 états dessinés. Trois régions de 3, 4 et 2 sous-états donneraient \(3\times4\times2 = 24\) états dans un diagramme à plat, contre \(3 + 4 + 2 = 9\) : le nombre d'états à dessiner croît comme une somme au lieu d'un produit.</p>
+  <h3>Temporisations et seuils</h3>
+  <ul>
+    <li><code>after(Δt)</code> survient quand l'état source est resté actif pendant \(\Delta t\), compté depuis sa dernière entrée. Quitter l'état avant annule la temporisation ; une transition réflexive la relance.</li>
+    <li><code>when(c)</code> sur une grandeur continue (<code>when(T ≥ 40 °C)</code>) marque le franchissement d'un seuil : c'est ainsi qu'une mesure analogique entre dans un diagramme d'états.</li>
+    <li><code>at(date)</code> survient à une date absolue (rare en SI).</li>
+  </ul>
+  <div class="method-box">
+    <strong>Exemple — durée d'un cycle de lavage</strong>
+    <p>Remplissage par une électrovanne de 12 L/min jusqu'à 15 L, lavage 40 min, vidange par une pompe de 20 L/min, essorage 8 min, sans fuite.</p>
+    <ol>
+      <li><code>when(plein)</code> survient après \(15/12 = 1{,}25\ \text{min}\) de remplissage, <code>when(vide)</code> après \(15/20 = 0{,}75\ \text{min}\) de vidange.</li>
+      <li>Chaque temporisation part de l'entrée dans son état : Cycle dure \(1{,}25 + 40 + 0{,}75 + 8 = 50\ \text{min}\).</li>
+      <li>Pendant Lavage, la région brassage enchaîne des alternances Tourne-Repos de \(12 + 3 = 15\ \text{s}\), soit \(40\times60/15 = 160\) entrées dans Tourne et autant d'inversions du sens. <code>after(40 min)</code>, tracée depuis le contour de Lavage, quitte les deux régions à la fois, quels que soient leurs sous-états.</li>
+    </ol>
+  </div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§5 · LIRE ET ÉCRIRE UN DIAGRAMME D'ÉTATS</div>
+  <h2>Modéliser des systèmes réels</h2>
+  <div class="intro">Écrire un diagramme d'états, c'est traduire un cahier des charges en situations et en règles de passage. Le programme demande surtout de lire et de compléter des diagrammes fournis ; la démarche est la même.</div>
+  <div class="method-box">
+    <strong>Méthode — construire un diagramme d'états</strong>
+    <ol>
+      <li><span class="step">Entrées et sorties.</span> Lister les capteurs et commandes (sources d'événements et de conditions) et les préactionneurs (cibles des actions et activités).</li>
+      <li><span class="step">États.</span> Une situation stable où le système attend quelque chose ou réalise une activité ; la nommer par un nom ou un participe (Ouvert, Fermeture), jamais par un ordre.</li>
+      <li><span class="step">Transitions.</span> Pour chaque état, se demander ce qui peut arriver : fin de mouvement, appui, durée écoulée, défaut ; écrire <code>événement [garde] / effet</code>.</li>
+      <li><span class="step">Démarrage.</span> Choisir l'état initial cohérent avec la situation réelle à la mise sous tension.</li>
+      <li><span class="step">Contrôle.</span> Chaque état a une sortie (sauf l'état final) ; deux transitions d'un même état déclenchées par le même événement ont des gardes exclusives ; les situations dangereuses sont traitées (§7).</li>
+    </ol>
+  </div>
+  <h3>Portail coulissant</h3>
+  <p>Un portail motorisé s'ouvre par la télécommande, se referme seul au bout de 30 s ou sur un nouvel appui, et rouvre si une cellule photoélectrique détecte un obstacle pendant la fermeture.</p>
+<figure class="schema">
+<svg viewBox="0 0 380 214" role="img" aria-label="Diagramme d'états d'un portail coulissant : Fermé, Ouverture, Ouvert, Fermeture ; tel ouvre, when(fo) arrête l'ouverture, tel ou after(30 s) referme, when(ff) achève la fermeture, when(obs) provoque la réouverture">
+<circle cx="8" cy="40" r="5" class="fl-ink"/>
+<line x1="13" y1="40" x2="31" y2="40" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<rect x="32" y="23" width="90" height="34" rx="9" class="sk-ink fl-paper"/>
+<text x="77" y="44.5" class="lab-b" text-anchor="middle">Fermé</text>
+<rect x="262" y="16" width="112" height="48" rx="9" class="sk-ink fl-paper"/>
+<text x="318" y="33" class="lab-b" text-anchor="middle">Ouverture</text>
+<line x1="262" y1="40" x2="374" y2="40" class="sk-axis"/>
+<text x="269" y="56" class="lab-it">do / ouvrir (MO)</text>
+<rect x="271" y="166" width="94" height="34" rx="9" class="sk-ink fl-paper"/>
+<text x="318" y="187.5" class="lab-b" text-anchor="middle">Ouvert</text>
+<rect x="23" y="159" width="112" height="48" rx="9" class="sk-ink fl-paper"/>
+<text x="79" y="176" class="lab-b" text-anchor="middle">Fermeture</text>
+<line x1="23" y1="183" x2="135" y2="183" class="sk-axis"/>
+<text x="30" y="199" class="lab-it">do / fermer (MF)</text>
+<line x1="122" y1="40" x2="261" y2="40" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<text x="192" y="33" class="lab-it" text-anchor="middle">tel</text>
+<line x1="318" y1="64" x2="318" y2="165" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<text x="325" y="118" class="lab-it">when(fo)</text>
+<line x1="271" y1="183" x2="136" y2="183" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<text x="203" y="200" class="lab-it" text-anchor="middle">tel, after(30 s)</text>
+<line x1="77" y1="159" x2="77" y2="58" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<text x="70" y="112" class="lab-it" text-anchor="end">when(ff)</text>
+<line x1="122" y1="159" x2="274" y2="65" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<text x="206" y="128" class="lab-it">when(obs)</text>
+</svg>
+<figcaption>Portail coulissant motorisé. Entrées : tel (appui sur la télécommande), fins de course fo (ouvert) et ff (fermé), cellule photoélectrique obs (faisceau coupé). Sorties : moteur en ouverture MO, en fermeture MF. Deux déclencheurs séparés par une virgule : l'un ou l'autre fait franchir la transition.</figcaption>
+</figure>
+  <p>Un appui pendant un mouvement est ignoré : ni Ouverture ni Fermeture n'ont de transition déclenchée par <code>tel</code>, l'événement est perdu. Les sorties sont des activités : MO vaut 1 exactement tant que Ouverture est active, MF tant que Fermeture l'est. Un seul état étant actif, les deux sens du moteur ne peuvent jamais être commandés ensemble.</p>
+  <h3>Distributeur de boissons : variables, gardes et effets</h3>
+  <p>Un diagramme peut manipuler des variables, testées par les gardes et modifiées par les effets. Un distributeur accepte des pièces de 10, 20 et 50 centimes et de 1 € ; chaque boisson coûte 1,20 €. La variable \(c\) contient le crédit en centimes. Le diagramme s'écrit aussi sous forme de <strong>tableau des transitions</strong>, une ligne par transition :</p>
+  <table>
+    <tr><th>État source</th><th>Événement [garde] / effet</th><th>État cible</th></tr>
+    <tr><td>Attente</td><td><code>pièce(v) / c ← v</code></td><td>Paiement</td></tr>
+    <tr><td>Paiement</td><td><code>pièce(v) / c ← c + v</code></td><td>(transition interne)</td></tr>
+    <tr><td>Paiement</td><td><code>choix [c ≥ 120] / c ← c − 120</code></td><td>Préparation</td></tr>
+    <tr><td>Paiement</td><td><code>choix [c &lt; 120] / afficher « crédit insuffisant »</code></td><td>(transition interne)</td></tr>
+    <tr><td>Paiement</td><td><code>annulation / rendre(c) ; c ← 0</code></td><td>Attente</td></tr>
+    <tr><td>Préparation (<code>do / préparer</code>)</td><td>sans événement <code>/ rendre(c) ; c ← 0</code></td><td>Attente</td></tr>
+  </table>
+  <div class="method-box">
+    <strong>Exemple — suivre un achat</strong>
+    <p>Le client glisse 50 c et 20 c, choisit une boisson, ajoute 1 € et choisit de nouveau.</p>
+    <ol>
+      <li>Attente → Paiement avec \(c = 50\), puis transition interne : \(c = 70\).</li>
+      <li><code>choix</code> : la garde \(c \geq 120\) est fausse, la garde \(c \lt 120\) vraie ; message, on reste dans Paiement.</li>
+      <li>La pièce de 1 € donne \(c = 170\) ; au <code>choix</code> suivant, Préparation avec \(c = 170 - 120 = 50\).</li>
+      <li>Fin de la préparation : transition d'achèvement, rendu de 50 c, retour en Attente avec \(c = 0\).</li>
+    </ol>
+    <p>Les deux gardes de <code>choix</code> sont complémentaires : à chaque événement, exactement une transition est franchissable.</p>
+  </div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§6 · DU DIAGRAMME AU PROGRAMME</div>
+  <h2>Programmer un diagramme d'états en Python</h2>
+  <div class="intro">La carte de commande (microcontrôleur, automate programmable) répète sans fin le même cycle de quelques millisecondes : lire les entrées, calculer l'évolution, écrire les sorties. Le diagramme se traduit presque ligne à ligne dans ce cycle, grâce à une variable qui mémorise l'état actif.</div>
+  <div class="prop-box">
+    <strong>Structure d'un programme de commande séquentielle.</strong>
+    <ul>
+      <li>Une <strong>variable d'état</strong>, qui contient le nom de l'état actif.</li>
+      <li>Une boucle infinie <code>while True</code>, dont chaque tour est un cycle.</li>
+      <li>Une structure <code>if … elif …</code> sur la variable d'état ; dans chaque branche, un test par transition sortante (événement et garde), qui change la valeur de la variable.</li>
+      <li>Des fronts calculés avec la valeur des entrées au tour précédent, des temporisations calculées avec la date d'entrée dans l'état.</li>
+    </ul>
+  </div>
+  <p>Traduction du portail du §5 : la fonction <code>evolution</code> réalise un pas du diagramme et le programme principal l'appelle à chaque cycle. Les fonctions <code>lire_entrees</code> et <code>ecrire_sorties</code> sont fournies avec la carte.</p>
+<pre class="codeblock"><code><span class="kw">import</span> time
+
+FERME, OUVERTURE = <span class="str">'Fermé'</span>, <span class="str">'Ouverture'</span>       <span class="cmt"># états</span>
+OUVERT, FERMETURE = <span class="str">'Ouvert'</span>, <span class="str">'Fermeture'</span>
+TEMPO = 30.0                    <span class="cmt"># refermeture automatique (s)</span>
+
+<span class="kw">def</span> evolution(etat, t_entree, t, tel, fo, ff, obs):
+    <span class="str">"""Un pas du diagramme : nouvel état et date d'entrée.</span>
+<span class="str">    tel : front de la télécommande ; fo, ff, obs : niveaux."""</span>
+    suivant = etat
+    <span class="kw">if</span> etat == FERME:
+        <span class="kw">if</span> tel:
+            suivant = OUVERTURE
+    <span class="kw">elif</span> etat == OUVERTURE:
+        <span class="kw">if</span> fo:
+            suivant = OUVERT
+    <span class="kw">elif</span> etat == OUVERT:
+        <span class="kw">if</span> tel <span class="kw">or</span> t - t_entree &gt;= TEMPO:
+            suivant = FERMETURE
+    <span class="kw">elif</span> etat == FERMETURE:
+        <span class="kw">if</span> obs:                 <span class="cmt"># sécurité : testée en premier</span>
+            suivant = OUVERTURE
+        <span class="kw">elif</span> ff:
+            suivant = FERME
+    <span class="kw">if</span> suivant != etat:
+        t_entree = t            <span class="cmt"># nouvel état : la temporisation repart</span>
+    <span class="kw">return</span> suivant, t_entree
+
+<span class="kw">def</span> sorties(etat):
+    <span class="str">"""Activités do : moteur en ouverture, en fermeture."""</span>
+    <span class="kw">return</span> etat == OUVERTURE, etat == FERMETURE
+
+etat, t_entree = FERME, time.monotonic()
+b_prec = <span class="kw">False</span>
+<span class="kw">while</span> <span class="kw">True</span>:                     <span class="cmt"># un tour = un cycle</span>
+    t = time.monotonic()
+    b, fo, ff, obs = lire_entrees()
+    tel = b <span class="kw">and</span> <span class="kw">not</span> b_prec      <span class="cmt"># front montant</span>
+    b_prec = b
+    etat, t_entree = evolution(etat, t_entree, t, tel, fo, ff, obs)
+    MO, MF = sorties(etat)
+    ecrire_sorties(MO, MF)
+    time.sleep(0.01)            <span class="cmt"># cadence : environ 10 ms</span></code></pre>
+  <ul>
+    <li>Une branche <code>elif etat == …</code> par état, un <code>if</code> par transition sortante. L'ordre des tests fixe la <strong>priorité</strong> quand deux transitions sont franchissables au même cycle : dans Fermeture, l'obstacle est testé avant la fin de course.</li>
+    <li><strong>Portée des variables</strong> : <code>evolution</code> reçoit l'état en argument et renvoie le nouveau, sans lire ni modifier de variable globale. On peut donc la tester seule, sans carte (§7).</li>
+    <li><strong>Temporisation</strong> : <code>t_entree</code> prend la date courante à chaque changement d'état, et <code>after(30 s)</code> devient le test <code>t - t_entree &gt;= TEMPO</code>, refait à chaque cycle ; jamais <code>==</code>, car la date exacte tombe rarement sur un cycle. Le retard de détection est d'au plus un cycle.</li>
+    <li><strong>Événements</strong> : <code>tel</code> est un front, calculé une fois par cycle ; <code>when(fo)</code> est traduit par le niveau de <code>fo</code>, ce qui revient au même tant que <code>fo</code> est faux à l'entrée dans Ouverture.</li>
+    <li><strong>Sorties</strong> : les activités <code>do</code> deviennent des sorties calculées à partir de l'état seul, à chaque cycle.</li>
+  </ul>
+  <h3>Actions d'entrée, de sortie et effets</h3>
+  <p>Une action <code>entry</code>, une action <code>exit</code> ou un effet ne s'exécute qu'une fois, au franchissement : on l'écrit dans le bloc qui change l'état, jamais dans le corps de la branche, parcouru à chaque cycle. Branche Paiement du distributeur du §5 :</p>
+<pre class="codeblock"><code><span class="kw">elif</span> etat == PAIEMENT:
+    <span class="kw">if</span> piece:                       <span class="cmt"># transition interne</span>
+        c = c + v                   <span class="cmt"># effet : une fois par pièce</span>
+    <span class="kw">elif</span> choix <span class="kw">and</span> c &gt;= PRIX:
+        c = c - PRIX                <span class="cmt"># effet de la transition</span>
+        demarrer_preparation()      <span class="cmt"># entry de Préparation</span>
+        etat = PREPARATION
+    <span class="kw">elif</span> choix:                     <span class="cmt"># garde complémentaire</span>
+        afficher(<span class="str">"crédit insuffisant"</span>)
+    <span class="kw">elif</span> annulation:
+        rendre(c)
+        c = 0
+        etat = ATTENTE</code></pre>
+  <div class="notice">
+    <strong>Erreur classique</strong> : programmer une temporisation par <code>time.sleep(30)</code>. Pendant l'attente, la boucle ne tourne plus : les entrées ne sont pas lues et un obstacle ou un arrêt d'urgence passe inaperçu. Une temporisation se programme en comparant des dates à chaque cycle ; la seule attente admise est la courte pause qui cadence la boucle.
+  </div>
+  <h3>États composites et régions concurrentes</h3>
+  <p>Un composite se traduit par une seconde variable, l'état de son sous-diagramme. La transition qui part du contour est testée <em>avant</em> les sous-états, ce qui lui donne la priorité : c'est le choix voulu pour un défaut, que les sous-états n'utilisent pas (si un sous-état réagissait au même événement, la norme SysML donnerait au contraire la priorité au sous-état ; on évite cette situation). Des régions concurrentes se traduisent par une variable d'état par région, toutes mises à jour au même cycle. Pour l'état Lavage du §4 :</p>
+<pre class="codeblock"><code><span class="kw">def</span> pas_brassage(etat, t_entree, sens, t):
+    <span class="kw">if</span> etat == TOURNE <span class="kw">and</span> t - t_entree &gt;= 12:
+        <span class="kw">return</span> REPOS, t, sens
+    <span class="kw">if</span> etat == REPOS <span class="kw">and</span> t - t_entree &gt;= 3:
+        <span class="kw">return</span> TOURNE, t, -sens     <span class="cmt"># entry de Tourne : inverser</span>
+    <span class="kw">return</span> etat, t_entree, sens
+
+<span class="kw">def</span> pas_chauffage(etat, T, T1, T2):
+    <span class="kw">if</span> etat == CHAUFFE <span class="kw">and</span> T &gt;= T2:
+        <span class="kw">return</span> VEILLE
+    <span class="kw">if</span> etat == VEILLE <span class="kw">and</span> T &lt;= T1:
+        <span class="kw">return</span> CHAUFFE
+    <span class="kw">return</span> etat
+
+<span class="cmt"># dans la branche Lavage du sous-diagramme de Cycle :</span>
+<span class="kw">if</span> t - t_sous &gt;= 40*60:             <span class="cmt"># after(40 min), testé en premier</span>
+    sous_etat, t_sous = VIDANGE, t
+<span class="kw">else</span>:                               <span class="cmt"># sinon, chaque région évolue</span>
+    brassage, t_br, sens = pas_brassage(brassage, t_br, sens, t)
+    chauffage = pas_chauffage(chauffage, T, T1, T2)</code></pre>
+  <p>Les sorties restent calculées à partir des états : la résistance est alimentée si Lavage est actif et si la région chauffage est dans Chauffe. Quitter Lavage la coupe donc d'elle-même, comme le ferait l'interruption de l'activité <code>do</code>.</p>
+  <div class="method-box">
+    <strong>Méthode — modifier un programme existant</strong>
+    <ol>
+      <li><span class="step">Diagramme d'abord.</span> Ajouter ou modifier l'état, la transition ou la garde ; vérifier que le diagramme reste déterministe et complet.</li>
+      <li><span class="step">Localiser.</span> Repérer la branche de l'état concerné ; y ajouter, retirer ou réordonner les tests.</li>
+      <li><span class="step">Conséquences.</span> Nouvelle constante d'état, nouvelle sortie, temporisation, priorité entre tests.</li>
+      <li><span class="step">Non-régression.</span> Rejouer les scénarios existants et en écrire un pour la nouveauté (§7).</li>
+    </ol>
+  </div>
+  <div class="method-box">
+    <strong>Exemple — faire évoluer le portail</strong>
+    <p>Le client veut une refermeture automatique au bout de 45 s, et qu'un appui pendant la fermeture fasse rouvrir le portail. Dans le diagramme, <code>after(30 s)</code> devient <code>after(45 s)</code> et la transition Fermeture → Ouverture reçoit un second déclencheur : <code>when(obs), tel</code>. Dans le programme, deux lignes changent :</p>
+<pre class="codeblock"><code>TEMPO = 45.0                    <span class="cmt"># était 30.0</span>
+
+    <span class="kw">elif</span> etat == FERMETURE:
+        <span class="kw">if</span> obs <span class="kw">or</span> tel:          <span class="cmt"># était : if obs:</span>
+            suivant = OUVERTURE
+        <span class="kw">elif</span> ff:
+            suivant = FERME</code></pre>
+    <p>Scénarios à ajouter : appui pendant la fermeture (réouverture), portail toujours ouvert 44,9 s après l'ouverture complète, en fermeture à 45 s.</p>
+  </div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§7 · VÉRIFIER UN COMPORTEMENT</div>
+  <h2>Scénarios, chronogrammes et propriétés</h2>
+  <div class="intro">Un diagramme d'états se valide comme tout modèle : on lui fait subir des scénarios et on compare son comportement au cahier des charges. Le chronogramme sert à lire, à écrire et à communiquer ces scénarios.</div>
+  <div class="def-box">
+    <strong>Chronogramme</strong> : représentation, sur un même axe des temps, de l'évolution des entrées, des sorties et de l'état actif (ou de la configuration active) d'un système séquentiel. Les variables logiques y sont des créneaux, l'état actif une bande découpée en intervalles.
+  </div>
+<figure class="schema">
+<svg viewBox="0 0 380 236" role="img" aria-label="Chronogramme simulé du portail : appui sur tel à 2 s, ouverture jusqu'à 14 s, refermeture automatique à 44 s, obstacle à 52 s qui provoque la réouverture jusqu'à 60 s, nouvelle fermeture de 90 s à 102 s">
+<text x="32" y="34" class="lab-it" text-anchor="end">tel</text>
+<line x1="40" y1="36" x2="372" y2="36" class="sk-axis"/>
+<polyline points="40,36 46.3,36 46.3,23 48.3,23 48.3,36 372,36" class="sk-ink"/>
+<text x="32" y="60" class="lab-it" text-anchor="end">obs</text>
+<line x1="40" y1="62" x2="372" y2="62" class="sk-axis"/>
+<polyline points="40,62 202.9,62 202.9,49 206,49 206,62 372,62" class="sk-ink"/>
+<text x="32" y="86" class="lab-it" text-anchor="end">fo</text>
+<line x1="40" y1="88" x2="372" y2="88" class="sk-axis"/>
+<polyline points="40,88 83.8,88 83.8,75 177.8,75 177.8,88 227.9,88 227.9,75 321.9,75 321.9,88 372,88" class="sk-ink"/>
+<text x="32" y="112" class="lab-it" text-anchor="end">ff</text>
+<line x1="40" y1="114" x2="372" y2="114" class="sk-axis"/>
+<polyline points="40,101 46.3,101 46.3,114 359.5,114 359.5,101 372,101" class="sk-ink"/>
+<text x="32" y="138" class="lab-it" text-anchor="end">MO</text>
+<line x1="40" y1="140" x2="372" y2="140" class="sk-axis"/>
+<polyline points="40,140 46.3,140 46.3,127 83.8,127 83.8,140 202.9,140 202.9,127 227.9,127 227.9,140 372,140" class="sk-accent2"/>
+<text x="32" y="164" class="lab-it" text-anchor="end">MF</text>
+<line x1="40" y1="166" x2="372" y2="166" class="sk-axis"/>
+<polyline points="40,166 177.8,166 177.8,153 202.9,153 202.9,166 321.9,166 321.9,153 359.5,153 359.5,166 372,166" class="sk-accent2"/>
+<text x="32" y="197" class="lab-it" text-anchor="end">état</text>
+<rect x="40" y="182" width="6.3" height="20" class="sk-axis fl-paper"/>
+<rect x="46.3" y="182" width="37.6" height="20" class="sk-axis fl-accent2-soft"/>
+<text x="65.1" y="196" class="lab-muted" text-anchor="middle">Ouv.</text>
+<rect x="83.8" y="182" width="94" height="20" class="sk-axis fl-paper"/>
+<text x="130.8" y="196" class="lab-muted" text-anchor="middle">Ouvert</text>
+<rect x="177.8" y="182" width="25.1" height="20" class="sk-axis fl-accent2-soft"/>
+<rect x="202.9" y="182" width="25.1" height="20" class="sk-axis fl-accent2-soft"/>
+<rect x="227.9" y="182" width="94" height="20" class="sk-axis fl-paper"/>
+<text x="274.9" y="196" class="lab-muted" text-anchor="middle">Ouvert</text>
+<rect x="321.9" y="182" width="37.6" height="20" class="sk-axis fl-accent2-soft"/>
+<text x="340.7" y="196" class="lab-muted" text-anchor="middle">Ferm.</text>
+<rect x="359.5" y="182" width="12.5" height="20" class="sk-axis fl-paper"/>
+<line x1="40" y1="202" x2="40" y2="206" class="sk-axis"/>
+<text x="40" y="218" class="lab-muted" text-anchor="middle">0</text>
+<line x1="102.6" y1="202" x2="102.6" y2="206" class="sk-axis"/>
+<text x="102.6" y="218" class="lab-muted" text-anchor="middle">20</text>
+<line x1="165.3" y1="202" x2="165.3" y2="206" class="sk-axis"/>
+<text x="165.3" y="218" class="lab-muted" text-anchor="middle">40</text>
+<line x1="227.9" y1="202" x2="227.9" y2="206" class="sk-axis"/>
+<text x="227.9" y="218" class="lab-muted" text-anchor="middle">60</text>
+<line x1="290.6" y1="202" x2="290.6" y2="206" class="sk-axis"/>
+<text x="290.6" y="218" class="lab-muted" text-anchor="middle">80</text>
+<text x="372" y="218" class="lab-muted lab-it" text-anchor="end">t (s)</text>
+</svg>
+<figcaption>Chronogramme obtenu en exécutant la fonction <code>evolution</code> sur un scénario (course de 12 s dans chaque sens) : appui sur tel à 2 s, obstacle de 52 à 53 s. Bande du bas : état actif (en couleur : portail en mouvement). Les sorties MO et MF ne sont jamais à 1 en même temps.</figcaption>
+</figure>
+  <div class="method-box">
+    <strong>Méthode — tracer un chronogramme à partir d'un diagramme</strong>
+    <ol>
+      <li>Placer les entrées imposées par le scénario.</li>
+      <li>Partir de l'état initial ; à chaque événement, chercher une transition franchissable de l'état actif (événement présent, garde vraie) ; sinon, l'événement est perdu.</li>
+      <li>Noter les dates d'entrée dans les états : les <code>after(Δt)</code> se comptent à partir d'elles.</li>
+      <li>En déduire les sorties : activités de l'état actif, actions ponctuelles aux entrées, sorties et franchissements.</li>
+      <li>Les sorties agissent sur la partie opérative : en déduire les capteurs qui en dépendent (fins de course).</li>
+    </ol>
+  </div>
+  <div class="method-box">
+    <strong>Exemple — lire le chronogramme du portail</strong>
+    <ol>
+      <li>2 s : front de <em>tel</em> dans Fermé, Ouverture et MO = 1. Course de 12 s : <em>fo</em> passe à 1 à 14 s, Ouvert.</li>
+      <li>44 s = 14 s + 30 s : <code>after(30 s)</code>, Fermeture ; <em>fo</em> retombe dès que le portail bouge.</li>
+      <li>52 s : obstacle pendant la fermeture, Ouverture. Le portail a fermé pendant 8 s, soit les deux tiers de sa course : il lui faut 8 s pour rouvrir, <em>fo</em> à 60 s.</li>
+      <li>90 s : refermeture, <em>ff</em> à 102 s, retour à Fermé. La durée de l'appui sur la télécommande (0,3 s) ne joue aucun rôle : seul son front est un événement.</li>
+    </ol>
+  </div>
+  <h3>Tester le programme</h3>
+  <p>La fonction <code>evolution</code> ne dépend que de ses arguments : on la fait avancer pas à pas sur un scénario et on compare l'état obtenu à l'état attendu avec <code>assert</code>, qui arrête le programme en cas d'écart.</p>
+<pre class="codeblock"><code>e, te = FERME, 0.0
+e, te = evolution(e, te, 2.0, <span class="kw">True</span>, <span class="kw">False</span>, <span class="kw">True</span>, <span class="kw">False</span>)    <span class="cmt"># appui</span>
+<span class="kw">assert</span> e == OUVERTURE
+e, te = evolution(e, te, 14.0, <span class="kw">False</span>, <span class="kw">True</span>, <span class="kw">False</span>, <span class="kw">False</span>)  <span class="cmt"># fin de course</span>
+<span class="kw">assert</span> e == OUVERT
+e, te = evolution(e, te, 43.9, <span class="kw">False</span>, <span class="kw">True</span>, <span class="kw">False</span>, <span class="kw">False</span>)  <span class="cmt"># 29,9 s après</span>
+<span class="kw">assert</span> e == OUVERT
+e, te = evolution(e, te, 44.0, <span class="kw">False</span>, <span class="kw">True</span>, <span class="kw">False</span>, <span class="kw">False</span>)  <span class="cmt"># 30 s écoulées</span>
+<span class="kw">assert</span> e == FERMETURE
+e, te = evolution(e, te, 45.0, <span class="kw">False</span>, <span class="kw">False</span>, <span class="kw">False</span>, <span class="kw">True</span>)  <span class="cmt"># obstacle</span>
+<span class="kw">assert</span> e == OUVERTURE</code></pre>
+  <div class="prop-box">
+    <strong>Propriétés à vérifier.</strong>
+    <ul>
+      <li><strong>Déterminisme</strong> : deux transitions d'un même état déclenchées par le même événement ont des gardes exclusives. Sinon le comportement n'est pas défini, et le programme tranchera selon l'ordre de ses tests sans que personne l'ait décidé.</li>
+      <li><strong>Complétude</strong> : dans chaque état, chaque événement possible est traité, ou ignoré en accord avec le cahier des charges.</li>
+      <li><strong>Vivacité</strong> : chaque état est accessible depuis l'état initial, et aucun état n'est un puits (sans transition sortante), sauf l'état final ou un état de défaut qui attend une intervention.</li>
+      <li><strong>Sûreté</strong> : les situations dangereuses sont impossibles. Ici, MO et MF ne valent jamais 1 ensemble, par construction, puisqu'ils sont attachés à deux états distincts.</li>
+    </ul>
+  </div>
+  <p><strong>Couverture</strong> : un jeu de scénarios doit franchir chaque transition au moins une fois. Celui du chronogramme les franchit toutes sauf la refermeture sur appui ; un second scénario la complète.</p>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§8 · ERREURS CLASSIQUES</div>
+  <h2>Ce qu'il faut éviter, du diagramme au programme</h2>
+  <div class="intro">La plupart des erreurs viennent d'une confusion entre ce qui dure (état, condition, activité) et ce qui est instantané (événement, transition, action).</div>
+  <ul>
+    <li><strong>Un état nommé par un ordre</strong> (« Ouvrir ») : un état est une situation, l'ordre est une action ou une activité de cet état.</li>
+    <li><strong>Une condition à la place d'un événement</strong> : une garde seule <code>[b]</code> sur un bouton maintenu enchaîne les transitions pendant tout l'appui (télérupteur du §2) ; il faut l'événement, le front.</li>
+    <li><strong>Des gardes qui se recouvrent ou laissent un trou</strong> : avec <code>[c &gt; 120]</code> et <code>[c &lt; 120]</code>, un crédit d'exactement 1,20 € ne déclenche rien.</li>
+    <li><strong>Croire qu'un événement attend</strong> : un événement sans transition dans l'état actif est perdu ; s'il doit être servi plus tard, il faut le mémoriser dans une variable ou une région.</li>
+    <li><strong>Oublier l'état initial</strong>, ou en mettre deux dans une même région.</li>
+    <li><strong>Compter <code>after</code> depuis le mauvais instant</strong> : la durée part de la dernière entrée dans l'état source, relancée par une transition réflexive.</li>
+    <li><strong>Bloquer la boucle</strong> par <code>time.sleep</code> ou par une boucle <code>while</code> d'attente dans une branche : plus aucune entrée n'est lue.</li>
+    <li><strong>Exécuter une action d'entrée à chaque cycle</strong>, comme dans l'exemple suivant.</li>
+  </ul>
+  <div class="method-box">
+    <strong>Exemple — un compteur qui s'emballe</strong>
+    <p>Un convoyeur compte les cartons qui passent devant une cellule ; dans le diagramme, l'état Présence porte <code>entry / n ← n + 1</code>. Un carton masque la cellule 0,3 s et le cycle dure 10 ms. Le programmeur a écrit :</p>
+<pre class="codeblock"><code><span class="kw">elif</span> etat == PRESENCE:
+    n = n + 1                   <span class="cmt"># voulu : entry / n ← n + 1</span>
+    <span class="kw">if</span> <span class="kw">not</span> cellule:
+        etat = LIBRE</code></pre>
+    <p>La branche est parcourue à chaque cycle passé dans Présence : le compteur augmente de \(0{,}3/0{,}01 = 30\) par carton. L'action d'entrée se place dans le bloc qui fait entrer dans l'état :</p>
+<pre class="codeblock"><code><span class="kw">if</span> etat == LIBRE:
+    <span class="kw">if</span> cellule:
+        n = n + 1               <span class="cmt"># entry de Présence : une seule fois</span>
+        etat = PRESENCE
+<span class="kw">elif</span> etat == PRESENCE:
+    <span class="kw">if</span> <span class="kw">not</span> cellule:
+        etat = LIBRE</code></pre>
+  </div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">POUR ALLER PLUS LOIN · HORS PROGRAMME</div>
+  <h2>GRAFCET, réseaux de Petri, machines de Moore et de Mealy</h2>
+  <div class="intro">Ces outils ne sont pas exigibles ; ils éclairent le diagramme d'états et se rencontrent en entreprise ou dans des sujets qui en rappellent les règles.</div>
+  <ul>
+    <li><strong>GRAFCET</strong> (norme NF EN 60848) : langage de spécification des automatismes industriels, longtemps enseigné en classes préparatoires. Des étapes (carrés) portent des actions ; des transitions portent des réceptivités. Plusieurs étapes peuvent être actives à la fois (divergence en ET), ce qui joue le rôle des régions concurrentes. Correspondances : étape et état, réceptivité et événement gardé, action continue et activité <code>do</code>. Les automates programmables l'exécutent sous la forme du langage SFC de la norme CEI 61131-3.</li>
+    <li><strong>Réseaux de Petri</strong> : places, transitions et jetons ; le marquage (nombre de jetons de chaque place) généralise l'état actif. Ils décrivent le partage de ressources (deux robots pour un seul convoyeur) et la synchronisation, et permettent de démontrer qu'un système ne se bloque jamais.</li>
+    <li><strong>Machines de Moore et de Mealy</strong> : modèles mathématiques d'un automate fini, définis par un ensemble d'états, des alphabets d'entrée et de sortie, une fonction de transition (état, entrée) → état et un état initial. Les sorties d'une machine de Moore ne dépendent que de l'état (comme les activités du portail) ; celles d'une machine de Mealy dépendent de l'état et des entrées (comme les effets des transitions). La fonction <code>evolution</code> du §6 est la fonction de transition.</li>
+    <li><strong>Autres éléments SysML</strong> : pseudo-état historique H (un composite réactivé reprend le sous-état qu'il avait quitté), pseudo-état de choix (losange qui aiguille selon des gardes), fourche et jonction (entrée et sortie synchronisées de régions concurrentes), événements différés (gardés pour plus tard au lieu d'être perdus).</li>
+    <li><strong>Vérification formelle</strong> : pour les systèmes critiques (signalisation ferroviaire, commandes de vol), des logiciels parcourent toutes les configurations accessibles d'un modèle pour démontrer une propriété de sûreté, au lieu de la tester sur quelques scénarios.</li>
+  </ul>
+</div>
+</section>
+<section class="panel" id="seq-meth">
+<div class="course-section">
+  <div class="sec-num">MÉTHODES · SYSTÈMES SÉQUENTIELS</div>
+  <h2>Savoir-faire pour les écrits et les oraux</h2>
+
+  <div class="method-box">
+    <strong>Méthode 1 — Construire ou compléter un diagramme d'états</strong>
+    <ol style="margin-top:.4rem">
+      <li><span class="step">Inventaire.</span> Entrées (boutons, capteurs, messages : sources d'événements et de conditions), sorties (préactionneurs, affichages), variables utiles (crédit, compteur).</li>
+      <li><span class="step">États.</span> Une situation stable par état, où le système attend ou réalise une activité ; un nom ou un participe, jamais un ordre.</li>
+      <li><span class="step">Transitions.</span> Pour chaque état, passer en revue chaque événement possible : réaction, garde, effet, état cible, ou événement volontairement ignoré.</li>
+      <li><span class="step">Factoriser.</span> Un état composite pour une réaction commune (défaut, arrêt) ; des régions concurrentes pour des fonctions indépendantes qui se déroulent en même temps.</li>
+      <li><span class="step">Démarrage et contrôle.</span> État initial à chaque niveau ; vérifier le diagramme par la méthode 4.</li>
+    </ol>
+  </div>
+
+  <div class="method-box">
+    <strong>Méthode 2 — Suivre un scénario sur un diagramme fourni</strong>
+    <ol style="margin-top:.4rem">
+      <li><span class="step">Départ.</span> Configuration active initiale : état initial de chaque niveau et de chaque région ; actions <code>entry</code> exécutées.</li>
+      <li><span class="step">Événement suivant.</span> Chercher, dans l'état actif puis dans les composites qui l'englobent, une transition déclenchée par cet événement dont la garde est vraie.</li>
+      <li><span class="step">Franchissement.</span> Interrompre l'activité <code>do</code>, exécuter <code>exit</code>, l'effet, puis <code>entry</code> de l'état cible ; mettre à jour les variables ; noter la date d'entrée.</li>
+      <li><span class="step">Aucune transition</span> : l'événement est perdu, rien ne change.</li>
+      <li><span class="step">Temporisations.</span> Entre deux événements du scénario, vérifier si un <code>after(Δt)</code> arrive à échéance (date d'entrée + Δt) : c'est aussi un événement.</li>
+    </ol>
+  </div>
+
+  <div class="method-box">
+    <strong>Méthode 3 — Tracer ou lire un chronogramme</strong>
+    <ol style="margin-top:.4rem">
+      <li><span class="step">Cadre.</span> Un axe des temps commun ; une ligne par entrée et par sortie logiques ; une bande pour l'état actif (une par région).</li>
+      <li><span class="step">Entrées</span> imposées par le scénario, puis évolution des états par la méthode 2.</li>
+      <li><span class="step">Sorties.</span> Une activité donne un créneau qui couvre tout le séjour dans l'état ; une action ponctuelle, une impulsion ou un changement de valeur à l'instant du franchissement.</li>
+      <li><span class="step">Partie opérative.</span> Les capteurs qui dépendent des sorties (fins de course, niveaux) changent après la durée du mouvement : la calculer.</li>
+      <li><span class="step">Lecture inverse.</span> Pour chaque changement de sortie, retrouver l'événement qui l'a provoqué et la transition franchie.</li>
+    </ol>
+  </div>
+
+  <div class="method-box">
+    <strong>Méthode 4 — Vérifier un diagramme d'états</strong>
+    <ol style="margin-top:.4rem">
+      <li><span class="step">Déterminisme.</span> Pour chaque état et chaque événement, gardes exclusives deux à deux ; regarder les cas d'égalité (\(c = 120\)) et les événements simultanés.</li>
+      <li><span class="step">Complétude.</span> Tableau états × événements : chaque case contient une transition, ou « ignoré » accepté par le cahier des charges.</li>
+      <li><span class="step">Vivacité.</span> Chaque état est accessible ; aucun puits hors état final ou défaut ; chaque attente a une issue (temporisation de surveillance).</li>
+      <li><span class="step">Sûreté.</span> Commandes antagonistes (deux sens d'un moteur, deux vannes) attachées à des états distincts ; suivre tous les chemins qui mènent à une situation dangereuse.</li>
+      <li><span class="step">Convention.</span> Pour chaque <code>when(c)</code> ou garde seule, examiner le cas où \(c\) est déjà vraie à l'entrée dans l'état.</li>
+    </ol>
+  </div>
+
+  <div class="method-box">
+    <strong>Méthode 5 — Traduire un diagramme en programme Python</strong>
+    <ol style="margin-top:.4rem">
+      <li><span class="step">Données.</span> Une constante par état ; une variable d'état ; la date d'entrée dans l'état ; la valeur précédente de chaque entrée dont on veut le front.</li>
+      <li><span class="step">Fonction d'évolution</span> <code>evolution(etat, t_entree, t, …)</code> : une branche <code>if</code> / <code>elif</code> par état, un test par transition sortante, dans l'ordre des priorités (sécurité d'abord) ; elle renvoie le nouvel état et sa date d'entrée.</li>
+      <li><span class="step">Événements.</span> Front : <code>b and not b_prec</code> ; <code>when(c)</code> : test de <code>c</code> ; <code>after(Δt)</code> : <code>t - t_entree &gt;= Δt</code>.</li>
+      <li><span class="step">Comportements.</span> Effets, <code>entry</code> et <code>exit</code> dans le bloc qui change l'état ; activités <code>do</code> : sorties calculées à partir de l'état.</li>
+      <li><span class="step">Boucle principale.</span> Lire les entrées, calculer les fronts, appeler <code>evolution</code>, écrire les sorties, courte pause ; jamais d'attente longue.</li>
+    </ol>
+  </div>
+
+  <div class="method-box">
+    <strong>Méthode 6 — Programmer un état composite ou des régions concurrentes</strong>
+    <ol style="margin-top:.4rem">
+      <li><span class="step">Variables.</span> Une variable par niveau d'imbrication (état, sous-état), une par région concurrente, chacune avec sa date d'entrée.</li>
+      <li><span class="step">Contour d'abord.</span> Tester les transitions qui partent du contour avant celles des sous-états ; à chaque entrée dans le composite, remettre les sous-états à leur état initial.</li>
+      <li><span class="step">Régions.</span> Une fonction par région, toutes appelées au même cycle.</li>
+      <li><span class="step">Sorties</span> : combinaisons des états (résistance alimentée si Lavage est actif et si la région chauffage est dans Chauffe).</li>
+    </ol>
+  </div>
+
+  <div class="method-box">
+    <strong>Méthode 7 — Modifier un programme de système séquentiel</strong>
+    <ol style="margin-top:.4rem">
+      <li><span class="step">Diagramme.</span> Traduire la demande en états, transitions, gardes ou temporisations nouvelles ; vérifier le diagramme modifié (méthode 4).</li>
+      <li><span class="step">Localiser</span> les branches des états concernés ; y ajouter ou réordonner les tests (la sécurité reste en tête).</li>
+      <li><span class="step">Compléter</span> : constantes d'état, sorties, variables, initialisations.</li>
+      <li><span class="step">Tester.</span> Rejouer les scénarios existants (non-régression) et écrire ceux de la nouveauté, avec <code>assert</code>.</li>
+    </ol>
+  </div>
+</div>
+</section>
+<section class="panel" id="seq-flash">
+<div class="flash-wrapper">
+  <div class="flash-progress" id="seq-flash-prog">Carte 1 / —</div>
+  <div class="flash-card" onclick="flashFlip('seq')">
+    <div class="flash-side" id="seq-flash-content"><span class="tag">Question</span><div>Chargement…</div></div>
+    <div class="flash-hint">Touche pour révéler · Espace / ← → pour naviguer</div>
+  </div>
+  <div class="flash-controls">
+    <button class="hard" onclick="flashRate('seq', 0)">À revoir</button>
+    <button class="ok" onclick="flashRate('seq', 1)">Hésitant</button>
+    <button class="easy" onclick="flashRate('seq', 2)">Acquis</button>
+  </div>
+  <div class="flash-stats-wrap">
+    <span id="seq-stats">—</span>
+    <div style="margin-top:.8rem"><button class="flash-reset" onclick="flashReset('seq')">↺ Réinitialiser</button></div>
+  </div>
+</div>
+</section>
+<section class="panel" id="seq-exos">
+<div class="exo-wrapper">
+
+<div class="exo">
+  <span class="num">EXO 01</span><span class="diff">★ ☆ ☆</span>
+  <h3>Tapis roulant : mémoire et priorité</h3>
+  <div class="statement">Le moteur \(M\) d'un tapis roulant est commandé par deux boutons-poussoirs, marche \(m\) et arrêt \(a\), qui ne valent 1 que pendant l'appui. Un premier programmeur a écrit, à chaque cycle \(k\) : \(M_{k+1} = m_k + \overline{a_k}\,M_k\).</div>
+  <div class="q"><strong>Q1.</strong> Dresser la table de vérité de \(M_{k+1}\) en fonction de \(m_k\), \(a_k\) et \(M_k\). Que se passe-t-il si les deux boutons sont enfoncés ensemble ? Est-ce acceptable ?</div>
+  <div class="q"><strong>Q2.</strong> Écrire l'équation à arrêt prioritaire et sa traduction en Python.</div>
+  <div class="q"><strong>Q3.</strong> Avec \(M_0 = 0\), calculer \(M_1\) à \(M_{11}\) avec chacune des deux équations, pour la suite d'entrées :
+    <table>
+      <tr><th>\(k\)</th><th>0</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th><th>6</th><th>7</th><th>8</th><th>9</th><th>10</th></tr>
+      <tr><td>\(m_k\)</td><td>0</td><td>1</td><td>1</td><td>0</td><td>0</td><td>1</td><td>0</td><td>0</td><td>1</td><td>1</td><td>0</td></tr>
+      <tr><td>\(a_k\)</td><td>0</td><td>0</td><td>0</td><td>0</td><td>1</td><td>1</td><td>0</td><td>1</td><td>1</td><td>0</td><td>0</td></tr>
+    </table>
+  </div>
+  <div class="q"><strong>Q4.</strong> Aux cycles 8 et 9, l'opérateur tient le bouton marche, enfoncé pendant qu'il appuyait sur l'arrêt. Que fait le tapis avec l'équation à arrêt prioritaire ? Proposer un diagramme d'états à deux états qui évite ce comportement.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> Pour \((m_k, a_k, M_k)\) = 000, 001, 010, 011, 100, 101, 110, 111, on obtient \(M_{k+1}\) = 0, 1, 0, 0, 1, 1, 1, 1. Avec \(m = a = 1\), \(M_{k+1} = 1\) : le tapis tourne alors qu'on appuie sur l'arrêt. C'est inacceptable : l'arrêt doit toujours l'emporter (sécurité).</p>
+    <p><strong>Q2.</strong> \(M_{k+1} = \overline{a_k}\cdot(m_k + M_k)\) : la table ne change que pour les deux lignes \(m = a = 1\), qui donnent 0.</p>
+<pre class="codeblock"><code>M = (<span class="kw">not</span> a) <span class="kw">and</span> (m <span class="kw">or</span> M)        <span class="cmt"># arrêt prioritaire</span></code></pre>
+    <p><strong>Q3.</strong> Marche prioritaire : \(M_1\) à \(M_{11}\) = 0, 1, 1, 1, 0, 1, 1, 0, 1, 1, 1. Arrêt prioritaire : 0, 1, 1, 1, 0, 0, 0, 0, 0, 1, 1. Les deux suites diffèrent à partir du cycle 5, où les deux boutons sont enfoncés ensemble.</p>
+    <p><strong>Q4.</strong> Au cycle 9, \(m = 1\) et \(a = 0\) : \(M_{10} = 1\), le tapis redémarre dès que l'opérateur relâche l'arrêt, sans nouvel ordre de marche. Un redémarrage doit résulter d'une action volontaire : il faut réagir au <em>front</em> de \(m\), pas à son niveau. Diagramme : états Arrêt (initial) et Marche (<code>do / moteur</code>) ; Arrêt → Marche : <code>when(m) [non a]</code> ; Marche → Arrêt : <code>when(a)</code>. Au cycle 8, le front de \(m\) survient avec \(a = 1\) : garde fausse, l'événement est perdu ; au cycle 9, \(m\) reste à 1 sans nouveau front : le tapis reste arrêté, \(M_{10} = M_{11} = 0\).</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 02</span><span class="diff">★ ☆ ☆</span>
+  <h3>Sèche-mains automatique</h3>
+  <div class="statement">Un sèche-mains détecte les mains par un capteur infrarouge (\(d = 1\) si des mains sont présentes) et commande un ventilateur V. Son diagramme d'états : état initial Veille ; Veille → Soufflage : <code>when(d)</code> ; Soufflage (<code>do / ventiler</code>) → Attente : <code>when(non d)</code> ; Soufflage → Sécurité : <code>after(60 s)</code> ; Attente (<code>do / ventiler</code>) → Soufflage : <code>when(d)</code> ; Attente → Veille : <code>after(2 s)</code> ; Sécurité → Veille : <code>when(non d)</code>.</div>
+  <div class="q"><strong>Q1.</strong> Quel est le rôle des états Attente et Sécurité ?</div>
+  <div class="q"><strong>Q2.</strong> Scénario 1 : \(d = 1\) de 0 à 10 s, \(d = 0\) de 10 à 11 s, \(d = 1\) de 11 à 20 s, puis \(d = 0\). Tracer le chronogramme de \(d\), de l'état actif et de V. Durée de ventilation ?</div>
+  <div class="q"><strong>Q3.</strong> Scénario 2 : \(d = 1\) de 0 à 10 s et de 13 à 15 s, \(d = 0\) sinon. Mêmes questions.</div>
+  <div class="q"><strong>Q4.</strong> Un sac posé devant le capteur le masque de 0 à 100 s. Que se passe-t-il ? Pourquoi ne pas avoir tracé directement Soufflage → Veille : <code>after(60 s)</code> ?</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> Attente prolonge la ventilation 2 s après le retrait des mains et évite d'arrêter puis de relancer le moteur quand les mains s'écartent un instant. Sécurité limite la ventilation continue à 60 s si le capteur reste masqué.</p>
+    <p><strong>Q2.</strong> Soufflage de 0 à 10 s, Attente de 10 à 11 s (les mains reviennent avant 2 s), Soufflage de 11 à 20 s, Attente de 20 à 22 s, Veille ensuite. V vaut 1 sans interruption de 0 à 22 s : 22 s de ventilation.</p>
+    <p><strong>Q3.</strong> Soufflage de 0 à 10 s, Attente de 10 à 12 s, Veille de 12 à 13 s, Soufflage de 13 à 15 s, Attente de 15 à 17 s, Veille. V vaut 1 de 0 à 12 s et de 13 à 17 s : 16 s.</p>
+    <p><strong>Q4.</strong> Soufflage de 0 à 60 s, Sécurité de 60 à 100 s (ventilateur arrêté), Veille quand le sac est retiré : 60 s de ventilation. Avec Soufflage → Veille : <code>after(60 s)</code>, on reviendrait en Veille avec \(d\) toujours à 1. Selon la norme, <code>when(d)</code> n'aurait pas lieu (\(d\) ne change pas) ; mais un programme qui teste le niveau de \(d\) relancerait aussitôt la ventilation, pour 60 s de plus, indéfiniment. L'état Sécurité exige que le capteur se libère avant tout redémarrage, quelle que soit la lecture de <code>when</code>.</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 03</span><span class="diff">★ ★ ☆</span>
+  <h3>Distributeur de boissons : gardes et variables</h3>
+  <div class="statement">On reprend le distributeur du cours (tableau des transitions du §5) : boissons à 1,20 €, crédit \(c\) en centimes, pièces de 10, 20, 50 c et 1 €.</div>
+  <div class="q"><strong>Q1.</strong> Un client glisse 20 c, 50 c, 20 c, choisit, ajoute 50 c et choisit de nouveau ; la préparation se termine. Donner l'état actif et \(c\) après chaque événement, et la somme rendue.</div>
+  <div class="q"><strong>Q2.</strong> Un concepteur a écrit les gardes <code>[c &gt; 120]</code> et <code>[c &lt; 120]</code>. Que vit un client qui glisse exactement 1,20 € et choisit ? Quelle propriété du diagramme est en défaut ?</div>
+  <div class="q"><strong>Q3.</strong> On ajoute une variable \(s\), nombre de gobelets restants. Modifier les transitions déclenchées par <code>choix</code> pour ne jamais servir sans gobelet (message « boisson épuisée »). Vérifier que les gardes ne laissent aucun cas ni n'en couvrent un deux fois.</div>
+  <div class="q"><strong>Q4.</strong> Écrire la branche Paiement du programme correspondant, dans le style du cours.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> 20 c : Attente → Paiement, \(c = 20\) ; 50 c : \(c = 70\) ; 20 c : \(c = 90\) (transitions internes). <code>choix</code> : \(90 \lt 120\), message « crédit insuffisant », Paiement. 50 c : \(c = 140\). <code>choix</code> : Préparation avec \(c = 20\). Fin de la préparation : 20 c rendus, Attente, \(c = 0\).</p>
+    <p><strong>Q2.</strong> Pour \(c = 120\), aucune des deux gardes n'est vraie : l'événement <code>choix</code> est perdu, le client n'obtient ni boisson ni message. Le diagramme reste déterministe mais n'est plus <strong>complet</strong>. Les gardes correctes sont \(c \geq 120\) et \(c \lt 120\), complémentaires.</p>
+    <p><strong>Q3.</strong> Trois transitions sur <code>choix</code> : <code>[c ≥ 120 et s &gt; 0] / c ← c − 120 ; s ← s − 1</code> vers Préparation ; <code>[c &lt; 120 et s &gt; 0] / afficher « crédit insuffisant »</code> (interne) ; <code>[s = 0] / afficher « boisson épuisée »</code> (interne). Comme \(s \geq 0\), soit \(s = 0\), soit \(s \gt 0\) ; dans le second cas, soit \(c \geq 120\), soit \(c \lt 120\) : exactement une garde est vraie. Amélioration possible : en Attente, refuser les pièces quand \(s = 0\) (<code>pièce(v) [s = 0] / rendre(v)</code>).</p>
+    <p><strong>Q4.</strong> L'ordre des tests réalise les gardes : quand on atteint <code>elif choix and s &gt; 0</code>, on sait déjà que \(c \lt 120\).</p>
+<pre class="codeblock"><code><span class="kw">elif</span> etat == PAIEMENT:
+    <span class="kw">if</span> piece:
+        c = c + v
+    <span class="kw">elif</span> choix <span class="kw">and</span> c &gt;= PRIX <span class="kw">and</span> s &gt; 0:
+        c = c - PRIX
+        s = s - 1
+        etat = PREPARATION
+    <span class="kw">elif</span> choix <span class="kw">and</span> s &gt; 0:           <span class="cmt"># ici c &lt; PRIX</span>
+        afficher(<span class="str">"crédit insuffisant"</span>)
+    <span class="kw">elif</span> choix:                     <span class="cmt"># ici s == 0</span>
+        afficher(<span class="str">"boisson épuisée"</span>)
+    <span class="kw">elif</span> annulation:
+        rendre(c)
+        c = 0
+        etat = ATTENTE</code></pre>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 04</span><span class="diff">★ ★ ☆</span>
+  <h3>Lave-linge : configuration active et temporisations</h3>
+  <div class="statement">On reprend les deux diagrammes du lave-linge du cours (§4 : état composite Cycle et état Lavage à deux régions). Remplissage par une électrovanne de 12 L/min jusqu'à 15 L ; vidange par une pompe de 20 L/min ; eau froide à 15 °C. Résistance de 2 kW : alimentée, elle réchauffe l'eau de 1,7 °C/min ; coupée, l'eau refroidit de 0,25 °C/min. Seuils \(T_1 = 37\ \text{°C}\), \(T_2 = 40\ \text{°C}\). Le client appuie sur départ à \(t = 0\), porte fermée.</div>
+  <div class="q"><strong>Q1.</strong> Donner la configuration active complète à \(t = 30\ \text{s}\), \(t = 20\ \text{min}\ 10\ \text{s}\) et \(t = 45\ \text{min}\).</div>
+  <div class="q"><strong>Q2.</strong> Dater les changements d'état de la région chauffage pendant Lavage. Durée d'alimentation de la résistance et énergie consommée ?</div>
+  <div class="q"><strong>Q3.</strong> Une fuite est détectée pendant Lavage. Décrire ce qui se passe. Pourquoi le déverrouillage de la porte est-il un effet de la transition d'achèvement plutôt qu'une action <code>exit</code> de Cycle ?</div>
+  <div class="q"><strong>Q4.</strong> Combien d'états compterait un diagramme à plat équivalent à Cycle ? Combien de flèches <code>fuite</code> ?</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> Le remplissage dure \(15/12 = 1{,}25\ \text{min}\) : à 30 s, configuration (Cycle, Remplissage). Lavage commence à 1 min 15 s ; à 20 min 10 s, il est actif depuis \(1\,135\ \text{s}\). Brassage : \(1\,135 = 75\times15 + 10\), on est 10 s après le début de la 76ᵉ alternance de 15 s, donc dans Tourne (de 0 à 12 s). Chauffage : première chauffe pendant \((40 - 15)/1{,}7 = 14{,}7\ \text{min}\), puis veille pendant \(3/0{,}25 = 12\ \text{min}\), jusqu'à 26,7 min de lavage ; à 18,9 min : Veille. Configuration (Cycle, Lavage, Tourne, Veille). Lavage s'achève à 41 min 15 s, la vidange à 42 min, l'essorage à 50 min : à 45 min, (Cycle, Essorage).</p>
+    <p><strong>Q2.</strong> En temps de lavage : Chauffe de 0 à 14,71 min (15 → 40 °C) ; Veille de 14,71 à 26,71 min (40 → 37 °C) ; Chauffe de 26,71 à 28,47 min (\(3/1{,}7 = 1{,}76\ \text{min}\)) ; Veille ensuite jusqu'à la fin, l'eau n'étant redescendue qu'à \(40 - 0{,}25\times11{,}53 = 37{,}1\ \text{°C}\) au bout des 40 min. Ajouter 1,25 min pour les dates comptées depuis le départ. Résistance alimentée \(14{,}71 + 1{,}76 = 16{,}47\ \text{min}\) : \(W = 2\ \text{kW}\times16{,}47/60\ \text{h} = 0{,}55\ \text{kWh}\), soit 2,0 MJ.</p>
+    <p><strong>Q3.</strong> Quels que soient les sous-états actifs, <code>fuite</code> part du contour de Cycle : les activités sont interrompues (rotation et chauffe arrêtées), les régions puis Lavage puis Cycle sont quittés, et <code>entry / alarme</code> de Défaut s'exécute. La porte reste verrouillée, ce qui est voulu : le tambour contient encore de l'eau. Une action <code>exit / déverrouiller</code> de Cycle s'exécuterait à <em>toute</em> sortie de Cycle, y compris sur fuite ; placée sur la transition d'achèvement, elle n'a lieu qu'après l'essorage.</p>
+    <p><strong>Q4.</strong> Lavage contient \(2\times2 = 4\) configurations ; à plat, Cycle compterait Remplissage, les 4 configurations de Lavage, Vidange et Essorage : 7 états, et 7 flèches <code>fuite</code> au lieu d'une. Pour Lavage seul, le gain des régions est nul (\(2 + 2 = 2\times2\)) ; il apparaît dès que les régions grossissent (3 et 4 sous-états : 7 dessinés au lieu de 12).</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 05</span><span class="diff">★ ★ ☆</span>
+  <h3>Barrière de parking : du diagramme au programme</h3>
+  <div class="statement">La barrière d'entrée d'un parking de 120 places suit le diagramme : état initial Baissée ; Baissée → Montée : <code>ticket [n &lt; 120] / n ← n + 1</code> ; dans Baissée, transition interne <code>ticket [n = 120] / afficher « complet »</code> ; Montée (<code>do / monter</code>) → Levée : <code>when(fh)</code> ; Levée → Passage : <code>when(v)</code> ; Passage → Descente : <code>when(non v)</code> ; Descente (<code>do / descendre</code>) → Baissée : <code>when(fb)</code> ; Descente → Montée : <code>when(v)</code>. <code>ticket</code> est l'événement « ticket retiré » ; <em>fh</em> et <em>fb</em> sont les fins de course haute et basse ; \(v = 1\) si une boucle magnétique détecte un véhicule sous la barrière ; \(n\) est le nombre de voitures dans le parking (la barrière de sortie le diminue). Le cycle du programme dure 10 ms ; la lisse met 2,5 s à monter comme à descendre. Le programmeur a écrit :
+<pre class="codeblock"><code><span class="kw">def</span> barriere(etat, n, ticket, fh, fb, v):
+    <span class="kw">if</span> etat == BAISSEE:
+        <span class="kw">if</span> ticket <span class="kw">and</span> n &lt; N:
+            etat = MONTEE
+    <span class="kw">elif</span> etat == MONTEE:
+        n = n + 1
+        <span class="kw">if</span> fh:
+            etat = LEVEE
+    <span class="kw">elif</span> etat == LEVEE:
+        <span class="kw">if</span> v:
+            etat = PASSAGE
+    <span class="kw">elif</span> etat == PASSAGE:
+        <span class="kw">if</span> <span class="kw">not</span> v:
+            etat = DESCENTE
+    <span class="kw">elif</span> etat == DESCENTE:
+        <span class="kw">if</span> fb:
+            etat = BAISSEE
+    <span class="kw">return</span> etat, n</code></pre>
+  </div>
+  <div class="q"><strong>Q1.</strong> Pourquoi deux états Levée et Passage, au lieu d'un seul état Levée quitté par <code>when(non v)</code> ?</div>
+  <div class="q"><strong>Q2.</strong> Trouver les deux écarts entre le programme et le diagramme. Avec \(n = 10\) avant l'arrivée d'une voiture, quelle valeur le programme donne-t-il après son passage ? Quel danger présente l'autre écart ?</div>
+  <div class="q"><strong>Q3.</strong> Écrire le programme corrigé.</div>
+  <div class="q"><strong>Q4.</strong> Que se passe-t-il quand \(n = 120\) ? Le compteur peut-il s'écarter du nombre réel de voitures ?</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> Quand la lisse arrive en haut, la voiture n'est pas encore sous la barrière : \(v = 0\). Lu comme une condition surveillée, un unique <code>when(non v)</code> ferait redescendre la lisse aussitôt, devant la voiture. Les deux états rendent la séquence explicite, quelle que soit la lecture de <code>when</code> : attendre l'arrivée de la voiture (Levée), puis son départ (Passage).</p>
+    <p><strong>Q2.</strong> Premier écart : l'incrément est écrit dans le corps de la branche Montée, parcouru à chaque cycle pendant les 2,5 s de montée, soit 250 fois : \(n = 260\) après une voiture au lieu de 11. Le parking paraît plein dès la première voiture et refuse tout le monde. L'incrément est l'effet de la transition Baissée → Montée : une fois par ticket. Second écart : la transition de sécurité Descente → Montée : <code>when(v)</code> manque. Une voiture qui s'arrête sous la barrière pendant la descente reçoit la lisse sur le capot. (Le message « complet » manque aussi.)</p>
+    <p><strong>Q3.</strong> Le test de sécurité est placé en tête de la branche Descente.</p>
+<pre class="codeblock"><code><span class="kw">def</span> barriere(etat, n, ticket, fh, fb, v):
+    <span class="kw">if</span> etat == BAISSEE:
+        <span class="kw">if</span> ticket <span class="kw">and</span> n &lt; N:
+            n = n + 1               <span class="cmt"># effet : une fois par ticket</span>
+            etat = MONTEE
+        <span class="kw">elif</span> ticket:
+            afficher(<span class="str">"complet"</span>)     <span class="cmt"># transition interne</span>
+    <span class="kw">elif</span> etat == MONTEE:
+        <span class="kw">if</span> fh:
+            etat = LEVEE
+    <span class="kw">elif</span> etat == LEVEE:
+        <span class="kw">if</span> v:
+            etat = PASSAGE
+    <span class="kw">elif</span> etat == PASSAGE:
+        <span class="kw">if</span> <span class="kw">not</span> v:
+            etat = DESCENTE
+    <span class="kw">elif</span> etat == DESCENTE:
+        <span class="kw">if</span> v:                       <span class="cmt"># véhicule sous la barrière</span>
+            etat = MONTEE
+        <span class="kw">elif</span> fb:
+            etat = BAISSEE
+    <span class="kw">return</span> etat, n</code></pre>
+    <p>Une simulation (montée et descente de 2,5 s, voiture sous la barrière de 4 à 6 s) donne bien \(n = 11\) et le retour en Baissée à 8,5 s.</p>
+    <p><strong>Q4.</strong> Avec \(n = 120\), la garde \(n \lt 120\) est fausse : le ticket ne déclenche que le message « complet » et la barrière reste baissée. Le compteur dérive si une voiture entre sans ticket (en suivant la précédente de près) ou sort sans être comptée : il ne mesure pas, il suppose. Compter les passages réels (sortie de l'état Passage) et recaler régulièrement le compteur (comptage de nuit, capteurs de places) le rend fiable.</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 06</span><span class="diff">★ ★ ☆</span>
+  <h3>Portail : ajouter un arrêt intermédiaire</h3>
+  <div class="statement">On part du portail du cours (diagramme du §5, programme du §6). Le client demande : (E1) un appui sur la télécommande pendant l'ouverture ou la fermeture arrête le portail (nouvel état Arrêt) ; (E2) depuis Arrêt, un appui referme le portail, et il n'y a pas de refermeture automatique ; (E3) un feu orange F est allumé pendant tout mouvement ; (E4) l'obstacle reste prioritaire sur tout.</div>
+  <div class="q"><strong>Q1.</strong> Compléter le diagramme : nouvelles transitions et leurs libellés.</div>
+  <div class="q"><strong>Q2.</strong> Dans Fermeture, <code>tel</code> et <code>obs</code> peuvent survenir au même cycle. Laquelle des deux transitions doit l'emporter ? Comment le garantir dans le diagramme et dans le programme ?</div>
+  <div class="q"><strong>Q3.</strong> Modifier les fonctions <code>evolution</code> et <code>sorties</code>.</div>
+  <div class="q"><strong>Q4.</strong> Écrire un scénario de test qui vérifie E1, E2 et E4.</div>
+  <div class="q"><strong>Q5.</strong> La propriété « MO et MF jamais à 1 ensemble » est-elle conservée ? Le portail peut-il désormais rester ouvert indéfiniment ?</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> Nouvel état Arrêt, sans activité. Transitions : Ouverture → Arrêt : <code>tel</code> ; Fermeture → Arrêt : <code>tel</code> ; Arrêt → Fermeture : <code>tel</code>. Arrêt n'a pas de <code>after</code> (E2).</p>
+    <p><strong>Q2.</strong> L'obstacle (E4, sécurité). Dans le diagramme, la garde <code>tel [non obs]</code> sur Fermeture → Arrêt rend le comportement déterministe ; dans le programme, <code>obs</code> est testé en premier dans la branche Fermeture.</p>
+    <p><strong>Q3.</strong> Une constante d'état de plus, trois branches modifiées ou ajoutées (le reste de la fonction est inchangé) :</p>
+<pre class="codeblock"><code>FERME, OUVERTURE = <span class="str">'Fermé'</span>, <span class="str">'Ouverture'</span>
+OUVERT, FERMETURE, ARRET = <span class="str">'Ouvert'</span>, <span class="str">'Fermeture'</span>, <span class="str">'Arrêt'</span>
+
+    <span class="kw">elif</span> etat == OUVERTURE:
+        <span class="kw">if</span> fo:
+            suivant = OUVERT
+        <span class="kw">elif</span> tel:
+            suivant = ARRET
+    <span class="kw">elif</span> etat == OUVERT:
+        <span class="kw">if</span> tel <span class="kw">or</span> t - t_entree &gt;= TEMPO:
+            suivant = FERMETURE
+    <span class="kw">elif</span> etat == FERMETURE:
+        <span class="kw">if</span> obs:                 <span class="cmt"># sécurité : toujours en premier</span>
+            suivant = OUVERTURE
+        <span class="kw">elif</span> ff:
+            suivant = FERME
+        <span class="kw">elif</span> tel:
+            suivant = ARRET
+    <span class="kw">elif</span> etat == ARRET:
+        <span class="kw">if</span> tel:
+            suivant = FERMETURE</code></pre>
+<pre class="codeblock"><code><span class="kw">def</span> sorties(etat):
+    MO = etat == OUVERTURE
+    MF = etat == FERMETURE
+    <span class="kw">return</span> MO, MF, MO <span class="kw">or</span> MF     <span class="cmt"># feu : allumé pendant tout mouvement</span></code></pre>
+    <p><strong>Q4.</strong> Les dates sont arbitraires ; chaque appel représente un cycle.</p>
+<pre class="codeblock"><code>e, te = FERME, 0.0
+e, te = evolution(e, te, 1.0, <span class="kw">True</span>, <span class="kw">False</span>, <span class="kw">True</span>, <span class="kw">False</span>)
+<span class="kw">assert</span> e == OUVERTURE
+e, te = evolution(e, te, 5.0, <span class="kw">True</span>, <span class="kw">False</span>, <span class="kw">False</span>, <span class="kw">False</span>)
+<span class="kw">assert</span> e == ARRET
+e, te = evolution(e, te, 60.0, <span class="kw">False</span>, <span class="kw">False</span>, <span class="kw">False</span>, <span class="kw">False</span>)
+<span class="kw">assert</span> e == ARRET             <span class="cmt"># pas de refermeture automatique</span>
+e, te = evolution(e, te, 61.0, <span class="kw">True</span>, <span class="kw">False</span>, <span class="kw">False</span>, <span class="kw">False</span>)
+<span class="kw">assert</span> e == FERMETURE
+e, te = evolution(e, te, 62.0, <span class="kw">True</span>, <span class="kw">False</span>, <span class="kw">False</span>, <span class="kw">True</span>)
+<span class="kw">assert</span> e == OUVERTURE         <span class="cmt"># appui et obstacle : l'obstacle gagne</span></code></pre>
+    <p><strong>Q5.</strong> MO et MF restent attachés à deux états distincts : la propriété est conservée. En revanche, le portail peut rester indéfiniment dans Arrêt, éventuellement à moitié ouvert : c'est la conséquence de E2. Si le client veut que le portail finisse toujours fermé, il faut une transition Arrêt → Fermeture : <code>after(60 s)</code>, à discuter avec lui.</p>
+  </div>
+</div>
+
+<div class="exo concours">
+  <span class="num">EXO 07</span><span class="diff">★ ★ ★</span>
+  <h3>Concours PT — Automatisation d'une écluse</h3>
+  <div class="statement">Une écluse de canal fait franchir aux bateaux une chute \(H = 3{,}2\ \text{m}\). Le sas, de 40 m sur 6 m, est fermé par une porte amont et une porte aval ; une vanne amont VA le remplit depuis le bief amont, une vanne aval VV le vide vers le bief aval. Capteurs : fins de course des portes (<em>pao</em>, <em>paf</em> : porte amont ouverte, fermée ; <em>pvo</em>, <em>pvf</em> : porte aval ouverte, fermée), niveaux (<em>na</em> : sas au niveau amont à 2 cm près ; <em>nv</em> : sas au niveau aval), cellule <em>c</em> de l'embrasure de la porte aval (1 si un bateau y est engagé), bouton <code>prêt</code> de l'éclusier. Chaque porte met 1 min à s'ouvrir ou à se fermer. Le comportement est décrit par le diagramme d'états suivant (état initial E1) :
+    <table>
+      <tr><th>État</th><th>Comportement</th><th>Transitions sortantes</th></tr>
+      <tr><td>E1 Aval ouvert</td><td>—</td><td><code>prêt [non c]</code> → E2</td></tr>
+      <tr><td>E2 Fermeture aval</td><td><code>do / fermer porte aval</code></td><td><code>when(pvf)</code> → E3 ; <code>when(c)</code> → E8</td></tr>
+      <tr><td>E3 Remplissage</td><td><code>entry / ouvrir VA</code> ; <code>exit / fermer VA</code></td><td><code>when(na)</code> → E4 ; <code>after(8 min)</code> → Défaut</td></tr>
+      <tr><td>E4 Ouverture amont</td><td><code>do / ouvrir porte amont</code></td><td><code>when(pao)</code> → E5</td></tr>
+      <tr><td>E5 Amont ouvert</td><td>—</td><td><code>prêt</code> → E6</td></tr>
+      <tr><td>E6 Fermeture amont</td><td><code>do / fermer porte amont</code></td><td><code>when(paf)</code> → E7</td></tr>
+      <tr><td>E7 Vidange</td><td><code>entry / ouvrir VV</code> ; <code>exit / fermer VV</code></td><td><code>when(nv)</code> → E8 ; <code>after(8 min)</code> → Défaut</td></tr>
+      <tr><td>E8 Ouverture aval</td><td><code>do / ouvrir porte aval</code></td><td><code>when(pvo)</code> → E1</td></tr>
+      <tr><td>Défaut</td><td><code>entry / alarme</code></td><td>(réarmement manuel)</td></tr>
+    </table>
+  </div>
+  <div class="exo-part">Partie A — Lecture du diagramme</div>
+  <div class="q"><strong>Q1.</strong> Décrire le passage d'un bateau qui monte, de E1 à E5 : états successifs, actionneurs commandés, événement attendu dans chaque état.</div>
+  <div class="q"><strong>Q2.</strong> Montrer sur le diagramme que : (S1) les deux portes ne sont jamais ouvertes ou en mouvement en même temps ; (S2) une porte ne s'ouvre qu'à niveaux égaux de part et d'autre ; (S3) les deux vannes ne sont jamais ouvertes ensemble.</div>
+  <div class="exo-part">Partie B — Durées</div>
+  <div class="q"><strong>Q3.</strong> Le débit de la vanne amont vaut \(Q = C_d\,s\,\sqrt{2gh}\), où \(h\) est la différence de niveau entre le bief amont et le sas, \(s = 1{,}5\ \text{m}^2\) et \(C_d = 0{,}6\). Établir l'équation différentielle vérifiée par \(h(t)\) pendant le remplissage et en déduire sa durée \(T_r = \dfrac{2A\sqrt{H}}{C_d\,s\,\sqrt{2g}}\), où \(A\) est la surface du sas. Application numérique ; débits initial et moyen.</div>
+  <div class="q"><strong>Q4.</strong> Durée de E1 (appui sur <code>prêt</code>) à E5. Justifier la valeur de 8 min choisie pour détecter un défaut, et dire ce qui se passerait sans cette transition.</div>
+  <div class="exo-part">Partie C — Programme</div>
+  <div class="q"><strong>Q5.</strong> Le programme suit la structure du cours : variable <code>etat</code>, date <code>t_entree</code> mise à jour à la fin de la fonction d'évolution à chaque changement d'état, fonctions fournies <code>ouvrir_vanne(nom)</code>, <code>fermer_vanne(nom)</code> et <code>alarme()</code>. Écrire les branches E2 et E3, avec les actions <code>entry</code> et <code>exit</code> à leur place.</div>
+  <div class="q"><strong>Q6.</strong> Pour simplifier, un programmeur remplace <code>when(na)</code> par <code>after(4 min)</code>, « puisque le remplissage dure 3,6 min ». Un jour, des branchages obstruent à moitié la vanne amont (\(C_d\,s\) divisé par deux). Que se passe-t-il ? Quelle exigence est violée ?</div>
+  <div class="exo-part">Partie D — Évolution</div>
+  <div class="q"><strong>Q7.</strong> Un bateau qui veut descendre le signale à tout moment par un bouton <code>dm</code> placé à l'amont. Aucun état du diagramme ne traite cet événement : que devient-il ? Proposer une modification du diagramme et du programme pour que la demande soit mémorisée, et que l'écluse monte à vide chercher le bateau quand elle est en E1 sans bateau à faire monter.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> E1 : le bateau entre dans le sas par l'aval ; l'éclusier appuie sur <code>prêt</code> quand il est amarré, embrasure libre. E2 : fermeture de la porte aval (1 min), jusqu'à <em>pvf</em> ; si un bateau s'engage dans l'embrasure, E8 rouvre la porte. E3 : VA ouverte, le sas se remplit jusqu'à <em>na</em>, puis VA se ferme (action <code>exit</code>). E4 : ouverture de la porte amont (1 min), jusqu'à <em>pao</em>. E5 : le bateau sort vers l'amont.</p>
+    <p><strong>Q2.</strong> (S1) La porte amont ne bouge qu'en E4 et E6 et n'est ouverte qu'en E5 ; elle est fermée de <em>paf</em> (sortie de E6) jusqu'à l'entrée en E4, donc dans E7, E8, E1, E2, E3. La porte aval ne bouge qu'en E2 et E8 et n'est ouverte qu'en E1 ; elle est fermée de <em>pvf</em> (sortie de E2 vers E3) jusqu'à E8, donc dans E3 à E7. Les deux ensembles d'états sont disjoints. (S2) On n'entre dans E4 que par <code>when(na)</code> : niveaux amont et sas égaux. On entre dans E8 par <code>when(nv)</code> depuis E7, ou depuis E2, où le sas est encore au niveau aval (VA n'a pas été ouverte). (S3) VA n'est ouverte que dans E3 et VV que dans E7, deux états distincts ; les actions <code>exit</code> les ferment quelle que soit la sortie, Défaut compris.</p>
+    <p><strong>Q3.</strong> Le bief amont est assez grand pour garder son niveau ; le niveau \(z\) du sas monte de \(\mathrm{d}z = Q\,\mathrm{d}t/A\) et \(h = H - z\), d'où</p>
+    <div class="formula">$$A\,\frac{\mathrm{d}h}{\mathrm{d}t} = -C_d\,s\,\sqrt{2gh}\quad\Longrightarrow\quad \frac{\mathrm{d}h}{\sqrt h} = -\frac{C_d\,s\,\sqrt{2g}}{A}\,\mathrm{d}t\quad\Longrightarrow\quad 2\left(\sqrt H - \sqrt{h}\right) = \frac{C_d\,s\,\sqrt{2g}}{A}\,t$$</div>
+    <p>\(h\) s'annule pour \(t = T_r\). Avec \(A = 240\ \text{m}^2\) et \(C_d\,s\,\sqrt{2g} = 0{,}9\times4{,}43 = 3{,}99\ \text{m}^{5/2}\text{·s}^{-1}\) :</p>
+    <div class="formula">$$T_r = \frac{2\times240\times1{,}789}{3{,}99} = 215\ \text{s} \approx 3{,}6\ \text{min}.$$</div>
+    <p>Volume \(240\times3{,}2 = 768\ \text{m}^3\) ; débit initial \(0{,}9\times\sqrt{2\times9{,}81\times3{,}2} = 7{,}1\ \text{m}^3/\text{s}\), débit moyen \(768/215 = 3{,}6\ \text{m}^3/\text{s}\), moitié du débit initial puisque \(\sqrt h\) décroît linéairement. Le capteur <em>na</em> réagit à 2 cm : 198 s suffisent, les 2 derniers centimètres demandant à eux seuls 17 s.</p>
+    <p><strong>Q4.</strong> \(1 + 3{,}6 + 1 \approx 5{,}6\ \text{min}\) (un peu moins, environ 5,3 min, en comptant la tolérance de <em>na</em>). La durée de 8 min vaut plus de deux fois la durée normale : elle tolère les variations (niveau du bief, vanne encrassée) mais signale une vanne bloquée ou un capteur en panne. Sans elle, E3 deviendrait un puits : l'écluse attendrait <em>na</em> indéfiniment, sans alerter personne.</p>
+    <p><strong>Q5.</strong> L'action <code>exit</code> de E3 apparaît dans les deux transitions sortantes : elle s'exécute quelle que soit la sortie. La date d'entrée est mise à jour à la fin de la fonction, comme dans le cours.</p>
+<pre class="codeblock"><code><span class="kw">elif</span> etat == E2:
+    <span class="kw">if</span> c:
+        etat = E8
+    <span class="kw">elif</span> pvf:
+        ouvrir_vanne(<span class="str">'VA'</span>)          <span class="cmt"># entry de E3</span>
+        etat = E3
+<span class="kw">elif</span> etat == E3:
+    <span class="kw">if</span> na:
+        fermer_vanne(<span class="str">'VA'</span>)          <span class="cmt"># exit de E3</span>
+        etat = E4
+    <span class="kw">elif</span> t - t_entree &gt;= 8*60:      <span class="cmt"># after(8 min)</span>
+        fermer_vanne(<span class="str">'VA'</span>)          <span class="cmt"># exit de E3</span>
+        alarme()                    <span class="cmt"># entry de Défaut</span>
+        etat = DEFAUT</code></pre>
+    <p><strong>Q6.</strong> \(T_r\) double : 431 s, soit 7,2 min. Au bout de 4 min, \(\sqrt h = 1{,}789 - \dfrac{0{,}45\times4{,}43\times240}{2\times240} = 0{,}79\), soit \(h = 0{,}63\ \text{m}\). Le programme commande l'ouverture de la porte amont avec 63 cm d'écart de niveau : l'exigence S2 est violée. La porte, plaquée par la poussée de l'eau, ne s'ouvre pas, ou s'ouvre brutalement en lançant une vague dans le sas ; et le défaut n'est plus détecté. Une durée est une hypothèse sur la partie opérative, un niveau est une mesure : la transition doit porter sur la mesure, la durée ne servant que de surveillance.</p>
+    <p><strong>Q7.</strong> L'événement <code>dm</code> est perdu : la demande est oubliée. Diagramme : englober E1 à E8 dans un état composite Éclusage muni d'une transition interne <code>dm / demande ← vrai</code>, valable quel que soit le sous-état ; ajouter <code>entry / demande ← faux</code> à E5, où la demande est servie, et une seconde transition E1 → E2 de garde <code>[demande]</code>, surveillée pendant tout le séjour dans E1 (avec <code>when(demande)</code> lu selon la norme, une demande arrivée avant l'entrée en E1 ne serait jamais servie). Programme : le drapeau est mis à jour avant les branches, donc dans tout état.</p>
+<pre class="codeblock"><code><span class="kw">if</span> dm:                              <span class="cmt"># avant les branches : quel</span>
+    demande_amont = <span class="kw">True</span>            <span class="cmt"># que soit l'état actif</span>
+<span class="kw">if</span> etat == E1:
+    <span class="kw">if</span> (pret <span class="kw">and</span> <span class="kw">not</span> c) <span class="kw">or</span> demande_amont:
+        etat = E2
+...
+<span class="kw">elif</span> etat == E4:
+    <span class="kw">if</span> pao:
+        demande_amont = <span class="kw">False</span>       <span class="cmt"># entry de E5 : demande servie</span>
+        etat = E5</code></pre>
+  </div>
+</div>
+
+</div>
+</section>
+</div><!-- fin chap-sequentiel -->
 
 
 <div class="chapter" id="chap-slci">
@@ -87690,6 +88723,7 @@ const CHAPTERS = [
     matiere:'si', sub:'meca', subLabel:'Automatique', domain:'auto',
     matiereLabel:'Automatique', panels:['cours','video','meth','flash','exos'], drawFn:null,
     mobLabel:'Précision, rapidité' },
+  { id:'sequentiel', prefix:'seq', name:'Systèmes séquentiels : diagrammes d\'états et programmation', matiere:'si', sub:'auto', subLabel:'Automatique', domain:'auto', matiereLabel:'Automatique', panels:['cours','meth','flash','exos'], drawFn:null, mobLabel:'Systèmes séquentiels' },
 
   { id:'slci',       prefix:'slci',    name:'SLCI : modélisation et transformée de Laplace',
     matiere:'si',       sub:'auto',   subLabel:'Automatique',       domain:'auto',
@@ -87906,7 +88940,7 @@ const CHAPTERS = [
     // ---- SI ----
     ['analyse',  'Analyse système', ['ingsys','multiphy','chfonc']],
     ['meca',     'Mécanique',       ['cine','statique','chaines','transm','conception','dynsolide','dyn2a','energ2a','energsi','rdm']],
-    ['auto',     'Automatique',     ['slci','schblocs','sys1','sys2','bode','stabilite','precision','correcteurs','sysnum','resnum']],
+    ['auto',     'Automatique',     ['slci','schblocs','sys1','sys2','bode','stabilite','precision','sequentiel','correcteurs','sysnum','resnum']],
     ['elec',     'Électrotechnique',['mcc','cvs','hacheurs','triphase','machalt']],
     ['capteurs', 'Capteurs',        ['capteurs']],
     ['ia',       'Intelligence artificielle', ['ia']],
@@ -91927,6 +92961,35 @@ const precCards = [
   {q:"Effet d'un PI de cassure \\(1/T_i = \\omega_{c0}/10\\) sur la marge de phase ?", a:"Une perte d'environ 6° seulement (\\(\\arctan 0{,}1\\)), pour une classe augmentée de 1 et un écart statique nul."}
 ];
 const precFlash = makeFlash(precCards,'prec','prec-flash-content','prec-flash-prog','prec-stats');
+/* --- Systèmes séquentiels : diagrammes d'états et programmation (sequentiel) --- */
+const seqCards = [
+  {q:"Fonction combinatoire, système séquentiel : quelle différence ?", a:"Combinatoire : les sorties ne dépendent que des entrées présentes (une table de vérité suffit). Séquentiel : elles dépendent aussi de l'histoire des entrées, résumée par l'état du système."},
+  {q:"Qu'appelle-t-on l'état d'un système séquentiel ?", a:"L'information minimale sur le passé qui, avec les entrées à venir, suffit à prévoir les sorties à venir. Avec \\(n\\) bits de mémoire, on distingue au plus \\(2^n\\) états."},
+  {q:"Lois de De Morgan ?", a:"\\(\\overline{a\\cdot b} = \\overline{a} + \\overline{b}\\) et \\(\\overline{a + b} = \\overline{a}\\cdot\\overline{b}\\).", cat:'form'},
+  {q:"Commande marche-arrêt à mémoire, avec arrêt prioritaire ?", a:"\\(M_{k+1} = \\overline{a_k}\\cdot\\left(m_k + M_k\\right)\\) : le terme \\(M_k\\) maintient la marche ; si \\(m = a = 1\\), le moteur s'arrête.", cat:'form'},
+  {q:"Front montant d'une entrée \\(b\\), en temps discret ?", a:"\\(\\uparrow b_k = b_k\\cdot\\overline{b_{k-1}}\\) : vrai au seul cycle où \\(b\\) passe de 0 à 1. Dans un programme, on compare \\(b\\) à sa valeur du tour précédent.", cat:'form'},
+  {q:"Événement et condition : quelle différence ?", a:"Une condition est vraie pendant une durée (« carter fermé ») ; un événement est instantané (« on vient d'appuyer », seuil franchi, durée écoulée). Une transition est déclenchée par un événement ; une garde est une condition."},
+  {q:"Forme du libellé d'une transition ?", a:"événement [garde] / effet, chaque partie étant facultative. Exemple : choix [\\(c \\geq 120\\)] / \\(c \\leftarrow c - 120\\). La garde est évaluée à l'instant de l'événement."},
+  {q:"Action et activité : quelle différence ?", a:"Une action est instantanée et ne s'interrompt pas (effet d'une transition, action d'entrée ou de sortie). Une activité dure, par exemple chauffer, et s'interrompt quand on quitte l'état."},
+  {q:"Rôle de entry, exit et do dans un état ?", a:"entry : action exécutée à chaque entrée dans l'état ; exit : action exécutée à chaque sortie, quelle que soit la transition ; do : activité qui dure tout le séjour et s'interrompt à la sortie."},
+  {q:"Ordre d'exécution quand une transition est franchie ?", a:"Interruption de l'activité do et action exit de l'état source, puis effet de la transition, puis action entry de l'état cible, enfin démarrage de son activité do."},
+  {q:"Que devient un événement qui ne déclenche aucune transition de l'état actif ?", a:"Il est perdu : rien ne le mémorise. S'il doit être servi plus tard, il faut le mémoriser dans une variable ou dans une région concurrente."},
+  {q:"Que signifie after(\\(\\Delta t\\)) ?", a:"Un événement temporel : il survient quand l'état source est resté actif pendant \\(\\Delta t\\), compté depuis sa dernière entrée. Quitter l'état l'annule ; une transition réflexive le relance."},
+  {q:"Que signifie when(\\(c\\)) ?", a:"Un événement de changement : il survient quand la condition \\(c\\) devient vraie (seuil franchi, fin de course atteinte). Selon la norme, rien ne se passe si \\(c\\) est déjà vraie à l'entrée dans l'état : point à vérifier dans l'énoncé."},
+  {q:"Transition réflexive et transition interne : quelle différence ?", a:"La réflexive quitte puis réactive l'état : exit et entry sont exécutées, les temporisations relancées. L'interne exécute son effet sans quitter l'état : ni exit, ni entry, temporisations inchangées."},
+  {q:"Quand une transition sans événement est-elle franchie ?", a:"Quand l'état source a terminé son activité do, aussitôt s'il n'en a pas, et si sa garde éventuelle est vraie. On l'appelle transition d'achèvement."},
+  {q:"Entrée et sortie d'un état composite ?", a:"Entrer par le contour active le sous-état désigné par l'état initial intérieur. Une transition qui part du contour quitte le composite quel que soit le sous-état actif. L'état final intérieur achève le composite."},
+  {q:"Que sont des régions concurrentes ?", a:"Des parties d'un état composite, séparées par un trait pointillé, actives en même temps, chacune avec exactement un sous-état actif. La configuration active est la liste de ces sous-états."},
+  {q:"Régions concurrentes de \\(n_1, n_2, \\ldots\\) sous-états : combien d'états à plat ?", a:"Le produit \\(n_1\\times n_2\\times\\cdots\\) (une par configuration), alors que les régions n'en dessinent que la somme \\(n_1 + n_2 + \\cdots\\).", cat:'form'},
+  {q:"Structure d'un programme de commande séquentielle ?", a:"Une variable d'état ; une boucle infinie dont chaque tour est un cycle (lire les entrées, calculer l'évolution, écrire les sorties) ; une branche if ou elif par état, un test par transition sortante."},
+  {q:"Comment programmer after(\\(\\Delta t\\)) ?", a:"Mémoriser la date \\(t_e\\) d'entrée dans l'état à chaque changement d'état, puis tester à chaque cycle \\(t - t_e \\geq \\Delta t\\). Jamais d'égalité, et jamais d'attente bloquante (time.sleep) qui empêcherait de lire les entrées."},
+  {q:"Où écrire une action entry, exit ou un effet dans le programme ?", a:"Dans le bloc qui change l'état, exécuté une seule fois. Dans le corps de la branche, l'action serait refaite à chaque cycle : 100 fois par seconde pour un cycle de \\(10\\ \\text{ms}\\)."},
+  {q:"Quel est le rôle de l'ordre des tests dans une branche du programme ?", a:"Il fixe la priorité quand deux transitions sont franchissables au même cycle : la sécurité (obstacle, défaut, arrêt) se teste en premier."},
+  {q:"Durée typique d'un cycle de carte de commande, et conséquences ?", a:"De l'ordre de \\(1\\) à \\(10\\ \\text{ms}\\). Un appui de \\(0{,}2\\ \\text{s}\\) dure une vingtaine de cycles : réagir au front, pas au niveau. Une temporisation est détectée avec au plus un cycle de retard.", cat:'val'},
+  {q:"Quatre propriétés à vérifier sur un diagramme d'états ?", a:"Déterminisme (gardes exclusives), complétude (chaque événement traité ou ignoré exprès), vivacité (aucun état puits ni inaccessible), sûreté (situations dangereuses impossibles)."},
+  {q:"Qu'est-ce qu'un chronogramme ?", a:"La représentation, sur un même axe des temps, des entrées, des sorties et de l'état actif d'un système séquentiel : des créneaux pour les variables logiques, une bande découpée en intervalles pour l'état."}
+];
+const seqFlash = makeFlash(seqCards,'seq','seq-flash-content','seq-flash-prog','seq-stats');
 
 const sbCards = [
   {q:"Fonction de transfert en boucle fermée unitaire.",a:"HBF = HBO/(1+HBO). Aussi écrit HBF = Hdirect/(1+Hdirect) si retour = 1."},
