@@ -290,13 +290,16 @@ module.exports = {
       else {
         const nb = () => page.evaluate(cle => { const m = [...document.querySelectorAll('#mob-chap-list .nav-more')].find(x => x.dataset.cle === cle);
           return [...m.closest('.nav-list').querySelectorAll('.mob-chap-row')].filter(r => r.getClientRects().length).length; }, cm);
-        const n0 = await nb(), s0 = await pos('.nav-more', cm);
+        // (la partie peut être déjà dépliée : chapitre de 1ʳᵉ année affiché qu'elle contient)
+        const deplie = () => page.evaluate(cle => [...document.querySelectorAll('#mob-chap-list .nav-more')].find(x => x.dataset.cle === cle).getAttribute('aria-expanded') === 'true', cm);
+        const d0 = await deplie(), n0 = await nb(), s0 = await pos('.nav-more', cm);
         await page.evaluate(cle => [...document.querySelectorAll('#mob-chap-list .nav-more')].find(x => x.dataset.cle === cle).click(), cm); await pause(450);
-        const n1 = await nb(), s1 = await pos('.nav-more', cm);
-        if (s1.st !== s0.st) pb.push('« + chapitres de 1ʳᵉ année » : la liste défile (' + s0.st + ' → ' + s1.st + ')');
-        if (!(n1 > n0)) pb.push('« + chapitres de 1ʳᵉ année » : rangées visibles ' + n0 + ' → ' + n1);
+        const d1 = await deplie(), n1 = await nb(), s1 = await pos('.nav-more', cm);
+        if (s1.st !== s0.st) pb.push('chapitres de 1ʳᵉ année montrés / masqués : la liste défile (' + s0.st + ' → ' + s1.st + ')');
+        if (d1 === d0) pb.push('chapitres de 1ʳᵉ année : aria-expanded ne change pas');
+        if (d0 ? !(n1 < n0) : !(n1 > n0)) pb.push((d0 ? '« Masquer » ' : '« + chapitres » ') + 'de 1ʳᵉ année : rangées visibles ' + n0 + ' → ' + n1);
         await page.evaluate(cle => [...document.querySelectorAll('#mob-chap-list .nav-more')].find(x => x.dataset.cle === cle).click(), cm); await pause(450);
-        if ((await nb()) !== n0) pb.push('« Masquer les chapitres de 1ʳᵉ année » : les rangées restent visibles');
+        if ((await nb()) !== n0 || (await deplie()) !== d0) pb.push('chapitres de 1ʳᵉ année : second clic, état de départ non retrouvé');
       }
       await page.evaluate(() => document.querySelector('#mob-drawer .mob-year-btn[data-year="1"]').click()); await pause(300);
       // épuré : plus de tuiles dans la navigation, Aujourd'hui et Bilan seulement dans le menu ⋯
