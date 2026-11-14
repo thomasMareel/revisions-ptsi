@@ -19,7 +19,7 @@ const TEX_EN_CLAIR_CONNUS = {
   // fait échouer). Vide depuis le tableau de Routh de stab-exos réécrit en $$ … $$ (2026-10-19).
 };
 const ONGLETS_HORS_CHAPTERS_CONNUS = {
-  'lor-simu': 'simulateur de Lorentz (SVG) non déclaré dans CHAPTERS.panels',
+  // (vide : le simulateur SVG de Lorentz est déclaré dans CHAPTERS depuis le 2026-11-14)
 };
 
 module.exports = {

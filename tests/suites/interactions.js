@@ -312,6 +312,37 @@ module.exports = {
       return pb;
     });
 
+    /* ---------- Simulateur de Lorentz (corrigé le 2026-11-14 : faux dans 3 modes sur 4) ---------- */
+    await etape('simulateur de Lorentz : rayon ∝ v₀/B, sens selon la charge, déviation E selon q, filtre E/B, hélice', async () => {
+      const pb = [];
+      await naviguer(page, 'lorentz', 'simu');
+      const regle = (mode, v, B, ch) => page.evaluate(([mode, v, B, ch]) => {
+        const $ = id => document.getElementById(id);
+        $('lor-mode').value = mode; $('lor-v0').value = v; $('lor-B').value = B; $('lor-charge').value = ch; lorDraw();
+        const c = document.querySelector('#lor-traj circle[r]:not([r="5"])');
+        const pl = [...document.querySelectorAll('#lor-traj polyline')].map(x => x.getAttribute('points').trim().split(/\s+/).map(p => p.split(',').map(Number)));
+        return { r: c ? +c.getAttribute('r') : null, cy: c ? +c.getAttribute('cy') : null,
+          dep: (document.querySelector('#lor-traj circle[r="5"]') || {}).getAttribute ? +document.querySelector('#lor-traj circle[r="5"]').getAttribute('cy') : null,
+          pl, info: $('lor-info').textContent, params: $('lor-params').textContent };
+      }, [mode, v, B, ch]);
+      const a = await regle('B', 5, 5, 1), b = await regle('B', 10, 5, 1), c = await regle('B', 5, 10, 1), e = await regle('B', 5, 5, -1);
+      if (!a.r || Math.abs(b.r / a.r - 2) > 0.02 || Math.abs(c.r / a.r - 0.5) > 0.02) pb.push('champ B : rayon non proportionnel à v₀/B (' + [a.r, b.r, c.r].join(', ') + ')');
+      if (!(a.cy > a.dep) || !(e.cy < e.dep)) pb.push('champ B : centre du cercle du mauvais côté selon la charge');
+      if (Math.abs(e.r - a.r) > 0.5) pb.push('champ B : électron et proton n\'ont pas la même figure (échelle ∝ m)');
+      const fy = d => d.pl[0][Math.min(60, d.pl[0].length - 1)][1] - d.pl[0][0][1];
+      const pe = await regle('E', 5, 5, 1), ee = await regle('E', 5, 5, -1);
+      if (!(fy(pe) < -1) || !(fy(ee) > 1)) pb.push('champ E : la déviation ne dépend pas du signe de la charge comme attendu (proton vers E, électron à l\'opposé)');
+      // filtre : B = 0,3 T → E/B = 5×10⁶ m/s = v₀ : trajectoire rectiligne et libellé « = »
+      const f = await regle('EB', 5, 3, 1), g = await regle('EB', 5, 10, 1), h = await regle('EB', 5, 2, 1);
+      const ecart = d => Math.max(...d.pl[1].map(p => Math.abs(p[1] - d.pl[1][0][1])));
+      if (ecart(f) > 1 || !/v₀ = E\/B/.test(f.info)) pb.push('E⊥B : v₀ = E/B devrait passer sans déviation (écart ' + ecart(f).toFixed(1) + ' px, « ' + f.info + ' »)');
+      if (!/v₀ > E\/B/.test(g.info) || !/v₀ < E\/B/.test(h.info)) pb.push('E⊥B : libellé de comparaison faux (« ' + g.info + ' », « ' + h.info + ' »)');
+      const hp = await regle('helix', 5, 5, 1), he = await regle('helix', 5, 5, -1);
+      if (JSON.stringify(hp.pl) === JSON.stringify(he.pl)) pb.push('hélice : le signe de la charge est sans effet');
+      await regle('B', 5, 5, 1);
+      return pb;
+    });
+
     await etape('Sommaire de la matière : 2ᵉ clic sur l\'intercalaire actif, #sommaire/…, précédent', async () => {
       const pb = [];
       await naviguer(page, 'rlc', 'cours');

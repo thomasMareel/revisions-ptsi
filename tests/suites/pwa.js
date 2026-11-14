@@ -63,7 +63,9 @@ module.exports = {
     await attendreApp(page);
     const auto = rechargements > 1;
     res.info('rechargementAutomatique1reVisite', auto);
-    if (auto) res.avertir('rechargement automatique de la page à la 1re visite — anomalie connue : index.html recharge au 1er controllerchange sans vérifier qu\'un service worker contrôlait déjà la page (voir tests/README.md §5)');
+    // Corrigé le 2026-11-14 : la page ne recharge plus au 1er controllerchange si elle n'était pas contrôlée
+    res.verifier('pas de rechargement automatique de la page à la 1re visite (prise de contrôle par le service worker)', !auto,
+      'la page s\'est rechargée ' + (rechargements - 1) + ' fois après la prise de contrôle du SW');
 
     const reg = await page.evaluate(async () => {
       const r = await Promise.race([navigator.serviceWorker.ready, new Promise(x => setTimeout(() => x(null), 20000))]);

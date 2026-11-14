@@ -195,10 +195,9 @@ attendant d'être corrigées avec l'accord de l'utilisateur) :
   plus constaté donne un avertissement `!` (le retirer). Après une correction voulue, la
   section « Proposition de liste TOLERES » de `visuel.md` donne la nouvelle liste à recopier
   (à relire). `--strict` ignore cette liste ;
-- suite `pwa` : le rechargement automatique à la 1re visite est signalé par un avertissement
-  (l'écouteur `controllerchange` d'`index.html` recharge la page sans vérifier qu'un service
-  worker contrôlait DÉJÀ la page ; or `clients.claim()` de `sw.js` déclenche cet événement dès
-  la 1re visite).
+- suite `pwa` : le rechargement automatique à la 1re visite (anomalie corrigée le 2026-11-14 :
+  l'écouteur `controllerchange` d'`index.html` ne recharge plus une page qui n'était pas encore
+  contrôlée) est désormais une vérification stricte : il fait échouer la suite.
 
 ---
 
