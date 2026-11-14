@@ -35,7 +35,7 @@ programme est bien retranscrit »).
   différentiels linéaires (`edo2a`). Elles passent en fin de chapitre (« Pour aller plus loin »).
 
 - **Bilan (2026-11-13)** : les 25 cours courts sont réécrits (encadré « Au programme », démonstrations, exemples traités, figures calculées, hors-programme en fin de chapitre) ; toutes les lignes du programme sont couvertes, y compris les notions qui manquaient (produit d'espaces, intégration terme à terme, enveloppes et développée, courbes d'équation f(x, y) = 0, continuité monotone et système quasi-complet, lemme des coalitions, fonctions génératrices, bornes atteintes). Deux chapitres renommés : `coniques` → « Courbes du plan et coniques », `geoplane` → « Propriétés métriques des courbes planes ».
-- **Reste à harmoniser** (onglets Méthodes et Exercices, hors du périmètre « Cours ») : `edo2a` porte encore sur les systèmes X′ = AX (hors programme) ; `elempropres` et `reduction` écrivent χ = det(A − λI) (cours : det(XIₙ − A)) ; `tribus` note la tribu 𝒯 (cours : 𝒜) ; `fpv` « Méthode 3 » n'utilise pas la hessienne.
+- **Méthodes, exercices et cartes harmonisés le 2026-11-14** (relecture des 28 chapitres de 2ᵉ année) : 6 à 10 méthodes et 7 à 10 exercices (dont un « Concours PT ») par chapitre, aux notations des cours (χ_A = det(XIₙ − A), tribu 𝒜, hessienne, E(X)…) ; X′ = AX, équation polaire des coniques, courbes polaires et formule de courbure par déterminant signalés hors programme ; cartes ajoutées (≈ 10 par chapitre) et réponses fausses corrigées (question inchangée : progression conservée).
 
 ## Correspondance programme → chapitres
 
