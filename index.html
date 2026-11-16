@@ -2181,7 +2181,8 @@ figure.schema.defile, .cine-svg-wrap.defile{ overflow-x:auto; overflow-y:hidden;
   border:0; outline:1px solid var(--line); outline-offset:-1px; border-radius:var(--r-l); background:var(--sheet);
 }
 #tr-canvas{ --h:560px; }
-#rdm-canvas{ --h:680px; }   /* poutre, T_y, M_fz, section (ou arbre, section, comparaison) */
+#rdm-canvas{ --h:680px; }
+#emag-canvas, #mgs-canvas{ --h:640px; }   /* vue 3D (2/3) + graphe de B (1/3) */   /* poutre, T_y, M_fz, section (ou arbre, section, comparaison) */
 #stat-canvas, #cc-canvas, #es-canvas, #cpx-canvas, #cine-canvas{ --h:480px; }
 #suit-canvas{ --h:470px; }
 #mth-canvas{ --h:460px; }
@@ -2191,7 +2192,7 @@ figure.schema.defile, .cine-svg-wrap.defile{ overflow-x:auto; overflow-y:hidden;
 #ond-canvas{ --h:400px; }
 #dyn-canvas{ --h:300px; }   /* pendule + barres + portrait de phase : ≈ 210 px de dessin (largeur limitée) */
 /* Simulateurs où l'on glisse un objet au doigt : pas de défilement/zoom tactile sur la toile */
-#cpx-canvas, #es-canvas, #dyn-canvas{ touch-action:none; cursor:grab; }
+#cpx-canvas, #es-canvas, #dyn-canvas, #emag-canvas, #mgs-canvas{ touch-action:none; cursor:grab; }
 
 /* Régime : information, pas notation → matière / ambre (seuil) / neutre ; jamais rouge ni vert */
 .regime-badge{
@@ -3884,8 +3885,9 @@ window.__rendreFocus = function(op, repli){
 <nav class="tabs">
   <button class="tab active" data-panel="emag-cours"><span class="num">01</span>Cours</button>
   <button class="tab" data-panel="emag-meth"><span class="num">02</span>Méthodes</button>
-  <button class="tab" data-panel="emag-flash"><span class="num">03</span>Flashcards</button>
-  <button class="tab" data-panel="emag-exos"><span class="num">04</span>Exercices</button>
+  <button class="tab" data-panel="emag-simu"><span class="num">03</span>Simulateur</button>
+  <button class="tab" data-panel="emag-flash"><span class="num">04</span>Flashcards</button>
+  <button class="tab" data-panel="emag-exos"><span class="num">05</span>Exercices</button>
 </nav>
 
 <section class="panel active" id="emag-cours">
@@ -4069,6 +4071,72 @@ window.__rendreFocus = function(op, repli){
       <li>Lignes de \(\vec{B}\) : toujours fermées. Divergence nulle : pas de monopôle magnétique.</li>
     </ul>
   </div>
+</div>
+</section>
+
+<section class="panel" id="emag-simu">
+<div class="sim-wrapper">
+  <h2>Simulateur — Cartes de champ magnétique en 3D</h2>
+  <p class="lead">Les sources du cours en trois dimensions : aimant droit, fil, deux fils, spire, bobine, et le champ tournant de deux bobines alimentées en quadrature. Fais tourner la vue (glisse sur le dessin, ou curseurs Azimut et Élévation) : les lignes de champ, fermées, s'enroulent autour des courants ; leur teinte est d'autant plus soutenue que le champ est intense. Le graphe donne la valeur de \(B\) sur l'axe ou en fonction de la distance.</p>
+  <div class="mode-switch">
+    <button class="active" data-b3-mode="aimant">Aimant droit</button>
+    <button data-b3-mode="fil">Fil</button>
+    <button data-b3-mode="deuxfils">Deux fils</button>
+    <button data-b3-mode="spire">Spire</button>
+    <button data-b3-mode="bobine">Bobine</button>
+    <button data-b3-mode="tournant">Champ tournant</button>
+  </div>
+  <div class="sim-controls">
+    <div class="control" id="emag-I-ctrl">
+      <label for="emag-I">Intensité I</label>
+      <input type="range" id="emag-I" min="0.5" max="20" step="0.5" value="5">
+      <span class="value" id="emag-I-val">5,0 A</span>
+    </div>
+    <div class="control" id="emag-g-ctrl">
+      <label for="emag-g" id="emag-g-lab">Paramètre</label>
+      <input type="range" id="emag-g" min="2" max="10" step="0.5" value="5">
+      <span class="value" id="emag-g-val">5,0 cm</span>
+    </div>
+    <div class="control" id="emag-N-ctrl" style="display:none">
+      <label for="emag-N" id="emag-N-lab">Nombre de spires N</label>
+      <input type="range" id="emag-N" min="10" max="500" step="10" value="100">
+      <span class="value" id="emag-N-val">100</span>
+    </div>
+    <div class="control" id="emag-opp-ctrl" style="display:none">
+      <label for="emag-opp">Sens des courants</label>
+      <input type="checkbox" id="emag-opp" style="width:auto;align-self:start">
+      <span class="value" id="emag-opp-val">même sens</span>
+    </div>
+    <div class="control" id="emag-az-ctrl">
+      <label for="emag-az">Azimut de la vue</label>
+      <input type="range" id="emag-az" min="-180" max="180" step="1" value="-32">
+      <span class="value" id="emag-az-val">−32°</span>
+    </div>
+    <div class="control" id="emag-el-ctrl">
+      <label for="emag-el">Élévation de la vue</label>
+      <input type="range" id="emag-el" min="-80" max="80" step="1" value="16">
+      <span class="value" id="emag-el-val">16°</span>
+    </div>
+    <div class="control" id="emag-plan-ctrl">
+      <label for="emag-plan">Carte de champ dans le plan y = 0</label>
+      <input type="checkbox" id="emag-plan" style="width:auto;align-self:start">
+      <span class="value" id="emag-plan-val">non</span>
+    </div>
+    <div class="control" id="emag-anim-ctrl">
+      <label for="emag-anim" id="emag-anim-lab">Rotation automatique de la vue</label>
+      <input type="checkbox" id="emag-anim" style="width:auto;align-self:start">
+      <span class="value" id="emag-anim-val">non</span>
+    </div>
+  </div>
+  <canvas id="emag-canvas"></canvas>
+  <div class="sim-info">
+    <div><span class="lbl" id="emag-l1">—</span><span id="emag-i1">—</span></div>
+    <div><span class="lbl" id="emag-l2">—</span><span id="emag-i2">—</span></div>
+    <div><span class="lbl" id="emag-l3">—</span><span id="emag-i3">—</span></div>
+    <div><span class="lbl" id="emag-l4">—</span><span id="emag-i4">—</span></div>
+    <div><span class="lbl" id="emag-l5">—</span><span id="emag-i5">—</span></div>
+  </div>
+  <p class="notice">Calcul numérique exact du champ : spire par la loi de Biot et Savart intégrée (hors programme en PTSI, résultat donné), bobine et aimant comme sommes de spires (l'aimant est remplacé par ses courants équivalents), fils par \(B = \mu_0 I/(2\pi r)\). \(\mu_0 = 4\pi\times 10^{-7}\ \text{H·m}^{-1}\). Les lignes sont tracées dans quelques plans contenant l'axe (spire, bobine, aimant) ou perpendiculaires aux fils.</p>
 </div>
 </section>
 
@@ -52709,8 +52777,9 @@ print(zero_champ(2, 10))     <span class="cmt"># environ 5.828</span></pre>
 <nav class="tabs">
   <button class="tab active" data-panel="mgs-cours"><span class="num">01</span>Cours</button>
   <button class="tab" data-panel="mgs-meth"><span class="num">02</span>Méthodes</button>
-  <button class="tab" data-panel="mgs-flash"><span class="num">03</span>Flashcards</button>
-  <button class="tab" data-panel="mgs-exos"><span class="num">04</span>Exercices</button>
+  <button class="tab" data-panel="mgs-simu"><span class="num">03</span>Simulateur</button>
+  <button class="tab" data-panel="mgs-flash"><span class="num">04</span>Flashcards</button>
+  <button class="tab" data-panel="mgs-exos"><span class="num">05</span>Exercices</button>
 </nav>
 <section class="panel active" id="mgs-cours">
 <div class="course-section">
@@ -53224,6 +53293,72 @@ print(zero_champ(2, 10))     <span class="cmt"># environ 5.828</span></pre>
   </div>
 </div>
 </section>
+<section class="panel" id="mgs-simu">
+<div class="sim-wrapper">
+  <h2>Simulateur — Champs magnétostatiques en 3D</h2>
+  <p class="lead">Les distributions de courant du cours, en trois dimensions : fil épais, câble coaxial, spire, bobines de Helmholtz, solénoïde et tore. Fais tourner la vue (glisse sur le dessin, ou curseurs Azimut et Élévation) pour lire les symétries ; le graphe compare le champ calculé au résultat du théorème d'Ampère ou à la formule du cours.</p>
+  <div class="mode-switch">
+    <button class="active" data-b3-mode="filepais">Fil épais</button>
+    <button data-b3-mode="coax">Coaxial</button>
+    <button data-b3-mode="spire">Spire</button>
+    <button data-b3-mode="helmholtz">Helmholtz</button>
+    <button data-b3-mode="solenoide">Solénoïde</button>
+    <button data-b3-mode="tore">Tore</button>
+  </div>
+  <div class="sim-controls">
+    <div class="control" id="mgs-I-ctrl">
+      <label for="mgs-I">Intensité I</label>
+      <input type="range" id="mgs-I" min="0.5" max="20" step="0.5" value="5">
+      <span class="value" id="mgs-I-val">5,0 A</span>
+    </div>
+    <div class="control" id="mgs-g-ctrl">
+      <label for="mgs-g" id="mgs-g-lab">Paramètre</label>
+      <input type="range" id="mgs-g" min="2" max="10" step="0.5" value="5">
+      <span class="value" id="mgs-g-val">5,0 cm</span>
+    </div>
+    <div class="control" id="mgs-N-ctrl" style="display:none">
+      <label for="mgs-N" id="mgs-N-lab">Nombre de spires N</label>
+      <input type="range" id="mgs-N" min="10" max="500" step="10" value="100">
+      <span class="value" id="mgs-N-val">100</span>
+    </div>
+    <div class="control" id="mgs-opp-ctrl" style="display:none">
+      <label for="mgs-opp">Sens des courants</label>
+      <input type="checkbox" id="mgs-opp" style="width:auto;align-self:start">
+      <span class="value" id="mgs-opp-val">même sens</span>
+    </div>
+    <div class="control" id="mgs-az-ctrl">
+      <label for="mgs-az">Azimut de la vue</label>
+      <input type="range" id="mgs-az" min="-180" max="180" step="1" value="-32">
+      <span class="value" id="mgs-az-val">−32°</span>
+    </div>
+    <div class="control" id="mgs-el-ctrl">
+      <label for="mgs-el">Élévation de la vue</label>
+      <input type="range" id="mgs-el" min="-80" max="80" step="1" value="16">
+      <span class="value" id="mgs-el-val">16°</span>
+    </div>
+    <div class="control" id="mgs-plan-ctrl">
+      <label for="mgs-plan">Carte de champ dans le plan y = 0</label>
+      <input type="checkbox" id="mgs-plan" style="width:auto;align-self:start">
+      <span class="value" id="mgs-plan-val">non</span>
+    </div>
+    <div class="control" id="mgs-anim-ctrl">
+      <label for="mgs-anim" id="mgs-anim-lab">Rotation automatique de la vue</label>
+      <input type="checkbox" id="mgs-anim" style="width:auto;align-self:start">
+      <span class="value" id="mgs-anim-val">non</span>
+    </div>
+  </div>
+  <canvas id="mgs-canvas"></canvas>
+  <div class="sim-info">
+    <div><span class="lbl" id="mgs-l1">—</span><span id="mgs-i1">—</span></div>
+    <div><span class="lbl" id="mgs-l2">—</span><span id="mgs-i2">—</span></div>
+    <div><span class="lbl" id="mgs-l3">—</span><span id="mgs-i3">—</span></div>
+    <div><span class="lbl" id="mgs-l4">—</span><span id="mgs-i4">—</span></div>
+    <div><span class="lbl" id="mgs-l5">—</span><span id="mgs-i5">—</span></div>
+  </div>
+  <p class="notice">Calcul exact : spire par les intégrales elliptiques complètes (loi de Biot et Savart, hors programme), solénoïde et bobines de Helmholtz par superposition de spires, fil épais, câble et tore par le théorème d'Ampère (tore idéal : champ nul hors du bobinage). \(\mu_0 = 4\pi\times 10^{-7}\ \text{H·m}^{-1}\). Teinte des lignes : intensité du champ (échelle logarithmique).</p>
+</div>
+</section>
+
 <section class="panel" id="mgs-flash">
 <div class="flash-wrapper">
   <div class="flash-progress" id="mgs-flash-prog">Carte 1 / —</div>
@@ -94488,7 +94623,7 @@ const CHAPTERS = [
     mobLabel:'Ondes' },
   { id:'emag',     prefix:'emag', name:'Champ magnétique et actions de Laplace',
     matiere:'physique', sub:'emag', subLabel:'Électromagnétisme', domain:'ondes',
-    matiereLabel:'Électromagnétisme', panels:['cours','meth','flash','exos'], drawFn:null,
+    matiereLabel:'Électromagnétisme', panels:['cours','meth','simu','flash','exos'], drawFn:'drawEmagB',
     mobLabel:'Champ magnétique' },
 
   { id:'estat',    prefix:'es',  name:'Électrostatique (aperçu)',
@@ -95087,7 +95222,7 @@ const CHAPTERS = [
   { id:'conred', prefix:'crd', name:'Réduction des coniques et matrices symétriques', matiere:'maths', sub:null, subLabel:'Géométrie', domain:'maths', matiereLabel:'Géométrie', panels:['cours','meth','flash','exos'], drawFn:null, mobLabel:'Réduction des coniques' },
   { id:'surfaces', prefix:'srf', name:'Courbes et surfaces de l\'espace', matiere:'maths', sub:null, subLabel:'Géométrie', domain:'maths', matiereLabel:'Géométrie', panels:['cours','meth','flash','exos'], drawFn:null, mobLabel:'Surfaces de l\'espace' },
   { id:'estat2a', prefix:'es2', name:'Électrostatique : champ, potentiel, théorème de Gauss', matiere:'physique', sub:'emag', subLabel:'Électromagnétisme', domain:'ondes', matiereLabel:'Électromagnétisme', panels:['cours','meth','flash','exos'], drawFn:null, mobLabel:'Électrostatique (Gauss)' },
-  { id:'magnetostat', prefix:'mgs', name:'Magnétostatique : théorème d\'Ampère', matiere:'physique', sub:'emag', subLabel:'Électromagnétisme', domain:'ondes', matiereLabel:'Électromagnétisme', panels:['cours','meth','flash','exos'], drawFn:null, mobLabel:'Magnétostatique (Ampère)' },
+  { id:'magnetostat', prefix:'mgs', name:'Magnétostatique : théorème d\'Ampère', matiere:'physique', sub:'emag', subLabel:'Électromagnétisme', domain:'ondes', matiereLabel:'Électromagnétisme', panels:['cours','meth','simu','flash','exos'], drawFn:'drawMgsB', mobLabel:'Magnétostatique (Ampère)' },
   { id:'maxwell', prefix:'mxw', name:'Équations de Maxwell et ARQS', matiere:'physique', sub:'emag', subLabel:'Électromagnétisme', domain:'ondes', matiereLabel:'Électromagnétisme', panels:['cours','meth','flash','exos'], drawFn:null, mobLabel:'Maxwell & ARQS' },
   { id:'oemvide', prefix:'oev', name:'Ondes électromagnétiques dans le vide', matiere:'physique', sub:'emag', subLabel:'Électromagnétisme', domain:'ondes', matiereLabel:'Électromagnétisme', panels:['cours','meth','flash','exos'], drawFn:null, mobLabel:'OEM dans le vide' },
   { id:'oemcond', prefix:'oec', name:'Ondes électromagnétiques et conducteurs', matiere:'physique', sub:'emag', subLabel:'Électromagnétisme', domain:'ondes', matiereLabel:'Électromagnétisme', panels:['cours','meth','flash','exos'], drawFn:null, mobLabel:'OEM & conducteurs' },
@@ -96038,7 +96173,7 @@ function drawForced(W,H,padL,padR,padT,padB,y0,p){
   ctx.fillText('log(f)',W-padR-50,H-padB+22);
 }
 
-window.addEventListener('resize',()=>{drawSim();drawOpt();drawOsc();if(typeof drawSer==='function')drawSer();if(typeof drawLin==='function')drawLin();if(typeof drawOxred==='function')drawOxred();if(typeof drawConiques==='function')drawConiques();if(typeof drawCourbesParam==='function')drawCourbesParam();if(typeof drawTrain==='function')drawTrain();if(typeof drawStat==='function')drawStat();if(typeof drawSys2==='function')drawSys2();if(typeof drawPend==='function')drawPend();if(typeof drawSys1==='function')drawSys1();if(typeof drawWave==='function')drawWave();if(typeof drawOrbit==='function')drawOrbit();if(typeof drawYoung==='function')drawYoung();if(typeof drawEstat==='function')drawEstat();if(typeof drawCycle==='function')drawCycle();if(typeof drawCplx==='function')drawCplx();if(typeof drawSuite==='function')drawSuite();if(typeof drawRdm==='function')drawRdm()});
+window.addEventListener('resize',()=>{drawSim();drawOpt();drawOsc();if(typeof drawSer==='function')drawSer();if(typeof drawLin==='function')drawLin();if(typeof drawOxred==='function')drawOxred();if(typeof drawConiques==='function')drawConiques();if(typeof drawCourbesParam==='function')drawCourbesParam();if(typeof drawTrain==='function')drawTrain();if(typeof drawStat==='function')drawStat();if(typeof drawSys2==='function')drawSys2();if(typeof drawPend==='function')drawPend();if(typeof drawSys1==='function')drawSys1();if(typeof drawWave==='function')drawWave();if(typeof drawOrbit==='function')drawOrbit();if(typeof drawYoung==='function')drawYoung();if(typeof drawEstat==='function')drawEstat();if(typeof drawCycle==='function')drawCycle();if(typeof drawCplx==='function')drawCplx();if(typeof drawSuite==='function')drawSuite();if(typeof drawRdm==='function')drawRdm();if(typeof drawEmagB==='function')drawEmagB();if(typeof drawMgsB==='function')drawMgsB()});
 
 /* ============================================== */
 /* =========== OPTIQUE SIMULATEUR =============== */
@@ -107965,6 +108100,748 @@ const ppmFlash = makeFlash(ppmCards,'ppm','ppm-flash-content','ppm-flash-prog','
 
   majControles(); majValeurs();
   window.drawRdm = drawRdm;
+})();
+
+/* ============================================== */
+/* ===== CHAMP MAGNÉTIQUE EN 3D (emag, mgs) ====== */
+/* ============================================== */
+/* Lignes de champ magnétique en 3D pour les situations types du cours, deux simulateurs construits par la
+   même fabrique : emag (1ʳᵉ année : aimant droit, fil, deux fils, spire, bobine, champ tournant) et mgs
+   (2ᵉ année : fil épais, câble coaxial, spire, bobines de Helmholtz, solénoïde, tore). Champs exacts : spire
+   circulaire par les intégrales elliptiques complètes (moyenne arithmético-géométrique), fils, câble et tore
+   par le théorème d'Ampère. Lignes intégrées par Runge-Kutta 4 sur la direction de B, projetées en
+   perspective ; on fait tourner la vue au doigt ou à la souris (ou par les curseurs Azimut / Élévation).
+   Repère du monde : x, y, z ; axe des spires et bobines = z ; fils, câble et axe du tore = y. Unités SI. */
+(function(){
+  const MU0 = 4e-7 * Math.PI, CM = 0.01;
+  const nb = (x, d) => window.__nb ? window.__nb(x, d) : x.toFixed(d);
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+
+  /* ---------- noyau : intégrales elliptiques complètes K(m), E(m) et champ exact d'une spire ---------- */
+  function ellKE(m){
+    let a = 1, b = Math.sqrt(Math.max(0, 1 - m)), s = m / 2, p = 1;
+    for(let n = 0; n < 40; n++){
+      const c = (a - b) / 2;
+      if(Math.abs(c) < 1e-15 * a) break;
+      const an = (a + b) / 2, bn = Math.sqrt(a * b);
+      s += p * c * c; p *= 2; a = an; b = bn;
+    }
+    const K = Math.PI / (2 * a);
+    return [K, K * (1 - s)];
+  }
+  // spire de rayon R, d'axe z, centrée en O, courant I (sens direct autour de +z) : ajoute B en (x, y, z) à out
+  function spire(R, I, x, y, z, out){
+    const rho2 = x * x + y * y, rho = Math.sqrt(rho2), r2 = rho2 + z * z;
+    const al2 = R * R + r2 - 2 * R * rho, be2 = R * R + r2 + 2 * R * rho, be = Math.sqrt(be2);
+    if(al2 < 1e-10 * R * R) return;
+    const KE = ellKE(1 - al2 / be2), K = KE[0], E = KE[1];
+    const C = MU0 * I / Math.PI;
+    out[2] += C / (2 * al2 * be) * ((R * R - r2) * E + al2 * K);
+    if(rho > 1e-9 * R){ const Br = C * z / (2 * al2 * be * rho) * ((R * R + r2) * E - al2 * K); out[0] += Br * x / rho; out[1] += Br * y / rho; }
+  }
+  // fil rectiligne infini parallèle à y, passant par (x0, z0), courant I selon +y : B orthoradial
+  function filY(I, x0, z0, x, z, out, a){
+    const dx = x - x0, dz = z - z0, r2 = dx * dx + dz * dz;
+    if(r2 < 1e-14) return;
+    let k = MU0 * I / (2 * Math.PI * r2);                  // B/r
+    if(a && r2 < a * a) k = MU0 * I / (2 * Math.PI * a * a);
+    out[0] += k * dz; out[2] -= k * dx;                     // ê_θ = ŷ ∧ ê_r = (dz, 0, −dx)/r
+  }
+  const cercle = (c, n) => { const pts = []; for(let i = 0; i <= n; i++){ const t = 2 * Math.PI * i / n; pts.push(c(t)); } return pts; };
+
+  /* ---------- situations types ---------- */
+  const SIT = {
+    aimant: {
+      nom: 'Aimant droit', anim: 'vue', vue: [-32, 16], I: false,
+      g: { lab: 'Longueur ℓ de l\'aimant', min: 2, max: 10, pas: 0.5, def: 5, u: 'cm' },
+      geo(P){
+        const a = 1 * CM, l = P.g * CM, Br = 1.2, n = 30, K = Br / MU0;
+        const spires = []; for(let k = 0; k < n; k++) spires.push([a, -l / 2 + l * (k + 0.5) / n, K * l / n]);
+        return { a, l, Br, spires, box: Math.max(l / 2 + 2.6 * a, 3.2 * a) };
+      },
+      champ(G, x, y, z, o){ for(const s of G.spires) spire(s[0], s[2], x, y, z - s[1], o); },
+      graines(G){ return axiales(G.a, [0.15, 0.4, 0.62, 0.8, 0.92], [0, 60, 120], 0); },
+      dessin(G, C){
+        const o = [], a = G.a, l = G.l, nf = 18;
+        for(let i = 0; i < nf; i++){
+          const t0 = 2 * Math.PI * i / nf, t1 = 2 * Math.PI * (i + 1) / nf;
+          const P = (t, z) => [a * Math.cos(t), a * Math.sin(t), z];
+          o.push({ k: 'q', pts: [P(t0, 0), P(t1, 0), P(t1, l / 2), P(t0, l / 2)], c: 'N' });
+          o.push({ k: 'q', pts: [P(t0, -l / 2), P(t1, -l / 2), P(t1, 0), P(t0, 0)], c: 'S' });
+        }
+        o.push({ k: 'q', pts: cercle(t => [a * Math.cos(t), a * Math.sin(t), l / 2], 24), c: 'N' });
+        o.push({ k: 'q', pts: cercle(t => [a * Math.cos(t), a * Math.sin(t), -l / 2], 24), c: 'S' });
+        o.push({ k: 't', p: [0, 0, l / 2 + 0.6 * a], txt: 'N', c: 'N' });
+        o.push({ k: 't', p: [0, 0, -l / 2 - 0.6 * a], txt: 'S', c: 'S' });
+        return o;
+      },
+      bref(G){ const o = [0, 0, 0]; this.champ(G, 0, 0, G.l / 2 + 0.5 * G.a, o); return Math.hypot(o[0], o[1], o[2]); },
+      profil(G){ return axe(G, this, 'z'); },
+      infos(G, P){
+        const o = [0, 0, 0]; this.champ(G, 0, 0, G.l / 2 + 1e-4, o);
+        const o2 = [0, 0, 0]; this.champ(G, 0, 0, G.l / 2 + 2 * G.a, o2);
+        return [
+          ['Situation', 'Aimant cylindrique (néodyme, B_r ≈ 1,2 T), rayon 1 cm, longueur ' + nb(P.g, 1) + ' cm'],
+          ['Champ sur l\'axe', 'au pôle nord : ' + fB(o[2]) + ' ; à 2 cm du pôle : ' + fB(o2[2])],
+          ['Ordre de grandeur', 'aimant usuel : 0,1 à 1 T près d\'un pôle ; décroît vite en s\'éloignant (comme 1/d³ loin de l\'aimant)'],
+          ['Symétries', 'tout plan contenant l\'axe est plan d\'antisymétrie des courants équivalents : B y est contenu'],
+          ['Lignes de champ', 'fermées : elles sortent par le pôle nord, rentrent par le pôle sud, et vont de S vers N à l\'intérieur']
+        ];
+      }
+    },
+    fil: {
+      nom: 'Fil rectiligne', anim: 'vue', vue: [-30, 18], I: true, g: null,
+      geo(){ return { box: 6 * CM }; },
+      champ(G, x, y, z, o, P){ filY(P.I, 0, 0, x, z, o); },
+      lignesDirectes(G){ return cerclesY([1, 2, 3, 4.5].map(r => r * CM), [-4, 0, 4].map(y => y * CM)); },
+      dessin(G){ return filDessin(G.box, 0, 0, 1); },
+      bref(G, P){ return MU0 * P.I / (2 * Math.PI * 2 * CM); },
+      profil(G, P){ return radial(G, r => MU0 * P.I / (2 * Math.PI * r), 0.25 * CM); },
+      infos(G, P){
+        return [
+          ['Situation', 'Fil rectiligne « infini », I = ' + nb(P.I, 1) + ' A, courant selon +y'],
+          ['Champ à r = 2 cm', fB(MU0 * P.I / (2 * Math.PI * 0.02))],
+          ['Formule', 'B = μ_0 I/(2πr) : décroît en 1/r'],
+          ['Symétries', 'tout plan contenant le fil est plan de symétrie : B lui est perpendiculaire (orthoradial) ; invariances : B = B(r)'],
+          ['Lignes de champ', 'cercles centrés sur le fil, orientés par la règle de la main droite (pouce = sens du courant)']
+        ];
+      }
+    },
+    deuxfils: {
+      nom: 'Deux fils parallèles', anim: 'vue', vue: [-24, 20], I: true, opp: true,
+      g: { lab: 'Distance d entre les fils', min: 2, max: 10, pas: 0.5, def: 4, u: 'cm' },
+      geo(P){ const d = P.g * CM; return { d, box: Math.max(1.6 * d, 5 * CM), s: P.opp ? -1 : 1 }; },
+      champ(G, x, y, z, o, P){ filY(P.I, -G.d / 2, 0, x, z, o); filY(G.s * P.I, G.d / 2, 0, x, z, o); },
+      graines(G){
+        const d = G.d, gr = [];
+        for(const y of [-0.45, 0.45].map(v => v * G.box)){
+          if(G.s > 0){
+            for(const e of [0.12, 0.25, 0.38]){ gr.push([-d / 2 + e * d, y, 0]); gr.push([d / 2 - e * d, y, 0]); }
+            for(const e of [0.75, 1.0, 1.4]) gr.push([e * d, y, 0]);
+          } else for(const u of [-0.42, -0.3, -0.15, 0, 0.15, 0.3, 0.42]) gr.push([u * d, y, 0]);
+        }
+        return gr;
+      },
+      dessin(G){ return filDessin(G.box, -G.d / 2, 0, 1).concat(filDessin(G.box, G.d / 2, 0, G.s)); },
+      bref(G, P){ return MU0 * P.I / (2 * Math.PI * 0.25 * G.d); },
+      profil(G, P){
+        const xs = [], ys = [], n = 400;
+        for(let i = 0; i <= n; i++){ const x = -G.box + 2 * G.box * i / n; const o = [0, 0, 0]; this.champ(G, x, 0, 0, o, P); xs.push(x); ys.push(Math.abs(Math.abs(x) - G.d / 2) < 0.01 * G.d ? NaN : o[2]); }
+        return { xs, ys, sym: 'B_z', var: 'x', titre: 'sur la droite qui joint les fils', borne: x => Math.abs(Math.abs(x) - G.d / 2) > 0.22 * G.d };
+      },
+      infos(G, P){
+        const o = [0, 0, 0]; this.champ(G, 0, 0, 0, o, P);
+        return [
+          ['Situation', 'Deux fils parallèles distants de ' + nb(P.g, 1) + ' cm, courants ' + (G.s > 0 ? 'de même sens' : 'opposés') + ', I = ' + nb(P.I, 1) + ' A'],
+          ['Champ au milieu', G.s > 0 ? 'nul : les deux contributions se compensent' : fB(Math.hypot(o[0], o[2])) + ' = 2 × μ_0 I/(πd)'],
+          ['Superposition', 'B total = somme des champs des deux fils, calculés chacun par B = μ_0 I/(2πr)'],
+          ['Symétries', 'le plan des deux fils est plan de symétrie (B lui est perpendiculaire) ; le plan médiateur est de ' + (G.s > 0 ? 'symétrie' : 'd\'antisymétrie')],
+          ['Lignes de champ', G.s > 0 ? 'autour de chaque fil près de lui, autour des deux à grande distance ; point de champ nul au milieu' : 'cercles décentrés autour de chaque fil ; champ renforcé entre les fils']
+        ];
+      }
+    },
+    spire: {
+      nom: 'Spire circulaire', anim: 'vue', vue: [-34, 18], I: true,
+      g: { lab: 'Rayon R de la spire', min: 2, max: 10, pas: 0.5, def: 5, u: 'cm' },
+      geo(P){ const R = P.g * CM; return { R, box: 2.3 * R }; },
+      champ(G, x, y, z, o, P){ spire(G.R, P.I, x, y, z, o); },
+      graines(G){ return axiales(G.R, [0.2, 0.45, 0.65, 0.82], [0, 60, 120], 0); },
+      dessin(G, C, P){ return boucle(G.R, 0, P.I >= 0 ? 1 : -1); },
+      bref(G, P){ return MU0 * P.I / (2 * G.R); },
+      profil(G, P){ return axe(G, this, 'z', P, z => MU0 * P.I * G.R * G.R / (2 * Math.pow(G.R * G.R + z * z, 1.5))); },
+      infos(G, P){
+        const B0 = MU0 * P.I / (2 * G.R);
+        return [
+          ['Situation', 'Spire de rayon R = ' + nb(P.g, 1) + ' cm, I = ' + nb(P.I, 1) + ' A'],
+          ['Champ au centre', fB(B0)],
+          ['Formule', 'au centre : B = μ_0 I/(2R) ; sur l\'axe : B = μ_0 I R²/(2(R² + z²)^(3/2))'],
+          ['Symétries', 'tout plan contenant l\'axe est plan d\'antisymétrie (B y est contenu) ; le plan de la spire est plan de symétrie (B lui est perpendiculaire)'],
+          ['Lignes de champ', 'fermées, elles s\'enroulent autour du fil ; loin de la spire, carte d\'un dipôle de moment 𝓜 = I π R²']
+        ];
+      }
+    },
+    bobine: {
+      nom: 'Bobine', anim: 'vue', vue: [-30, 16], I: true,
+      g: { lab: 'Longueur ℓ de la bobine', min: 2, max: 30, pas: 1, def: 12, u: 'cm' },
+      N: { lab: 'Nombre de spires N', min: 10, max: 500, pas: 10, def: 100 },
+      geo(P){
+        const R = 2 * CM, l = P.g * CM, N = P.N, nc = Math.min(N, 24), sp = [];
+        for(let k = 0; k < nc; k++) sp.push(-l / 2 + l * (k + 0.5) / nc);
+        return { R, l, N, sp, w: N / nc, box: Math.max(l / 2 + 2.6 * R, 3.2 * R) };
+      },
+      champ(G, x, y, z, o, P){ const I = P.I * G.w; for(const z0 of G.sp) spire(G.R, I, x, y, z - z0, o); },
+      graines(G){ return axiales(G.R, [0.15, 0.4, 0.62, 0.8, 0.92], [0, 90], 0); },
+      dessin(G, C, P){ return helice(G.R, G.l, Math.min(G.N, 36), P.I >= 0 ? 1 : -1); },
+      bref(G, P){ return MU0 * G.N * P.I / G.l; },
+      profil(G, P){ const p = axe(G, this, 'z', P); p.plat = { v: MU0 * G.N * P.I / G.l, x0: -G.l / 2, x1: G.l / 2, nom: 'μ_0 N I/ℓ' }; return p; },
+      infos(G, P){
+        const o = [0, 0, 0]; this.champ(G, 0, 0, 0, o, P);
+        return [
+          ['Situation', 'Bobine de ' + G.N + ' spires, rayon 2 cm, longueur ' + nb(P.g, 0) + ' cm, I = ' + nb(P.I, 1) + ' A'],
+          ['Champ au centre', fB(o[2]) + ' (calcul exact)'],
+          ['Bobine longue', 'B ≈ μ_0 n I = μ_0 N I/ℓ = ' + fB(MU0 * G.N * P.I / G.l) + ' (d\'autant plus juste que ℓ ≫ R)'],
+          ['Symétries', 'plans contenant l\'axe : antisymétrie (B y est contenu) ; plan médian de la bobine : symétrie'],
+          ['Lignes de champ', 'presque parallèles à l\'intérieur (champ quasi uniforme), elles se referment à l\'extérieur où le champ est faible']
+        ];
+      }
+    },
+    helmholtz: {
+      nom: 'Bobines de Helmholtz', anim: 'vue', vue: [-30, 16], I: true,
+      g: { lab: 'Écart d des bobines (en unités de R)', min: 0.4, max: 2, pas: 0.05, def: 1, u: 'R' },
+      N: { lab: 'Spires par bobine N', min: 1, max: 200, pas: 1, def: 50 },
+      geo(P){ const R = 5 * CM, d = P.g * R; return { R, d, N: P.N, box: Math.max(2.3 * R, d / 2 + 1.6 * R) }; },
+      champ(G, x, y, z, o, P){ const I = P.I * G.N; spire(G.R, I, x, y, z - G.d / 2, o); spire(G.R, I, x, y, z + G.d / 2, o); },
+      graines(G){ return axiales(G.R, [0.1, 0.3, 0.5, 0.7, 0.86], [0, 90], 0); },
+      dessin(G, C, P){ const s = P.I >= 0 ? 1 : -1; return boucle(G.R, -G.d / 2, s, 3).concat(boucle(G.R, G.d / 2, s, 3)); },
+      bref(G, P){ return MU0 * G.N * P.I / G.R * Math.pow(0.8, 1.5); },
+      profil(G, P){
+        const R = G.R, I = P.I * G.N, f = z => MU0 * I * R * R / (2 * Math.pow(R * R + z * z, 1.5));
+        const p = axe(G, this, 'z', P); p.seules = [z => f(z - G.d / 2), z => f(z + G.d / 2)]; return p;
+      },
+      infos(G, P){
+        const o = [0, 0, 0]; this.champ(G, 0, 0, 0, o, P);
+        const oz = [0, 0, 0]; this.champ(G, 0, 0, 0.2 * G.R, oz, P);
+        return [
+          ['Situation', 'Deux bobines de ' + G.N + ' spires, rayon R = 5 cm, écart d = ' + nb(P.g, 2) + ' R, I = ' + nb(P.I, 1) + ' A'],
+          ['Champ au centre', fB(o[2]) + ' ; écart relatif à z = R/5 : ' + nb(100 * (oz[2] - o[2]) / o[2], 2) + ' %'],
+          ['Formule (d = R)', 'B = (4/5)^(3/2) μ_0 N I/R = ' + fB(Math.pow(0.8, 1.5) * MU0 * G.N * P.I / G.R) + ' : champ très uniforme au centre'],
+          ['Symétries', 'plans contenant l\'axe : antisymétrie ; plan médian : symétrie, B y est axial'],
+          ['Superposition', 'B = somme des champs des deux bobines (courbes en pointillés sur le graphe)']
+        ];
+      }
+    },
+    tore: {
+      nom: 'Bobine torique', anim: 'vue', vue: [-26, 30], I: true,
+      g: { lab: 'Rayon a de la section', min: 0.5, max: 3, pas: 0.25, def: 2, u: 'cm' },
+      N: { lab: 'Nombre de spires N', min: 20, max: 1000, pas: 20, def: 200 },
+      geo(P){ const R0 = 6 * CM, a = P.g * CM; return { R0, a, N: P.N, box: R0 + a + 2 * CM }; },
+      champ(G, x, y, z, o, P){
+        const r = Math.hypot(x, z), d = Math.hypot(r - G.R0, y);
+        if(d > G.a || r < 1e-9) return;
+        const k = MU0 * G.N * P.I / (2 * Math.PI * r * r);
+        o[0] += k * z; o[2] -= k * x;
+      },
+      lignesDirectes(G){
+        const L = [];
+        for(const uv of [[0, 0], [0.55, 0], [-0.55, 0], [0, 0.55], [0, -0.55], [0.4, 0.4], [-0.4, -0.4], [0.4, -0.4], [-0.4, 0.4]]){
+          const r = G.R0 + uv[0] * G.a, y = uv[1] * G.a;
+          L.push(cercle(t => [r * Math.sin(t), y, r * Math.cos(t), 1 / r], 72));
+        }
+        return L;
+      },
+      dessin(G, C, P){
+        const o = [], n = Math.min(G.N, 48), a = G.a * 1.04;
+        for(let i = 0; i < n; i++){
+          const th = 2 * Math.PI * i / n, c = Math.cos(th), s = Math.sin(th);
+          o.push({ k: 'p', pts: cercle(u => { const r = G.R0 + a * Math.cos(u); return [r * s, a * Math.sin(u), r * c]; }, 20), st: 'cond' });
+        }
+        for(const sg of [1, -1]) o.push({ k: 'p', pts: cercle(t => [(G.R0 + sg * a) * Math.sin(t), 0, (G.R0 + sg * a) * Math.cos(t)], 72), st: 'guide' });
+        return o;
+      },
+      bref(G, P){ return MU0 * G.N * P.I / (2 * Math.PI * G.R0); },
+      profil(G, P){ return radial(G, r => (Math.abs(r - G.R0) <= G.a ? MU0 * G.N * P.I / (2 * Math.PI * r) : 0), 0.02 * G.box, 'dans le plan du tore'); },
+      infos(G, P){
+        return [
+          ['Situation', 'Tore de rayon moyen 6 cm, section de rayon a = ' + nb(P.g, 2) + ' cm, N = ' + G.N + ' spires, I = ' + nb(P.I, 1) + ' A'],
+          ['Champ au rayon moyen', fB(MU0 * G.N * P.I / (2 * Math.PI * G.R0))],
+          ['Théorème d\'Ampère', 'sur un cercle de rayon r intérieur au tore : B · 2πr = μ_0 N I, d\'où B = μ_0 N I/(2πr) ; B = 0 à l\'extérieur'],
+          ['Symétries', 'tout plan contenant l\'axe du tore est plan de symétrie : B lui est perpendiculaire (orthoradial)'],
+          ['Lignes de champ', 'cercles confinés dans le tore : aucune fuite de champ (tore idéal), d\'où son usage dans les transformateurs']
+        ];
+      }
+    },
+    coax: {
+      nom: 'Câble coaxial', anim: 'vue', vue: [-30, 18], I: true,
+      g: { lab: 'Rayon intérieur b de la gaine', min: 1.5, max: 4, pas: 0.25, def: 2.5, u: 'cm' },
+      geo(P){ const a = 0.8 * CM, b = P.g * CM, c = b + 0.4 * CM; return { a, b, c, box: c + 1.6 * CM }; },
+      Br(G, r, I){
+        if(r < G.a) return MU0 * I * r / (2 * Math.PI * G.a * G.a);
+        if(r < G.b) return MU0 * I / (2 * Math.PI * r);
+        if(r < G.c) return MU0 * I / (2 * Math.PI * r) * (G.c * G.c - r * r) / (G.c * G.c - G.b * G.b);
+        return 0;
+      },
+      champ(G, x, y, z, o, P){ const r = Math.hypot(x, z); if(r < 1e-12) return; const B = this.Br(G, r, P.I) / r; o[0] += B * z; o[2] -= B * x; },
+      lignesDirectes(G){ const rs = [0.5 * G.a, G.a + 0.3 * (G.b - G.a), G.a + 0.7 * (G.b - G.a), (G.b + G.c) / 2]; return cerclesY(rs, [-0.55, 0, 0.55].map(v => v * G.box)); },
+      dessin(G, C, P){ return cylindre(G.a, G.box, 1, 3).concat(cylindre(G.b, G.box, -1, 0), cylindre(G.c, G.box, -1, 4)); },
+      bref(G, P){ return MU0 * P.I / (2 * Math.PI * G.a); },
+      profil(G, P){ return radial(G, r => this.Br(G, r, P.I), 0); },
+      infos(G, P){
+        return [
+          ['Situation', 'Âme de rayon a = 0,8 cm (courant I), gaine de b = ' + nb(P.g, 2) + ' cm à c = b + 0,4 cm (courant −I), I = ' + nb(P.I, 1) + ' A'],
+          ['Champ entre âme et gaine', 'à r = (a + b)/2 : ' + fB(MU0 * P.I / (Math.PI * (G.a + G.b)))],
+          ['Théorème d\'Ampère', 'r < a : μ_0 I r/(2πa²) ; a < r < b : μ_0 I/(2πr) ; r > c : courant enlacé nul, B = 0'],
+          ['Symétries', 'tout plan contenant l\'axe est plan de symétrie : B est orthoradial et ne dépend que de r'],
+          ['Lignes de champ', 'cercles confinés dans le câble : pas de champ à l\'extérieur (blindage)']
+        ];
+      }
+    },
+    filepais: {
+      nom: 'Fil épais', anim: 'vue', vue: [-30, 18], I: true,
+      g: { lab: 'Rayon a du fil', min: 0.5, max: 3, pas: 0.25, def: 1.5, u: 'cm' },
+      geo(P){ const a = P.g * CM; return { a, box: Math.max(4 * a, 5 * CM) }; },
+      Br(G, r, I){ return r < G.a ? MU0 * I * r / (2 * Math.PI * G.a * G.a) : MU0 * I / (2 * Math.PI * r); },
+      champ(G, x, y, z, o, P){ filY(P.I, 0, 0, x, z, o, G.a); },
+      lignesDirectes(G){ const rs = [0.35, 0.7, 1.4, 2.2, 3.2].map(u => u * G.a).filter(r => r < 0.95 * G.box); return cerclesY(rs, [-0.55, 0, 0.55].map(v => v * G.box)); },
+      dessin(G){ return cylindre(G.a, G.box, 1, 4); },
+      bref(G, P){ return MU0 * P.I / (2 * Math.PI * G.a); },
+      profil(G, P){ return radial(G, r => this.Br(G, r, P.I), 0); },
+      infos(G, P){
+        return [
+          ['Situation', 'Fil cylindrique de rayon a = ' + nb(P.g, 2) + ' cm, courant I = ' + nb(P.I, 1) + ' A uniforme dans la section'],
+          ['Champ maximal', 'en r = a : ' + fB(MU0 * P.I / (2 * Math.PI * G.a))],
+          ['Théorème d\'Ampère', 'r < a : courant enlacé I r²/a², B = μ_0 I r/(2πa²) ; r > a : B = μ_0 I/(2πr)'],
+          ['Symétries', 'tout plan contenant l\'axe est plan de symétrie : B orthoradial ; invariances : B = B(r)'],
+          ['Lignes de champ', 'cercles d\'axe le fil, à l\'intérieur comme à l\'extérieur']
+        ];
+      }
+    },
+    tournant: {
+      nom: 'Champ tournant', anim: 'temps', vue: [-18, 14], I: true,
+      g: { lab: 'Instant : angle ωt', min: 0, max: 360, pas: 1, def: 30, u: '°' },
+      geo(P){ const R = 4 * CM, s = 2 * CM, N = 100, w = P.g * Math.PI / 180; return { R, s, N, w, box: 7.5 * CM }; },
+      champ(G, x, y, z, o, P){
+        const IA = P.I * G.N * Math.cos(G.w), IB = P.I * G.N * Math.sin(G.w);
+        spire(G.R, IA, x, y, z - G.s, o); spire(G.R, IA, x, y, z + G.s, o);
+        const q = [0, 0, 0];                                     // paire d'axe x : coordonnées locales (y, z, x)
+        spire(G.R, IB, y, z, x - G.s, q); spire(G.R, IB, y, z, x + G.s, q);
+        o[0] += q[2]; o[1] += q[0]; o[2] += q[1];
+      },
+      lignesDirectes(){ return []; },
+      dessin(G, C, P){
+        const o = [], sA = Math.cos(G.w) >= 0 ? 1 : -1, sB = Math.sin(G.w) >= 0 ? 1 : -1;
+        o.push(...boucle(G.R, -G.s, sA, 2), ...boucle(G.R, G.s, sA, 2));
+        for(const x0 of [-G.s, G.s]){
+          o.push({ k: 'p', pts: cercle(t => [x0, G.R * Math.cos(t), G.R * Math.sin(t)], 64), st: 'cond' });
+          o.push({ k: 'p', pts: cercle(t => [x0 + 0.002, G.R * Math.cos(t), G.R * Math.sin(t)], 64), st: 'cond' });
+          o.push({ k: 'fc', p: [x0, 0, G.R], d: [0, -sB, 0] });
+        }
+        // aiguille aimantée au centre, alignée sur B (moteur synchrone : elle suit le champ tournant)
+        const ux = Math.sin(G.w), uz = Math.cos(G.w), L = 0.95 * G.s, e = 0.16 * G.s;
+        o.push({ k: 'q', pts: [[L * ux, 0, L * uz], [-e * uz, 0, e * ux], [e * uz, 0, -e * ux]], c: 'N', plein: true });
+        o.push({ k: 'q', pts: [[-L * ux, 0, -L * uz], [e * uz, 0, -e * ux], [-e * uz, 0, e * ux]], c: 'S', plein: true });
+        return o;
+      },
+      bref(G, P){ const o = [0, 0, 0]; spire(G.R, P.I * G.N, 0, 0, -G.s, o); spire(G.R, P.I * G.N, 0, 0, G.s, o); return o[2]; },
+      profil(G, P){
+        const B0 = this.bref(G, P), xs = [], ys = [], y2 = [];
+        for(let i = 0; i <= 360; i++){ xs.push(i); ys.push(B0 * Math.cos(i * Math.PI / 180)); y2.push(B0 * Math.sin(i * Math.PI / 180)); }
+        return { xs, ys, y2, sym: 'B', var: 'ωt', unite: '°', curseur: P.g, titre: 'au centre : composante selon z (trait plein), selon x (pointillés)' };
+      },
+      infos(G, P){
+        const B0 = this.bref(G, P);
+        return [
+          ['Situation', 'Deux paires de bobines d\'axes z et x (100 spires chacune), courants I cos ωt et I sin ωt, I = ' + nb(P.I, 1) + ' A'],
+          ['Champ au centre', 'norme constante ' + fB(B0) + ', direction repérée par l\'angle ωt = ' + nb(P.g, 0) + '°'],
+          ['Champ tournant', 'B = B_0 (cos ωt ê_z + sin ωt ê_x) : il tourne à la vitesse angulaire ω'],
+          ['Moteur synchrone', 'l\'aiguille aimantée s\'aligne sur B et tourne avec lui, à la même vitesse angulaire'],
+          ['Avec trois bobines', 'à 120° l\'une de l\'autre, alimentées en triphasé : même champ tournant (moteurs industriels)']
+        ];
+      }
+    }
+  };
+  SIT.solenoide = Object.assign({}, SIT.bobine, { nom: 'Solénoïde' });
+
+  /* ---------- aides de géométrie ---------- */
+  function fB(B){
+    const a = Math.abs(B);
+    if(a >= 1e-3) return nb(B * 1e3, a >= 1e-1 ? 0 : a >= 1e-2 ? 1 : 2) + ' mT';
+    return nb(B * 1e6, a >= 1e-4 ? 0 : a >= 1e-5 ? 1 : 2) + ' μT';
+  }
+  function axiales(R, fr, angles, z0){
+    const g = [];
+    for(const ph of angles) for(const sg of [1, -1]) for(const f of fr){
+      const t = ph * Math.PI / 180;
+      g.push([sg * f * R * Math.cos(t), sg * f * R * Math.sin(t), z0]);
+    }
+    return g;
+  }
+  function cerclesY(rs, ys){
+    const L = [];
+    for(const y of ys) for(const r of rs) L.push(cercle(t => [r * Math.sin(t), y, r * Math.cos(t), 1 / r], 72));
+    return L;
+  }
+  function boucle(R, z0, sg, ep){
+    const o = [], n = ep || 1;
+    for(let j = 0; j < n; j++){
+      const dz = (j - (n - 1) / 2) * 0.0025;
+      o.push({ k: 'p', pts: cercle(t => [R * Math.cos(t), R * Math.sin(t), z0 + dz], 72), st: 'cond' });
+    }
+    for(const t of [Math.PI / 2, 3 * Math.PI / 2]) o.push({ k: 'fc', p: [R * Math.cos(t), R * Math.sin(t), z0], d: [-sg * Math.sin(t), sg * Math.cos(t), 0] });
+    return o;
+  }
+  function helice(R, l, n, sg){
+    const pts = [], m = Math.max(1, n) * 24;
+    for(let i = 0; i <= m; i++){ const t = 2 * Math.PI * i / 24; pts.push([R * Math.cos(t), R * Math.sin(t), -l / 2 + l * i / m]); }
+    const o = [{ k: 'p', pts, st: 'cond' }];
+    for(const zf of [-0.3, 0.3]){ const t = Math.PI / 2; o.push({ k: 'fc', p: [R * Math.cos(t), R * Math.sin(t), zf * l], d: [-sg, 0, 0] }); }
+    return o;
+  }
+  function filDessin(box, x0, z0, sg){
+    return [{ k: 'p', pts: [[x0, -box, z0], [x0, box, z0]], st: 'fil' }, { k: 'fc', p: [x0, 0.55 * box * sg, z0], d: [0, sg, 0] }, { k: 'fc', p: [x0, -0.55 * box * sg, z0], d: [0, sg, 0] }];
+  }
+  function cylindre(r, box, sg, ng){
+    const o = [];
+    for(const y of [-box, box]) o.push({ k: 'p', pts: cercle(t => [r * Math.sin(t), y, r * Math.cos(t)], 48), st: 'cond' });
+    o.push({ k: 'p', pts: cercle(t => [r * Math.sin(t), 0, r * Math.cos(t)], 48), st: 'guide' });
+    for(let i = 0; i < ng; i++){ const t = 2 * Math.PI * i / ng + 0.4; o.push({ k: 'p', pts: [[r * Math.sin(t), -box, r * Math.cos(t)], [r * Math.sin(t), box, r * Math.cos(t)]], st: 'cond' }); }
+    o.push({ k: 'fc', p: [r * Math.sin(0.4), 0.5 * box * sg, r * Math.cos(0.4)], d: [0, sg, 0] });
+    return o;
+  }
+  function axe(G, S, v, P, th){
+    const xs = [], ys = [], n = 300, o = [0, 0, 0];
+    for(let i = 0; i <= n; i++){ const z = -G.box + 2 * G.box * i / n; o[0] = o[1] = o[2] = 0; S.champ(G, 0, 0, z, o, P); xs.push(z); ys.push(o[2]); }
+    return { xs, ys, th: th || null, sym: 'B_z', var: v, titre: 'sur l\'axe' };
+  }
+  function radial(G, f, r0, titre){
+    const xs = [], ys = [], n = 300;
+    for(let i = 0; i <= n; i++){ const r = r0 + (G.box - r0) * i / n; xs.push(r); ys.push(f(r)); }
+    return { xs, ys, sym: 'B', var: 'r', titre: titre || 'en fonction de la distance r à l\'axe', positif: true };
+  }
+
+  /* ---------- lignes de champ : Runge-Kutta 4 sur la direction de B ---------- */
+  function integrer(S, G, P, graines, h, maxPas){
+    const B = [0, 0, 0], k1 = [0, 0, 0], k2 = [0, 0, 0], k3 = [0, 0, 0], k4 = [0, 0, 0], q = [0, 0, 0], bx = G.box * 1.02;
+    function dir(p, out){
+      B[0] = B[1] = B[2] = 0; S.champ(G, p[0], p[1], p[2], B, P);
+      const n = Math.hypot(B[0], B[1], B[2]);
+      if(!(n > 0) || !isFinite(n)) return 0;
+      out[0] = B[0] / n; out[1] = B[1] / n; out[2] = B[2] / n; return n;
+    }
+    function suivre(g, sg){
+      let p = [g[0], g[1], g[2]]; const pts = [];
+      let n0 = dir(p, k1); if(!n0) return { pts, ferme: false };
+      pts.push([p[0], p[1], p[2], n0]);
+      for(let i = 0; i < maxPas; i++){
+        if(!dir(p, k1)) break;
+        for(let j = 0; j < 3; j++) q[j] = p[j] + sg * h / 2 * k1[j];
+        if(!dir(q, k2)) break;
+        for(let j = 0; j < 3; j++) q[j] = p[j] + sg * h / 2 * k2[j];
+        if(!dir(q, k3)) break;
+        for(let j = 0; j < 3; j++) q[j] = p[j] + sg * h * k3[j];
+        if(!dir(q, k4)) break;
+        p = [p[0] + sg * h / 6 * (k1[0] + 2 * k2[0] + 2 * k3[0] + k4[0]), p[1] + sg * h / 6 * (k1[1] + 2 * k2[1] + 2 * k3[1] + k4[1]), p[2] + sg * h / 6 * (k1[2] + 2 * k2[2] + 2 * k3[2] + k4[2])];
+        const n = dir(p, k1);
+        pts.push([p[0], p[1], p[2], n]);
+        if(Math.abs(p[0]) > bx || Math.abs(p[1]) > bx || Math.abs(p[2]) > bx) return { pts, ferme: false };
+        if(i > 12 && Math.hypot(p[0] - g[0], p[1] - g[1], p[2] - g[2]) < 1.2 * h){ pts.push([g[0], g[1], g[2], n0]); return { pts, ferme: true }; }
+      }
+      return { pts, ferme: false };
+    }
+    const L = [];
+    for(const g of graines){
+      const av = suivre(g, 1);
+      if(av.ferme){ L.push(av.pts); continue; }
+      const ar = suivre(g, -1);
+      L.push(ar.pts.reverse().concat(av.pts.slice(1)));
+    }
+    return L;
+  }
+
+  /* ---------- la fabrique : un simulateur par chapitre ---------- */
+  function creer(p, modes){
+    const canvas = document.getElementById(p + '-canvas');
+    if(!canvas) return function(){};
+    const ctx = canvas.getContext('2d');
+    const $ = id => document.getElementById(p + '-' + id);
+    const wrap = canvas.closest('.sim-wrapper');
+    let mode = modes[0], cache = null, cleCache = '', minuteur = 0, animId = null, Wc = 600;
+    const P = { I: 5, g: 5, N: 100, opp: false };
+
+    function lire(){
+      P.I = +$('I').value; P.g = +$('g').value; P.N = +$('N').value; P.opp = $('opp').checked;
+    }
+    function texteCtrl(){
+      const S = SIT[mode];
+      $('I-val').textContent = nb(P.I, 1) + ' A';
+      if(S.g) $('g-val').textContent = S.g.u === '°' ? nb(P.g, 0) + '°' : nb(P.g, S.g.pas < 0.5 ? 2 : S.g.pas < 1 ? 1 : 0) + ' ' + S.g.u;
+      if(S.N) $('N-val').textContent = nb(P.N, 0);
+      $('az-val').textContent = nb(+$('az').value, 0) + '°';
+      $('el-val').textContent = nb(+$('el').value, 0) + '°';
+      $('opp-val').textContent = $('opp').checked ? 'opposés' : 'même sens';
+      $('anim-val').textContent = $('anim').checked ? 'oui' : 'non';
+      $('plan-val').textContent = $('plan').checked ? 'oui' : 'non';
+    }
+    function regler(el, c){
+      el.min = c.min; el.max = c.max; el.step = c.pas; el.defaultValue = String(c.def); el.value = String(c.def);
+    }
+    function choisir(m){
+      mode = m; const S = SIT[m];
+      wrap.querySelectorAll('[data-b3-mode]').forEach(b => b.classList.toggle('active', b.dataset.b3Mode === m));
+      $('I-ctrl').style.display = S.I ? '' : 'none';
+      $('g-ctrl').style.display = S.g ? '' : 'none';
+      $('N-ctrl').style.display = S.N ? '' : 'none';
+      $('opp-ctrl').style.display = S.opp ? '' : 'none';
+      $('plan-ctrl').style.display = m === 'tournant' ? 'none' : '';
+      if(S.g){ $('g-lab').textContent = S.g.lab; regler($('g'), S.g); }
+      if(S.N){ $('N-lab').textContent = S.N.lab; regler($('N'), S.N); }
+      $('anim-lab').textContent = S.anim === 'temps' ? 'Faire tourner le champ' : 'Rotation automatique de la vue';
+      regler($('az'), { min: -180, max: 180, pas: 1, def: S.vue[0] });
+      regler($('el'), { min: -80, max: 80, pas: 1, def: S.vue[1] });
+      const an = $('anim'); an.checked = S.anim === 'temps' && !window.__reduceMotion; an.defaultChecked = false;
+      lire(); texteCtrl(); cleCache = '';
+      ['I', 'g', 'N', 'az', 'el'].forEach(id => { const el = $(id); if(el) el.dispatchEvent(new Event('change', { bubbles: true })); });
+      dessiner(); demarrer();
+    }
+
+    /* --- calcul des lignes (mis en cache ; aperçu rapide pendant qu'on fait glisser un curseur) --- */
+    function lignes(rapide){
+      const S = SIT[mode], G = S.geo(P);
+      const cle = mode + '|' + P.g + '|' + P.N + '|' + P.opp + (mode === 'tournant' ? '|' + P.I : '');
+      if(cache && cleCache === cle && (!cache.rapide || rapide)) return cache;
+      let L; const PI1 = Object.assign({}, P, { I: 1 });
+      if(S.lignesDirectes) L = S.lignesDirectes(G);
+      else {
+        let gr = S.graines(G);
+        if(rapide) gr = gr.filter((g, i) => i % 3 === 0);
+        L = integrer(S, G, PI1, gr, G.box / (rapide ? 70 : 150), rapide ? 600 : 1500);
+      }
+      cache = { G, L, rapide: !!rapide, bref: Math.abs(S.bref(G, PI1)) || 1, dessin: S.dessin(G, null, P) };
+      cleCache = cle;
+      return cache;
+    }
+
+    /* --- projection en perspective --- */
+    function camera(cx, cy, f, box){
+      const az = +$('az').value * Math.PI / 180, el = +$('el').value * Math.PI / 180;
+      const ca = Math.cos(az), sa = Math.sin(az), ce = Math.cos(el), se = Math.sin(el), D = 4.2;
+      return q => {
+        const X = q[2] / box, Y = q[0] / box, Z = q[1] / box;          // z → droite, x → haut, y → vers l'observateur
+        const X1 = ca * X + sa * Z, Z1 = -sa * X + ca * Z;
+        const Y2 = ce * Y - se * Z1, Z2 = se * Y + ce * Z1, k = D / (D - Z2);
+        return [cx + X1 * f * k, cy - Y2 * f * k, Z2];
+      };
+    }
+
+    function dessiner(rapide){
+      const panel = document.getElementById(p + '-simu'); if(panel && !panel.classList.contains('active')) return;
+      const dpr = window.devicePixelRatio || 1, r = canvas.getBoundingClientRect();
+      if(!r.width || !r.height) return;
+      canvas.width = Math.round(r.width * dpr); canvas.height = Math.round(r.height * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      const W = r.width, H = r.height, C = __CV(), chap = __CVchap(canvas);
+      Wc = W; ctx.clearRect(0, 0, W, H);
+      lire();
+      const S = SIT[mode], cc = lignes(rapide), G = cc.G;
+      if(mode === 'tournant'){ cc.G = S.geo(P); cc.dessin = S.dessin(cc.G, null, P); }
+      const compact = W < 560 || H < 520;
+      const h3 = Math.round(H * (compact ? 0.64 : 0.66));
+      const pr = camera(W / 2, h3 / 2 + 4, Math.min(W, h3) * (compact ? 0.4 : 0.42), cc.G.box);
+      const prims = [];
+      const bref = cc.bref * (SIT[mode].I ? Math.abs(P.I) || 1 : 1);
+      // lignes de champ, par morceaux (tri en profondeur avec les conducteurs) ; intensité relative calculée pour I = 1 A
+      for(const L of cc.L){
+        const Q = L.map(pt => { const s = pr(pt); s.push(pt[3] !== undefined ? pt[3] : 0); return s; });
+        for(let i = 0; i < Q.length - 1; i += 6){
+          const seg = Q.slice(i, Math.min(i + 7, Q.length));
+          let z = 0, n = 0; seg.forEach(s => { z += s[2]; n += s[3]; }); z /= seg.length; n /= seg.length;
+          const inten = S.lignesDirectes ? 1 : clamp(1 + Math.log10(Math.max(n, 1e-30) / cc.bref) / 2, 0, 1);
+          prims.push({ k: 'l', pts: seg, z, a: (0.18 + 0.82 * inten) * (0.55 + 0.45 * clamp((z + 1.2) / 2.4, 0, 1)) });
+        }
+        let lgE = 0; for(let i = 1; i < Q.length; i++) lgE += Math.hypot(Q[i][0] - Q[i - 1][0], Q[i][1] - Q[i - 1][1]);
+        const nf = lgE < 60 ? 0 : lgE < 260 ? 1 : 2;
+        for(let j = 1; j <= nf; j++){ const i = Math.min(Q.length - 2, Math.round(Q.length * j / (nf + 1))); prims.push({ k: 'f', p: Q[i], q: Q[i + 1], z: Q[i][2], a: 0.9 }); }
+      }
+      // conducteurs, aimant, aiguille
+      for(const o of cc.dessin){
+        if(o.k === 'p'){
+          const Q = o.pts.map(pr);
+          for(let i = 0; i < Q.length - 1; i += 4){ const seg = Q.slice(i, Math.min(i + 5, Q.length)); let z = 0; seg.forEach(s => { z += s[2]; }); prims.push({ k: o.st, pts: seg, z: z / seg.length + 0.01 }); }
+        } else if(o.k === 'q'){
+          const Q = o.pts.map(pr); let z = 0; Q.forEach(s => { z += s[2]; });
+          prims.push({ k: 'q', pts: Q, z: z / Q.length, c: o.c, plein: o.plein });
+        } else if(o.k === 'fc'){
+          const a = pr(o.p), b = pr([o.p[0] + o.d[0] * 0.04 * cc.G.box, o.p[1] + o.d[1] * 0.04 * cc.G.box, o.p[2] + o.d[2] * 0.04 * cc.G.box]);
+          prims.push({ k: 'fc', p: a, q: b, z: a[2] + 0.02 });
+        } else if(o.k === 't') prims.push({ k: 't', p: pr(o.p), txt: o.txt, c: o.c, z: 99 });
+      }
+      // carte de champ dans le plan y = 0
+      if($('plan').checked || mode === 'tournant'){
+        const n = compact ? 11 : 15, o = [0, 0, 0], vals = [];
+        for(let i = 0; i < n; i++) for(let j = 0; j < n; j++){
+          const x = cc.G.box * (-0.9 + 1.8 * i / (n - 1)), z = cc.G.box * (-0.9 + 1.8 * j / (n - 1));
+          o[0] = o[1] = o[2] = 0; S.champ(cc.G, x, 0, z, o, P);
+          const m = Math.hypot(o[0], o[2]); if(!(m > 0) || !isFinite(m)) continue;
+          vals.push([x, z, o[0] / m, o[2] / m, m]);
+        }
+        const lg = 0.32 * 1.8 * cc.G.box / (n - 1);
+        for(const v of vals){
+          const a = pr([v[0] - v[2] * lg, 0, v[1] - v[3] * lg]), b = pr([v[0] + v[2] * lg, 0, v[1] + v[3] * lg]);
+          const inten = clamp(1 + Math.log10(v[4] / bref) / 2, 0, 1);
+          prims.push({ k: 'v', p: a, q: b, z: (a[2] + b[2]) / 2, a: 0.25 + 0.75 * inten });
+        }
+      }
+      prims.sort((u, v) => u.z - v.z);
+      ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+      const lw = compact ? 1.3 : 1.6;
+      for(const q of prims){
+        if(q.k === 'l'){
+          ctx.globalAlpha = q.a; ctx.strokeStyle = chap; ctx.lineWidth = lw;
+          ctx.beginPath(); q.pts.forEach((s, i) => { if(i) ctx.lineTo(s[0], s[1]); else ctx.moveTo(s[0], s[1]); }); ctx.stroke();
+        } else if(q.k === 'f' || q.k === 'v' || q.k === 'fc'){
+          const col = q.k === 'fc' ? C.accent : chap, t = q.k === 'fc' ? 10 : q.k === 'v' ? 6 : 7;
+          ctx.globalAlpha = q.a || 1;
+          const ang = Math.atan2(q.q[1] - q.p[1], q.q[0] - q.p[0]);
+          if(q.k === 'v'){ ctx.strokeStyle = col; ctx.lineWidth = 1.3; ctx.beginPath(); ctx.moveTo(q.p[0], q.p[1]); ctx.lineTo(q.q[0], q.q[1]); ctx.stroke(); }
+          const tip = q.k === 'v' ? q.q : q.p;
+          ctx.fillStyle = col; ctx.beginPath(); ctx.moveTo(tip[0] + Math.cos(ang) * t * 0.6, tip[1] + Math.sin(ang) * t * 0.6);
+          ctx.lineTo(tip[0] - t * Math.cos(ang - 0.45), tip[1] - t * Math.sin(ang - 0.45));
+          ctx.lineTo(tip[0] - t * Math.cos(ang + 0.45), tip[1] - t * Math.sin(ang + 0.45)); ctx.closePath(); ctx.fill();
+        } else if(q.k === 'cond' || q.k === 'fil' || q.k === 'guide'){
+          ctx.globalAlpha = q.k === 'guide' ? 0.45 : 1;
+          ctx.strokeStyle = q.k === 'guide' ? C.muted : C.amber; ctx.lineWidth = q.k === 'fil' ? 4 : q.k === 'guide' ? 1 : 2.4;
+          if(q.k === 'guide') ctx.setLineDash([4, 4]);
+          ctx.beginPath(); q.pts.forEach((s, i) => { if(i) ctx.lineTo(s[0], s[1]); else ctx.moveTo(s[0], s[1]); }); ctx.stroke();
+          ctx.setLineDash([]);
+        } else if(q.k === 'q'){
+          ctx.globalAlpha = q.plein ? 0.95 : 0.5;
+          ctx.fillStyle = q.c === 'N' ? C.accent : C.accent2;
+          ctx.beginPath(); q.pts.forEach((s, i) => { if(i) ctx.lineTo(s[0], s[1]); else ctx.moveTo(s[0], s[1]); }); ctx.closePath(); ctx.fill();
+        } else if(q.k === 't'){
+          ctx.globalAlpha = 1; ctx.font = '700 15px "Source Sans 3"'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+          ctx.fillStyle = q.c === 'N' ? C.accent : C.accent2; __texteDetoure(ctx, q.txt, q.p[0], q.p[1]);
+          ctx.textBaseline = 'alphabetic'; ctx.textAlign = 'left';
+        }
+      }
+      ctx.globalAlpha = 1;
+      // trièdre de repère (en bas à gauche de la vue 3D)
+      {
+        const o = [24, h3 - 26], pv = camera(0, 0, 22, 1), z0 = pv([0, 0, 0]);
+        [['x', [1, 0, 0]], ['y', [0, 1, 0]], ['z', [0, 0, 1]]].forEach(e => {
+          const t = pv(e[1]), dx = t[0] - z0[0], dy = t[1] - z0[1];
+          if(Math.hypot(dx, dy) < 4) return;
+          ctx.strokeStyle = C.muted; ctx.fillStyle = C.muted; ctx.lineWidth = 1.4;
+          ctx.beginPath(); ctx.moveTo(o[0], o[1]); ctx.lineTo(o[0] + dx, o[1] + dy); ctx.stroke();
+          ctx.textAlign = 'center'; __grandeur(ctx, e[0], Math.max(8, o[0] + dx * 1.35), o[1] + dy * 1.35 + 4, 13); ctx.textAlign = 'left';
+        });
+      }
+      // légende
+      ctx.font = '12px "Source Sans 3"'; ctx.textBaseline = 'alphabetic';
+      let lx = W - 10; ctx.textAlign = 'right';
+      ctx.fillStyle = C.muted; ctx.fillText(compact ? 'glisser : tourner' : 'glisser sur la vue pour la faire tourner', lx, 16);
+      ctx.textAlign = 'left';
+      { let x = 10; const y = 16;
+        ctx.strokeStyle = chap; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(x, y - 4); ctx.lineTo(x + 18, y - 4); ctx.stroke();
+        ctx.fillStyle = C.ink; ctx.fillText(mode === 'tournant' ? 'champ B' : 'lignes de B', x + 24, y); x += 24 + ctx.measureText(mode === 'tournant' ? 'champ B' : 'lignes de B').width + 14;
+        if(mode !== 'aimant'){ ctx.strokeStyle = C.amber; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(x, y - 4); ctx.lineTo(x + 18, y - 4); ctx.stroke(); ctx.fillStyle = C.ink; ctx.fillText('courant', x + 24, y); }
+      }
+      // graphe
+      graphe(S, cc.G, 8, h3 + 6, W - 8, H - 6, C, chap, compact);
+      // mesures
+      const inf = S.infos(cc.G, P);
+      for(let i = 0; i < 5; i++){ $('l' + (i + 1)).textContent = inf[i] ? inf[i][0] : ''; $('i' + (i + 1)).textContent = inf[i] ? inf[i][1] : ''; }
+    }
+
+    function graphe(S, G, x0, y0, x1, y1, C, chap, compact){
+      const pf = S.profil(G, P);
+      const xg = x0 + (compact ? 44 : 58), xd = x1 - 10, top = y0 + 22, bot = y1 - 22;
+      if(bot - top < 30) return;
+      let ymax = 0, ymin = 0;
+      const tout = [pf.ys, pf.y2 || [], pf.plat ? [pf.plat.v] : []];
+      tout.forEach((a, ia) => a.forEach((v, i) => { if(isFinite(v) && (!pf.borne || ia > 0 || pf.borne(pf.xs[i]))){ ymax = Math.max(ymax, v); ymin = Math.min(ymin, v); } }));
+      if(pf.seules) pf.xs.forEach(x => pf.seules.forEach(f => { ymax = Math.max(ymax, f(x)); }));
+      if(ymax - ymin < 1e-30) ymax = 1e-30;
+      const ech = Math.max(Math.abs(ymax), Math.abs(ymin));
+      const enmT = ech >= 1e-3, fac = enmT ? 1e3 : 1e6;
+      const xa = pf.xs[0], xb = pf.xs[pf.xs.length - 1];
+      const X = x => xg + (x - xa) / (xb - xa) * (xd - xg);
+      const span = (ymax - ymin) * 1.12, ybas = ymin < 0 ? ymin * 1.12 : 0;
+      const Y = v => bot - (v - ybas) / (ymin < 0 ? span : ymax * 1.12) * (bot - top);
+      ctx.fillStyle = __CVA('muted', 0.06); ctx.fillRect(xg, top, xd - xg, bot - top);
+      ctx.strokeStyle = C.muted; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(xg, Y(0)); ctx.lineTo(xd, Y(0)); ctx.stroke();
+      if(xa < 0 && xb > 0){ ctx.setLineDash([2, 3]); ctx.beginPath(); ctx.moveTo(X(0), top); ctx.lineTo(X(0), bot); ctx.stroke(); ctx.setLineDash([]); }
+      // en-tête : grandeur, unité, où on la lit
+      ctx.fillStyle = C.ink; ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+      const wsym = __grandeur(ctx, pf.sym, x0 + 2, y0 + 14, 15);
+      ctx.font = '12px JetBrains Mono'; ctx.fillStyle = C.muted;
+      const tu = ' (' + (enmT ? 'mT' : 'μT') + ') ';
+      ctx.fillText(tu, x0 + 2 + wsym, y0 + 14);
+      const wu = ctx.measureText(tu).width;
+      ctx.font = (compact ? '12px' : '13px') + ' "Source Sans 3"';
+      ctx.fillText(pf.titre, x0 + 2 + wsym + wu, y0 + 14);
+      // graduations
+      ctx.font = '12px JetBrains Mono'; ctx.fillStyle = C.muted; ctx.textAlign = 'center';
+      const ux = pf.unite === '°' ? 1 : 100, uu = pf.unite === '°' ? '°' : 'cm';
+      const pasx = pf.unite === '°' ? 90 : (function(){ const L = (xb - xa) * 100; return L > 30 ? 10 : L > 12 ? 5 : L > 6 ? 2 : 1; })();
+      for(let v = Math.ceil(xa * ux / pasx) * pasx; v <= xb * ux + 1e-9; v += pasx){
+        const px = X(v / ux); if(pf.var !== 'ωt' && px > xd - 34) continue; ctx.fillText(nb(v, 0), px, bot + 14);
+      }
+      ctx.textAlign = 'right'; ctx.fillText(pf.var === 'ωt' ? '' : uu, xd, bot + 14);
+      ctx.textAlign = 'left';
+      ctx.fillStyle = C.ink; ctx.textAlign = 'right'; __grandeur(ctx, pf.var, xd - 4, bot - 6, 13); ctx.textAlign = 'left';
+      ctx.textAlign = 'right'; ctx.fillStyle = C.muted;
+      ctx.fillText(nb(ymax * fac, Math.abs(ymax * fac) >= 10 ? 0 : 2), xg - 4, Y(ymax) + 4);
+      if(ymin < 0) ctx.fillText(nb(ymin * fac, Math.abs(ymin * fac) >= 10 ? 0 : 2), xg - 4, Y(ymin) + 4);
+      ctx.fillText('0', xg - 4, Y(0) + 4);
+      ctx.save(); ctx.beginPath(); ctx.rect(xg, top - 2, xd - xg, bot - top + 4); ctx.clip();
+      ctx.textAlign = 'left';
+      const trace = (ys, style) => {
+        ctx.beginPath(); let en = false;
+        pf.xs.forEach((x, i) => { const v = ys[i]; if(!isFinite(v)){ en = false; return; } if(en) ctx.lineTo(X(x), Y(v)); else { ctx.moveTo(X(x), Y(v)); en = true; } });
+        ctx.stroke();
+      };
+      if(pf.seules){ ctx.strokeStyle = C.muted; ctx.lineWidth = 1.3; ctx.setLineDash([4, 4]); pf.seules.forEach(f => trace(pf.xs.map(f))); ctx.setLineDash([]); }
+      if(pf.plat){
+        ctx.strokeStyle = C.amber; ctx.lineWidth = 1.6; ctx.setLineDash([6, 4]);
+        ctx.beginPath(); ctx.moveTo(X(pf.plat.x0), Y(pf.plat.v)); ctx.lineTo(X(pf.plat.x1), Y(pf.plat.v)); ctx.stroke(); ctx.setLineDash([]);
+        ctx.fillStyle = C.amber; ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+        const lx = Math.min(X(pf.plat.x1) + 6, xd - 70);
+        __grandeur(ctx, pf.plat.nom, lx, Y(pf.plat.v) + 17, 13);
+      }
+      if(pf.y2){ ctx.strokeStyle = chap; ctx.lineWidth = 2; ctx.setLineDash([5, 4]); trace(pf.y2); ctx.setLineDash([]); }
+      ctx.strokeStyle = chap; ctx.lineWidth = 2.2; trace(pf.ys);
+      if(pf.curseur !== undefined){
+        ctx.strokeStyle = C.accent; ctx.lineWidth = 1.5; ctx.setLineDash([3, 3]);
+        ctx.beginPath(); ctx.moveTo(X(pf.curseur), top); ctx.lineTo(X(pf.curseur), bot); ctx.stroke(); ctx.setLineDash([]);
+      }
+      ctx.restore();
+    }
+
+    /* --- animation : rotation de la vue, ou progression du temps (champ tournant) --- */
+    let t0 = 0;
+    function boucleAnim(ts){
+      if(canvas.offsetParent === null || !$('anim').checked){ animId = null; return; }
+      const dt = t0 ? Math.min(0.1, (ts - t0) / 1000) : 0; t0 = ts;
+      if(SIT[mode].anim === 'temps'){ const g = $('g'); g.value = String((+g.value + 60 * dt) % 360); texteCtrl(); }
+      else { const az = $('az'); let v = +az.value + 18 * dt; if(v > 180) v -= 360; az.value = String(v); texteCtrl(); }
+      dessiner(); animId = requestAnimationFrame(boucleAnim);
+    }
+    function demarrer(){ if(animId === null && $('anim').checked){ t0 = 0; animId = requestAnimationFrame(boucleAnim); } }
+
+    /* --- événements --- */
+    wrap.querySelectorAll('[data-b3-mode]').forEach(b => b.addEventListener('click', () => choisir(b.dataset.b3Mode)));
+    ['I', 'g', 'N'].forEach(id => $(id).addEventListener('input', () => {
+      lire(); texteCtrl();
+      const lourd = id !== 'I' && !SIT[mode].lignesDirectes && mode !== 'tournant';
+      dessiner(lourd);
+      if(lourd){ clearTimeout(minuteur); minuteur = setTimeout(() => dessiner(false), 280); }
+    }));
+    ['az', 'el'].forEach(id => $(id).addEventListener('input', () => { texteCtrl(); dessiner(); }));
+    ['opp', 'plan'].forEach(id => $(id).addEventListener('change', () => { lire(); texteCtrl(); dessiner(); }));
+    $('anim').addEventListener('change', () => { texteCtrl(); demarrer(); });
+    let tire = null;
+    canvas.addEventListener('pointerdown', ev => {
+      const r = canvas.getBoundingClientRect();
+      if(ev.clientY - r.top > r.height * 0.66) return;
+      tire = { x: ev.clientX, y: ev.clientY, az: +$('az').value, el: +$('el').value };
+      try { canvas.setPointerCapture(ev.pointerId); } catch(e){}
+    });
+    canvas.addEventListener('pointermove', ev => {
+      if(!tire) return;
+      let az = tire.az + (ev.clientX - tire.x) * 0.5, el = clamp(tire.el + (ev.clientY - tire.y) * 0.4, -80, 80);
+      if(az > 180) az -= 360; if(az < -180) az += 360;
+      $('az').value = String(Math.round(az)); $('el').value = String(Math.round(el)); texteCtrl(); dessiner();
+    });
+    ['pointerup', 'pointercancel'].forEach(t => canvas.addEventListener(t, () => {
+      if(tire){ tire = null; ['az', 'el'].forEach(id => $(id).dispatchEvent(new Event('change', { bubbles: true }))); }
+    }));
+
+    choisir(mode);
+    return function(){ dessiner(); demarrer(); };
+  }
+
+  window.drawEmagB = creer('emag', ['aimant', 'fil', 'deuxfils', 'spire', 'bobine', 'tournant']);
+  window.drawMgsB = creer('mgs', ['filepais', 'coax', 'spire', 'helmholtz', 'solenoide', 'tore']);
 })();
 
 /* ============================================== */
