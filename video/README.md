@@ -183,9 +183,9 @@ Vérifier d'abord qu'un chapitre du site correspond au cours (sinon le créer : 
 ## Vidéos livrées
 
 Toutes en **non répertorié**, sous-titres français compris, envoyées par `youtube.py` le 2026-11-11
-(thermochimie, matrices 1), le 2026-11-12 (matrices 2 à 4, automatique 1 à 7) et le 2026-11-13 (automatique 8) ; identifiants dans
+(thermochimie, matrices 1), le 2026-11-12 (matrices 2 à 4, automatique 1 à 7), le 2026-11-13 (automatique 8) et le 2026-11-16 (résistance des matériaux 1 à 3) ; identifiants dans
 `<cours>/chN/youtube.json`. Sur le site : onglet « Vidéos » des chapitres `thermochimie`, `matrices`,
-`matrices2a`, des sept chapitres d'automatique de 1ʳᵉ année et de `correcteurs` (table `window.__VIDEOS`). YouTube
+`matrices2a`, des sept chapitres d'automatique de 1ʳᵉ année, de `correcteurs` et de `rdm` (table `window.__VIDEOS`). YouTube
 n'accepte qu'une dizaine d'envois par jour et par chaîne (`uploadLimitExceeded`) : en prévoir plusieurs
 jours pour un gros lot.
 
@@ -211,6 +211,9 @@ jours pour un gros lot.
 | Automatique (PTSI) | 6 — Stabilité des systèmes asservis | 8 min 14 | <https://youtu.be/GptliWlL0m8> |
 | Automatique (PTSI) | 7 — Performances : précision et rapidité | 7 min 53 | <https://youtu.be/gQ35DTd6J4A> |
 | Automatique (PT) | 8 — Correction des SLCI : régler les correcteurs | 8 min 38 | <https://youtu.be/0EIiA9qVPc0> |
+| Résistance des matériaux (PT) | 1 — Torseur de cohésion et diagrammes des efforts | 12 min 55 | <https://youtu.be/p6ssn39My68> |
+| Résistance des matériaux (PT) | 2 — Contraintes et dimensionnement en résistance | 12 min 59 | <https://youtu.be/UwXv5acAwKo> |
+| Résistance des matériaux (PT) | 3 — Déformations, flèches et dimensionnement en rigidité | 12 min 54 | <https://youtu.be/kwBt7ybUMjo> |
 
 Cours de thermochimie complet : chapitres 1 à 8 du PDF (le chapitre 9 du PDF est le recueil
 d'exercices, le 10 le formulaire : pas de vidéo). Les chapitres 1 à 3 gardent l'ancien réglage de
@@ -243,6 +246,15 @@ Manim à abscisses négatives (log ω) met l'axe vertical en plein milieu du tra
 et « Tau : » en tête de phrase, et commencer un bilan par « Ce qu'il faut retenir. » (« À retenir. »
 était transcrit avec un préfixe parasite) ; « ksi » est signalé par la transcription de contrôle :
 normal, c'est ξ.
+
+**Résistance des matériaux** (`rdm/`, demande de Thomas du 2026-11-16, en même temps que le simulateur du
+chapitre `rdm`) : **premier cours au nouveau format** (cours condensé, puis trois exercices résolus par vidéo).
+Trois vidéos, toutes dans le chapitre `rdm` du site : 1 torseur de cohésion et diagrammes des efforts, 2 contraintes
+et dimensionnement en résistance, 3 déformations, flèches et dimensionnement en rigidité (la 3ᵉ conclut le cours,
+sans « prochaine vidéo »). Intégration : `python3 video/rdm/integrer_videos.py` (aperçus `media/videos/rdm-N.webp`).
+Au tableau : poutre en trait épais, pivot = triangle, appui glissant = triangle sur deux cercles, encastrement =
+rectangle hachuré ; diagrammes T_y et M_fz dans un cadre sous la poutre, même échelle en x. À l'oral : la synthèse
+lisait « T y » comme « T i » : écrire « T i grec » dans la forme prononcée ; « M f z » épelé passe.
 
 Remarque de Thomas sur le chapitre 3 : l'explication des νᵢ (coefficients stœchiométriques
 **algébriques** : négatifs pour les réactifs, positifs pour les produits) n'était pas assez claire.
