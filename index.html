@@ -2181,6 +2181,7 @@ figure.schema.defile, .cine-svg-wrap.defile{ overflow-x:auto; overflow-y:hidden;
   border:0; outline:1px solid var(--line); outline-offset:-1px; border-radius:var(--r-l); background:var(--sheet);
 }
 #tr-canvas{ --h:560px; }
+#rdm-canvas{ --h:680px; }   /* poutre, T_y, M_fz, section (ou arbre, section, comparaison) */
 #stat-canvas, #cc-canvas, #es-canvas, #cpx-canvas, #cine-canvas{ --h:480px; }
 #suit-canvas{ --h:470px; }
 #mth-canvas{ --h:460px; }
@@ -88874,8 +88875,9 @@ print(confusion_matrix(y_test, y_pred))   <span class="cmt"># [[VN, FP], [FN, VP
 <nav class="tabs">
   <button class="tab active" data-panel="rdm-cours"><span class="num">01</span>Cours</button>
   <button class="tab" data-panel="rdm-meth"><span class="num">02</span>Méthodes</button>
-  <button class="tab" data-panel="rdm-flash"><span class="num">03</span>Flashcards</button>
-  <button class="tab" data-panel="rdm-exos"><span class="num">04</span>Exercices</button>
+  <button class="tab" data-panel="rdm-simu"><span class="num">03</span>Simulateur</button>
+  <button class="tab" data-panel="rdm-flash"><span class="num">04</span>Flashcards</button>
+  <button class="tab" data-panel="rdm-exos"><span class="num">05</span>Exercices</button>
 </nav>
 <section class="panel active" id="rdm-cours">
 
@@ -89559,6 +89561,84 @@ print(confusion_matrix(y_test, y_pred))   <span class="cmt"># [[VN, FP], [FN, VP
   </div>
 </div>
 </section>
+<section class="panel" id="rdm-simu">
+<div class="sim-wrapper">
+  <h2>Simulateur — Poutres en flexion et arbre en torsion</h2>
+  <p class="lead">Choisis la poutre et son chargement, puis déplace la coupure (curseur, ou clic sur la poutre) : réactions, diagrammes de l'effort tranchant \(T_y\) et du moment fléchissant \(M_{fz}\), déformée (amplifiée) et répartition des contraintes normales dans la section coupée. Le dernier mode montre la torsion d'un arbre plein ou creux.</p>
+
+  <div class="mode-switch">
+    <button class="active" data-rdm-mode="2appF" title="Poutre sur deux appuis, force F en x = a">2 appuis · F</button>
+    <button data-rdm-mode="2appq" title="Poutre sur deux appuis, charge répartie q">2 appuis · q</button>
+    <button data-rdm-mode="consF" title="Console encastrée en A, force F en bout">Console · F</button>
+    <button data-rdm-mode="consq" title="Console encastrée en A, charge répartie q">Console · q</button>
+    <button data-rdm-mode="tors" title="Arbre plein ou creux en torsion">Torsion</button>
+  </div>
+
+  <div id="rdm-badge" class="regime-badge">—</div>
+
+  <div class="sim-controls">
+    <div class="control">
+      <label for="rdm-L">Longueur L</label>
+      <input type="range" id="rdm-L" min="0.5" max="6" step="0.1" value="4">
+      <span class="value" id="rdm-L-val">4,0 m</span>
+    </div>
+    <div class="control" id="rdm-P-ctrl">
+      <label for="rdm-P" id="rdm-P-lbl">Force F</label>
+      <input type="range" id="rdm-P" min="1" max="40" step="0.5" value="10">
+      <span class="value" id="rdm-P-val">10,0 kN</span>
+    </div>
+    <div class="control" id="rdm-a-ctrl">
+      <label for="rdm-a">Position de la force a</label>
+      <input type="range" id="rdm-a" min="0.05" max="0.95" step="0.01" value="0.3">
+      <span class="value" id="rdm-a-val">1,20 m</span>
+    </div>
+    <div class="control" id="rdm-x-ctrl">
+      <label for="rdm-x">Abscisse de la coupure x</label>
+      <input type="range" id="rdm-x" min="0" max="1" step="0.005" value="0.5">
+      <span class="value" id="rdm-x-val">2,00 m</span>
+    </div>
+    <div class="control" id="rdm-h-ctrl">
+      <label for="rdm-h">Hauteur de la section h</label>
+      <input type="range" id="rdm-h" min="20" max="300" step="5" value="160">
+      <span class="value" id="rdm-h-val">160 mm</span>
+    </div>
+    <div class="control" id="rdm-b-ctrl">
+      <label for="rdm-b">Largeur de la section b</label>
+      <input type="range" id="rdm-b" min="10" max="200" step="5" value="60">
+      <span class="value" id="rdm-b-val">60 mm</span>
+    </div>
+    <div class="control" id="rdm-Mt-ctrl" style="display:none">
+      <label for="rdm-Mt">Moment de torsion M<sub>t</sub></label>
+      <input type="range" id="rdm-Mt" min="10" max="3000" step="10" value="500">
+      <span class="value" id="rdm-Mt-val">500 N·m</span>
+    </div>
+    <div class="control" id="rdm-D-ctrl" style="display:none">
+      <label for="rdm-D">Diamètre extérieur D</label>
+      <input type="range" id="rdm-D" min="10" max="100" step="1" value="40">
+      <span class="value" id="rdm-D-val">40 mm</span>
+    </div>
+    <div class="control" id="rdm-k-ctrl" style="display:none">
+      <label for="rdm-k">Rapport d/D (0 : arbre plein)</label>
+      <input type="range" id="rdm-k" min="0" max="0.9" step="0.05" value="0">
+      <span class="value" id="rdm-k-val">0,00</span>
+    </div>
+  </div>
+
+  <canvas id="rdm-canvas"></canvas>
+
+  <div class="sim-info">
+    <div><span class="lbl" id="rdm-l1">Réactions</span><span id="rdm-i1">—</span></div>
+    <div><span class="lbl" id="rdm-l2">Dans la coupure</span><span id="rdm-i2">—</span></div>
+    <div><span class="lbl" id="rdm-l3">Moment fléchissant maximal</span><span id="rdm-i3">—</span></div>
+    <div><span class="lbl" id="rdm-l4">Contrainte normale maximale</span><span id="rdm-i4">—</span></div>
+    <div><span class="lbl" id="rdm-l5">Flèche maximale</span><span id="rdm-i5">—</span></div>
+    <div><span class="lbl" id="rdm-l6">Section</span><span id="rdm-i6">—</span></div>
+  </div>
+
+  <p class="notice">Acier : \(E = 210\ \text{GPa}\), \(G = 81\ \text{GPa}\), \(R_e = 235\ \text{MPa}\), coefficient de sécurité \(s = 1{,}5\), d'où \(R_{pe} \approx 157\ \text{MPa}\) et \(R_{pg} \approx R_{pe}/\sqrt{3} \approx 90\ \text{MPa}\) ; flèche admissible prise égale à \(L/300\), angle unitaire de torsion admissible 0,25 °/m. Conventions du cours : torseur de cohésion = actions du tronçon aval (à droite de la coupure) sur le tronçon amont, \(\vec y\) vers le haut, charges vers le bas, \(E\,I_{Gz}\,v'' = M_{fz}\). Poids propre négligé ; la déformée est amplifiée pour être visible.</p>
+</div>
+</section>
+
 <section class="panel" id="rdm-flash">
 <div class="flash-wrapper">
   <div class="flash-progress" id="rdm-flash-prog">Carte 1 / —</div>
@@ -95029,7 +95109,7 @@ const CHAPTERS = [
   { id:'sysnum', prefix:'snumx', name:'Systèmes numériques — acquisition, filtrage et commande', matiere:'si', sub:'auto', subLabel:'Automatique', domain:'auto', matiereLabel:'Automatique', panels:['cours','meth','flash','exos'], drawFn:null, mobLabel:'Systèmes numériques' },
   { id:'resnum', prefix:'rnum', name:'Résolution numérique en sciences de l\'ingénieur', matiere:'si', sub:'auto', subLabel:'Automatique', domain:'auto', matiereLabel:'Ingénierie numérique', panels:['cours','meth','flash','exos'], drawFn:null, mobLabel:'Résolution numérique' },
   { id:'ia', prefix:'ia', name:'Intelligence artificielle — apprentissage automatique', matiere:'si', sub:'ia', subLabel:'Intelligence artificielle', domain:'info', matiereLabel:'Intelligence artificielle', panels:['cours','meth','flash','exos'], drawFn:null, mobLabel:'Intelligence artificielle' },
-  { id:'rdm', prefix:'rdm', name:'Résistance des matériaux', matiere:'si', sub:'meca', subLabel:'Mécanique', domain:'meca', matiereLabel:'Résistance des matériaux', panels:['cours','meth','flash','exos'], drawFn:null, mobLabel:'RdM — poutres' },
+  { id:'rdm', prefix:'rdm', name:'Résistance des matériaux', matiere:'si', sub:'meca', subLabel:'Mécanique', domain:'meca', matiereLabel:'Résistance des matériaux', panels:['cours','meth','simu','flash','exos'], drawFn:'drawRdm', mobLabel:'RdM — poutres' },
   { id:'triphase', prefix:'tph', name:'Régimes alternatifs, redresseurs et onduleurs', matiere:'si', sub:'elec', subLabel:'Électrotechnique', domain:'elec', matiereLabel:'Électrotechnique', panels:['cours','meth','flash','exos'], drawFn:null, mobLabel:'Triphasé & onduleurs' },
   { id:'machalt', prefix:'mca', name:'Machines synchrone et asynchrone', matiere:'si', sub:'elec', subLabel:'Électrotechnique', domain:'elec', matiereLabel:'Électrotechnique', panels:['cours','meth','flash','exos'], drawFn:null, mobLabel:'Machines alternatives' },
   { id:'conception', prefix:'cpl', name:'Conception des liaisons — assemblages et guidages', matiere:'si', sub:'meca', subLabel:'Mécanique', domain:'meca', matiereLabel:'Conception', panels:['cours','meth','flash','exos'], drawFn:null, mobLabel:'Assemblages & guidages' },
@@ -95954,7 +96034,7 @@ function drawForced(W,H,padL,padR,padT,padB,y0,p){
   ctx.fillText('log(f)',W-padR-50,H-padB+22);
 }
 
-window.addEventListener('resize',()=>{drawSim();drawOpt();drawOsc();if(typeof drawSer==='function')drawSer();if(typeof drawLin==='function')drawLin();if(typeof drawOxred==='function')drawOxred();if(typeof drawConiques==='function')drawConiques();if(typeof drawCourbesParam==='function')drawCourbesParam();if(typeof drawTrain==='function')drawTrain();if(typeof drawStat==='function')drawStat();if(typeof drawSys2==='function')drawSys2();if(typeof drawPend==='function')drawPend();if(typeof drawSys1==='function')drawSys1();if(typeof drawWave==='function')drawWave();if(typeof drawOrbit==='function')drawOrbit();if(typeof drawYoung==='function')drawYoung();if(typeof drawEstat==='function')drawEstat();if(typeof drawCycle==='function')drawCycle();if(typeof drawCplx==='function')drawCplx();if(typeof drawSuite==='function')drawSuite()});
+window.addEventListener('resize',()=>{drawSim();drawOpt();drawOsc();if(typeof drawSer==='function')drawSer();if(typeof drawLin==='function')drawLin();if(typeof drawOxred==='function')drawOxred();if(typeof drawConiques==='function')drawConiques();if(typeof drawCourbesParam==='function')drawCourbesParam();if(typeof drawTrain==='function')drawTrain();if(typeof drawStat==='function')drawStat();if(typeof drawSys2==='function')drawSys2();if(typeof drawPend==='function')drawPend();if(typeof drawSys1==='function')drawSys1();if(typeof drawWave==='function')drawWave();if(typeof drawOrbit==='function')drawOrbit();if(typeof drawYoung==='function')drawYoung();if(typeof drawEstat==='function')drawEstat();if(typeof drawCycle==='function')drawCycle();if(typeof drawCplx==='function')drawCplx();if(typeof drawSuite==='function')drawSuite();if(typeof drawRdm==='function')drawRdm()});
 
 /* ============================================== */
 /* =========== OPTIQUE SIMULATEUR =============== */
@@ -107334,6 +107414,553 @@ const ppmFlash = makeFlash(ppmCards,'ppm','ppm-flash-content','ppm-flash-prog','
   }
 
   window.drawInt = drawInt;
+})();
+
+/* ============================================== */
+/* ===== RÉSISTANCE DES MATÉRIAUX SIMULATEUR ===== */
+/* ============================================== */
+/* Cinq modes : poutre sur deux appuis (force F en x = a, ou charge répartie q), console encastrée
+   en A (force F en bout, ou charge répartie q), arbre en torsion (plein ou creux). Conventions du
+   cours : torseur de cohésion = actions du tronçon aval II sur le tronçon amont I, y vers le haut,
+   charges vers le bas ; dT_y/dx + q_y = 0, dM_fz/dx + T_y = 0 ; σ = −M_fz·y/I_Gz ; E·I_Gz·v'' = M_fz ;
+   torsion : θ' = M_t/(G·I_0), τ(r) = M_t·r/I_0. Unités internes : N, mm, MPa. */
+(function(){
+  const canvas = document.getElementById('rdm-canvas');
+  if(!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const $ = id => document.getElementById(id);
+  const E = 210000, G = 81000, RE = 235, SECU = 1.5;        // MPa
+  const RPE = RE / SECU, RPG = RPE / Math.sqrt(3);          // ≈ 157 et ≈ 91 MPa
+  const TH_ADM = 0.25;                                       // °/m
+  const N = 400;
+  let mode = '2appF';
+  const nb = (x, d) => window.__nb ? window.__nb(x, d) : x.toFixed(d);
+  const f3 = x => { const a = Math.abs(x); return nb(x, a >= 100 ? 0 : a >= 10 ? 1 : 2); };
+  const flexion = () => mode !== 'tors';
+  const avecForce = () => mode === '2appF' || mode === 'consF';
+
+  /* ---------- curseurs et modes ---------- */
+  function majValeurs(){
+    const L = +$('rdm-L').value;
+    $('rdm-L-val').textContent = nb(L, 1) + ' m';
+    $('rdm-P-lbl').textContent = avecForce() ? 'Force F' : 'Charge linéique q';
+    $('rdm-P-val').textContent = nb(+$('rdm-P').value, 1) + (avecForce() ? ' kN' : ' kN/m');
+    $('rdm-a-val').textContent = nb(+$('rdm-a').value * L, 2) + ' m';
+    $('rdm-x-val').textContent = nb(+$('rdm-x').value * L, 2) + ' m';
+    $('rdm-h-val').textContent = nb(+$('rdm-h').value, 0) + ' mm';
+    $('rdm-b-val').textContent = nb(+$('rdm-b').value, 0) + ' mm';
+    $('rdm-Mt-val').textContent = nb(+$('rdm-Mt').value, 0) + ' N·m';
+    $('rdm-D-val').textContent = nb(+$('rdm-D').value, 0) + ' mm';
+    $('rdm-k-val').textContent = nb(+$('rdm-k').value, 2);
+  }
+  function majControles(){
+    const fl = flexion();
+    ['rdm-P-ctrl', 'rdm-x-ctrl', 'rdm-h-ctrl', 'rdm-b-ctrl'].forEach(id => { $(id).style.display = fl ? '' : 'none'; });
+    $('rdm-a-ctrl').style.display = mode === '2appF' ? '' : 'none';
+    ['rdm-Mt-ctrl', 'rdm-D-ctrl', 'rdm-k-ctrl'].forEach(id => { $(id).style.display = fl ? 'none' : ''; });
+    canvas.style.cursor = fl ? 'pointer' : '';
+  }
+  document.querySelectorAll('[data-rdm-mode]').forEach(b => {
+    b.addEventListener('click', () => {
+      document.querySelectorAll('[data-rdm-mode]').forEach(x => x.classList.remove('active'));
+      b.classList.add('active');
+      mode = b.dataset.rdmMode;
+      majControles(); majValeurs(); drawRdm();
+    });
+  });
+  ['rdm-L', 'rdm-P', 'rdm-a', 'rdm-x', 'rdm-h', 'rdm-b', 'rdm-Mt', 'rdm-D', 'rdm-k'].forEach(id => {
+    const el = $(id);
+    if(el) el.addEventListener('input', () => { majValeurs(); drawRdm(); });
+  });
+
+  /* ---------- calculs : flexion ---------- */
+  function params(){
+    const L = +$('rdm-L').value;
+    return { L, P: +$('rdm-P').value, a: +$('rdm-a').value * L, x: +$('rdm-x').value * L,
+      h: +$('rdm-h').value, b: +$('rdm-b').value,
+      Mt: +$('rdm-Mt').value, D: +$('rdm-D').value, k: +$('rdm-k').value };
+  }
+  // Efforts en kN et kN·m (x en m). Tpts / Mpts : points des diagrammes (sauts compris).
+  function solFlexion(p){
+    const L = p.L, P = p.P, a = p.a;
+    let R, T, M, Tpts, Mpts, Mmax, xMmax;
+    if(mode === '2appF'){
+      const YA = P * (L - a) / L, YB = P * a / L;
+      R = { YA, YB };
+      T = x => x < a ? -YA : YB;
+      M = x => x < a ? YA * x : YB * (L - x);
+      Tpts = [[0, 0], [0, -YA], [a, -YA], [a, YB], [L, YB], [L, 0]];
+      Mpts = [[0, 0], [a, YA * a], [L, 0]];
+      Mmax = YA * a; xMmax = a;
+    } else if(mode === '2appq'){
+      const YA = P * L / 2;
+      R = { YA, YB: YA };
+      T = x => P * (x - L / 2);
+      M = x => P * x * (L - x) / 2;
+      Tpts = [[0, 0], [0, -YA], [L, YA], [L, 0]];
+      Mmax = P * L * L / 8; xMmax = L / 2;
+    } else if(mode === 'consF'){
+      R = { YA: P, MA: P * L };
+      T = () => -P;
+      M = x => -P * (L - x);
+      Tpts = [[0, 0], [0, -P], [L, -P], [L, 0]];
+      Mpts = [[0, 0], [0, -P * L], [L, 0]];
+      Mmax = P * L; xMmax = 0;
+    } else {
+      R = { YA: P * L, MA: P * L * L / 2 };
+      T = x => -P * (L - x);
+      M = x => -P * (L - x) * (L - x) / 2;
+      Tpts = [[0, 0], [0, -P * L], [L, 0]];
+      Mmax = P * L * L / 2; xMmax = 0;
+    }
+    if(!Mpts){
+      Mpts = [[0, 0]];
+      for(let i = 0; i <= N; i++){ const x = L * i / N; Mpts.push([x, M(x)]); }
+      Mpts.push([L, 0]);
+    }
+    // Déformée : double intégration (trapèzes) de v'' = M_fz/(E·I_Gz), x et v en mm
+    const I = p.b * Math.pow(p.h, 3) / 12;                   // mm⁴
+    const dx = L * 1000 / N, vs = [0];
+    let th = 0, v = 0, kPrec = M(0) * 1e6 / (E * I);
+    for(let i = 1; i <= N; i++){
+      const k = M(L * i / N) * 1e6 / (E * I), thN = th + (kPrec + k) / 2 * dx;
+      v += (th + thN) / 2 * dx; th = thN; kPrec = k; vs.push(v);
+    }
+    if(mode === '2appF' || mode === '2appq'){ const vL = vs[N]; for(let i = 0; i <= N; i++) vs[i] -= vL * i / N; }
+    let f = 0, iF = 0;
+    vs.forEach((w, i) => { if(Math.abs(w) > f){ f = Math.abs(w); iF = i; } });
+    const sigMax = Mmax * 1e6 * (p.h / 2) / I;               // MPa
+    return { R, T, M, Tpts, Mpts, Mmax, xMmax, I, vs, f, xf: L * iF / N, sigMax };
+  }
+
+  /* ---------- outils de dessin ---------- */
+  function fleche(x1, y1, x2, y2, col, lw, tete){
+    const a = Math.atan2(y2 - y1, x2 - x1), t = tete || 9;
+    ctx.strokeStyle = col; ctx.fillStyle = col; ctx.lineWidth = lw || 2;
+    ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2 - (t - 2) * Math.cos(a), y2 - (t - 2) * Math.sin(a)); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x2, y2);
+    ctx.lineTo(x2 - t * Math.cos(a - 0.42), y2 - t * Math.sin(a - 0.42));
+    ctx.lineTo(x2 - t * Math.cos(a + 0.42), y2 - t * Math.sin(a + 0.42));
+    ctx.closePath(); ctx.fill();
+  }
+  function hachures(x0, y0, w, h, col){
+    ctx.save(); ctx.beginPath(); ctx.rect(x0, y0, w, h); ctx.clip();
+    ctx.strokeStyle = col; ctx.lineWidth = 1;
+    for(let s = -h; s < w + h; s += 6){ ctx.beginPath(); ctx.moveTo(x0 + s, y0 + h); ctx.lineTo(x0 + s + h, y0); ctx.stroke(); }
+    ctx.restore();
+  }
+  function sol(xc, y, demi, C){           // sol hachuré sous un appui
+    ctx.strokeStyle = C.ink; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(xc - demi, y); ctx.lineTo(xc + demi, y); ctx.stroke();
+    hachures(xc - demi, y, 2 * demi, 6, C.muted);
+  }
+  function arcFleche(cx, cy, r, a0, a1, col, anti){   // arc de a0 à a1 (sens horaire de l'écran si !anti)
+    ctx.strokeStyle = col; ctx.fillStyle = col; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(cx, cy, r, a0, a1, !!anti); ctx.stroke();
+    const tx = anti ? Math.sin(a1) : -Math.sin(a1), ty = anti ? -Math.cos(a1) : Math.cos(a1);
+    const px = cx + r * Math.cos(a1), py = cy + r * Math.sin(a1), t = 9, nx = -ty, ny = tx;
+    ctx.beginPath(); ctx.moveTo(px + tx * 3, py + ty * 3);
+    ctx.lineTo(px - tx * t + nx * 4, py - ty * t + ny * 4);
+    ctx.lineTo(px - tx * t - nx * 4, py - ty * t - ny * 4);
+    ctx.closePath(); ctx.fill();
+  }
+  let Wc = 600;                            // largeur de la toile (bornage des textes)
+  function texte(t, x, y, col, opts){
+    opts = opts || {};
+    ctx.font = opts.font || '12px JetBrains Mono';
+    ctx.textBaseline = 'alphabetic';
+    const al = opts.align || 'left', w = ctx.measureText(t).width;
+    let g = al === 'left' ? x : al === 'right' ? x - w : x - w / 2;
+    g = Math.max(3, Math.min(Wc - 3 - w, g));
+    ctx.textAlign = 'left'; ctx.fillStyle = col;
+    if(opts.plain) ctx.fillText(t, g, y); else __texteDetoure(ctx, t, g, y);
+  }
+  // symbole en serif italique (« Y_A ») suivi d'un texte (« = 7,00 kN »), aligné et borné à la toile
+  function etiquette(sym, reste, x, y, col, al, taille){
+    ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+    const ws = __grandeur(ctx, sym, -9999, -9999, taille || 14);
+    ctx.font = '12px JetBrains Mono';
+    const w = ws + ctx.measureText(reste).width;
+    let g = al === 'right' ? x - w : al === 'center' ? x - w / 2 : x;
+    g = Math.max(3, Math.min(Wc - 3 - w, g));
+    ctx.fillStyle = __CV().paper; ctx.fillRect(g - 2, y - (taille || 14) + 1, w + 4, (taille || 14) + 4);
+    ctx.fillStyle = col; __grandeur(ctx, sym, g, y, taille || 14);
+    texte(reste, g + ws, y, col, { plain: true });
+  }
+  function alignSur(x, gauche, droite, marge){
+    return x < gauche + marge ? 'left' : x > droite - marge ? 'right' : 'center';
+  }
+  function joli(v){
+    const e = Math.pow(10, Math.floor(Math.log10(v))), m = v / e;
+    return (m < 1.5 ? 1 : m < 3.5 ? 2 : m < 7.5 ? 5 : 10) * e;
+  }
+
+  /* Diagramme d'un effort (pts en m et kN ou kN·m) dans la bande [y0, y1] */
+  function diagramme(pts, X, xg, xd, y0, y1, nom, unite, xc, vc, C, chap){
+    const top = y0 + 8, bot = y1 - 6;
+    let vmax = 0; pts.forEach(q => { vmax = Math.max(vmax, Math.abs(q[1])); });
+    if(vmax < 1e-12) vmax = 1;
+    const pos = pts.some(q => q[1] > 1e-9), neg = pts.some(q => q[1] < -1e-9);
+    const yz = pos && neg ? (top + bot) / 2 : pos ? bot - 4 : top + 4;
+    const amp = pos && neg ? (bot - top) / 2 - 14 : (bot - top) - 24;
+    const Y = v => yz - v / vmax * amp;
+    // fond et axe
+    ctx.fillStyle = __CVA('muted', 0.06); ctx.fillRect(xg, top, xd - xg, bot - top);
+    ctx.strokeStyle = C.muted; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(xg, yz); ctx.lineTo(xd, yz); ctx.stroke();
+    // surface et courbe
+    ctx.beginPath(); ctx.moveTo(X(pts[0][0]), yz);
+    pts.forEach(q => ctx.lineTo(X(q[0]), Y(q[1])));
+    ctx.lineTo(X(pts[pts.length - 1][0]), yz); ctx.closePath();
+    ctx.globalAlpha = 0.16; ctx.fillStyle = chap; ctx.fill(); ctx.globalAlpha = 1;
+    ctx.strokeStyle = chap; ctx.lineWidth = 2.2;
+    ctx.beginPath(); pts.forEach((q, i) => { if(i) ctx.lineTo(X(q[0]), Y(q[1])); else ctx.moveTo(X(q[0]), Y(q[1])); }); ctx.stroke();
+    // nom de l'effort (marge gauche)
+    ctx.fillStyle = C.ink; ctx.textBaseline = 'alphabetic'; ctx.textAlign = 'left';
+    __grandeur(ctx, nom, 4, top + 16, 15);
+    texte(unite, 4, top + 32, C.muted, { plain: true });
+    // valeurs extrêmes (au milieu d'un palier), sauf si la valeur à la coupure, voisine, est la même
+    const px = X(xc), py = Y(vc);
+    [1, -1].forEach(sg => {
+      let ext = 0; pts.forEach(q => { if(sg * q[1] > ext) ext = sg * q[1]; });
+      if(ext < 1e-9) return;
+      const xs = pts.filter(q => Math.abs(sg * q[1] - ext) < 1e-9 * Math.max(1, ext)).map(q => q[0]);
+      const xm = (Math.min.apply(null, xs) + Math.max.apply(null, xs)) / 2, pe = X(xm), ye = Y(sg * ext);
+      const proche = Math.abs(pe - px) < 80 && Math.abs(ye - py) < 18;
+      if(proche && f3(sg * ext) === f3(vc)) return;
+      texte(f3(sg * ext), pe, sg > 0 ? ye - 6 - (proche ? 14 : 0) : ye + 16 + (proche ? 14 : 0), C.ink, { align: alignSur(pe, xg, xd, 34) });
+    });
+    // coupure : point et valeur
+    ctx.fillStyle = C.accent; ctx.beginPath(); ctx.arc(px, py, 4, 0, 2 * Math.PI); ctx.fill();
+    const droite = px < (xg + xd) / 2;
+    texte(f3(vc), px + (droite ? 9 : -9), py + (vc >= 0 ? -8 : 18), C.accent, { align: droite ? 'left' : 'right', font: '600 12px JetBrains Mono' });
+  }
+
+  /* ---------- dessin : flexion ---------- */
+  function dessinFlexion(W, H, p, s, C, chap){
+    const compact = W < 560 || H < 520;
+    const xg = compact ? 50 : 56, xd = W - (compact ? 14 : 26);
+    const X = x => xg + x / p.L * (xd - xg);
+    const r1 = H * (compact ? 0.30 : 0.31), r2 = H * (compact ? 0.51 : 0.535), r3 = H * (compact ? 0.72 : 0.765);
+    const u = Math.max(0.62, Math.min(1, r1 / 200));
+    const yb = r1 * 0.5 + 4 * u;                        // fibre moyenne de la poutre
+    const deux = mode === '2appF' || mode === '2appq';
+
+    // repère
+    const ox = 8, oy = r1 - 8;
+    fleche(ox, oy, ox + 24, oy, C.muted, 1.5); fleche(ox, oy, ox, oy - 22, C.muted, 1.5);
+    ctx.fillStyle = C.muted; ctx.textBaseline = 'alphabetic'; ctx.textAlign = 'left';
+    __grandeur(ctx, 'x', ox + 26, oy + 4, 13); __grandeur(ctx, 'y', ox + 5, oy - 16, 13);
+
+    // déformée amplifiée (sous la poutre, dans le même repère)
+    const pxmm = (xd - xg) / (p.L * 1000);
+    const cible = 30 * u, kAmp = s.f > 1e-9 ? joli(cible / (s.f * pxmm)) : 1;
+    const nomDef = kAmp >= 1 ? 'déformée ×' + nb(kAmp, 0) : 'déformée (réduite)';
+    // poutre non déformée
+    ctx.strokeStyle = C.ink; ctx.lineWidth = 6; ctx.lineCap = 'butt';
+    ctx.beginPath(); ctx.moveTo(X(0), yb); ctx.lineTo(X(p.L), yb); ctx.stroke();
+    // déformée
+    ctx.strokeStyle = chap; ctx.lineWidth = 2.5; ctx.setLineDash([7, 5]);
+    ctx.beginPath();
+    s.vs.forEach((v, i) => { const x = X(p.L * i / N), y = yb - v * kAmp * pxmm; if(i) ctx.lineTo(x, y); else ctx.moveTo(x, y); });
+    ctx.stroke(); ctx.setLineDash([]);
+
+    // coupure
+    const xc = X(p.x);
+    ctx.strokeStyle = C.accent; ctx.lineWidth = 1.5; ctx.setLineDash([4, 4]);
+    ctx.beginPath(); ctx.moveTo(xc, yb - 26 * u - 8); ctx.lineTo(xc, r3 - 4); ctx.stroke(); ctx.setLineDash([]);
+    // appuis, réactions
+    const colR = C.amber, colF = C.accent2;
+    const aR = 40 * u;
+    if(deux){
+      // A : pivot ; B : appui glissant
+      [[X(0), 'A'], [X(p.L), 'B']].forEach((ap, j) => {
+        const xa = ap[0];
+        ctx.fillStyle = __CVA('muted', 0.18); ctx.strokeStyle = C.ink; ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.moveTo(xa, yb + 3); ctx.lineTo(xa - 10, yb + 19); ctx.lineTo(xa + 10, yb + 19); ctx.closePath(); ctx.fill(); ctx.stroke();
+        let ys = yb + 19;
+        if(j === 1){
+          [-5, 5].forEach(d => { ctx.beginPath(); ctx.arc(xa + d, yb + 22.5, 3, 0, 2 * Math.PI); ctx.stroke(); });
+          ys = yb + 26;
+        }
+        sol(xa, ys, 15, C);
+        texte(ap[1], xa + (j ? -15 : 15), yb + 17, C.ink, { align: j ? 'right' : 'left', font: '600 14px "Source Sans 3"', plain: true });
+        const yA = ys + 8;
+        fleche(xa, yA + aR, xa, yA, colR, 2.2);
+        etiquette(j ? 'Y_B' : 'Y_A', ' = ' + f3(j ? s.R.YB : s.R.YA) + ' kN', xa + (j ? -8 : 8), yA + aR - 4, colR, j ? 'right' : 'left', 14);
+      });
+    } else {
+      // encastrement en A
+      const he = 32 * u + 6;
+      hachures(X(0) - 14, yb - he, 14, 2 * he, C.muted);
+      ctx.strokeStyle = C.ink; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(X(0), yb - he); ctx.lineTo(X(0), yb + he); ctx.stroke();
+      texte('A', X(0) - 7, yb - he - 6, C.ink, { align: 'center', font: '600 14px "Source Sans 3"', plain: true });
+      texte('B', X(p.L) + 5, yb + 5, C.ink, { align: 'left', font: '600 14px "Source Sans 3"', plain: true });
+      const rA = 20 * u + 6, xR = X(0) + rA + 10;
+      arcFleche(X(0), yb, rA, Math.PI / 2, -Math.PI / 2 + 0.25, colR, true);
+      fleche(xR, yb + 8 + aR, xR, yb + 5, colR, 2.2);
+      const ly = yb + 4 + aR;
+      etiquette('Y_A', ' = ' + f3(s.R.YA) + ' kN', xR + 8, ly, colR, 'left', 14);
+      etiquette('M_A', ' = ' + f3(s.R.MA) + ' kN·m', xR + 8, ly + Math.max(17, 18 * u + 2), colR, 'left', 14);
+    }
+
+    // charges
+    const hF = 44 * u;
+    if(avecForce()){
+      const xF = mode === '2appF' ? X(p.a) : X(p.L);
+      fleche(xF, yb - 4 - hF, xF, yb - 4, colF, 2.6);
+      const aD = xF > (xg + xd) / 2;
+      etiquette('F', ' = ' + f3(p.P) + ' kN', xF + (aD ? -8 : 8), yb - hF + 6, colF, aD ? 'right' : 'left', 15);
+    } else {
+      const hq = 30 * u, n = Math.max(6, Math.round((xd - xg) / 34));
+      ctx.strokeStyle = colF; ctx.lineWidth = 1.6;
+      ctx.beginPath(); ctx.moveTo(X(0), yb - 4 - hq); ctx.lineTo(X(p.L), yb - 4 - hq); ctx.stroke();
+      for(let i = 0; i <= n; i++){ const xq = X(p.L * i / n); fleche(xq, yb - 4 - hq, xq, yb - 4, colF, 1.6); }
+      etiquette('q', ' = ' + f3(p.P) + ' kN/m', X(p.L * 0.5), yb - 10 - hq, colF, 'center', 15);
+    }
+
+    {
+      const pxF = X(s.xf), pyF = yb - s.vs[Math.round(s.xf / p.L * N)] * kAmp * pxmm;
+      texte(nomDef, pxF, pyF + 18, chap, { align: alignSur(pxF, xg, xd, 70), font: '12px "Source Sans 3"' });
+    }
+    texte('I', xc - 8, yb + 20, C.accent, { align: 'right', font: '600 13px "Source Serif 4"' });
+    texte('II', xc + 8, yb + 20, C.accent, { align: 'left', font: '600 13px "Source Serif 4"' });
+
+    // diagrammes T_y(x) et M_fz(x)
+    const sauteT = mode === '2appF' && Math.abs(p.x - p.a) < 1e-9;
+    diagramme(s.Tpts, X, xg, xd, r1, r2, 'T_y', '(kN)', p.x, s.T(p.x), C, chap);
+    diagramme(s.Mpts, X, xg, xd, r2, r3, 'M_f_z', '(kN·m)', p.x, s.M(p.x), C, chap);
+
+    // section coupée et contraintes normales σ(y) = −M_fz·y/I_Gz
+    const y0 = r3 + 6, y1 = H - 6;
+    texte((compact ? 'σ dans la section (x = ' + nb(p.x, 2) + ' m) ; σ > 0 : traction' : 'Contraintes normales dans la section coupée (x = ' + nb(p.x, 2) + ' m) ; σ > 0 : traction, σ < 0 : compression'), 4, y0 + 12, C.muted, { plain: true, font: compact ? '12px "Source Sans 3"' : '13px "Source Sans 3"' });
+    const hs = Math.max(20, (y1 - y0) - 52), cy = y0 + 28 + hs / 2;
+    const sc = Math.min(hs / p.h, (compact ? 56 : 90) / p.b);
+    const hp = p.h * sc, bp = p.b * sc, cx = xg + (compact ? 10 : 30) + bp / 2 - 20;
+    ctx.fillStyle = __CVA('muted', 0.16); ctx.strokeStyle = C.ink; ctx.lineWidth = 1.5;
+    ctx.fillRect(cx - bp / 2, cy - hp / 2, bp, hp); ctx.strokeRect(cx - bp / 2, cy - hp / 2, bp, hp);
+    ctx.strokeStyle = C.muted; ctx.lineWidth = 1; ctx.setLineDash([5, 3]);
+    ctx.beginPath(); ctx.moveTo(cx - bp / 2 - 8, cy); ctx.lineTo(cx + bp / 2 + 8, cy); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle = C.ink; ctx.beginPath(); ctx.arc(cx, cy, 2.5, 0, 2 * Math.PI); ctx.fill();
+    fleche(cx, cy, cx, cy - hp / 2 - 8, C.muted, 1.2);
+    ctx.fillStyle = C.muted; ctx.textAlign = 'left'; __grandeur(ctx, 'y', cx + 5, cy - hp / 2 - 1, 13);
+    ctx.fillStyle = C.ink; __grandeur(ctx, 'G', cx + 5, cy + 14, 13);
+    // profil σ(y)
+    const Mc = s.M(p.x), sigC = Math.abs(Mc) * 1e6 * (p.h / 2) / s.I;
+    const xa = cx + bp / 2 + (compact ? 22 : 40), xb = W - 8;
+    const sx = (xa + xb) / 2, hw = (xb - xa) / 2 - (compact ? 6 : 30);
+    const ech = hw / Math.max(sigC, RPE);
+    const sTop = -Mc * 1e6 * (p.h / 2) / s.I, sBot = -sTop;   // fibres supérieure et inférieure
+    const yT = cy - hp / 2, yB = cy + hp / 2;
+    // limites ±R_pe
+    ctx.strokeStyle = C.amber; ctx.lineWidth = 1.2; ctx.setLineDash([3, 3]);
+    [-1, 1].forEach(sg => { const xl = sx + sg * RPE * ech; ctx.beginPath(); ctx.moveTo(xl, yT - 4); ctx.lineTo(xl, yB + 4); ctx.stroke(); });
+    ctx.setLineDash([]);
+    etiquette('R_p_e', '', sx + RPE * ech, yB + 18, C.amber, 'center', 13);
+    etiquette('−R_p_e', '', sx - RPE * ech, yB + 18, C.amber, 'center', 13);
+    // axe et flèches
+    ctx.strokeStyle = C.ink; ctx.lineWidth = 1.2;
+    ctx.beginPath(); ctx.moveTo(sx, yT - 6); ctx.lineTo(sx, yB + 6); ctx.stroke();
+    const nf = Math.max(4, Math.round(hp / 9));
+    for(let i = 0; i <= nf; i++){
+      const yy = yT + hp * i / nf, sg = sTop + (sBot - sTop) * i / nf, xx = sx + sg * ech;
+      if(Math.abs(xx - sx) > 4) fleche(sx, yy, xx, yy, chap, 1.3, 6);
+    }
+    ctx.strokeStyle = chap; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(sx + sTop * ech, yT); ctx.lineTo(sx + sBot * ech, yB); ctx.stroke();
+    if(sigC > 1e-9){
+      const ft = v => (v > 0 ? '+' : '') + f3(v) + ' MPa';
+      const lbl = (v, y) => texte(ft(v), sx + v * ech + (v > 0 ? 6 : -6), y, C.ink, { align: v > 0 ? 'left' : 'right' });
+      lbl(sTop, yT + 4); lbl(sBot, yB + 4);
+    }
+
+    // mesures
+    const L = p.L;
+    $('rdm-l1').textContent = 'Réactions';
+    $('rdm-i1').textContent = deux ? 'Y_A = ' + f3(s.R.YA) + ' kN ; Y_B = ' + f3(s.R.YB) + ' kN'
+      : 'Y_A = ' + f3(s.R.YA) + ' kN ; M_A = ' + f3(s.R.MA) + ' kN·m';
+    $('rdm-l2').textContent = 'Dans la coupure (x = ' + nb(p.x, 2) + ' m)';
+    $('rdm-i2').textContent = (sauteT ? 'T_y saute de ' + f3(-s.R.YA) + ' à ' + f3(s.R.YB) + ' kN' : 'T_y = ' + f3(s.T(p.x)) + ' kN')
+      + ' ; M_fz = ' + f3(s.M(p.x)) + ' kN·m';
+    $('rdm-l3').textContent = 'Moment fléchissant maximal';
+    $('rdm-i3').textContent = '|M_fz|max = ' + f3(s.Mmax) + ' kN·m en x = ' + nb(s.xMmax, 2) + ' m';
+    $('rdm-l4').textContent = 'Contrainte normale maximale';
+    $('rdm-i4').textContent = 'σ_max = ' + f3(s.sigMax) + ' MPa (R_pe = ' + nb(RPE, 0) + ' MPa)';
+    $('rdm-l5').textContent = 'Flèche maximale';
+    const rap = s.f > 1e-9 ? L * 1000 / s.f : Infinity;
+    $('rdm-i5').textContent = 'f = ' + f3(s.f) + ' mm, soit L/' + (isFinite(rap) ? nb(Math.round(rap), 0) : '∞') + ' (limite L/300)';
+    $('rdm-l6').textContent = 'Section b × h';
+    $('rdm-i6').textContent = 'I_Gz = ' + nb(s.I / 1e4, s.I < 1e5 ? 1 : 0) + ' cm⁴ ; S = ' + nb(p.b * p.h / 100, 1) + ' cm²';
+    const badge = $('rdm-badge');
+    if(s.sigMax > RPE){ badge.className = 'regime-badge critique'; badge.textContent = 'Ne résiste pas : σ_max > R_pe'; }
+    else if(s.f > L * 1000 / 300){ badge.className = 'regime-badge critique'; badge.textContent = 'Résiste, mais trop souple : f > L/300'; }
+    else { badge.className = 'regime-badge pseudo'; badge.textContent = 'Résiste et assez rigide'; }
+  }
+
+  /* ---------- dessin : torsion ---------- */
+  function dessinTorsion(W, H, p, C, chap){
+    const compact = W < 560 || H < 520;
+    const D = p.D, d = p.k * D, R = D / 2;
+    const I0 = Math.PI * (Math.pow(D, 4) - Math.pow(d, 4)) / 32;   // mm⁴
+    const Mt = p.Mt * 1000;                                        // N·mm
+    const tau = Mt * R / I0;                                       // MPa
+    const thp = Mt / (G * I0) * 1000 * 180 / Math.PI;              // °/m
+    const dth = thp * p.L;                                         // °
+    const Dp = D * Math.sqrt(1 - p.k * p.k);
+    const tauP = 16 * Mt / (Math.PI * Math.pow(Dp, 3)), thpP = 32 * Mt / (G * Math.PI * Math.pow(Dp, 4)) * 1000 * 180 / Math.PI;
+
+    // 1. l'arbre, vu de côté
+    const r1 = H * 0.38;
+    const xl = compact ? 30 : 56, xr = W - (compact ? 62 : 80), cy = r1 * 0.52;
+    const Rmax = Math.min(r1 * 0.3, 70), Rpx = 12 + (Rmax - 12) * (D - 10) / 90, ex = Rpx * 0.28;
+    hachures(xl - 14, cy - Rpx - 14, 14, 2 * Rpx + 28, C.muted);
+    ctx.strokeStyle = C.ink; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(xl, cy - Rpx - 14); ctx.lineTo(xl, cy + Rpx + 14); ctx.stroke();
+    ctx.fillStyle = __CVA('muted', 0.14); ctx.lineWidth = 1.6;
+    ctx.beginPath(); ctx.moveTo(xl, cy - Rpx); ctx.lineTo(xr, cy - Rpx);
+    ctx.ellipse(xr, cy, ex, Rpx, 0, -Math.PI / 2, Math.PI / 2); ctx.lineTo(xl, cy + Rpx); ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.beginPath(); ctx.ellipse(xr, cy, ex, Rpx, 0, Math.PI / 2, 3 * Math.PI / 2); ctx.strokeStyle = C.muted; ctx.lineWidth = 1; ctx.stroke();
+    if(p.k > 0){ ctx.beginPath(); ctx.ellipse(xr, cy, ex * p.k, Rpx * p.k, 0, 0, 2 * Math.PI); ctx.fillStyle = C.paper; ctx.fill(); ctx.strokeStyle = C.ink; ctx.stroke(); }
+    // axe
+    ctx.strokeStyle = C.muted; ctx.lineWidth = 1; ctx.setLineDash([10, 3, 2, 3]);
+    ctx.beginPath(); ctx.moveTo(xl - 4, cy); ctx.lineTo(xr + ex + 26, cy); ctx.stroke(); ctx.setLineDash([]);
+    // génératrice : avant (pointillés) et après torsion (rotation amplifiée)
+    const amp = dth > 1e-6 ? Math.min(10, 75 / dth) : 10, ampT = amp >= 10 ? 10 : Math.max(1, Math.floor(amp));
+    const phi0 = Math.PI / 3, rad = Math.PI / 180;
+    ctx.strokeStyle = C.muted; ctx.lineWidth = 1.5; ctx.setLineDash([5, 4]);
+    ctx.beginPath(); ctx.moveTo(xl, cy - Rpx * Math.cos(phi0)); ctx.lineTo(xr, cy - Rpx * Math.cos(phi0)); ctx.stroke(); ctx.setLineDash([]);
+    ctx.strokeStyle = chap; ctx.lineWidth = 2.4; ctx.beginPath();
+    for(let i = 0; i <= 120; i++){
+      const t = i / 120, ph = phi0 + ampT * dth * rad * t, xx = xl + t * (xr - xl), yy = cy - Rpx * Math.cos(ph);
+      if(i) ctx.lineTo(xx, yy); else ctx.moveTo(xx, yy);
+    }
+    ctx.stroke();
+    texte('génératrice (rotation amplifiée ×' + ampT + ')', (xl + xr) / 2, cy + Rpx + (compact ? 16 : 22), chap, { align: 'center', font: '12px "Source Sans 3"' });
+    // couple M_t en bout
+    const cxm = xr + ex + 14;
+    ctx.save(); ctx.translate(cxm, cy); ctx.scale(0.42, 1);
+    arcFleche(0, 0, Rpx + 10, -Math.PI * 0.75, Math.PI * 0.75, C.accent2, false);
+    ctx.restore();
+    ctx.fillStyle = C.accent2; ctx.textAlign = 'right'; ctx.textBaseline = 'alphabetic';
+    __grandeur(ctx, 'M_t', cxm + 26, cy - Rpx - 14, 15);
+    ctx.textAlign = 'left';
+    texte('Δθ = ' + f3(dth) + '°', xr - 4, cy - Rpx - 10, C.ink, { align: 'right' });
+
+    // 2. section et τ(r)
+    const y0 = r1 + 4, y1 = H * 0.72;
+    texte('Cisaillement dans une section : τ(r) = Mₜ·r / I₀', 4, y0 + 12, C.muted, { plain: true, font: compact ? '12px "Source Sans 3"' : '13px "Source Sans 3"' });
+    const Rs = Math.max(16, Math.min((y1 - y0 - 60) / 2, compact ? 52 : 70)), ccx = (compact ? 20 : 50) + Rs, ccy = y0 + 26 + Rs;
+    ctx.beginPath(); ctx.arc(ccx, ccy, Rs, 0, 2 * Math.PI);
+    if(p.k > 0) ctx.arc(ccx, ccy, Rs * p.k, 0, 2 * Math.PI, true);
+    ctx.fillStyle = __CVA('muted', 0.16); ctx.fill('evenodd'); ctx.strokeStyle = C.ink; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.arc(ccx, ccy, Rs, 0, 2 * Math.PI); ctx.stroke();
+    if(p.k > 0){ ctx.beginPath(); ctx.arc(ccx, ccy, Rs * p.k, 0, 2 * Math.PI); ctx.stroke(); }
+    // petites flèches tangentielles (longueur ∝ r) sur deux cercles
+    const rayons = [0.92]; if(p.k < 0.7) rayons.push(Math.max(0.5, (p.k + 0.92) / 2));
+    rayons.forEach(fr => {
+      const rr = Rs * fr, lg = Math.max(8, 0.4 * Rs * fr);
+      for(let j = 0; j < 8; j++){
+        const a = j * Math.PI / 4 + (fr < 0.9 ? Math.PI / 8 : 0);
+        const px = ccx + rr * Math.cos(a) + lg / 2 * Math.sin(a), py = ccy + rr * Math.sin(a) - lg / 2 * Math.cos(a);
+        fleche(px, py, px - lg * Math.sin(a), py + lg * Math.cos(a), chap, 1.4, 6);
+      }
+    });
+    ctx.fillStyle = C.ink; ctx.beginPath(); ctx.arc(ccx, ccy, 2.5, 0, 2 * Math.PI); ctx.fill();
+    // profil τ le long d'un diamètre vertical
+    const xa = ccx + Rs + (compact ? 24 : 50), xb = W - 8, sx = (xa + xb) / 2, hw = (xb - xa) / 2 - (compact ? 8 : 30);
+    const ech = hw / Math.max(tau, RPG), yT = ccy - Rs, yB = ccy + Rs;
+    ctx.strokeStyle = C.amber; ctx.lineWidth = 1.2; ctx.setLineDash([3, 3]);
+    [-1, 1].forEach(sg => { const xx = sx + sg * RPG * ech; ctx.beginPath(); ctx.moveTo(xx, yT - 4); ctx.lineTo(xx, yB + 4); ctx.stroke(); });
+    ctx.setLineDash([]);
+    etiquette('R_p_g', '', sx + RPG * ech, yB + 18, C.amber, 'center', 13);
+    etiquette('−R_p_g', '', sx - RPG * ech, yB + 18, C.amber, 'center', 13);
+    ctx.strokeStyle = C.ink; ctx.lineWidth = 1.2;
+    ctx.beginPath(); ctx.moveTo(sx, yT - 6); ctx.lineTo(sx, yB + 6); ctx.stroke();
+    const nf = Math.max(6, Math.round(2 * Rs / 9));
+    for(let i = 0; i <= nf; i++){
+      const yy = yT + 2 * Rs * i / nf, r = (ccy - yy) / Rs;     // r/R signé
+      if(Math.abs(r) < p.k - 1e-9) continue;
+      const xx = sx + tau * r * ech;
+      if(Math.abs(xx - sx) > 4) fleche(sx, yy, xx, yy, chap, 1.3, 6);
+    }
+    ctx.strokeStyle = chap; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(sx + tau * ech, yT); ctx.lineTo(sx + tau * p.k * ech, ccy - Rs * p.k); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(sx - tau * p.k * ech, ccy + Rs * p.k); ctx.lineTo(sx - tau * ech, yB); ctx.stroke();
+    if(p.k > 0){ ctx.beginPath(); ctx.moveTo(sx, ccy - Rs * p.k); ctx.lineTo(sx, ccy + Rs * p.k); ctx.strokeStyle = C.muted; ctx.stroke(); }
+    etiquette('τ_m_a_x', ' = ' + f3(tau) + ' MPa', sx + tau * ech + 6, yT + 4, C.ink, 'left', 14);
+
+    // 3. comparaison avec l'arbre plein de même masse
+    const z0 = y1 + 6, z1 = H - 6;
+    texte(compact ? 'À masse égale : plein (gris), cet arbre (couleur)' : 'À masse égale : arbre plein de D = ' + nb(Dp, 1) + ' mm (gris) et cet arbre (couleur) ; pointillés : limites', 4, z0 + 12, C.muted, { plain: true, font: compact ? '12px "Source Sans 3"' : '13px "Source Sans 3"' });
+    const lignes = [['τ_max', tauP, tau, ' MPa', RPG], ["θ'", thpP, thp, ' °/m', TH_ADM]];
+    const hl = (z1 - z0 - 22) / 4, xg = compact ? 46 : 70, xd = W - (compact ? 84 : 110);
+    lignes.forEach((l, j) => {
+      const vmax = Math.max(l[1], l[2], l[4]) * 1.05, Xb = v => xg + v / vmax * (xd - xg);
+      const yA = z0 + 22 + j * 2 * hl;
+      ctx.fillStyle = C.ink; ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+      __grandeur(ctx, j ? "θ'" : 'τ_m_a_x', 4, yA + hl + 4, 15);
+      [[l[1], C.muted], [l[2], chap]].forEach((b, i) => {
+        const yy = yA + i * hl + 2, hh = Math.max(8, hl - 6);
+        ctx.fillStyle = b[1]; ctx.globalAlpha = i ? 0.85 : 0.45; ctx.fillRect(xg, yy, Xb(b[0]) - xg, hh); ctx.globalAlpha = 1;
+        texte(f3(b[0]) + l[3], Xb(b[0]) + 6, yy + hh / 2 + 4, C.ink);
+      });
+      const xl2 = Xb(l[4]);
+      ctx.strokeStyle = C.amber; ctx.lineWidth = 1.5; ctx.setLineDash([3, 3]);
+      ctx.beginPath(); ctx.moveTo(xl2, yA - 2); ctx.lineTo(xl2, yA + 2 * hl - 2); ctx.stroke(); ctx.setLineDash([]);
+    });
+
+    // mesures
+    $('rdm-l1').textContent = 'Moment quadratique polaire';
+    $('rdm-i1').textContent = 'I_0 = ' + nb(I0 / 1e4, I0 < 1e5 ? 2 : 1) + ' cm⁴';
+    $('rdm-l2').textContent = 'Contrainte de cisaillement maximale';
+    $('rdm-i2').textContent = 'τ_max = ' + f3(tau) + ' MPa (R_pg = ' + nb(RPG, 0) + ' MPa)';
+    $('rdm-l3').textContent = 'Angle unitaire de torsion';
+    $('rdm-i3').textContent = "θ' = " + f3(thp) + ' °/m (limite ' + nb(TH_ADM, 2) + ' °/m)';
+    $('rdm-l4').textContent = 'Rotation entre les extrémités';
+    $('rdm-i4').textContent = 'Δθ = ' + f3(dth) + '° sur L = ' + nb(p.L, 1) + ' m';
+    $('rdm-l5').textContent = 'Arbre plein de même masse';
+    $('rdm-i5').textContent = 'D = ' + nb(Dp, 1) + ' mm : τ_max = ' + f3(tauP) + ' MPa ; θ\' = ' + f3(thpP) + ' °/m';
+    $('rdm-l6').textContent = 'Section';
+    $('rdm-i6').textContent = 'S = ' + nb(Math.PI * (D * D - d * d) / 400, 2) + ' cm² ; d = ' + nb(d, 1) + ' mm';
+    const badge = $('rdm-badge');
+    if(tau > RPG){ badge.className = 'regime-badge critique'; badge.textContent = 'Ne résiste pas : τ_max > R_pg'; }
+    else if(thp > TH_ADM){ badge.className = 'regime-badge critique'; badge.textContent = "Résiste, mais trop souple : θ' > 0,25 °/m"; }
+    else { badge.className = 'regime-badge pseudo'; badge.textContent = 'Résiste et assez rigide'; }
+  }
+
+  /* ---------- dessin ---------- */
+  function drawRdm(){
+    const panel = $('rdm-simu'); if(panel && !panel.classList.contains('active')) return;
+    const dpr = window.devicePixelRatio || 1;
+    const r = canvas.getBoundingClientRect();
+    if(!r.width || !r.height) return;
+    canvas.width = Math.round(r.width * dpr); canvas.height = Math.round(r.height * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const W = r.width, H = r.height, C = __CV(), chap = __CVchap(canvas);
+    Wc = W;
+    ctx.clearRect(0, 0, W, H);
+    const p = params();
+    if(flexion()) dessinFlexion(W, H, p, solFlexion(p), C, chap);
+    else dessinTorsion(W, H, p, C, chap);
+  }
+
+  // Un clic (ou un glissé à la souris) sur la toile place la coupure
+  let tire = false;
+  function placer(ev){
+    if(!flexion()) return;
+    const r = canvas.getBoundingClientRect(), compact = r.width < 560 || r.height < 520;
+    const xg = compact ? 50 : 56, xd = r.width - (compact ? 14 : 26);
+    const f = Math.max(0, Math.min(1, (ev.clientX - r.left - xg) / (xd - xg)));
+    const el = $('rdm-x'); el.value = String(Math.round(f / 0.005) * 0.005);
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+  }
+  canvas.addEventListener('pointerdown', ev => { if(ev.button === 0){ tire = ev.pointerType === 'mouse'; placer(ev); } });
+  canvas.addEventListener('pointermove', ev => { if(tire) placer(ev); });
+  ['pointerup', 'pointercancel', 'pointerleave'].forEach(t => canvas.addEventListener(t, () => { tire = false; }));
+
+  majControles(); majValeurs();
+  window.drawRdm = drawRdm;
 })();
 
 /* ============================================== */

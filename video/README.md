@@ -21,13 +21,23 @@ sont **jamais** versionnés (voir `.gitignore`) : le dépôt ne garde que les so
   Manim, jugée « trop brouillon ». `Create` pour les axes, cadres et traits.
 - **Sous-titres** : texte exact avec les symboles (ξ, νᵢ, ΔrG°), 2 lignes de 42 caractères au plus,
   désactivables. La forme prononcée (« ksi », « delta-r-G standard ») ne sert qu'à la voix.
-- **Format** : une vidéo de 8 à 10 minutes par chapitre, une dizaine de scènes, tableau effacé entre
-  deux scènes, un exercice « À vous » avec minuteur, un bilan numéroté « À retenir », puis **un exercice
-  résolu de bout en bout** (demande de Thomas du 2026-11-11, dès que le chapitre s'y prête) : une scène
-  d'énoncé (données au tableau, question encadrée, « réfléchissons » : quel outil du chapitre ?) et une
-  scène de résolution par étapes numérotées, chaque étape **justifiée à l'oral** (pourquoi on fait ce
-  calcul), résultat encadré, vérification (signe, ordre de grandeur, comparaison aux tables). La phrase
-  « Dans le prochain chapitre… » clôt la vidéo, après l'exercice.
+- **Format (depuis le cours de RdM, demande de Thomas du 2026-11-16 : « la partie la plus intéressante,
+  c'est la résolution d'exercices, la partie méthode »)** — il vaut pour **toutes les vidéos à venir** :
+  10 à 13 minutes, une douzaine de scènes, 100 à 130 phrases, tableau effacé entre deux scènes.
+  - **Cours condensé** (≈ 25 à 30 % de la durée, 3 minutes environ) : l'essentiel seulement — définitions,
+    conventions, formules à connaître, une ou deux figures —, dit vite et clairement, sans démonstration longue.
+  - **Résolution d'exercices** (≈ 70 % de la durée) : **2 ou 3 exercices de difficulté croissante**,
+    inventés (valeurs vérifiées par le calcul en Python), différents de ceux du site. Pour chacun : une
+    scène d'énoncé (figure et données au tableau, question encadrée, « Réfléchissons : quelle méthode ? »),
+    un temps « À vous » (« Mettez la vidéo en pause et essayez », minuteur de 5 s), puis une ou deux scènes
+    de résolution **par étapes numérotées**, chaque étape **justifiée à l'oral** (pourquoi ce calcul, quel
+    piège éviter), résultats encadrés, vérification (unités, signe, ordre de grandeur, cas limite).
+  - « Ce qu'il faut retenir » = **la méthode** en étapes numérotées (pas un résumé du cours), puis la phrase
+    « Dans la prochaine vidéo… » (sauf la dernière vidéo d'un cours).
+
+  Ancien format (vidéos de thermochimie, matrices et automatique, à ne pas refaire sans demande) : 8 à
+  10 minutes de cours complet, un exercice « À vous » avec minuteur, un bilan « À retenir », puis un seul
+  exercice résolu de bout en bout (demande du 2026-11-11).
 - **Ton** : cours dynamique et complet, appuyé sur le programme officiel de PT ; tous les objets définis.
 
 ## Arborescence
