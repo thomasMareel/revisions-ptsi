@@ -63,6 +63,15 @@ def lignes_solenoide(cx, cy, s, a=1.0, L=4.0, Z=4.4, Rm=2.9, fr=(0.2, 0.4, 0.56,
             seg = seg[::3] if len(seg) > 60 else seg
             for sg in (1, -1):
                 lignes.add(VMobject(color=col, stroke_width=2.6).set_points_as_corners([P(cx + s*z, cy + sg*s*r) for z, r in seg]))
+                sens = 0
+                for i in range(len(seg) - 1):
+                    if seg[i][1] < a and (seg[i][0] < zin <= seg[i + 1][0] or seg[i + 1][0] < zin <= seg[i][0]):
+                        sens = 1 if seg[i + 1][0] > seg[i][0] else -1
+                if sens and kf % 2 == 1:   # retour à l'extérieur : pointes tangentes, sens donné par le parcours intérieur
+                    for i in range(len(seg) - 1):
+                        if (seg[i][1] - 2.1)*(seg[i + 1][1] - 2.1) < 0:
+                            dz, dr = sens*(seg[i + 1][0] - seg[i][0]), sens*(seg[i + 1][1] - seg[i][1])
+                            pts.add(pointe(cx + s*0.5*(seg[i][0] + seg[i + 1][0]), cy + sg*s*2.1, np.arctan2(sg*dr, dz), col, 0.2))
                 for i in range(len(seg) - 1):
                     for zt, dedans in ((zin, True), (0.0, False)):
                         if seg[i][0] < zt <= seg[i + 1][0] or seg[i + 1][0] < zt <= seg[i][0]:
@@ -188,7 +197,7 @@ class S3(Cours):
         fn, ln = vec((5.3, 0.0), (5.3, 1.15), r"\vec n", VERT)
         self.at(self.t("d3"), Create(el), FadeIn(o1), FadeIn(o2), FadeIn(lC), run_time=0.9)
         t3 = pos(T(r"contour \textbf{orienté} $\Rightarrow$ $\vec n$ par la main droite", sc=0.62), -6.3, 0.3)
-        self.at(self.a("d3", "La normale"), GrowArrow(fn), FadeIn(ln), Ecrire(t3, rt=0.9), run_time=0.9)
+        self.at(self.a("d3", "la normale"), GrowArrow(fn), FadeIn(ln), Ecrire(t3, rt=0.9), run_time=0.9)
         t4 = pos(T(r"compté $+$ s'il traverse dans le sens de $\vec n$, $-$ sinon", sc=0.62), -6.3, -0.35)
         self.ecr(self.t("d4"), t4, rt=1.0)
         w1 = VGroup(Line(P(3.2, -1.9), P(3.2, 1.9), color=BLEU, stroke_width=4), pointe(3.2, 1.45, PI/2, BLEU, 0.24), Dot(P(3.2, 0), radius=0.06, color=BLEU))
@@ -240,7 +249,7 @@ class S4(Cours):
         self.at(self.t("e4"), Ecrire(hd[1], rt=0.5), FadeIn(hau), FadeIn(bas), run_time=0.8)
         self.at(self.a("e4", "axial"), GrowArrow(fB), FadeIn(lB), run_time=0.5)
         self.ecr(self.a("e4", "B égale"), s1, rt=0.7); self.play(Create(enc(s1, col=VERT, buff=0.12)), run_time=0.3)
-        self.ecr(self.a("e4", "Et nul"), s2, rt=0.7)
+        self.ecr(self.a("e4", "Dehors"), s2, rt=0.7)
         # bobine torique
         cx = X[2]
         an = Annulus(inner_radius=0.45, outer_radius=0.95, color=ORANGE, fill_opacity=0.15, stroke_width=0).move_to(P(cx, yf))
@@ -611,7 +620,7 @@ class S12(Cours):
         etape(4, ORANGE, -2.05, M(r"j = \frac{2B}{\mu_0\, d} \approx 6{,}6\cdot10^{8}\ \mathrm{A\cdot m^{-2}}", sc=0.68), self.a("l7", "Quatrième étape"), rt=1.0)
         l8 = pos(T(r"$= 660$ A/mm$^2$ : soixante fois le cuivre domestique !", sc=0.58, color=ROUGE), -5.85, -2.78)
         self.ecr(self.t("l8"), l8, rt=1.0)
-        l9 = pos(T(r"$\Rightarrow$ supraconducteurs, refroidis à l'hélium liquide (LHC)", sc=0.58), -5.85, -3.35)
+        l9 = pos(T(r"$\Rightarrow$ supraconducteurs refroidis à l'hélium (LHC)", sc=0.58), -5.85, -3.35)
         self.ecr(self.t("l9"), l9, rt=1.0)
         l10 = pos(T(r"cas limite : $d \to 0$ $\Rightarrow$ $\vec B \to \vec 0$", sc=0.58, color=VERT), 2.15, -2.6)
         self.ecr(self.t("l10"), l10, rt=0.9)
