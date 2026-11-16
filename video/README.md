@@ -217,6 +217,7 @@ jours pour un gros lot.
 | Électromagnétisme (PT) | 1 — Électrostatique : symétries et théorème de Gauss | 12 min 53 | <https://youtu.be/RtcA5oAOB6E> |
 | Électromagnétisme (PT) | 2 — Magnétostatique : théorème d'Ampère | 12 min 51 | <https://youtu.be/VZjnGjQ3ynU> |
 | Électromagnétisme (PT) | 3 — Équations de Maxwell, ARQS et énergie électromagnétique | 12 min 13 | <https://youtu.be/ebSM2mPETZ8> |
+| Électromagnétisme (PT) | 4 — Ondes électromagnétiques dans le vide | 12 min 06 | <https://youtu.be/Kwkz21HK5QI> |
 
 Cours de thermochimie complet : chapitres 1 à 8 du PDF (le chapitre 9 du PDF est le recueil
 d'exercices, le 10 le formulaire : pas de vidéo). Les chapitres 1 à 3 gardent l'ancien réglage de
