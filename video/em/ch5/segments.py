@@ -27,7 +27,7 @@ SCENES = [
        "Deux racines : plus ou moins, un moins i, sur delta. On garde le signe plus : l'onde entre dans le métal, et s'y atténue.",0.3),
  ('c6',"δ est l'épaisseur de peau : δ = √(2/(μ₀σω)).",
        "Delta est l'épaisseur de peau : delta égale racine de deux, sur mu zéro sigma oméga.",0.4),
- ('c7',"Le champ réel décroît en exp(−z/δ) : l'onde s'éteint avant même d'avoir oscillé.",
+ ('c7',"Le champ réel décroît en exp(−z/δ) : l'onde s'éteint, avant même d'avoir oscillé.",
        "Le champ réel décroît en exponentielle de moins z sur delta : l'onde s'éteint avant même d'avoir oscillé.",0.3),
  ('c8',"Pour le cuivre : 9 mm à 50 Hz, 65 µm à 1 MHz, et moins d'un micron à 10 GHz.",
        "Pour le cuivre : neuf millimètres à cinquante hertz, soixante-cinq microns à un mégahertz, et moins d'un micron à dix gigahertz.",0.3),
@@ -35,7 +35,7 @@ SCENES = [
        "Delta varie comme un sur racine de f. Et attention : la puissance, elle, est divisée par e sur une demi-épaisseur de peau seulement !",0.7),
 ]),
 ('S3', 'Conducteur parfait et réflexion', [
- ('d1',"Si δ est minuscule devant les autres longueurs : on passe au conducteur parfait, σ infinie, δ nulle.",
+ ('d1',"Si δ est minuscule devant les autres longueurs : on passe au « conducteur parfait ». σ infinie, δ nulle.",
        "Si delta est minuscule devant les autres longueurs, on passe au conducteur parfait : sigma infinie, delta nulle.",0.3),
  ('d2',"Dans un conducteur parfait, les champs sont nuls. Il ne reste des charges et des courants qu'en surface : σ_s et j_s.",
        "Dans un conducteur parfait, les champs sont nuls. Il ne reste des charges et des courants qu'en surface : sigma s et j s.",0.3),
