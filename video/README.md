@@ -183,9 +183,9 @@ Vérifier d'abord qu'un chapitre du site correspond au cours (sinon le créer : 
 ## Vidéos livrées
 
 Toutes en **non répertorié**, sous-titres français compris, envoyées par `youtube.py` le 2026-11-11
-(thermochimie, matrices 1), le 2026-11-12 (matrices 2 à 4, automatique 1 à 7), le 2026-11-13 (automatique 8) et le 2026-11-16 (résistance des matériaux 1 à 3) ; identifiants dans
+(thermochimie, matrices 1), le 2026-11-12 (matrices 2 à 4, automatique 1 à 7), le 2026-11-13 (automatique 8) et le 2026-11-16 (résistance des matériaux 1 à 3, électromagnétisme de 2ᵉ année) ; identifiants dans
 `<cours>/chN/youtube.json`. Sur le site : onglet « Vidéos » des chapitres `thermochimie`, `matrices`,
-`matrices2a`, des sept chapitres d'automatique de 1ʳᵉ année, de `correcteurs` et de `rdm` (table `window.__VIDEOS`). YouTube
+`matrices2a`, des sept chapitres d'automatique de 1ʳᵉ année, de `correcteurs`, de `rdm` et des cinq chapitres d'électromagnétisme de 2ᵉ année (table `window.__VIDEOS`). YouTube
 n'accepte qu'une dizaine d'envois par jour et par chaîne (`uploadLimitExceeded`) : en prévoir plusieurs
 jours pour un gros lot.
 
@@ -214,6 +214,9 @@ jours pour un gros lot.
 | Résistance des matériaux (PT) | 1 — Torseur de cohésion et diagrammes des efforts | 12 min 55 | <https://youtu.be/p6ssn39My68> |
 | Résistance des matériaux (PT) | 2 — Contraintes et dimensionnement en résistance | 12 min 59 | <https://youtu.be/UwXv5acAwKo> |
 | Résistance des matériaux (PT) | 3 — Déformations, flèches et dimensionnement en rigidité | 12 min 54 | <https://youtu.be/kwBt7ybUMjo> |
+| Électromagnétisme (PT) | 1 — Électrostatique : symétries et théorème de Gauss | 12 min 53 | <https://youtu.be/RtcA5oAOB6E> |
+| Électromagnétisme (PT) | 2 — Magnétostatique : théorème d'Ampère | 12 min 51 | <https://youtu.be/VZjnGjQ3ynU> |
+| Électromagnétisme (PT) | 3 — Équations de Maxwell, ARQS et énergie électromagnétique | 12 min 13 | <https://youtu.be/ebSM2mPETZ8> |
 
 Cours de thermochimie complet : chapitres 1 à 8 du PDF (le chapitre 9 du PDF est le recueil
 d'exercices, le 10 le formulaire : pas de vidéo). Les chapitres 1 à 3 gardent l'ancien réglage de
@@ -255,6 +258,14 @@ sans « prochaine vidéo »). Intégration : `python3 video/rdm/integrer_videos.
 Au tableau : poutre en trait épais, pivot = triangle, appui glissant = triangle sur deux cercles, encastrement =
 rectangle hachuré ; diagrammes T_y et M_fz dans un cadre sous la poutre, même échelle en x. À l'oral : la synthèse
 lisait « T y » comme « T i » : écrire « T i grec » dans la forme prononcée ; « M f z » épelé passe.
+
+**Électromagnétisme** (`em/`, demande de Thomas du 2026-11-16, après la revue du contenu de 2ᵉ année) : **2ᵉ année
+d'abord** (la 1ʳᵉ année — `emag`, `induction`, `lorentz` — viendra plus tard, dans un dossier à part). Format du RdM :
+cours condensé puis trois exercices résolus. Une vidéo par chapitre : 1 `estat2a` (Gauss), 2 `magnetostat` (Ampère ;
+l'oral renvoie au simulateur 3D du chapitre), 3 `maxwell` (Maxwell, ARQS, Poynting), 4 `oemvide`, 5 `oemcond` (la 5ᵉ
+conclut le cours). Intégration : `python3 video/em/integrer_videos.py [n…]` (aperçus `media/videos/em-N.webp`).
+Consignes des rédacteurs : `p2a/em/CONSIGNES-VIDEO-EM.md` du scratchpad (non versionné) ; à l'oral, « Maxwell-Ampère »
+est parfois transcrit « Maxwell en paire » par le contrôle (la voix est juste).
 
 Remarque de Thomas sur le chapitre 3 : l'explication des νᵢ (coefficients stœchiométriques
 **algébriques** : négatifs pour les réactifs, positifs pour les produits) n'était pas assez claire.
