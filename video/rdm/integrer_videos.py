@@ -44,7 +44,7 @@ for n in nums:
     parties = [[int(tl['scenes'][s]['t0']), tl['scenes'][s]['titre']] for s in tl['ordre']]
     parties[0][0] = 0
     p_txt = ','.join(f"[{t},'{js(ti)}']" for t, ti in parties)
-    lignes.append(f"      {{ yt:'{vid}', titre:'{js(info['titre'])}', duree:{duree}, apercu:'media/videos/rdm-{n}.webp',\n"
+    lignes.append(f"      {{ yt:'{vid}', src:'video/rdm/ch{n}', titre:'{js(info['titre'])}', duree:{duree}, apercu:'media/videos/rdm-{n}.webp',\n"
                   f"        parties:[{p_txt}] }}")
     print(n, vid, duree, len(parties), 'parties')
 entree = f"    {CID}: [\n" + ',\n'.join(lignes) + "\n    ],\n"

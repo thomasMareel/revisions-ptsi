@@ -1,9 +1,32 @@
 # Assistant IA intégré au site — analyse et plan
 
-> **État au 2026-11-17 : plan proposé, rien n'est codé.** Ce document attend la validation de Thomas
-> (voir « Décisions qui reviennent à Thomas », à la fin). Il est la référence des sessions qui
-> travailleront sur l'assistant ; le résumé et les règles permanentes sont dans `CLAUDE.md`
+> **État au 2026-11-19 : phase 0 livrée (avec l'étape 3a), phase 1 à venir.** Plan validé le
+> 2026-11-19 (« fais une à une les améliorations proposées ») : les recommandations D1 à D14 tiennent
+> lieu de décisions tant que Thomas ne dit pas autre chose. Ce document est la référence des sessions
+> qui travaillent sur l'assistant ; le résumé et les règles permanentes sont dans `CLAUDE.md`
 > (section « Assistant IA »).
+
+### Ce qui est en ligne (phase 0, 2026-11-19)
+
+- **Activation par appareil** : le bouton n'apparaît que sur un appareil où l'on a ouvert une fois
+  l'adresse du site suivie de **`?assistant=1`** (clé Store `assistant`, posée aussi par le script du
+  `<head>` en classe `html.assistant-actif`) ; `?assistant=0` le retire. Les autres visiteurs du site
+  public ne voient rien.
+- **Bouton « Assistant »** dans l'en-tête (ordinateur, tablette) et en tête de la feuille ⋯
+  (téléphone) ; touche **`a`** ; **bulle « Demander à l'assistant »** sous un passage sélectionné.
+- **Panneau** `#assistant-panel` : à droite, non modal, sous l'en-tête (≥ 768 px) ; à partir de
+  1 200 px il décale la colonne de lecture et prend la place du rail ; au téléphone, page plein écran
+  modale refermée par le bouton retour (liste `PAGES` d'`urlRouting`). Contenu : « Ce que l'assistant
+  voit » (lieu, section, sélection retirable, vidéo et instant, taille du contenu), « Détail de
+  l'envoi » (JSON, bouton Copier le contexte), fil de messages, segmenté Question / Modification.
+- **Question** : notée avec un message « pas encore relié » (phase 1 à venir).
+- **Modification (étape 3a)** : prépare une **fiche de demande** (demande, chapitre et panneau,
+  section, exercice, carte, vidéo et phrase, passage sélectionné, consignes) copiée dans le
+  presse-papiers, à coller dans une session Claude Code.
+- Code : **amorce** inline dans `index.html` (module « ASSISTANT IA : amorce », après le module
+  Vidéos) et **`assistant/assistant.js`** chargé au premier usage (mis en cache par le service worker
+  au passage, pas dans `PRECACHE`). Styles : région FENETRES (« Assistant IA »). Suite de tests
+  **`assistant`** ; écran `assistant` dans la suite `visuel`.
 
 ## Objectif
 
@@ -222,38 +245,46 @@ au **schéma versionné**. Deux petits ajouts seulement :
 
 - dans `__VIDEOS`, un champ **`src`** par vidéo (`'video/em/ch2'`) qui relie la vidéo à son
   `timeline.json` (servi par GitHub Pages, même origine) et à ses sources (phase 4) ;
-- le lecteur YouTube créé avec `enablejsapi=1&origin=…` et piloté par l'**API IFrame officielle**,
-  chargée au moment du clic sur une vidéo (déjà un moment où YouTube est contacté) : on lit
-  `getCurrentTime()` sans requête avant le clic.
+- le lecteur YouTube créé au clic avec `enablejsapi=1&origin=…` : la page « écoute » le lecteur
+  (message `listening`) et reçoit ses messages `infoDelivery` (`currentTime`, `playerState`), le
+  protocole qu'emploie l'API IFrame officielle, **sans charger son script** ; repli si aucun message
+  n'arrive : instant de départ + temps écoulé depuis le clic (`estime: true`).
+  `window.__instantVideo()` (module Vidéos) le fournit au collecteur.
 
 ### Schéma (version 1)
 
 ```js
 {
   schema: 1,
-  site: { version: 'ptsi-cache-v117', url: 'https://…/#maxwell/cours', annee: 2 },
-  page: 'chapitre',                    // 'chapitre' | 'sommaire' | 'quiz' | 'aujourdhui' | …
+  url: 'https://…/#maxwell/cours',
+  page: 'chapitre',                    // 'chapitre' | 'sommaire' | 'accueil'
+  annee: 2,                            // année choisie dans la navigation
   matiere: { code: 'physique', nom: 'Physique' },
   chapitre: { id: 'maxwell', prefix: 'mxw', nom: '…', partie: 'Électromagnétisme',
-              tag: '…', annee: 2 },
+              tag: '…', annee: 2 },      // annee : 1, 2 ou 'les deux'
   onglet: 'cours',                     // cours | video | meth | simu | flash | exos
-  section: { num: '§3', titre: '…', id: 'mxw-cours-sec-3' },
-  selection: { texte: '…', tex: '…', section: '§3' } | null,     // ≤ 4 000 signes
-  exercice: { num: 'EXO 04', titre: '…', niveau: 2, solutionOuverte: false } | null,
-  carte: { deck: 'mxw', rang: 12, question: '…', reponse: '…', face: 'recto' } | null,
-  simulateur: { mode: '…', reglages: { I: '5,0 A', … } } | null,
-  video: { yt: 'VZjnGjQ3ynU', titre: '…', t: 312.4, partie: 'Exercice 2',
-           scene: { id: 'S7', titre: '…' }, phrase: { id: 'g3', ecrit: '…' },
+  section: { num: '§3', titre: '…', id: 'mxw-cours-sec-3' },     // Cours et Méthodes
+  methode: { titre: 'Méthode 1 — …' } | null,                     // Méthodes
+  exercice: { num: 'EXO 04', titre: '…', niveau: 2, concours: false,
+              solutionOuverte: false, enonce: '…' } | null,
+  carte: { deck: 'mxw', rang: 12, total: 49, face: 'recto', question: '…', reponse: null } | null,
+  simulateur: { titre: '…', mode: '…', reglages: { 'Intensité I': '5,0 A', … }, mesures: { … } } | null,
+  video: { yt: 'VZjnGjQ3ynU', titre: '…', t: 312.4, temps: '5:12', estime: false,
+           partie: 'Exercice 2', scene: { id: 'S7', titre: '…' }, phrase: { id: 'g3', ecrit: '…' },
            src: 'video/em/ch2' } | null,
-  contenu: { empreinte: 'fnv1a:…', signes: 103593, texte: '…' }  // envoyé une fois par conversation
+  selection: { texte: '… \( formule \) …', section: '§3' } | null,   // ≤ 4 000 signes, TeX compris
+  contenu: { empreinte: 'fnv1a:…', signes: 103593, jetons: 30468, texte: '…' } | null  // sur demande ({ contenu:true })
 }
 ```
 
 Règles :
 
-- **Section visible** : celle de `__surSection` (ligne de lecture), à défaut la 1ʳᵉ du panneau.
-- **Sélection** : mémorisée à chaque `selectionchange` dans `#app-main` (le clic sur le bouton
-  ferait perdre la sélection) ; une formule rendue sélectionnée est rendue en TeX.
+- **Section visible** : dernier surtitre `.sec-num` passé sous une ligne de lecture (sous l'en-tête
+  et les onglets collés) ; les surtitres étant en `display:contents`, on mesure leur 1ᵉʳ enfant ou
+  leur `.course-section`. Même principe pour la méthode et l'exercice courants.
+- **Sélection** : lue au moment du geste (appui sur le bouton, touche `a`, bulle) et gardée une
+  minute ; ses formules sont rendues en TeX (conteneurs MathJax du fragment appariés à ceux de la
+  page, dans l'ordre).
 - **Contenu du chapitre** : texte canonique dans un ordre fixe (Cours, Méthodes, Exercices avec
   solutions, Cartes), formules en TeX `\( … \)` / `$$ … $$`, marqué « solution non ouverte par
   l'élève » le cas échéant. Taille mesurée le 2026-11-17 : médiane ≈ 21 500 signes (≈ 7 000 jetons),
@@ -271,7 +302,8 @@ Règles :
 Le collecteur ne marche que si les conventions tiennent. À respecter dès maintenant :
 `CHAPTERS` source de vérité, `div#chap-<id>`, panneaux `<prefix>-<onglet>`, surtitres
 `.sec-num` « §n · … », exercices `.exo` dans `.exo-wrapper`, routage `#id/onglet`,
-`window.__surSection`, `__preparerSections`, `__VIDEOS` (et son futur champ `src`),
+`window.__surSection`, `__preparerSections`, `__VIDEOS` (et son champ `src`, posé aussi par les
+scripts `video/*/integrer_videos.py`), `window.__instantVideo()`,
 `timeline.json` versionné pour chaque vidéo. Un nouvel onglet ou une nouvelle page doit être
 déclaré au collecteur et couvert par la suite de tests `assistant` (phase 0).
 
@@ -279,7 +311,11 @@ déclaré au collecteur et couvert par la suite de tests `assistant` (phase 0).
 
 ## 4. Les phases
 
-### Phase 0 — Collecte du contexte et interface (aucune IA)
+### Phase 0 — Collecte du contexte et interface (aucune IA) — **livrée le 2026-11-19**
+
+(Ce qui est en ligne : voir en tête du document. Écarts au plan ci-dessous : bouton au téléphone
+dans la feuille ⋯ seulement, la barre `.mbar` étant déjà pleine ; lecteur YouTube écouté par
+messages plutôt que par le script de l'API ; activation par appareil.)
 
 - **Bouton « Assistant »** : en-tête ordinateur (icône + libellé, à côté de « Réviser »),
   feuille ⋯ et/ou barre `.mbar` au téléphone (décision D8) ; raccourci clavier à choisir parmi les
@@ -496,7 +532,7 @@ Chaque ligne donne la recommandation ; rien ne sera codé avant validation.
 | D5 | Modèle par défaut | Sonnet 5.5 effort bas, « Approfondir » sur Opus 5.5 ; à confirmer par la mini-évaluation contre Haiku 5.5 |
 | D6 | Pédagogie sur les exercices | proposer d'abord un indice, la solution complète sur demande ; ne pas dévoiler une solution non ouverte sans demande explicite |
 | D7 | Historique des conversations | en mémoire, par chapitre, pour la session ; pas de stockage durable au début |
-| D8 | Place du bouton au téléphone | dans la barre `.mbar` si la place le permet, sinon la feuille ⋯ (aucune barre fixe en bas) |
+| D8 | Place du bouton au téléphone | **retenu : feuille ⋯** (la barre `.mbar` est pleine) + bulle sur une sélection |
 | D9 | Code de l'assistant hors d'`index.html` | oui, fichier chargé à la demande (exception assumée à « un seul fichier servi ») |
 | D10 | Voix : micro ouvert ou appui pour parler ; voix Camille | appui pour parler d'abord (plus fiable), micro ouvert ensuite ; Camille |
 | D11 | GitHub : compte robot + règle sur `main`, contrôle automatique des PR | oui aux deux ; Thomas seul fusionne |

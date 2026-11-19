@@ -20,7 +20,7 @@ const { demarrerServeur } = require('./lib/serveur');
 const { suivreErreurs, pause } = require('./lib/outils');
 
 const RACINE_DEPOT = path.resolve(__dirname, '..');
-const SUITES = ['site', 'mobile', 'interactions', 'pwa', 'regressions', 'visuel'];
+const SUITES = ['site', 'mobile', 'interactions', 'pwa', 'regressions', 'visuel', 'assistant'];
 
 /* Échantillon du mode --rapide : une dizaine de chapitres couvrant les 5
    matières (dont le chapitre par défaut, des simulateurs, des formules longues).

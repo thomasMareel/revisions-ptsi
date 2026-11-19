@@ -1,0 +1,616 @@
+/* ===== ASSISTANT IA — module chargé à la demande (docs/assistant-ia.md) =====
+   Chargé par l'amorce d'index.html au premier usage (bouton, touche « a », bulle de
+   sélection). Phase 0 : collecte du contexte et panneau ; la discussion arrive en phase 1
+   (relais authentifié). AUCUNE CLÉ ICI, JAMAIS : ce fichier est public.
+
+   API :
+   - window.__contexteAssistant({ contenu:true|false, selection }) → objet au schéma 1
+     (voir docs/assistant-ia.md › « Collecte du contexte ») ;
+   - window.__assistant.ouvrir({ selection, opener, source }) / fermer() / estOuvert() ;
+   - window.__assistant.fiche(demande) → texte de la « fiche de demande » (étape 3a).
+
+   Contrat de compatibilité (CLAUDE.md › Assistant IA) : ce module ne lit que des
+   conventions stables du site (CHAPTERS, #chap-<id>, <prefix>-<onglet>, .sec-num « §n · »,
+   .exo, .method-box, .flash-side, .sim-wrapper, __VIDEOS + timeline.json). */
+(function(){
+  'use strict';
+  if(window.__assistant) return;
+
+  const SCHEMA = 1;
+  const ONGLETS = { cours:'Cours', video:'Vidéos', meth:'Méthodes', simu:'Simulateur', flash:'Cartes', exos:'Exercices' };
+  const MATIERES = { physique:'Physique', maths:'Maths', si:'SI', info:'Info', anglais:'Anglais' };
+  const $ = id => document.getElementById(id);
+  const chapitres = () => (typeof CHAPTERS_BY_ID !== 'undefined' ? CHAPTERS_BY_ID : {});
+  const estTelephone = () => !!(window.matchMedia && window.matchMedia('(max-width:767px)').matches);
+  const mmss = t => { t = Math.max(0, Math.floor(t || 0)); return Math.floor(t / 60) + ':' + String(t % 60).padStart(2, '0'); };
+  const nb = n => (window.__nb ? window.__nb(n, 0) : String(n));
+  const coupe = (t, n) => (t.length > n ? t.slice(0, n - 1).replace(/\s+\S*$/, '') + '…' : t);
+
+  /* ─────────────── 1. Lecture de la page ─────────────── */
+
+  function chapitreVisible(){
+    if(window.__sommaireOuvert && window.__sommaireOuvert()) return null;
+    const els = document.querySelectorAll('.chapter.active');
+    for(const el of els) if(el.offsetParent !== null) return el;
+    return null;
+  }
+  function panneauActif(chap){ return chap ? chap.querySelector(':scope > .panel.active') || chap.querySelector('.panel.active') : null; }
+  /* Boîte d'un repère : les surtitres .sec-num sont en display:contents (marge du cours) et
+     n'ont pas de boîte propre ; on prend alors leur premier enfant mesurable, à défaut leur section. */
+  function rectDe(el){
+    const r = el.getBoundingClientRect();
+    if(r.width || r.height) return r;
+    for(const ch of el.children){ const q = ch.getBoundingClientRect(); if(q.width || q.height) return q; }
+    const sec = el.closest('.course-section');
+    return sec ? sec.getBoundingClientRect() : r;
+  }
+  function visible(el){ const r = rectDe(el); return r.width > 0 || r.height > 0; }
+
+  // Ligne de lecture : sous l'en-tête (ou la barre du téléphone) et les onglets collés, un peu plus bas
+  function ligneLecture(chap){
+    let y = 0;
+    for(const id of ['site-header', 'mob-header']){
+      const h = $(id);
+      if(h && h.offsetParent !== null){ const r = h.getBoundingClientRect(); if(r.bottom > 0) y = Math.max(y, r.bottom); }
+    }
+    const t = chap && chap.querySelector('nav.tabs');
+    if(t){ const r = t.getBoundingClientRect(); if(r.top <= y + 4) y = Math.max(y, r.bottom); }
+    return y + Math.min(160, (window.innerHeight || 800) * 0.22);
+  }
+  // Dernier élément dont le haut a passé la ligne ; à défaut le premier visible
+  function courant(els, y){
+    let c = null, premier = null;
+    for(const el of els){
+      if(!visible(el)) continue;
+      if(!premier) premier = el;
+      if(rectDe(el).top <= y) c = el; else break;
+    }
+    return c || premier;
+  }
+
+  /* TeX des formules déjà composées : MathJax garde, pour chaque formule, son conteneur et
+     son TeX d'origine (même lecture que la recherche). */
+  function carteTeX(){
+    const m = new Map();
+    try { for(const it of MathJax.startup.document.math){ if(it && it.typesetRoot) m.set(it.typesetRoot, { tex:it.math, display:!!it.display }); } } catch(e){}
+    return m;
+  }
+
+  /* Texte d'un morceau de page, formules en TeX (\( … \) en ligne, $$ … $$ en bloc),
+     blocs séparés par des retours à la ligne, solutions marquées. Lecture seule. */
+  const BLOCS = new Set(['P','DIV','SECTION','ARTICLE','H1','H2','H3','H4','H5','H6','UL','OL','TABLE','TR','THEAD','TBODY',
+    'BLOCKQUOTE','PRE','FIGURE','FIGCAPTION','DETAILS','SUMMARY','HR','DL','DT','DD','HEADER','FOOTER','ASIDE','NAV','FORM']);
+  const IGNORER = 'svg, script, style, template, canvas, input, select, textarea, button.toggle-sol, .exo-tools, .kbd-hint, '
+    + '.vid-cadre, .sim-controls, .flash-controls, .review-nav, .fc-reveal, mjx-assistive-mml, [data-assistant-ignorer]';
+  function serialiser(racine, texDe){
+    const out = [];
+    (function marcher(n){
+      if(n.nodeType === 3){ out.push(n.nodeValue); return; }
+      if(n.nodeType !== 1 && n.nodeType !== 11) return;
+      if(n.nodeType === 1){
+        const tag = n.tagName;
+        if(tag === 'MJX-CONTAINER'){
+          const m = texDe(n);
+          if(m) out.push(m.display ? '\n$$' + m.tex + '$$\n' : '\\(' + m.tex + '\\)');
+          return;
+        }
+        if(n.matches(IGNORER)) return;
+        if(tag === 'BR'){ out.push('\n'); return; }
+        if(tag === 'SUB' || tag === 'SUP'){
+          const t = n.textContent || '';
+          out.push((tag === 'SUB' ? '_' : '^') + (t.length > 1 ? '{' + t + '}' : t));
+          return;
+        }
+        const bloc = BLOCS.has(tag) || tag === 'LI';
+        if(tag === 'LI') out.push('\n- ');
+        else if(bloc) out.push('\n');
+        if(tag === 'TD' || tag === 'TH') out.push(' | ');
+        if(n.classList.contains('solution')) out.push('[Solution' + (n.classList.contains('shown') ? '' : ' (non ouverte par l’élève)') + ']\n');
+        for(const c of n.childNodes) marcher(c);
+        if(bloc) out.push('\n');
+        return;
+      }
+      for(const c of n.childNodes) marcher(c);
+    })(racine);
+    return out.join('')
+      .replace(/[ \t   ]+/g, ' ')
+      .split('\n').map(l => l.trim()).join('\n')
+      .replace(/\n{3,}/g, '\n\n').trim();
+  }
+  const texDeCarte = carte => n => carte.get(n) || null;
+
+  // Texte d'une sélection (Range), formules comprises
+  function texteSelection(range){
+    if(!range) return '';
+    const anc = range.commonAncestorContainer;
+    const ancEl = anc.nodeType === 1 ? anc : anc.parentElement;
+    const carte = carteTeX();
+    const dansFormule = ancEl && ancEl.closest ? ancEl.closest('mjx-container') : null;
+    if(dansFormule){
+      const m = carte.get(dansFormule);
+      return m ? (m.display ? '$$' + m.tex + '$$' : '\\(' + m.tex + '\\)') : '';
+    }
+    // conteneurs touchés par la sélection, dans l'ordre du document ↔ ceux du fragment cloné
+    const originaux = ancEl ? Array.from(ancEl.querySelectorAll('mjx-container')).filter(c => range.intersectsNode(c)) : [];
+    const frag = range.cloneContents();
+    const clones = Array.from(frag.querySelectorAll('mjx-container'));
+    const parClone = new Map();
+    if(clones.length === originaux.length) clones.forEach((c, i) => { const m = carte.get(originaux[i]); if(m) parClone.set(c, m); });
+    return serialiser(frag, n => parClone.get(n) || null);
+  }
+
+  function infoSection(el){
+    if(!el) return null;
+    const brut = (el.textContent || '').replace(/\s+/g, ' ').trim();
+    const m = brut.match(/^(§\s*\d+[a-z]?)\s*·\s*(.*)$/i);
+    const sec = el.closest('.course-section');
+    let titre = m ? m[2] : brut;
+    try { if(window.__casPhrase) titre = window.__casPhrase(titre, sec) || titre; } catch(e){}
+    return { num: m ? m[1].replace(/\s+/g, '') : null, titre, id: (sec && sec.id) || el.id || null };
+  }
+
+  function infoExercice(exo, carte){
+    if(!exo) return null;
+    const num = exo.querySelector(':scope > .num');
+    const h = exo.querySelector(':scope > h3');
+    const diff = exo.querySelector(':scope > .diff');
+    let niveau = diff ? +diff.getAttribute('data-niveau') || null : null;
+    if(!niveau && diff) niveau = ((diff.textContent || '').match(/★/g) || []).length || null;
+    const sol = exo.querySelector(':scope > .solution');
+    const st = exo.querySelector(':scope > .statement');
+    return {
+      num: num ? num.textContent.replace(/\s+/g, ' ').trim() : null,
+      titre: h ? serialiser(h, texDeCarte(carte)) : null,
+      niveau, concours: exo.classList.contains('concours'),
+      solutionOuverte: !!(sol && sol.classList.contains('shown')),
+      enonce: st ? coupe(serialiser(st, texDeCarte(carte)), 1500) : null,
+    };
+  }
+
+  function infoCarte(panneau, prefix, carte){
+    const face = panneau.querySelector('.flash-side');
+    if(!face) return null;
+    const q = face.querySelector('.fc-q'), a = face.querySelector('.fc-a');
+    const pos = panneau.querySelector('.fp-n');
+    const mm = pos ? (pos.textContent || '').match(/(\d+)\s*\/\s*(\d+)/) : null;
+    return {
+      deck: prefix, rang: mm ? +mm[1] : null, total: mm ? +mm[2] : null,
+      face: face.classList.contains('verso') ? 'verso' : 'recto',
+      question: q ? serialiser(q, texDeCarte(carte)) : null,
+      reponse: a ? serialiser(a, texDeCarte(carte)) : null,
+    };
+  }
+
+  function infoSimulateur(panneau){
+    const w = panneau.querySelector('.sim-wrapper');
+    if(!w) return null;
+    const txt = el => (el && el.textContent || '').replace(/\s+/g, ' ').trim();
+    const mode = w.querySelector('.mode-switch button.active, .mode-switch [aria-pressed="true"]');
+    const reglages = {}, mesures = {};
+    w.querySelectorAll('.sim-controls .control').forEach(c => {
+      if(!visible(c)) return;
+      const l = c.querySelector('label'), v = c.querySelector('.value'), chk = c.querySelector('input[type="checkbox"]');
+      const k = txt(l); if(!k) return;
+      reglages[k] = chk ? (chk.checked ? 'oui' : 'non') : txt(v);
+    });
+    w.querySelectorAll('.sim-info > div').forEach(d => {
+      const l = d.querySelector('.lbl'); const k = txt(l);
+      const v = txt(d).replace(k, '').trim();
+      if(k && v && v !== '—') mesures[k] = v;
+    });
+    return { titre: txt(w.querySelector('h2')), mode: mode ? txt(mode) : null, reglages, mesures };
+  }
+
+  /* Vidéo lancée : instant de lecture (module Vidéos) → partie, scène, phrase (timeline.json) */
+  const timelines = new Map();   // src → objet | 'chargement' | 'absent'
+  function chargerTimeline(src){
+    if(timelines.has(src)) return;
+    timelines.set(src, 'chargement');
+    fetch(src + '/timeline.json').then(r => r.ok ? r.json() : Promise.reject())
+      .then(j => { timelines.set(src, j); }).catch(() => { timelines.set(src, 'absent'); });
+  }
+  function infoVideo(chapId){
+    const v = window.__instantVideo ? window.__instantVideo() : null;
+    if(!v || (chapId && v.chap && v.chap !== chapId)) return null;
+    const res = { yt:v.yt, titre:v.titre, t:v.t, temps:mmss(v.t), estime:!!v.estime, src:v.src || null };
+    const p = (v.parties || []).filter(x => x[0] <= v.t + 0.5).pop();
+    if(p) res.partie = p[1];
+    if(v.src){
+      const tl = timelines.get(v.src);
+      if(!tl) chargerTimeline(v.src);
+      else if(typeof tl === 'object'){
+        for(const id of tl.ordre || Object.keys(tl.scenes || {})){
+          const sc = tl.scenes[id];
+          if(!sc || v.t < sc.t0 || v.t >= sc.t0 + sc.duree) continue;
+          res.scene = { id, titre: sc.titre || null };
+          const rel = v.t - sc.t0;
+          const ph = (sc.phrases || []).filter(x => x.debut <= rel + 0.3).pop();
+          if(ph) res.phrase = { id: ph.id, ecrit: ph.ecrit || ph.dit || '' };
+          break;
+        }
+      }
+    }
+    return res;
+  }
+
+  /* Contenu du chapitre : texte canonique (Cours, Méthodes, Exercices, Cartes), calculé une
+     fois par chapitre et par session de l'assistant (réutilisé octet pour octet : condition
+     du cache de prompt en phase 1). */
+  const contenus = new Map();
+  function fnv(t){ let h = 0x811c9dc5; for(let i = 0; i < t.length; i++){ h ^= t.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; } return ('0000000' + h.toString(16)).slice(-8); }
+  function contenuChapitre(c){
+    if(contenus.has(c.id)) return contenus.get(c.id);
+    const carte = carteTeX(), parties = [];
+    for(const p of c.panels || []){
+      if(p === 'simu' || p === 'video') continue;
+      if(p === 'flash'){
+        const cartes = (window.FLASH_REGISTRY && window.FLASH_REGISTRY[c.prefix]) || [];
+        if(!cartes.length) continue;
+        const nu = h => String(h || '').replace(/<br\s*\/?>/gi, '\n').replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>');
+        parties.push('# Cartes\n' + cartes.map((k, i) => 'Q' + (i + 1) + '. ' + nu(k.q) + '\nR. ' + nu(k.a)).join('\n'));
+        continue;
+      }
+      const el = $(c.prefix + '-' + p);
+      if(!el) continue;
+      const t = serialiser(el, texDeCarte(carte));
+      if(t) parties.push('# ' + (ONGLETS[p] || p) + '\n' + t);
+    }
+    const texte = parties.join('\n\n');
+    const r = { empreinte: 'fnv1a:' + fnv(texte), signes: texte.length, jetons: Math.round(texte.length / 3.4), texte };
+    contenus.set(c.id, r);
+    return r;
+  }
+
+  /* ─────────────── 2. Collecteur (schéma 1) ─────────────── */
+  function contexte(o){
+    o = o || {};
+    const carte = carteTeX();
+    const chap = chapitreVisible();
+    const c = chap ? chapitres()[chap.id.replace(/^chap-/, '')] : null;
+    const so = window.__sommaireOuvert ? window.__sommaireOuvert() : null;
+    const ctx = {
+      schema: SCHEMA,
+      url: location.href,
+      page: c ? 'chapitre' : (so ? 'sommaire' : 'accueil'),
+      annee: window.__currentYear ? window.__currentYear() : null,
+      matiere: null, chapitre: null, onglet: null, section: null, methode: null,
+      exercice: null, carte: null, simulateur: null, video: null, selection: null, contenu: null,
+    };
+    if(so && !c) ctx.matiere = { code: so, nom: MATIERES[so] || so };
+    if(c){
+      ctx.matiere = { code: c.matiere, nom: MATIERES[c.matiere] || c.matiere };
+      const an = window.__chapYear ? window.__chapYear(c) : null;
+      ctx.chapitre = { id: c.id, prefix: c.prefix, nom: c.name, partie: c.subLabel || null, tag: c.matiereLabel || null,
+                       annee: an === 0 ? 'les deux' : an };
+      const pan = panneauActif(chap);
+      const onglet = pan ? pan.id.slice(c.prefix.length + 1) : null;
+      ctx.onglet = onglet;
+      const y = ligneLecture(chap);
+      if(pan && (onglet === 'cours' || onglet === 'meth')){
+        const secs = Array.from(pan.querySelectorAll('.sec-num')).filter(s => !s.closest('.exo'));
+        ctx.section = infoSection(courant(secs, y));
+        if(onglet === 'meth'){
+          const box = courant(Array.from(pan.querySelectorAll('.method-box')), y);
+          const t = box && box.querySelector('strong, b, h3, h4');
+          if(t) ctx.methode = { titre: serialiser(t, texDeCarte(carte)) };
+        }
+      }
+      if(pan && onglet === 'exos'){
+        const exos = Array.from(pan.querySelectorAll('.exo')).filter(e => !e.classList.contains('filtre-masque'));
+        ctx.exercice = infoExercice(courant(exos, y), carte);
+      }
+      if(pan && onglet === 'flash') ctx.carte = infoCarte(pan, c.prefix, carte);
+      if(pan && onglet === 'simu') ctx.simulateur = infoSimulateur(pan);
+      ctx.video = infoVideo(c.id);
+      if(o.contenu) ctx.contenu = contenuChapitre(c);
+    }
+    const sel = o.selection === undefined ? selectionCourante : o.selection;
+    if(sel && sel.range){
+      const t = texteSelection(sel.range);
+      if(t){
+        const n = sel.range.startContainer;
+        const el = n.nodeType === 1 ? n : n.parentElement;
+        const s = el && el.closest ? el.closest('.course-section') : null;
+        const sn = s && s.querySelector('.sec-num');
+        ctx.selection = { texte: coupe(t, 4000), section: sn ? (infoSection(sn) || {}).num : null };
+      }
+    }
+    return ctx;
+  }
+
+  /* ─────────────── 3. Fiche de demande (étape 3a, sans agent) ─────────────── */
+  function fiche(demande){
+    const x = contexte({ contenu:false });
+    const L = ['# Demande de modification (assistant du site de révisions)', '', '**Demande** : ' + (demande || '').trim(), '', '**Où**'];
+    L.push('- Page : ' + x.url);
+    if(x.chapitre){
+      const c = x.chapitre;
+      L.push('- Chapitre : ' + c.nom + ' (id `' + c.id + '`, préfixe `' + c.prefix + '`, ' + (x.matiere ? x.matiere.nom : '') + ' › ' + (c.partie || '') + ', année : ' + c.annee + ')');
+      if(x.onglet) L.push('- Onglet : ' + (ONGLETS[x.onglet] || x.onglet) + ' (panneau `' + c.prefix + '-' + x.onglet + '`)');
+    }
+    if(x.section) L.push('- Section : ' + (x.section.num ? x.section.num + ' ' : '') + '« ' + x.section.titre + ' »');
+    if(x.methode) L.push('- Méthode : « ' + x.methode.titre + ' »');
+    if(x.exercice) L.push('- Exercice : ' + (x.exercice.num || '') + ' « ' + (x.exercice.titre || '') + ' »' + (x.exercice.concours ? ' (Concours PT)' : ''));
+    if(x.carte) L.push('- Carte : ' + (x.carte.rang ? x.carte.rang + '/' + x.carte.total + ' ' : '') + 'du paquet `' + x.carte.deck + '` — Q : « ' + coupe(x.carte.question || '', 300) + ' »');
+    if(x.simulateur) L.push('- Simulateur : ' + x.simulateur.titre + (x.simulateur.mode ? ' (mode ' + x.simulateur.mode + ')' : ''));
+    if(x.video){
+      const v = x.video;
+      let l = '- Vidéo : « ' + v.titre + ' » (YouTube `' + v.yt + '`' + (v.src ? ', sources `' + v.src + '`' : '') + '), à ' + v.temps + (v.estime ? ' (environ)' : '');
+      if(v.partie) l += ', partie « ' + v.partie + ' »';
+      if(v.scene) l += ', scène ' + v.scene.id + (v.scene.titre ? ' « ' + v.scene.titre + ' »' : '');
+      L.push(l);
+      if(v.phrase) L.push('  - Phrase `' + v.phrase.id + '` : « ' + v.phrase.ecrit + ' »');
+    }
+    if(x.selection){ L.push('- Passage sélectionné :'); x.selection.texte.split('\n').forEach(s => L.push('  > ' + s)); }
+    L.push('', '**Consignes** : suivre `CLAUDE.md` (ancres grep, rédaction originale, notations du site ; `validate.py`, `check_js.py`, tests concernés ; bump de `CACHE_VERSION` si un fichier mis en cache change) ; pour une vidéo, `video/README.md`.');
+    return L.join('\n');
+  }
+
+  /* ─────────────── 4. Panneau ─────────────── */
+  const panel = $('assistant-panel');
+  let construit = false, ouvert = false, opener = null, minuterie = 0, mode = 'question';
+  let selectionCourante = null, dernierResume = '';
+  const icone = n => (window.__icon ? window.__icon(n) : '');
+
+  function construire(){
+    if(construit || !panel) return;
+    construit = true;
+    panel.innerHTML = ''
+      + '<div class="assist-tete">'
+      +   '<h2 class="assist-titre" id="assistant-titre">Assistant</h2>'
+      +   '<span class="assist-etat" title="La discussion sera reliée à l’étape suivante (relais)">bientôt relié</span>'
+      +   '<button type="button" class="btn btn-ghost btn-icon assist-x" aria-label="Fermer l’assistant">' + icone('x') + '</button>'
+      + '</div>'
+      + '<div class="assist-corps">'
+      +   '<section class="assist-ctx" aria-labelledby="assist-ctx-t">'
+      +     '<h3 class="assist-kicker" id="assist-ctx-t">Ce que l’assistant voit</h3>'
+      +     '<p class="assist-lieu"><span class="pastille" aria-hidden="true"></span><span class="assist-lieu-t"></span></p>'
+      +     '<p class="assist-chap"></p>'
+      +     '<ul class="assist-faits"></ul>'
+      +     '<details class="assist-detail"><summary>Détail de l’envoi</summary>'
+      +       '<pre class="assist-json" tabindex="0" aria-label="Contexte envoyé, au format JSON"></pre>'
+      +       '<button type="button" class="btn btn-ghost assist-copier">' + icone('copy') + '<span class="ic-lbl">Copier le contexte</span></button>'
+      +     '</details>'
+      +   '</section>'
+      +   '<div class="assist-fil" role="log" aria-live="polite" aria-relevant="additions">'
+      +     '<p class="assist-accueil">Pose une question sur ce que tu lis : l’assistant reçoit tout seul la page, la section visible, '
+      +     'ta sélection et l’instant de la vidéo. <strong>Pas encore relié</strong> : les réponses arriveront avec la mise en service '
+      +     'du relais. Le mode <strong>Modification</strong> prépare déjà une demande à coller dans Claude Code.</p>'
+      +   '</div>'
+      + '</div>'
+      + '<form class="assist-saisie" novalidate>'
+      +   '<div class="seg assist-mode" role="radiogroup" aria-label="Type de demande">'
+      +     '<button type="button" role="radio" aria-checked="true" tabindex="0" data-mode="question">Question</button>'
+      +     '<button type="button" role="radio" aria-checked="false" tabindex="-1" data-mode="modif">Modification</button>'
+      +   '</div>'
+      +   '<label class="sr" for="assistant-question">Ta demande</label>'
+      +   '<textarea id="assistant-question" class="assist-champ" rows="2"></textarea>'
+      +   '<div class="assist-actions">'
+      +     '<p class="assist-aide" aria-hidden="true">Entrée : envoyer · Maj+Entrée : à la ligne</p>'
+      +     '<button type="submit" class="btn btn-primary assist-envoyer">' + icone('send') + '<span class="ic-lbl">Envoyer</span></button>'
+      +   '</div>'
+      + '</form>';
+
+    panel.querySelector('.assist-x').addEventListener('click', () => fermer());
+    panel.addEventListener('keydown', e => {
+      if(e.key === 'Escape'){ e.stopPropagation(); fermer(); return; }
+      if(e.key === 'Tab' && estTelephone() && window.__focusables){   // page plein écran : focus piégé
+        const f = window.__focusables(panel);
+        if(!f.length) return;
+        const i = f.indexOf(document.activeElement);
+        if(e.shiftKey && (i <= 0)){ e.preventDefault(); f[f.length - 1].focus(); }
+        else if(!e.shiftKey && i === f.length - 1){ e.preventDefault(); f[0].focus(); }
+      }
+    });
+    const det = panel.querySelector('.assist-detail');
+    det.addEventListener('toggle', () => { if(det.open) majJSON(); });
+    panel.querySelector('.assist-copier').addEventListener('click', () => {
+      copier(JSON.stringify(contexte({ contenu:true }), null, 2), 'Contexte copié');
+    });
+    // Type de demande : groupe radio (flèches, tabindex itinérant)
+    const radios = Array.from(panel.querySelectorAll('.assist-mode [role="radio"]'));
+    const choisir = (b, focus) => {
+      radios.forEach(r => { const on = r === b; r.setAttribute('aria-checked', on ? 'true' : 'false'); r.tabIndex = on ? 0 : -1; });
+      mode = b.getAttribute('data-mode');
+      majChamp();
+      if(focus) b.focus();
+    };
+    radios.forEach((b, i) => {
+      b.addEventListener('click', () => choisir(b));
+      b.addEventListener('keydown', e => {
+        if(e.key === 'ArrowRight' || e.key === 'ArrowDown'){ e.preventDefault(); choisir(radios[(i + 1) % radios.length], true); }
+        if(e.key === 'ArrowLeft' || e.key === 'ArrowUp'){ e.preventDefault(); choisir(radios[(i - 1 + radios.length) % radios.length], true); }
+      });
+    });
+    const champ = $('assistant-question');
+    champ.addEventListener('input', ajusterChamp);
+    champ.addEventListener('keydown', e => {
+      if(e.key === 'Enter' && !e.shiftKey && !e.isComposing){ e.preventDefault(); envoyer(); }
+    });
+    panel.querySelector('.assist-saisie').addEventListener('submit', e => { e.preventDefault(); envoyer(); });
+    majChamp();
+    typo(panel);
+    // Fermeture par le bouton retour d'Android (urlRouting envoie Échap au document)
+    document.addEventListener('keydown', e => {
+      if(e.key === 'Escape' && ouvert && estTelephone() && !panel.contains(e.target)) fermer();
+    });
+  }
+
+  // Typographie du site (espaces fines insécables avant ; ! ?, insécables dans « »…) : idempotente
+  function typo(el){ try { if(window.__typographier) window.__typographier(el); } catch(e){} }
+  function majChamp(){
+    const champ = $('assistant-question');
+    if(!champ) return;
+    champ.placeholder = mode === 'modif'
+      ? 'Décris la modification\u00a0: «\u00a0corrige cette démonstration\u00a0», «\u00a0reformule ce passage\u00a0»…'
+      : 'Ta question sur cette page…';
+    const b = panel.querySelector('.assist-envoyer .ic-lbl');
+    if(b) b.textContent = mode === 'modif' ? 'Préparer la fiche' : 'Envoyer';
+  }
+  function ajusterChamp(){
+    const c = $('assistant-question');
+    if(!c) return;
+    c.style.height = 'auto';
+    c.style.height = Math.min(c.scrollHeight + 2, Math.round((window.innerHeight || 800) * 0.4)) + 'px';
+  }
+
+  function ajouterMessage(type, titre, corps, pre){
+    const fil = panel.querySelector('.assist-fil');
+    const d = document.createElement('div');
+    d.className = 'assist-msg ' + type;
+    if(titre){ const t = document.createElement('span'); t.className = 'assist-msg-t'; t.textContent = titre; d.appendChild(t); }
+    if(corps){ const p = document.createElement('p'); p.textContent = corps; d.appendChild(p); }
+    if(pre){ const p = document.createElement('pre'); p.textContent = pre; p.tabIndex = 0; d.appendChild(p); }
+    fil.appendChild(d);
+    typo(d);
+    const corpsEl = panel.querySelector('.assist-corps');
+    try { d.scrollIntoView({ block:'nearest', behavior: window.__reduceMotion ? 'auto' : 'smooth' }); } catch(e){ corpsEl.scrollTop = corpsEl.scrollHeight; }
+    return d;
+  }
+
+  function envoyer(){
+    const champ = $('assistant-question');
+    const texte = (champ.value || '').trim();
+    if(!texte){ champ.focus(); return; }
+    ajouterMessage('moi', null, texte);
+    champ.value = ''; ajusterChamp();
+    if(mode === 'modif'){
+      const f = fiche(texte);
+      copier(f, null).then(ok => {
+        ajouterMessage('note', ok ? 'Fiche copiée' : 'Fiche prête',
+          (ok ? 'Colle-la dans une session Claude Code (environnement « revisions-ptsi ») : ' : 'Copie-la (sélectionne le texte) et colle-la dans une session Claude Code : ')
+          + 'elle dit exactement où modifier.', f);
+      });
+      return;
+    }
+    ajouterMessage('note', 'Pas encore relié',
+      'Question notée avec son contexte, mais l’assistant n’est pas encore relié : les réponses arriveront avec la mise en service du relais (docs/assistant-ia.md, phase 1).');
+  }
+
+  function copier(texte, toast){
+    const fin = ok => { if(ok && toast && window.__toast) window.__toast(toast, { icone:'copy' }); return ok; };
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      return navigator.clipboard.writeText(texte).then(() => fin(true), () => fin(copierVieux(texte)));
+    }
+    return Promise.resolve(fin(copierVieux(texte)));
+  }
+  function copierVieux(texte){
+    const avant = document.activeElement;   // la copie de secours déplace le focus : on le rend ensuite
+    try {
+      const t = document.createElement('textarea');
+      t.value = texte; t.setAttribute('readonly', ''); t.style.position = 'fixed'; t.style.opacity = '0';
+      panel.appendChild(t); t.select();
+      const ok = document.execCommand('copy'); t.remove();
+      if(avant && avant.focus) try { avant.focus({ preventScroll:true }); } catch(e){}
+      return ok;
+    } catch(e){ if(avant && avant.focus) try { avant.focus({ preventScroll:true }); } catch(_){} return false; }
+  }
+
+  // Résumé « Ce que l'assistant voit » (tenu à jour tant que le panneau est ouvert)
+  function majResume(){
+    if(!construit) return;
+    const x = contexte({ contenu:false });
+    const faits = [];
+    if(x.chapitre){
+      let o = ONGLETS[x.onglet] || x.onglet || '';
+      if(x.section) o += ' · ' + (x.section.num ? x.section.num + ' ' : '') + x.section.titre;
+      if(x.methode) o += ' · ' + x.methode.titre;
+      if(x.exercice) o += ' · ' + (x.exercice.num || '') + (x.exercice.titre ? ' ' + x.exercice.titre : '');
+      if(x.carte) o += ' · carte ' + (x.carte.rang || '?') + '/' + (x.carte.total || '?') + ' (' + x.carte.face + ')';
+      if(x.simulateur && x.simulateur.mode) o += ' · mode ' + x.simulateur.mode;
+      faits.push(['Où', o]);
+    } else {
+      faits.push(['Où', x.page === 'sommaire' ? 'Sommaire de la matière' : 'Aucun chapitre affiché']);
+    }
+    if(x.selection) faits.push(['Sélection', '« ' + coupe(x.selection.texte.replace(/\s+/g, ' '), 180) + ' »', 'sel']);
+    if(x.video) faits.push(['Vidéo', x.video.titre + ', à ' + x.video.temps + (x.video.estime ? ' (environ)' : '') + (x.video.partie ? ' — ' + x.video.partie : '')]);
+    if(x.chapitre){
+      const cc = contenus.get(x.chapitre.id);
+      faits.push(['Contenu', cc ? 'le chapitre entier, ' + nb(cc.signes) + ' signes (≈ ' + nb(cc.jetons) + ' jetons)' : 'le chapitre entier (mesure en cours…)']);
+    }
+    const cle = JSON.stringify([x.matiere, x.chapitre && x.chapitre.id, faits]);
+    if(cle === dernierResume) return;
+    dernierResume = cle;
+    const ctxEl = panel.querySelector('.assist-ctx');
+    if(x.matiere) ctxEl.setAttribute('data-mat', x.matiere.code); else ctxEl.removeAttribute('data-mat');
+    panel.querySelector('.assist-lieu-t').textContent = x.chapitre
+      ? [x.matiere && x.matiere.nom, x.chapitre.partie, x.chapitre.annee === 2 ? '2ᵉ année' : (x.chapitre.annee === 1 ? '1ʳᵉ année' : null)].filter(Boolean).join(' · ')
+      : (x.matiere ? x.matiere.nom : 'Site de révisions');
+    panel.querySelector('.assist-chap').textContent = x.chapitre ? x.chapitre.nom : '';
+    const ul = panel.querySelector('.assist-faits');
+    ul.innerHTML = '';
+    faits.forEach(([l, v, cls]) => {
+      const li = document.createElement('li');
+      if(cls) li.className = 'assist-' + cls;
+      const a = document.createElement('span'); a.className = 'lbl'; a.textContent = l;
+      const b = document.createElement('span'); b.className = 'val'; b.textContent = v;
+      li.append(a, b);
+      if(cls === 'sel'){
+        const r = document.createElement('button');
+        r.type = 'button'; r.className = 'btn btn-ghost btn-icon assist-retirer';
+        r.setAttribute('aria-label', 'Ne pas envoyer la sélection');
+        r.innerHTML = icone('x');
+        r.addEventListener('click', () => { selectionCourante = null; majResume(); const ch = $('assistant-question'); if(ch) ch.focus(); });
+        li.appendChild(r);
+      }
+      ul.appendChild(li);
+    });
+    typo(ctxEl);
+    const det = panel.querySelector('.assist-detail');
+    if(det && det.open) majJSON();
+  }
+  function majJSON(){
+    const x = contexte({ contenu:true });
+    if(x.contenu) x.contenu = Object.assign({}, x.contenu, { texte: coupe(x.contenu.texte, 700) + ' [… ' + nb(x.contenu.signes) + ' signes au total]' });
+    panel.querySelector('.assist-json').textContent = JSON.stringify(x, null, 2);
+  }
+  // Mesure du contenu au repos (le résumé l'affiche dès qu'elle est prête)
+  function mesurerContenu(){
+    const chap = chapitreVisible();
+    const c = chap ? chapitres()[chap.id.replace(/^chap-/, '')] : null;
+    if(!c || contenus.has(c.id)) return;
+    const f = () => { try { contenuChapitre(c); dernierResume = ''; majResume(); } catch(e){} };
+    if(window.requestIdleCallback) requestIdleCallback(f, { timeout:1200 }); else setTimeout(f, 200);
+  }
+
+  function ouvrir(o){
+    o = o || {};
+    construire();
+    if(o.selection) selectionCourante = o.selection;
+    else if(window.__assistantSelection){ const s = window.__assistantSelection(); if(s && Date.now() - s.t < 60000) selectionCourante = s; }
+    opener = o.opener || opener || $('assistant-btn');
+    const tel = estTelephone();
+    panel.setAttribute('aria-modal', tel ? 'true' : 'false');
+    if(!ouvert){
+      ouvert = true;
+      panel.classList.add('open');
+      document.documentElement.classList.add('assistant-ouvert');
+      document.querySelectorAll('#assistant-btn').forEach(b => b.setAttribute('aria-expanded', 'true'));
+    }
+    dernierResume = '';
+    majResume();
+    mesurerContenu();
+    clearInterval(minuterie);
+    minuterie = setInterval(() => { if(!document.hidden){ majResume(); mesurerContenu(); } }, 1500);
+    const champ = $('assistant-question');
+    if(o.mode === 'modif'){ const b = panel.querySelector('[data-mode="modif"]'); if(b) b.click(); }
+    // Téléphone : focus sur le panneau (le clavier virtuel ne surgit pas d'office)
+    try { (tel ? panel : champ).focus({ preventScroll:true }); } catch(e){}
+  }
+  function fermer(){
+    if(!ouvert) return;
+    ouvert = false;
+    clearInterval(minuterie);
+    const avaitFocus = panel.contains(document.activeElement);
+    panel.classList.remove('open');
+    document.documentElement.classList.remove('assistant-ouvert');
+    document.querySelectorAll('#assistant-btn').forEach(b => b.setAttribute('aria-expanded', 'false'));
+    if(avaitFocus && window.__rendreFocus){
+      const repli = $('assistant-btn');
+      window.__rendreFocus(opener && opener.getClientRects().length ? opener : null, repli && repli.getClientRects().length ? repli : (document.querySelector('.chapter.active .tab.active') || null));
+    }
+  }
+
+  window.__contexteAssistant = contexte;
+  window.__assistant = { ouvrir, fermer, estOuvert: () => ouvert, contexte, fiche, version: SCHEMA };
+})();

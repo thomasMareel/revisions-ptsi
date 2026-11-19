@@ -127,6 +127,7 @@ const ECRANS = [
   { nom: 'theme', chap: 'rlc', onglet: 'meth', racine: '#theme-pop', ordinateurSeul: true, preparer: ouvrirSelecteurTheme },
   { nom: 'feuille-plus', chap: 'rlc', onglet: 'meth', racine: '#mob-more-menu', telephoneSeul: true, preparer: ouvrirFeuillePlus },
   { nom: 'sommaire', chap: 'rlc', onglet: 'meth', preparer: ouvrirSommaire },
+  { nom: 'assistant', chap: 'maxwell', onglet: 'cours', racine: '#assistant-panel', preparer: ouvrirAssistant },   // panneau de l'assistant IA
 ];
 
 /* Decks dont la progression est semée (Bilan, Aujourd'hui, badge « à réviser ») */
@@ -272,6 +273,29 @@ async function ouvrirFeuillePlus(page) {
   await pause(450);
   return (await estOuvert(page, '#mob-more-menu')) ? [] : ['la feuille ⋯ (#mob-more-menu) ne s\'ouvre pas'];
 }
+async function ouvrirAssistant(page) {
+  // Activé sur l'appareil, un passage du cours sélectionné (puce « Sélection » et son ×),
+  // une question (note « pas encore relié ») et une fiche de modification dans le fil
+  await page.evaluate(() => {
+    Store.set('assistant', '1'); document.documentElement.classList.add('assistant-actif');
+    const p = Array.from(document.querySelectorAll('#mxw-cours .course-section p')).find(x => x.textContent.length > 80);
+    if (p) { const r = document.createRange(); r.selectNodeContents(p); const s = getSelection(); s.removeAllRanges(); s.addRange(r); }
+  });
+  await page.evaluate(() => window.__ouvrirAssistant({ source: 'test' }));
+  await pause(900);
+  // fil vidé (le même panneau sert au thème suivant)
+  await page.evaluate(() => document.querySelectorAll('#assistant-panel .assist-msg').forEach(m => m.remove()));
+  if (!(await estOuvert(page, '#assistant-panel'))) return ['le panneau de l\'assistant ne s\'ouvre pas'];
+  await page.fill('#assistant-question', 'Pourquoi faut-il le courant de déplacement ?');
+  await page.press('#assistant-question', 'Enter');
+  await page.click('#assistant-panel [data-mode="modif"]');
+  await page.fill('#assistant-question', 'Reformule ce paragraphe plus simplement.');
+  await page.press('#assistant-question', 'Enter');
+  await pause(500);
+  await page.evaluate(() => { const s = getSelection(); if (s) s.removeAllRanges(); const c = document.querySelector('#assistant-panel .assist-corps'); if (c) c.scrollTop = 0; });
+  const n = await page.evaluate(() => document.querySelectorAll('#assistant-panel .assist-msg').length);
+  return n === 4 ? [] : ['assistant : ' + n + ' message(s) dans le fil au lieu de 4'];
+}
 async function ouvrirSommaire(page) {
   // Lien profond du Sommaire de la matière (comme un favori ou le bouton précédent)
   await page.evaluate(() => { location.hash = '#sommaire/physique'; });
@@ -286,6 +310,9 @@ async function toutFermer(page) {
   await page.keyboard.press('Escape').catch(() => {});
   await pause(120);
   return page.evaluate(() => {
+    // Assistant IA : refermé et désactivé (son bouton n'apparaît pas dans les autres écrans)
+    if (window.__assistant) window.__assistant.fermer();
+    if (document.documentElement.classList.contains('assistant-actif')) { Store.set('assistant', '0'); document.documentElement.classList.remove('assistant-actif'); }
     const d = document.getElementById('mob-drawer');
     if (d && d.classList.contains('open')) document.getElementById('mob-drawer-close').click();
     const q = document.getElementById('quiz-overlay');
@@ -293,7 +320,7 @@ async function toutFermer(page) {
     document.querySelectorAll('.dash-overlay.open').forEach(o => o.classList.remove('open'));
     const s = document.getElementById('search-overlay');
     if (s && s.classList.contains('open')) document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
-    return Array.from(document.querySelectorAll('#mob-drawer.open, .quiz-overlay.open, .search-overlay.open, .dash-overlay.open, .hdr-more-menu.open, #mob-more-menu.open'))
+    return Array.from(document.querySelectorAll('#mob-drawer.open, .quiz-overlay.open, .search-overlay.open, .dash-overlay.open, .hdr-more-menu.open, #mob-more-menu.open, #assistant-panel.open'))
       .map(e => '#' + e.id);
   });
 }

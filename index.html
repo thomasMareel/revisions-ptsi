@@ -31,6 +31,8 @@
   // Barre latérale des chapitres repliée sur ordinateur (clé navCollapsed) : posée ici
   // aussi, sinon la colonne de lecture sauterait de 288 px au chargement.
   try { if(localStorage.getItem('navCollapsed') === '1') root.classList.add('nav-replie'); } catch(e){}
+  // Assistant IA activé sur CET appareil (clé assistant, posée par ?assistant=1) : bouton visible
+  try { if(localStorage.getItem('assistant') === '1') root.classList.add('assistant-actif'); } catch(e){}
 })();
 </script>
 <link rel="stylesheet" href="vendor/fonts/polices.css">
@@ -3133,6 +3135,117 @@ html.maj-dispo .toasts{ bottom:5.25rem; }
   html.maj-dispo #quiz-overlay.open ~ .toasts{ bottom:calc(9.5rem + env(safe-area-inset-bottom)); }
 }
 
+/* --- Assistant IA (docs/assistant-ia.md) ---------------------------------------------
+   Bouton et bulle visibles seulement sur un appareil où l'assistant est activé
+   (html.assistant-actif, posé par le script du <head>). Panneau NON modal à droite à partir
+   de 768 px, sous l'en-tête : par-dessus la page jusqu'à 1 199 px, puis à la place du rail
+   en décalant la colonne de lecture ; au téléphone, page plein écran (modale, retour Android). */
+html{ --assist-w: clamp(20rem, 30vw, 27rem); }
+html:not(.assistant-actif) .assist-btn,
+html:not(.assistant-actif) .kh-assistant{ display:none !important; }
+#assistant-btn{ gap:.4rem; }
+#assistant-btn[aria-expanded="true"]{ background:var(--press); color:var(--text); }
+.assist{
+  display:none; position:fixed; z-index:calc(var(--z-header) - 1);
+  top:var(--header-h); right:0; bottom:0; width:var(--assist-w);
+  flex-direction:column;
+  background:var(--sheet); color:var(--text);
+  border-left:1px solid var(--line); box-shadow:var(--sh-2);
+  font:var(--w-regular) var(--fs-ui)/var(--lh-ui) var(--font-ui);
+}
+.assist.open{ display:flex; }
+.assist:focus{ outline:none; }
+@media (min-width:1200px){
+  html.assistant-ouvert:not(.assistant-sans-decalage) #app-main{ padding-right:var(--assist-w); }
+  html.assistant-ouvert #chap-rail{ display:none !important; }
+}
+@media (min-width:768px) and (max-width:1199px){ .assist{ box-shadow:var(--sh-3); } }
+.assist-tete{
+  display:flex; align-items:center; gap:.5rem; flex:none;
+  padding:.65rem .5rem .65rem 1.25rem; border-bottom:1px solid var(--line);
+}
+.assist-titre{ flex:1 1 auto; min-width:0; margin:0; font:var(--w-semi) 1.25rem/1.2 var(--font-text); letter-spacing:var(--track-head); }
+.assist-etat{
+  flex:none; padding:.3rem .55rem; border-radius:var(--r-full);
+  background:var(--sunk); color:var(--text-2); font:var(--w-semi) var(--fs-count)/1 var(--font-ui);
+}
+.assist-x .ic{ width:1.35rem; height:1.35rem; }
+.assist-corps{
+  flex:1 1 auto; min-height:0; overflow-y:auto; overscroll-behavior:contain;
+  padding:1rem 1.25rem 1.25rem; scroll-padding-block:.5rem;
+}
+.assist-ctx{ padding:.8rem .9rem .7rem; border:1px solid var(--line-2); border-radius:var(--r-m); background:var(--sunk); }
+.assist-kicker{
+  margin:0 0 .45rem; font:var(--w-semi) var(--fs-ui-xs)/1.3 var(--font-ui);
+  letter-spacing:.05em; text-transform:uppercase; color:var(--text-2);
+}
+.assist-lieu{ display:flex; align-items:center; gap:.45rem; margin:0; color:var(--text-2); font-size:var(--fs-ui-s); }
+.assist-lieu .pastille{ width:.6rem; height:.6rem; flex:none; border-radius:var(--r-full); background:var(--chap-vif, var(--text-3)); }
+.assist-chap{ margin:.15rem 0 .5rem; font:var(--w-semi) var(--fs-ui)/1.3 var(--font-text); color:var(--text); }
+.assist-faits{ list-style:none; margin:0; padding:0; display:grid; gap:.35rem; font-size:var(--fs-ui-s); line-height:1.4; color:var(--text); }
+.assist-faits li{ display:flex; gap:.5rem; align-items:flex-start; min-width:0; }
+.assist-faits .lbl{ flex:none; min-width:4.6rem; color:var(--text-2); }
+.assist-faits .val{ flex:1 1 auto; min-width:0; overflow-wrap:anywhere; }
+.assist-sel .val{ font-family:var(--font-text); font-style:italic; }
+.assist-retirer{ flex:none; margin:-.35rem -.35rem -.35rem 0; min-width:2.25rem; min-height:2.25rem; color:var(--text-2); }
+.assist-detail{ margin-top:.6rem; border-top:1px solid var(--line); padding-top:.5rem; }
+.assist-detail > summary{
+  cursor:pointer; min-height:2.25rem; display:flex; align-items:center;
+  font:var(--w-semi) var(--fs-ui-s)/1.3 var(--font-ui); color:var(--link);
+}
+.assist-detail > summary:focus-visible{ outline:2px solid var(--focus); outline-offset:2px; border-radius:var(--r-xs); }
+.assist-json{
+  max-height:16rem; overflow:auto; margin:.4rem 0 .5rem; padding:.6rem .7rem;
+  border:1px solid var(--line); border-radius:var(--r-s); background:var(--sheet); color:var(--text);
+  font:var(--w-regular) var(--fs-ui-xs)/1.45 var(--font-code); white-space:pre-wrap; overflow-wrap:anywhere;
+  font-variant-ligatures:none;
+}
+.assist-fil{ display:grid; gap:.75rem; margin-top:1rem; }
+.assist-msg{ max-width:100%; padding:.65rem .85rem; border-radius:var(--r-m); font-size:var(--fs-ui); line-height:1.5; overflow-wrap:anywhere; }
+.assist-msg p{ margin:0; }
+.assist-msg p + p{ margin-top:.5rem; }
+.assist-msg.moi{ justify-self:end; max-width:88%; background:var(--sunk); border:1px solid var(--line-2); white-space:pre-wrap; }
+.assist-msg.note{ background:var(--sheet); border:1px solid var(--line-2); border-left:3px solid var(--ambre-vif, var(--ambre)); color:var(--text); }
+.assist-msg.note .assist-msg-t{ display:block; margin-bottom:.25rem; font:var(--w-semi) var(--fs-ui-xs)/1.3 var(--font-ui); color:var(--text-2); letter-spacing:.04em; text-transform:uppercase; }
+.assist-msg pre{ margin:.5rem 0 0; max-height:14rem; overflow:auto; padding:.55rem .65rem; border-radius:var(--r-s); background:var(--sunk); font:var(--w-regular) var(--fs-ui-xs)/1.45 var(--font-code); white-space:pre-wrap; }
+.assist-accueil{ margin:0; color:var(--text-2); font-size:var(--fs-ui-s); line-height:1.5; }
+.assist-saisie{
+  flex:none; display:grid; gap:.55rem; padding:.75rem 1rem 1rem;
+  border-top:1px solid var(--line); background:var(--sheet);
+}
+.assist-mode{ justify-self:start; }
+.assist-champ{
+  width:100%; min-height:3.25rem; max-height:40vh; resize:none; display:block;
+  padding:.6rem .75rem; border:1px solid var(--field); border-radius:var(--r-m);
+  background:var(--raise); color:var(--text); font:var(--w-regular) var(--fs-ui)/1.45 var(--font-ui);
+}
+.assist-champ::placeholder{ color:var(--text-3); opacity:1; }
+.assist-champ:focus-visible{ outline:2px solid var(--focus); outline-offset:1px; }
+.assist-actions{ display:flex; align-items:center; gap:.6rem; }
+.assist-aide{ flex:1 1 auto; min-width:0; margin:0; color:var(--text-2); font-size:var(--fs-ui-xs); line-height:1.35; }
+.assist-envoyer{ flex:none; gap:.4rem; }
+.assist-bulle{
+  position:fixed; z-index:var(--z-menu); gap:.4rem; padding:.45rem .85rem; min-height:2.5rem;
+  border-radius:var(--r-full); background:var(--primary); color:var(--on-primary); border:0;
+  box-shadow:var(--sh-2); font:var(--w-semi) var(--fs-ui-s)/1 var(--font-ui);
+}
+.assist-bulle:hover{ background:var(--primary-hover); }
+.assist-bulle[hidden]{ display:none !important; }
+@media (pointer:coarse){
+  .assist-bulle, .assist-retirer, .assist-x{ min-height:var(--tap); min-width:var(--tap); }
+  .assist-detail > summary{ min-height:var(--tap); }
+  .assist-aide{ visibility:hidden; }   /* raccourcis du clavier : sans objet au doigt */
+}
+@media (max-width:767px){
+  .assist{ top:0; left:0; width:auto; border-left:0; box-shadow:none; z-index:var(--z-overlay); }
+  .assist-tete{ padding:calc(.5rem + env(safe-area-inset-top)) .25rem .5rem var(--gutter); min-height:3.75rem; }
+  .assist-titre{ font-size:1.5rem; }
+  .assist-corps{ padding:1rem var(--gutter) 1.25rem; }
+  .assist-saisie{ padding:.75rem var(--gutter) calc(1rem + env(safe-area-inset-bottom)); }
+}
+@media (forced-colors: active){ .assist{ border-left:1px solid CanvasText; } .assist-bulle{ border:1px solid CanvasText; } }
+@media print{ .assist, .assist-bulle{ display:none !important; } }
+
 /* ===== FIN RÉGION FENETRES ===== */
 
 
@@ -3257,6 +3370,9 @@ window.__rendreFocus = function(op, repli){
   <symbol id="i-skip" viewBox="0 0 24 24"><path d="M6 6.5 12 12l-6 5.5M13 6.5l6 5.5-6 5.5"/></symbol>
   <symbol id="i-flip" viewBox="0 0 24 24"><path d="M4 9a8 8 0 0 1 14-3.5L20 7.5"/><path d="M20 3.5v4h-4"/><path d="M20 15a8 8 0 0 1-14 3.5L4 16.5"/><path d="M4 20.5v-4h4"/></symbol>
   <symbol id="i-play" viewBox="0 0 24 24"><path d="M8 5.5v13l10.5-6.5z"/></symbol>
+  <symbol id="i-assistant" viewBox="0 0 24 24"><path d="M5 4.5h14A1.5 1.5 0 0 1 20.5 6v9a1.5 1.5 0 0 1-1.5 1.5h-7.5L7 20v-3.5H5A1.5 1.5 0 0 1 3.5 15V6A1.5 1.5 0 0 1 5 4.5z"/><path d="M8 9h8M8 12h5"/></symbol>
+  <symbol id="i-send" viewBox="0 0 24 24"><path d="M4.5 12 19.5 4.5 16 19.5l-4.5-6z"/><path d="M11.5 13.5 19.5 4.5"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24"><rect x="8.5" y="8.5" width="11" height="11" rx="1.5"/><path d="M15.5 8.5V6a1.5 1.5 0 0 0-1.5-1.5H6A1.5 1.5 0 0 0 4.5 6v8A1.5 1.5 0 0 0 6 15.5h2.5"/></symbol>
 </defs></svg>
 
 <!-- ===== EN-TÊTE ORDINATEUR ET TABLETTE (≥ 768 px) : collant, 56 px =====
@@ -3266,6 +3382,7 @@ window.__rendreFocus = function(op, repli){
   <div class="brand"><span class="brand-mark" aria-hidden="true"></span><h1 class="brand-name">Mes cours de <em>prépa</em></h1></div>
   <button id="search-btn" class="hdr-search" type="button" title="Rechercher (Ctrl+K)" aria-label="Rechercher un chapitre, une formule, une carte (Ctrl+K)" aria-keyshortcuts="Control+K"><svg class="ic" aria-hidden="true"><use href="#i-search"></use></svg><span class="hdr-search-ph"><span class="ph-long">Rechercher chapitre, formule, carte…</span><span class="ph-court">Rechercher…</span></span><kbd class="kbd kbd-hint">Ctrl K</kbd></button>
   <span class="spacer"></span>
+  <button id="assistant-btn" class="btn btn-ghost assist-btn" type="button" title="Assistant : une question sur cette page (A)" aria-label="Assistant" aria-keyshortcuts="A" aria-controls="assistant-panel" aria-expanded="false"><svg class="ic" aria-hidden="true"><use href="#i-assistant"></use></svg><span class="ic-lbl">Assistant</span></button>
   <div class="hdr-more">
     <button id="study-btn" class="btn btn-primary" type="button" title="Réviser : révisions du jour, quiz, calcul mental" aria-label="Réviser" aria-haspopup="true" aria-expanded="false" aria-controls="study-menu"><svg class="ic" aria-hidden="true"><use href="#i-refresh"></use></svg><span class="ic-lbl">Réviser</span><span class="count rev-badge" id="rev-badge" hidden>0</span><svg class="ic ic-s ic-chev" aria-hidden="true"><use href="#i-chev-down"></use></svg></button>
     <div id="study-menu" class="hdr-more-menu menu" role="menu" aria-label="Réviser">
@@ -3330,6 +3447,7 @@ window.__rendreFocus = function(op, repli){
 <div id="mob-more-scrim" class="scrim" hidden></div>
 <div id="mob-more-menu" class="bsheet" role="dialog" aria-modal="true" aria-label="Plus d'actions">
   <div class="grab" aria-hidden="true"></div>
+  <button id="mob-assistant-btn" class="menu-item assist-btn" type="button" aria-controls="assistant-panel"><svg class="ic" aria-hidden="true"><use href="#i-assistant"></use></svg><span>Assistant</span><span class="end">question sur cette page</span></button>
   <button id="mob-today-btn" class="menu-item" type="button"><svg class="ic" aria-hidden="true"><use href="#i-calendar"></use></svg><span>Aujourd'hui</span><span class="count rev-badge" id="rev-badge-sheet" hidden>0</span></button>
   <button id="mob-dash-btn" class="menu-item" type="button"><svg class="ic" aria-hidden="true"><use href="#i-chart"></use></svg><span>Bilan</span></button>
   <button id="mob-quiz-btn" class="menu-item" type="button"><svg class="ic" aria-hidden="true"><use href="#i-bolt"></use></svg><span>Quiz</span></button>
@@ -3422,6 +3540,12 @@ window.__rendreFocus = function(op, repli){
 <!-- Colonne de lecture (décalée par la barre latérale à partir de 1200 px). Un <article> neutre
      (role="none"), jamais un <div> ni un <section> : les </div> et </section> orphelins du
      contenu (anomalie connue) refermeraient l'enveloppe et en sortiraient les chapitres. -->
+<!-- ===== ASSISTANT IA (docs/assistant-ia.md) : panneau construit au 1er clic par
+     assistant/assistant.js ; bouton visible seulement sur un appareil où il est activé
+     (?assistant=1). Aucune requête externe tant qu'on ne l'utilise pas. -->
+<div id="assistant-panel" class="assist" role="dialog" aria-modal="false" aria-labelledby="assistant-titre" tabindex="-1"></div>
+<button id="assistant-bulle" class="btn assist-bulle" type="button" hidden><svg class="ic" aria-hidden="true"><use href="#i-assistant"></use></svg><span>Demander à l'assistant</span></button>
+
 <article id="app-main" role="none">
 <!-- Sommaire de la matière (#sommaire/<matière>) : rempli à l'ouverture -->
 <section id="sommaire-matiere" class="sommaire" aria-label="Sommaire de la matière" hidden></section>
@@ -109990,7 +110114,7 @@ function navigateTo(chapId, panelId, onDone){
      ignoré) ; si un chapitre est choisi depuis la page, elle est REMPLACÉE par ce
      chapitre (syncHash fait alors replaceState au lieu de pushState). */
   const PAGES = ['mob-drawer','mob-more-menu','today-overlay','search-overlay','quiz-overlay','dash-overlay',
-    'formula-overlay','backup-overlay','flag-overlay','drill-overlay'];
+    'formula-overlay','backup-overlay','flag-overlay','drill-overlay','assistant-panel'];
   const mqTel = window.matchMedia ? window.matchMedia('(max-width:767px)') : { matches:false };
   let pageFictive = null;      // page ouverte qui a empilé l'entrée fictive
   let aRemplacer = false;      // entrée fictive au sommet, à remplacer par la prochaine URL
@@ -110672,6 +110796,7 @@ function navigateTo(chapId, panelId, onDone){
             <tr><td><kbd>Espace</kbd></td><td>Retourner la carte</td></tr>
             <tr><td><kbd>←</kbd> <kbd>→</kbd></td><td>Carte précédente / suivante</td></tr>
             <tr><td><kbd>Ctrl K</kbd></td><td>Ouvrir la recherche</td></tr>
+            <tr class="kh-assistant"><td><kbd>a</kbd></td><td>Ouvrir l'assistant (sur un appareil où il est activé)</td></tr>
             <tr><td><kbd>Ctrl P</kbd></td><td>Imprimer le chapitre</td></tr>
             <tr><td><kbd>Échap</kbd></td><td>Fermer la fenêtre ouverte</td></tr>
             <tr><td><kbd>?</kbd></td><td>Afficher / masquer cette aide</td></tr>
@@ -114897,100 +115022,100 @@ document.getElementById('skip-link')?.addEventListener('click', e => {
   try {
   window.__VIDEOS = {
     oemcond: [
-      { yt:'Ol2CryUPsdE', titre:'Ondes électromagnétiques et conducteurs', duree:756, apercu:'media/videos/em-5.webp',
+      { yt:'Ol2CryUPsdE', src:'video/em/ch5', titre:'Ondes électromagnétiques et conducteurs', duree:756, apercu:'media/videos/em-5.webp',
         parties:[[0,'Introduction'],[27,'Le conducteur ohmique'],[71,'Diffusion et effet de peau'],[125,'Conducteur parfait et réflexion'],[178,'Onde stationnaire et cavité'],[212,'Exercice 1 : le blindage d\'une salle d\'IRM'],[257,'Exercice 1 : la solution'],[326,'Exercice 2 : une antenne devant un réflecteur'],[378,'Exercice 2 : l\'onde stationnaire'],[459,'Exercice 2 : courants et énergie'],[516,'Exercice 3 : la cavité d\'un four à micro-ondes'],[573,'Exercice 3 : modes et points chauds'],[635,'Exercice 3 : des parois réelles'],[678,'Ce qu\'il faut retenir'],[722,'Conclusion du cours']] }
     ],
     oemvide: [
-      { yt:'Kwkz21HK5QI', titre:'Ondes électromagnétiques dans le vide', duree:726, apercu:'media/videos/em-4.webp',
+      { yt:'Kwkz21HK5QI', src:'video/em/ch4', titre:'Ondes électromagnétiques dans le vide', duree:726, apercu:'media/videos/em-4.webp',
         parties:[[0,'Introduction'],[29,'Des équations de Maxwell à d\'Alembert'],[84,'Structure de l\'onde plane progressive'],[139,'Polarisation et énergie'],[194,'Spectre et limites du modèle'],[234,'Exercice 1 : lire une onde plane'],[279,'Exercice 1 : la solution'],[358,'Exercice 2 : une impulsion laser'],[408,'Exercice 2 : la solution'],[482,'Exercice 3 : une onde partiellement réfléchie'],[539,'Exercice 3 : structure de l\'onde'],[605,'Exercice 3 : mesures et énergie'],[677,'Ce qu\'il faut retenir']] }
     ],
     maxwell: [
-      { yt:'ebSM2mPETZ8', titre:'Équations de Maxwell, ARQS et énergie électromagnétique', duree:733, apercu:'media/videos/em-3.webp',
+      { yt:'ebSM2mPETZ8', src:'video/em/ch3', titre:'Équations de Maxwell, ARQS et énergie électromagnétique', duree:733, apercu:'media/videos/em-3.webp',
         parties:[[0,'Introduction'],[25,'Les quatre équations de Maxwell'],[78,'Formes intégrales et conservation de la charge'],[131,'ARQS magnétique et loi d\'Ohm locale'],[178,'Énergie électromagnétique'],[228,'Exercice 1 : une sphère qui se décharge'],[271,'Exercice 1 : la solution'],[355,'Exercice 2 : un condensateur en régime sinusoïdal'],[403,'Exercice 2 : les champs'],[461,'Exercice 2 : le bilan d\'énergie'],[520,'Exercice 3 : un fil chauffant'],[568,'Exercice 3 : les champs et le vecteur de Poynting'],[629,'Exercice 3 : la puissance entrante'],[684,'Ce qu\'il faut retenir']] }
     ],
     magnetostat: [
-      { yt:'VZjnGjQ3ynU', titre:'Magnétostatique : théorème d\'Ampère', duree:771, apercu:'media/videos/em-2.webp',
+      { yt:'VZjnGjQ3ynU', src:'video/em/ch2', titre:'Magnétostatique : théorème d\'Ampère', duree:771, apercu:'media/videos/em-2.webp',
         parties:[[0,'Introduction'],[28,'Courants et symétries'],[90,'Flux conservatif et lignes de champ'],[130,'Le théorème d\'Ampère'],[179,'Les champs de référence'],[244,'Exercice 1 : un câble coaxial'],[288,'Exercice 1 : la solution'],[373,'Exercice 2 : une bobine torique'],[415,'Exercice 2 : le champ dans le tore'],[460,'Exercice 2 : flux propre et inductance'],[523,'Exercice 3 : l\'aimant d\'un accélérateur'],[575,'Exercice 3 : un cylindre plein'],[634,'Exercice 3 : un champ uniforme'],[717,'Ce qu\'il faut retenir']] }
     ],
     estat2a: [
-      { yt:'RtcA5oAOB6E', titre:'Électrostatique : symétries et théorème de Gauss', duree:773, apercu:'media/videos/em-1.webp',
+      { yt:'RtcA5oAOB6E', src:'video/em/ch1', titre:'Électrostatique : symétries et théorème de Gauss', duree:773, apercu:'media/videos/em-1.webp',
         parties:[[0,'Introduction'],[28,'Charges, champ de Coulomb et superposition'],[84,'Symétries et invariances'],[127,'Flux et théorème de Gauss'],[183,'Potentiel, énergie et condensateur plan'],[246,'Exercice 1 : un tube chargé'],[284,'Exercice 1 : la solution'],[378,'Exercice 2 : une boule et sa coquille'],[423,'Exercice 2 : le champ'],[487,'Exercice 2 : le potentiel'],[550,'Exercice 3 : un condensateur plan'],[599,'Exercice 3 : champ, capacité et énergie'],[662,'Exercice 3 : l\'électron et la force'],[723,'Ce qu\'il faut retenir']] }
     ],
     rdm: [
-      { yt:'p6ssn39My68', titre:'Torseur de cohésion et diagrammes des efforts', duree:775, apercu:'media/videos/rdm-1.webp',
+      { yt:'p6ssn39My68', src:'video/rdm/ch1', titre:'Torseur de cohésion et diagrammes des efforts', duree:775, apercu:'media/videos/rdm-1.webp',
         parties:[[0,'Introduction'],[27,'Le modèle poutre'],[76,'La coupure et le torseur de cohésion'],[125,'Composantes et sollicitations'],[170,'Équations locales et diagrammes'],[226,'Exercice 1 : l\'énoncé'],[263,'Exercice 1 : réactions et coupures'],[338,'Exercice 1 : les diagrammes'],[393,'Exercice 2 : l\'énoncé'],[429,'Exercice 2 : la coupure côté libre'],[496,'Exercice 2 : diagrammes et contrôles'],[560,'Exercice 3 : l\'énoncé'],[599,'Exercice 3 : réactions et effort tranchant'],[660,'Exercice 3 : le moment maximal'],[724,'Ce qu\'il faut retenir : la méthode']] },
-      { yt:'UwXv5acAwKo', titre:'Contraintes et dimensionnement en résistance', duree:780, apercu:'media/videos/rdm-2.webp',
+      { yt:'UwXv5acAwKo', src:'video/rdm/ch2', titre:'Contraintes et dimensionnement en résistance', duree:780, apercu:'media/videos/rdm-2.webp',
         parties:[[0,'Introduction'],[29,'Contraintes et caractéristiques des sections'],[100,'Traction, cisaillement et torsion'],[144,'La flexion'],[192,'Le critère de résistance'],[234,'Exercice 1 : une suspente et son axe'],[280,'Exercice 1 : la solution'],[382,'Exercice 2 : un arbre en torsion'],[426,'Exercice 2 : la solution'],[517,'Exercice 3 : une poutre en flexion'],[569,'Exercice 3 : les diagrammes'],[635,'Exercice 3 : debout ou couché ?'],[730,'Ce qu\'il faut retenir']] },
-      { yt:'kwBt7ybUMjo', titre:'Déformations, flèches et dimensionnement en rigidité', duree:774, apercu:'media/videos/rdm-3.webp',
+      { yt:'kwBt7ybUMjo', src:'video/rdm/ch3', titre:'Déformations, flèches et dimensionnement en rigidité', duree:774, apercu:'media/videos/rdm-3.webp',
         parties:[[0,'Introduction'],[27,'Déplacements et loi de Hooke'],[76,'Traction et torsion : allongement et angle'],[118,'La déformée en flexion'],[170,'Flèches de référence et critère de rigidité'],[232,'Exercice 1 : la console, énoncé'],[279,'Exercice 1 : la résolution'],[383,'Exercice 2 : la poutre sur deux appuis, énoncé'],[431,'Exercice 2 : la déformée'],[505,'Exercice 2 : choisir le profilé'],[567,'Exercice 3 : l\'arbre de transmission, énoncé'],[619,'Exercice 3 : résistance ou rigidité ?'],[717,'Ce qu\'il faut retenir']] }
     ],
     correcteurs: [
-      { yt:'0EIiA9qVPc0', titre:'Correction des SLCI : régler les correcteurs', duree:518, apercu:'media/videos/slci-8.webp',
+      { yt:'0EIiA9qVPc0', src:'video/slci/ch8', titre:'Correction des SLCI : régler les correcteurs', duree:518, apercu:'media/videos/slci-8.webp',
         parties:[[0,'Introduction'],[31,'Du cahier des charges à la FTBO'],[63,'Les actions P, I et D'],[94,'Le correcteur proportionnel'],[139,'Le correcteur PI'],[182,'Exemple en direct : un PI par compensation'],[221,'Le correcteur à avance de phase'],[266,'À vous : un réglage proportionnel'],[300,'Vérifier et choisir'],[328,'Stratégies avancées'],[365,'À retenir'],[397,'Exercice résolu : l\'énoncé'],[425,'Exercice résolu : la solution']] }
     ],
     precision: [
-      { yt:'gQ35DTd6J4A', titre:'Performances : précision et rapidité', duree:473, apercu:'media/videos/slci-7.webp',
+      { yt:'gQ35DTd6J4A', src:'video/slci/ch7', titre:'Performances : précision et rapidité', duree:473, apercu:'media/videos/slci-7.webp',
         parties:[[0,'Introduction'],[30,'Les critères du cahier des charges'],[54,'L\'écart en régime permanent'],[80,'La classe décide de tout'],[110,'Deux exemples en direct'],[155,'Rejeter une perturbation'],[196,'Deux intégrateurs qui ne se valent pas'],[233,'La rapidité'],[259,'À vous : un écart statique'],[291,'Le dilemme et les correcteurs'],[332,'À retenir'],[364,'Exercice résolu : l\'énoncé'],[395,'Exercice résolu : la solution']] }
     ],
     stabilite: [
-      { yt:'GptliWlL0m8', titre:'Stabilité des systèmes asservis', duree:494, apercu:'media/videos/slci-6.webp',
+      { yt:'GptliWlL0m8', src:'video/slci/ch6', titre:'Stabilité des systèmes asservis', duree:494, apercu:'media/videos/slci-6.webp',
         parties:[[0,'Introduction'],[29,'La notion de stabilité'],[56,'Boucler peut déstabiliser'],[88,'Les critères algébriques'],[128,'Le point critique'],[161,'Le critère du revers'],[187,'Les marges de stabilité'],[224,'Marge de phase et amortissement'],[247,'À vous : régler un gain'],[288,'L\'effet du gain'],[311,'Le danger du retard'],[345,'À retenir'],[375,'Exercice résolu : l\'énoncé'],[404,'Exercice résolu : la solution']] }
     ],
     bode: [
-      { yt:'jwZeQ_RFNAc', titre:'Réponse fréquentielle et diagrammes de Bode', duree:510, apercu:'media/videos/slci-5.webp',
+      { yt:'jwZeQ_RFNAc', src:'video/slci/ch5', titre:'Réponse fréquentielle et diagrammes de Bode', duree:510, apercu:'media/videos/slci-5.webp',
         parties:[[0,'Introduction'],[31,'La réponse harmonique'],[57,'Décibels et échelle logarithmique'],[96,'Les briques élémentaires'],[138,'La démarche du tracé asymptotique'],[170,'Exemple en direct : deux premiers ordres'],[211,'Exemple en direct : un intégrateur et un zéro'],[269,'Les valeurs exactes'],[303,'À vous : un tracé asymptotique'],[348,'Lire un diagramme de Bode'],[380,'À retenir'],[408,'Exercice résolu : l\'énoncé'],[441,'Exercice résolu : la solution']] }
     ],
     sys2: [
-      { yt:'UErWl-Ze6Dk', titre:'Systèmes du deuxième ordre', duree:465, apercu:'media/videos/slci-4.webp',
+      { yt:'UErWl-Ze6Dk', src:'video/slci/ch4', titre:'Systèmes du deuxième ordre', duree:465, apercu:'media/videos/slci-4.webp',
         parties:[[0,'Introduction'],[27,'Le modèle du deuxième ordre'],[69,'Les pôles selon ξ'],[102,'Les réponses indicielles'],[127,'Le dépassement'],[166,'Le temps de réponse'],[199,'La réponse fréquentielle'],[231,'Identifier un deuxième ordre'],[257,'À vous : lire une fonction de transfert'],[291,'Le compromis du gain'],[321,'À retenir'],[352,'Exercice résolu : l\'énoncé'],[383,'Exercice résolu : la solution']] }
     ],
     sys1: [
-      { yt:'Qo0SvSv6bp0', titre:'Systèmes du premier ordre', duree:455, apercu:'media/videos/slci-3.webp',
+      { yt:'Qo0SvSv6bp0', src:'video/slci/ch3', titre:'Systèmes du premier ordre', duree:455, apercu:'media/videos/slci-3.webp',
         parties:[[0,'Introduction'],[30,'Le modèle du premier ordre'],[66,'La réponse indicielle en direct'],[98,'Les points remarquables'],[131,'Le piège de la linéarité'],[152,'La réponse à une rampe'],[179,'La réponse fréquentielle'],[229,'Identifier un premier ordre'],[251,'À vous : un four'],[290,'Le premier ordre dans une boucle'],[318,'À retenir'],[348,'Exercice résolu : l\'énoncé'],[383,'Exercice résolu : la solution']] }
     ],
     schblocs: [
-      { yt:'ConrBhCZ7xE', titre:'Schéma-blocs et systèmes asservis', duree:522, apercu:'media/videos/slci-2.webp',
+      { yt:'ConrBhCZ7xE', src:'video/slci/ch2', titre:'Schéma-blocs et systèmes asservis', duree:522, apercu:'media/videos/slci-2.webp',
         parties:[[0,'Introduction'],[28,'Boucle ouverte ou boucle fermée'],[57,'La structure d\'un système asservi'],[96,'Le langage des schémas-blocs'],[123,'Exemple en direct : le moteur à courant continu'],[162,'Réduire un schéma-blocs'],[202,'La fonction de transfert du moteur'],[241,'Boucle ouverte et boucle fermée'],[274,'Les perturbations'],[303,'À vous : deux boucles imbriquées'],[350,'Ce que le bouclage apporte'],[382,'À retenir'],[414,'Exercice résolu : l\'énoncé'],[448,'Exercice résolu : la solution']] }
     ],
     slci: [
-      { yt:'7IaEIZSCAxE', titre:'Modélisation et transformée de Laplace', duree:585, apercu:'media/videos/slci-1.webp',
+      { yt:'7IaEIZSCAxE', src:'video/slci/ch1', titre:'Modélisation et transformée de Laplace', duree:585, apercu:'media/videos/slci-1.webp',
         parties:[[0,'Introduction'],[28,'Les systèmes linéaires continus et invariants'],[74,'Non-linéarités et linéarisation'],[111,'La transformée de Laplace'],[145,'La table et les théorèmes'],[185,'Exemple en direct : la fonction de transfert'],[234,'Forme canonique : le piège du gain'],[274,'Revenir au temps'],[318,'Les pôles décident de tout'],[351,'À vous : une décomposition'],[399,'Six modèles de référence'],[432,'À retenir'],[467,'Exercice résolu : l\'énoncé'],[496,'Exercice résolu : la solution']] }
     ],
     matrices2a: [
-      { yt:'dVcvv4LDbG4', titre:'Changement de base, rang et matrices équivalentes', duree:571, apercu:'media/videos/matrices-2.webp',
+      { yt:'dVcvv4LDbG4', src:'video/matrices/ch2', titre:'Changement de base, rang et matrices équivalentes', duree:571, apercu:'media/videos/matrices-2.webp',
         parties:[[0,'Introduction'],[34,'Matrice d\'une application linéaire'],[80,'Composition et produit'],[114,'La matrice de passage'],[154,'La formule de changement de base'],[197,'Exemple en direct : la bonne base'],[233,'À vous : changer de base'],[267,'Le rang'],[301,'Rang et noyau en direct'],[336,'Matrices équivalentes'],[384,'Les matrices de rang 1'],[424,'À retenir'],[450,'Exercice résolu : l\'énoncé'],[490,'Exercice résolu : la solution']] },
-      { yt:'Fr12BKPraHo', titre:'Trace, matrices semblables et calcul par blocs', duree:537, apercu:'media/videos/matrices-3.webp',
+      { yt:'Fr12BKPraHo', src:'video/matrices/ch3', titre:'Trace, matrices semblables et calcul par blocs', duree:537, apercu:'media/videos/matrices-3.webp',
         parties:[[0,'Introduction'],[32,'La trace'],[79,'Deux résultats grâce à la trace'],[113,'Matrices semblables'],[147,'Prouver qu\'elles ne sont pas semblables'],[189,'Prouver qu\'elles sont semblables'],[229,'À vous : semblables ou pas ?'],[254,'Le calcul par blocs'],[297,'Déterminant par blocs'],[329,'Sous-espaces stables'],[369,'À retenir'],[395,'Exercice résolu : l\'énoncé'],[440,'Exercice résolu : la solution']] },
-      { yt:'1hIEsGq6eTg', titre:'Polynômes de matrices, nilpotentes et puissances', duree:570, apercu:'media/videos/matrices-4.webp',
+      { yt:'1hIEsGq6eTg', src:'video/matrices/ch4', titre:'Polynômes de matrices, nilpotentes et puissances', duree:570, apercu:'media/videos/matrices-4.webp',
         parties:[[0,'Introduction'],[34,'Polynômes de matrices'],[71,'Polynôme annulateur'],[122,'Inverser grâce à un polynôme annulateur'],[166,'À vous : un inverse'],[195,'Aⁿ par division euclidienne'],[254,'Le résultat, et la vérification'],[288,'Matrices nilpotentes'],[324,'Le binôme avec une nilpotente'],[364,'Inverse de I − N'],[404,'À retenir'],[428,'Exercice résolu : l\'énoncé'],[472,'Exercice résolu : la solution']] }
     ],
     matrices: [
-      { yt:'glra17NIKWo', titre:'Calcul matriciel : les méthodes de première année', duree:491, apercu:'media/videos/matrices-1.webp',
+      { yt:'glra17NIKWo', src:'video/matrices/ch1', titre:'Calcul matriciel : les méthodes de première année', duree:491, apercu:'media/videos/matrices-1.webp',
         parties:[[0,'Introduction'],[30,'Le produit matriciel'],[88,'Trois pièges'],[115,'Puissances : conjecturer, puis démontrer'],
           [149,'Puissances : le binôme de Newton'],[190,'À vous : une puissance'],[213,'Résoudre un système : le pivot de Gauss'],
           [267,'Combien de solutions ?'],[292,'Inverser une matrice de taille 2'],[324,'Inverser : la méthode du système'],[364,'À retenir'],
           [390,"Exercice résolu : l'énoncé"],[423,'Exercice résolu : la solution']] }
     ],
     thermochimie: [
-      { yt:'YtisR2_KXQ0', titre:'Rappels de première année', duree:498, apercu:'media/videos/thermochimie-1.webp',
+      { yt:'YtisR2_KXQ0', src:'video/thermochimie/ch1', titre:'Rappels de première année', duree:498, apercu:'media/videos/thermochimie-1.webp',
         parties:[[0,'Introduction'],[25,'Système, constituant, phase'],[66,'Équation de réaction'],[97,'Avancement'],
           [150,'Activité'],[187,'Quotient de réaction'],[240,"Constante d'équilibre et critère d'évolution"],
           [278,'Oxydants et réducteurs'],[302,"Nombre d'oxydation"],[351,'Formule de Nernst'],
           [405,"Règle du gamma et constante d'équilibre"],[468,'À retenir']] },
-      { yt:'l9C4IiB3gVA', titre:'Enthalpie libre et potentiel chimique', duree:447, apercu:'media/videos/thermochimie-2.webp',
+      { yt:'l9C4IiB3gVA', src:'video/thermochimie/ch2', titre:'Enthalpie libre et potentiel chimique', duree:447, apercu:'media/videos/thermochimie-2.webp',
         parties:[[0,'Introduction'],[28,'La fonction enthalpie libre'],[75,'Identité thermodynamique'],
           [124,'Potentiel chimique : définition'],[163,"Enthalpie libre d'un mélange"],[204,'Expression du potentiel chimique'],
           [264,'États standard'],[308,'État standard de référence'],[364,'Diamant ou graphite ?'],[408,'À retenir']] },
-      { yt:'tbJv-uT1Uyw', titre:'Grandeurs de réaction et grandeurs standard', duree:510, apercu:'media/videos/thermochimie-3.webp',
+      { yt:'tbJv-uT1Uyw', src:'video/thermochimie/ch3', titre:'Grandeurs de réaction et grandeurs standard', duree:510, apercu:'media/videos/thermochimie-3.webp',
         parties:[[0,'Introduction'],[27,'Grandeur de réaction : définition'],[67,'Enthalpie libre de réaction'],
           [125,'Grandeurs standard de réaction'],[178,'Signe des grandeurs standard'],[236,'Grandeurs standard de formation'],
           [284,'Loi de Hess'],[331,'Entropie et pièges classiques'],[374,'Combinaisons linéaires de réactions'],
           [409,"Approximation d'Ellingham"],[466,'À retenir']] },
-      { yt:'L5z0oicvuOI', titre:'Premier principe : effets thermiques des réactions', duree:528, apercu:'media/videos/thermochimie-4.webp', parties:[[0,'Introduction'],[29,'Rappel : coefficients algébriques'],[65,'Vocabulaire des transformations'],[99,"Variation d'enthalpie due à la réaction"],[138,'Réacteur isotherme : transfert thermique'],[168,'Exemple : le chauffage au gaz'],[203,'Réacteur adiabatique : chemin fictif'],[245,'La méthode'],[274,'Température de flamme'],[331,'À vous : flamme dans le dioxygène pur'],[354,'Emballement thermique'],[395,'À retenir'],[418,"Exercice résolu : l'énoncé"],[451,"Exercice résolu : la solution"]] },
-      { yt:'IxOhQ0SkXQ0', titre:'Deuxième principe : évolution et équilibre', duree:555, apercu:'media/videos/thermochimie-5.webp', parties:[[0,'Introduction'],[34,"Création d'entropie"],[74,'Démonstration'],[112,"Critère d'évolution"],[148,'Enthalpie libre de réaction et quotient'],[181,"Constante d'équilibre"],[225,'Ce que dit ΔrG°'],[263,"À vous : sens d'évolution"],[292,'La courbe G(ξ)'],[333,'État final : équilibre ou transformation totale'],[363,'Exemple : le calcaire en enceinte fermée'],[403,'À retenir'],[433,"Exercice résolu : l'énoncé"],[469,'Exercice résolu : la solution']] },
-      { yt:'A9G7gfQWMk8', titre:'Influence des paramètres et optimisation', duree:580, apercu:'media/videos/thermochimie-6.webp', parties:[[0,'Introduction'],[40,"Relation de Van 't Hoff"],[74,'Démonstration'],[114,"Forme intégrée : la droite de Van 't Hoff"],[163,'Calculer K° à une autre température'],[210,'Choix de la température'],[242,'Modifier Qr : la méthode'],[272,'Effet de la pression'],[312,'Composition : les pièges'],[355,'À vous : un gaz inerte'],[381,'Application : le procédé Haber-Bosch'],[427,'À retenir'],[450,"Exercice résolu : l'énoncé"],[491,'Exercice résolu : la solution']] },
-      { yt:'cAqOR3e0tY4', titre:"Thermodynamique de l'oxydoréduction", duree:556, apercu:'media/videos/thermochimie-7.webp', parties:[[0,'Introduction'],[37,'Enthalpie libre et potentiels'],[82,'Cohérence avec la loi de Nernst'],[119,"Sens d'évolution et équilibre"],[146,"Constante d'équilibre"],[191,"À vous : une constante d'équilibre"],[221,"Enthalpie libre d'une demi-équation"],[254,'Calculer un potentiel standard : la méthode'],[280,'Exemple : le fer'],[323,"Exemple : l'électrode au calomel"],[366,'Exemple : à partir des enthalpies libres de formation'],[397,'À retenir'],[423,"Exercice résolu : l'énoncé"],[465,'Exercice résolu : la solution']] },
-      { yt:'AYElYXFUTeQ', titre:'Piles électrochimiques', duree:558, apercu:'media/videos/thermochimie-8.webp', parties:[[0,'Introduction'],[36,'La pile Daniell'],[74,'Vocabulaire'],[106,'Bilan énergétique'],[143,'Démonstration'],[179,'Tension à vide et enthalpie libre'],[223,'Loi de Nernst de la pile'],[274,'À vous : une tension à vide'],[299,'La décharge'],[337,'Capacité et énergie'],[377,'Ordres de grandeur'],[403,'À retenir'],[427,"Exercice résolu : l'énoncé"],[467,'Exercice résolu : la solution']] }
+      { yt:'L5z0oicvuOI', src:'video/thermochimie/ch4', titre:'Premier principe : effets thermiques des réactions', duree:528, apercu:'media/videos/thermochimie-4.webp', parties:[[0,'Introduction'],[29,'Rappel : coefficients algébriques'],[65,'Vocabulaire des transformations'],[99,"Variation d'enthalpie due à la réaction"],[138,'Réacteur isotherme : transfert thermique'],[168,'Exemple : le chauffage au gaz'],[203,'Réacteur adiabatique : chemin fictif'],[245,'La méthode'],[274,'Température de flamme'],[331,'À vous : flamme dans le dioxygène pur'],[354,'Emballement thermique'],[395,'À retenir'],[418,"Exercice résolu : l'énoncé"],[451,"Exercice résolu : la solution"]] },
+      { yt:'IxOhQ0SkXQ0', src:'video/thermochimie/ch5', titre:'Deuxième principe : évolution et équilibre', duree:555, apercu:'media/videos/thermochimie-5.webp', parties:[[0,'Introduction'],[34,"Création d'entropie"],[74,'Démonstration'],[112,"Critère d'évolution"],[148,'Enthalpie libre de réaction et quotient'],[181,"Constante d'équilibre"],[225,'Ce que dit ΔrG°'],[263,"À vous : sens d'évolution"],[292,'La courbe G(ξ)'],[333,'État final : équilibre ou transformation totale'],[363,'Exemple : le calcaire en enceinte fermée'],[403,'À retenir'],[433,"Exercice résolu : l'énoncé"],[469,'Exercice résolu : la solution']] },
+      { yt:'A9G7gfQWMk8', src:'video/thermochimie/ch6', titre:'Influence des paramètres et optimisation', duree:580, apercu:'media/videos/thermochimie-6.webp', parties:[[0,'Introduction'],[40,"Relation de Van 't Hoff"],[74,'Démonstration'],[114,"Forme intégrée : la droite de Van 't Hoff"],[163,'Calculer K° à une autre température'],[210,'Choix de la température'],[242,'Modifier Qr : la méthode'],[272,'Effet de la pression'],[312,'Composition : les pièges'],[355,'À vous : un gaz inerte'],[381,'Application : le procédé Haber-Bosch'],[427,'À retenir'],[450,"Exercice résolu : l'énoncé"],[491,'Exercice résolu : la solution']] },
+      { yt:'cAqOR3e0tY4', src:'video/thermochimie/ch7', titre:"Thermodynamique de l'oxydoréduction", duree:556, apercu:'media/videos/thermochimie-7.webp', parties:[[0,'Introduction'],[37,'Enthalpie libre et potentiels'],[82,'Cohérence avec la loi de Nernst'],[119,"Sens d'évolution et équilibre"],[146,"Constante d'équilibre"],[191,"À vous : une constante d'équilibre"],[221,"Enthalpie libre d'une demi-équation"],[254,'Calculer un potentiel standard : la méthode'],[280,'Exemple : le fer'],[323,"Exemple : l'électrode au calomel"],[366,'Exemple : à partir des enthalpies libres de formation'],[397,'À retenir'],[423,"Exercice résolu : l'énoncé"],[465,'Exercice résolu : la solution']] },
+      { yt:'AYElYXFUTeQ', src:'video/thermochimie/ch8', titre:'Piles électrochimiques', duree:558, apercu:'media/videos/thermochimie-8.webp', parties:[[0,'Introduction'],[36,'La pile Daniell'],[74,'Vocabulaire'],[106,'Bilan énergétique'],[143,'Démonstration'],[179,'Tension à vide et enthalpie libre'],[223,'Loi de Nernst de la pile'],[274,'À vous : une tension à vide'],[299,'La décharge'],[337,'Capacité et énergie'],[377,'Ordres de grandeur'],[403,'À retenir'],[427,"Exercice résolu : l'énoncé"],[467,'Exercice résolu : la solution']] }
     ]
   };
 
@@ -115009,8 +115134,47 @@ document.getElementById('skip-link')?.addEventListener('click', e => {
     let u = 'https://www.youtube-nocookie.com/embed/' + encodeURIComponent(v.yt)
       + '?autoplay=1&rel=0&playsinline=1&hl=fr&cc_lang_pref=fr';
     if(t > 0) u += '&start=' + Math.floor(t);
+    // Instant de lecture lisible par la page (assistant) : messages du lecteur, sans script externe
+    if(/^https?:$/.test(location.protocol)) u += '&enablejsapi=1&origin=' + encodeURIComponent(location.origin);
     return u;
   }
+
+  /* ── Instant de lecture (pour l'assistant) ───────────────────────────
+     Le lecteur créé au clic (enablejsapi=1) envoie, une fois « écouté », des messages
+     infoDelivery avec currentTime : c'est le protocole qu'emploie l'API IFrame officielle,
+     sans charger son script. Repli si aucun message n'arrive : instant de départ + temps
+     écoulé depuis le clic (marqué « estime »). window.__instantVideo() → { yt, src, titre,
+     chap, t, estime, etat } de la vidéo lancée, ou null. */
+  let lue = null;
+  const ORIGINES_YT = /^https:\/\/www\.youtube(-nocookie)?\.com$/;
+  function ecouterLecteur(f){
+    let essais = 0;
+    const appel = () => {
+      if(!lue || lue.iframe !== f || lue.maj || essais++ > 20 || !f.isConnected) return;
+      try { f.contentWindow.postMessage(JSON.stringify({ event:'listening', id:1, channel:'widget' }), '*'); } catch(e){}
+      setTimeout(appel, 500);
+    };
+    f.addEventListener('load', appel);
+  }
+  window.addEventListener('message', e => {
+    if(!lue || !ORIGINES_YT.test(e.origin) || !lue.iframe || e.source !== lue.iframe.contentWindow) return;
+    let d = e.data;
+    if(typeof d === 'string'){ try { d = JSON.parse(d); } catch(err){ return; } }
+    const info = d && d.info;
+    if(!info || typeof info !== 'object') return;
+    if(typeof info.currentTime === 'number'){ lue.t = info.currentTime; lue.maj = Date.now(); }
+    if(typeof info.playerState === 'number') lue.etat = info.playerState;   // 1 lecture, 2 pause, 0 fin
+  });
+  window.__instantVideo = function(){
+    if(!lue || !lue.iframe || !lue.iframe.isConnected) return null;
+    const v = lue.v;
+    let t = lue.t, estime = false;
+    if(!lue.maj){ t = lue.t0 + (Date.now() - lue.depuis) / 1000; estime = true; }
+    else if(lue.etat === 1) t += (Date.now() - lue.maj) / 1000;
+    t = Math.max(0, Math.min(t, v.duree || t));
+    return { yt:v.yt, src:v.src || null, titre:v.titre, duree:v.duree || null, parties:v.parties || [],
+             chap:lue.chap, t:Math.round(t * 10) / 10, estime, etat:lue.etat == null ? null : lue.etat };
+  };
 
   /* ── Construction de l'onglet ─────────────────────────────────────── */
   function construire(liste){
@@ -115091,6 +115255,10 @@ document.getElementById('skip-link')?.addEventListener('click', e => {
     cadre.innerHTML = '';
     cadre.appendChild(f);
     cadre.classList.add('lance');
+    const liste = a.closest('[data-videos]');
+    lue = { iframe:f, v, chap: liste ? liste.getAttribute('data-videos') : null, t0:t || 0, t:t || 0,
+            depuis:Date.now(), maj:0, etat:null };
+    ecouterLecteur(f);
     // Le bouton cliqué a disparu (aperçu) : le focus passe au lecteur, jamais au <body>
     if(avaitFocus){ try { f.focus({ preventScroll:true }); } catch(e){} }
     // Partie choisie sous le lecteur : le lecteur revient à l'écran s'il en était sorti
@@ -115128,6 +115296,146 @@ document.getElementById('skip-link')?.addEventListener('click', e => {
 
   const tout = () => document.querySelectorAll('.vid-liste[data-videos]').forEach(l => { try { construire(l); } catch(e){} });
   if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', tout); else tout();
+  } catch(e){ /* module non bloquant */ }
+})();
+</script>
+
+<script>
+/* ===== ASSISTANT IA : amorce (docs/assistant-ia.md) =====
+   Petit module toujours présent : activation par appareil (?assistant=1 / ?assistant=0,
+   clé Store « assistant »), boutons (en-tête, feuille ⋯), touche « a », bulle « Demander à
+   l'assistant » sur une sélection, mémoire de la sélection au moment du geste, et chargement
+   À LA DEMANDE de assistant/assistant.js (panneau + collecte du contexte). Rien n'est
+   chargé ni envoyé tant qu'on n'ouvre pas l'assistant ; aucune clé ici, jamais. */
+(function(){
+  'use strict';
+  try {
+  const html = document.documentElement;
+  const $ = id => document.getElementById(id);
+
+  // Activation sur CET appareil par l'adresse : ?assistant=1 (ou ?assistant=0 pour retirer le bouton)
+  try {
+    const q = new URLSearchParams(location.search);
+    if(q.has('assistant')){
+      const on = q.get('assistant') !== '0';
+      Store.set('assistant', on ? '1' : '0');
+      q.delete('assistant');
+      const reste = q.toString();
+      history.replaceState(history.state, '', location.pathname + (reste ? '?' + reste : '') + location.hash);
+      setTimeout(() => { if(window.__toast) window.__toast(on ? 'Assistant activé sur cet appareil' : 'Assistant désactivé sur cet appareil', { icone:'assistant' }); }, 900);
+    }
+  } catch(e){}
+  const actif = () => Store.get('assistant') === '1';
+  html.classList.toggle('assistant-actif', actif());
+
+  // Sélection mémorisée au moment du geste (le clic sur un bouton peut l'effacer)
+  let selection = null;
+  function lireSelection(){
+    const sel = window.getSelection ? window.getSelection() : null;
+    if(!sel || sel.isCollapsed || !sel.rangeCount) return null;
+    const r = sel.getRangeAt(0);
+    const zone = $('app-main');
+    const n = r.commonAncestorContainer;
+    const el = n.nodeType === 1 ? n : n.parentElement;
+    if(!zone || !el || !zone.contains(el)) return null;
+    if(String(sel.toString()).trim().length < 2 && !(el.closest && el.closest('mjx-container'))){
+      const f = r.cloneContents();   // sélection faite d'une formule seule (texte vide en CHTML)
+      if(!f.querySelector || !f.querySelector('mjx-container')) return null;
+    }
+    return { range: r.cloneRange(), t: Date.now() };
+  }
+  function memoriser(){ const s = lireSelection(); if(s) selection = s; }
+  window.__assistantSelection = function(oublier){
+    const s = selection;
+    if(oublier) selection = null;
+    return s;
+  };
+
+  // Chargement à la demande du module (même origine : mis en cache par le service worker au passage)
+  let chargement = null;
+  window.__chargerAssistant = function(){
+    if(window.__assistant) return Promise.resolve(window.__assistant);
+    if(chargement) return chargement;
+    chargement = new Promise((ok, ko) => {
+      const s = document.createElement('script');
+      s.src = 'assistant/assistant.js';
+      s.async = true;
+      s.onload = () => window.__assistant ? ok(window.__assistant) : ko(new Error('module incomplet'));
+      s.onerror = () => { chargement = null; s.remove(); ko(new Error('chargement impossible')); };
+      document.head.appendChild(s);
+    });
+    return chargement;
+  };
+  window.__ouvrirAssistant = function(o){
+    o = o || {};
+    if(!o.selection){ const s = lireSelection(); if(s) selection = s; }
+    return window.__chargerAssistant().then(a => { a.ouvrir(o); return a; }).catch(() => {
+      if(window.__toast) window.__toast(navigator.onLine === false
+        ? 'Hors connexion : l’assistant se chargera une fois l’appareil reconnecté.'
+        : 'L’assistant n’a pas pu se charger. Réessaie dans un instant.');
+    });
+  };
+
+  // Boutons : la sélection est lue AVANT que l'appui ne l'efface
+  ['assistant-btn', 'mob-assistant-btn', 'assistant-bulle'].forEach(id => {
+    const b = $(id);
+    if(!b) return;
+    b.addEventListener('pointerdown', memoriser);
+    b.addEventListener('click', () => {
+      cacherBulle();
+      if(id === 'assistant-btn' && window.__assistant && window.__assistant.estOuvert()){ window.__assistant.fermer(); return; }
+      const s = selection && Date.now() - selection.t < 60000 ? selection : null;
+      const o = { source:id, selection:s, opener:id === 'mob-assistant-btn' ? $('mob-more-btn') : b };
+      if(id === 'mob-assistant-btn'){
+        // feuille ⋯ refermée et panneau ouvert DANS LE MÊME GESTE (une fois le module chargé) :
+        // le retour d'Android réutilise l'entrée d'historique de la feuille (urlRouting)
+        window.__chargerAssistant().then(a => { if(window.__fermerFeuillePlus) window.__fermerFeuillePlus(); a.ouvrir(o); })
+          .catch(() => { if(window.__fermerFeuillePlus) window.__fermerFeuillePlus(); window.__ouvrirAssistant(o); });
+        return;
+      }
+      window.__ouvrirAssistant(o);
+    });
+  });
+
+  // Touche « a » (mêmes gardes que les raccourcis globaux)
+  document.addEventListener('keydown', e => {
+    if(e.key !== 'a' || e.ctrlKey || e.metaKey || e.altKey || !actif()) return;
+    const t = e.target;
+    if(t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable)) return;
+    if(t && t.closest && t.closest('[role="dialog"], [role="menu"]')) return;
+    if(document.querySelector('.fen.open, .quiz-overlay.open, .dash-overlay.open, .hdr-more-menu.open, #mob-more-menu.open, #mob-drawer[aria-modal="true"].open')) return;
+    e.preventDefault();
+    memoriser();
+    window.__ouvrirAssistant({ source:'clavier', opener:$('assistant-btn') });
+  });
+
+  // Bulle « Demander à l'assistant » sous une sélection du cours
+  const bulle = $('assistant-bulle');
+  let minuterie = 0;
+  function cacherBulle(){ if(bulle) bulle.hidden = true; }
+  function placerBulle(){
+    if(!bulle || !actif()) return;
+    const s = lireSelection();
+    if(!s){ cacherBulle(); return; }
+    const rects = s.range.getClientRects();
+    const r = rects.length ? rects[rects.length - 1] : s.range.getBoundingClientRect();
+    if(!r || (!r.width && !r.height)){ cacherBulle(); return; }
+    bulle.hidden = false;
+    const w = bulle.offsetWidth || 200, h = bulle.offsetHeight || 40;
+    const vw = document.documentElement.clientWidth, vh = window.innerHeight;
+    let x = Math.min(Math.max(8, r.right - w / 2), vw - w - 8);
+    let y = r.bottom + 10;
+    if(y + h > vh - 8) y = Math.max(8, r.top - h - 10);
+    bulle.style.left = Math.round(x) + 'px';
+    bulle.style.top = Math.round(y) + 'px';
+  }
+  document.addEventListener('selectionchange', () => {
+    if(!actif()) return;
+    clearTimeout(minuterie);
+    minuterie = setTimeout(placerBulle, 280);
+  });
+  window.addEventListener('scroll', () => { if(bulle && !bulle.hidden){ cacherBulle(); clearTimeout(minuterie); minuterie = setTimeout(placerBulle, 300); } }, { passive:true, capture:true });
+  window.addEventListener('resize', cacherBulle, { passive:true });
   } catch(e){ /* module non bloquant */ }
 })();
 </script>

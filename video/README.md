@@ -180,6 +180,12 @@ Cours et le panneau `<section class="panel" id="<prefix>-video"><div class="vid-
 data-videos="<id du chapitre>"></div></section>` après celui du Cours ; puis l'entrée de la table.
 Vérifier d'abord qu'un chapitre du site correspond au cours (sinon le créer : `GABARIT-CHAPITRE.md`).
 
+
+Chaque entrée de `window.__VIDEOS` porte aussi **`src`** : le dossier source de la vidéo
+(`video/<cours>/chN`). L'assistant IA du site s'en sert pour lire `timeline.json` (scène et phrase dites
+à l'instant de lecture) et pour retrouver le script à modifier. Les scripts `integrer_videos.py` l'écrivent ;
+une vidéo intégrée à la main doit l'avoir aussi.
+
 ## Vidéos livrées
 
 Toutes en **non répertorié**, sous-titres français compris, envoyées par `youtube.py` le 2026-11-11

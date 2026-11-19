@@ -40,7 +40,7 @@ for n in nums:
         src = src[:e] + panneau + src[e:]
     # 3. Table window.__VIDEOS
     p_txt = ','.join(f"[{t},'{js(ti)}']" for t, ti in parties)
-    entree = (f"    {cid}: [\n      {{ yt:'{vid}', titre:'{js(info['titre'])}', duree:{duree}, apercu:'media/videos/slci-{n}.webp',\n"
+    entree = (f"    {cid}: [\n      {{ yt:'{vid}', src:'video/slci/ch{n}', titre:'{js(info['titre'])}', duree:{duree}, apercu:'media/videos/slci-{n}.webp',\n"
               f"        parties:[{p_txt}] }}\n    ],\n")
     if re.search(r'\n    %s: \[\n' % cid, src):
         raise SystemExit(f'{cid} déjà dans la table : à mettre à jour à la main')
