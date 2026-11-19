@@ -2450,6 +2450,11 @@ figure.schema.defile, .cine-svg-wrap.defile{ overflow-x:auto; overflow-y:hidden;
 .fc-sep .kicker{ color:var(--vert); font-weight:var(--w-bold); }
 .fc-a{ font-size:var(--fs-body); line-height:1.55; color:var(--text); text-wrap:pretty; }
 .fc-a .fc-a-t{ margin:0; }
+/* Code dans une fiche (cartes d'informatique, marqué `…`) : aussi dans le quiz, hors .panel */
+.fc-q code, .fc-a code{
+  font-family:var(--font-code); font-size:.84em; font-variant-ligatures:none;
+  background:var(--sunk); padding:.1em .35em; border-radius:var(--r-xs); color:var(--text);
+}
 .fc-a .formula{ margin:.2rem 0 .8rem; }
 .fc-a .formula:last-child{ margin-bottom:.4rem; }
 /* Pied : aide du recto selon le pointeur ; au verso, « Voir dans le cours · §n » et « Signaler » */
@@ -97847,8 +97852,16 @@ function flashBadgesHTML(mat, libelle, card, state, sansMat){
    le reste suit en paragraphe. Prudence : un groupe de maths qui contient une fin de
    phrase ou un « : » (flashPretty regroupe parfois deux propositions) reste en ligne.
    Cartes d'anglais : texte brut tel quel. */
-function flashReponseHTML(a, brut){
+/* Cartes d'informatique : texte tel quel, sans mise en forme mathématique automatique (elle
+   prenait type(x), t[i] ou range(n) pour des formules, et avalait la ponctuation). Marquages
+   explicites : `code` entre accents graves → <code> ; formules écrites en \( … \) → MathJax. */
+function flashInfoHTML(t){
+  const s = String(t == null ? '' : t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  return s.replace(/`([^`\n]+)`/g, '<code>$1</code>');
+}
+function flashReponseHTML(a, brut, info){
   if(brut) return '<div class="fc-a-t">' + (a == null ? '' : String(a)) + '</div>';
+  if(info) return '<div class="fc-a-t">' + flashInfoHTML(a) + '</div>';
   const s = flashPretty(a);
   const m = /^\s*\\\(([\s\S]*?)\\\)\s*([.;:]?)\s*([\s\S]*)$/.exec(s);
   if(m && !/\\\(/.test(m[1])){
@@ -97900,6 +97913,7 @@ function makeFlash(cards, idPrefix, contentId, progId, statsId){
   // Les cartes d'anglais sont du texte (pas des maths) : on les rend en HTML brut
   // au lieu de passer par flashPretty (qui mathématiserait « I », « / », etc.).
   const isPlainDeck = mat === 'anglais';
+  const isInfoDeck = mat === 'info';   // informatique : flashInfoHTML (code et formules marqués)
   // état persistant par carte : {h, o, e, last, box, due} (hard, ok, easy, dernier
   // niveau 0/1/2, Leitner), réaligné par identifiant de carte (flashLoadState).
   // Migration écrite tout de suite : les lecteurs par index (Bilan, quiz, badge)
@@ -98109,7 +98123,7 @@ function makeFlash(cards, idPrefix, contentId, progId, statsId){
     const c = el.side;
     peindreProgression();
     peindreCarte();
-    const q = isPlainDeck ? card.q : flashPretty(card.q);
+    const q = isPlainDeck ? card.q : isInfoDeck ? flashInfoHTML(card.q) : flashPretty(card.q);
     try { if(window.MathJax && MathJax.typesetClear) MathJax.typesetClear([c]); } catch(e){}
     c.classList.toggle('verso', flipped);
     c.scrollTop = 0;   // nouvelle carte ou autre face : lecture depuis le haut
@@ -98118,7 +98132,7 @@ function makeFlash(cards, idPrefix, contentId, progId, statsId){
     } else {
       c.innerHTML = '<span class="tag">Question</span><div class="fc-q">' + q + '</div>'
         + '<div class="fc-sep"><span class="kicker">Réponse</span></div>'
-        + '<div class="fc-a">' + flashReponseHTML(card.a, isPlainDeck) + '</div>';
+        + '<div class="fc-a">' + flashReponseHTML(card.a, isPlainDeck, isInfoDeck) + '</div>';
       const cb = cibleCarte();
       const l = el.lien && el.lien.querySelector('.ic-lbl');
       if(l) l.textContent = 'Voir dans le cours' + (cb && cb.sec ? ' · ' + cb.sec : '');
@@ -111603,13 +111617,14 @@ document.addEventListener('keydown', e => {
     inner.querySelectorAll('.flash-side').forEach(f => { f.scrollTop = 0; });
     // Anglais : texte brut (pas de conversion maths) ; sinon flashPretty (fractions, indices…)
     const qPlain = item.meta && item.meta.mat === 'anglais';
+    const qInfo = item.meta && item.meta.mat === 'info';   // informatique : flashInfoHTML
     const qEl = document.getElementById('quiz-question-text');
     const aEl = document.getElementById('quiz-answer-text');
     const rEl = document.getElementById('quiz-question-rappel');
     try{ if(window.MathJax && MathJax.typesetClear) MathJax.typesetClear([document.getElementById('quiz-card')]); }catch(e){}
-    qEl.innerHTML = qPlain ? item.card.q : flashPretty(item.card.q);
+    qEl.innerHTML = qPlain ? item.card.q : qInfo ? flashInfoHTML(item.card.q) : flashPretty(item.card.q);
     if(rEl) rEl.innerHTML = qEl.innerHTML;   // verso : la question reste en rappel
-    aEl.innerHTML = flashReponseHTML(item.card.a, qPlain);
+    aEl.innerHTML = flashReponseHTML(item.card.a, qPlain, qInfo);
     quizFace();
     // Étiquette de langue (anglais) pour les lecteurs d'écran
     if(qPlain && window.__TTS){
