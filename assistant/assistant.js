@@ -240,6 +240,9 @@
   function fnv(t){ let h = 0x811c9dc5; for(let i = 0; i < t.length; i++){ h ^= t.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; } return ('0000000' + h.toString(16)).slice(-8); }
   function contenuChapitre(c){
     if(contenus.has(c.id)) return contenus.get(c.id);
+    // Panneaux repliés dans un <template class="pan-tpl"> (performance) : mis en place avant lecture.
+    const chapEl = $('chap-' + c.id);
+    if(chapEl && window.__deplierChapitre) window.__deplierChapitre(chapEl);
     const carte = carteTeX(), parties = [];
     for(const p of c.panels || []){
       if(p === 'simu' || p === 'video') continue;

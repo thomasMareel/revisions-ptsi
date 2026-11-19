@@ -3363,6 +3363,27 @@ window.__repliFocus = function(el){
   for(var i = 0; i < bs.length; i++) if(bs[i] !== el && bs[i].getClientRects().length) return bs[i];
   return bs[0] || null;
 };
+/* Contenu des chapitres REPLIÉ (performance, 2026-11-19) : le contenu des onglets Cours, Méthodes et
+   Exercices est rangé dans un template.pan-tpl à l'intérieur de son panneau (outil
+   tools/replier_panneaux.py) : le navigateur le lit, mais sans créer d'éléments ni calculer de styles
+   tant que le chapitre n'est pas ouvert (≈ 100 000 éléments de moins au démarrage).
+   __deplierChapitre(chap) le met en place, une fois (changement de chapitre, typesetPanel) ;
+   __racinePanneau(panel) donne de quoi LIRE un panneau sans le déplier (recherche, cible d'une carte,
+   Formulaire) : le contenu du <template> s'il est replié, sinon le panneau ; __apresDepliage : rappels
+   (chap) des modules qui traitent le contenu une fois en place (blocs dépliables…). */
+window.__apresDepliage = window.__apresDepliage || [];
+window.__racinePanneau = function(p){
+  if(!p) return p;
+  var t = p.firstElementChild;
+  return (t && t.tagName === 'TEMPLATE' && t.classList.contains('pan-tpl')) ? t.content : p;
+};
+window.__deplierChapitre = function(chap){
+  if(!chap || chap.__deplie) return;
+  chap.__deplie = true;
+  var ts = chap.querySelectorAll('section.panel > template.pan-tpl');
+  for(var i = 0; i < ts.length; i++){ var t = ts[i]; t.parentNode.replaceChild(t.content, t); }
+  for(var k = 0; k < window.__apresDepliage.length; k++){ try { window.__apresDepliage[k](chap); } catch(e){} }
+};
 window.__rendreFocus = function(op, repli){
   // essai réel : un élément d'une feuille refermée garde des boîtes (visibility:hidden, translaté)
   // mais refuse le focus ; on vérifie donc qu'il l'a bien pris, sinon on passe au repli
@@ -99613,6 +99634,9 @@ function redrawChapter(chap){
 /* Typeset paresseux d'un seul panneau (perf : évite de tout rendre d'un coup).
    Ne fait rien si MathJax n'est pas prêt ou si le panneau est déjà rendu. */
 function typesetPanel(panel){
+  // Contenu replié (template.pan-tpl) : tout le chapitre est mis en place d'abord
+  if(panel && window.__deplierChapitre && panel.firstElementChild && panel.firstElementChild.tagName === 'TEMPLATE')
+    window.__deplierChapitre(panel.closest('.chapter'));
   // Enrichissements d'affichage du panneau (surtitres, difficulté, outils d'exercices, curseurs) :
   // module « CONTENU » en fin de page, paresseux et idempotent
   if(panel && window.__contenuPanneau) window.__contenuPanneau(panel);
@@ -99697,6 +99721,7 @@ document.querySelectorAll('.chap-btn').forEach(b=>{
       else { if(siMain) siMain.style.display='none'; if(mainEl) mainEl.style.display=''; }
     }
     const chapEl = document.getElementById('chap-'+b.dataset.chap);
+    if(chapEl && window.__deplierChapitre) window.__deplierChapitre(chapEl);   // contenu replié → mis en place
     if(chapEl) chapEl.classList.add('active');
     // Nouveau chapitre : on repart du haut de la page (et non du défilement du précédent)
     if(!avant || avant !== chapEl){ DEFIL_ONGLETS.clear(); scrollPageTop(); }
@@ -101294,7 +101319,9 @@ function flashCible(prefix, card){
   if(card){
     const qset = new Set(flashTokens(card.q));   // mots-clés de la question (poids fort)
     const aset = new Set(flashTokens(card.a));   // mots-clés de la réponse (poids faible)
-    cours.querySelectorAll('h2, h3').forEach(h => {
+    // contenu replié (template.pan-tpl) : lu sans être déplié ; le titre trouvé reste le
+    // même nœud une fois le chapitre ouvert
+    (window.__racinePanneau ? window.__racinePanneau(cours) : cours).querySelectorAll('h2, h3').forEach(h => {
       const H = new Set(flashTokens(h.textContent));     // mots du titre = signal le plus sûr
       const U = new Set(flashTokens(flashUnitText(h)));  // titre + corps de la sous-section
       if(!U.size) return;
@@ -113489,21 +113516,23 @@ function navigateTo(chapId, panelId, onDone){
         text: (c.mobLabel || '') + ' ' + (c.matiereLabel || '') }));
       chap.querySelectorAll('.panel').forEach(panel => {
         const pid = panel.id;
+        // contenu replié (template.pan-tpl) : lu sans être déplié
+        const racine = window.__racinePanneau ? window.__racinePanneau(panel) : panel;
         if(/-(cours|meth)$/.test(pid)){
-          panel.querySelectorAll('.course-section').forEach(sec => {
+          racine.querySelectorAll('.course-section').forEach(sec => {
             const h2 = sec.querySelector('h2');
             if(h2) add('sec', h2.textContent, Object.assign({}, base, { panel:pid, ou:paragraphe(sec, pid), el:h2, text:texte(sec, true).slice(0, 900) }));
           });
-          panel.querySelectorAll('.def-box, .prop-box').forEach(b => {
+          racine.querySelectorAll('.def-box, .prop-box').forEach(b => {
             const fort = b.querySelector(':scope > strong:first-child, :scope > p:first-child > strong:first-child');
             const t = (fort ? fort.textContent : titreBoite(b)).replace(/^(DÉFINITION|PROPRIÉTÉ)\s*/i, '');
             if(t.trim().length < 4) return;
             add('boite', t, Object.assign({}, base, { panel:pid, ou:paragraphe(b, pid), el:b, text:texte(b).slice(0, 600) }));
           });
-          panel.querySelectorAll('.method-box > strong:first-child').forEach(st => {
+          racine.querySelectorAll('.method-box > strong:first-child').forEach(st => {
             add('meth', st.textContent, Object.assign({}, base, { panel:pid, ou:ongletDe(pid), el:st.parentElement, text:texte(st.parentElement).slice(0, 600) }));
           });
-          panel.querySelectorAll('.formula').forEach(f => {
+          racine.querySelectorAll('.formula').forEach(f => {
             const src = texDe(f).replace(/\s+/g, ' ').trim();
             if(src.length < 4) return;
             const sec = f.closest('.course-section'), h2 = sec ? sec.querySelector('h2') : null;
@@ -113511,7 +113540,7 @@ function navigateTo(chapId, panelId, onDone){
               panel:pid, ou:paragraphe(f, pid), el:f, text:src, nom:f.getAttribute('data-nom') || '' }));
           });
         } else if(/-exos$/.test(pid)){
-          panel.querySelectorAll('.exo').forEach(exo => {
+          racine.querySelectorAll('.exo').forEach(exo => {
             const h3 = exo.querySelector('h3'), num = exo.querySelector('.num');
             if(!h3) return;
             const n = num ? num.textContent.replace(/\s+/g, ' ').trim() : '';
@@ -116628,7 +116657,7 @@ document.addEventListener('keydown', e => {
     let r = false;
     if(!c || c.matiere !== 'anglais'){
       const secs = [];
-      [...chap.querySelectorAll('.panel')].filter(p=>/-(cours|meth)$/.test(p.id)).forEach(p=>secs.push(...p.querySelectorAll('.course-section')));
+      [...chap.querySelectorAll('.panel')].filter(p=>/-(cours|meth)$/.test(p.id)).forEach(p=>secs.push(...(window.__racinePanneau ? window.__racinePanneau(p) : p).querySelectorAll('.course-section')));
       r = secs.some(s => !!s.querySelector('.formula, mjx-container[display="true"]'))
         || secs.some(s => (s.textContent || '').indexOf('$$') >= 0);
     }
@@ -117037,8 +117066,8 @@ document.getElementById('skip-link')?.addEventListener('click', e => {
    de remplacement vide). L'impression déballe le bouton (cleanClone). */
 (function(){
   var nRev = 0;
-  function initReveals(){
-    document.querySelectorAll('.reveal').forEach(function(r){
+  function initReveals(racine){
+    (racine && racine.querySelectorAll ? racine : document).querySelectorAll('.reveal').forEach(function(r){
       if(r.__kbReady) return;
       r.__kbReady = true;
       r.removeAttribute('tabindex');
@@ -117066,6 +117095,8 @@ document.getElementById('skip-link')?.addEventListener('click', e => {
   }
   if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initReveals);
   else initReveals();
+  // Contenu replié : ses blocs dépliables sont traités quand le chapitre est mis en place
+  (window.__apresDepliage = window.__apresDepliage || []).push(function(chap){ initReveals(chap); });
 })();
 
 /* ===== Focus des overlays : mémorisation, déplacement, restitution, piège =====

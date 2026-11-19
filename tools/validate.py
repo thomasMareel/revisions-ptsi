@@ -13,6 +13,9 @@ quand on ajoute un chapitre :
   5. « < » collé à une lettre dans une formule (utiliser \\lt).
   6. Délimiteurs \\[ … \\] dans le HTML (convention du site : $$ … $$ ; MathJax
      composait la formule mais laissait « \\[ » et « \\] » affichés en clair).
+  7. Panneaux Cours, Méthodes et Exercices repliés dans un <template class="pan-tpl">
+     (performance au téléphone ; sauf chap-rlc et chap-ingsys, affichés au départ) :
+     un panneau réécrit par un outil revient déplié → lancer tools/replier_panneaux.py.
 
 Option --souligne (information, sans échec) : liste les notations « X_y » écrites
 hors formule et hors code (elles s'affichent avec un vrai indice grâce au script
@@ -179,6 +182,19 @@ def main():
     # --- 6. Délimiteurs \[ … \] (hors \\[1.1em] d'un array) dans le HTML ---
     for m in re.finditer(r"(?<!\\)\\\[(.{0,60})", html_body):
         errors.append("formule entre \\[ … \\] (écrire $$ … $$) : \\[" + m.group(1).split("\n")[0])
+
+    # --- 7. Panneaux repliés (<template class="pan-tpl">, voir tools/replier_panneaux.py) ---
+    deplies = []
+    for m in re.finditer(r'<section class="panel(?: active)?" id="([a-z0-9]+)-(cours|meth|exos)">', html):
+        chap = html.rfind('<div class="chapter', 0, m.start())
+        mc = re.match(r'<div class="chapter[^"]*" id="([^"]+)"', html[chap:chap + 120]) if chap != -1 else None
+        if mc and mc.group(1) in ("chap-rlc", "chap-ingsys"):
+            continue
+        if not html.startswith('<template class="pan-tpl">', m.end()):
+            deplies.append(m.group(1) + "-" + m.group(2))
+    if deplies:
+        errors.append(f"{len(deplies)} panneau(x) non replié(s) (lancer python3 tools/replier_panneaux.py) : "
+                      + ", ".join(deplies[:12]) + (" …" if len(deplies) > 12 else ""))
 
     # --- Option : notations « X_y » hors formule et hors code (information) ---
     if souligne:

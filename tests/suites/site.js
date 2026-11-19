@@ -78,6 +78,29 @@ module.exports = {
     res.verifier('flashcards câblées (un deck makeFlash par chapitre avec « flash »)', !inv.decksManquants.length,
       inv.decksManquants.map(p => 'deck absent ou vide : ' + p));
 
+    // Performance au téléphone : contenu des onglets Cours / Méthodes / Exercices des chapitres non
+    // encore ouverts rangé dans un <template class="pan-tpl"> (tools/replier_panneaux.py), mis en
+    // place à l'ouverture du chapitre (window.__deplierChapitre) : ≈ 19 000 éléments au lieu de 112 000.
+    const repli = await page.evaluate(() => {
+      const deplies = [];
+      for (const c of CHAPTERS) {
+        const ch = document.getElementById('chap-' + c.id);
+        if (!ch || ch.__deplie || c.id === 'rlc' || c.id === 'ingsys') continue;
+        for (const p of ['cours', 'meth', 'exos']) {
+          if (!c.panels.includes(p)) continue;
+          const el = document.getElementById(c.prefix + '-' + p), t = el && el.firstElementChild;
+          if (!(t && t.tagName === 'TEMPLATE' && t.classList.contains('pan-tpl'))) deplies.push(c.prefix + '-' + p);
+        }
+      }
+      return { elements: document.getElementsByTagName('*').length, deplies };
+    });
+    res.info('elementsDemarrage', repli.elements);
+    ctx.log('éléments au démarrage : ' + repli.elements);
+    res.verifier('panneaux des chapitres non ouverts repliés au démarrage (< 40 000 éléments)',
+      !repli.deplies.length && repli.elements < 40000,
+      (repli.deplies.length ? ['panneaux dépliés (lancer tools/replier_panneaux.py) : ' + repli.deplies.slice(0, 15).join(', ')] : [])
+        .concat(repli.elements >= 40000 ? [repli.elements + ' éléments au démarrage'] : []));
+
     /* ---------- 3) Chaque chapitre × chacun de ses onglets ---------- */
     const selection = ctx.selectionner(tous);
     ctx.log('parcours de ' + selection.length + ' chapitre(s) × onglets');

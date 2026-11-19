@@ -225,11 +225,12 @@ Si le chapitre a des cours vidéo en ligne (YouTube, non répertoriés), il reç
 ## Vérification après ajout
 
 1. **Change le numéro de version** au moment de publier : en haut de `sw.js`, incrémente `CACHE_VERSION` (ex. `'ptsi-cache-v88'` → `'ptsi-cache-v89'`). Sans ça, l'application installée ne proposera pas la mise à jour.
-2. **Lance le validateur** (quelques secondes) :
+2. **Replie les panneaux puis lance le validateur** (quelques secondes) :
    ```
+   python tools/replier_panneaux.py
    python tools/validate.py
    ```
-   Il vérifie la cohérence `CHAPTERS` ↔ page, les IDs dupliqués, les flashcards câblées, les `drawFn` et les `<` mal placés dans les formules. Il affiche `[OK]` ou la liste des erreurs.
+   Le premier outil range le contenu des onglets Cours, Méthodes et Exercices dans un `<template class="pan-tpl">` (le site ne le met en place qu'à l'ouverture du chapitre : démarrage bien plus rapide au téléphone) ; écris donc ton chapitre normalement, déplié, et lance-le à la fin (il ne touche pas aux panneaux déjà repliés). Le validateur vérifie la cohérence `CHAPTERS` ↔ page, les IDs dupliqués, les flashcards câblées, les `drawFn`, les `<` mal placés dans les formules et les panneaux repliés. Il affiche `[OK]` ou la liste des erreurs.
 3. **Vérifie la syntaxe JavaScript** : `python tools/check_js.py` (doit afficher `blocs en erreur: 0`).
 4. **Lance les tests navigateur** (mode d'emploi : [`tests/README.md`](tests/README.md)) :
    ```
