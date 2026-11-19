@@ -203,6 +203,97 @@ module.exports = {
       res.verifier('téléphone : aucune erreur, aucune requête externe', !pb.length, pb);
     }
 
+    /* ---------- 7. Discussion par un relais SIMULÉ (phase 1) ----------
+       window.__RELAIS_ASSISTANT pointe vers https://relais.test, servi par page.route :
+       code d'accès → jeton (rangé dans IndexedDB, jamais dans localStorage), réponse en flux
+       SSE composée (MathJax, renvoi §n cliquable), historique renvoyé au tour suivant,
+       budget atteint, jeton refusé → code redemandé. */
+    {
+      const { page, journal } = await ctx.nouvellePage({ largeur: 1440, hauteur: 900 });
+      const RELAIS = 'https://relais.test';
+      await page.addInitScript(r => { window.__RELAIS_ASSISTANT = r; }, RELAIS);
+      const appels = [];
+      let mode = 'ok';
+      await page.route(RELAIS + '/**', async route => {
+        const rq = route.request();
+        const u = new URL(rq.url());
+        const corps = rq.postData() ? JSON.parse(rq.postData()) : null;
+        appels.push({ chemin: u.pathname, corps, auth: rq.headers()['authorization'] || null });
+        const cors = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'Authorization, Content-Type' };
+        if (rq.method() === 'OPTIONS') return route.fulfill({ status: 204, headers: cors });
+        if (u.pathname === '/auth') {
+          return corps && corps.code === 'bon-code'
+            ? route.fulfill({ status: 200, headers: cors, contentType: 'application/json', body: JSON.stringify({ jeton: 'v1.test.sig', exp: Date.now() + 86400000 }) })
+            : route.fulfill({ status: 401, headers: cors, contentType: 'application/json', body: JSON.stringify({ erreur: 'code' }) });
+        }
+        if (mode === 'budget') return route.fulfill({ status: 429, headers: cors, contentType: 'application/json', body: JSON.stringify({ erreur: 'budget' }) });
+        if (mode === 'jeton') return route.fulfill({ status: 401, headers: cors, contentType: 'application/json', body: JSON.stringify({ erreur: 'jeton' }) });
+        const morceaux = ['D\'après le §1, la tension aux bornes du condensateur vérifie ', '\\(\\tau\\,\\dfrac{\\mathrm du_C}{\\mathrm dt}+u_C=E\\).',
+          '\n\n- **Méthode** : loi des mailles ;\n- vérifier l\'homogénéité.\n\n$$u_C(t)=E\\left(1-e^{-t/\\tau}\\right)$$'];
+        const sse = morceaux.map(t => 'event: texte\ndata: ' + JSON.stringify({ t }) + '\n\n').join('')
+          + 'event: fin\ndata: ' + JSON.stringify({ arret: 'end_turn', modele: 'claude-sonnet-5-5', cout: 0.004, usage: {} }) + '\n\n';
+        return route.fulfill({ status: 200, headers: Object.assign({ 'Content-Type': 'text/event-stream' }, cors), body: sse });
+      });
+      await charger(page, '#rlc/cours', { assistant: '1' });
+      await page.evaluate(() => window.__ouvrirAssistant());
+      await page.waitForSelector('#assistant-panel.open');
+      const etat0 = await page.textContent('#assistant-panel .assist-etat');
+      await page.fill('#assistant-question', 'Quelle équation pour la charge ?');
+      await page.press('#assistant-question', 'Enter');
+      await page.waitForSelector('#assistant-code', { timeout: 5000 }).catch(() => {});
+      await page.fill('#assistant-code', 'mauvais');
+      await page.press('#assistant-code', 'Enter');
+      await pause(500);
+      const refuse = await page.evaluate(() => Array.from(document.querySelectorAll('#assistant-panel .assist-msg.note')).some(m => /pas le bon/.test(m.textContent)));
+      await page.fill('#assistant-code', 'bon-code');
+      await page.press('#assistant-code', 'Enter');
+      await page.waitForSelector('#assistant-panel .assist-msg.ia .assist-pied', { timeout: 8000 }).catch(() => {});
+      await pause(1200);
+      const r1 = await page.evaluate(() => {
+        const m = document.querySelector('#assistant-panel .assist-msg.ia');
+        return { mjx: m ? m.querySelectorAll('mjx-container').length : 0, lien: !!(m && m.querySelector('.assist-lien-sec[data-sec="§1"]')),
+          liste: !!(m && m.querySelector('ul li strong')), pied: m ? m.querySelector('.assist-pied').textContent : '', occupe: m && m.getAttribute('aria-busy'),
+          etat: document.querySelector('#assistant-panel .assist-etat').textContent,
+          localStorage: Object.keys(localStorage).filter(k => /jeton|assistant-ia/i.test(k) || /v1\.test/.test(localStorage.getItem(k) || '')) };
+      });
+      const chat1 = appels.filter(a => a.chemin === '/chat')[0];
+      res.verifier('relais simulé : code refusé puis accepté, réponse composée (formules, liste, §1 cliquable, pied)',
+        etat0 === 'code requis' && refuse && r1.mjx >= 2 && r1.lien && r1.liste && /Sonnet/.test(r1.pied) && /Approfondir/.test(r1.pied) && !r1.occupe && r1.etat === 'relié',
+        JSON.stringify({ etat0, refuse, r1 }));
+      res.verifier('jeton jamais dans le localStorage (exporté par la Sauvegarde)', !r1.localStorage.length, r1.localStorage.join(', '));
+      res.verifier('1ʳᵉ demande : jeton, chapitre, contenu, contexte, question, sans historique',
+        chat1 && chat1.auth === 'Bearer v1.test.sig' && chat1.corps.chapitre && chat1.corps.chapitre.id === 'rlc' && chat1.corps.contenu && chat1.corps.contenu.texte.length > 1000
+        && chat1.corps.contexte && chat1.corps.contexte.onglet === 'cours' && chat1.corps.question === 'Quelle équation pour la charge ?' && chat1.corps.historique.length === 0 && !('url' in chat1.corps.contexte),
+        JSON.stringify(chat1 && Object.assign({}, chat1, { corps: chat1.corps && Object.assign({}, chat1.corps, { contenu: '…' }) })).slice(0, 400));
+      await page.fill('#assistant-question', 'Et le temps caractéristique ?');
+      await page.press('#assistant-question', 'Enter');
+      await pause(1200);
+      const chat2 = appels.filter(a => a.chemin === '/chat')[1];
+      res.verifier('2ᵉ demande : historique (question + contexte, réponse) et même contenu du chapitre (cache)',
+        chat2 && chat2.corps.historique.length === 2 && chat2.corps.historique[0].role === 'user' && chat2.corps.historique[0].contexte
+        && /§1/.test(chat2.corps.historique[1].texte) && chat2.corps.contenu.empreinte === chat1.corps.contenu.empreinte && chat2.corps.contenu.texte === chat1.corps.contenu.texte,
+        JSON.stringify(chat2 && chat2.corps.historique).slice(0, 300));
+      // renvoi §1 : défile jusqu'à la section du cours
+      await page.evaluate(() => window.scrollTo({ top: 0, behavior: 'instant' }));
+      await page.click('#assistant-panel .assist-lien-sec[data-sec="§1"]');
+      await pause(900);
+      const s1 = await page.evaluate(() => { const c = window.__contexteAssistant(); return { y: scrollY, sec: c.section && c.section.num }; });
+      res.verifier('renvoi §1 : la page défile jusqu\'à la section', s1.y > 100 && s1.sec === '§1', JSON.stringify(s1));
+      mode = 'budget';
+      await page.fill('#assistant-question', 'Encore une ?');
+      await page.press('#assistant-question', 'Enter');
+      await pause(700);
+      const budget = await page.evaluate(() => Array.from(document.querySelectorAll('#assistant-panel .assist-msg.note')).some(m => /Budget du jour/.test(m.textContent)));
+      mode = 'jeton';
+      await page.fill('#assistant-question', 'Et maintenant ?');
+      await page.press('#assistant-question', 'Enter');
+      await pause(700);
+      const recode = await page.evaluate(() => !!document.getElementById('assistant-code'));
+      res.verifier('budget atteint → message ; jeton refusé → code redemandé', budget && recode, JSON.stringify({ budget, recode }));
+      const pb = problemesJournal(journal).filter(m => !/relais\.test/.test(m));
+      res.verifier('relais simulé : aucune erreur, aucune autre requête externe', !pb.length, pb);
+    }
+
     /* ---------- 6. Hors connexion avant le premier chargement ---------- */
     {
       const { contexte, page, journal } = await ctx.nouvellePage();

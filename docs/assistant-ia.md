@@ -1,10 +1,42 @@
 # Assistant IA intégré au site — analyse et plan
 
-> **État au 2026-11-19 : phase 0 livrée (avec l'étape 3a), phase 1 à venir.** Plan validé le
+> **État au 2026-11-19 : phase 0 en ligne (avec l'étape 3a) ; phase 1 prête et testée, en attente de
+> mise en service par Thomas (comptes Anthropic et Cloudflare : `assistant/MISE-EN-SERVICE.md`).** Plan validé le
 > 2026-11-19 (« fais une à une les améliorations proposées ») : les recommandations D1 à D14 tiennent
 > lieu de décisions tant que Thomas ne dit pas autre chose. Ce document est la référence des sessions
 > qui travaillent sur l'assistant ; le résumé et les règles permanentes sont dans `CLAUDE.md`
 > (section « Assistant IA »).
+
+### Phase 1 : ce qui est prêt (2026-11-19)
+
+- **Relais** `assistant/relais/` (Cloudflare Worker, aucun secret dans le dépôt) : `GET /sante`,
+  `POST /auth` (code d'accès → jeton HMAC de 30 jours, 10 essais par heure et par adresse IP),
+  `POST /chat` (réponse de Claude relayée en flux SSE : `texte`, puis `fin` avec modèle, coût et
+  usage, ou `erreur`). CORS limité au site (et `localhost:8765`), débit plafonné (20 requêtes par
+  minute), **budget du jour** (`BUDGET_JOUR_USD`, 1,50 $ par défaut) compté d'après l'usage
+  renvoyé par l'API, dans l'espace KV `COMPTEURS`. Secrets du Worker : `ANTHROPIC_API_KEY`,
+  `ASSISTANT_CODE`, `JETON_CLE`.
+- **Requête** (SDK officiel `@anthropic-ai/sdk`, `client.beta.messages.stream`) : Sonnet 5.5,
+  `effort: low`, `thinking: { type: 'between_tools' }` (pas de temps de réflexion), 4 000 jetons au
+  plus ; « Approfondir » : Opus 5.5, `effort: medium`, réflexion adaptative. Cache : règles (bloc
+  système 1), chapitre (bloc système 2), dernier message (point de cache du tour suivant) ;
+  historique reconstruit à l'identique (le site renvoie chaque question avec son contexte). Repli
+  serveur en cas de refus d'un classifieur (`fallbacks: 'default'`, bêta
+  `server-side-fallback-2026-07-01`) ; `stop_reason: refusal` affiché comme « pas de réponse ».
+  Prompts : `assistant/relais/src/prompts.js` (règles d'écriture, contexte, aucun prénom envoyé).
+- **Panneau** (`assistant/assistant.js`, section 5) : adresse du relais dans la constante `RELAIS`
+  (vide : comportement de la phase 0) ; code d'accès demandé à la première question ; jeton dans
+  **IndexedDB** (base `assistant-ia`, jamais dans `Store` ni le `localStorage` exporté) ; réponse
+  affichée au fil de l'eau (paragraphes terminés composés par MathJax, listes, gras, renvois « §n »
+  en liens vers la section du cours), pied « Sonnet · ≈ n centimes » + **Approfondir**, bouton
+  **Arrêter** pendant la réponse, **Nouvelle conversation** ; une conversation par chapitre, en
+  mémoire (28 messages au plus) ; messages clairs pour le budget atteint, le débit, la
+  surcharge, un relais mal configuré, hors connexion ; jeton refusé → code redemandé.
+- **Tests** : `cd assistant/relais && npm install && npm test` (9 tests, API Claude simulée) ;
+  suite navigateur `assistant` › relais simulé (`window.__RELAIS_ASSISTANT` + `page.route`) ;
+  écran `assistant` de la suite `visuel` avec une réponse composée.
+- **Reste à faire par Thomas** : `assistant/MISE-EN-SERVICE.md` (comptes, déploiement, secrets),
+  puis me donner l'adresse du relais pour la constante `RELAIS`.
 
 ### Ce qui est en ligne (phase 0, 2026-11-19)
 
@@ -335,7 +367,7 @@ messages plutôt que par le script de l'API ; activation par appareil.)
   envoyé ; panneau au clavier et en lecteur d'écran ; écrans du panneau ajoutés à `visuel`.
 - Livrable : on ouvre le panneau, on voit exactement le contexte qui serait envoyé.
 
-### Phase 1 — Discussion écrite
+### Phase 1 — Discussion écrite — **code prêt et testé le 2026-11-19** (voir en tête du document)
 
 - **Relais** (`assistant/relais/`) : `POST /auth` (code → jeton), `POST /chat` (réponse en flux
   SSE), `GET /sante` ; secrets posés par Thomas dans le tableau de bord Cloudflare (jamais dans le

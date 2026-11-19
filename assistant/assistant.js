@@ -374,8 +374,9 @@
       +   '</section>'
       +   '<div class="assist-fil" role="log" aria-live="polite" aria-relevant="additions">'
       +     '<p class="assist-accueil">Pose une question sur ce que tu lis : l’assistant reçoit tout seul la page, la section visible, '
-      +     'ta sélection et l’instant de la vidéo. <strong>Pas encore relié</strong> : les réponses arriveront avec la mise en service '
-      +     'du relais. Le mode <strong>Modification</strong> prépare déjà une demande à coller dans Claude Code.</p>'
+      +     'ta sélection et l’instant de la vidéo. '
+      +     (relais() ? '' : '<strong>Pas encore relié</strong> : les réponses arriveront avec la mise en service du relais. ')
+      +     'Le mode <strong>Modification</strong> prépare une demande à coller dans Claude Code.</p>'
       +   '</div>'
       + '</div>'
       + '<form class="assist-saisie" novalidate>'
@@ -386,6 +387,7 @@
       +   '<label class="sr" for="assistant-question">Ta demande</label>'
       +   '<textarea id="assistant-question" class="assist-champ" rows="2"></textarea>'
       +   '<div class="assist-actions">'
+      +     '<button type="button" class="btn btn-ghost assist-nouvelle" hidden>Nouvelle conversation</button>'
       +     '<p class="assist-aide" aria-hidden="true">Entrée : envoyer · Maj+Entrée : à la ligne</p>'
       +     '<button type="submit" class="btn btn-primary assist-envoyer">' + icone('send') + '<span class="ic-lbl">Envoyer</span></button>'
       +   '</div>'
@@ -428,6 +430,16 @@
       if(e.key === 'Enter' && !e.shiftKey && !e.isComposing){ e.preventDefault(); envoyer(); }
     });
     panel.querySelector('.assist-saisie').addEventListener('submit', e => { e.preventDefault(); envoyer(); });
+    panel.querySelector('.assist-nouvelle').addEventListener('click', () => {
+      conversations.delete(cleConversation());
+      panel.querySelectorAll('.assist-fil > .assist-msg, .assist-fil > .assist-code').forEach(m => m.remove());
+      majEnvoi();
+      const c = $('assistant-question'); if(c) c.focus();
+    });
+    panel.addEventListener('click', e => {
+      const b = e.target && e.target.closest ? e.target.closest('.assist-lien-sec') : null;
+      if(b){ e.preventDefault(); allerSection(b.getAttribute('data-sec')); }
+    });
     majChamp();
     typo(panel);
     // Fermeture par le bouton retour d'Android (urlRouting envoie Échap au document)
@@ -470,6 +482,7 @@
 
   function envoyer(){
     const champ = $('assistant-question');
+    if(enCours){ enCours.ctrl.abort(); return; }   // le bouton sert alors à arrêter la réponse
     const texte = (champ.value || '').trim();
     if(!texte){ champ.focus(); return; }
     ajouterMessage('moi', null, texte);
@@ -483,8 +496,12 @@
       });
       return;
     }
-    ajouterMessage('note', 'Pas encore relié',
-      'Question notée avec son contexte, mais l’assistant n’est pas encore relié : les réponses arriveront avec la mise en service du relais (docs/assistant-ia.md, phase 1).');
+    if(!relais()){
+      ajouterMessage('note', 'Pas encore relié',
+        'Question notée avec son contexte, mais l’assistant n’est pas encore relié : les réponses arriveront avec la mise en service du relais (assistant/MISE-EN-SERVICE.md).');
+      return;
+    }
+    demander(texte, false);
   }
 
   function copier(texte, toast){
@@ -590,6 +607,8 @@
     dernierResume = '';
     majResume();
     mesurerContenu();
+    majEtat();
+    majEnvoi();
     clearInterval(minuterie);
     minuterie = setInterval(() => { if(!document.hidden){ majResume(); mesurerContenu(); } }, 1500);
     const champ = $('assistant-question');
@@ -609,6 +628,292 @@
       const repli = $('assistant-btn');
       window.__rendreFocus(opener && opener.getClientRects().length ? opener : null, repli && repli.getClientRects().length ? repli : (document.querySelector('.chapter.active .tab.active') || null));
     }
+  }
+
+  /* ─────────────── 5. Discussion par le relais (phase 1) ───────────────
+     Le relais (assistant/relais/, Cloudflare Worker) garde la clé de l'API Claude ; le site ne
+     connaît que son adresse (rien de secret) et un JETON d'appareil, obtenu une fois avec le code
+     d'accès de Thomas et rangé dans IndexedDB : jamais dans Store ni dans le localStorage
+     exporté par la Sauvegarde. Sans adresse de relais, l'assistant reste « pas encore relié ». */
+  const RELAIS = '';   // ex. 'https://revisions-assistant.<sous-domaine>.workers.dev' (assistant/MISE-EN-SERVICE.md, étape 5)
+  const relais = () => (window.__RELAIS_ASSISTANT || RELAIS || '').replace(/\/+$/, '');
+  let memJeton = null;
+  function base(){
+    return new Promise((ok, ko) => {
+      if(!window.indexedDB){ ko(new Error('indexedDB')); return; }
+      const r = indexedDB.open('assistant-ia', 1);
+      r.onupgradeneeded = () => r.result.createObjectStore('cles');
+      r.onsuccess = () => ok(r.result);
+      r.onerror = () => ko(r.error);
+    });
+  }
+  async function jetonLire(){
+    if(memJeton && memJeton.exp > Date.now()) return memJeton;
+    try {
+      const db = await base();
+      const v = await new Promise(ok => { const q = db.transaction('cles').objectStore('cles').get('jeton'); q.onsuccess = () => ok(q.result || null); q.onerror = () => ok(null); });
+      memJeton = v && v.exp > Date.now() ? v : null;
+    } catch(e){ /* stockage indisponible : jeton en mémoire seulement */ }
+    return memJeton;
+  }
+  async function jetonEcrire(v){
+    memJeton = v;
+    try {
+      const db = await base();
+      await new Promise(ok => { const tx = db.transaction('cles', 'readwrite'); const s = tx.objectStore('cles'); if(v) s.put(v, 'jeton'); else s.delete('jeton'); tx.oncomplete = ok; tx.onerror = ok; });
+    } catch(e){}
+  }
+
+  // Conversation du chapitre affiché : [{ role:'user', texte, contexte } | { role:'assistant', texte }]
+  const conversations = new Map();
+  let enCours = null;   // { ctrl } pendant une réponse
+  const cleConversation = () => { const c = chapitreVisible(); return c ? c.id : 'hors-chapitre'; };
+  function contexteVolatil(x){
+    const v = {};
+    ['page', 'onglet', 'section', 'methode', 'exercice', 'carte', 'simulateur', 'video', 'selection'].forEach(k => { if(x[k] != null) v[k] = x[k]; });
+    return v;
+  }
+
+  /* Rendu d'une réponse : paragraphes, listes, **gras**, `code`, renvois « §n » cliquables ;
+     formules laissées en TeX puis composées par MathJax. Jamais d'innerHTML du modèle. */
+  function enLigne(parent, t){
+    const re = /(\*\*[^*\n]+\*\*|`[^`\n]+`|§\s?\d+)/g;
+    let i = 0, m;
+    while((m = re.exec(t))){
+      if(m.index > i) parent.appendChild(document.createTextNode(t.slice(i, m.index)));
+      const s = m[0];
+      if(s.startsWith('**')){ const b = document.createElement('strong'); b.textContent = s.slice(2, -2); parent.appendChild(b); }
+      else if(s.startsWith('`')){ const c = document.createElement('code'); c.textContent = s.slice(1, -1); parent.appendChild(c); }
+      else {   // renvoi « §n » : un vrai lien dans la phrase (navigation vers la section du cours)
+        const a = document.createElement('a'); a.className = 'assist-lien-sec'; a.textContent = s;
+        const id = cleConversation();
+        a.href = id !== 'hors-chapitre' ? '#' + id + '/cours' : '#';
+        a.setAttribute('data-sec', s.replace(/\s+/g, '')); parent.appendChild(a);
+      }
+      i = re.lastIndex;
+    }
+    if(i < t.length) parent.appendChild(document.createTextNode(t.slice(i)));
+  }
+  function blocDOM(b){
+    const t = b.replace(/^\n+|\n+$/g, '');
+    if(/^\s*\$\$[\s\S]*\$\$\s*$/.test(t)){ const d = document.createElement('div'); d.className = 'assist-formule'; d.textContent = t.trim(); return d; }
+    const lignes = t.split('\n');
+    if(lignes.every(l => /^\s*([-*•]|\d+[.)])\s+/.test(l) || /^\s{2,}\S/.test(l))){
+      const liste = document.createElement(/^\s*\d/.test(lignes[0]) ? 'ol' : 'ul');
+      lignes.forEach(l => {
+        const m = l.match(/^\s*(?:[-*•]|\d+[.)])\s+(.*)$/);
+        if(m){ const li = document.createElement('li'); enLigne(li, m[1]); liste.appendChild(li); }
+        else if(liste.lastChild) enLigne(liste.lastChild, ' ' + l.trim());
+      });
+      return liste;
+    }
+    const p = document.createElement('p');
+    lignes.forEach((l, k) => { if(k) p.appendChild(document.createElement('br')); enLigne(p, l); });
+    return p;
+  }
+  function composer(el){
+    if(window.MathJax && MathJax.typesetPromise) return MathJax.typesetPromise([el]).catch(() => {});
+    return Promise.resolve();
+  }
+  // Réponse en cours : les paragraphes terminés sont rendus et composés, le dernier reste brut
+  function rendeurFlux(boite){
+    const corps = boite.querySelector('.assist-rep');
+    const brut = document.createElement('p'); brut.className = 'assist-encours';
+    corps.appendChild(brut);
+    let texte = '', faits = 0;
+    return {
+      ajouter(t){
+        texte += t;
+        const blocs = texte.split(/\n{2,}/);
+        for(; faits < blocs.length - 1; faits++){
+          if(!blocs[faits].trim()) continue;
+          const d = blocDOM(blocs[faits]);
+          corps.insertBefore(d, brut);
+          composer(d);
+        }
+        brut.textContent = blocs[blocs.length - 1];
+      },
+      finir(){
+        const blocs = texte.split(/\n{2,}/);
+        const der = blocs[blocs.length - 1];
+        brut.remove();
+        if(der && der.trim()){ const d = blocDOM(der); corps.appendChild(d); composer(d); }
+        return texte;
+      },
+      texte: () => texte,
+    };
+  }
+  function allerSection(num){
+    const chap = chapitreVisible();
+    const c = chap ? chapitres()[chap.id.replace(/^chap-/, '')] : null;
+    if(!c) return;
+    const cible = () => {
+      const sec = Array.from(document.querySelectorAll('#' + c.prefix + '-cours .sec-num')).find(s => new RegExp('^' + num.replace('§', '§\\s*') + '\\b').test((s.textContent || '').trim()));
+      const bloc = sec && (sec.closest('.course-section') || sec);
+      if(bloc) bloc.scrollIntoView({ block:'start', behavior: window.__reduceMotion ? 'auto' : 'smooth' });
+    };
+    if(estTelephone()) fermer();
+    const onglet = panneauActif(chap);
+    if(onglet && onglet.id === c.prefix + '-cours') cible();
+    else if(window.navigateTo) navigateTo('chap-' + c.id, c.prefix + '-cours', cible);
+  }
+
+  function reponseBoite(){
+    const fil = panel.querySelector('.assist-fil');
+    const d = document.createElement('div');
+    d.className = 'assist-msg ia';
+    d.setAttribute('aria-busy', 'true');
+    const t = document.createElement('span'); t.className = 'assist-msg-t'; t.textContent = 'Assistant';
+    const r = document.createElement('div'); r.className = 'assist-rep';
+    d.append(t, r);
+    fil.appendChild(d);
+    return d;
+  }
+  function piedReponse(boite, fin){
+    const pied = document.createElement('div');
+    pied.className = 'assist-pied';
+    const m = document.createElement('span');
+    m.className = 'assist-meta';
+    const nom = /opus/.test(fin.modele || '') ? 'Opus' : /haiku/.test(fin.modele || '') ? 'Haiku' : 'Sonnet';
+    m.textContent = nom + (typeof fin.cout === 'number' ? ' · ' + (fin.cout < 0.01 ? '< 1 centime' : '≈ ' + nb(Math.round(fin.cout * 100)) + ' centime' + (fin.cout >= 0.015 ? 's' : '')) : '');
+    pied.appendChild(m);
+    if(!/opus/.test(fin.modele || '')){
+      const b = document.createElement('button');
+      b.type = 'button'; b.className = 'btn btn-ghost assist-approfondir';
+      b.textContent = 'Approfondir';
+      b.title = 'Redemander avec un modèle plus puissant (plus lent, plus cher)';
+      b.addEventListener('click', () => { b.disabled = true; demander('Approfondis ta réponse précédente : plus de rigueur et de détails.', true); });
+      pied.appendChild(b);
+    }
+    boite.appendChild(pied);
+  }
+  const MESSAGES_ERREUR = {
+    budget: 'Budget du jour atteint : l’assistant reprend demain (plafond réglé dans le relais).',
+    debit: 'Trop de questions en une minute : réessaie dans un instant.',
+    surcharge: 'Le service de Claude est surchargé : réessaie dans un instant.',
+    configuration: 'Le relais est mal configuré (clé de l’API ?) : voir assistant/MISE-EN-SERVICE.md.',
+    reseau: 'Le relais n’a pas pu joindre Claude : réessaie dans un instant.',
+    service: 'Le service de Claude a renvoyé une erreur : réessaie dans un instant.',
+    requete_api: 'La demande a été refusée par l’API (trop longue ?).',
+    requete: 'La demande a été refusée par le relais (trop longue ?).',
+    annule: 'Réponse arrêtée.',
+    interne: 'Erreur du relais : réessaie dans un instant.',
+  };
+
+  async function demanderCode(question, approfondir){
+    ajouterMessage('note', 'Code d’accès', 'Cet appareil n’est pas encore autorisé : tape ton code d’accès (une fois, valable 30 jours).');
+    const fil = panel.querySelector('.assist-fil');
+    const f = document.createElement('form');
+    f.className = 'assist-code';
+    f.innerHTML = '<label class="sr" for="assistant-code">Code d’accès</label>'
+      + '<input id="assistant-code" class="assist-champ" type="password" autocomplete="current-password" placeholder="Code d’accès">'
+      + '<button type="submit" class="btn btn-primary">Valider</button>';
+    fil.appendChild(f);
+    const champ = f.querySelector('input');
+    try { champ.focus({ preventScroll:true }); } catch(e){}
+    f.addEventListener('submit', async e => {
+      e.preventDefault();
+      const code = champ.value;
+      if(!code) return;
+      const b = f.querySelector('button'); b.disabled = true;
+      try {
+        const r = await fetch(relais() + '/auth', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ code }) });
+        const j = await r.json().catch(() => ({}));
+        if(r.ok && j.jeton){
+          await jetonEcrire({ jeton:j.jeton, exp:j.exp });
+          f.remove(); majEtat();
+          ajouterMessage('note', 'Appareil autorisé', 'C’est fait : l’assistant répond désormais sur cet appareil.');
+          if(question) demander(question, approfondir);
+          else { const c = $('assistant-question'); if(c) c.focus(); }
+        } else {
+          b.disabled = false; champ.value = ''; champ.focus();
+          ajouterMessage('note', 'Code refusé', j.erreur === 'trop_de_tentatives' ? 'Trop d’essais : réessaie dans une heure.' : 'Ce code n’est pas le bon.');
+        }
+      } catch(err){
+        b.disabled = false;
+        ajouterMessage('note', 'Relais injoignable', navigator.onLine === false ? 'Hors connexion.' : 'Le relais ne répond pas : réessaie dans un instant.');
+      }
+    });
+  }
+
+  async function demander(question, approfondir){
+    const jt = await jetonLire();
+    if(!jt){ demanderCode(question, approfondir); return; }
+    const x = contexte({ contenu:true });
+    const cle = cleConversation();
+    const hist = conversations.get(cle) || [];
+    const vol = contexteVolatil(x);
+    const corps = {
+      chapitre: x.chapitre ? { id:x.chapitre.id, nom:x.chapitre.nom, matiere: x.matiere ? x.matiere.nom : '', partie:x.chapitre.partie, annee:x.chapitre.annee } : null,
+      contenu: x.contenu ? { empreinte:x.contenu.empreinte, texte:x.contenu.texte } : null,
+      contexte: vol, historique: hist.slice(-28), question, approfondir: !!approfondir,
+    };
+    const boite = reponseBoite();
+    const flux = rendeurFlux(boite);
+    const ctrl = new AbortController();
+    enCours = { ctrl };
+    majEnvoi();
+    let fin = null, erreur = null;
+    try {
+      const r = await fetch(relais() + '/chat', { method:'POST', signal: ctrl.signal,
+        headers:{ 'Content-Type':'application/json', Authorization:'Bearer ' + jt.jeton }, body: JSON.stringify(corps) });
+      if(r.status === 401){ await jetonEcrire(null); boite.remove(); enCours = null; majEnvoi(); majEtat(); demanderCode(question, approfondir); return; }
+      if(!r.ok || !r.body){ const j = await r.json().catch(() => ({})); erreur = j.erreur || 'interne'; }
+      else {
+        const lecteur = r.body.getReader(), dec = new TextDecoder();
+        let tampon = '';
+        for(;;){
+          const { value, done } = await lecteur.read();
+          if(done) break;
+          tampon += dec.decode(value, { stream:true });
+          let k;
+          while((k = tampon.indexOf('\n\n')) >= 0){
+            const bloc = tampon.slice(0, k); tampon = tampon.slice(k + 2);
+            const ev = (/^event: (.*)$/m.exec(bloc) || [])[1], d = (/^data: (.*)$/m.exec(bloc) || [])[1];
+            let data = null; try { data = d ? JSON.parse(d) : null; } catch(e){}
+            if(ev === 'texte' && data) flux.ajouter(data.t || '');
+            else if(ev === 'fin') fin = data || {};
+            else if(ev === 'erreur') erreur = (data && data.code) || 'interne';
+          }
+        }
+      }
+    } catch(e){
+      erreur = e && e.name === 'AbortError' ? 'annule' : (navigator.onLine === false ? 'hors' : 'injoignable');
+    }
+    const texte = flux.finir();
+    boite.removeAttribute('aria-busy');
+    enCours = null; majEnvoi();
+    if(fin && fin.arret === 'refusal'){
+      ajouterMessage('note', 'Pas de réponse', 'L’assistant n’a pas pu répondre à cette demande. Reformule-la autrement.');
+    } else if(fin && texte.trim()){
+      piedReponse(boite, fin);
+      hist.push({ role:'user', texte:question, contexte:vol }, { role:'assistant', texte });
+      while(hist.length > 28) hist.splice(0, 2);
+      conversations.set(cle, hist);
+      majEnvoi();
+    }
+    if(erreur){
+      if(!texte.trim()) boite.remove();
+      ajouterMessage('note', 'Pas de réponse', erreur === 'hors' ? 'Hors connexion : l’assistant a besoin d’Internet.'
+        : erreur === 'injoignable' ? 'Le relais ne répond pas : réessaie dans un instant.' : (MESSAGES_ERREUR[erreur] || MESSAGES_ERREUR.interne));
+    }
+  }
+
+  async function majEtat(){
+    const p = panel && panel.querySelector('.assist-etat');
+    if(!p) return;
+    if(!relais()){ p.textContent = 'bientôt relié'; p.title = 'La discussion sera reliée à la mise en service du relais'; return; }
+    const j = await jetonLire();
+    p.textContent = j ? 'relié' : 'code requis';
+    p.title = j ? 'Cet appareil est autorisé jusqu’au ' + new Date(j.exp).toLocaleDateString('fr-FR') : 'Ton code d’accès sera demandé à la première question';
+  }
+  function majEnvoi(){
+    const b = panel && panel.querySelector('.assist-envoyer');
+    if(!b) return;
+    if(enCours){ b.classList.add('arret'); b.querySelector('.ic-lbl').textContent = 'Arrêter'; }
+    else { b.classList.remove('arret'); majChamp(); }
+    const n = panel.querySelector('.assist-nouvelle');
+    if(n) n.hidden = !(conversations.get(cleConversation()) || []).length || !!enCours;
   }
 
   window.__contexteAssistant = contexte;

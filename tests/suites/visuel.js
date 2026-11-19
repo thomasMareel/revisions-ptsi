@@ -273,28 +273,55 @@ async function ouvrirFeuillePlus(page) {
   await pause(450);
   return (await estOuvert(page, '#mob-more-menu')) ? [] : ['la feuille ⋯ (#mob-more-menu) ne s\'ouvre pas'];
 }
+const RELAIS_SIMULE = 'https://relais.test';
+async function simulerRelais(page) {
+  if (page.__relaisSimule) return;
+  page.__relaisSimule = true;
+  await page.route(RELAIS_SIMULE + '/**', route => {
+    const rq = route.request(), u = new URL(rq.url());
+    const cors = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'Authorization, Content-Type' };
+    if (rq.method() === 'OPTIONS') return route.fulfill({ status: 204, headers: cors });
+    if (u.pathname === '/auth') return route.fulfill({ status: 200, headers: cors, contentType: 'application/json', body: JSON.stringify({ jeton: 'v1.test.sig', exp: Date.now() + 86400000 }) });
+    const t = 'Le courant de déplacement \\(\\vec j_D=\\varepsilon_0\\,\\partial\\vec E/\\partial t\\) rend (MA) compatible avec la conservation de la charge (§3).'
+      + '\n\n- **Sans lui** : \\(\\operatorname{div}\\vec j=0\\) toujours ;\n- or un condensateur se charge.\n\n$$\\overrightarrow{\\operatorname{rot}}\\,\\vec B=\\mu_0\\left(\\vec j+\\vec j_D\\right)$$';
+    const sse = 'event: texte\ndata: ' + JSON.stringify({ t }) + '\n\nevent: fin\ndata: ' + JSON.stringify({ arret: 'end_turn', modele: 'claude-sonnet-5-5', cout: 0.004 }) + '\n\n';
+    return route.fulfill({ status: 200, headers: Object.assign({ 'Content-Type': 'text/event-stream' }, cors), body: sse });
+  });
+}
 async function ouvrirAssistant(page) {
-  // Activé sur l'appareil, un passage du cours sélectionné (puce « Sélection » et son ×),
-  // une question (note « pas encore relié ») et une fiche de modification dans le fil
-  await page.evaluate(() => {
+  // Activé sur l'appareil, relais simulé, un passage du cours sélectionné (puce « Sélection »
+  // et son ×), une question et sa réponse composée (formules, liste, §3), puis une fiche de
+  // modification dans le fil
+  await simulerRelais(page);
+  await page.evaluate(r => {
+    window.__RELAIS_ASSISTANT = r;
     Store.set('assistant', '1'); document.documentElement.classList.add('assistant-actif');
     const p = Array.from(document.querySelectorAll('#mxw-cours .course-section p')).find(x => x.textContent.length > 80);
-    if (p) { const r = document.createRange(); r.selectNodeContents(p); const s = getSelection(); s.removeAllRanges(); s.addRange(r); }
-  });
+    if (p) { const g = document.createRange(); g.selectNodeContents(p); const s = getSelection(); s.removeAllRanges(); s.addRange(g); }
+  }, RELAIS_SIMULE);
   await page.evaluate(() => window.__ouvrirAssistant({ source: 'test' }));
   await pause(900);
-  // fil vidé (le même panneau sert au thème suivant)
-  await page.evaluate(() => document.querySelectorAll('#assistant-panel .assist-msg').forEach(m => m.remove()));
   if (!(await estOuvert(page, '#assistant-panel'))) return ['le panneau de l\'assistant ne s\'ouvre pas'];
+  // fil vidé (le même panneau sert au thème suivant)
+  await page.evaluate(() => document.querySelectorAll('#assistant-panel .assist-msg, #assistant-panel .assist-code').forEach(m => m.remove()));
+  await page.click('#assistant-panel [data-mode="question"]');
   await page.fill('#assistant-question', 'Pourquoi faut-il le courant de déplacement ?');
   await page.press('#assistant-question', 'Enter');
+  await pause(500);
+  if (await page.isVisible('#assistant-code')) {   // 1ʳᵉ fois sur l'appareil : code d'accès
+    await page.fill('#assistant-code', 'code-de-test');
+    await page.press('#assistant-code', 'Enter');
+  }
+  await page.waitForSelector('#assistant-panel .assist-msg.ia .assist-pied', { timeout: 6000 }).catch(() => {});
+  await pause(600);
   await page.click('#assistant-panel [data-mode="modif"]');
   await page.fill('#assistant-question', 'Reformule ce paragraphe plus simplement.');
   await page.press('#assistant-question', 'Enter');
   await pause(500);
   await page.evaluate(() => { const s = getSelection(); if (s) s.removeAllRanges(); const c = document.querySelector('#assistant-panel .assist-corps'); if (c) c.scrollTop = 0; });
-  const n = await page.evaluate(() => document.querySelectorAll('#assistant-panel .assist-msg').length);
-  return n === 4 ? [] : ['assistant : ' + n + ' message(s) dans le fil au lieu de 4'];
+  const r = await page.evaluate(() => ({ ia: document.querySelectorAll('#assistant-panel .assist-msg.ia mjx-container').length,
+    fiche: !!document.querySelector('#assistant-panel .assist-msg.note pre') }));
+  return r.ia >= 2 && r.fiche ? [] : ['assistant : réponse composée ou fiche absente (' + JSON.stringify(r) + ')'];
 }
 async function ouvrirSommaire(page) {
   // Lien profond du Sommaire de la matière (comme un favori ou le bouton précédent)
