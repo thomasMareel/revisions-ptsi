@@ -609,13 +609,13 @@ module.exports = {
     }
 
     /* ---------- Formulaire : jamais d'entrée vers une fenêtre vide ----------
-       43 chapitres (anglais, info, une partie des maths et de la SI) n'ont aucune formule à
+       30 chapitres (anglais, constantes, logique, fabrication en SI, trois d'informatique) n'ont aucune formule à
        regrouper : l'action « Formulaire » de l'intercalaire, du menu Plus et d'Aujourd'hui y est
        masquée ; ailleurs (rlc), elle est affichée et la fenêtre contient des formules. */
-    await etape('Formulaire : entrées masquées sans formule à regrouper (fonctions, anglais), affichées et fenêtre remplie sinon (rlc)', async () => {
+    await etape('Formulaire : entrées masquées sans formule à regrouper (logique, anglais), affichées et fenêtre remplie sinon (rlc)', async () => {
       const pb = [];
       const ang = await page.evaluate(() => (CHAPTERS.find(x => x.matiere === 'anglais') || {}).id);
-      for (const [id, attendu] of [['rlc', true], ['fonctions', false], [ang, false]]) {
+      for (const [id, attendu] of [['rlc', true], ['logique', false], [ang, false]]) {
         if (!id) continue;
         await naviguer(page, id, 'cours');
         const ctb = await page.evaluate(i => { const b = document.querySelector('#chap-' + i + ' .chap-title-banner [data-ctb="formulaire"]'); return !!(b && b.getClientRects().length); }, id);
