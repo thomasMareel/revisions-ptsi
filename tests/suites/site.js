@@ -85,7 +85,7 @@ module.exports = {
       const deplies = [];
       for (const c of CHAPTERS) {
         const ch = document.getElementById('chap-' + c.id);
-        if (!ch || ch.__deplie || c.id === 'rlc' || c.id === 'ingsys') continue;
+        if (!ch || ch.__deplie || c.id === 'rlc') continue;
         for (const p of ['cours', 'meth', 'exos']) {
           if (!c.panels.includes(p)) continue;
           const el = document.getElementById(c.prefix + '-' + p), t = el && el.firstElementChild;

@@ -14,7 +14,7 @@ quand on ajoute un chapitre :
   6. Délimiteurs \\[ … \\] dans le HTML (convention du site : $$ … $$ ; MathJax
      composait la formule mais laissait « \\[ » et « \\] » affichés en clair).
   7. Panneaux Cours, Méthodes et Exercices repliés dans un <template class="pan-tpl">
-     (performance au téléphone ; sauf chap-rlc et chap-ingsys, affichés au départ) :
+     (performance au téléphone ; sauf chap-rlc, affiché au départ) :
      un panneau réécrit par un outil revient déplié → lancer tools/replier_panneaux.py.
 
 Option --souligne (information, sans échec) : liste les notations « X_y » écrites
@@ -188,7 +188,7 @@ def main():
     for m in re.finditer(r'<section class="panel(?: active)?" id="([a-z0-9]+)-(cours|meth|exos)">', html):
         chap = html.rfind('<div class="chapter', 0, m.start())
         mc = re.match(r'<div class="chapter[^"]*" id="([^"]+)"', html[chap:chap + 120]) if chap != -1 else None
-        if mc and mc.group(1) in ("chap-rlc", "chap-ingsys"):
+        if mc and mc.group(1) == "chap-rlc":
             continue
         if not html.startswith('<template class="pan-tpl">', m.end()):
             deplies.append(m.group(1) + "-" + m.group(2))

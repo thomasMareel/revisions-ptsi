@@ -8,12 +8,13 @@ Usage : python3 tools/replier_panneaux.py [--verifier]
 Idempotent. Pourquoi : performance au téléphone (≈ 100 000 éléments de moins au démarrage ; le
 navigateur lit le contenu d'un <template> sans créer d'éléments ni calculer de styles) ; le site le met
 en place à l'ouverture du chapitre (window.__deplierChapitre). Les deux chapitres affichés au départ
-(chap-rlc, chap-ingsys : .chapter.active du HTML source) restent dépliés. Un panneau dont les balises
+(chap-rlc : .chapter.active du <main> principal, visible au démarrage) reste déplié ; chap-ingsys, actif dans le <main>
+de SI masqué au départ, est replié depuis le 2026-11-21 (déplié au 1ᵉʳ clic, comme les autres). Un panneau dont les balises
 <div>/<section> ne sont pas équilibrées n'est PAS replié (signalé) : le replier changerait l'arbre.
 À lancer après toute modification d'un panneau (un panneau réécrit par un outil revient déplié)."""
 import re, sys, os
 R = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'index.html')
-DEPLIES = {'chap-rlc', 'chap-ingsys'}
+DEPLIES = {'chap-rlc'}
 OUV = re.compile(r'<section class="panel(?: active)?" id="([a-z0-9]+)-(cours|meth|exos)">')
 
 def fin_section(s, a):
