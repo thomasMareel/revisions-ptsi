@@ -69,6 +69,13 @@ module.exports = {
           nOnglets++;
           await page.evaluate(h => { location.hash = h; }, '#' + c.id + '/' + onglet);
           await pause(320);
+          // Chapitre lourd (rendu MathJax du panneau précédent en cours) : on attend que le
+          // panneau demandé soit actif, au plus 4 s, avant de lire le contexte. La vérification
+          // qui suit reste la même : un onglet jamais atteint échoue toujours.
+          await page.waitForFunction(([id, pid]) => {
+            const ch = document.getElementById('chap-' + id), p = document.getElementById(pid);
+            return !!(ch && ch.classList.contains('active') && p && p.classList.contains('active'));
+          }, [c.id, c.prefix + '-' + onglet], { timeout: 4000 }).catch(() => {});
           const x = await page.evaluate(([onglet, avecContenu]) => {
             const r = window.__contexteAssistant({ contenu: avecContenu });
             const pan = document.getElementById(CHAPTERS_BY_ID[r.chapitre ? r.chapitre.id : ''] ? CHAPTERS_BY_ID[r.chapitre.id].prefix + '-' + onglet : '');
