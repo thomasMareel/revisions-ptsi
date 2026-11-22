@@ -609,7 +609,7 @@ module.exports = {
     }
 
     /* ---------- Formulaire : jamais d'entrée vers une fenêtre vide ----------
-       27 chapitres (anglais, constantes, cinq de fabrication en SI, trois d'informatique) n'ont aucune formule à
+       25 chapitres (anglais, constantes, trois de fabrication en SI, trois d'informatique) n'ont aucune formule à
        regrouper : l'action « Formulaire » de l'intercalaire, du menu Plus et d'Aujourd'hui y est
        masquée ; ailleurs (rlc), elle est affichée et la fenêtre contient des formules. */
     await etape('Formulaire : entrées masquées sans formule à regrouper (pytypes, anglais), affichées et fenêtre remplie sinon (rlc)', async () => {
