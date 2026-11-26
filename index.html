@@ -179730,9 +179730,14 @@ const optCards = [
    show()) effectue le rendu, dans la même police que le cours.
    Une carte déjà écrite en LaTeX est laissée intacte. */
 const FLASH_FR2 = new Set(['et','ou','ne','se','ce','si','au','en','on','il','le','la','me','te','ma','ta','sa','je','tu','ni','or','de','un','ça','où','là','eh']);
+const FLASH_FR2_MIN = new Set(['du','va','vu','pu','eu','es']);   // en minuscules seulement (« dU », « ES », « VA » restent des maths ou des sigles)
 const FLASH_FUNC = /^(arccos|arcsin|arctan|sinh|cosh|tanh|cos|sin|tan|cot|ln|log|exp|lim|sup|inf|max|min|arg|det|dim|ker|Re|Im|Card|pgcd|ppcm)$/;
 const FLASH_MATHSIG = /[0-9=+*\/^_<>≤≥≠≈≅±∓−√∑∏∫∮∂∇∈∉⊂⊃⊆⊇∪∩∅∀∃∞≡≜∝∘→←↦⇒⇔↔⟶⟹\[\]ℝℂℤℕℚ𝕌𝔻²³¹⁰⁴⁵⁶⁷⁸⁹ⁿⁱ⁺⁻₀₁₂₃₄₅₆₇₈₉ₙₖᵢⱼℓ°|·×÷αβγδεζηθϑικλμνξοπρϱσςτυφϕχψωΓΔΘΛΞΠΣΦΨΩ]/;
 const FLASH_FCALL = /[A-Za-zℓ'’]\(/;
+/* Mots qui ne sont jamais des formules (point 9 de l'audit, 2026-11-26) : sigles d'automatique et d'électronique,
+   unités écrites en lettres, ordinaux « 1er », « 2e », « 3ᵉ » (le chiffre les faisait prendre pour des maths). */
+const FLASH_SIGLES = /^(FT|FTBO|FTBF|BO|BF|HBO|HBF|SLCI|PID|PI|PD|MLI|MCC|ALI|AOP|CAN|CNA|ARQS|VA|dB|Hz|kHz|MHz)$/;
+const FLASH_ORDINAL = /^\d+(?:er|re|ère|e|ème|ᵉ|ʳᵉ|ᵉʳ|nd|nde)$/;
 const FLASH_COMB = /[̀-ͯ⃐-⃿]/;  // diacritiques (accents, points) ET marques de symboles (flèche vecteur ⃗ = U+20D7)
 // Convertit un fragment de maths Unicode en LaTeX (sans les délimiteurs \( \)).
 function flashConvertMath(m){
@@ -179816,6 +179821,7 @@ function flashPretty(s){
     if(/^\s+$/.test(t)) return 'W';                                          // espace
     if(/^[(),.;:!?«»"“”'’\-–—…]+$/.test(t)) return 'X';                       // ponctuation neutre
     const b = baseTok(t);
+    if(FLASH_ORDINAL.test(b) || (FLASH_SIGLES.test(b) && !FLASH_FCALL.test(t))) return 'P';   // « 2e ordre », « en BO », « 0 dB »
     if(FLASH_MATHSIG.test(t)||FLASH_COMB.test(t)||/[ẋẍẏṙṗṡṁṅḋġḣ]/.test(t)||FLASH_FCALL.test(t)||FLASH_FUNC.test(b)) return 'M';
     if(/^[A-Za-zℓ]$/.test(b)) return 'L';                                     // lettre seule (variable ?)
     return 'P';                                                              // mot français
@@ -179825,25 +179831,32 @@ function flashPretty(s){
   for(let i=0;i<toks.length;i++) if(K[i]==='L'){            // lettre seule = variable, sauf a/y/o isolés (« il y a »)
     const b = baseTok(toks[i]).toLowerCase();
     if(b==='a'||b==='y'||b==='o'){ const l=nn(i,-1),r=nn(i,1); K[i]=((l>=0&&K[l]==='M')||(r>=0&&K[r]==='M'))?'M':'P'; }
+    else if(/^[PID]$/.test(baseTok(toks[i])) && (l=>l>=0 && /^(correcteurs?|actions?|régulateurs?)$/i.test(baseTok(toks[l])))(nn(i,-1))) K[i]='P';   // « correcteur I » : action intégrale, pas une variable
     else K[i]='M';
   }
   for(let i=0;i<toks.length;i++) if(K[i]==='P'){            // ib, dx, dt… collés à des maths
     const b = baseTok(toks[i]);
-    if(/^[A-Za-z]{1,2}$/.test(b) && !FLASH_FR2.has(b.toLowerCase())){ const l=nn(i,-1),r=nn(i,1); if((l>=0&&K[l]==='M')||(r>=0&&K[r]==='M')) K[i]='M'; }
+    if(/^[A-Za-z]{1,2}$/.test(b) && !FLASH_FR2.has(b.toLowerCase()) && !FLASH_FR2_MIN.has(b) && !FLASH_SIGLES.test(b)){ const l=nn(i,-1),r=nn(i,1); if((l>=0&&K[l]==='M')||(r>=0&&K[r]==='M')) K[i]='M'; }
   }
   let out='', i=0;
   while(i<toks.length){
     if(K[i]==='M'){                                          // regroupe les jetons maths consécutifs en un seul \( … \)
       let lastM=i,k=i+1;
       while(k<toks.length){ if(K[k]==='M'){ lastM=k; k++; } else if(K[k]==='W'||K[k]==='X'){ k++; } else break; }
-      let mm = flashConvertMath(toks.slice(i,lastM+1).join(''));
+      let brut = toks.slice(i,lastM+1).join(''), avant = '', apres = '';
+      const nb = (s,c)=>s.split(c).length-1;                     // parenthèse de la phrase collée à la formule : « (p en BO) »
+      while(brut[0]==='(' && nb(brut,'(')>nb(brut,')')){ avant += '('; brut = brut.slice(1); }
+      while(/[)]$/.test(brut) && nb(brut,')')>nb(brut,'(')){ apres = ')' + apres; brut = brut.slice(0,-1); }
+      if(!brut.trim()){ out += avant + apres; i = lastM+1; continue; }
+      out += avant;
+      let mm = flashConvertMath(brut);
       mm = mm.replace(/ẋ/g,'\\dot{x}').replace(/ẍ/g,'\\ddot{x}').replace(/ẏ/g,'\\dot{y}').replace(/ṙ/g,'\\dot{r}').replace(/ṗ/g,'\\dot{p}').replace(/ṡ/g,'\\dot{s}').replace(/ṁ/g,'\\dot{m}').replace(/ṅ/g,'\\dot{n}').replace(/ḋ/g,'\\dot{d}').replace(/ġ/g,'\\dot{g}').replace(/ḣ/g,'\\dot{h}'); // dérivées précomposées
       mm = flashFrac(mm);                                                                      // divisions A/B -> \dfrac{A}{B}
       mm = mm.replace(/\\sqrt\{([^{}]*\/[^{}]*)\}/g, (x,inn)=>'\\sqrt{'+flashFrac(inn)+'}');    // fraction SOUS la racine : √(L/C) -> empilée
       mm = mm.replace(/\b(rang|rg|Vect|pgcd|ppcm|Card|Ker|diag|sgn|ch|sh)\b/g, '\\operatorname{$1}');   // opérateurs rendus droits (rg, ch, sh : notations du programme)
       mm = mm.replace(/(\^(?:\{[^{}]*\}|[A-Za-z0-9]))('+)/g, '$1{}$2');                       // évite « prime after exponent »
       mm = mm.replace(/(_\{[^{}]*\})(?=_)/g, '$1{}').replace(/(\^\{[^{}]*\})(?=\^)/g, '$1{}'); // évite doubles indices/exposants
-      out += '\\(' + mm + '\\)';
+      out += '\\(' + mm + '\\)' + apres;
       i = lastM+1;
     } else { out += toks[i]; i++; }
   }

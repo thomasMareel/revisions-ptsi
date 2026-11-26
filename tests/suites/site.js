@@ -226,6 +226,17 @@ module.exports = {
     res.verifier('flashcards : flashPretty + MathJax (' + fl.cartes + ' cartes, ' + fl.decks + ' decks)',
       !fl.merror.length && !fl.exceptions.length, fl.exceptions.map(e => 'exception flashPretty ' + e).concat(fl.merror.map(e => 'mjx-merror ' + e)));
     res.verifier('flashcards : aucun nombre décimal coupé par une fraction (0,06/n, 1,22λ/D…)', !fl.coupes.length, fl.coupes.map(e => 'virgule décimale coupée ' + e));
+    // flashPretty : ordinaux, petits mots, sigles et parenthèses de la phrase restent hors des formules (point 9, 2026-11-26)
+    const fpCas = await page.evaluate(() => [
+      ['Système de 1er ou 2e ordre en BO : peut-il être instable en BF ?', s => !s.includes('\\(')],
+      ['Où placer la cassure 1/Ti du correcteur PI ?', s => s.includes('\\) du correcteur PI')],
+      ['Effet d\'un correcteur I sur les marges.', s => !s.includes('\\(')],
+      ['Stabilité d\'un système avec intégrateur pur (p en BO) ?', s => s.startsWith('Stabilité d\'un système avec intégrateur pur (\\(p\\) en BO)')],
+      ['À quoi correspond G_dB = −3 dB ?', s => /\\\) dB \?$/.test(s)],
+      ['La largeur : IT = cote maxi − cote mini = ES − EI.', s => s.includes('ES − EI')  && /\\\(= ES − EI/.test(s)],
+      ['et dU ≈ dH = ρc·dT.', s => s.includes('\\(dU ≈')]
+    ].map(([q, ok]) => { const s = flashPretty(q); return ok(s) ? '' : q + ' → ' + s; }).filter(Boolean));
+    res.verifier('flashcards : ordinaux, sigles, « du » et parenthèses hors des formules (flashPretty)', !fpCas.length, fpCas);
 
     /* ---------- 5) Simulateurs en clair puis en sombre ---------- */
     const simus = (ctx.options.chapitres ? selection : tous).filter(c => c.drawFn && c.panels.includes('simu'));
