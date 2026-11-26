@@ -86,6 +86,7 @@ Pour passer des options, soit `node tests/run.js <options>`, soit
 | `--sortie=dossier` | où écrire captures et rapport (défaut `tests/sortie/`) | |
 | `--visible` | ouvre une vraie fenêtre Chromium pour **voir** le test se dérouler | `node tests/run.js --suite=interactions --visible` |
 | `--strict` | suite `visuel` : ignore la liste des anomalies tolérées (`TOLERES`) ; **tout** constat fait échouer (utile pendant la refonte graphique, pour voir ce qu'il reste à corriger) | `node tests/run.js --suite=visuel --strict` |
+| `--parallele` | lance les suites dans **deux processus en même temps** (groupes site + mobile + visuel, et assistant + interactions + pwa + regressions) ; journaux et captures dans `<sortie>/groupe-1/` et `groupe-2/`, rapport fusionné dans `<sortie>/rapport.json`. Dans le conteneur (4 cœurs), la batterie complète passe d'environ 60 min à environ 35 min, sans rien retirer | `node tests/run.js --parallele --strict` |
 | `--aide` | liste des options | |
 
 ---

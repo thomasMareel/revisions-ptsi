@@ -39,7 +39,7 @@ const vert = teinte('32'), rouge = teinte('31'), jaune = teinte('33'), gras = te
 /* ---------- Options de la ligne de commande ---------- */
 function lireOptions(argv) {
   const o = { rapide: false, suites: SUITES.slice(), chapitres: null, racine: RACINE_DEPOT,
-    sortie: path.join(__dirname, 'sortie'), visible: false, strict: false, aide: false };
+    sortie: path.join(__dirname, 'sortie'), visible: false, strict: false, aide: false, parallele: false };
   for (const arg of argv) {
     const [cle, ...reste] = arg.replace(/^--?/, '').split('=');
     const val = reste.join('=');
@@ -57,6 +57,7 @@ function lireOptions(argv) {
       case 'sortie': o.sortie = path.resolve(val); break;
       case 'visible': o.visible = true; break;
       case 'strict': o.strict = true; break;
+      case 'parallele': o.parallele = true; break;
       case 'aide': case 'help': case 'h': o.aide = true; break;
       default: throw new Error('option inconnue : ' + arg + ' (voir --aide)');
     }
@@ -64,6 +65,54 @@ function lireOptions(argv) {
   const inconnues = o.suites.filter(s => !SUITES.includes(s));
   if (inconnues.length) throw new Error('suite inconnue : ' + inconnues.join(', ') + ' (suites : ' + SUITES.join(', ') + ')');
   return o;
+}
+
+/* --parallele : deux processus de test en même temps (point 9 de l'audit, 2026-11-26). Dans le conteneur
+   (4 cœurs), la batterie complète passe d'environ 60 min à environ 35 min, sans retirer aucune vérification :
+   les suites sont réparties en deux groupes de durées voisines ; chaque groupe écrit son journal et son
+   rapport dans <sortie>/groupe-1|2/, fusionnés ensuite dans <sortie>/rapport.json. */
+function lancerEnParallele(options, argv) {
+  const { spawn } = require('child_process');
+  const rel = p => { const r = path.relative(process.cwd(), p); return !r ? '.' : (r.startsWith('..') || path.isAbsolute(r) ? p : r); };
+  const GROUPES = [['site', 'mobile', 'visuel'], ['assistant', 'interactions', 'pwa', 'regressions']];
+  const groupes = GROUPES.map(g => g.filter(s => options.suites.includes(s))).filter(g => g.length);
+  const base = argv.filter(a => !/^--?(suite|suites|sortie|parallele)(=|$)/.test(a));
+  fs.mkdirSync(options.sortie, { recursive: true });
+  const t0 = Date.now();
+  console.log(gras('Tests navigateur — Révisions PTSI, en parallèle') + gris('  (' + groupes.map(g => g.join(' + ')).join('  |  ') + ')'));
+  return Promise.all(groupes.map((g, k) => new Promise(resolve => {
+    const dossier = path.join(options.sortie, 'groupe-' + (k + 1));
+    fs.mkdirSync(dossier, { recursive: true });
+    const fj = path.join(dossier, 'journal.txt'), journal = fs.createWriteStream(fj);
+    const p = spawn(process.execPath, [__filename, ...base, '--suite=' + g.join(','), '--sortie=' + dossier], { env: process.env });
+    p.stdout.pipe(journal); p.stderr.pipe(journal);
+    p.on('close', code => {
+      console.log('  ' + (code === 0 ? vert('[OK]   ') : rouge('[ÉCHEC]')) + ' ' + g.join(', ') + gris('  (' + duree(Date.now() - t0) + ', journal : ' + rel(fj) + ')'));
+      resolve({ code, dossier });
+    });
+  }))).then(res => {
+    let code = 0; const suites = [];
+    res.forEach(r => {
+      code = Math.max(code, r.code === null ? 2 : r.code);
+      try { suites.push(...JSON.parse(fs.readFileSync(path.join(r.dossier, 'rapport.json'), 'utf8')).suites); }
+      catch (e) { code = Math.max(code, 2); }
+    });
+    suites.sort((a, b) => SUITES.indexOf(a.nom) - SUITES.indexOf(b.nom));
+    const fichier = path.join(options.sortie, 'rapport.json');
+    fs.writeFileSync(fichier, JSON.stringify({ date: new Date().toISOString(), parallele: true, dureeMs: Date.now() - t0, suites }, null, 1));
+    const trait = '='.repeat(66);
+    console.log('\n' + trait + '\n' + gras(' RÉSUMÉ') + gris('  (durée totale ' + duree(Date.now() - t0) + ', en parallèle)') + '\n' + trait);
+    suites.forEach(s => {
+      const ko = (s.controles || []).filter(c => c.statut !== 'ok');
+      console.log(' ' + (s.ok ? vert('[OK]   ') : rouge('[ÉCHEC]')) + ' ' + s.nom.padEnd(13) + ((ko.length ? ko.length + ' échec(s) sur ' : '') + (s.controles || []).length + ' contrôles').padEnd(34) + gris(duree(s.dureeMs)));
+      ko.forEach(c => { console.log('          ' + rouge('x ' + c.nom)); (c.messages || []).slice(0, 4).forEach(m => console.log('              ' + m)); });
+    });
+    const nbEchec = suites.filter(s => !s.ok).length;
+    console.log('-'.repeat(66));
+    console.log(' Rapport détaillé : ' + rel(fichier) + gris('  (journaux et captures : groupe-1/, groupe-2/)'));
+    console.log(' RÉSULTAT : ' + (code === 0 && !nbEchec ? vert(gras('TOUT EST OK')) : rouge(gras('ÉCHEC')) + (nbEchec ? ' (' + nbEchec + ' suite(s) sur ' + suites.length + ')' : ' (un groupe ne s\'est pas terminé : voir son journal)')));
+    process.exitCode = code || (nbEchec ? 1 : 0);
+  });
 }
 
 function afficherAide() {
@@ -77,6 +126,7 @@ Options :
                          + tous les simulateurs dans un seul thème (clair) ;
                          la suite visuel, elle, reste complète (≈ 2 min)
   --suite=nom[,nom]      suites à lancer parmi : ${SUITES.join(', ')}
+  --parallele            deux processus en même temps (batterie complète ≈ 35 min au lieu de ≈ 60 dans le conteneur)
   --chapitres=id[,id]    limite les boucles de chapitres à ces ids (ex. rlc,optgeo) ;
                          un prefix est accepté (og = optgeo) ; nom inconnu → arrêt (code 2)
   --racine=dossier       dossier du site à tester (défaut : racine du dépôt)
@@ -262,6 +312,7 @@ async function main() {
   try { options = lireOptions(process.argv.slice(2)); }
   catch (e) { console.error(rouge('Erreur : ') + e.message); process.exit(2); }
   if (options.aide) { afficherAide(); return; }
+  if (options.parallele) return lancerEnParallele(options, process.argv.slice(2));
 
   if (!fs.existsSync(path.join(options.racine, 'index.html'))) {
     console.error(rouge('Erreur : ') + 'index.html introuvable dans ' + options.racine + ' (option --racine ?)');
