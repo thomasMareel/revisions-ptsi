@@ -237,6 +237,20 @@ module.exports = {
       ['et dU ≈ dH = ρc·dT.', s => s.includes('\\(dU ≈')]
     ].map(([q, ok]) => { const s = flashPretty(q); return ok(s) ? '' : q + ' → ' + s; }).filter(Boolean));
     res.verifier('flashcards : ordinaux, sigles, « du » et parenthèses hors des formules (flashPretty)', !fpCas.length, fpCas);
+    // Lecture audio des cartes d'anglais : une voix par morceau (point 9, 2026-11-26)
+    const ttsCas = await page.evaluate(() => {
+      const T = window.__TTS, pb = [];
+      const vu = (l) => l.map(p => p.lang + ':' + p.texte).join(' | ');
+      const a = T.lecture('assister à (≠ attendre = to wait for)', 'Faux-ami : « to attend »');
+      if (vu(a) !== 'fr:assister à, attendre | en:to wait for') pb.push('faux-ami lu « ' + vu(a) + ' »');
+      if (T.detectLang('Faux-ami : « to attend »', 'assister à') !== 'fr') pb.push('question « Faux-ami : « … » » non détectée en français');
+      const b = T.lecture('This article deals with… (aussi : tackles, addresses)', '3 façons de dire « cet article parle de… »');
+      if (b.length !== 1 || b[0].lang !== 'en' || /aussi/.test(b[0].texte) || !/tackles/.test(b[0].texte)) pb.push('« (aussi : X) » lu « ' + vu(b) + ' »');
+      const c = T.lecture('compenser / rattraper', 'to make up for');
+      if (vu(c) !== 'fr:compenser, rattraper') pb.push('traduction sans indice lue « ' + vu(c) + ' »');
+      return pb;
+    });
+    res.verifier('lecture audio (anglais) : une voix par morceau, gloses et variantes', !ttsCas.length, ttsCas);
 
     /* ---------- 5) Simulateurs en clair puis en sombre ---------- */
     const simus = (ctx.options.chapitres ? selection : tous).filter(c => c.drawFn && c.panels.includes('simu'));

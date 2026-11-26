@@ -179082,12 +179082,72 @@ window.__TTS = (function(){
     return null;
   }
   function ttsStripHtml(s){ const d = document.createElement('div'); d.innerHTML = String(s || ''); return (d.textContent || '').replace(/\s+/g,' ').trim(); }
-  const FR_HINTS = /[àâçéèêëîïôùûœ«»]|\b(le|la|les|un|une|des|de|du|et|ou|que|qui|quoi|comment|pourquoi|dire|exprimer|signifie|aussi|exemple|nommer|citer|trois|donner)\b/i;
-  const EN_HINTS = /\b(the|to|of|and|in|for|with|that|this|you|it|is|are|an|on|at|by|from|one|might|would|could|should|what|how)\b/i;
-  function detectLang(text){
-    const fr = (text.match(new RegExp(FR_HINTS.source, 'gi')) || []).length;
-    const en = (text.match(new RegExp(EN_HINTS.source, 'gi')) || []).length;
-    return en >= fr ? 'en' : 'fr';
+  /* Langue d'un texte de carte (point 9 de l'audit, 2026-11-26). Une face mêle souvent les deux langues
+     (« assister à (≠ attendre = to wait for) ») : on la découpe en morceaux (guillemets, parenthèses, « · », « / »,
+     « = », « ≠ », « ≈ »), chacun lu avec sa voix. Indices comptés PAR MOT (une lettre accentuée ne compte qu'une
+     fois par mot ; les guillemets « » ne comptent plus) ; un morceau sans indice prend la langue de son voisin ;
+     une face sans aucun indice prend la langue opposée à l'autre face de la carte (paires de traduction). */
+  const FR_HINTS = /[àâçéèêëîïôùûœ]|\b(le|la|les|un|une|des|de|du|et|ou|que|qui|quoi|comment|pourquoi|dire|exprimer|signifie|aussi|exemple|nommer|citer|trois|donner)\b/i;   // gloses françaises (cleanForSpeech)
+  const FR_MOTS = new Set('le la les un une des de du et ou que qui quoi comment pourquoi dire exprimer signifie aussi exemple nommer citer trois donner au aux en pour par sur dans est sont ce cette ces il elle ils elles ne pas plus faire être avoir son sa ses leur nous vous se très tous tout toute quand mais avec sans entre comme selon chez vers donc car si soit faut peut quel quelle quels quelles dont'.split(' '));
+  const EN_MOTS = new Set('the to of and in for with that this you it is are an at by from one might would could should what how be been was were has have had not no do does did will can may must which who whom whose there their they them we our your he she his her its than then so but or if as into about up out off over under some any all very more most such only same too just why when where while because although though whereas however moreover therefore thus hence nevertheless besides furthermore instead indeed yet still'.split(' '));
+  const EN_ER = new Set('after another answer better caller campaigner center chamber cheaper checker closer consider corner computer consumer cover customer danger deliver differ disaster discover driver earlier easier employer encounter exchequer filibuster filter follower freelancer gender hacker higher however later lawyer leader letter listener lower manager master matter member minister monster moreover never newspaper number offer officer order other owner paper partner pensioner player power prefer producer quarter rather reader register remember rider seeker shelter shower speaker starmer stricter subscriber suffer summer taxpayer teacher thatcher together transfer trigger turnover under user viewer water weather westminster whatever whether whistleblower wider winner winter wonder worker writer'.split(' '));
+  function indices(t){
+    let fr = 0, en = 0;
+    if(/^(a|an)\s+[a-z]/i.test(String(t).trim())) en++;   // « a journalist », « an issue »
+    (String(t).match(/[A-Za-zÀ-ÖØ-öø-ÿœŒ]+(?:['’][A-Za-zÀ-ÖØ-öø-ÿœŒ]+)*/g) || []).forEach(m => {
+      const w = m.toLowerCase();
+      if(/^(l|d|j|qu|n|s|c|m|t|jusqu|lorsqu|puisqu)['’]/.test(w)){ fr++; return; }        // l'article, qu'il
+      if(/n['’]t$|['’](s|re|ll|ve|d|m)$/.test(w)){ en++; return; }                          // don't, it's, we're
+      if(/[àâçéèêëîïôùûœ]/.test(w) || FR_MOTS.has(w)){ fr++; return; }
+      if(EN_MOTS.has(w) || /w|th|sh|ck|(ing|ly)$/.test(w)){ en++; return; }
+      if(/(eux|eur|eurs|ais|ait|aient|ez|dre|oir)$/.test(w) || (w.length >= 5 && /(er|ir|if)$/.test(w) && !EN_ER.has(w))) fr++;   // attendre, recevoir, demander, soutenir, exhaustif
+    });
+    return { fr, en };
+  }
+  function morceaux(text, defaut){
+    const parts = String(text).replace(/([A-Za-z])\(([A-Za-z]{1,5})\)/g, '$1$2')   // First(ly) → Firstly
+      .split(/([«»()·\/=≠≈;→]|\s[–—:-]\s)/);
+    const guillemets = /«/.test(text);
+    const seg = []; let niv = 0, dansG = false;
+    parts.forEach(p => {
+      if(p === undefined || p === '') return;
+      if(p === '('){ niv++; seg.push({ sep:'(' }); return; }
+      if(p === ')'){ niv = Math.max(0, niv - 1); seg.push({ sep:')' }); return; }
+      if(p === '«'){ dansG = true; seg.push({ sep:'«' }); return; }
+      if(p === '»'){ dansG = false; seg.push({ sep:'»' }); return; }
+      if(/^([·\/=≠≈;→]|\s[–—:-]\s)$/.test(p)){ seg.push({ sep:p.trim() }); return; }
+      const t = p.trim();
+      if(!/[A-Za-zÀ-ÿ0-9]/.test(t)){ if(t) seg.push({ sep:t }); return; }
+      const n = indices(t);
+      seg.push({ t, niv, dansG, lang: n.en > n.fr ? 'en' : (n.fr > n.en ? 'fr' : null) });
+    });
+    const txt = seg.filter(s => s.t);
+    const voisin = (i, ok) => {             // voisin le plus proche (précédent, puis suivant) qui a une langue
+      for(let j = i - 1; j >= 0; j--) if(txt[j].lang && ok(txt[j])) return txt[j].lang;
+      for(let j = i + 1; j < txt.length; j++) if(txt[j].lang && ok(txt[j])) return txt[j].lang;
+      return null;
+    };
+    txt.forEach(s => { s.indice = !!s.lang; });
+    txt.forEach((s, i) => {                  // sans indice : voisin de même niveau, hors ou dans les guillemets comme lui
+      if(s.lang) return;
+      s.lang = voisin(i, v => v.indice && v.niv === s.niv && v.dansG === s.dansG)
+        || ((guillemets && !s.dansG) ? 'fr' : null)          // « Faux-ami : « to attend » » : le cadre est en français
+        || defaut || voisin(i, v => v.indice) || 'fr';
+    });
+    return seg;
+  }
+  function langueOpposee(autre){          // l'autre face de la carte : son passage entre guillemets s'il y en a un
+    if(!autre) return null;
+    const t = String(autre).replace(/<[^>]*>/g, ' ');
+    const g = t.match(/«([^»]+)»/);
+    return detectLang(g ? g[1] : t) === 'en' ? 'fr' : 'en';
+  }
+  function detectLang(text, autre){       // langue majoritaire (en signes) : attribut lang des faces
+    const seg = morceaux(text, langueOpposee(autre)).filter(s => s.t);
+    const principal = seg.filter(s => s.niv === 0 && !s.dansG);   // hors parenthèses et hors citation « … »
+    const lg = { fr:0, en:0 };
+    (principal.length ? principal : seg).forEach(s => { lg[s.lang] += s.t.length; });
+    return lg.en > lg.fr ? 'en' : 'fr';
   }
   function cleanForSpeech(text, lang){
     let t = text;
@@ -179104,26 +179164,71 @@ window.__TTS = (function(){
     t = t.replace(/\s*·\s*/g, '. ').replace(/\s*\/\s*/g, ', ');
     return t.replace(/\s+/g,' ').trim();
   }
+  /* Morceaux à lire, chacun avec sa voix : [{lang, texte}] (morceaux voisins de même langue réunis). Dans une
+     face surtout anglaise, une glose française entre parenthèses n'est pas lue ; « (aussi : X) » se lit « X ». */
+  function lecture(text, autre){
+    const seg = morceaux(text, langueOpposee(autre));
+    const face = detectLang(text, autre), out = [];
+    if(face === 'en'){                       // glose entièrement française entre parenthèses : sautée
+      let ouv = -1;
+      seg.forEach((s, k) => {
+        if(s.sep === '(') ouv = k;
+        else if(s.sep === ')' && ouv >= 0){
+          const dedans = seg.slice(ouv + 1, k).filter(x => x.t);
+          if(dedans.length && dedans.every(x => x.lang === 'fr') && !/^aussi\b/i.test(dedans[0].t)) dedans.forEach(x => { x.saute = true; });
+          ouv = -1;
+        }
+      });
+    }
+    let i = 0;
+    while(i < seg.length){
+      const s = seg[i];
+      if(s.t){
+        if(s.saute){ i++; continue; }
+        const alt = s.niv > 0 && s.t.match(/^aussi\s*:?\s*(.+)$/i);
+        if(alt && face === 'en'){ s.t = alt[1]; s.lang = 'en'; }      // « (aussi : X) » → lire X
+        else if(face === 'en' && s.lang === 'fr' && s.niv > 0){ i++; continue; }   // glose française : non lue
+        const der = out[out.length - 1];
+        if(der && der.lang === s.lang) der.texte += (der.pause || ' ') + s.t;
+        else out.push({ lang:s.lang, texte:s.t });
+        out[out.length - 1].pause = null;
+      } else if(out.length){
+        const sep = s.sep;
+        if(sep === '·' || sep === ';' || sep === '→' || sep === ':') out[out.length - 1].pause = '. ';
+        else if(sep === '/' || sep === '=' || sep === '≠' || sep === '≈' || sep === '–' || sep === '—' || sep === '-') out[out.length - 1].pause = ', ';
+      }
+      i++;
+    }
+    return out.map(o => ({ lang:o.lang, texte:o.texte.replace(/\s+/g, ' ').trim() })).filter(o => o.texte);
+  }
   function speak(html, opts){
     if(!ok) return false;
     opts = opts || {};
     try{ speechSynthesis.cancel(); }catch(e){}
     const raw = ttsStripHtml(html);
     if(!raw) return false;
-    const lang = opts.lang || detectLang(raw);
-    const u = new SpeechSynthesisUtterance(cleanForSpeech(raw, lang));
-    u.lang = lang === 'en' ? 'en-GB' : 'fr-FR';
-    const v = pickVoice(lang);
-    if(v) u.voice = v;
-    u.rate = 0.95;   // léger ralenti : meilleur pour l'apprentissage
+    const autre = opts.autre ? ttsStripHtml(opts.autre) : '';
+    const parts = opts.lang ? [{ lang:opts.lang, texte:cleanForSpeech(raw, opts.lang) }] : lecture(raw, autre);
+    if(!parts.length) return false;
     const done = () => { if(opts.onend) opts.onend(); };
-    u.onend = done; u.onerror = done;
-    currentU = u;
-    try{ speechSynthesis.speak(u); }catch(e){ done(); return false; }
+    const lot = [];
+    try{
+      parts.forEach((p, k) => {
+        const u = new SpeechSynthesisUtterance(p.texte);
+        u.lang = p.lang === 'en' ? 'en-GB' : 'fr-FR';
+        const v = pickVoice(p.lang);
+        if(v) u.voice = v;
+        u.rate = 0.95;   // léger ralenti : meilleur pour l'apprentissage
+        if(k === parts.length - 1){ u.onend = done; u.onerror = done; }
+        lot.push(u);   // toutes gardées (bug GC de Chrome)
+        speechSynthesis.speak(u);
+      });
+      currentU = lot;
+    }catch(e){ done(); return false; }
     return true;
   }
   function stop(){ if(ok){ try{ speechSynthesis.cancel(); }catch(e){} } }
-  return { ok, speak, stop, detectLang, cleanForSpeech: (t, l) => cleanForSpeech(t, l) };
+  return { ok, speak, stop, detectLang, lecture, cleanForSpeech: (t, l) => cleanForSpeech(t, l) };
 })();
 
 function drawSim(){
@@ -180254,7 +180359,7 @@ function makeFlash(cards, idPrefix, contentId, progId, statsId){
           e.stopPropagation();   // ne pas retourner la carte
           const c = cards[order[idx]];
           b.classList.add('speaking');
-          const started = window.__TTS.speak(flipped ? c.a : c.q, { onend: () => b.classList.remove('speaking') });
+          const started = window.__TTS.speak(flipped ? c.a : c.q, { autre: flipped ? c.q : c.a, onend: () => b.classList.remove('speaking') });
           if(!started) b.classList.remove('speaking');
         });
         el.headEnd.appendChild(b);
@@ -180348,7 +180453,7 @@ function makeFlash(cards, idPrefix, contentId, progId, statsId){
     if(el.annonce) el.annonce.textContent = '';
     // Étiquette de langue (anglais) → bonne voix pour les lecteurs d'écran
     if(isPlainDeck && window.__TTS){
-      c.querySelectorAll('.fc-q, .fc-a-t').forEach(d => { d.lang = window.__TTS.detectLang(d.textContent || ''); });
+      c.querySelectorAll('.fc-q, .fc-a-t').forEach(d => { d.lang = window.__TTS.detectLang(d.textContent || '', d.classList.contains('fc-q') ? card.a : card.q); });
     }
     try {
       if(window.MathJax && window.MathJax.typesetPromise){
@@ -195593,8 +195698,8 @@ document.addEventListener('keydown', e => {
     quizFace();
     // Étiquette de langue (anglais) pour les lecteurs d'écran
     if(qPlain && window.__TTS){
-      qEl.lang = window.__TTS.detectLang(qEl.textContent || '');
-      aEl.lang = window.__TTS.detectLang(aEl.textContent || '');
+      qEl.lang = window.__TTS.detectLang(qEl.textContent || '', aEl.textContent || '');
+      aEl.lang = window.__TTS.detectLang(aEl.textContent || '', qEl.textContent || '');
     } else { qEl.removeAttribute('lang'); aEl.removeAttribute('lang'); }
 
     // Boutons
@@ -195714,7 +195819,7 @@ document.addEventListener('keydown', e => {
     const btn = document.getElementById('quiz-tts-btn');
     if(btn) btn.classList.add('speaking');
     const started = window.__TTS.speak(quizRevealed ? quizCurrent.card.a : quizCurrent.card.q,
-      { onend: () => { if(btn) btn.classList.remove('speaking'); } });
+      { autre: quizRevealed ? quizCurrent.card.q : quizCurrent.card.a, onend: () => { if(btn) btn.classList.remove('speaking'); } });
     if(!started && btn) btn.classList.remove('speaking');
   };
 
