@@ -1069,6 +1069,8 @@ module.exports = {
           return { i: +l.dataset.i, titre: t ? t.textContent : '', meta: (l.querySelector('.sr-meta') || {}).textContent || '' };
         }, groupe);
         if (!r) { pb.push('« ' + requete + ' » : aucun résultat dans « ' + groupe + ' »'); await page.keyboard.press('Escape'); continue; }
+        // (mise en évidence d'un essai précédent dans le même chapitre : effacée)
+        await page.evaluate(() => document.querySelectorAll('.cours-target-flash').forEach(e => e.classList.remove('cours-target-flash')));
         await page.click('#sr-' + r.i);
         await pause(300);
         await page.waitForFunction(() => !(window.__navigationEnCours && window.__navigationEnCours()), null, { timeout: 15000 }).catch(() => {});
