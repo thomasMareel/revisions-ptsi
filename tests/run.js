@@ -39,7 +39,7 @@ const vert = teinte('32'), rouge = teinte('31'), jaune = teinte('33'), gras = te
 /* ---------- Options de la ligne de commande ---------- */
 function lireOptions(argv) {
   const o = { rapide: false, suites: SUITES.slice(), chapitres: null, racine: RACINE_DEPOT,
-    sortie: path.join(__dirname, 'sortie'), visible: false, strict: false, aide: false };
+    sortie: path.join(__dirname, 'sortie'), visible: false, strict: false, aide: false, delaiChapitres: 0 };
   for (const arg of argv) {
     const [cle, ...reste] = arg.replace(/^--?/, '').split('=');
     const val = reste.join('=');
@@ -57,6 +57,7 @@ function lireOptions(argv) {
       case 'sortie': o.sortie = path.resolve(val); break;
       case 'visible': o.visible = true; break;
       case 'strict': o.strict = true; break;
+      case 'delai-chapitres': o.delaiChapitres = Math.max(0, parseInt(val, 10) || 0); break;
       case 'aide': case 'help': case 'h': o.aide = true; break;
       default: throw new Error('option inconnue : ' + arg + ' (voir --aide)');
     }
@@ -84,7 +85,9 @@ Options :
   --visible              ouvre une vraie fenêtre Chromium (pour observer / déboguer)
   --strict               suite visuel : ignore les listes d'anomalies tolérées (tout
                          constat fait échouer ; utile pendant la refonte graphique)
-  --aide                 affiche cette aide
+  --delai-chapitres=N    retarde de N ms le chargement de chaque chapitre (fait
+                         apparaître les erreurs de synchronisation du chargement)
+  --aide                affiche cette aide
 
 Code de sortie : 0 si tout passe, 1 si au moins un test échoue, 2 si le
 harnais lui-même ne peut pas démarrer (Playwright absent, site introuvable…),
@@ -178,6 +181,8 @@ function creerContexte({ pw, navigateur, serveur, options, nomSuite }) {
     /* URL du site : ctx.url('#rlc/cours') ou ctx.url('#rlc/flash', { variante: 'b2', op: 'inversion' }) */
     url(hash, params) {
       let u = serveur.url;
+      // --delai-chapitres=N : chargement de chaque chapitre retardé de N ms (docs/chargement-chapitres.md)
+      if (options.delaiChapitres) params = Object.assign({ 'delai-chapitres': options.delaiChapitres }, params || {});
       if (params && Object.keys(params).length) u += '?' + new URLSearchParams(params).toString();
       if (hash) u += (hash.startsWith('#') ? '' : '#') + hash;
       return u;

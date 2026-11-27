@@ -117,6 +117,8 @@ window.MathJax = {
       // data-mjx… : MathJax ignore les éléments qui en portent un).
       const typesetActive = () => {
         const active = document.querySelector('.chapter.active');
+        // chapitre pas encore chargé (docs/chargement-chapitres.md) : rendu à son ouverture
+        if (active && window.__chapitreCharge && !window.__chapitreCharge(active.id.replace(/^chap-/, ''))) return;
         if (active) {
           const panel = active.querySelector('.panel.active') || active;
           const lances = window.__typesetLances || (window.__typesetLances = new WeakSet());
@@ -1215,6 +1217,14 @@ footer.pied .brand-mark{ width:1.375rem; height:1.375rem; border-radius:6px; fon
   html.onglet-cartes .maj-banniere,
   #quiz-overlay.open ~ .maj-banniere{ bottom:calc(5.25rem + env(safe-area-inset-bottom)); }
 }
+/* Chapitre en cours de chargement (docs/chargement-chapitres.md) : filet qui avance en haut de
+   l'écran, posé après 150 ms seulement (depuis le cache, le chargement ne se voit pas) */
+html.chap-chargement::after{
+  content:''; position:fixed; top:0; left:0; width:40%; height:3px; z-index:calc(var(--z-overlay) + 1);
+  background:var(--focus); pointer-events:none; animation:chapChargement 1.1s ease-in-out infinite;
+}
+html.chap-chargement body{ cursor:progress; }
+@keyframes chapChargement{ from{ transform:translateX(-100%); } to{ transform:translateX(250%); } }
 
 /* ===================================================================
    7. MOUVEMENT RÉDUIT : la barre se masque sans glisser, feuilles et tiroir sans glissement
@@ -1224,6 +1234,7 @@ footer.pied .brand-mark{ width:1.375rem; height:1.375rem; border-radius:6px; fon
      présents pour les lecteurs d'écran, souvent utilisés avec le mouvement réduit) */
   #mob-header.mbar.cachee{ transform:translateY(-100%); visibility:visible; transition:none; }
   #mob-drawer, #mob-more-menu.bsheet, #mob-more-scrim, .hdr-more-menu.open, #theme-pop{ transition:none !important; animation:none !important; }
+  html.chap-chargement::after{ animation:none; width:100%; opacity:.6; }
 }
 
 /* --- Sélecteur de thème (SPEC §4.6) --- */
@@ -3422,6 +3433,69 @@ window.__deplierChapitre = function(chap){
   for(var i = 0; i < ts.length; i++){ var t = ts[i]; t.parentNode.replaceChild(t.content, t); }
   for(var k = 0; k < window.__apresDepliage.length; k++){ try { window.__apresDepliage[k](chap); } catch(e){} }
 };
+/* CHARGEMENT DES CHAPITRES (point 6, docs/chargement-chapitres.md). Règle : un chapitre VISIBLE a
+   toujours son contenu. __chargerChapitre(id) → promesse (true si le contenu est en place, false sinon),
+   une seule requête par chapitre ; __chapitreCharge(id) ; __demanderChapitre(id, suite) : la DERNIÈRE
+   demande l'emporte (suite() n'est appelée que si aucune autre navigation n'est venue entre-temps), repère
+   html.chap-chargement si le chargement dure, toast en cas d'échec. Le clic sur un .chap-btn d'un chapitre
+   pas encore chargé est différé (écouteur en capture ci-dessous) puis rejoué une fois le contenu en place :
+   tout le code qui suit le clic voit le contenu comme avant. Lot 1 : le contenu est encore dans la page,
+   tout est chargé d'emblée ; ?delai-chapitres=N (tests) simule un chargement de N ms. */
+(function(){
+  var etat = {};                       // id → true (chargé) ou promesse en cours
+  var m = /[?&]delai-chapitres=(\d+)/.exec(location.search || '');
+  var DELAI = m ? +m[1] : 0;
+  var demande = null, minuterie = 0;
+  var racine = document.documentElement;
+  function repere(on){
+    clearTimeout(minuterie);
+    var main = document.getElementById('app-main');
+    if(on){
+      minuterie = setTimeout(function(){
+        racine.classList.add('chap-chargement');
+        if(main) main.setAttribute('aria-busy', 'true');
+      }, 150);
+    } else {
+      racine.classList.remove('chap-chargement');
+      if(main) main.removeAttribute('aria-busy');
+    }
+  }
+  window.__chapitreCharge = function(id){ return !DELAI || etat[id] === true; };
+  window.__chargerChapitre = function(id){
+    if(window.__chapitreCharge(id)) return Promise.resolve(true);
+    if(etat[id]) return etat[id];
+    var p = new Promise(function(res){ setTimeout(function(){ res(true); }, DELAI); })
+      .then(function(ok){ if(ok) etat[id] = true; else delete etat[id]; return ok; },
+            function(){ delete etat[id]; return false; });
+    etat[id] = p;
+    return p;
+  };
+  window.__annulerDemandeChapitre = function(){ if(demande !== null){ demande = null; repere(false); } };
+  window.__demanderChapitre = function(id, suite){
+    var jeton = demande = { id: id };
+    repere(true);
+    return window.__chargerChapitre(id).then(function(ok){
+      if(demande !== jeton) return false;            // une autre navigation est passée devant
+      demande = null; repere(false);
+      if(!ok){
+        if(window.__toast) window.__toast(location.protocol === 'file:'
+          ? 'Ce chapitre ne s’ouvre pas depuis le fichier : ouvre le site en ligne ou avec un petit serveur local.'
+          : 'Chapitre pas encore disponible hors ligne : reconnecte-toi pour l’ouvrir.', { duree: 6000 });
+        return false;
+      }
+      suite();
+      return true;
+    });
+  };
+  document.addEventListener('click', function(e){
+    var b = e.target && e.target.closest ? e.target.closest('.chap-btn') : null;
+    if(!b || !b.dataset.chap) return;
+    if(window.__chapitreCharge(b.dataset.chap)){ window.__annulerDemandeChapitre(); return; }
+    e.stopImmediatePropagation();
+    e.preventDefault();
+    window.__demanderChapitre(b.dataset.chap, function(){ b.click(); });
+  }, true);
+})();
 window.__rendreFocus = function(op, repli){
   // essai réel : un élément d'une feuille refermée garde des boîtes (visibility:hidden, translaté)
   // mais refuse le focus ; on vérifie donc qu'il l'a bien pris, sinon on passe au repli
@@ -178746,6 +178820,10 @@ function redrawChapter(chap){
 /* Typeset paresseux d'un seul panneau (perf : évite de tout rendre d'un coup).
    Ne fait rien si MathJax n'est pas prêt ou si le panneau est déjà rendu. */
 function typesetPanel(panel){
+  // Chapitre pas encore chargé (contenu à venir, docs/chargement-chapitres.md) : rien à rendre ni à
+  // marquer « lancé » (sinon son panneau ne serait jamais rendu une fois le contenu arrivé)
+  const chapP = panel && panel.closest ? panel.closest('.chapter') : null;
+  if(chapP && window.__chapitreCharge && !window.__chapitreCharge(chapP.id.replace(/^chap-/, ''))) return;
   // Contenu replié (template.pan-tpl) : tout le chapitre est mis en place d'abord
   if(panel && window.__deplierChapitre && panel.firstElementChild && panel.firstElementChild.tagName === 'TEMPLATE')
     window.__deplierChapitre(panel.closest('.chapter'));
@@ -194160,6 +194238,14 @@ function navigateTo(chapId, panelId, onDone){
   // chapId ex: 'chap-thermo1' ; panelId ex: 'thermo1-exos'
   const chapBtn = document.querySelector('.chap-btn[data-chap="'+chapId.replace('chap-','')+'"]');
   if(!chapBtn) return;
+  // 0) contenu du chapitre pas encore chargé : on le charge, puis on reprend (docs/chargement-chapitres.md) ;
+  //    la dernière demande l'emporte
+  const idCh = chapId.replace('chap-','');
+  if(window.__chapitreCharge && !window.__chapitreCharge(idCh)){
+    window.__demanderChapitre(idCh, () => navigateTo(chapId, panelId, onDone));
+    return;
+  }
+  if(window.__annulerDemandeChapitre) window.__annulerDemandeChapitre();
   // 1) activer la bonne matière
   const matContent = chapBtn.closest('.mat-content');
   if(matContent){
@@ -194354,7 +194440,11 @@ function navigateTo(chapId, panelId, onDone){
     if(window.__navFromHash && window.__navFromHash()) return;   // deep-link
     if(pos && pos.chap && document.getElementById(pos.chap)){
       navigateTo(pos.chap, pos.panel);
+      return;
     }
+    // 1ʳᵉ visite : chapitre affiché au départ (RLC), chargé s'il ne l'est pas encore
+    const vis = [...document.querySelectorAll('.chapter.active')].find(c => c.offsetParent !== null);
+    if(vis && window.__chapitreCharge && !window.__chapitreCharge(vis.id.replace(/^chap-/, ''))) navigateTo(vis.id, null);
   }, 120);
 })();
 
@@ -196166,6 +196256,11 @@ document.addEventListener('keydown', e => {
   /* ── Choisir un chapitre : ferme le tiroir / la page, clique le .chap-btn caché ── */
   function ouvrirChapitre(id){
     const chapId = id.replace('chap-', '');
+    // contenu pas encore chargé : on le charge d'abord (le tiroir reste ouvert le temps du chargement)
+    if(window.__chapitreCharge && !window.__chapitreCharge(chapId)){
+      window.__demanderChapitre(chapId, () => ouvrirChapitre(id));
+      return;
+    }
     const cible = idChap(chapId);
     // Choix fait au clavier (ou au lecteur d'écran) depuis la navigation ou le Sommaire : la rangée
     // disparaît (liste reconstruite, tiroir ou Sommaire refermés) et le focus tombait sur <body>
