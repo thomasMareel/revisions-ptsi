@@ -3,7 +3,11 @@
    IMPORTANT : à chaque modification d'un asset mis en cache (index.html, polices,
    MathJax…), incrémenter CACHE_VERSION pour forcer le rafraîchissement chez les
    utilisateurs déjà installés. */
-const CACHE_VERSION = 'ptsi-cache-v136';
+const CACHE_VERSION = 'ptsi-cache-v137';
+/* Contenu des chapitres (chapitres/<id>.html?v=<empreinte>, chapitres/recherche.json?v=…) : cache à part,
+   GARDÉ d'une version à l'autre (une mise à jour ne retélécharge que les chapitres modifiés, dont
+   l'empreinte change) ; la page retire les versions qui ne figurent plus à son manifeste. */
+const CACHE_CHAPITRES = 'ptsi-chapitres';
 
 const PRECACHE = [
   './',
@@ -71,7 +75,7 @@ self.addEventListener('message', event => {
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys()
-      .then(keys => Promise.all(keys.filter(k => k !== CACHE_VERSION).map(k => caches.delete(k))))
+      .then(keys => Promise.all(keys.filter(k => k !== CACHE_VERSION && k !== CACHE_CHAPITRES).map(k => caches.delete(k))))
       .then(() => self.clients.claim())
   );
 });
@@ -81,6 +85,18 @@ self.addEventListener('fetch', event => {
   if (req.method !== 'GET') return;
   const url = new URL(req.url);
   if (url.origin !== location.origin) return; // laisser passer toute requête externe
+
+  // Chapitres : cache d'abord (adresse à empreinte : une version ne change jamais), puis réseau.
+  // AVANT la branche HTML, qui répondrait index.html à toute requête acceptant du HTML.
+  if (url.pathname.indexOf('/chapitres/') >= 0) {
+    event.respondWith(
+      caches.open(CACHE_CHAPITRES).then(cache => cache.match(req).then(cached => cached || fetch(req).then(res => {
+        if (res && res.ok && url.search) cache.put(req, res.clone());
+        return res;
+      })))
+    );
+    return;
+  }
 
   const isNav = req.mode === 'navigate' ||
                 (req.headers.get('accept') || '').includes('text/html');

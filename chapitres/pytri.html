@@ -1,0 +1,1449 @@
+<!-- Chapitre « Algorithmes de tri » (pytri) : contenu des onglets Cours, Méthodes et Exercices, chargé à l'ouverture du chapitre.
+     On l'édite ici, puis : node tools/chapitres.js (docs/chargement-chapitres.md). -->
+<template class="pan-tpl" data-panneau="tri-cours">
+<div class="course-section">
+  <div class="sec-num">AU PROGRAMME · INFORMATIQUE</div>
+  <h2>Ce que le programme officiel demande</h2>
+  <div class="intro">Le thème « Tris » appartient au premier semestre d'informatique commune. Il met en pratique presque tout le reste du programme : boucles imbriquées, fonctions récursives, invariants et variants, complexité dans le pire cas et en espace, jeux de tests. Les tris par partition-fusion et rapide sont récursifs : la pile d'appels est étudiée dans le chapitre <em>Récursivité</em> ; les outils de preuve et de calcul de coût sont exposés en détail dans le chapitre <em>Spécification, correction et complexité</em>.</div>
+  <div class="reveal" onclick="this.classList.toggle('open')">
+    <span class="label">Programme officiel</span>
+    <span class="prompt">Les thèmes et activités couverts, dans l'ordre du chapitre</span>
+    <div class="content">
+      <ul>
+        <li><strong>Caractéristiques d'un tri</strong> (S1) : stable ou non, en place ou non, comparatif ou non (§1, puis dans chaque section ; bilan au §8).</li>
+        <li><strong>Algorithmes à boucles imbriquées</strong> (S1) : tri à bulles, notion de complexité quadratique, outils pour valider la correction (§2).</li>
+        <li><strong>Tris</strong> (S1) : algorithmes quadratiques, tri par sélection (§3) et par insertion (§4) ; tri par partition-fusion (§5) ; tri rapide (§6) ; tri par comptage (§7).</li>
+        <li><strong>Méthodes de programmation</strong> (S2) : spécification, invariant et variant de boucle, correction des fonctions récursives, complexité temporelle dans le pire cas, complexité en espace, jeux de tests (§1 à §8).</li>
+      </ul>
+      <p>Les algorithmes cités par le programme sont des exemples d'activités, non exigibles en tant que tels ; mais les sujets de concours s'en servent sans cesse. Il faut savoir les écrire, les dérouler à la main, et justifier leur correction et leur coût. Le code n'utilise que les éléments de Python de l'annexe du programme ; les fonctions extérieures (<span class="code-inline">sorted</span>, la méthode <span class="code-inline">sort</span>, le module <span class="code-inline">random</span>) ne servent qu'à tester et sont documentées là où elles apparaissent.</p>
+      <p>Hors programme : la borne inférieure des tris par comparaisons, le tri par tas, la complexité en moyenne du tri rapide, le tri par base (dernière section).</p>
+    </div>
+  </div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§1 · LE PROBLÈME DU TRI</div>
+  <h2>Spécifier un tri</h2>
+  <div class="intro">Une liste triée se prête à des traitements bien plus rapides qu'une liste quelconque : recherche dichotomique en temps logarithmique, médiane lue au milieu, doublons côte à côte, classement direct. Avant d'écrire un tri, il faut dire exactement ce qu'il doit produire, et ce qu'il a le droit de modifier.</div>
+
+  <div class="def-box">
+    <strong>Trier</strong> une liste \(t\) de \(n\) valeurs comparables (nombres, chaînes, tuples), c'est en <strong>réordonner</strong> les éléments pour obtenir \(t[0] \le t[1] \le \dots \le t[n-1]\). La postcondition a deux volets : la liste obtenue est <strong>triée</strong>, et elle contient <strong>les mêmes valeurs</strong>, chacune autant de fois qu'au départ (c'est une permutation de la liste initiale).<br>
+    On note \(t[a..b]\) la portion de \(t\) formée des cases d'indices \(a\) à \(b\) inclus, c'est-à-dire la tranche <span class="code-inline">t[a:b+1]</span> ; elle est vide si \(a \gt b\).
+  </div>
+
+  <p>Les deux volets se vérifient séparément : <span class="code-inline">est_triee</span> parcourt les couples de voisins, <span class="code-inline">effectifs</span> compte les occurrences de chaque valeur dans un dictionnaire (deux listes ont les mêmes éléments si leurs dictionnaires d'effectifs sont égaux). Ces deux fonctions servent à tester les tris du chapitre.</p>
+<pre class="codeblock"><span class="kw">def</span> est_triee(t):
+    <span class="cmt"># renvoie True si t est triée dans l'ordre croissant</span>
+    <span class="kw">for</span> i <span class="kw">in</span> range(len(t) - 1):
+        <span class="kw">if</span> t[i] &gt; t[i + 1]:
+            <span class="kw">return</span> <span class="kw">False</span>
+    <span class="kw">return</span> <span class="kw">True</span></pre>
+<pre class="codeblock"><span class="kw">def</span> effectifs(t):
+    <span class="cmt"># dictionnaire : valeur -&gt; nombre d'apparitions</span>
+    d = {}
+    <span class="kw">for</span> x <span class="kw">in</span> t:
+        <span class="kw">if</span> x <span class="kw">in</span> d:
+            d[x] = d[x] + 1
+        <span class="kw">else</span>:
+            d[x] = 1
+    <span class="kw">return</span> d</pre>
+
+  <div class="def-box">
+    Trois caractéristiques distinguent les tris :
+    <ul>
+      <li>un tri est <strong>en place</strong> s'il réordonne la liste elle-même en n'utilisant qu'une mémoire supplémentaire bornée, \(O(1)\) (quelques indices) ; la fonction agit alors par effet de bord et ne renvoie rien. Sinon, il construit de nouvelles listes, souvent renvoyées en résultat ;</li>
+      <li>un tri est <strong>stable</strong> s'il conserve l'ordre de départ des éléments égaux. Cela n'a d'intérêt que lorsqu'on trie des fiches selon une partie seulement de leur contenu (des élèves selon leur note, des coureurs selon leur temps) : deux fiches de même note peuvent être différentes ;</li>
+      <li>un tri est <strong>comparatif</strong> s'il n'accède aux valeurs qu'en les comparant deux à deux. Il fonctionne alors pour tout type de valeurs comparables ; c'est le cas de tous les tris de ce chapitre, sauf le tri par comptage (§7).</li>
+    </ul>
+  </div>
+
+  <div class="method-box">
+    <strong>Exemple — Trier en place ou fabriquer une nouvelle liste</strong>
+    <p>Python fournit les deux comportements : la fonction <span class="code-inline">sorted(t)</span> renvoie une nouvelle liste triée sans toucher à <span class="code-inline">t</span>, la méthode <span class="code-inline">t.sort()</span> trie <span class="code-inline">t</span> en place et renvoie <span class="code-inline">None</span>. Ni l'une ni l'autre n'est dans l'annexe du programme : un sujet qui demande d'écrire un tri en interdit l'usage, et l'on ne s'en sert ici que pour tester.</p>
+<pre class="codeblock">t = [5, 2, 8, 1]
+u = sorted(t)      <span class="cmt"># nouvelle liste triée, t inchangée</span>
+u                  <span class="cmt"># [1, 2, 5, 8]</span>
+t                  <span class="cmt"># [5, 2, 8, 1]</span>
+t.sort()           <span class="cmt"># None : tri en place, t est modifiée</span>
+t                  <span class="cmt"># [1, 2, 5, 8]</span></pre>
+  </div>
+
+  <h3>Mesurer le désordre : les inversions</h3>
+  <p>Une <strong>inversion</strong> de \(t\) est un couple d'indices \((i, j)\) avec \(i \lt j\) et \(t[i] \gt t[j]\) : deux valeurs rangées dans le mauvais ordre. Une liste est triée si et seulement si elle n'a aucune inversion, et une liste de \(n\) valeurs distinctes rangée à l'envers en a le maximum, une par couple de cases, soit \(\dfrac{n(n-1)}{2}\).</p>
+<pre class="codeblock"><span class="kw">def</span> nb_inversions(t):
+    <span class="cmt"># nombre de couples (i, j), i &lt; j, avec t[i] &gt; t[j]</span>
+    n = len(t)
+    c = 0
+    <span class="kw">for</span> i <span class="kw">in</span> range(n):
+        <span class="kw">for</span> j <span class="kw">in</span> range(i + 1, n):
+            <span class="kw">if</span> t[i] &gt; t[j]:
+                c = c + 1
+    <span class="kw">return</span> c</pre>
+<figure class="schema" style="max-width:360px">
+<svg viewBox="0 0 340 134" role="img" aria-label="La liste 3, 1, 4, 2 et ses trois inversions, dessinées comme des arcs entre les couples de cases mal rangées : 3 et 1, 3 et 2, 4 et 2.">
+<rect x="40" y="74" width="48" height="32" class="sk-ink fl-paper"/>
+<text x="64" y="95" text-anchor="middle">3</text>
+<rect x="88" y="74" width="48" height="32" class="sk-ink fl-paper"/>
+<text x="112" y="95" text-anchor="middle">1</text>
+<rect x="136" y="74" width="48" height="32" class="sk-ink fl-paper"/>
+<text x="160" y="95" text-anchor="middle">4</text>
+<rect x="184" y="74" width="48" height="32" class="sk-ink fl-paper"/>
+<text x="208" y="95" text-anchor="middle">2</text>
+<text x="64" y="124" class="lab-muted" text-anchor="middle">0</text>
+<text x="112" y="124" class="lab-muted" text-anchor="middle">1</text>
+<text x="160" y="124" class="lab-muted" text-anchor="middle">2</text>
+<text x="208" y="124" class="lab-muted" text-anchor="middle">3</text>
+<path d="M64,72 Q88,30 112,72" class="sk-accent"/>
+<path d="M64,72 Q136,-14 208,72" class="sk-accent"/>
+<path d="M160,72 Q184,30 208,72" class="sk-accent"/>
+<text x="248" y="95" class="lab-accent">3 inversions</text>
+<text x="248" y="124" class="lab-muted">indices</text>
+</svg>
+<figcaption>Les inversions de [3, 1, 4, 2] : chaque arc relie deux cases rangées dans le mauvais ordre (la plus grande valeur à gauche). Une liste est triée si et seulement si elle n'a aucune inversion ; trier, c'est les faire disparaître.</figcaption>
+</figure>
+  <div class="method-box">
+    <strong>Exemple — Le nombre d'inversions, mesure du travail à faire</strong>
+<pre class="codeblock">nb_inversions([1, 2, 3, 4])      <span class="cmt"># 0</span>
+nb_inversions([3, 1, 4, 2])      <span class="cmt"># 3</span>
+nb_inversions([4, 3, 2, 1])      <span class="cmt"># 6</span></pre>
+    <ol>
+      <li>Dans [3, 1, 4, 2], les couples mal rangés sont (3, 1), (3, 2) et (4, 2) : 3 inversions.</li>
+      <li>Échanger deux <strong>voisins</strong> mal rangés \(t[j] \gt t[j+1]\) supprime exactement une inversion : celle du couple \((j, j+1)\). Pour tous les autres couples, les deux valeurs restent dans le même ordre l'une par rapport à l'autre.</li>
+      <li>Conséquence : un tri qui ne fait que des échanges de voisins (§2) ou des décalages d'une case (§4) fait exactement autant d'échanges ou de décalages que la liste a d'inversions. Pour [4, 3, 2, 1], il en faut 6.</li>
+    </ol>
+  </div>
+
+  <div class="notice"><strong>Erreur classique</strong> : écrire <span class="code-inline">t = tri_insertion(t)</span> avec un tri en place. La fonction ne renvoie rien, donc <span class="code-inline">None</span> : la liste, pourtant bien triée, est perdue et <span class="code-inline">t</span> vaut <span class="code-inline">None</span>. Un tri en place s'appelle seul, <span class="code-inline">tri_insertion(t)</span> ; c'est un tri qui renvoie une nouvelle liste qu'on affecte, <span class="code-inline">u = tri_fusion(t)</span>.</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§2 · TRI À BULLES</div>
+  <h2>Échanger les voisins mal rangés</h2>
+  <div class="intro">Le programme cite le tri à bulles parmi les algorithmes à boucles imbriquées du premier semestre. C'est le plus simple à imaginer : tant que deux voisins sont mal rangés, on les échange. Il sert surtout d'exemple pour apprendre à compter des opérations et à écrire un invariant.</div>
+
+  <div class="def-box">
+    <strong>Principe.</strong> Un <strong>passage</strong> parcourt la liste de gauche à droite et échange chaque couple de voisins \(t[j] \gt t[j+1]\). La plus grande valeur rencontrée est poussée de proche en proche jusqu'au bout de la zone parcourue, comme une bulle qui remonte. Après le passage numéro \(k\) (en comptant à partir de 0), les \(k + 1\) dernières cases contiennent les \(k + 1\) plus grandes valeurs, à leur place définitive : le passage suivant peut s'arrêter une case plus tôt. Si un passage ne fait aucun échange, la liste est triée et l'on s'arrête.
+  </div>
+<pre class="codeblock"><span class="kw">def</span> tri_bulles(t):
+    <span class="cmt"># trie t en place, dans l'ordre croissant</span>
+    n = len(t)
+    <span class="kw">for</span> k <span class="kw">in</span> range(n - 1):            <span class="cmt"># passage numéro k</span>
+        echange = <span class="kw">False</span>
+        <span class="kw">for</span> j <span class="kw">in</span> range(n - 1 - k):
+            <span class="kw">if</span> t[j] &gt; t[j + 1]:     <span class="cmt"># voisins mal rangés</span>
+                t[j], t[j + 1] = t[j + 1], t[j]
+                echange = <span class="kw">True</span>
+        <span class="cmt"># les k + 1 dernières cases sont définitives</span>
+        <span class="kw">if</span> <span class="kw">not</span> echange:
+            <span class="kw">return</span>      <span class="cmt"># aucun échange : t est triée</span></pre>
+<pre class="codeblock">t = [7, 3, 9, 1, 5, 2]
+tri_bulles(t)      <span class="cmt"># None</span>
+t                  <span class="cmt"># [1, 2, 3, 5, 7, 9]</span></pre>
+
+  <div class="method-box">
+    <strong>Exemple — Tableau d'états sur [7, 3, 9, 1, 5, 2]</strong>
+<div><table>
+<tr><th></th><th>comparaisons</th><th>échanges</th><th>liste après le passage (| : début de la zone définitive)</th></tr>
+<tr><td>départ</td><td>—</td><td>—</td><td><span class="code-inline">[7, 3, 9, 1, 5, 2]</span></td></tr>
+<tr><td>passage 0</td><td>5</td><td>4</td><td><span class="code-inline">[3, 7, 1, 5, 2 | 9]</span></td></tr>
+<tr><td>passage 1</td><td>4</td><td>3</td><td><span class="code-inline">[3, 1, 5, 2 | 7, 9]</span></td></tr>
+<tr><td>passage 2</td><td>3</td><td>2</td><td><span class="code-inline">[1, 3, 2 | 5, 7, 9]</span></td></tr>
+<tr><td>passage 3</td><td>2</td><td>1</td><td><span class="code-inline">[1, 2 | 3, 5, 7, 9]</span></td></tr>
+<tr><td>passage 4</td><td>1</td><td>0</td><td><span class="code-inline">[1 | 2, 3, 5, 7, 9]</span></td></tr>
+</table></div>
+    <ol>
+      <li>Passage 0 : 7 et 3 sont échangés ; puis 9, plus grand que 7, est poussé jusqu'à la dernière case en dépassant 1, 5 et 2. Cela fait 4 échanges.</li>
+      <li>Chaque passage fait une comparaison de moins que le précédent : 5, 4, 3, 2, 1, soit 15 comparaisons.</li>
+      <li>Les échanges totalisent \(4 + 3 + 2 + 1 = 10\) : c'est le nombre d'inversions de la liste de départ. Le dernier passage ne fait aucun échange ; ici, il était de toute façon le dernier.</li>
+    </ol>
+  </div>
+
+  <div class="prop-box">
+    <strong>Correction et coût du tri à bulles.</strong>
+    <ul>
+      <li><strong>Invariant</strong> (après le passage \(k\)) : \(t[n-1-k..n-1]\) contient les \(k+1\) plus grandes valeurs, dans l'ordre. Pendant un passage, \(t[j]\) est toujours le maximum de \(t[0..j]\) : l'échange l'emporte avec lui vers la droite ; en fin de passage, ce maximum de la zone non définitive arrive en case \(n-1-k\).</li>
+      <li><strong>Sortie</strong> : après le passage \(n-2\), les \(n-1\) dernières cases sont définitives, donc \(t[0]\) est le minimum et la liste est triée. Une sortie anticipée a lieu quand un passage n'a rien échangé : la zone non définitive n'a alors aucun couple de voisins mal rangés, elle est triée, et elle précède des valeurs plus grandes qu'elle.</li>
+      <li><strong>Terminaison</strong> : deux boucles <span class="code-inline">for</span>, qui font un nombre fini de tours.</li>
+      <li><strong>Coût</strong> : le passage \(k\) fait \(n-1-k\) comparaisons. Au pire (liste à l'envers, chaque passage échange), le total est
+      <div class="formula" data-nom="Comparaisons d'un tri quadratique">$$\sum_{k=0}^{n-2} (n-1-k) = (n-1) + (n-2) + \dots + 1 = \frac{n(n-1)}{2},$$</div>
+      soit un coût quadratique \(O(n^2)\). Au mieux (liste déjà triée), un seul passage sans échange : \(n-1\) comparaisons, coût \(O(n)\). Le nombre d'échanges est égal au nombre d'inversions.</li>
+      <li><strong>Caractéristiques</strong> : en place ; stable (deux voisins égaux ne sont jamais échangés, le test étant strict) ; comparatif.</li>
+    </ul>
+  </div>
+
+  <div class="notice"><strong>Erreur classique</strong> : écrire la boucle intérieure <span class="code-inline">for j in range(n - k)</span>. Au premier passage, \(j\) atteint \(n-1\) et <span class="code-inline">t[j + 1]</span> provoque une <span class="code-inline">IndexError</span>. Le dernier couple examiné est \((n-2-k, n-1-k)\) : la borne est <span class="code-inline">n - 1 - k</span>.</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§3 · TRI PAR SÉLECTION</div>
+  <h2>Chercher le minimum, le mettre en tête</h2>
+  <div class="intro">Pour ranger des copies par note croissante, on peut chercher la plus mauvaise, la poser en premier, puis recommencer avec le reste. C'est le tri par sélection : simple, toujours quadratique, mais économe en échanges.</div>
+
+  <div class="def-box">
+    <strong>Principe.</strong> Au tour \(i\) (pour \(i = 0, 1, \dots, n-2\)), on cherche l'indice <span class="code-inline">imin</span> du plus petit élément de la partie non triée \(t[i..n-1]\), puis on échange \(t[i]\) et \(t[imin]\). La zone triée \(t[0..i]\) grandit d'une case par tour ; le dernier élément se trouve à sa place sans tour supplémentaire.
+  </div>
+<pre class="codeblock"><span class="kw">def</span> tri_selection(t):
+    <span class="cmt"># trie t en place, dans l'ordre croissant</span>
+    n = len(t)
+    <span class="kw">for</span> i <span class="kw">in</span> range(n - 1):
+        <span class="cmt"># invariant : t[0..i-1] est triée et contient</span>
+        <span class="cmt"># les i plus petits éléments de t</span>
+        imin = i
+        <span class="kw">for</span> j <span class="kw">in</span> range(i + 1, n):
+            <span class="kw">if</span> t[j] &lt; t[imin]:
+                imin = j    <span class="cmt"># minimum de t[i..j]</span>
+        t[i], t[imin] = t[imin], t[i]</pre>
+
+  <div class="method-box">
+    <strong>Exemple — Tableau d'états sur [7, 3, 9, 1, 5, 2]</strong>
+<div><table>
+<tr><th>tour</th><th>action</th><th>liste après le tour (| : fin de la zone triée)</th></tr>
+<tr><td>départ</td><td>—</td><td><span class="code-inline">[7, 3, 9, 1, 5, 2]</span></td></tr>
+<tr><td><span class="code-inline">i</span> = 0</td><td>minimum 1 en case 3, échangé avec <span class="code-inline">t[0]</span></td><td><span class="code-inline">[1 | 3, 9, 7, 5, 2]</span></td></tr>
+<tr><td><span class="code-inline">i</span> = 1</td><td>minimum 2 en case 5, échangé avec <span class="code-inline">t[1]</span></td><td><span class="code-inline">[1, 2 | 9, 7, 5, 3]</span></td></tr>
+<tr><td><span class="code-inline">i</span> = 2</td><td>minimum 3 en case 5, échangé avec <span class="code-inline">t[2]</span></td><td><span class="code-inline">[1, 2, 3 | 7, 5, 9]</span></td></tr>
+<tr><td><span class="code-inline">i</span> = 3</td><td>minimum 5 en case 4, échangé avec <span class="code-inline">t[3]</span></td><td><span class="code-inline">[1, 2, 3, 5 | 7, 9]</span></td></tr>
+<tr><td><span class="code-inline">i</span> = 4</td><td>minimum 7 déjà en case 4</td><td><span class="code-inline">[1, 2, 3, 5, 7 | 9]</span></td></tr>
+</table></div>
+    <ol>
+      <li>Chaque tour fait une recherche de minimum complète dans la partie non triée : 5, 4, 3, 2 puis 1 comparaisons, soit 15, comme pour le tri à bulles.</li>
+      <li>Il y a au plus un échange par tour : 4 échanges effectifs ici (au tour \(i = 4\), le minimum 7 est déjà en place), contre 10 pour le tri à bulles sur la même liste.</li>
+    </ol>
+  </div>
+
+  <div class="prop-box">
+    <strong>Correction et coût du tri par sélection.</strong>
+    <ul>
+      <li><strong>Invariant</strong> (au début du tour \(i\)) : \(t[0..i-1]\) est triée et contient les \(i\) plus petites valeurs de la liste. Il est vrai pour \(i = 0\) (zone vide). Il est conservé : le minimum de \(t[i..n-1]\) est supérieur ou égal à chaque valeur de \(t[0..i-1]\) (qui sont les plus petites) et inférieur ou égal à chaque valeur restante ; placé en case \(i\), il prolonge la zone triée.</li>
+      <li><strong>Sortie</strong> (\(i = n-1\)) : \(t[0..n-2]\) contient les \(n-1\) plus petites valeurs, triées, donc \(t[n-1]\) est la plus grande : la liste est triée. Elle contient les mêmes valeurs qu'au départ, puisqu'on n'a fait que des échanges.</li>
+      <li><strong>Coût</strong> : le tour \(i\) fait \(n-1-i\) comparaisons, <strong>quelle que soit la liste</strong> : \(\dfrac{n(n-1)}{2}\) comparaisons au total, \(O(n^2)\) au mieux comme au pire. Au plus \(n-1\) échanges ; espace \(O(1)\).</li>
+      <li><strong>Caractéristiques</strong> : en place ; comparatif ; <strong>non stable</strong> : l'échange à distance de \(t[i]\) avec \(t[imin]\) peut faire passer \(t[i]\) derrière une valeur égale (exemple au §8).</li>
+    </ul>
+  </div>
+
+  <div class="notice"><strong>Erreur classique</strong> : initialiser <span class="code-inline">imin = 0</span> au lieu de <span class="code-inline">imin = i</span>. Dès le tour 1, \(t[0]\) est le minimum de toute la liste : aucune valeur de \(t[i..n-1]\) ne lui est inférieure, <span class="code-inline">imin</span> reste à 0, et l'échange renvoie ce minimum en case \(i\). Sur [7, 3, 9, 1, 5, 2], le résultat est faux.</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§4 · TRI PAR INSERTION</div>
+  <h2>Insérer chaque valeur dans la partie déjà triée</h2>
+  <div class="intro">C'est le geste du joueur de cartes : on prend les cartes une à une et on glisse chacune à sa place parmi celles déjà en main. Ce tri est quadratique au pire, mais il devient linéaire sur une liste presque triée, ce qui en fait le meilleur choix pour les petites listes.</div>
+
+  <div class="def-box">
+    <strong>Principe.</strong> Au tour \(i\) (pour \(i = 1, \dots, n-1\)), la partie \(t[0..i-1]\) est triée. On mémorise \(x = t[i]\), on décale d'une case vers la droite les valeurs de \(t[0..i-1]\) strictement plus grandes que \(x\), en partant de la fin, puis on écrit \(x\) dans la case libérée. La partie \(t[0..i]\) est alors triée.
+  </div>
+<pre class="codeblock"><span class="kw">def</span> tri_insertion(t):
+    <span class="cmt"># trie t en place, dans l'ordre croissant</span>
+    <span class="kw">for</span> i <span class="kw">in</span> range(1, len(t)):
+        <span class="cmt"># invariant : t[0..i-1] est triée</span>
+        x = t[i]                      <span class="cmt"># valeur à insérer</span>
+        j = i - 1
+        <span class="kw">while</span> j &gt;= 0 <span class="kw">and</span> t[j] &gt; x:
+            t[j + 1] = t[j]     <span class="cmt"># décalage à droite</span>
+            j = j - 1
+        t[j + 1] = x            <span class="cmt"># x rejoint sa place</span></pre>
+
+  <div class="method-box">
+    <strong>Exemple — Tableau d'états sur [7, 3, 9, 1, 5, 2]</strong>
+<div><table>
+<tr><th>tour</th><th>valeur</th><th>action</th><th>liste après le tour (| : fin de la zone triée)</th></tr>
+<tr><td>départ</td><td>—</td><td>—</td><td><span class="code-inline">[7 | 3, 9, 1, 5, 2]</span></td></tr>
+<tr><td><span class="code-inline">i</span> = 1</td><td><span class="code-inline">x</span> = 3</td><td>1 décalage, 3 en case 0</td><td><span class="code-inline">[3, 7 | 9, 1, 5, 2]</span></td></tr>
+<tr><td><span class="code-inline">i</span> = 2</td><td><span class="code-inline">x</span> = 9</td><td>0 décalage, 9 en case 2</td><td><span class="code-inline">[3, 7, 9 | 1, 5, 2]</span></td></tr>
+<tr><td><span class="code-inline">i</span> = 3</td><td><span class="code-inline">x</span> = 1</td><td>3 décalages, 1 en case 0</td><td><span class="code-inline">[1, 3, 7, 9 | 5, 2]</span></td></tr>
+<tr><td><span class="code-inline">i</span> = 4</td><td><span class="code-inline">x</span> = 5</td><td>2 décalages, 5 en case 2</td><td><span class="code-inline">[1, 3, 5, 7, 9 | 2]</span></td></tr>
+<tr><td><span class="code-inline">i</span> = 5</td><td><span class="code-inline">x</span> = 2</td><td>4 décalages, 2 en case 1</td><td><span class="code-inline">[1, 2, 3, 5, 7, 9]</span></td></tr>
+</table></div>
+    <ol>
+      <li>Le tour \(i\) fait une comparaison par décalage, plus une comparaison qui arrête la boucle, sauf si \(x\) arrive en case 0 (tours \(i = 1\) et \(i = 3\), où c'est \(j = -1\) qui l'arrête) : \(1 + 1 + 3 + 3 + 5 = 13\) comparaisons ici.</li>
+      <li>Les décalages totalisent \(1 + 0 + 3 + 2 + 4 = 10\) : chaque décalage fait passer \(x\) derrière une valeur plus grande qui le précédait, c'est-à-dire supprime une inversion. On retrouve les 10 inversions de la liste.</li>
+    </ol>
+  </div>
+
+  <div class="prop-box">
+    <strong>Correction et coût du tri par insertion.</strong>
+    <ul>
+      <li><strong>Invariant</strong> (au début du tour \(i\)) : \(t[0..i-1]\) est triée et contient les valeurs qui s'y trouvaient au départ. À la différence de la sélection, ce ne sont pas forcément les plus petites de la liste. En sortie (\(i = n\)), toute la liste est triée.</li>
+      <li><strong>Boucle intérieure</strong> : elle termine, car \(j\) diminue de 1 à chaque tour et reste \(\ge -1\) ; à sa sortie, les valeurs de \(t[j+1..i-1]\) avant décalage étaient \(\gt x\) et \(t[j] \le x\) (ou \(j = -1\)), donc \(x\) est bien placé.</li>
+      <li><strong>Coût</strong> : le tour \(i\) fait entre 1 et \(i\) comparaisons. Au mieux (liste déjà triée) : \(n-1\) comparaisons, coût \(O(n)\). Au pire (liste à l'envers) : \(1 + 2 + \dots + (n-1) = \dfrac{n(n-1)}{2}\), coût \(O(n^2)\). Plus finement, le coût est \(O(n + I)\), où \(I\) est le nombre d'inversions : une liste presque triée se trie en temps presque linéaire.</li>
+      <li><strong>Caractéristiques</strong> : en place ; comparatif ; <strong>stable</strong>, car le test <span class="code-inline">t[j] &gt; x</span> est strict : \(x\) s'arrête derrière les valeurs qui lui sont égales.</li>
+    </ul>
+  </div>
+
+<figure class="schema" style="max-width:380px">
+<svg viewBox="0 0 340 236" role="img" aria-label="Deux rangées de six cases. Sélection, tour i = 2 : la zone triée 1, 2 est en vert, le minimum 3 de la partie restante, en dernière case, est échangé avec la case 2. Insertion, tour i = 4 : la zone triée 1, 3, 7, 9 est en vert ; la valeur 5 est retirée, 9 et 7 sont décalés d'une case à droite et 5 vient se placer en case 2.">
+<text x="12" y="22" class="lab-b">sélection</text>
+<text x="12" y="60" class="lab-muted">i = 2</text>
+<rect x="92" y="40" width="40" height="30" class="sk-ink fl-green-soft"/>
+<text x="112" y="60" text-anchor="middle">1</text>
+<rect x="132" y="40" width="40" height="30" class="sk-ink fl-green-soft"/>
+<text x="152" y="60" text-anchor="middle">2</text>
+<rect x="172" y="40" width="40" height="30" class="sk-ink fl-paper"/>
+<text x="192" y="60" text-anchor="middle">9</text>
+<rect x="212" y="40" width="40" height="30" class="sk-ink fl-paper"/>
+<text x="232" y="60" text-anchor="middle">7</text>
+<rect x="252" y="40" width="40" height="30" class="sk-ink fl-paper"/>
+<text x="272" y="60" text-anchor="middle">5</text>
+<rect x="292" y="40" width="40" height="30" class="sk-ink fl-paper"/>
+<text x="312" y="60" class="lab-b" text-anchor="middle">3</text>
+<path d="M192,74 Q252,110 312,74" class="sk-accent" marker-end="url(#sk-arrow-accent)" marker-start="url(#sk-arrow-accent)"/>
+<text x="252" y="106" class="lab-accent" text-anchor="middle">échange</text>
+<text x="12" y="140" class="lab-b">insertion</text>
+<text x="12" y="178" class="lab-muted">i = 4</text>
+<rect x="92" y="158" width="40" height="30" class="sk-ink fl-green-soft"/>
+<text x="112" y="178" text-anchor="middle">1</text>
+<rect x="132" y="158" width="40" height="30" class="sk-ink fl-green-soft"/>
+<text x="152" y="178" text-anchor="middle">3</text>
+<rect x="172" y="158" width="40" height="30" class="sk-ink fl-green-soft"/>
+<text x="192" y="178" text-anchor="middle">7</text>
+<rect x="212" y="158" width="40" height="30" class="sk-ink fl-green-soft"/>
+<text x="232" y="178" text-anchor="middle">9</text>
+<rect x="252" y="158" width="40" height="30" class="sk-accent fl-accent-soft"/>
+<text x="272" y="178" text-anchor="middle">5</text>
+<rect x="292" y="158" width="40" height="30" class="sk-ink fl-paper"/>
+<text x="312" y="178" text-anchor="middle">2</text>
+<line x1="196" y1="198" x2="226" y2="198" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<line x1="236" y1="198" x2="266" y2="198" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<text x="216" y="216" class="lab-muted" text-anchor="middle">décalages</text>
+<path d="M272,154 Q232,124 196,152" class="sk-accent" marker-end="url(#sk-arrow-accent)"/>
+<text x="234" y="130" class="lab-accent" text-anchor="middle">x = 5</text>
+</svg>
+<figcaption>Les deux tris quadratiques font grandir une zone triée (en vert) d'une case par tour. <strong>Sélection</strong> : on cherche le minimum de la partie non triée et on l'échange avec la première case non triée. <strong>Insertion</strong> : on prend la case suivante et on l'insère dans la zone triée, en décalant d'une case vers la droite les valeurs plus grandes.</figcaption>
+</figure>
+
+  <div class="notice"><strong>Erreur classique</strong> : oublier <span class="code-inline">j &gt;= 0</span> dans la condition du <span class="code-inline">while</span>. Quand \(x\) est plus petit que toute la zone triée, \(j\) atteint \(-1\), et <span class="code-inline">t[-1]</span> désigne en Python la <em>dernière</em> case de la liste (indice négatif, hors de l'annexe) : la boucle continue avec des valeurs qui n'ont rien à voir. Selon la liste, on obtient une <span class="code-inline">IndexError</span> ou, pire, un résultat faux sans message :</div>
+<pre class="codeblock"><span class="kw">def</span> tri_insertion_faux(t):
+    <span class="kw">for</span> i <span class="kw">in</span> range(1, len(t)):
+        x = t[i]
+        j = i - 1
+        <span class="kw">while</span> t[j] &gt; x:         <span class="cmt"># ERREUR : j &gt;= 0 oublié</span>
+            t[j + 1] = t[j]
+            j = j - 1
+        t[j + 1] = x</pre>
+<pre class="codeblock">t = [2, 1, 1, 3]
+tri_insertion_faux(t)
+t                  <span class="cmt"># [1, 1, 3, 2]</span></pre>
+  <p>On écrit <span class="code-inline">j &gt;= 0</span> en premier dans la condition : comme <span class="code-inline">and</span> est paresseux, <span class="code-inline">t[j]</span> n'est alors jamais lu avec \(j = -1\). De même, il faut mémoriser \(x = t[i]\) <em>avant</em> les décalages, qui écrasent la case \(i\) dès le premier.</p>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§5 · TRI PAR PARTITION-FUSION</div>
+  <h2>Diviser pour régner</h2>
+  <div class="intro">Un tri quadratique est confortable pour mille valeurs, pas pour un million : environ \(2{,}5 \times 10^{11}\) comparaisons pour le tri par insertion, plusieurs heures de calcul en Python. L'idée du tri par partition-fusion (ou tri fusion) est de couper la liste en deux, de trier chaque moitié par le même procédé, puis de recoller les deux moitiés triées, ce qui est facile.</div>
+
+  <div class="def-box">
+    <strong>Diviser pour régner.</strong> Pour résoudre un problème de taille \(n\) : on le <strong>divise</strong> en sous-problèmes plus petits, on les <strong>résout</strong> récursivement, puis on <strong>combine</strong> leurs solutions. Pour le tri par partition-fusion : couper \(t\) en \(t[0..m-1]\) et \(t[m..n-1]\) avec \(m = \lfloor n/2 \rfloor\), trier chaque moitié, puis <strong>fusionner</strong> les deux listes triées. Une liste de longueur 0 ou 1 est déjà triée : c'est le cas de base.
+  </div>
+
+  <h3>Fusionner deux listes triées</h3>
+  <p>Le plus petit élément de la réunion de deux listes triées est le plus petit de leurs deux premiers éléments. On avance donc deux indices \(i\) et \(j\), en recopiant à chaque tour le plus petit de \(a[i]\) et \(b[j]\) ; quand l'une des listes est épuisée, on recopie la fin de l'autre.</p>
+<pre class="codeblock"><span class="kw">def</span> fusion(a, b):
+    <span class="cmt"># a et b triées ; renvoie une nouvelle liste</span>
+    <span class="cmt"># triée formée des éléments de a et de b</span>
+    res = []
+    i, j = 0, 0
+    <span class="kw">while</span> i &lt; len(a) <span class="kw">and</span> j &lt; len(b):
+        <span class="cmt"># invariant : res est triée, formée de a[0..i-1]</span>
+        <span class="cmt"># et de b[0..j-1]</span>
+        <span class="kw">if</span> a[i] &lt;= b[j]:        <span class="cmt"># à égalité, a d'abord</span>
+            res.append(a[i])
+            i = i + 1
+        <span class="kw">else</span>:
+            res.append(b[j])
+            j = j + 1
+    <span class="kw">while</span> i &lt; len(a):           <span class="cmt"># b épuisée : fin de a</span>
+        res.append(a[i])
+        i = i + 1
+    <span class="kw">while</span> j &lt; len(b):           <span class="cmt"># a épuisée : fin de b</span>
+        res.append(b[j])
+        j = j + 1
+    <span class="kw">return</span> res</pre>
+  <div class="method-box">
+    <strong>Exemple — Fusion de [5, 16, 27, 38] et [12, 21, 30, 49]</strong>
+<div><table>
+<tr><th><span class="code-inline">i</span></th><th><span class="code-inline">j</span></th><th>comparaison</th><th><span class="code-inline">res</span> après le tour</th></tr>
+<tr><td>0</td><td>0</td><td><span class="code-inline">a[0]</span> = 5 ≤ 12 : on prend 5</td><td><span class="code-inline">[5]</span></td></tr>
+<tr><td>1</td><td>0</td><td><span class="code-inline">a[1]</span> = 16 &gt; 12 : on prend 12</td><td><span class="code-inline">[5, 12]</span></td></tr>
+<tr><td>1</td><td>1</td><td><span class="code-inline">a[1]</span> = 16 ≤ 21 : on prend 16</td><td><span class="code-inline">[5, 12, 16]</span></td></tr>
+<tr><td>2</td><td>1</td><td><span class="code-inline">a[2]</span> = 27 &gt; 21 : on prend 21</td><td><span class="code-inline">[5, 12, 16, 21]</span></td></tr>
+<tr><td>2</td><td>2</td><td><span class="code-inline">a[2]</span> = 27 ≤ 30 : on prend 27</td><td><span class="code-inline">[5, 12, 16, 21, 27]</span></td></tr>
+<tr><td>3</td><td>2</td><td><span class="code-inline">a[3]</span> = 38 &gt; 30 : on prend 30</td><td><span class="code-inline">[5, 12, 16, 21, 27, 30]</span></td></tr>
+<tr><td>3</td><td>3</td><td><span class="code-inline">a[3]</span> = 38 ≤ 49 : on prend 38</td><td><span class="code-inline">[5, 12, 16, 21, 27, 30, 38]</span></td></tr>
+<tr><td>4</td><td>3</td><td><span class="code-inline">a</span> épuisée : on recopie la fin de <span class="code-inline">b</span></td><td><span class="code-inline">[5, 12, 16, 21, 27, 30, 38, 49]</span></td></tr>
+</table></div>
+    <ol>
+      <li>Chaque tour de la première boucle fait une comparaison et recopie une valeur : 7 comparaisons, pour 8 valeurs. C'est le maximum possible, \(n_a + n_b - 1\), atteint quand les deux listes s'épuisent presque en même temps.</li>
+      <li>Au mieux, toutes les valeurs de l'une précèdent toutes celles de l'autre : \(\min(n_a, n_b)\) comparaisons, puis une simple copie.</li>
+    </ol>
+  </div>
+  <div class="prop-box">
+    <strong>Correction et coût de la fusion.</strong> Invariant : <span class="code-inline">res</span> est triée, contient exactement \(a[0..i-1]\) et \(b[0..j-1]\), et toutes ses valeurs sont \(\le a[i]\) et \(\le b[j]\) ; la valeur recopiée, la plus petite des deux, peut donc être ajoutée à la fin. Variant : \((n_a - i) + (n_b - j)\), qui diminue de 1 à chaque tour des trois boucles. Chaque valeur est recopiée une fois : coût \(O(n_a + n_b)\), linéaire.
+  </div>
+
+  <h3>Le tri récursif</h3>
+<pre class="codeblock"><span class="kw">def</span> tri_fusion(t):
+    <span class="cmt"># renvoie une nouvelle liste : t triée</span>
+    <span class="cmt"># (t n'est pas modifiée)</span>
+    n = len(t)
+    <span class="kw">if</span> n &lt;= 1:
+        <span class="kw">return</span> t.copy()
+    m = n // 2
+    gauche = tri_fusion(t[0:m])   <span class="cmt"># tri des moitiés</span>
+    droite = tri_fusion(t[m:n])
+    <span class="kw">return</span> fusion(gauche, droite)</pre>
+<pre class="codeblock">u = fusion([5, 16, 27, 38], [12, 21, 30, 49])
+u                  <span class="cmt"># [5, 12, 16, 21, 27, 30, 38, 49]</span>
+t = [38, 16, 27, 5, 49, 12, 30, 21]
+tri_fusion(t)      <span class="cmt"># [5, 12, 16, 21, 27, 30, 38, 49]</span>
+t                  <span class="cmt"># [38, 16, 27, 5, 49, 12, 30, 21]</span></pre>
+<figure class="schema" style="max-width:440px">
+<svg viewBox="0 0 410 330" role="img" aria-label="Arbre des appels du tri par partition-fusion sur 38, 16, 27, 5, 49, 12, 30, 21 : quatre lignes de découpage, de la liste entière aux huit listes d'une valeur, puis trois lignes de fusions qui reconstituent des listes triées de 2, 4 puis 8 valeurs, jusqu'à 5, 12, 16, 21, 27, 30, 38, 49.">
+<rect x="14" y="8" width="30" height="26" class="sk-ink fl-paper"/>
+<text x="29" y="26" text-anchor="middle">38</text>
+<rect x="49" y="8" width="30" height="26" class="sk-ink fl-paper"/>
+<text x="64" y="26" text-anchor="middle">16</text>
+<rect x="89" y="8" width="30" height="26" class="sk-ink fl-paper"/>
+<text x="104" y="26" text-anchor="middle">27</text>
+<rect x="124" y="8" width="30" height="26" class="sk-ink fl-paper"/>
+<text x="139" y="26" text-anchor="middle">5</text>
+<rect x="172" y="8" width="30" height="26" class="sk-ink fl-paper"/>
+<text x="187" y="26" text-anchor="middle">49</text>
+<rect x="207" y="8" width="30" height="26" class="sk-ink fl-paper"/>
+<text x="222" y="26" text-anchor="middle">12</text>
+<rect x="247" y="8" width="30" height="26" class="sk-ink fl-paper"/>
+<text x="262" y="26" text-anchor="middle">30</text>
+<rect x="282" y="8" width="30" height="26" class="sk-ink fl-paper"/>
+<text x="297" y="26" text-anchor="middle">21</text>
+<rect x="14" y="56" width="30" height="26" class="sk-ink fl-paper"/>
+<text x="29" y="74" text-anchor="middle">38</text>
+<rect x="49" y="56" width="30" height="26" class="sk-ink fl-paper"/>
+<text x="64" y="74" text-anchor="middle">16</text>
+<rect x="89" y="56" width="30" height="26" class="sk-ink fl-paper"/>
+<text x="104" y="74" text-anchor="middle">27</text>
+<rect x="124" y="56" width="30" height="26" class="sk-ink fl-paper"/>
+<text x="139" y="74" text-anchor="middle">5</text>
+<line x1="163" y1="35" x2="84" y2="53" class="sk-axis"/>
+<rect x="172" y="56" width="30" height="26" class="sk-ink fl-paper"/>
+<text x="187" y="74" text-anchor="middle">49</text>
+<rect x="207" y="56" width="30" height="26" class="sk-ink fl-paper"/>
+<text x="222" y="74" text-anchor="middle">12</text>
+<rect x="247" y="56" width="30" height="26" class="sk-ink fl-paper"/>
+<text x="262" y="74" text-anchor="middle">30</text>
+<rect x="282" y="56" width="30" height="26" class="sk-ink fl-paper"/>
+<text x="297" y="74" text-anchor="middle">21</text>
+<line x1="163" y1="35" x2="242" y2="53" class="sk-axis"/>
+<rect x="14" y="104" width="30" height="26" class="sk-ink fl-paper"/>
+<text x="29" y="122" text-anchor="middle">38</text>
+<rect x="49" y="104" width="30" height="26" class="sk-ink fl-paper"/>
+<text x="64" y="122" text-anchor="middle">16</text>
+<line x1="84" y1="83" x2="46.5" y2="101" class="sk-axis"/>
+<rect x="89" y="104" width="30" height="26" class="sk-ink fl-paper"/>
+<text x="104" y="122" text-anchor="middle">27</text>
+<rect x="124" y="104" width="30" height="26" class="sk-ink fl-paper"/>
+<text x="139" y="122" text-anchor="middle">5</text>
+<line x1="84" y1="83" x2="121.5" y2="101" class="sk-axis"/>
+<rect x="172" y="104" width="30" height="26" class="sk-ink fl-paper"/>
+<text x="187" y="122" text-anchor="middle">49</text>
+<rect x="207" y="104" width="30" height="26" class="sk-ink fl-paper"/>
+<text x="222" y="122" text-anchor="middle">12</text>
+<line x1="242" y1="83" x2="204.5" y2="101" class="sk-axis"/>
+<rect x="247" y="104" width="30" height="26" class="sk-ink fl-paper"/>
+<text x="262" y="122" text-anchor="middle">30</text>
+<rect x="282" y="104" width="30" height="26" class="sk-ink fl-paper"/>
+<text x="297" y="122" text-anchor="middle">21</text>
+<line x1="242" y1="83" x2="279.5" y2="101" class="sk-axis"/>
+<rect x="14" y="152" width="30" height="26" class="sk-ink fl-paper"/>
+<text x="29" y="170" text-anchor="middle">38</text>
+<line x1="46.5" y1="131" x2="29" y2="149" class="sk-axis"/>
+<rect x="49" y="152" width="30" height="26" class="sk-ink fl-paper"/>
+<text x="64" y="170" text-anchor="middle">16</text>
+<line x1="46.5" y1="131" x2="64" y2="149" class="sk-axis"/>
+<rect x="89" y="152" width="30" height="26" class="sk-ink fl-paper"/>
+<text x="104" y="170" text-anchor="middle">27</text>
+<line x1="121.5" y1="131" x2="104" y2="149" class="sk-axis"/>
+<rect x="124" y="152" width="30" height="26" class="sk-ink fl-paper"/>
+<text x="139" y="170" text-anchor="middle">5</text>
+<line x1="121.5" y1="131" x2="139" y2="149" class="sk-axis"/>
+<rect x="172" y="152" width="30" height="26" class="sk-ink fl-paper"/>
+<text x="187" y="170" text-anchor="middle">49</text>
+<line x1="204.5" y1="131" x2="187" y2="149" class="sk-axis"/>
+<rect x="207" y="152" width="30" height="26" class="sk-ink fl-paper"/>
+<text x="222" y="170" text-anchor="middle">12</text>
+<line x1="204.5" y1="131" x2="222" y2="149" class="sk-axis"/>
+<rect x="247" y="152" width="30" height="26" class="sk-ink fl-paper"/>
+<text x="262" y="170" text-anchor="middle">30</text>
+<line x1="279.5" y1="131" x2="262" y2="149" class="sk-axis"/>
+<rect x="282" y="152" width="30" height="26" class="sk-ink fl-paper"/>
+<text x="297" y="170" text-anchor="middle">21</text>
+<line x1="279.5" y1="131" x2="297" y2="149" class="sk-axis"/>
+<rect x="14" y="200" width="30" height="26" class="sk-ink fl-green-soft"/>
+<text x="29" y="218" text-anchor="middle">16</text>
+<rect x="49" y="200" width="30" height="26" class="sk-ink fl-green-soft"/>
+<text x="64" y="218" text-anchor="middle">38</text>
+<line x1="29" y1="179" x2="46.5" y2="197" class="sk-axis"/>
+<line x1="64" y1="179" x2="46.5" y2="197" class="sk-axis"/>
+<rect x="89" y="200" width="30" height="26" class="sk-ink fl-green-soft"/>
+<text x="104" y="218" text-anchor="middle">5</text>
+<rect x="124" y="200" width="30" height="26" class="sk-ink fl-green-soft"/>
+<text x="139" y="218" text-anchor="middle">27</text>
+<line x1="104" y1="179" x2="121.5" y2="197" class="sk-axis"/>
+<line x1="139" y1="179" x2="121.5" y2="197" class="sk-axis"/>
+<rect x="172" y="200" width="30" height="26" class="sk-ink fl-green-soft"/>
+<text x="187" y="218" text-anchor="middle">12</text>
+<rect x="207" y="200" width="30" height="26" class="sk-ink fl-green-soft"/>
+<text x="222" y="218" text-anchor="middle">49</text>
+<line x1="187" y1="179" x2="204.5" y2="197" class="sk-axis"/>
+<line x1="222" y1="179" x2="204.5" y2="197" class="sk-axis"/>
+<rect x="247" y="200" width="30" height="26" class="sk-ink fl-green-soft"/>
+<text x="262" y="218" text-anchor="middle">21</text>
+<rect x="282" y="200" width="30" height="26" class="sk-ink fl-green-soft"/>
+<text x="297" y="218" text-anchor="middle">30</text>
+<line x1="262" y1="179" x2="279.5" y2="197" class="sk-axis"/>
+<line x1="297" y1="179" x2="279.5" y2="197" class="sk-axis"/>
+<rect x="14" y="248" width="30" height="26" class="sk-ink fl-green-soft"/>
+<text x="29" y="266" text-anchor="middle">5</text>
+<rect x="49" y="248" width="30" height="26" class="sk-ink fl-green-soft"/>
+<text x="64" y="266" text-anchor="middle">16</text>
+<rect x="89" y="248" width="30" height="26" class="sk-ink fl-green-soft"/>
+<text x="104" y="266" text-anchor="middle">27</text>
+<rect x="124" y="248" width="30" height="26" class="sk-ink fl-green-soft"/>
+<text x="139" y="266" text-anchor="middle">38</text>
+<line x1="46.5" y1="227" x2="84" y2="245" class="sk-axis"/>
+<line x1="121.5" y1="227" x2="84" y2="245" class="sk-axis"/>
+<rect x="172" y="248" width="30" height="26" class="sk-ink fl-green-soft"/>
+<text x="187" y="266" text-anchor="middle">12</text>
+<rect x="207" y="248" width="30" height="26" class="sk-ink fl-green-soft"/>
+<text x="222" y="266" text-anchor="middle">21</text>
+<rect x="247" y="248" width="30" height="26" class="sk-ink fl-green-soft"/>
+<text x="262" y="266" text-anchor="middle">30</text>
+<rect x="282" y="248" width="30" height="26" class="sk-ink fl-green-soft"/>
+<text x="297" y="266" text-anchor="middle">49</text>
+<line x1="204.5" y1="227" x2="242" y2="245" class="sk-axis"/>
+<line x1="279.5" y1="227" x2="242" y2="245" class="sk-axis"/>
+<rect x="14" y="296" width="30" height="26" class="sk-green fl-green-soft"/>
+<text x="29" y="314" text-anchor="middle">5</text>
+<rect x="49" y="296" width="30" height="26" class="sk-green fl-green-soft"/>
+<text x="64" y="314" text-anchor="middle">12</text>
+<rect x="89" y="296" width="30" height="26" class="sk-green fl-green-soft"/>
+<text x="104" y="314" text-anchor="middle">16</text>
+<rect x="124" y="296" width="30" height="26" class="sk-green fl-green-soft"/>
+<text x="139" y="314" text-anchor="middle">21</text>
+<rect x="172" y="296" width="30" height="26" class="sk-green fl-green-soft"/>
+<text x="187" y="314" text-anchor="middle">27</text>
+<rect x="207" y="296" width="30" height="26" class="sk-green fl-green-soft"/>
+<text x="222" y="314" text-anchor="middle">30</text>
+<rect x="247" y="296" width="30" height="26" class="sk-green fl-green-soft"/>
+<text x="262" y="314" text-anchor="middle">38</text>
+<rect x="282" y="296" width="30" height="26" class="sk-green fl-green-soft"/>
+<text x="297" y="314" text-anchor="middle">49</text>
+<line x1="84" y1="275" x2="163" y2="293" class="sk-axis"/>
+<line x1="242" y1="275" x2="163" y2="293" class="sk-axis"/>
+<line x1="326" y1="8" x2="326" y2="178" class="sk-dash"/>
+<text x="332" y="98" class="lab-muted">découper</text>
+<line x1="326" y1="200" x2="326" y2="322" class="sk-green"/>
+<text x="332" y="266" class="lab-green">fusionner</text>
+</svg>
+<figcaption>Tri par partition-fusion de [38, 16, 27, 5, 49, 12, 30, 21]. En haut, chaque appel coupe sa liste en deux moitiés ; en bas (en vert), les listes triées renvoyées sont fusionnées deux à deux. Il y a \(\log_2 8 = 3\) niveaux de fusions, et chaque niveau traite les 8 valeurs une fois.</figcaption>
+</figure>
+  <div class="prop-box">
+    <strong>Terminaison et correction.</strong> Pour \(n \ge 2\), on a \(1 \le m \lt n\) et \(1 \le n - m \lt n\) : les deux appels portent sur des listes strictement plus courtes, et la longueur est un variant qui finit par valoir 0 ou 1. La correction se prouve par récurrence forte sur \(n\) : si les deux appels renvoient leurs moitiés triées, la fusion renvoie une liste triée formée des mêmes valeurs que \(t\) (voir le chapitre <em>Spécification, correction et complexité</em>).
+  </div>
+
+  <h3>Coût : une relation de récurrence</h3>
+  <p>Notons \(C(n)\) le nombre d'opérations élémentaires pour une liste de longueur \(n\). Un appel fait deux appels récursifs sur des listes de longueurs \(\lfloor n/2 \rfloor\) et \(\lceil n/2 \rceil\), plus un travail linéaire (les deux tranches, la fusion), majoré par \(c\,n\) pour une constante \(c\) :</p>
+  <div class="formula" data-nom="Coût du tri fusion">$$C(n) = C(\lfloor n/2 \rfloor) + C(\lceil n/2 \rceil) + c\,n, \qquad \text{d'où} \qquad C(n) = O(n \log n).$$</div>
+  <p>L'arbre des appels le montre : il a \(\lceil \log_2 n \rceil\) niveaux de fusions, et chaque niveau traite une fois chacune des \(n\) valeurs, pour un coût d'au plus \(c\,n\). Le total est de l'ordre de \(c\, n \log_2 n\) : pour \(n = 10^6\), environ \(2 \times 10^7\) comparaisons, quelques secondes en Python, au lieu de plusieurs heures.</p>
+  <div class="reveal" onclick="this.classList.toggle('open')"><span class="label">Démonstration</span><span class="prompt">\(C(2^k) = 2^k\,(C(1) + c\,k)\), puis le cas général</span><div class="content">
+    <p>Pour \(n = 2^k\), la relation s'écrit \(C(2^k) = 2\,C(2^{k-1}) + c\,2^k\). En divisant par \(2^k\) : \(\dfrac{C(2^k)}{2^k} = \dfrac{C(2^{k-1})}{2^{k-1}} + c\). La suite \(u_k = C(2^k)/2^k\) est arithmétique de raison \(c\), donc \(u_k = u_0 + c\,k\), soit \(C(2^k) = 2^k\,(C(1) + c\,k)\). Avec \(n = 2^k\), \(k = \log_2 n\) : \(C(n) = C(1)\,n + c\,n\log_2 n = O(n \log n)\).</p>
+    <p>Pour \(n\) quelconque, on vérifie par récurrence que \(C\) est croissante (les appels portent sur des moitiés plus longues quand \(n\) augmente) ; en prenant \(2^{k-1} \lt n \le 2^k\), on a \(C(n) \le C(2^k) = 2^k (C(1) + c\,k)\) avec \(2^k \lt 2n\) et \(k \lt \log_2 n + 1\), d'où encore \(C(n) = O(n \log n)\).</p>
+  </div></div>
+
+  <div class="prop-box">
+    <strong>Caractéristiques du tri par partition-fusion.</strong> Coût \(O(n \log n)\) dans le pire cas comme dans le meilleur. <strong>Pas en place</strong> : les tranches et les listes fusionnées occupent une mémoire supplémentaire \(O(n)\), plus une pile d'appels de profondeur \(\lceil \log_2 n \rceil\). <strong>Stable</strong>, grâce au test <span class="code-inline">a[i] &lt;= b[j]</span> qui fait passer en premier, à égalité, l'élément de la moitié gauche. Comparatif.
+  </div>
+
+  <div class="notice"><strong>Erreurs classiques</strong> :
+    <ul>
+      <li>écrire <span class="code-inline">a[i] &lt; b[j]</span> dans la fusion : le tri reste juste mais n'est plus stable ;</li>
+      <li>oublier de recopier la fin de la liste non épuisée : des valeurs disparaissent ;</li>
+      <li>ne prévoir que le cas de base \(n = 0\) : pour \(n = 1\), \(m = 0\) et l'appel <span class="code-inline">tri_fusion(t[0:1])</span> reçoit la même liste, indéfiniment, jusqu'à la <span class="code-inline">RecursionError</span> ;</li>
+      <li>retirer les éléments en tête de liste pour fusionner : <span class="code-inline">pop(0)</span> n'est pas dans l'annexe et coûte \(O(n)\) à chaque appel, ce qui rend la fusion quadratique.</li>
+    </ul>
+  </div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§6 · TRI RAPIDE</div>
+  <h2>Partitionner autour d'un pivot</h2>
+  <div class="intro">Le tri rapide, publié par C. A. R. Hoare en 1961, procède aussi par division, mais fait le travail avant les appels récursifs : il sépare les petites valeurs des grandes, après quoi il n'y a plus rien à recoller. Il trie en place et il est très rapide en pratique, mais son pire cas est quadratique.</div>
+
+  <div class="def-box">
+    <strong>Principe.</strong> On choisit une valeur de la liste, le <strong>pivot</strong> \(p\) (ici, la première). On <strong>partitionne</strong> la liste : d'un côté les valeurs strictement inférieures à \(p\), de l'autre les valeurs supérieures ou égales, et \(p\) entre les deux, à sa place définitive. On trie ensuite récursivement chacune des deux parties. Une partie de longueur 0 ou 1 est triée.
+  </div>
+
+  <h3>Une première version, avec des listes auxiliaires</h3>
+  <p>La version la plus lisible construit les deux parties dans de nouvelles listes. Elle n'est pas en place, mais elle montre l'idée :</p>
+<pre class="codeblock"><span class="kw">def</span> tri_rapide_listes(t):
+    <span class="cmt"># renvoie une nouvelle liste : t triée</span>
+    <span class="cmt"># (t n'est pas modifiée)</span>
+    <span class="kw">if</span> len(t) &lt;= 1:
+        <span class="kw">return</span> t.copy()
+    p = t[0]                          <span class="cmt"># le pivot</span>
+    petits, grands = [], []
+    <span class="kw">for</span> k <span class="kw">in</span> range(1, len(t)):
+        <span class="kw">if</span> t[k] &lt; p:
+            petits.append(t[k])
+        <span class="kw">else</span>:
+            grands.append(t[k])
+    gauche = tri_rapide_listes(petits)
+    droite = tri_rapide_listes(grands)
+    <span class="kw">return</span> gauche + [p] + droite</pre>
+
+  <h3>Le tri en place : la partition</h3>
+  <p>Pour trier en place, on partitionne la portion \(t[g..d]\) par échanges. Le pivot \(p = t[g]\) reste en case \(g\) ; un indice \(j\) parcourt les autres cases, et l'indice \(k\) marque la fin de la zone des valeurs inférieures à \(p\). À la fin, on échange \(t[g]\) et \(t[k]\) : le pivot rejoint sa place.</p>
+<figure class="schema" style="max-width:380px">
+<svg viewBox="0 0 390 98" role="img" aria-label="Bande de cases de g à d : en g le pivot p ; de g + 1 à k les valeurs inférieures à p ; de k + 1 à j − 1 les valeurs supérieures ou égales à p ; de j à d les cases pas encore examinées.">
+<rect x="20" y="34" width="32" height="34" class="sk-accent fl-accent-soft"/>
+<text x="36" y="56" class="lab-accent" text-anchor="middle">p</text>
+<rect x="52" y="34" width="96" height="34" class="sk-ink fl-green-soft"/>
+<line x1="84" y1="34" x2="84" y2="68" class="sk-axis"/>
+<line x1="116" y1="34" x2="116" y2="68" class="sk-axis"/>
+<text x="100" y="56" class="lab-green" text-anchor="middle">&lt; p</text>
+<rect x="148" y="34" width="96" height="34" class="sk-ink fl-amber-soft"/>
+<line x1="180" y1="34" x2="180" y2="68" class="sk-axis"/>
+<line x1="212" y1="34" x2="212" y2="68" class="sk-axis"/>
+<text x="196" y="56" class="lab-amber" text-anchor="middle">≥ p</text>
+<rect x="244" y="34" width="128" height="34" class="sk-ink fl-paper"/>
+<text x="308" y="56" class="lab-muted" text-anchor="middle">pas encore vus</text>
+<text x="36" y="86" class="lab-it" text-anchor="middle">g</text>
+<text x="132" y="86" class="lab-it" text-anchor="middle">k</text>
+<text x="260" y="86" class="lab-it" text-anchor="middle">j</text>
+<text x="356" y="86" class="lab-it" text-anchor="middle">d</text>
+<text x="36" y="24" class="lab-accent" text-anchor="middle">pivot</text>
+</svg>
+<figcaption>Invariant de la partition, au début du tour \(j\) : \(t[g+1..k] \lt p\) et \(t[k+1..j-1] \ge p\). Si \(t[j] \lt p\), on agrandit la zone verte d'une case (\(k\) avance) en y échangeant \(t[j]\) ; sinon la zone orangée s'agrandit seule.</figcaption>
+</figure>
+<pre class="codeblock"><span class="kw">def</span> partition(t, g, d):
+    <span class="cmt"># réordonne t[g..d] autour du pivot p = t[g]</span>
+    <span class="cmt"># (valeur de départ) ; renvoie la place k du pivot :</span>
+    <span class="cmt"># t[g..k-1] &lt; p, t[k] == p, t[k+1..d] &gt;= p</span>
+    p = t[g]
+    k = g
+    <span class="kw">for</span> j <span class="kw">in</span> range(g + 1, d + 1):
+        <span class="cmt"># invariant : t[g+1..k] &lt; p et t[k+1..j-1] &gt;= p</span>
+        <span class="kw">if</span> t[j] &lt; p:
+            k = k + 1
+            t[k], t[j] = t[j], t[k]
+    t[g], t[k] = t[k], t[g]     <span class="cmt"># le pivot à sa place</span>
+    <span class="kw">return</span> k</pre>
+  <div class="method-box">
+    <strong>Exemple — Partition de [5, 8, 2, 9, 1, 6, 3], pivot 5</strong>
+<div><table>
+<tr><th>tour</th><th><span class="code-inline">t[j]</span></th><th>test</th><th>indice</th><th>liste après le tour</th></tr>
+<tr><td>départ</td><td>—</td><td>—</td><td><span class="code-inline">k</span> = 0</td><td><span class="code-inline">[5, 8, 2, 9, 1, 6, 3]</span></td></tr>
+<tr><td><span class="code-inline">j</span> = 1</td><td>8</td><td>8 ≥ 5 : rien</td><td><span class="code-inline">k</span> = 0</td><td><span class="code-inline">[5, 8, 2, 9, 1, 6, 3]</span></td></tr>
+<tr><td><span class="code-inline">j</span> = 2</td><td>2</td><td>2 &lt; 5 : <span class="code-inline">k</span> avance, échange</td><td><span class="code-inline">k</span> = 1</td><td><span class="code-inline">[5, 2, 8, 9, 1, 6, 3]</span></td></tr>
+<tr><td><span class="code-inline">j</span> = 3</td><td>9</td><td>9 ≥ 5 : rien</td><td><span class="code-inline">k</span> = 1</td><td><span class="code-inline">[5, 2, 8, 9, 1, 6, 3]</span></td></tr>
+<tr><td><span class="code-inline">j</span> = 4</td><td>1</td><td>1 &lt; 5 : <span class="code-inline">k</span> avance, échange</td><td><span class="code-inline">k</span> = 2</td><td><span class="code-inline">[5, 2, 1, 9, 8, 6, 3]</span></td></tr>
+<tr><td><span class="code-inline">j</span> = 5</td><td>6</td><td>6 ≥ 5 : rien</td><td><span class="code-inline">k</span> = 2</td><td><span class="code-inline">[5, 2, 1, 9, 8, 6, 3]</span></td></tr>
+<tr><td><span class="code-inline">j</span> = 6</td><td>3</td><td>3 &lt; 5 : <span class="code-inline">k</span> avance, échange</td><td><span class="code-inline">k</span> = 3</td><td><span class="code-inline">[5, 2, 1, 3, 8, 6, 9]</span></td></tr>
+<tr><td>fin</td><td>—</td><td>échange du pivot avec <span class="code-inline">t[3]</span></td><td>renvoie 3</td><td><span class="code-inline">[3, 2, 1, 5, 8, 6, 9]</span></td></tr>
+</table></div>
+    <ol>
+      <li>Six comparaisons, une par case autre que le pivot : partitionner une portion de \(L\) cases coûte \(L - 1\) comparaisons.</li>
+      <li>À la fin, 5 est en case 3, sa place dans la liste triée : à sa gauche [3, 2, 1] (valeurs inférieures), à sa droite [8, 6, 9] (valeurs supérieures). Il reste à trier ces deux portions, indépendamment.</li>
+    </ol>
+  </div>
+<pre class="codeblock"><span class="kw">def</span> tri_rapide_rec(t, g, d):
+    <span class="cmt"># trie t[g..d] en place</span>
+    <span class="kw">if</span> g &lt; d:
+        k = partition(t, g, d)
+        tri_rapide_rec(t, g, k - 1)   <span class="cmt"># valeurs &lt; p</span>
+        tri_rapide_rec(t, k + 1, d)   <span class="cmt"># valeurs &gt;= p</span>
+
+
+<span class="kw">def</span> tri_rapide(t):
+    <span class="cmt"># trie t en place, dans l'ordre croissant</span>
+    tri_rapide_rec(t, 0, len(t) - 1)</pre>
+<pre class="codeblock">t = [5, 8, 2, 9, 1, 6, 3]
+partition(t, 0, 6)     <span class="cmt"># 3</span>
+t                      <span class="cmt"># [3, 2, 1, 5, 8, 6, 9]</span>
+tri_rapide(t)
+t                      <span class="cmt"># [1, 2, 3, 5, 6, 8, 9]</span></pre>
+  <div class="prop-box">
+    <strong>Correction.</strong> L'invariant de la partition est vrai au départ (\(k = g\), \(j = g+1\) : deux zones vides) et conservé : si \(t[j] \lt p\), l'échange de \(t[k+1]\) (qui était \(\ge p\), ou \(t[j]\) lui-même) avec \(t[j]\) agrandit la zone des petites valeurs. En sortie, \(t[g+1..k] \lt p \le t[k+1..d]\) ; après l'échange final, \(t[k] = p\) avec les petites valeurs à gauche et les autres à droite. La correction de <span class="code-inline">tri_rapide_rec</span> se prouve alors par récurrence forte sur la longueur \(d - g + 1\), qui est aussi un variant : les deux appels portent sur des portions qui excluent le pivot, donc strictement plus courtes.
+  </div>
+
+  <h3>Coût : tout dépend du pivot</h3>
+<figure class="schema" style="max-width:390px">
+<svg viewBox="0 0 370 183" role="img" aria-label="Deux empilements de barres. À gauche, pour 4, 1, 3, 2, 6, 5, 7, les appels du tri rapide occupent trois niveaux : l'intervalle entier, puis deux moitiés, puis des cases seules. À droite, pour la liste déjà triée 1 à 7, chaque niveau ne retire qu'une case : sept niveaux en escalier.">
+<text x="103" y="14" class="lab-b" text-anchor="middle">pivots médians</text>
+<rect x="41" y="26" width="124" height="14" rx="2" class="sk-accent2 fl-accent2-soft"/>
+<rect x="41" y="45" width="52" height="14" rx="2" class="sk-accent2 fl-accent2-soft"/>
+<rect x="41" y="64" width="16" height="14" rx="2" class="sk-axis fl-muted-soft"/>
+<rect x="77" y="64" width="16" height="14" rx="2" class="sk-axis fl-muted-soft"/>
+<rect x="113" y="45" width="52" height="14" rx="2" class="sk-accent2 fl-accent2-soft"/>
+<rect x="113" y="64" width="16" height="14" rx="2" class="sk-axis fl-muted-soft"/>
+<rect x="149" y="64" width="16" height="14" rx="2" class="sk-axis fl-muted-soft"/>
+<text x="103" y="175" class="lab-muted" text-anchor="middle">3 niveaux</text>
+<text x="289" y="14" class="lab-b" text-anchor="middle">liste déjà triée</text>
+<rect x="227" y="26" width="124" height="14" rx="2" class="sk-accent2 fl-accent2-soft"/>
+<rect x="245" y="45" width="106" height="14" rx="2" class="sk-accent2 fl-accent2-soft"/>
+<rect x="263" y="64" width="88" height="14" rx="2" class="sk-accent2 fl-accent2-soft"/>
+<rect x="281" y="83" width="70" height="14" rx="2" class="sk-accent2 fl-accent2-soft"/>
+<rect x="299" y="102" width="52" height="14" rx="2" class="sk-accent2 fl-accent2-soft"/>
+<rect x="317" y="121" width="34" height="14" rx="2" class="sk-accent2 fl-accent2-soft"/>
+<rect x="335" y="140" width="16" height="14" rx="2" class="sk-axis fl-muted-soft"/>
+<text x="289" y="175" class="lab-muted" text-anchor="middle">7 niveaux</text>
+<text x="20" y="38" class="lab-muted" text-anchor="end">0</text>
+<text x="20" y="57" class="lab-muted" text-anchor="end">1</text>
+<text x="20" y="76" class="lab-muted" text-anchor="end">2</text>
+<text x="20" y="95" class="lab-muted" text-anchor="end">3</text>
+<text x="20" y="114" class="lab-muted" text-anchor="end">4</text>
+<text x="20" y="133" class="lab-muted" text-anchor="end">5</text>
+<text x="20" y="152" class="lab-muted" text-anchor="end">6</text>
+<text x="4" y="14" class="lab-muted">prof.</text>
+</svg>
+<figcaption>Appels de <span class="code-inline">tri_rapide_rec</span> sur 7 valeurs : chaque barre est un intervalle \(t[g..d]\), placé à la profondeur de l'appel (en gris, les appels sur une seule case). Avec des pivots médians, la taille est divisée par deux à chaque niveau ; sur une liste déjà triée, le pivot \(t[g]\) est le minimum et l'intervalle ne perd qu'une case par niveau.</figcaption>
+</figure>
+  <ul>
+    <li><strong>Pire cas</strong> : le pivot est à chaque fois le minimum de sa portion, ce qui arrive pour une liste <strong>déjà triée</strong> (ou dont toutes les valeurs sont égales). L'une des parties est vide, l'autre a perdu une seule case : \(C(n) = C(n-1) + (n-1)\), d'où \(C(n) = \dfrac{n(n-1)}{2}\) comparaisons, coût \(O(n^2)\). La profondeur des appels vaut alors \(n\) : sur une liste triée de mille valeurs, Python s'arrête sur une <span class="code-inline">RecursionError</span>, sa pile étant limitée à environ mille appels (voir le chapitre <em>Récursivité</em>).</li>
+    <li><strong>Meilleur cas</strong> : le pivot coupe chaque portion en deux moitiés : \(C(n) \le 2\,C(n/2) + n\), comme pour le tri fusion, soit \(O(n \log n)\), avec une profondeur \(\lceil \log_2 n \rceil\).</li>
+    <li><strong>En pratique</strong>, sur des valeurs dans un ordre quelconque, les pivots sont assez souvent proches du milieu : le nombre de comparaisons reste de l'ordre de \(n \log_2 n\), un peu plus que pour le tri fusion (environ 11 000 contre 8 700 pour mille valeurs, tableau du §8), mais avec des opérations très simples et sans liste auxiliaire. L'étude de ce coût en moyenne est hors programme.</li>
+  </ul>
+  <div class="prop-box">
+    <strong>Caractéristiques du tri rapide.</strong> Coût \(O(n^2)\) dans le pire cas, \(O(n \log n)\) dans le meilleur. <strong>En place</strong> pour la liste, mais la pile d'appels occupe un espace \(O(n)\) dans le pire cas. <strong>Non stable</strong> : la partition échange des valeurs à distance ; avec des fiches comparées sur leur note, [(Ana, 12), (Bao, 15), (Cyd, 15), (Dia, 9)] devient après partition [(Dia, 9), (Ana, 12), (Cyd, 15), (Bao, 15)]. Comparatif.
+  </div>
+
+  <div class="notice"><strong>Erreurs classiques</strong> :
+    <ul>
+      <li>garder le pivot dans un appel récursif, par exemple <span class="code-inline">tri_rapide_rec(t, k, d)</span> : le pivot, minimum de cette portion, revient en case \(k\), et l'appel se répète à l'identique jusqu'à la <span class="code-inline">RecursionError</span> ;</li>
+      <li>affirmer que « le tri rapide est en \(O(n \log n)\) » : c'est faux dans le pire cas, qui est justement celui d'une liste déjà triée. Pour s'en prémunir, on choisit le pivot au hasard : avant la partition, on échange \(t[g]\) avec \(t[r]\), où <span class="code-inline">r = random.randint(g, d)</span> est un indice tiré au hasard entre \(g\) et \(d\) inclus.</li>
+    </ul>
+  </div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§7 · TRI PAR COMPTAGE</div>
+  <h2>Trier sans comparer</h2>
+  <div class="intro">Quand les valeurs à trier sont des entiers pris dans un petit intervalle connu (des notes de 0 à 20, des âges, des numéros de catégorie), il est inutile de les comparer : il suffit de compter combien de fois apparaît chaque valeur, puis de réécrire les valeurs dans l'ordre.</div>
+
+  <div class="def-box">
+    <strong>Principe.</strong> On suppose que \(t\) ne contient que des entiers compris entre 0 et \(m\). Un premier parcours remplit une liste <span class="code-inline">c</span> de \(m + 1\) compteurs : <span class="code-inline">c[v]</span> est le nombre de cases de \(t\) égales à \(v\). On écrit ensuite, pour \(v = 0, 1, \dots, m\), la valeur \(v\) répétée <span class="code-inline">c[v]</span> fois.
+  </div>
+<pre class="codeblock"><span class="kw">def</span> tri_comptage(t, m):
+    <span class="cmt"># t : liste d'entiers compris entre 0 et m (inclus)</span>
+    <span class="cmt"># renvoie une nouvelle liste : t triée</span>
+    c = [0] * (m + 1)
+    <span class="kw">for</span> x <span class="kw">in</span> t:
+        c[x] = c[x] + 1     <span class="cmt"># c[v] : nombre de v dans t</span>
+    res = []
+    <span class="kw">for</span> v <span class="kw">in</span> range(m + 1):
+        <span class="kw">for</span> k <span class="kw">in</span> range(c[v]):
+            res.append(v)
+    <span class="kw">return</span> res</pre>
+<pre class="codeblock">t = [3, 0, 4, 3, 1, 0, 3]
+tri_comptage(t, 4)      <span class="cmt"># [0, 0, 1, 3, 3, 3, 4]</span></pre>
+<figure class="schema" style="max-width:390px">
+<svg viewBox="0 0 370 220" role="img" aria-label="Trois rangées. La liste t = 3, 0, 4, 3, 1, 0, 3 ; en dessous, le tableau des effectifs c, indicé de 0 à 4 : 2, 1, 0, 3, 1 ; en bas, la liste triée 0, 0, 1, 3, 3, 3, 4 obtenue en écrivant chaque valeur v autant de fois que c[v].">
+<text x="72" y="31" class="lab-it" text-anchor="end">t</text>
+<rect x="82" y="12" width="34" height="28" class="sk-ink fl-paper"/>
+<text x="99" y="31" text-anchor="middle">3</text>
+<rect x="116" y="12" width="34" height="28" class="sk-ink fl-paper"/>
+<text x="133" y="31" text-anchor="middle">0</text>
+<rect x="150" y="12" width="34" height="28" class="sk-ink fl-paper"/>
+<text x="167" y="31" text-anchor="middle">4</text>
+<rect x="184" y="12" width="34" height="28" class="sk-ink fl-paper"/>
+<text x="201" y="31" text-anchor="middle">3</text>
+<rect x="218" y="12" width="34" height="28" class="sk-ink fl-paper"/>
+<text x="235" y="31" text-anchor="middle">1</text>
+<rect x="252" y="12" width="34" height="28" class="sk-ink fl-paper"/>
+<text x="269" y="31" text-anchor="middle">0</text>
+<rect x="286" y="12" width="34" height="28" class="sk-ink fl-paper"/>
+<text x="303" y="31" text-anchor="middle">3</text>
+<text x="106" y="117" class="lab-it" text-anchor="end">c</text>
+<rect x="116" y="98" width="34" height="28" class="sk-ink fl-amber-soft"/>
+<text x="133" y="117" text-anchor="middle">2</text>
+<rect x="150" y="98" width="34" height="28" class="sk-ink fl-amber-soft"/>
+<text x="167" y="117" text-anchor="middle">1</text>
+<rect x="184" y="98" width="34" height="28" class="sk-ink fl-amber-soft"/>
+<text x="201" y="117" text-anchor="middle">0</text>
+<rect x="218" y="98" width="34" height="28" class="sk-ink fl-amber-soft"/>
+<text x="235" y="117" text-anchor="middle">3</text>
+<rect x="252" y="98" width="34" height="28" class="sk-ink fl-amber-soft"/>
+<text x="269" y="117" text-anchor="middle">1</text>
+<text x="133" y="92" class="lab-muted" text-anchor="middle">0</text>
+<text x="167" y="92" class="lab-muted" text-anchor="middle">1</text>
+<text x="201" y="92" class="lab-muted" text-anchor="middle">2</text>
+<text x="235" y="92" class="lab-muted" text-anchor="middle">3</text>
+<text x="269" y="92" class="lab-muted" text-anchor="middle">4</text>
+<text x="294" y="117" class="lab-amber">effectifs</text>
+<text x="72" y="203" class="lab-it" text-anchor="end">res</text>
+<rect x="82" y="184" width="34" height="28" class="sk-ink fl-green-soft"/>
+<text x="99" y="203" text-anchor="middle">0</text>
+<rect x="116" y="184" width="34" height="28" class="sk-ink fl-green-soft"/>
+<text x="133" y="203" text-anchor="middle">0</text>
+<rect x="150" y="184" width="34" height="28" class="sk-ink fl-green-soft"/>
+<text x="167" y="203" text-anchor="middle">1</text>
+<rect x="184" y="184" width="34" height="28" class="sk-ink fl-green-soft"/>
+<text x="201" y="203" text-anchor="middle">3</text>
+<rect x="218" y="184" width="34" height="28" class="sk-ink fl-green-soft"/>
+<text x="235" y="203" text-anchor="middle">3</text>
+<rect x="252" y="184" width="34" height="28" class="sk-ink fl-green-soft"/>
+<text x="269" y="203" text-anchor="middle">3</text>
+<rect x="286" y="184" width="34" height="28" class="sk-ink fl-green-soft"/>
+<text x="303" y="203" text-anchor="middle">4</text>
+<line x1="201" y1="46" x2="201" y2="76" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<text x="209" y="66" class="lab-muted">compter</text>
+<line x1="201" y1="132" x2="201" y2="178" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<text x="209" y="156" class="lab-muted">réécrire dans l'ordre</text>
+</svg>
+<figcaption>Tri par comptage de \(t\), à valeurs entre 0 et \(m = 4\) : un parcours de \(t\) remplit les effectifs <span class="code-inline">c[v]</span>, puis on écrit 2 fois 0, 1 fois 1, 0 fois 2, 3 fois 3 et 1 fois 4. Aucune comparaison entre deux valeurs de la liste n'est faite.</figcaption>
+</figure>
+
+  <div class="prop-box">
+    <strong>Coût et caractéristiques du tri par comptage.</strong> Le comptage fait \(n\) tours ; la réécriture fait \(m + 1\) tours de la boucle extérieure et \(n\) ajouts en tout. Coût en temps \(O(n + m)\), en espace \(O(n + m)\) (les compteurs et la liste résultat). Si \(m\) est de l'ordre de \(n\) ou plus petit, le tri est <strong>linéaire</strong>, donc plus rapide que tout tri comparatif. Il n'est <strong>pas comparatif</strong> (les valeurs servent d'indices) et <strong>pas en place</strong>.
+  </div>
+
+  <div class="method-box">
+    <strong>Exemple — Les âges d'un million de personnes</strong>
+    <ol>
+      <li>Les âges sont des entiers de 0 à 120 : \(m = 120\), \(n = 10^6\).</li>
+      <li>Tri par comptage : environ \(10^6 + 121 + 10^6\) opérations, de l'ordre de \(2 \times 10^6\).</li>
+      <li>Tri par partition-fusion : de l'ordre de \(n \log_2 n \approx 2 \times 10^7\) comparaisons, dix fois plus ; tri par insertion : de l'ordre de \(2{,}5 \times 10^{11}\).</li>
+    </ol>
+  </div>
+
+  <div class="notice"><strong>Limites</strong> : les valeurs doivent être des entiers d'un intervalle connu et pas trop grand. Pour des entiers de 0 à \(10^9\), la liste des compteurs aurait un milliard de cases, quelle que soit la longueur de \(t\). Pour des entiers de \(a\) à \(b\), négatifs compris, on compte <span class="code-inline">c[x - a]</span> avec \(m = b - a\). Les flottants et les chaînes ne se trient pas ainsi.</div>
+  <p>Telle quelle, la version ci-dessus réécrit des nombres : la question de la stabilité ne se pose pas. Pour trier des fiches selon une clé entière (des coureurs selon leur catégorie), on calcule à partir des effectifs la première place libre de chaque clé, puis on range les fiches dans l'ordre de départ : on obtient un tri par comptage <strong>stable</strong>, utilisé dans l'exercice <em>Concours PT</em>.</p>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§8 · COMPARER, CHOISIR, TESTER</div>
+  <h2>Le bilan des tris</h2>
+  <div class="intro">Aucun tri n'est le meilleur en tout : le choix dépend de la taille des données, de leur ordre initial, de leur type, de la mémoire disponible et du besoin de stabilité. Le tableau suivant résume le chapitre ; les mesures qui le suivent montrent l'écart entre coût quadratique et coût en \(n \log n\).</div>
+
+  <div><table>
+    <tr><th>Tri</th><th>Pire cas</th><th>Meilleur cas</th><th>Espace</th><th>En place</th><th>Stable</th><th>Comparatif</th></tr>
+    <tr><td>à bulles</td><td>\(O(n^2)\)</td><td>\(O(n)\)</td><td>\(O(1)\)</td><td>oui</td><td>oui</td><td>oui</td></tr>
+    <tr><td>par sélection</td><td>\(O(n^2)\)</td><td>\(O(n^2)\)</td><td>\(O(1)\)</td><td>oui</td><td>non</td><td>oui</td></tr>
+    <tr><td>par insertion</td><td>\(O(n^2)\)</td><td>\(O(n)\)</td><td>\(O(1)\)</td><td>oui</td><td>oui</td><td>oui</td></tr>
+    <tr><td>partition-fusion</td><td>\(O(n \log n)\)</td><td>\(O(n \log n)\)</td><td>\(O(n)\)</td><td>non</td><td>oui</td><td>oui</td></tr>
+    <tr><td>rapide</td><td>\(O(n^2)\)</td><td>\(O(n \log n)\)</td><td>\(O(n)\) (pile)</td><td>oui</td><td>non</td><td>oui</td></tr>
+    <tr><td>par comptage</td><td>\(O(n + m)\)</td><td>\(O(n + m)\)</td><td>\(O(n + m)\)</td><td>non</td><td>version à clés : oui</td><td>non</td></tr>
+  </table></div>
+
+<figure class="schema" style="max-width:420px">
+<svg viewBox="0 0 390 214" role="img" aria-label="Courbes du nombre moyen de comparaisons en fonction de n, de 0 à 500, sur des listes aléatoires : la sélection monte en parabole jusqu'à 125 000, l'insertion jusqu'à environ 62 000, tandis que le tri rapide et le tri par partition-fusion restent près de l'axe, sous 5 000.">
+<text x="56" y="192" class="lab-muted" text-anchor="end">0</text>
+<line x1="62" y1="154" x2="312" y2="154" class="sk-axis"/>
+<text x="56" y="158" class="lab-muted" text-anchor="end">25 000</text>
+<line x1="62" y1="120" x2="312" y2="120" class="sk-axis"/>
+<text x="56" y="124" class="lab-muted" text-anchor="end">50 000</text>
+<line x1="62" y1="86" x2="312" y2="86" class="sk-axis"/>
+<text x="56" y="90" class="lab-muted" text-anchor="end">75 000</text>
+<line x1="62" y1="52" x2="312" y2="52" class="sk-axis"/>
+<text x="56" y="56" class="lab-muted" text-anchor="end">100 000</text>
+<line x1="62" y1="18" x2="312" y2="18" class="sk-axis"/>
+<text x="56" y="22" class="lab-muted" text-anchor="end">125 000</text>
+<text x="62" y="205" class="lab-muted" text-anchor="middle">0</text>
+<text x="112" y="205" class="lab-muted" text-anchor="middle">100</text>
+<text x="162" y="205" class="lab-muted" text-anchor="middle">200</text>
+<text x="212" y="205" class="lab-muted" text-anchor="middle">300</text>
+<text x="262" y="205" class="lab-muted" text-anchor="middle">400</text>
+<text x="312" y="205" class="lab-muted" text-anchor="middle">500</text>
+<line x1="62" y1="188" x2="322" y2="188" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<line x1="62" y1="188" x2="62" y2="10" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<text x="326" y="192" class="lab-it">n</text>
+<polyline points="62,188 74.5,187.6 87,186.3 99.5,184.2 112,181.3 124.5,177.5 137,172.8 149.5,167.3 162,160.9 174.5,153.7 187,145.7 199.5,136.8 212,127 224.5,116.4 237,104.9 249.5,92.6 262,79.5 274.5,65.5 287,50.6 299.5,34.9 312,18.3" class="sk-accent"/>
+<polyline points="62,188 74.5,187.8 87,187.1 99.5,186.1 112,184.4 124.5,182.5 137,180.3 149.5,177.3 162,174.1 174.5,170.5 187,166.4 199.5,162.2 212,157.3 224.5,151.8 237,145.6 249.5,140.1 262,134.5 274.5,125.9 287,118.8 299.5,111.9 312,102.2" class="sk-amber"/>
+<polyline points="62,188 74.5,187.9 87,187.7 99.5,187.4 112,187.1 124.5,186.8 137,186.5 149.5,186.2 162,185.9 174.5,185.6 187,185.1 199.5,184.8 212,184.3 224.5,184.2 237,183.7 249.5,183.4 262,183 274.5,182.8 287,182.2 299.5,182 312,181.7" class="sk-accent2"/>
+<polyline points="62,188 74.5,187.9 87,187.7 99.5,187.5 112,187.3 124.5,187 137,186.8 149.5,186.5 162,186.3 174.5,186 187,185.7 199.5,185.4 212,185.1 224.5,184.9 237,184.6 249.5,184.3 262,184 274.5,183.7 287,183.4 299.5,183.1 312,182.8" class="sk-green"/>
+<text x="318" y="22.3" class="lab-accent">sélection</text>
+<text x="318" y="106.2" class="lab-amber">insertion</text>
+<text x="318" y="167.7" class="lab-accent2">rapide</text>
+<text x="318" y="184.8" class="lab-green">fusion</text>
+</svg>
+<figcaption>Nombre moyen de comparaisons sur des listes aléatoires de longueur \(n\) (moyenne de 6 listes par point, mesurée en exécutant les tris instrumentés). Pour \(n = 500\) : sélection 124 750, insertion ≈ 63 100, rapide ≈ 4 600, partition-fusion ≈ 3 900.</figcaption>
+</figure>
+  <p>Nombre de comparaisons pour une liste aléatoire de \(n\) valeurs (mesuré en exécutant les tris ; la dernière colonne est le pire cas du tri rapide) :</p>
+<div><table>
+<tr><th>\(n\)</th><th>sélection</th><th>insertion</th><th>partition-fusion</th><th>rapide</th><th>rapide, liste déjà triée</th></tr>
+<tr><td>100</td><td>4 950</td><td>≈ 2 700</td><td>≈ 540</td><td>≈ 574</td><td>4 950</td></tr>
+<tr><td>1 000</td><td>499 500</td><td>≈ 258 000</td><td>≈ 8 700</td><td>≈ 11 000</td><td>499 500</td></tr>
+<tr><td>10 000</td><td>49 995 000</td><td>≈ 25 000 000</td><td>≈ 120 000</td><td>≈ 158 000</td><td>49 995 000</td></tr>
+</table></div>
+
+  <h3>La stabilité en pratique : trier selon deux critères</h3>
+  <p>Pour comparer des fiches selon une seule de leurs composantes, on adapte le test du tri. Voici l'insertion et la sélection appliquées à des couples (nom, note), triés par note :</p>
+<pre class="codeblock"><span class="kw">def</span> tri_insertion_notes(t):
+    <span class="cmt"># t : liste de couples (nom, note) ; trie t en</span>
+    <span class="cmt"># place par notes croissantes (noms non comparés)</span>
+    <span class="kw">for</span> i <span class="kw">in</span> range(1, len(t)):
+        x = t[i]
+        j = i - 1
+        <span class="kw">while</span> j &gt;= 0 <span class="kw">and</span> t[j][1] &gt; x[1]:
+            t[j + 1] = t[j]
+            j = j - 1
+        t[j + 1] = x</pre>
+<pre class="codeblock"><span class="kw">def</span> tri_selection_notes(t):
+    <span class="cmt"># même spécification, par sélection</span>
+    n = len(t)
+    <span class="kw">for</span> i <span class="kw">in</span> range(n - 1):
+        imin = i
+        <span class="kw">for</span> j <span class="kw">in</span> range(i + 1, n):
+            <span class="kw">if</span> t[j][1] &lt; t[imin][1]:
+                imin = j
+        t[i], t[imin] = t[imin], t[i]</pre>
+  <div class="method-box">
+    <strong>Exemple — Deux élèves à égalité</strong>
+<pre class="codeblock">eleves = [(<span class="str">"Ana"</span>, 14), (<span class="str">"Bao"</span>, 11),
+          (<span class="str">"Cyd"</span>, 14), (<span class="str">"Dia"</span>, 9)]
+t = eleves.copy()
+tri_insertion_notes(t)
+t   <span class="cmt"># [('Dia', 9), ('Bao', 11), ('Ana', 14), ('Cyd', 14)]</span>
+t = eleves.copy()
+tri_selection_notes(t)
+t   <span class="cmt"># [('Dia', 9), ('Bao', 11), ('Cyd', 14), ('Ana', 14)]</span></pre>
+    <ol>
+      <li>Ana et Cyd ont la même note 14 ; Ana est avant Cyd au départ.</li>
+      <li>Le tri par insertion, stable, les laisse dans cet ordre. Le tri par sélection, au premier tour, échange (Ana, 14) avec (Dia, 9) : Ana passe derrière Cyd, et le tri ne les remettra jamais dans l'ordre.</li>
+      <li>Application : pour classer par note, et à note égale par ordre alphabétique, on trie d'abord par nom, puis par note avec un tri <strong>stable</strong>. Le second tri respecte l'ordre alphabétique obtenu par le premier entre élèves de même note.</li>
+    </ol>
+  </div>
+
+  <h3>Tester un tri</h3>
+  <p>Un jeu de tests couvre les cas limites (liste vide, une seule valeur, deux valeurs dans chaque ordre), les cas extrêmes (liste déjà triée, triée à l'envers, toutes les valeurs égales), les doublons et les valeurs négatives. On le complète par une comparaison à une méthode de référence, sur des listes tirées au hasard :</p>
+<pre class="codeblock"><span class="kw">import</span> random
+<span class="cmt"># random.randint(a, b) : entier au hasard</span>
+<span class="cmt"># entre a et b inclus</span>
+
+
+<span class="kw">def</span> tester_tri(tri, nb_essais):
+    <span class="cmt"># tri : fonction qui trie une liste en place</span>
+    <span class="kw">for</span> essai <span class="kw">in</span> range(nb_essais):
+        n = random.randint(0, 30)
+        t = [random.randint(-10, 10) <span class="kw">for</span> k <span class="kw">in</span> range(n)]
+        u = t.copy()            <span class="cmt"># on garde l'entrée</span>
+        tri(u)
+        <span class="cmt"># sorted(t) : copie triée de t (hors annexe)</span>
+        <span class="kw">assert</span> u == sorted(t)
+    print(<span class="str">"tests réussis"</span>)</pre>
+  <p>On appelle par exemple <span class="code-inline">tester_tri(tri_insertion, 1000)</span>. Pour un tri qui renvoie une nouvelle liste, on vérifie aussi que la liste d'entrée n'a pas été modifiée. Sans <span class="code-inline">sorted</span>, le test vérifie la postcondition elle-même : <span class="code-inline">est_triee(u)</span> et <span class="code-inline">effectifs(u) == effectifs(t)</span> (§1).</p>
+
+  <div class="prop-box">
+    <strong>Que choisir ?</strong>
+    <ul>
+      <li>Liste courte (quelques dizaines de valeurs) ou presque triée : <strong>insertion</strong>, stable, en place, linéaire sur une liste déjà triée.</li>
+      <li>Grande liste quelconque, coût garanti, stabilité nécessaire : <strong>partition-fusion</strong>, au prix d'une mémoire \(O(n)\).</li>
+      <li>Grande liste, mémoire comptée, valeurs dans un ordre quelconque : <strong>rapide</strong>, avec un pivot tiré au hasard ; jamais sur une liste susceptible d'être déjà triée avec le premier élément comme pivot.</li>
+      <li>Entiers d'un petit intervalle connu : <strong>comptage</strong>, linéaire.</li>
+      <li>Sélection et bulles : à réserver aux petites listes ; la sélection limite le nombre d'échanges (au plus \(n - 1\)), utile si déplacer une valeur coûte cher.</li>
+    </ul>
+  </div>
+  <div class="notice"><strong>Erreur classique</strong> : confondre le nombre de comparaisons et le nombre d'échanges, ou le meilleur cas et le pire cas. Le tri par sélection fait toujours \(\dfrac{n(n-1)}{2}\) comparaisons mais au plus \(n - 1\) échanges ; le tri par insertion fait \(n - 1\) comparaisons sur une liste triée mais \(\dfrac{n(n-1)}{2}\) sur une liste à l'envers. Une complexité s'annonce toujours avec le cas considéré.</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">POUR ALLER PLUS LOIN · HORS PROGRAMME</div>
+  <h2>Au-delà du programme</h2>
+  <ul>
+    <li><strong>On ne peut pas faire mieux que \(n \log n\) en comparant.</strong> Un tri comparatif doit distinguer les \(n!\) ordres possibles des valeurs ; chaque comparaison n'a que deux issues, donc il en faut au moins \(\log_2(n!)\) dans le pire cas, et \(\log_2(n!)\) est équivalent à \(n \log_2 n\). Le tri par partition-fusion est donc optimal parmi les tris comparatifs ; le tri par comptage échappe à cette borne parce qu'il ne compare pas.</li>
+    <li><strong>Tri par tas</strong> : il range les valeurs dans un arbre binaire particulier (un tas) stocké dans la liste elle-même ; coût \(O(n \log n)\) dans le pire cas, en place, non stable.</li>
+    <li><strong>Tri rapide en moyenne</strong> : sur les \(n!\) ordres possibles de \(n\) valeurs distinctes, le nombre moyen de comparaisons est équivalent à \(2\,n \ln n \approx 1{,}39\, n \log_2 n\). Avec un pivot tiré au hasard, ce résultat vaut pour toute liste.</li>
+    <li><strong>Le tri de Python</strong> (<span class="code-inline">sorted</span>, <span class="code-inline">sort</span>) est un mélange de fusion et d'insertion qui repère les portions déjà triées : stable, \(O(n \log n)\) dans le pire cas, linéaire sur une liste triée. Il accepte une clé : <span class="code-inline">sorted(t, key=f)</span> compare les valeurs <span class="code-inline">f(x)</span>.</li>
+    <li><strong>Tri par base</strong> : pour des entiers à plusieurs chiffres, on fait un tri par comptage stable sur le chiffre des unités, puis des dizaines, etc. ; la stabilité garantit que l'ordre obtenu aux étapes précédentes est respecté.</li>
+  </ul>
+</div>
+</template>
+<template class="pan-tpl" data-panneau="tri-meth">
+<div class="course-section">
+  <div class="sec-num">MÉTHODES · ALGORITHMES DE TRI</div>
+  <h2>Les réflexes du chapitre</h2>
+  <div class="intro">Dérouler un tri sans se tromper, l'écrire, prouver qu'il est correct, compter ce qu'il coûte, le tester et choisir le bon : les savoir-faire que les sujets d'écrit et les oraux vérifient sur les tris.</div>
+
+  <div class="method-box"><strong>Méthode 1 — Dérouler un tri à la main</strong>
+    <ol>
+      <li><span class="step">Une ligne par tour.</span> Écrire l'état de la liste à la fin de chaque tour de la boucle extérieure (ou de chaque passage), et marquer la frontière de la zone déjà traitée.</li>
+      <li><span class="step">Appliquer la règle du tri.</span> Sélection : repérer le minimum de \(t[i..n-1]\) et l'échanger avec \(t[i]\). Insertion : prendre \(x = t[i]\) et le faire reculer tant que la valeur à sa gauche est strictement plus grande. Bulles : comparer les voisins de gauche à droite et échanger ceux qui sont mal rangés.</li>
+      <li><span class="step">Compter au passage.</span> Si la question le demande, tenir une colonne « comparaisons » et une colonne « échanges » ou « décalages ».</li>
+      <li><span class="step">Contrôler.</span> L'invariant doit se lire sur chaque ligne : zone triée à gauche (insertion), zone triée des plus petites valeurs (sélection), zone définitive des plus grandes à droite (bulles).</li>
+    </ol>
+    <p><em>Exemple éclair :</em> tri par insertion de [6, 1, 5, 2] : [1, 6, 5, 2], puis [1, 5, 6, 2], puis [1, 2, 5, 6], avec \(1 + 1 + 2 = 4\) décalages. On retrouve le nombre d'inversions de la liste :</p>
+<pre class="codeblock">nb_inversions([6, 1, 5, 2])      <span class="cmt"># 4</span></pre>
+  </div>
+  <div class="notice"><strong>Piège</strong> : en sélection, on ne fait qu'un échange par tour, après avoir parcouru toute la partie non triée ; échanger à chaque valeur plus petite rencontrée donne un autre algorithme, avec bien plus d'échanges.</div>
+
+  <div class="method-box"><strong>Méthode 2 — Prouver la correction d'un tri par un invariant</strong>
+    <ol>
+      <li><span class="step">Énoncer l'invariant</span> au début du tour \(i\), en décrivant la zone déjà traitée : « \(t[0..i-1]\) est triée » (insertion), « \(t[0..i-1]\) est triée et contient les \(i\) plus petites valeurs » (sélection).</li>
+      <li><span class="step">Initialisation.</span> Pour \(i = 0\) (ou 1), la zone est vide (ou réduite à une case) : l'invariant est vrai.</li>
+      <li><span class="step">Conservation.</span> Montrer qu'un tour fait passer de l'invariant au rang \(i\) à l'invariant au rang \(i + 1\).</li>
+      <li><span class="step">Sortie.</span> Remplacer \(i\) par sa valeur finale pour obtenir « la liste est triée » ; ajouter que les valeurs sont les mêmes qu'au départ (on n'a fait que des échanges, ou des décalages avec \(x\) mémorisé).</li>
+      <li><span class="step">Terminaison.</span> Une boucle <span class="code-inline">for</span> fait un nombre fini de tours ; pour un <span class="code-inline">while</span>, exhiber un variant (\(j + 1\) dans l'insertion) ; pour un tri récursif, la longueur de la portion triée (voir le chapitre <em>Spécification, correction et complexité</em>).</li>
+    </ol>
+    <p><em>Exemple éclair :</em> sélection. En sortie, \(i = n - 1\) : \(t[0..n-2]\) est triée et contient les \(n - 1\) plus petites valeurs, donc \(t[n-1]\) est la plus grande et toute la liste est triée.</p>
+  </div>
+  <div class="notice"><strong>Piège</strong> : pour la sélection, « \(t[0..i-1]\) est triée » ne suffit pas : en sortie, rien n'empêcherait \(t[n-1]\) d'être plus petite que \(t[n-2]\). Un invariant se choisit en regardant ce dont la sortie a besoin.</div>
+
+  <div class="method-box"><strong>Méthode 3 — Compter les comparaisons dans le pire et le meilleur cas</strong>
+    <ol>
+      <li><span class="step">Coût d'un tour.</span> Exprimer le nombre de comparaisons du tour \(i\) de la boucle extérieure : exactement \(n - 1 - i\) (sélection, bulles), entre 1 et \(i\) (insertion).</li>
+      <li><span class="step">Sommer.</span> \(\displaystyle\sum_{i=0}^{n-2}(n - 1 - i) = \sum_{k=1}^{n-1} k = \frac{n(n-1)}{2}\).</li>
+      <li><span class="step">Nommer les cas.</span> Trouver une entrée qui réalise le maximum (souvent la liste à l'envers) et une qui réalise le minimum (souvent la liste déjà triée).</li>
+      <li><span class="step">Conclure</span> en ordre de grandeur, en précisant le cas : « \(O(n^2)\) dans le pire cas, \(O(n)\) dans le meilleur ».</li>
+    </ol>
+    <p><em>Exemple éclair :</em> pour \(n = 8\), la sélection fait toujours 28 comparaisons ; l'insertion en fait 7 sur une liste triée et 28 sur une liste à l'envers.</p>
+  </div>
+
+  <div class="method-box"><strong>Méthode 4 — Écrire la fusion de deux listes triées</strong>
+    <ol>
+      <li><span class="step">Initialiser</span> une liste résultat vide et deux indices \(i = j = 0\).</li>
+      <li><span class="step">Tant que les deux listes ont des valeurs</span>, ajouter la plus petite de \(a[i]\) et \(b[j]\), avec <span class="code-inline">&lt;=</span> pour prendre \(a[i]\) à égalité (stabilité), et avancer l'indice correspondant.</li>
+      <li><span class="step">Recopier la fin</span> de la liste non épuisée (deux boucles, ou les tranches <span class="code-inline">a[i:]</span> et <span class="code-inline">b[j:]</span>).</li>
+      <li><span class="step">Coût.</span> Chaque valeur est ajoutée une fois : \(O(n_a + n_b)\), avec au plus \(n_a + n_b - 1\) comparaisons.</li>
+    </ol>
+    <p><em>Exemple éclair :</em> 3 comparaisons (1 et 2, 4 et 2, 4 et 3), puis 4 et 9 sont recopiés.</p>
+<pre class="codeblock">fusion([1, 4, 9], [2, 3])        <span class="cmt"># [1, 2, 3, 4, 9]</span></pre>
+  </div>
+  <div class="notice"><strong>Piège</strong> : vider les listes par <span class="code-inline">a.pop(0)</span>. Cette opération n'est pas dans l'annexe (seul <span class="code-inline">pop()</span> en dernière position y figure) et elle décale toute la liste : chaque appel coûte \(O(n)\) et la fusion devient quadratique.</div>
+
+  <div class="method-box"><strong>Méthode 5 — Écrire une partition et le tri rapide en place</strong>
+    <ol>
+      <li><span class="step">Pivot.</span> \(p = t[g]\), et \(k = g\) : la zone des valeurs \(\lt p\) est vide.</li>
+      <li><span class="step">Parcours.</span> Pour \(j\) de \(g + 1\) à \(d\) inclus (<span class="code-inline">range(g + 1, d + 1)</span>) : si \(t[j] \lt p\), avancer \(k\) et échanger \(t[k]\) et \(t[j]\).</li>
+      <li><span class="step">Placer le pivot.</span> Échanger \(t[g]\) et \(t[k]\), renvoyer \(k\).</li>
+      <li><span class="step">Récursion.</span> Si \(g \lt d\) : partitionner, puis trier \(t[g..k-1]\) et \(t[k+1..d]\), le pivot étant exclu des deux appels. L'appel initial porte sur \((0, n - 1)\).</li>
+    </ol>
+    <p><em>Exemple éclair :</em> pivot 4 ; 1 et 2 rejoignent la zone de gauche, puis le pivot vient en case 2.</p>
+<pre class="codeblock">t = [4, 7, 1, 6, 2]
+partition(t, 0, 4)       <span class="cmt"># 2</span>
+t                        <span class="cmt"># [2, 1, 4, 6, 7]</span></pre>
+  </div>
+  <div class="notice"><strong>Piège</strong> : laisser le pivot dans un appel récursif (<span class="code-inline">tri_rapide_rec(t, k, d)</span>) : l'appel se répète à l'identique jusqu'à la <span class="code-inline">RecursionError</span>. Oublier le <span class="code-inline">+ 1</span> de <span class="code-inline">range(g + 1, d + 1)</span> laisse la dernière case hors de la partition.</div>
+
+  <div class="method-box"><strong>Méthode 6 — Établir le coût d'un tri récursif</strong>
+    <ol>
+      <li><span class="step">Écrire la relation.</span> \(C(n)\) = coûts des appels récursifs + travail fait hors des appels (partition : \(n - 1\) comparaisons ; fusion et tranches : au plus \(c\,n\)).</li>
+      <li><span class="step">Reconnaître la forme.</span> \(C(n) = 2\,C(n/2) + c\,n\) donne \(O(n \log n)\) ; \(C(n) = C(n-1) + c\,n\) donne \(O(n^2)\) (liste des relations : chapitre <em>Spécification, correction et complexité</em>).</li>
+      <li><span class="step">Justifier par l'arbre des appels.</span> Nombre de niveaux × coût d'un niveau : \(\log_2 n\) niveaux de coût \(c\,n\) pour le tri fusion ; \(n\) niveaux de coûts \(n - 1, n - 2, \dots\) pour le tri rapide dans le pire cas.</li>
+      <li><span class="step">Préciser le cas</span> pour le tri rapide : la relation dépend de la place des pivots.</li>
+    </ol>
+    <p><em>Exemple éclair :</em> tri rapide d'une liste déjà triée de 100 valeurs : \(C(n) = C(n-1) + (n - 1)\), soit \(99 + 98 + \dots + 1 = 4\,950\) comparaisons, et une profondeur de 100 appels.</p>
+  </div>
+
+  <div class="method-box"><strong>Méthode 7 — Tester une fonction de tri</strong>
+    <ol>
+      <li><span class="step">Partitionner les entrées.</span> Liste vide, une valeur, deux valeurs dans chaque ordre, liste déjà triée, à l'envers, toutes les valeurs égales, doublons, valeurs négatives.</li>
+      <li><span class="step">Écrire les sorties attendues</span> à la main, et les comparer par <span class="code-inline">assert</span> sur une copie de l'entrée.</li>
+      <li><span class="step">Compléter par le hasard.</span> Des centaines de listes aléatoires comparées à une référence (<span class="code-inline">sorted</span>, documentée), en gardant l'entrée intacte.</li>
+      <li><span class="step">Vérifier les autres promesses.</span> Liste d'entrée inchangée pour un tri qui renvoie une nouvelle liste ; ordre des égaux pour un tri annoncé stable (trier des couples sur une seule composante).</li>
+    </ol>
+    <p><em>Exemple éclair :</em> un jeu de tests pour tout tri en place, qu'on appelle par <span class="code-inline">tests_tri(tri_insertion)</span>.</p>
+<pre class="codeblock"><span class="kw">def</span> tests_tri(tri):
+    <span class="cmt"># jeu de tests écrit à la main, pour un tri en place</span>
+    cas = [([], []), ([5], [5]), ([2, 1], [1, 2]),
+           ([1, 2], [1, 2]),
+           ([4, 3, 2, 1], [1, 2, 3, 4]),
+           ([7, 7, 7], [7, 7, 7]),
+           ([2, -1, 2, 0], [-1, 0, 2, 2])]
+    <span class="kw">for</span> entree, attendu <span class="kw">in</span> cas:
+        u = entree.copy()
+        tri(u)
+        <span class="kw">assert</span> u == attendu</pre>
+  </div>
+  <div class="notice"><strong>Piège</strong> : écrire <span class="code-inline">tri(t)</span> puis <span class="code-inline">assert t == sorted(t)</span>. La référence est calculée sur la liste déjà modifiée : le test vérifie que <span class="code-inline">t</span> est triée, pas qu'elle contient les bonnes valeurs. Une fonction qui écrirait le minimum dans toutes les cases le passerait. On compare à <span class="code-inline">sorted</span> de l'entrée gardée avant le tri.</div>
+
+  <div class="method-box"><strong>Méthode 8 — Choisir un tri adapté aux données</strong>
+    <ol>
+      <li><span class="step">Nature des valeurs.</span> Entiers d'un petit intervalle connu : tri par comptage, linéaire.</li>
+      <li><span class="step">Taille et ordre initial.</span> Petite liste, ou liste presque triée : insertion. Grande liste : un tri en \(O(n \log n)\).</li>
+      <li><span class="step">Contraintes.</span> Stabilité exigée : insertion, partition-fusion, comptage à clés. Mémoire comptée : un tri en place (insertion, rapide).</li>
+      <li><span class="step">Risques.</span> Tri rapide avec le premier élément pour pivot sur des données peut-être déjà triées : pire cas quadratique et dépassement de pile ; tirer le pivot au hasard.</li>
+    </ol>
+    <p><em>Exemple éclair :</em> un million de notes entières sur 20 : comptage. Trente fiches déjà presque classées : insertion. Un million de fiches (nom, temps) à classer par temps sans perdre l'ordre d'arrivée des ex aequo : partition-fusion.</p>
+  </div>
+</div>
+</template>
+<template class="pan-tpl" data-panneau="tri-exos">
+<div class="exo-wrapper">
+
+<div class="exo"><span class="num">EXO 01</span><span class="diff">★ ☆ ☆</span>
+  <h3>Dérouler la sélection et l'insertion</h3>
+  <div class="statement">On trie dans l'ordre croissant la liste <span class="code-inline">t = [4, 9, 2, 7, 1]</span> avec les fonctions <span class="code-inline">tri_selection</span> et <span class="code-inline">tri_insertion</span> du cours.</div>
+  <div class="q"><strong>Q1.</strong> Tri par sélection : donner l'état de la liste après chaque tour, le nombre de comparaisons et le nombre d'échanges effectifs (entre deux cases distinctes).</div>
+  <div class="q"><strong>Q2.</strong> Même question pour le tri par insertion, en comptant les comparaisons et les décalages.</div>
+  <div class="q"><strong>Q3.</strong> Combien la liste a-t-elle d'inversions ? Retrouver l'un des résultats précédents.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution"><h4>Correction</h4>
+    <p><strong>Q1.</strong> Une ligne par tour ; la barre marque la fin de la zone triée.</p>
+<div><table>
+<tr><th>tour</th><th>action</th><th>liste après le tour (| : fin de la zone triée)</th></tr>
+<tr><td>départ</td><td>—</td><td><span class="code-inline">[4, 9, 2, 7, 1]</span></td></tr>
+<tr><td><span class="code-inline">i</span> = 0</td><td>minimum 1 en case 4, échangé avec <span class="code-inline">t[0]</span></td><td><span class="code-inline">[1 | 9, 2, 7, 4]</span></td></tr>
+<tr><td><span class="code-inline">i</span> = 1</td><td>minimum 2 en case 2, échangé avec <span class="code-inline">t[1]</span></td><td><span class="code-inline">[1, 2 | 9, 7, 4]</span></td></tr>
+<tr><td><span class="code-inline">i</span> = 2</td><td>minimum 4 en case 4, échangé avec <span class="code-inline">t[2]</span></td><td><span class="code-inline">[1, 2, 4 | 7, 9]</span></td></tr>
+<tr><td><span class="code-inline">i</span> = 3</td><td>minimum 7 déjà en case 3</td><td><span class="code-inline">[1, 2, 4, 7 | 9]</span></td></tr>
+</table></div>
+    <p>Comparaisons : \(4 + 3 + 2 + 1 = 10 = \dfrac{5 \times 4}{2}\), comme pour toute liste de 5 valeurs. Échanges effectifs : 3 (au tour \(i = 3\), le minimum 7 est déjà en place).</p>
+    <p><strong>Q2.</strong></p>
+<div><table>
+<tr><th>tour</th><th>valeur</th><th>action</th><th>liste après le tour (| : fin de la zone triée)</th></tr>
+<tr><td>départ</td><td>—</td><td>—</td><td><span class="code-inline">[4 | 9, 2, 7, 1]</span></td></tr>
+<tr><td><span class="code-inline">i</span> = 1</td><td><span class="code-inline">x</span> = 9</td><td>0 décalage, 9 en case 1</td><td><span class="code-inline">[4, 9 | 2, 7, 1]</span></td></tr>
+<tr><td><span class="code-inline">i</span> = 2</td><td><span class="code-inline">x</span> = 2</td><td>2 décalages, 2 en case 0</td><td><span class="code-inline">[2, 4, 9 | 7, 1]</span></td></tr>
+<tr><td><span class="code-inline">i</span> = 3</td><td><span class="code-inline">x</span> = 7</td><td>1 décalage, 7 en case 2</td><td><span class="code-inline">[2, 4, 7, 9 | 1]</span></td></tr>
+<tr><td><span class="code-inline">i</span> = 4</td><td><span class="code-inline">x</span> = 1</td><td>4 décalages, 1 en case 0</td><td><span class="code-inline">[1, 2, 4, 7, 9]</span></td></tr>
+</table></div>
+    <p>Comparaisons : \(1 + 2 + 2 + 4 = 9\). Au tour \(i = 1\), une comparaison (\(4 \le 9\)) arrête tout de suite la boucle ; aux tours \(i = 2\) et \(i = 4\), la valeur insérée arrive en case 0 et c'est la condition \(j \ge 0\) qui arrête la boucle, sans comparaison supplémentaire. Décalages : \(0 + 2 + 1 + 4 = 7\).</p>
+    <p><strong>Q3.</strong> Les couples mal rangés sont (4, 2), (4, 1), (9, 2), (9, 7), (9, 1), (2, 1) et (7, 1) : 7 inversions. C'est le nombre de décalages du tri par insertion : chaque décalage fait passer la valeur insérée devant une valeur plus grande qui la précédait, ce qui supprime exactement une inversion.</p>
+  </div>
+</div>
+
+<div class="exo"><span class="num">EXO 02</span><span class="diff">★ ☆ ☆</span>
+  <h3>Tri à bulles : lièvres et tortues</h3>
+  <div class="statement">On utilise la fonction <span class="code-inline">tri_bulles</span> du cours, qui s'arrête après un passage sans échange.</div>
+  <div class="q"><strong>Q1.</strong> Dérouler le tri sur <span class="code-inline">[3, 5, 1, 4, 2]</span> : état après chaque passage, nombres de comparaisons, d'échanges et de passages.</div>
+  <div class="q"><strong>Q2.</strong> Mêmes nombres pour <span class="code-inline">[1, 2, 3, 5, 4]</span> et pour <span class="code-inline">[2, 3, 4, 5, 1]</span>. Ces deux listes n'ont chacune qu'une valeur mal placée : expliquer la différence.</div>
+  <div class="q"><strong>Q3.</strong> Écrire une variante <span class="code-inline">tri_bulles_court(t)</span> qui utilise une boucle <span class="code-inline">while</span> et un booléen <span class="code-inline">fini</span>, et justifier qu'elle termine.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution"><h4>Correction</h4>
+    <p><strong>Q1.</strong></p>
+<div><table>
+<tr><th></th><th>comparaisons</th><th>échanges</th><th>liste après le passage (| : début de la zone définitive)</th></tr>
+<tr><td>départ</td><td>—</td><td>—</td><td><span class="code-inline">[3, 5, 1, 4, 2]</span></td></tr>
+<tr><td>passage 0</td><td>4</td><td>3</td><td><span class="code-inline">[3, 1, 4, 2 | 5]</span></td></tr>
+<tr><td>passage 1</td><td>3</td><td>2</td><td><span class="code-inline">[1, 3, 2 | 4, 5]</span></td></tr>
+<tr><td>passage 2</td><td>2</td><td>1</td><td><span class="code-inline">[1, 2 | 3, 4, 5]</span></td></tr>
+<tr><td>passage 3</td><td>1</td><td>0</td><td><span class="code-inline">[1 | 2, 3, 4, 5]</span></td></tr>
+</table></div>
+    <p>Comparaisons \(4 + 3 + 2 + 1 = 10\), échanges \(3 + 2 + 1 + 0 = 6\) (les 6 inversions de la liste), 4 passages.</p>
+    <p><strong>Q2.</strong> Pour <span class="code-inline">[1, 2, 3, 5, 4]</span> : le passage 0 échange 5 et 4 (4 comparaisons), le passage 1 n'échange rien (3 comparaisons) : 7 comparaisons, 1 échange, 2 passages. Pour <span class="code-inline">[2, 3, 4, 5, 1]</span> : chaque passage ne fait reculer 1 que d'une case ; il faut 4 passages, 10 comparaisons et 4 échanges. Une grande valeur mal placée au début (un « lièvre ») est poussée jusqu'au bout en un seul passage ; une petite valeur mal placée à la fin (une « tortue ») ne recule que d'une case par passage.</p>
+    <p><strong>Q3.</strong></p>
+<pre class="codeblock"><span class="kw">def</span> tri_bulles_court(t):
+    <span class="cmt"># s'arrête après un passage sans échange</span>
+    n = len(t)
+    fini = <span class="kw">False</span>
+    k = 0
+    <span class="kw">while</span> <span class="kw">not</span> fini:
+        fini = <span class="kw">True</span>
+        <span class="kw">for</span> j <span class="kw">in</span> range(n - 1 - k):
+            <span class="kw">if</span> t[j] &gt; t[j + 1]:
+                t[j], t[j + 1] = t[j + 1], t[j]
+                fini = <span class="kw">False</span>
+        k = k + 1</pre>
+    <p>Après le passage numéro \(k\), les \(k + 1\) dernières cases sont définitives (invariant du cours). Si la boucle atteint \(k = n - 1\), la boucle intérieure ne fait aucun tour, <span class="code-inline">fini</span> reste vrai et l'on sort : au plus \(n\) passages. Le variant est \(n - 1 - k\) tant que la liste n'est pas triée ; dès qu'un passage n'échange rien, on sort plus tôt. Pour \(n = 0\), la boucle fait un passage vide et s'arrête.</p>
+  </div>
+</div>
+
+<div class="exo"><span class="num">EXO 03</span><span class="diff">★ ★ ☆</span>
+  <h3>Stabilité : classer selon deux critères</h3>
+  <div class="statement">Une classe est représentée par une liste de couples <span class="code-inline">(nom, note)</span>. On dispose de <span class="code-inline">tri_insertion_notes</span> et de <span class="code-inline">tri_selection_notes</span> (§8 du cours), qui trient en place par notes croissantes sans comparer les noms. On veut classer les élèves par note, et à note égale par ordre alphabétique.</div>
+  <div class="q"><strong>Q1.</strong> Écrire <span class="code-inline">tri_insertion_noms(t)</span>, qui trie en place par ordre alphabétique des noms (deux chaînes se comparent par <span class="code-inline">&lt;</span> et <span class="code-inline">&gt;</span>).</div>
+  <div class="q"><strong>Q2.</strong> Avec <span class="code-inline">eleves = [("Lou", 15), ("Ana", 12), ("Max", 9), ("Eva", 12), ("Bob", 15)]</span>, que donne la suite d'instructions ci-dessous ? Expliquer pourquoi le résultat est celui qu'on veut.</div>
+<pre class="codeblock">eleves = [(<span class="str">"Lou"</span>, 15), (<span class="str">"Ana"</span>, 12), (<span class="str">"Max"</span>, 9),
+          (<span class="str">"Eva"</span>, 12), (<span class="str">"Bob"</span>, 15)]
+t = eleves.copy()
+tri_insertion_noms(t)    <span class="cmt"># 1) par noms</span>
+tri_insertion_notes(t)   <span class="cmt"># 2) par notes, tri stable</span></pre>
+  <div class="q"><strong>Q3.</strong> Que se passe-t-il si l'on remplace la seconde instruction par <span class="code-inline">tri_selection_notes(t)</span> ?</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution"><h4>Correction</h4>
+    <p><strong>Q1.</strong> On reprend le tri par insertion en comparant les premières composantes :</p>
+<pre class="codeblock"><span class="kw">def</span> tri_insertion_noms(t):
+    <span class="cmt"># t : liste de couples (nom, note) ;</span>
+    <span class="cmt"># trie t en place par ordre alphabétique des noms</span>
+    <span class="kw">for</span> i <span class="kw">in</span> range(1, len(t)):
+        x = t[i]
+        j = i - 1
+        <span class="kw">while</span> j &gt;= 0 <span class="kw">and</span> t[j][0] &gt; x[0]:
+            t[j + 1] = t[j]
+            j = j - 1
+        t[j + 1] = x</pre>
+    <p><strong>Q2.</strong> Après le premier tri : [(Ana, 12), (Bob, 15), (Eva, 12), (Lou, 15), (Max, 9)]. Le second tri range par note ; comme il est stable, deux élèves de même note restent dans l'ordre où ils étaient, c'est-à-dire l'ordre alphabétique :</p>
+<pre class="codeblock">t[0:3]     <span class="cmt"># [('Max', 9), ('Ana', 12), ('Eva', 12)]</span>
+t[3:5]     <span class="cmt"># [('Bob', 15), ('Lou', 15)]</span></pre>
+    <p>On trie donc d'abord selon le critère secondaire, puis selon le critère principal avec un tri stable.</p>
+    <p><strong>Q3.</strong> Le tri par sélection n'est pas stable. Au premier tour, (Max, 9) est échangé avec (Ana, 12), qui passe derrière (Eva, 12) ; au deuxième tour, (Eva, 12) est échangé avec (Bob, 15), qui passe derrière (Lou, 15). On obtient [(Max, 9), (Eva, 12), (Ana, 12), (Lou, 15), (Bob, 15)] : bien classé par notes, mais l'ordre alphabétique est perdu dans les deux groupes d'ex aequo.</p>
+  </div>
+</div>
+
+<div class="exo"><span class="num">EXO 04</span><span class="diff">★ ★ ☆</span>
+  <h3>Fusion et intersection de listes triées</h3>
+  <div class="statement">On reprend la fonction <span class="code-inline">fusion(a, b)</span> du cours, avec \(n_a\) et \(n_b\) les longueurs des deux listes triées.</div>
+  <div class="q"><strong>Q1.</strong> Combien de comparaisons pour <span class="code-inline">fusion([1, 2, 3], [7, 8, 9, 10])</span> ? pour <span class="code-inline">fusion([1, 3, 5, 7], [2, 4, 6])</span> ? En déduire le nombre minimal et le nombre maximal de comparaisons en fonction de \(n_a\) et \(n_b\) (supposés non nuls).</div>
+  <div class="q"><strong>Q2.</strong> Deux listes triées sans répétition donnent les numéros des abonnés de deux services. Écrire <span class="code-inline">intersection(a, b)</span> qui renvoie la liste triée des numéros présents dans les deux, en temps \(O(n_a + n_b)\).</div>
+  <div class="q"><strong>Q3.</strong> Justifier la terminaison et le coût. Quel serait le coût de la méthode qui teste <span class="code-inline">x in b</span> pour chaque <span class="code-inline">x</span> de <span class="code-inline">a</span> ?</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution"><h4>Correction</h4>
+    <p><strong>Q1.</strong> Première fusion : 1, 2 et 3 sont comparés à 7 et pris tour à tour ; après 3 comparaisons, <span class="code-inline">a</span> est épuisée et 7, 8, 9, 10 sont recopiés sans comparaison. Seconde fusion : les valeurs alternent, chaque tour fait une comparaison jusqu'à ce que <span class="code-inline">b</span> soit épuisée après 6 tours, puis 7 est recopié : 6 comparaisons. Le minimum est \(\min(n_a, n_b)\) (toutes les valeurs d'une liste avant celles de l'autre) ; le maximum est \(n_a + n_b - 1\) (une seule valeur recopiée sans comparaison à la fin).</p>
+    <p><strong>Q2.</strong> Même parcours à deux indices que la fusion : on n'avance que l'indice de la plus petite valeur, qui ne peut plus se trouver dans l'autre liste.</p>
+<pre class="codeblock"><span class="kw">def</span> intersection(a, b):
+    <span class="cmt"># a et b triées, sans répétition ; renvoie la</span>
+    <span class="cmt"># liste triée des valeurs présentes dans les deux</span>
+    res = []
+    i, j = 0, 0
+    <span class="kw">while</span> i &lt; len(a) <span class="kw">and</span> j &lt; len(b):
+        <span class="kw">if</span> a[i] == b[j]:
+            res.append(a[i])
+            i, j = i + 1, j + 1
+        <span class="kw">elif</span> a[i] &lt; b[j]:
+            i = i + 1       <span class="cmt"># a[i] n'est pas dans b</span>
+        <span class="kw">else</span>:
+            j = j + 1       <span class="cmt"># b[j] n'est pas dans a</span>
+    <span class="kw">return</span> res</pre>
+<pre class="codeblock">a = [1, 4, 6, 9, 12]
+b = [2, 4, 9, 10, 12, 15]
+intersection(a, b)        <span class="cmt"># [4, 9, 12]</span></pre>
+    <p><strong>Q3.</strong> Variant : \((n_a - i) + (n_b - j)\), entier positif qui diminue de 1 ou 2 à chaque tour ; la boucle fait donc au plus \(n_a + n_b\) tours en \(O(1)\) : coût \(O(n_a + n_b)\). Correction : si \(a[i] \lt b[j]\), toutes les valeurs \(b[j], b[j+1], \dots\) sont \(\gt a[i]\) (liste triée) et celles d'avant ont déjà été dépassées, donc \(a[i]\) n'est pas dans <span class="code-inline">b</span> et on peut l'oublier. La méthode naïve fait \(n_a\) recherches séquentielles de coût \(O(n_b)\) : \(O(n_a\, n_b)\), quadratique pour deux listes de même taille.</p>
+  </div>
+</div>
+
+<div class="exo"><span class="num">EXO 05</span><span class="diff">★ ★ ☆</span>
+  <h3>Tri rapide : partition et pire cas</h3>
+  <div class="statement">On utilise les fonctions <span class="code-inline">partition</span>, <span class="code-inline">tri_rapide_rec</span> et <span class="code-inline">tri_rapide</span> du cours (pivot \(p = t[g]\)).</div>
+  <div class="q"><strong>Q1.</strong> Dérouler <span class="code-inline">partition(t, 0, 5)</span> avec <span class="code-inline">t = [6, 3, 8, 1, 9, 4]</span> : valeur de \(k\) et état de la liste à chaque tour, valeur renvoyée.</div>
+  <div class="q"><strong>Q2.</strong> Combien de comparaisons fait <span class="code-inline">tri_rapide</span> sur la liste <span class="code-inline">[1, 2, …, n]</span> ? Quelle est la profondeur maximale des appels récursifs ? Que se passe-t-il en Python pour \(n = 1000\) ?</div>
+  <div class="q"><strong>Q3.</strong> Même question pour une liste de \(n\) valeurs toutes égales.</div>
+  <div class="q"><strong>Q4.</strong> Modifier <span class="code-inline">tri_rapide_rec</span> pour tirer le pivot au hasard dans \(t[g..d]\). On dispose de <span class="code-inline">random.randint(a, b)</span>, qui renvoie un entier au hasard entre <span class="code-inline">a</span> et <span class="code-inline">b</span> inclus.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution"><h4>Correction</h4>
+    <p><strong>Q1.</strong> Pivot 6 :</p>
+<div><table>
+<tr><th>tour</th><th><span class="code-inline">t[j]</span></th><th>test</th><th>indice</th><th>liste après le tour</th></tr>
+<tr><td>départ</td><td>—</td><td>—</td><td><span class="code-inline">k</span> = 0</td><td><span class="code-inline">[6, 3, 8, 1, 9, 4]</span></td></tr>
+<tr><td><span class="code-inline">j</span> = 1</td><td>3</td><td>3 &lt; 6 : <span class="code-inline">k</span> avance, échange</td><td><span class="code-inline">k</span> = 1</td><td><span class="code-inline">[6, 3, 8, 1, 9, 4]</span></td></tr>
+<tr><td><span class="code-inline">j</span> = 2</td><td>8</td><td>8 ≥ 6 : rien</td><td><span class="code-inline">k</span> = 1</td><td><span class="code-inline">[6, 3, 8, 1, 9, 4]</span></td></tr>
+<tr><td><span class="code-inline">j</span> = 3</td><td>1</td><td>1 &lt; 6 : <span class="code-inline">k</span> avance, échange</td><td><span class="code-inline">k</span> = 2</td><td><span class="code-inline">[6, 3, 1, 8, 9, 4]</span></td></tr>
+<tr><td><span class="code-inline">j</span> = 4</td><td>9</td><td>9 ≥ 6 : rien</td><td><span class="code-inline">k</span> = 2</td><td><span class="code-inline">[6, 3, 1, 8, 9, 4]</span></td></tr>
+<tr><td><span class="code-inline">j</span> = 5</td><td>4</td><td>4 &lt; 6 : <span class="code-inline">k</span> avance, échange</td><td><span class="code-inline">k</span> = 3</td><td><span class="code-inline">[6, 3, 1, 4, 9, 8]</span></td></tr>
+<tr><td>fin</td><td>—</td><td>échange du pivot avec <span class="code-inline">t[3]</span></td><td>renvoie 3</td><td><span class="code-inline">[4, 3, 1, 6, 9, 8]</span></td></tr>
+</table></div>
+    <p>La fonction renvoie 3 : le pivot 6 est à sa place définitive, avec [4, 3, 1] à gauche et [9, 8] à droite.</p>
+    <p><strong>Q2.</strong> Sur une portion triée, le pivot \(t[g]\) est le minimum : aucune valeur ne lui est inférieure, \(k = g\), la partie gauche est vide et la partie droite \(t[g+1..d]\) a perdu une seule case. Partitionner \(L\) cases coûte \(L - 1\) comparaisons, d'où \((n-1) + (n-2) + \dots + 1 = \dfrac{n(n-1)}{2}\) comparaisons, un coût \(O(n^2)\). La profondeur vaut \(n\) (un appel par longueur, de \(n\) à 1). Pour \(n = 1000\), elle dépasse la limite d'environ mille appels de la pile de Python : le programme s'arrête sur une <span class="code-inline">RecursionError</span>.</p>
+    <p><strong>Q3.</strong> Le test <span class="code-inline">t[j] &lt; p</span> est toujours faux : comme pour une liste triée, \(k = g\) à chaque partition, \(\dfrac{n(n-1)}{2}\) comparaisons et une profondeur \(n\). Une partition en trois zones (\(\lt p\), \(= p\), \(\gt p\), comme dans l'exercice 8) règlerait ce cas en un seul appel.</p>
+    <p><strong>Q4.</strong> On échange la case \(g\) avec une case tirée au hasard avant de partitionner ; la fonction <span class="code-inline">partition</span> est inchangée.</p>
+<pre class="codeblock"><span class="kw">import</span> random
+<span class="cmt"># random.randint(a, b) : entier au hasard</span>
+<span class="cmt"># entre a et b inclus</span>
+
+
+<span class="kw">def</span> tri_rapide_alea_rec(t, g, d):
+    <span class="cmt"># trie t[g..d] en place, pivot tiré au hasard</span>
+    <span class="kw">if</span> g &lt; d:
+        r = random.randint(g, d)
+        t[g], t[r] = t[r], t[g]     <span class="cmt"># pivot en case g</span>
+        k = partition(t, g, d)
+        tri_rapide_alea_rec(t, g, k - 1)
+        tri_rapide_alea_rec(t, k + 1, d)</pre>
+    <p>Aucune liste particulière ne provoque plus systématiquement le pire cas : sur une liste déjà triée de mille ou cinq mille valeurs, la profondeur reste de quelques dizaines d'appels.</p>
+  </div>
+</div>
+
+<div class="exo"><span class="num">EXO 06</span><span class="diff">★ ★ ☆</span>
+  <h3>Notes sur 20 : comptage et médiane</h3>
+  <div class="statement">Les notes d'un concours blanc sont des entiers de 0 à 20. On dispose de <span class="code-inline">tri_comptage(t, m)</span> (§7 du cours).</div>
+  <div class="q"><strong>Q1.</strong> Que renvoie <span class="code-inline">tri_comptage([12, 7, 15, 12, 9, 7, 12], 20)</span> ? Quelle est la longueur de la liste des compteurs ?</div>
+  <div class="q"><strong>Q2.</strong> Pour une liste de longueur impaire, la médiane est la valeur d'indice <span class="code-inline">len(t) // 2</span> de la liste triée. Écrire <span class="code-inline">mediane_notes(t)</span> qui la calcule à partir des compteurs, sans construire la liste triée.</div>
+  <div class="q"><strong>Q3.</strong> Comparer le coût avec celui d'un tri par partition-fusion suivi de la lecture de la case du milieu.</div>
+  <div class="q"><strong>Q4.</strong> Pourquoi ne pourrait-on pas utiliser la même méthode pour des temps de course mesurés au centième de seconde en flottants ? Que faire si on les exprime en centièmes entiers, entre 0 et \(10^6\) ?</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution"><h4>Correction</h4>
+    <p><strong>Q1.</strong> <span class="code-inline">[7, 7, 9, 12, 12, 12, 15]</span> ; les compteurs forment une liste de \(m + 1 = 21\) cases (notes 0 à 20).</p>
+    <p><strong>Q2.</strong> On cumule les effectifs jusqu'à dépasser le rang cherché : la variable <span class="code-inline">vu</span> compte les notes strictement inférieures à <span class="code-inline">v</span>, qui occupent les indices <span class="code-inline">0</span> à <span class="code-inline">vu - 1</span> de la liste triée ; les notes égales à <span class="code-inline">v</span> occupent les indices <span class="code-inline">vu</span> à <span class="code-inline">vu + c[v] - 1</span>.</p>
+<pre class="codeblock"><span class="kw">def</span> mediane_notes(t):
+    <span class="cmt"># t : notes entières de 0 à 20, en nombre impair ;</span>
+    <span class="cmt"># renvoie la médiane sans trier t</span>
+    c = [0] * 21
+    <span class="kw">for</span> x <span class="kw">in</span> t:
+        c[x] = c[x] + 1
+    rang = len(t) // 2    <span class="cmt"># indice dans la liste triée</span>
+    vu = 0                <span class="cmt"># nombre de notes &lt; v</span>
+    <span class="kw">for</span> v <span class="kw">in</span> range(21):
+        <span class="kw">if</span> vu + c[v] &gt; rang:
+            <span class="kw">return</span> v
+        vu = vu + c[v]</pre>
+<pre class="codeblock">mediane_notes([12, 7, 15, 12, 9, 7, 12])     <span class="cmt"># 12</span></pre>
+    <p>La boucle sur <span class="code-inline">v</span> s'arrête toujours par <span class="code-inline">return</span>, puisque la somme des effectifs vaut <span class="code-inline">len(t)</span>, qui dépasse <span class="code-inline">rang</span>.</p>
+    <p><strong>Q3.</strong> Comptage : \(n\) tours puis au plus 21, soit \(O(n)\). Tri par partition-fusion : \(O(n \log n)\). Pour \(n = 10^5\) copies, environ \(10^5\) opérations contre \(1{,}7 \times 10^6\).</p>
+    <p><strong>Q4.</strong> Des flottants ne peuvent pas servir d'indices d'une liste. En centièmes entiers, la méthode s'applique, mais la liste des compteurs a \(10^6 + 1\) cases et la boucle de réécriture fait autant de tours, même pour trier trente coureurs : le comptage n'est intéressant que si \(m\) n'est pas grand devant \(n\).</p>
+  </div>
+</div>
+
+<div class="exo"><span class="num">EXO 07</span><span class="diff">★ ★ ★</span>
+  <h3>Compter les inversions en \(O(n \log n)\)</h3>
+  <div class="statement">Le nombre d'inversions d'une liste mesure son désordre ; il sert par exemple à comparer deux classements (le nombre de couples de candidats que deux jurys rangent dans des ordres différents). La fonction <span class="code-inline">nb_inversions</span> du cours examine tous les couples.</div>
+  <div class="q"><strong>Q1.</strong> Quel est le coût de <span class="code-inline">nb_inversions</span> ?</div>
+  <div class="q"><strong>Q2.</strong> On coupe \(t\) en deux moitiés \(G = t[0..m-1]\) et \(D = t[m..n-1]\). Montrer que le nombre d'inversions de \(t\) est la somme des inversions de \(G\), de celles de \(D\) et du nombre de couples \((x, y)\) avec \(x\) dans \(G\), \(y\) dans \(D\) et \(x \gt y\) ; puis que ce dernier nombre ne change pas si l'on trie \(G\) et \(D\).</div>
+  <div class="q"><strong>Q3.</strong> Écrire <span class="code-inline">fusion_inv(a, b)</span>, qui renvoie la fusion de deux listes triées et le nombre de couples \((x, y)\), \(x\) dans <span class="code-inline">a</span>, \(y\) dans <span class="code-inline">b</span>, \(x \gt y\) ; puis <span class="code-inline">tri_inv(t)</span>, qui renvoie la liste triée et son nombre d'inversions. Donner le coût de <span class="code-inline">tri_inv</span>.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution"><h4>Correction</h4>
+    <p><strong>Q1.</strong> Une comparaison par couple \((i, j)\), \(i \lt j\) : \(\dfrac{n(n-1)}{2}\) comparaisons, \(O(n^2)\).</p>
+    <p><strong>Q2.</strong> Un couple d'indices \(i \lt j\) a ses deux indices dans \(G\), ou ses deux indices dans \(D\), ou \(i\) dans \(G\) et \(j\) dans \(D\) : les trois familles se partagent les inversions. Dans la troisième, un couple est une inversion si la valeur de gauche est plus grande que celle de droite ; leur nombre ne dépend que des ensembles de valeurs de \(G\) et de \(D\), pas de leur ordre interne : il est inchangé si l'on trie chaque moitié.</p>
+    <p><strong>Q3.</strong> Dans la fusion, quand on prend \(b[j]\) parce que \(a[i] \gt b[j]\), toutes les valeurs \(a[i], a[i+1], \dots\) (triées) sont aussi \(\gt b[j]\) : on compte d'un coup <span class="code-inline">len(a) - i</span> couples. Quand on prend \(a[i]\), aucune valeur restante de <span class="code-inline">b</span> ne lui est inférieure.</p>
+<pre class="codeblock"><span class="kw">def</span> fusion_inv(a, b):
+    <span class="cmt"># a et b triées ; renvoie (fusion de a et b,</span>
+    <span class="cmt"># nombre de couples (x, y) de a × b avec x &gt; y)</span>
+    res, inv = [], 0
+    i, j = 0, 0
+    <span class="kw">while</span> i &lt; len(a) <span class="kw">and</span> j &lt; len(b):
+        <span class="kw">if</span> a[i] &lt;= b[j]:
+            res.append(a[i])
+            i = i + 1
+        <span class="kw">else</span>:
+            res.append(b[j])
+            inv = inv + len(a) - i   <span class="cmt"># a[i..] &gt; b[j]</span>
+            j = j + 1
+    <span class="kw">return</span> res + a[i:] + b[j:], inv
+
+
+<span class="kw">def</span> tri_inv(t):
+    <span class="cmt"># renvoie (t triée, nombre d'inversions de t)</span>
+    n = len(t)
+    <span class="kw">if</span> n &lt;= 1:
+        <span class="kw">return</span> t.copy(), 0
+    m = n // 2
+    g, ng = tri_inv(t[0:m])    <span class="cmt"># dans la moitié gauche</span>
+    d, nd = tri_inv(t[m:n])    <span class="cmt"># dans la moitié droite</span>
+    r, nf = fusion_inv(g, d)   <span class="cmt"># à cheval sur les deux</span>
+    <span class="kw">return</span> r, ng + nd + nf</pre>
+<pre class="codeblock">tri_inv([4, 9, 2, 7, 1])      <span class="cmt"># ([1, 2, 4, 7, 9], 7)</span></pre>
+    <p>On ajoute à la fusion un travail constant par tour : le coût vérifie la même relation que le tri fusion, \(C(n) = 2\,C(n/2) + c\,n\), d'où \(O(n \log n)\). Pour \(n = 10^6\), environ \(2 \times 10^7\) opérations au lieu de \(5 \times 10^{11}\).</p>
+  </div>
+</div>
+
+<div class="exo"><span class="num">EXO 08</span><span class="diff">★ ★ ★</span>
+  <h3>Le drapeau à trois couleurs</h3>
+  <div class="statement">Une liste <span class="code-inline">t</span> ne contient que des 0, des 1 et des 2 (par exemple les couleurs bleu, blanc, rouge de cases à ranger). On veut la trier en place, en un seul parcours.</div>
+  <div class="q"><strong>Q1.</strong> Le tri par comptage convient-il ? Quelle est sa limite si chaque case contient une fiche dont la couleur n'est qu'un des champs ?</div>
+  <div class="q"><strong>Q2.</strong> On maintient trois indices \(a \le i \le b + 1\) et l'invariant : \(t[0..a-1]\) ne contient que des 0, \(t[a..i-1]\) que des 1, \(t[b+1..n-1]\) que des 2, la zone \(t[i..b]\) n'étant pas encore examinée. Écrire <span class="code-inline">trier_012(t)</span>.</div>
+  <div class="q"><strong>Q3.</strong> Prouver la terminaison, la correction et donner le coût.</div>
+  <div class="q"><strong>Q4.</strong> Quel intérêt cette partition en trois zones présente-t-elle pour le tri rapide ?</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution"><h4>Correction</h4>
+    <p><strong>Q1.</strong> Oui pour des nombres : compter les 0, 1, 2 puis réécrire, en \(O(n)\), mais en deux parcours. Pour des fiches, réécrire « une couleur » ne suffit pas : il faut déplacer les fiches elles-mêmes, d'où la méthode par échanges.</p>
+    <p><strong>Q2.</strong></p>
+<pre class="codeblock"><span class="kw">def</span> trier_012(t):
+    <span class="cmt"># t ne contient que des 0, des 1 et des 2 ;</span>
+    <span class="cmt"># trie t en place en un seul parcours</span>
+    a, i, b = 0, 0, len(t) - 1
+    <span class="kw">while</span> i &lt;= b:
+        <span class="cmt"># invariant : t[0..a-1] que des 0,</span>
+        <span class="cmt"># t[a..i-1] que des 1, t[b+1..n-1] que des 2</span>
+        <span class="kw">if</span> t[i] == 0:
+            t[a], t[i] = t[i], t[a]
+            a, i = a + 1, i + 1
+        <span class="kw">elif</span> t[i] == 1:
+            i = i + 1
+        <span class="kw">else</span>:
+            t[i], t[b] = t[b], t[i]
+            b = b - 1</pre>
+<pre class="codeblock">t = [2, 0, 1, 2, 0, 1, 0]
+trier_012(t)
+t              <span class="cmt"># [0, 0, 0, 1, 1, 2, 2]</span></pre>
+    <p><strong>Q3.</strong> Au départ \(a = i = 0\), \(b = n - 1\) : les trois zones décrites sont vides. Un tour examine \(t[i]\) : un 0 est échangé avec \(t[a]\) (qui est un 1, ou \(t[i]\) lui-même si \(a = i\)) et les zones des 0 et des 1 avancent ; un 1 agrandit la zone des 1 ; un 2 est échangé avec \(t[b]\), non examiné, et la zone des 2 s'agrandit, \(i\) restant sur place puisque la valeur reçue n'est pas encore examinée. Dans tous les cas, l'invariant est conservé et le variant \(b - i + 1\) (taille de la zone non examinée) diminue de 1. Il vaut \(n\) au départ : la boucle fait exactement \(n\) tours, avec au plus un échange chacun. À la sortie, \(i = b + 1\) : la zone non examinée est vide, la liste est triée. Coût \(O(n)\), espace \(O(1)\).</p>
+    <p><strong>Q4.</strong> Avec une partition en zones \(\lt p\), \(= p\), \(\gt p\), le tri rapide ne trie récursivement que les zones \(\lt p\) et \(\gt p\). Sur une liste où une même valeur se répète beaucoup (toutes égales, à l'extrême), il évite le pire cas quadratique de l'exercice 5.</p>
+  </div>
+</div>
+
+<div class="exo concours"><span class="num">CONCOURS PT</span><span class="diff">★ ★ ★</span>
+  <h3>Classement d'une course d'orientation</h3>
+  <div class="exo-source">Exercice <strong>original</strong> au format des épreuves PT (thème : algorithmes de tri, stabilité, complexité).</div>
+  <div class="statement">À l'arrivée d'une course d'orientation, chaque coureur est enregistré par un triplet <span class="code-inline">(dossard, categorie, temps)</span> d'entiers : <span class="code-inline">categorie</span> est compris entre 0 et <span class="code-inline">nc - 1</span>, <span class="code-inline">temps</span> est la durée de course en secondes. Les résultats forment une liste <span class="code-inline">res</span> de \(n\) triplets, dans l'ordre d'enregistrement. Exemple :</div>
+<pre class="codeblock">res = [(31, 2, 2710), (7, 0, 3105), (12, 2, 2650),
+       (44, 1, 2988), (5, 0, 2874), (18, 1, 2650)]</pre>
+  <div class="statement">Seuls les éléments de Python de l'annexe du programme sont autorisés ; en particulier, les fonctions <span class="code-inline">sorted</span> et <span class="code-inline">sort</span> sont interdites. Le triplet <span class="code-inline">r</span> a pour temps <span class="code-inline">r[2]</span>.</div>
+  <div class="exo-part"><strong>Partie A — Classement général d'une petite course</strong></div>
+  <div class="q"><strong>Q1.</strong> Écrire une fonction <span class="code-inline">classer_temps(res: list) -&gt; None</span> qui trie <span class="code-inline">res</span> en place par temps croissants, par la méthode du tri par insertion.</div>
+  <div class="q"><strong>Q2.</strong> Donner l'ordre des dossards obtenu sur l'exemple. Les coureurs 12 et 18 sont ex aequo : dans quel ordre apparaissent-ils, et pourquoi ?</div>
+  <div class="q"><strong>Q3.</strong> Donner la complexité dans le pire cas de <span class="code-inline">classer_temps</span>. Les coureurs étant enregistrés à peu près dans leur ordre d'arrivée, on suppose que chacun se trouve à au plus \(k\) places de son rang final. Montrer que le coût est alors \(O(n\,k)\).</div>
+  <div class="exo-part"><strong>Partie B — Un marathon de \(10^5\) coureurs</strong></div>
+  <div class="q"><strong>Q4.</strong> Écrire <span class="code-inline">fusion_temps(a: list, b: list) -&gt; list</span>, qui fusionne deux listes de triplets triées par temps, puis <span class="code-inline">tri_fusion_temps(res: list) -&gt; list</span>, qui renvoie une nouvelle liste triée par temps par la méthode de partition-fusion. Les ex aequo doivent rester dans leur ordre d'enregistrement.</div>
+  <div class="q"><strong>Q5.</strong> Comparer les ordres de grandeur du nombre de comparaisons des deux méthodes, dans le pire cas, pour \(n = 10^5\).</div>
+  <div class="exo-part"><strong>Partie C — Classement par catégories</strong></div>
+  <div class="q"><strong>Q6.</strong> Écrire <span class="code-inline">effectifs_cat(res: list, nc: int) -&gt; list</span>, qui renvoie la liste <span class="code-inline">eff</span> de longueur <span class="code-inline">nc</span> telle que <span class="code-inline">eff[c]</span> est le nombre de coureurs de la catégorie <span class="code-inline">c</span>.</div>
+  <div class="q"><strong>Q7.</strong> Écrire <span class="code-inline">debuts(eff: list) -&gt; list</span>, qui renvoie la liste <span class="code-inline">deb</span> telle que <span class="code-inline">deb[c]</span> est le nombre de coureurs des catégories 0 à <span class="code-inline">c - 1</span>.</div>
+  <div class="q"><strong>Q8.</strong> En déduire <span class="code-inline">classer_categories(res: list, nc: int) -&gt; list</span>, qui renvoie une nouvelle liste triée par catégories croissantes, l'ordre de <span class="code-inline">res</span> étant conservé à l'intérieur de chaque catégorie. Donner sa complexité.</div>
+  <div class="q"><strong>Q9.</strong> Comment obtenir, avec les fonctions précédentes, le classement par catégorie puis, dans chaque catégorie, par temps ? Justifier et donner la complexité totale pour le marathon.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution"><h4>Correction</h4>
+    <p><strong>Q1.</strong> Le tri par insertion du cours, en comparant les temps :</p>
+<pre class="codeblock"><span class="kw">def</span> classer_temps(res):
+    <span class="cmt"># res : liste de triplets (dossard, categorie,</span>
+    <span class="cmt"># temps) ; trie res en place par temps croissants</span>
+    <span class="kw">for</span> i <span class="kw">in</span> range(1, len(res)):
+        r = res[i]
+        j = i - 1
+        <span class="kw">while</span> j &gt;= 0 <span class="kw">and</span> res[j][2] &gt; r[2]:
+            res[j + 1] = res[j]
+            j = j - 1
+        res[j + 1] = r</pre>
+    <p><strong>Q2.</strong> Dossards 12, 18, 31, 5, 44, 7 (temps 2650, 2650, 2710, 2874, 2988, 3105). Le coureur 12 précède le coureur 18 : il était enregistré avant lui, et le tri par insertion est stable (le test <span class="code-inline">res[j][2] &gt; r[2]</span> est strict, donc 18 s'arrête derrière 12).</p>
+    <p><strong>Q3.</strong> Pire cas (liste rangée par temps décroissants) : \(\dfrac{n(n-1)}{2}\) comparaisons, \(O(n^2)\). Si chaque coureur est à au plus \(k\) places de son rang final : quand on insère le coureur d'indice \(i\), les coureurs qu'il dépasse le précèdent dans la liste (indices \(\lt i\)) mais le suivent dans le classement (rangs \(\gt\) le sien, qui est \(\ge i - k\)) ; leurs rangs sont aussi \(\le\) leur indice \(+ k\), donc \(\lt i + k\). Ils ont des rangs dans \(]i - k, i + k[\) : il y en a au plus \(2k\). Chaque insertion coûte \(O(k)\) (plus une comparaison d'arrêt), soit \(O(n\,k)\) en tout, presque linéaire si \(k\) est petit.</p>
+    <p><strong>Q4.</strong> Le test <span class="code-inline">&lt;=</span> place d'abord, à temps égal, le coureur de la moitié gauche, enregistré plus tôt : le tri est stable.</p>
+<pre class="codeblock"><span class="kw">def</span> fusion_temps(a, b):
+    <span class="cmt"># a, b : triplets triés par temps ; renvoie la fusion</span>
+    f = []
+    i, j = 0, 0
+    <span class="kw">while</span> i &lt; len(a) <span class="kw">and</span> j &lt; len(b):
+        <span class="kw">if</span> a[i][2] &lt;= b[j][2]:
+            f.append(a[i])
+            i = i + 1
+        <span class="kw">else</span>:
+            f.append(b[j])
+            j = j + 1
+    <span class="kw">return</span> f + a[i:] + b[j:]
+
+
+<span class="kw">def</span> tri_fusion_temps(res):
+    <span class="cmt"># renvoie une nouvelle liste : res triée par temps</span>
+    n = len(res)
+    <span class="kw">if</span> n &lt;= 1:
+        <span class="kw">return</span> res.copy()
+    m = n // 2
+    a = tri_fusion_temps(res[0:m])
+    b = tri_fusion_temps(res[m:n])
+    <span class="kw">return</span> fusion_temps(a, b)</pre>
+    <p><strong>Q5.</strong> Insertion, pire cas : \(\dfrac{n(n-1)}{2} \approx 5 \times 10^9\) comparaisons. Partition-fusion : au plus de l'ordre de \(n \log_2 n \approx 1{,}7 \times 10^6\). Trois mille fois moins : quelques secondes au lieu de plusieurs heures en Python.</p>
+    <p><strong>Q6, Q7, Q8.</strong> Les coureurs de la catégorie <span class="code-inline">c</span> occuperont, dans le résultat, les places <span class="code-inline">deb[c]</span> à <span class="code-inline">deb[c] + eff[c] - 1</span>. On parcourt <span class="code-inline">res</span> dans l'ordre et l'on range chaque coureur à la première place libre de sa catégorie, qu'on avance ensuite d'une case : deux coureurs d'une même catégorie gardent leur ordre relatif.</p>
+<pre class="codeblock"><span class="kw">def</span> effectifs_cat(res, nc):
+    <span class="cmt"># eff[c] : nombre de coureurs de la catégorie c</span>
+    eff = [0] * nc
+    <span class="kw">for</span> r <span class="kw">in</span> res:
+        eff[r[1]] = eff[r[1]] + 1
+    <span class="kw">return</span> eff
+
+
+<span class="kw">def</span> debuts(eff):
+    <span class="cmt"># deb[c] : nombre de coureurs des catégories 0 à</span>
+    <span class="cmt"># c - 1, première place libre pour la catégorie c</span>
+    deb = [0] * len(eff)
+    <span class="kw">for</span> c <span class="kw">in</span> range(1, len(eff)):
+        deb[c] = deb[c - 1] + eff[c - 1]
+    <span class="kw">return</span> deb
+
+
+<span class="kw">def</span> classer_categories(res, nc):
+    <span class="cmt"># renvoie une nouvelle liste : res triée par</span>
+    <span class="cmt"># catégories, l'ordre de res étant conservé dans</span>
+    <span class="cmt"># chaque catégorie (tri stable)</span>
+    deb = debuts(effectifs_cat(res, nc))
+    sortie = [<span class="kw">None</span>] * len(res)
+    <span class="kw">for</span> r <span class="kw">in</span> res:         <span class="cmt"># dans l'ordre de res</span>
+        c = r[1]
+        sortie[deb[c]] = r
+        deb[c] = deb[c] + 1
+    <span class="kw">return</span> sortie</pre>
+    <p>Complexité : <span class="code-inline">effectifs_cat</span> en \(O(n + nc)\) (la création de la liste compte), <span class="code-inline">debuts</span> en \(O(nc)\), la boucle de rangement en \(O(n)\) : \(O(n + nc)\) au total, linéaire. Sur l'exemple, après la partie A :</p>
+<pre class="codeblock">classer_temps(res)
+[r[0] <span class="kw">for</span> r <span class="kw">in</span> res]       <span class="cmt"># [12, 18, 31, 5, 44, 7]</span>
+effectifs_cat(res, 3)                     <span class="cmt"># [2, 2, 2]</span>
+debuts([2, 2, 2])                         <span class="cmt"># [0, 2, 4]</span>
+u = classer_categories(res, 3)
+[r[0] <span class="kw">for</span> r <span class="kw">in</span> u]         <span class="cmt"># [5, 7, 18, 44, 12, 31]</span></pre>
+    <p><strong>Q9.</strong> On trie d'abord par temps (<span class="code-inline">tri_fusion_temps</span>), puis on applique <span class="code-inline">classer_categories</span> au résultat. Ce second tri est stable : à l'intérieur d'une catégorie, il conserve l'ordre de la liste qu'il reçoit, c'est-à-dire l'ordre des temps. Complexité : \(O(n \log n)\) pour le premier tri, \(O(n + nc)\) pour le second, \(O(n \log n)\) au total (\(nc\) étant petit). Trier dans l'ordre inverse (catégories puis temps) ne marcherait pas : le tri par temps mélangerait les catégories.</p>
+  </div>
+</div>
+
+</div>
+</template>

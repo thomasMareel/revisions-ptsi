@@ -1,0 +1,976 @@
+<!-- Chapitre « Réponse fréquentielle et diagrammes de Bode » (bode) : contenu des onglets Cours, Méthodes et Exercices, chargé à l'ouverture du chapitre.
+     On l'édite ici, puis : node tools/chapitres.js (docs/chargement-chapitres.md). -->
+<template class="pan-tpl" data-panneau="bode-cours">
+<!-- ============ RÉPONSE FRÉQUENTIELLE ET BODE : COURS ============ -->
+<div class="course-section">
+  <div class="sec-num">AU PROGRAMME · PTSI</div>
+  <h2>Ce que le programme officiel demande</h2>
+  <div class="intro">Ce chapitre couvre la <strong>réponse fréquentielle</strong> des systèmes linéaires continus et invariants, au programme du semestre S2 de sciences industrielles (compétences B2 « Modéliser », C2 « Résoudre », D2 « Expérimenter »). <strong>Tout y est exigible en 1ʳᵉ année</strong>, sauf la dernière section. Il s'appuie sur <a href="#slci/cours">« SLCI : modélisation et transformée de Laplace »</a> (fonction de transfert, forme canonique, classe) et sur la réponse fréquentielle de chaque modèle, vue dans <a href="#sys1/cours">« Systèmes du 1er ordre »</a> (§4) et <a href="#sys2/cours">« Systèmes du 2e ordre »</a> (§3). Il prépare <a href="#stabilite/cours">« Stabilité des systèmes asservis »</a>, où les marges se lisent sur le Bode de la boucle ouverte, et <a href="#precision/cours">« Performances : précision et rapidité »</a> (bande passante).</div>
+  <div class="reveal" onclick="this.classList.toggle('open')">
+    <span class="label">Programme officiel</span>
+    <span class="prompt">Les capacités exigibles, dans l'ordre du chapitre</span>
+    <div class="content">
+      <ul>
+        <li><strong>Modéliser le signal d'entrée</strong> (B2, S1) : signaux périodiques, en particulier l'entrée sinusoïdale (§1).</li>
+        <li><strong>Déterminer la réponse temporelle</strong> (C2, S1) : allure de la réponse à une entrée sinusoïdale en régime permanent (§1).</li>
+        <li><strong>Déterminer la réponse fréquentielle</strong> (C2, S2) : allures des diagrammes réel et asymptotique de Bode. Briques élémentaires (§2), tracé asymptotique (§3), courbe réelle et calcul exact du gain et de la phase, aussi par un programme Python (§4), deuxième ordre (§6), retard pur (§7).</li>
+        <li><strong>Établir un modèle de comportement à partir d'une réponse fréquentielle</strong> (B2, S2) : premier ordre, deuxième ordre, dérivateur, intégrateur, gain et retard ; paramètres caractéristiques ; diagramme de Bode (§2, §5, §6, §7).</li>
+        <li><strong>Rapidité d'un système : bande passante</strong> (C2, S2) : définition et lecture (§5), bande passante d'une boucle fermée lue sur la boucle ouverte (§8).</li>
+        <li><strong>Choisir les entrées à imposer et les sorties à mesurer pour identifier un modèle de comportement</strong> (D2, S2) et <strong>vérifier la cohérence d'un modèle</strong> en le confrontant à des mesures (B3, S2) : relevé d'une réponse fréquentielle (§9).</li>
+      </ul>
+      <p>Hors programme (dernière section) : les lieux de Black-Nichols et de Nyquist, exclus des programmes des deux années. Le réglage des correcteurs, dont le correcteur à avance de phase, relève de la 2ᵉ année (<a href="#correcteurs/cours">« Correction des SLCI »</a>).</p>
+    </div>
+  </div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§1 · LA RÉPONSE HARMONIQUE</div>
+  <h2>Exciter un système à toutes les fréquences</h2>
+  <div class="intro">La réponse indicielle montre comment un système démarre ; la réponse fréquentielle montre comment il traite chaque fréquence. Elle se mesure simplement (un générateur de sinusoïdes, deux voies d'oscilloscope), elle s'additionne bloc par bloc, et c'est sur elle que l'on lit la stabilité d'une boucle et que l'on règle les correcteurs.</div>
+  <div class="def-box">
+    Un SLCI stable soumis à \(e(t) = E_m\sin(\omega t)\) répond, une fois le régime transitoire éteint, par \(s(t) = S_m\sin(\omega t + \varphi)\), de même pulsation, avec
+    <div class="formula" data-nom="Réponse harmonique">$$\frac{S_m}{E_m} = |H(j\omega)|,\qquad \varphi = \arg H(j\omega),$$</div>
+    où \(H(j\omega)\) est la fonction de transfert évaluée en \(p = j\omega\). Le <strong>diagramme de Bode</strong> représente, en fonction de \(\omega\) en échelle logarithmique, le <strong>gain en décibels</strong> \(G_{dB}(\omega) = 20\log|H(j\omega)|\) et la <strong>phase</strong> \(\varphi(\omega)\).
+  </div>
+  <div class="prop-box">
+    <strong>Pourquoi des décibels et une échelle logarithmique ?</strong> Le logarithme transforme les produits en sommes : pour \(H = H_1H_2\), \(G_{dB} = G_{1,dB} + G_{2,dB}\) et \(\varphi = \varphi_1 + \varphi_2\). Le Bode d'une chaîne de blocs est la <strong>somme</strong> des Bode de ses blocs. L'échelle logarithmique donne la même place à chaque <strong>décade</strong> (pulsation multipliée par 10) et transforme les comportements en puissance de \(\omega\) en droites.
+  </div>
+  <div style="overflow-x:auto"><table>
+    <tr><th>Rapport d'amplitudes</th><th>100</th><th>10</th><th>2</th><th>\(\sqrt2\)</th><th>1</th><th>\(1/\sqrt2\)</th><th>0,5</th><th>0,1</th><th>0,01</th></tr>
+    <tr><td>Gain en dB</td><td>+40</td><td>+20</td><td>+6</td><td>+3</td><td>0</td><td>−3</td><td>−6</td><td>−20</td><td>−40</td></tr>
+  </table></div>
+  <p>Une pente de \(-20\) dB par décade signifie que l'amplitude est divisée par 10 chaque fois que la pulsation est multipliée par 10 : le gain varie comme \(1/\omega\). Une pente de \(-40\) dB par décade correspond à \(1/\omega^2\).</p>
+  <p>Le déphasage se voit aussi dans le temps : une phase \(\varphi \lt 0\) est un <strong>retard</strong> de la sortie sur l'entrée, de durée \(\Delta t = -\varphi/\omega\) (phase en radians), soit une fraction \(|\varphi|/360°\) de la période.</p>
+  <div class="method-box">
+    <strong>Exemple — la réponse d'un premier ordre à une sinusoïde</strong>
+    <p>\(H(p) = \dfrac{5}{1 + 0{,}2p}\) reçoit \(e(t) = 2\sin(10t)\) (\(t\) en secondes).</p>
+    <ol>
+      <li>En \(p = 10j\) : \(H(10j) = \dfrac{5}{1 + 2j}\), de module \(\dfrac{5}{\sqrt{1 + 4}} \approx 2{,}24\) (soit 7,0 dB) et d'argument \(-\arctan 2 \approx -63{,}4°\).</li>
+      <li>En régime permanent : \(s(t) = 4{,}47\sin(10t - 1{,}107)\), la phase étant convertie en radians.</li>
+      <li>Retard de la sortie : \(\Delta t = 1{,}107/10 \approx 0{,}11\ \text{s}\), soit 18 % de la période \(2\pi/10 \approx 0{,}63\ \text{s}\).</li>
+    </ol>
+  </div>
+  <figure class="schema">
+<svg viewBox="0 0 410 214" role="img" aria-label="Entrée sinusoïdale d'amplitude 2 et sortie d'un premier ordre : après un court régime transitoire, sinusoïde de même pulsation, d'amplitude 4,47, en retard de 0,11 seconde">
+<rect x="46" y="34" width="131.7" height="150" class="fl-muted-soft"/>
+<text x="111.9" y="28" class="lab-muted" text-anchor="middle">régime transitoire</text>
+<line x1="46" y1="184" x2="398" y2="184" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<line x1="46" y1="184" x2="46" y2="22" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<text x="400" y="188" class="lab-muted lab-it">t (s)</text>
+<line x1="46" y1="109" x2="386" y2="109" class="sk-axis" style="opacity:.5"/>
+<line x1="46" y1="46.9" x2="386" y2="46.9" class="sk-axis" style="stroke-dasharray:2 3"/>
+<line x1="46" y1="81.2" x2="386" y2="81.2" class="sk-axis" style="stroke-dasharray:2 3"/>
+<line x1="46" y1="171.1" x2="386" y2="171.1" class="sk-axis" style="stroke-dasharray:2 3"/>
+<polyline points="46,109 47.1,107.6 48.1,106.2 49.2,104.8 50.2,103.5 51.3,102.1 52.4,100.8 53.4,99.5 54.5,98.2 55.6,96.9 56.6,95.7 57.7,94.5 58.8,93.3 59.8,92.2 60.9,91.1 61.9,90.1 63,89.1 64.1,88.1 65.1,87.2 66.2,86.4 67.2,85.6 68.3,84.9 69.4,84.2 70.4,83.6 71.5,83.1 72.6,82.6 73.6,82.2 74.7,81.9 75.8,81.6 76.8,81.4 77.9,81.3 78.9,81.2 80,81.2 81.1,81.3 82.1,81.5 83.2,81.7 84.2,81.9 85.3,82.3 86.4,82.7 87.4,83.2 88.5,83.7 89.6,84.4 90.6,85 91.7,85.8 92.8,86.5 93.8,87.4 94.9,88.3 95.9,89.2 97,90.2 98.1,91.3 99.1,92.4 100.2,93.5 101.2,94.7 102.3,95.9 103.4,97.1 104.4,98.4 105.5,99.7 106.6,101 107.6,102.4 108.7,103.7 109.8,105.1 110.8,106.5 111.9,107.8 112.9,109.2 114,110.6 115.1,112 116.1,113.4 117.2,114.7 118.2,116.1 119.3,117.4 120.4,118.7 121.4,120 122.5,121.3 123.6,122.5 124.6,123.7 125.7,124.9 126.8,126 127.8,127.1 128.9,128.1 129.9,129.1 131,130 132.1,130.9 133.1,131.7 134.2,132.5 135.2,133.2 136.3,133.9 137.4,134.4 138.4,135 139.5,135.4 140.6,135.8 141.6,136.2 142.7,136.4 143.8,136.6 144.8,136.7 145.9,136.8 146.9,136.8 148,136.7 149.1,136.5 150.1,136.3 151.2,136 152.2,135.6 153.3,135.2 154.4,134.7 155.4,134.2 156.5,133.5 157.6,132.9 158.6,132.1 159.7,131.3 160.8,130.5 161.8,129.6 162.9,128.6 163.9,127.6 165,126.5 166.1,125.4 167.1,124.3 168.2,123.1 169.2,121.9 170.3,120.7 171.4,119.4 172.4,118.1 173.5,116.8 174.6,115.4 175.6,114.1 176.7,112.7 177.7,111.3 178.8,109.9 179.9,108.5 180.9,107.1 182,105.8 183.1,104.4 184.1,103 185.2,101.7 186.2,100.3 187.3,99 188.4,97.8 189.4,96.5 190.5,95.3 191.6,94.1 192.6,92.9 193.7,91.8 194.8,90.8 195.8,89.7 196.9,88.8 197.9,87.8 199,87 200.1,86.1 201.1,85.4 202.2,84.7 203.2,84 204.3,83.5 205.4,82.9 206.4,82.5 207.5,82.1 208.6,81.8 209.6,81.6 210.7,81.4 211.8,81.3 212.8,81.2 213.9,81.3 214.9,81.4 216,81.5 217.1,81.8 218.1,82.1 219.2,82.4 220.2,82.9 221.3,83.4 222.4,83.9 223.4,84.6 224.5,85.3 225.6,86 226.6,86.8 227.7,87.7 228.8,88.6 229.8,89.6 230.9,90.6 231.9,91.6 233,92.8 234.1,93.9 235.1,95.1 236.2,96.3 237.2,97.6 238.3,98.8 239.4,100.1 240.4,101.5 241.5,102.8 242.6,104.2 243.6,105.5 244.7,106.9 245.8,108.3 246.8,109.7 247.9,111.1 248.9,112.5 250,113.8 251.1,115.2 252.1,116.5 253.2,117.9 254.2,119.2 255.3,120.5 256.4,121.7 257.4,122.9 258.5,124.1 259.6,125.3 260.6,126.4 261.7,127.4 262.8,128.4 263.8,129.4 264.9,130.3 265.9,131.2 267,132 268.1,132.7 269.1,133.4 270.2,134.1 271.2,134.6 272.3,135.1 273.4,135.6 274.4,135.9 275.5,136.2 276.6,136.5 277.6,136.7 278.7,136.7 279.8,136.8 280.8,136.7 281.9,136.6 282.9,136.4 284,136.2 285.1,135.9 286.1,135.5 287.2,135.1 288.2,134.5 289.3,134 290.4,133.3 291.4,132.6 292.5,131.9 293.6,131 294.6,130.2 295.7,129.2 296.8,128.3 297.8,127.2 298.9,126.2 299.9,125.1 301,123.9 302.1,122.7 303.1,121.5 304.2,120.2 305.2,119 306.3,117.6 307.4,116.3 308.4,115 309.5,113.6 310.6,112.2 311.6,110.8 312.7,109.5 313.8,108.1 314.8,106.7 315.9,105.3 316.9,103.9 318,102.6 319.1,101.2 320.1,99.9 321.2,98.6 322.2,97.3 323.3,96.1 324.4,94.9 325.4,93.7 326.5,92.6 327.6,91.5 328.6,90.4 329.7,89.4 330.8,88.4 331.8,87.5 332.9,86.7 333.9,85.9 335,85.1 336.1,84.5 337.1,83.8 338.2,83.3 339.2,82.8 340.3,82.4 341.4,82 342.4,81.7 343.5,81.5 344.6,81.3 345.6,81.2 346.7,81.2 347.8,81.3 348.8,81.4 349.9,81.6 350.9,81.8 352,82.2 353.1,82.6 354.1,83 355.2,83.6 356.2,84.1 357.3,84.8 358.4,85.5 359.4,86.3 360.5,87.1 361.6,88 362.6,88.9 363.7,89.9 364.8,90.9 365.8,92 366.9,93.1 367.9,94.3 369,95.5 370.1,96.7 371.1,98 372.2,99.3 373.2,100.6 374.3,101.9 375.4,103.3 376.4,104.6 377.5,106 378.6,107.4 379.6,108.8 380.7,110.2 381.8,111.6 382.8,112.9 383.9,114.3 384.9,115.7 386,117" class="sk-accent2"/>
+<polyline points="46,109 47.1,108.9 48.1,108.7 49.2,108.2 50.2,107.7 51.3,106.9 52.4,106 53.4,105 54.5,103.9 55.6,102.6 56.6,101.2 57.7,99.6 58.8,98 59.8,96.3 60.9,94.4 61.9,92.5 63,90.5 64.1,88.5 65.1,86.4 66.2,84.2 67.2,82 68.3,79.7 69.4,77.4 70.4,75.1 71.5,72.8 72.6,70.4 73.6,68.1 74.7,65.8 75.8,63.5 76.8,61.2 77.9,59 78.9,56.8 80,54.7 81.1,52.6 82.1,50.6 83.2,48.6 84.2,46.8 85.3,45 86.4,43.3 87.4,41.7 88.5,40.2 89.6,38.8 90.6,37.5 91.7,36.4 92.8,35.4 93.8,34.5 94.9,33.7 95.9,33.1 97,32.6 98.1,32.2 99.1,32 100.2,31.9 101.2,32 102.3,32.2 103.4,32.5 104.4,33 105.5,33.7 106.6,34.5 107.6,35.4 108.7,36.5 109.8,37.7 110.8,39.1 111.9,40.6 112.9,42.2 114,44 115.1,45.8 116.1,47.9 117.2,50 118.2,52.3 119.3,54.6 120.4,57.1 121.4,59.6 122.5,62.3 123.6,65 124.6,67.9 125.7,70.8 126.8,73.8 127.8,76.8 128.9,79.9 129.9,83 131,86.2 132.1,89.4 133.1,92.6 134.2,95.9 135.2,99.2 136.3,102.4 137.4,105.7 138.4,109 139.5,112.2 140.6,115.4 141.6,118.6 142.7,121.7 143.8,124.8 144.8,127.8 145.9,130.8 146.9,133.7 148,136.5 149.1,139.2 150.1,141.9 151.2,144.4 152.2,146.8 153.3,149.2 154.4,151.4 155.4,153.5 156.5,155.4 157.6,157.3 158.6,159 159.7,160.6 160.8,162 161.8,163.3 162.9,164.4 163.9,165.4 165,166.2 166.1,166.9 167.1,167.4 168.2,167.8 169.2,168 170.3,168.1 171.4,168 172.4,167.7 173.5,167.3 174.6,166.8 175.6,166 176.7,165.2 177.7,164.2 178.8,163 179.9,161.7 180.9,160.2 182,158.7 183.1,157 184.1,155.1 185.2,153.2 186.2,151.1 187.3,148.9 188.4,146.6 189.4,144.2 190.5,141.7 191.6,139.1 192.6,136.5 193.7,133.7 194.8,131 195.8,128.1 196.9,125.2 197.9,122.2 199,119.2 200.1,116.2 201.1,113.2 202.2,110.1 203.2,107 204.3,104 205.4,100.9 206.4,97.9 207.5,94.8 208.6,91.8 209.6,88.9 210.7,86 211.8,83.1 212.8,80.4 213.9,77.6 214.9,75 216,72.4 217.1,69.9 218.1,67.6 219.2,65.3 220.2,63.1 221.3,61.1 222.4,59.1 223.4,57.3 224.5,55.6 225.6,54 226.6,52.6 227.7,51.3 228.8,50.2 229.8,49.1 230.9,48.3 231.9,47.6 233,47 234.1,46.6 235.1,46.4 236.2,46.3 237.2,46.3 238.3,46.5 239.4,46.9 240.4,47.4 241.5,48.1 242.6,48.9 243.6,49.9 244.7,51 245.8,52.3 246.8,53.7 247.9,55.2 248.9,56.9 250,58.7 251.1,60.6 252.1,62.7 253.2,64.8 254.2,67.1 255.3,69.5 256.4,71.9 257.4,74.5 258.5,77.1 259.6,79.9 260.6,82.6 261.7,85.5 262.8,88.4 263.8,91.4 264.9,94.4 265.9,97.5 267,100.5 268.1,103.6 269.1,106.7 270.2,109.8 271.2,112.9 272.3,116 273.4,119.1 274.4,122.2 275.5,125.2 276.6,128.2 277.6,131.1 278.7,134 279.8,136.8 280.8,139.5 281.9,142.2 282.9,144.8 284,147.3 285.1,149.7 286.1,151.9 287.2,154.1 288.2,156.2 289.3,158.2 290.4,160 291.4,161.7 292.5,163.2 293.6,164.7 294.6,166 295.7,167.1 296.8,168.1 297.8,169 298.9,169.7 299.9,170.2 301,170.6 302.1,170.9 303.1,171 304.2,170.9 305.2,170.7 306.3,170.3 307.4,169.8 308.4,169.1 309.5,168.3 310.6,167.3 311.6,166.2 312.7,164.9 313.8,163.5 314.8,161.9 315.9,160.3 316.9,158.4 318,156.5 319.1,154.5 320.1,152.3 321.2,150 322.2,147.7 323.3,145.2 324.4,142.6 325.4,140 326.5,137.2 327.6,134.4 328.6,131.6 329.7,128.7 330.8,125.7 331.8,122.7 332.9,119.7 333.9,116.6 335,113.5 336.1,110.4 337.1,107.3 338.2,104.2 339.2,101.1 340.3,98 341.4,95 342.4,92 343.5,89 344.6,86.1 345.6,83.3 346.7,80.5 347.8,77.7 348.8,75.1 349.9,72.5 350.9,70.1 352,67.7 353.1,65.4 354.1,63.3 355.2,61.2 356.2,59.3 357.3,57.5 358.4,55.8 359.4,54.3 360.5,52.9 361.6,51.6 362.6,50.5 363.7,49.5 364.8,48.7 365.8,48 366.9,47.5 367.9,47.1 369,46.9 370.1,46.9 371.1,47 372.2,47.2 373.2,47.6 374.3,48.2 375.4,48.9 376.4,49.8 377.5,50.8 378.6,51.9 379.6,53.2 380.7,54.7 381.8,56.2 382.8,57.9 383.9,59.8 384.9,61.7 386,63.8" class="sk-accent"/>
+<text x="41" y="50.9" class="lab-muted" text-anchor="end">4,47</text>
+<text x="41" y="85.2" class="lab-muted" text-anchor="end">2</text>
+<text x="41" y="113" class="lab-muted" text-anchor="end">0</text>
+<text x="41" y="175.1" class="lab-muted" text-anchor="end">−4,47</text>
+<line x1="346.4" y1="81.2" x2="346.4" y2="38.2" class="sk-axis"/>
+<line x1="369.9" y1="46.9" x2="369.9" y2="38.2" class="sk-axis"/>
+<line x1="346.4" y1="39.6" x2="369.9" y2="39.6" class="sk-ink"/>
+<text x="342.4" y="43.6" class="lab-b lab-it" text-anchor="end">Δt</text>
+<text x="131" y="200" class="lab-muted" text-anchor="middle">0,4</text>
+<text x="216" y="200" class="lab-muted" text-anchor="middle">0,8</text>
+<text x="301" y="200" class="lab-muted" text-anchor="middle">1,2</text>
+<text x="386" y="200" class="lab-muted" text-anchor="middle">1,6</text>
+<line x1="220" y1="12" x2="238" y2="12" class="sk-accent2"/><text x="244" y="16" class="lab-accent2 lab-it">e(t)</text>
+<line x1="290" y1="12" x2="308" y2="12" class="sk-accent"/><text x="314" y="16" class="lab-accent lab-it">s(t)</text>
+</svg>
+<figcaption>Réponse de \(H(p) = \dfrac{5}{1 + 0{,}2p}\) à \(e(t) = 2\sin(10t)\), système initialement au repos. Après un régime transitoire de quelques constantes de temps (zone grisée), la sortie est une sinusoïde de même pulsation, d'amplitude \(S_m = 2\,|H(10j)| \approx 4{,}47\), en retard de \(\Delta t = -\varphi/\omega \approx 0{,}11\ \text{s}\).</figcaption>
+</figure>
+  <div class="notice"><strong>Erreur classique</strong> : appliquer ce résultat à un système instable (sa sortie diverge, il n'y a pas de régime permanent sinusoïdal) ou pendant le régime transitoire. Autre piège : écrire \(\sin(\omega t + \varphi)\) avec \(\varphi\) en degrés alors que \(\omega t\) est en radians.</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§2 · LES BRIQUES ÉLÉMENTAIRES</div>
+  <h2>Le Bode de chaque brique</h2>
+  <div class="intro">Toute fonction de transfert rationnelle se factorise en un petit nombre de briques. Connaître leur Bode par cœur, c'est savoir tracer n'importe quel diagramme par addition.</div>
+  <div style="overflow-x:auto"><table>
+    <tr><th>Brique</th><th>Gain</th><th>Phase</th></tr>
+    <tr><td>Gain pur \(K \gt 0\)</td><td>horizontale à \(20\log K\)</td><td>0°</td></tr>
+    <tr><td>Intégrateur \(\dfrac{1}{p}\)</td><td>droite de pente \(-20\) dB/déc, 0 dB en \(\omega = 1\)</td><td>\(-90°\)</td></tr>
+    <tr><td>Dérivateur \(p\)</td><td>droite de pente \(+20\) dB/déc, 0 dB en \(\omega = 1\)</td><td>\(+90°\)</td></tr>
+    <tr><td>Premier ordre \(\dfrac{1}{1 + \tau p}\)</td><td>0 dB, puis \(-20\) dB/déc après \(1/\tau\) ; réel : \(-3\) dB en \(1/\tau\)</td><td>0° → \(-90°\), \(-45°\) en \(1/\tau\)</td></tr>
+    <tr><td>Zéro \(1 + \tau p\)</td><td>0 dB, puis \(+20\) dB/déc après \(1/\tau\)</td><td>0° → \(+90°\)</td></tr>
+    <tr><td>Deuxième ordre \(\dfrac{1}{1 + \frac{2\xi}{\omega_0}p + \frac{p^2}{\omega_0^2}}\)</td><td>0 dB, puis \(-40\) dB/déc après \(\omega_0\) ; résonance si \(\xi \lt 0{,}71\)</td><td>0° → \(-180°\), \(-90°\) en \(\omega_0\)</td></tr>
+    <tr><td>Retard pur \(e^{-Tp}\)</td><td>0 dB à toute pulsation</td><td>\(-\omega T\) (en radians), sans limite</td></tr>
+  </table></div>
+  <div class="prop-box">
+    <ul>
+      <li>Un intégrateur avec gain, \(\dfrac{K}{p}\), coupe 0 dB en \(\omega = K\) : sa droite est simplement relevée de \(20\log K\).</li>
+      <li>Un zéro a un Bode <strong>symétrique</strong> de celui du pôle correspondant par rapport à l'axe 0 dB et à l'axe 0° : il ajoute de la pente et de la phase au lieu d'en retirer.</li>
+      <li>La phase de la courbe réelle d'un premier ordre vaut \(-5{,}7°\) à \(0{,}1/\tau\) et \(-84{,}3°\) à \(10/\tau\) : une cassure influence la phase sur une décade de part et d'autre.</li>
+    </ul>
+  </div>
+  <div class="method-box">
+    <strong>Exemple — trois briques à une pulsation donnée</strong>
+    <ol>
+      <li>Intégrateur \(\dfrac{20}{p}\) en \(\omega = 4\ \text{rad/s}\) : \(|H| = 20/4 = 5\), soit \(20\log 5 \approx 14\) dB, et \(\varphi = -90°\). Il coupe 0 dB en \(\omega = 20\ \text{rad/s}\).</li>
+      <li>Dérivateur \(0{,}1p\) en \(\omega = 100\ \text{rad/s}\) : \(|H| = 10\), soit \(+20\) dB, et \(\varphi = +90°\).</li>
+      <li>Retard de 50 ms en \(\omega = 20\ \text{rad/s}\) : gain 0 dB, phase \(-\omega T = -1\ \text{rad} \approx -57°\). Le même retard retire 5,7° à 2 rad/s, mais 573° à 200 rad/s.</li>
+    </ol>
+  </div>
+  <div class="notice">Les cinq modèles de comportement du programme (gain, intégrateur, dérivateur, premier et deuxième ordre, retard) sont exactement ces briques. Leur réponse fréquentielle détaillée est établie dans <a href="#sys1/cours">« Systèmes du 1er ordre »</a> (§4) et <a href="#sys2/cours">« Systèmes du 2e ordre »</a> (§3) ; ce chapitre apprend à les combiner.</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§3 · TRACER UN DIAGRAMME ASYMPTOTIQUE</div>
+  <h2>Additionner les briques</h2>
+  <div class="method-box">
+    <strong>La démarche</strong>
+    <ol>
+      <li>Écrire \(H(p)\) sous forme canonique \(\dfrac{K}{p^\alpha}\cdot\dfrac{\prod(1 + \tau_i' p)}{\prod(1 + \tau_j p)\prod(\ldots)}\) et lister les pulsations de cassure \(1/\tau\) (et \(\omega_0\)) par ordre croissant.</li>
+      <li>Départ (pulsations plus basses que toutes les cassures) : pente \(-20\,\alpha\) dB/déc, sur la droite qui vaut \(20\log K\) en \(\omega = 1\) ; phase \(-90°\,\alpha\).</li>
+      <li>À chaque cassure, la pente change : \(-20\) pour un pôle, \(+20\) pour un zéro, \(-40\) pour un deuxième ordre ; la phase asymptotique perd \(90°\) (pôle), en gagne \(90°\) (zéro) ou en perd \(180°\) (deuxième ordre).</li>
+      <li>Calculer le gain asymptotique aux cassures de proche en proche : sur une pente de \(-20 n\) dB/déc, passer de \(\omega_1\) à \(\omega_2\) fait varier le gain de \(-20 n\log(\omega_2/\omega_1)\).</li>
+      <li>Placer quelques points réels (\(-3\) dB à une cassure isolée, phase exacte par la somme des arctangentes) et raccorder.</li>
+    </ol>
+  </div>
+  <div class="method-box">
+    <strong>Exemple 1 — deux premiers ordres</strong>
+    <p>\(H(p) = \dfrac{10}{(1 + p)(1 + 0{,}1p)}\) : gain statique 10, soit 20 dB ; cassures en 1 et 10 rad/s.</p>
+    <ol>
+      <li>Jusqu'à 1 rad/s : horizontale à 20 dB.</li>
+      <li>De 1 à 10 rad/s : pente \(-20\) dB/déc, le gain asymptotique passe de 20 dB à 0 dB.</li>
+      <li>Au-delà de 10 rad/s : pente \(-40\) dB/déc. Phase : de 0° à \(-180°\) ; en 3,16 rad/s (milieu des cassures en échelle log), \(\varphi = -\arctan 3{,}16 - \arctan 0{,}316 = -90°\).</li>
+    </ol>
+  </div>
+  <figure class="schema">
+<svg viewBox="0 0 410 306" role="img" aria-label="Diagramme de Bode de 10 sur (1 plus p)(1 plus 0,1 p) : asymptotes et courbes réelles">
+<line x1="58" y1="32.9" x2="388" y2="32.9" class="sk-axis" style="opacity:.35"/>
+<text x="52" y="36.9" class="lab-muted" text-anchor="end">20</text>
+<line x1="58" y1="69.4" x2="388" y2="69.4" class="sk-axis" style="opacity:.35"/>
+<text x="52" y="73.4" class="lab-muted" text-anchor="end">0</text>
+<line x1="58" y1="105.9" x2="388" y2="105.9" class="sk-axis" style="opacity:.35"/>
+<text x="52" y="109.9" class="lab-muted" text-anchor="end">−20</text>
+<line x1="58" y1="142.4" x2="388" y2="142.4" class="sk-axis" style="opacity:.35"/>
+<text x="52" y="146.4" class="lab-muted" text-anchor="end">−40</text>
+<line x1="58" y1="146" x2="58" y2="22" class="sk-axis" style="opacity:.35"/>
+<line x1="168" y1="146" x2="168" y2="22" class="sk-axis" style="opacity:.35"/>
+<line x1="278" y1="146" x2="278" y2="22" class="sk-axis" style="opacity:.35"/>
+<line x1="388" y1="146" x2="388" y2="22" class="sk-axis" style="opacity:.35"/>
+<rect x="58" y="22" width="330" height="124" class="sk-axis" style="fill:none"/>
+<text x="52" y="14" class="lab-muted" text-anchor="end">G (dB)</text>
+<polyline points="58,32.9 168,32.9 278,69.4 388,142.4" class="sk-accent2" style="stroke-dasharray:5 4"/>
+<polyline points="58,33 60.1,33 62.2,33 64.2,33 66.3,33.1 68.4,33.1 70.5,33.1 72.5,33.1 74.6,33.1 76.7,33.1 78.8,33.1 80.8,33.1 82.9,33.2 85,33.2 87.1,33.2 89.1,33.2 91.2,33.3 93.3,33.3 95.4,33.3 97.4,33.3 99.5,33.4 101.6,33.4 103.7,33.5 105.7,33.5 107.8,33.6 109.9,33.6 112,33.7 114,33.7 116.1,33.8 118.2,33.9 120.3,34 122.3,34 124.4,34.1 126.5,34.2 128.6,34.3 130.6,34.5 132.7,34.6 134.8,34.7 136.9,34.9 138.9,35 141,35.2 143.1,35.4 145.2,35.5 147.2,35.7 149.3,36 151.4,36.2 153.5,36.4 155.5,36.7 157.6,36.9 159.7,37.2 161.8,37.5 163.8,37.8 165.9,38.2 168,38.5 170.1,38.9 172.2,39.2 174.2,39.6 176.3,40 178.4,40.5 180.5,40.9 182.5,41.3 184.6,41.8 186.7,42.3 188.8,42.8 190.8,43.3 192.9,43.8 195,44.3 197.1,44.9 199.1,45.5 201.2,46 203.3,46.6 205.4,47.2 207.4,47.8 209.5,48.4 211.6,49.1 213.7,49.7 215.7,50.3 217.8,51 219.9,51.7 222,52.3 224,53 226.1,53.7 228.2,54.4 230.3,55.2 232.3,55.9 234.4,56.6 236.5,57.4 238.6,58.1 240.6,58.9 242.7,59.7 244.8,60.5 246.9,61.3 248.9,62.1 251,62.9 253.1,63.8 255.2,64.6 257.2,65.5 259.3,66.4 261.4,67.3 263.5,68.2 265.5,69.1 267.6,70 269.7,71 271.8,72 273.8,73 275.9,74 278,75 280.1,76 282.2,77.1 284.2,78.1 286.3,79.2 288.4,80.3 290.5,81.4 292.5,82.5 294.6,83.7 296.7,84.8 298.8,86 300.8,87.2 302.9,88.3 305,89.5 307.1,90.8 309.1,92 311.2,93.2 313.3,94.5 315.4,95.7 317.4,97 319.5,98.2 321.6,99.5 323.7,100.8 325.7,102.1 327.8,103.4 329.9,104.7 332,106 334,107.3 336.1,108.6 338.2,109.9 340.3,111.3 342.3,112.6 344.4,113.9 346.5,115.3 348.6,116.6 350.6,118 352.7,119.3 354.8,120.6 356.9,122 358.9,123.4 361,124.7 363.1,126.1 365.2,127.4 367.2,128.8 369.3,130.1 371.4,131.5 373.5,132.9 375.5,134.2 377.6,135.6 379.7,137 381.8,138.3 383.8,139.7 385.9,141.1 388,142.4" class="sk-accent"/>
+<text x="213.6" y="34.8" class="lab-accent2">−20 dB/déc</text>
+<text x="311.1" y="73.1" class="lab-accent2">−40 dB/déc</text>
+<line x1="58" y1="180.5" x2="388" y2="180.5" class="sk-axis" style="opacity:.35"/>
+<text x="52" y="184.5" class="lab-muted" text-anchor="end">0</text>
+<line x1="58" y1="221" x2="388" y2="221" class="sk-axis" style="opacity:.35"/>
+<text x="52" y="225" class="lab-muted" text-anchor="end">−90</text>
+<line x1="58" y1="261.5" x2="388" y2="261.5" class="sk-axis" style="opacity:.35"/>
+<text x="52" y="265.5" class="lab-muted" text-anchor="end">−180</text>
+<line x1="58" y1="266" x2="58" y2="176" class="sk-axis" style="opacity:.35"/>
+<line x1="168" y1="266" x2="168" y2="176" class="sk-axis" style="opacity:.35"/>
+<line x1="278" y1="266" x2="278" y2="176" class="sk-axis" style="opacity:.35"/>
+<line x1="388" y1="266" x2="388" y2="176" class="sk-axis" style="opacity:.35"/>
+<rect x="58" y="176" width="330" height="90" class="sk-axis" style="fill:none"/>
+<text x="52" y="168" class="lab-muted" text-anchor="end">φ (°)</text>
+<polyline points="58,183.3 60.1,183.5 62.2,183.6 64.2,183.7 66.3,183.9 68.4,184 70.5,184.2 72.5,184.3 74.6,184.5 76.7,184.7 78.8,184.8 80.8,185 82.9,185.2 85,185.4 87.1,185.7 89.1,185.9 91.2,186.1 93.3,186.4 95.4,186.6 97.4,186.9 99.5,187.1 101.6,187.4 103.7,187.7 105.7,188 107.8,188.4 109.9,188.7 112,189 114,189.4 116.1,189.8 118.2,190.1 120.3,190.5 122.3,191 124.4,191.4 126.5,191.8 128.6,192.3 130.6,192.7 132.7,193.2 134.8,193.7 136.9,194.2 138.9,194.8 141,195.3 143.1,195.8 145.2,196.4 147.2,197 149.3,197.6 151.4,198.2 153.5,198.8 155.5,199.4 157.6,200 159.7,200.7 161.8,201.3 163.8,202 165.9,202.7 168,203.3 170.1,204 172.2,204.7 174.2,205.4 176.3,206 178.4,206.7 180.5,207.4 182.5,208.1 184.6,208.8 186.7,209.5 188.8,210.1 190.8,210.8 192.9,211.5 195,212.2 197.1,212.8 199.1,213.5 201.2,214.2 203.3,214.8 205.4,215.5 207.4,216.1 209.5,216.8 211.6,217.4 213.7,218.1 215.7,218.7 217.8,219.4 219.9,220 222,220.7 224,221.3 226.1,222 228.2,222.6 230.3,223.3 232.3,223.9 234.4,224.6 236.5,225.2 238.6,225.9 240.6,226.5 242.7,227.2 244.8,227.8 246.9,228.5 248.9,229.2 251,229.8 253.1,230.5 255.2,231.2 257.2,231.9 259.3,232.5 261.4,233.2 263.5,233.9 265.5,234.6 267.6,235.3 269.7,236 271.8,236.6 273.8,237.3 275.9,238 278,238.7 280.1,239.3 282.2,240 284.2,240.7 286.3,241.3 288.4,242 290.5,242.6 292.5,243.2 294.6,243.8 296.7,244.4 298.8,245 300.8,245.6 302.9,246.2 305,246.7 307.1,247.2 309.1,247.8 311.2,248.3 313.3,248.8 315.4,249.3 317.4,249.7 319.5,250.2 321.6,250.6 323.7,251 325.7,251.5 327.8,251.9 329.9,252.2 332,252.6 334,253 336.1,253.3 338.2,253.6 340.3,254 342.3,254.3 344.4,254.6 346.5,254.9 348.6,255.1 350.6,255.4 352.7,255.6 354.8,255.9 356.9,256.1 358.9,256.3 361,256.6 363.1,256.8 365.2,257 367.2,257.2 369.3,257.3 371.4,257.5 373.5,257.7 375.5,257.8 377.6,258 379.7,258.1 381.8,258.3 383.8,258.4 385.9,258.5 388,258.7" class="sk-accent"/>
+<text x="58" y="282" class="lab-muted" text-anchor="middle">0,1</text>
+<text x="168" y="282" class="lab-muted" text-anchor="middle">1</text>
+<text x="278" y="282" class="lab-muted" text-anchor="middle">10</text>
+<text x="388" y="282" class="lab-muted" text-anchor="middle">100</text>
+<text x="388" y="300" class="lab-muted" text-anchor="end">ω (rad/s, échelle log)</text>
+</svg>
+<figcaption>Bode de \(H(p) = \dfrac{10}{(1 + p)(1 + 0{,}1p)}\) : asymptotes en tirets (20 dB, puis \(-20\), puis \(-40\) dB/décade, cassures en 1 et 10 rad/s) et courbes réelles. La phase descend de 0° à \(-180°\).</figcaption>
+</figure>
+  <div class="method-box">
+    <strong>Exemple 2 — un intégrateur, un zéro et deux pôles</strong>
+    <p>\(H(p) = \dfrac{100\,(1 + 0{,}5p)}{p\,(1 + 5p)(1 + 0{,}02p)}\) : classe 1, gain 100 ; cassures en 0,2 (pôle), 2 (zéro) et 50 rad/s (pôle).</p>
+    <ol>
+      <li>Départ : pente \(-20\) dB/déc, sur la droite qui vaut 40 dB en \(\omega = 1\) : en 0,2 rad/s, \(40 + 20\log 5 = 54\) dB.</li>
+      <li>De 0,2 à 2 : pente \(-40\), d'où 14 dB en 2 rad/s. De 2 à 50 : pente \(-20\), d'où \(14 - 20\log 25 = -14\) dB en 50 rad/s. Au-delà : \(-40\).</li>
+      <li>Passage à 0 dB sur la pente \(-20\) : \(14 - 20\log(\omega/2) = 0\), soit \(\omega \approx 10\) rad/s (le calcul exact donne aussi 10,0 rad/s).</li>
+      <li>Phase en 10 rad/s : \(-90° - \arctan 50 + \arctan 5 - \arctan 0{,}2 \approx -112°\). On retrouvera ce calcul dans le chapitre <a href="#stabilite/cours">« Stabilité des systèmes asservis »</a> : la marge de phase de cette boucle vaut \(180° - 112° = 68°\).</li>
+    </ol>
+  </div>
+  <figure class="schema">
+<svg viewBox="0 0 410 306" role="img" aria-label="Diagramme de Bode d'une fonction de transfert de classe un avec trois cassures">
+<line x1="58" y1="39.5" x2="388" y2="39.5" class="sk-axis" style="opacity:.35"/>
+<text x="52" y="43.5" class="lab-muted" text-anchor="end">60</text>
+<line x1="58" y1="56.9" x2="388" y2="56.9" class="sk-axis" style="opacity:.35"/>
+<text x="52" y="60.9" class="lab-muted" text-anchor="end">40</text>
+<line x1="58" y1="74.4" x2="388" y2="74.4" class="sk-axis" style="opacity:.35"/>
+<text x="52" y="78.4" class="lab-muted" text-anchor="end">20</text>
+<line x1="58" y1="91.9" x2="388" y2="91.9" class="sk-axis" style="opacity:.35"/>
+<text x="52" y="95.9" class="lab-muted" text-anchor="end">0</text>
+<line x1="58" y1="109.3" x2="388" y2="109.3" class="sk-axis" style="opacity:.35"/>
+<text x="52" y="113.3" class="lab-muted" text-anchor="end">−20</text>
+<line x1="58" y1="126.8" x2="388" y2="126.8" class="sk-axis" style="opacity:.35"/>
+<text x="52" y="130.8" class="lab-muted" text-anchor="end">−40</text>
+<line x1="58" y1="144.3" x2="388" y2="144.3" class="sk-axis" style="opacity:.35"/>
+<text x="52" y="148.3" class="lab-muted" text-anchor="end">−60</text>
+<line x1="58" y1="146" x2="58" y2="22" class="sk-axis" style="opacity:.35"/>
+<line x1="133" y1="146" x2="133" y2="22" class="sk-axis" style="opacity:.35"/>
+<line x1="208.1" y1="146" x2="208.1" y2="22" class="sk-axis" style="opacity:.35"/>
+<line x1="260.5" y1="146" x2="260.5" y2="22" class="sk-axis" style="opacity:.35"/>
+<line x1="313" y1="146" x2="313" y2="22" class="sk-axis" style="opacity:.35"/>
+<line x1="388" y1="146" x2="388" y2="22" class="sk-axis" style="opacity:.35"/>
+<rect x="58" y="22" width="330" height="124" class="sk-axis" style="fill:none"/>
+<text x="52" y="14" class="lab-muted" text-anchor="end">G (dB)</text>
+<polyline points="58,27.3 133,44.7 208.1,79.7 313,104.1 388,139" class="sk-accent2" style="stroke-dasharray:5 4"/>
+<polyline points="58,27.3 60.1,27.8 62.2,28.3 64.2,28.8 66.3,29.3 68.4,29.7 70.5,30.2 72.5,30.7 74.6,31.2 76.7,31.7 78.8,32.2 80.8,32.7 82.9,33.2 85,33.7 87.1,34.2 89.1,34.7 91.2,35.3 93.3,35.8 95.4,36.3 97.4,36.8 99.5,37.4 101.6,37.9 103.7,38.5 105.7,39 107.8,39.6 109.9,40.1 112,40.7 114,41.3 116.1,41.9 118.2,42.5 120.3,43.2 122.3,43.8 124.4,44.5 126.5,45.1 128.6,45.8 130.6,46.5 132.7,47.2 134.8,47.9 136.9,48.7 138.9,49.4 141,50.2 143.1,51 145.2,51.8 147.2,52.6 149.3,53.4 151.4,54.2 153.5,55.1 155.5,55.9 157.6,56.8 159.7,57.6 161.8,58.5 163.8,59.4 165.9,60.2 168,61.1 170.1,62 172.2,62.9 174.2,63.7 176.3,64.6 178.4,65.5 180.5,66.4 182.5,67.2 184.6,68.1 186.7,68.9 188.8,69.8 190.8,70.6 192.9,71.4 195,72.2 197.1,73 199.1,73.8 201.2,74.6 203.3,75.4 205.4,76.1 207.4,76.8 209.5,77.6 211.6,78.3 213.7,79 215.7,79.6 217.8,80.3 219.9,80.9 222,81.6 224,82.2 226.1,82.8 228.2,83.4 230.3,84 232.3,84.6 234.4,85.1 236.5,85.7 238.6,86.3 240.6,86.8 242.7,87.3 244.8,87.9 246.9,88.4 248.9,88.9 251,89.5 253.1,90 255.2,90.5 257.2,91 259.3,91.6 261.4,92.1 263.5,92.6 265.5,93.1 267.6,93.6 269.7,94.2 271.8,94.7 273.8,95.2 275.9,95.8 278,96.3 280.1,96.8 282.2,97.4 284.2,97.9 286.3,98.5 288.4,99.1 290.5,99.7 292.5,100.2 294.6,100.8 296.7,101.4 298.8,102.1 300.8,102.7 302.9,103.4 305,104 307.1,104.7 309.1,105.4 311.2,106.1 313.3,106.8 315.4,107.5 317.4,108.3 319.5,109.1 321.6,109.8 323.7,110.6 325.7,111.4 327.8,112.3 329.9,113.1 332,113.9 334,114.8 336.1,115.7 338.2,116.5 340.3,117.4 342.3,118.3 344.4,119.2 346.5,120.1 348.6,121 350.6,122 352.7,122.9 354.8,123.8 356.9,124.8 358.9,125.7 361,126.6 363.1,127.6 365.2,128.5 367.2,129.5 369.3,130.4 371.4,131.4 373.5,132.3 375.5,133.3 377.6,134.2 379.7,135.2 381.8,136.2 383.8,137.1 385.9,138.1 388,139" class="sk-accent"/>
+<text x="71.2" y="65.7" class="lab-accent2">−20 dB/déc</text>
+<text x="159.5" y="79.6" class="lab-accent2">−40</text>
+<text x="237.9" y="105.8" class="lab-accent2">−20</text>
+<text x="316.1" y="132" class="lab-accent2">−40</text>
+<line x1="58" y1="195.3" x2="388" y2="195.3" class="sk-axis" style="opacity:.35"/>
+<text x="52" y="199.3" class="lab-muted" text-anchor="end">−90</text>
+<line x1="58" y1="224.2" x2="388" y2="224.2" class="sk-axis" style="opacity:.35"/>
+<text x="52" y="228.2" class="lab-muted" text-anchor="end">−135</text>
+<line x1="58" y1="253.1" x2="388" y2="253.1" class="sk-axis" style="opacity:.35"/>
+<text x="52" y="257.1" class="lab-muted" text-anchor="end">−180</text>
+<line x1="58" y1="266" x2="58" y2="176" class="sk-axis" style="opacity:.35"/>
+<line x1="133" y1="266" x2="133" y2="176" class="sk-axis" style="opacity:.35"/>
+<line x1="208.1" y1="266" x2="208.1" y2="176" class="sk-axis" style="opacity:.35"/>
+<line x1="260.5" y1="266" x2="260.5" y2="176" class="sk-axis" style="opacity:.35"/>
+<line x1="313" y1="266" x2="313" y2="176" class="sk-axis" style="opacity:.35"/>
+<line x1="388" y1="266" x2="388" y2="176" class="sk-axis" style="opacity:.35"/>
+<rect x="58" y="176" width="330" height="90" class="sk-axis" style="fill:none"/>
+<text x="52" y="168" class="lab-muted" text-anchor="end">φ (°)</text>
+<polyline points="58,198.6 60.1,198.8 62.2,199 64.2,199.3 66.3,199.6 68.4,199.8 70.5,200.1 72.5,200.4 74.6,200.8 76.7,201.1 78.8,201.5 80.8,201.9 82.9,202.3 85,202.8 87.1,203.2 89.1,203.7 91.2,204.3 93.3,204.8 95.4,205.4 97.4,206 99.5,206.7 101.6,207.3 103.7,208.1 105.7,208.8 107.8,209.6 109.9,210.4 112,211.2 114,212.1 116.1,213 118.2,213.9 120.3,214.8 122.3,215.7 124.4,216.7 126.5,217.7 128.6,218.6 130.6,219.6 132.7,220.5 134.8,221.5 136.9,222.4 138.9,223.3 141,224.2 143.1,225 145.2,225.8 147.2,226.6 149.3,227.3 151.4,227.9 153.5,228.5 155.5,229.1 157.6,229.5 159.7,230 161.8,230.3 163.8,230.6 165.9,230.8 168,231 170.1,231 172.2,231 174.2,231 176.3,230.9 178.4,230.7 180.5,230.4 182.5,230.1 184.6,229.7 186.7,229.3 188.8,228.8 190.8,228.2 192.9,227.6 195,226.9 197.1,226.2 199.1,225.5 201.2,224.7 203.3,223.9 205.4,223.1 207.4,222.3 209.5,221.4 211.6,220.6 213.7,219.7 215.7,218.9 217.8,218 219.9,217.2 222,216.4 224,215.7 226.1,214.9 228.2,214.2 230.3,213.6 232.3,213 234.4,212.4 236.5,211.8 238.6,211.4 240.6,210.9 242.7,210.5 244.8,210.2 246.9,209.9 248.9,209.6 251,209.4 253.1,209.2 255.2,209.1 257.2,209.1 259.3,209.1 261.4,209.1 263.5,209.2 265.5,209.4 267.6,209.5 269.7,209.8 271.8,210.1 273.8,210.4 275.9,210.8 278,211.3 280.1,211.8 282.2,212.3 284.2,212.9 286.3,213.6 288.4,214.3 290.5,215 292.5,215.8 294.6,216.7 296.7,217.6 298.8,218.5 300.8,219.4 302.9,220.4 305,221.4 307.1,222.5 309.1,223.5 311.2,224.6 313.3,225.7 315.4,226.8 317.4,227.9 319.5,229 321.6,230 323.7,231.1 325.7,232.1 327.8,233.2 329.9,234.2 332,235.1 334,236.1 336.1,237 338.2,237.8 340.3,238.7 342.3,239.5 344.4,240.2 346.5,241 348.6,241.7 350.6,242.3 352.7,243 354.8,243.6 356.9,244.1 358.9,244.7 361,245.2 363.1,245.6 365.2,246.1 367.2,246.5 369.3,246.9 371.4,247.3 373.5,247.6 375.5,248 377.6,248.3 379.7,248.6 381.8,248.9 383.8,249.1 385.9,249.4 388,249.6" class="sk-accent"/>
+<text x="266.5" y="203.6" class="lab-accent">φ(10) ≈ −112°</text>
+<text x="58" y="282" class="lab-muted" text-anchor="middle">0,02</text>
+<text x="133" y="282" class="lab-muted" text-anchor="middle">0,2</text>
+<text x="208.1" y="282" class="lab-muted" text-anchor="middle">2</text>
+<text x="260.5" y="282" class="lab-muted" text-anchor="middle">10</text>
+<text x="313" y="282" class="lab-muted" text-anchor="middle">50</text>
+<text x="388" y="282" class="lab-muted" text-anchor="middle">500</text>
+<text x="388" y="300" class="lab-muted" text-anchor="end">ω (rad/s, échelle log)</text>
+</svg>
+<figcaption>Bode de \(H(p) = \dfrac{100\,(1 + 0{,}5p)}{p\,(1 + 5p)(1 + 0{,}02p)}\). Pente de départ \(-20\) dB/décade (classe 1), puis \(-40\) après le pôle 0,2, \(-20\) après le zéro 2, \(-40\) après le pôle 50. Le gain coupe 0 dB vers 10 rad/s.</figcaption>
+</figure>
+  <div class="notice"><strong>Erreurs classiques</strong> : faire partir la droite d'une classe 1 de \(20\log K\) en \(\omega = 0{,}1\) ou au bord du graphique (c'est en \(\omega = 1\) qu'elle vaut \(20\log K\)) ; placer la cassure d'un facteur \(1 + \tau p\) en \(\tau\) au lieu de \(1/\tau\) ; oublier de mettre chaque facteur sous la forme \(1 + \tau p\) (pour \(\dfrac{1}{p + 5}\), écrire \(\dfrac{0{,}2}{1 + 0{,}2p}\) : gain 0,2, cassure en 5 rad/s).</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§4 · CALCULER GAIN ET PHASE EXACTEMENT</div>
+  <h2>Les modules se multiplient, les phases s'additionnent</h2>
+  <div class="prop-box">
+    Pour une fonction de transfert écrite en produit de briques, à une pulsation \(\omega\) donnée :
+    <ul>
+      <li>\(|H(j\omega)|\) = produit des modules des facteurs du numérateur divisé par celui du dénominateur, avec \(|1 + j\tau\omega| = \sqrt{1 + \tau^2\omega^2}\) et \(|j\omega| = \omega\) ;</li>
+      <li>\(\arg H(j\omega)\) = somme des arguments du numérateur moins somme de ceux du dénominateur, avec \(\arg(1 + j\tau\omega) = \arctan(\tau\omega)\) et \(\arg(j\omega) = 90°\).</li>
+    </ul>
+    Pour un deuxième ordre, \(\arg\big(1 - u^2 + 2j\xi u\big)\) vaut \(\arctan\dfrac{2\xi u}{1 - u^2}\) si \(u \lt 1\), et \(180° - \arctan\dfrac{2\xi u}{u^2 - 1}\) si \(u \gt 1\) : attention à la détermination de l'arctangente.
+  </div>
+  <div class="notice">Les asymptotes suffisent pour situer les cassures et les pentes, mais une marge de stabilité se calcule toujours avec la phase <strong>exacte</strong> : près d'une cassure, l'écart entre asymptote et courbe réelle atteint 45° en phase et 3 dB en gain (davantage pour un deuxième ordre peu amorti).</div>
+  <h3>Écart entre la courbe réelle et les asymptotes d'un premier ordre</h3>
+  <div style="overflow-x:auto"><table>
+    <tr><th>\(\omega\tau\)</th><th>0,1</th><th>0,5</th><th>1</th><th>2</th><th>10</th></tr>
+    <tr><td>Écart de gain (dB)</td><td>−0,04</td><td>−1,0</td><td>−3,0</td><td>−1,0</td><td>−0,04</td></tr>
+    <tr><td>Phase réelle</td><td>−5,7°</td><td>−26,6°</td><td>−45°</td><td>−63,4°</td><td>−84,3°</td></tr>
+  </table></div>
+  <p>À une octave (facteur 2) de la cassure, la courbe réelle passe encore 1 dB sous les asymptotes ; à une décade, l'écart est négligeable. Pour un zéro, les écarts changent de signe (+3 dB à la cassure).</p>
+  <div class="method-box">
+    <strong>Exemple — le point réel au milieu d'un tracé</strong>
+    <p>Pour l'exemple 2 du §3, \(H(p) = \dfrac{100\,(1 + 0{,}5p)}{p\,(1 + 5p)(1 + 0{,}02p)}\), en \(\omega = 2\ \text{rad/s}\) (cassure du zéro), l'asymptote donne 14 dB.</p>
+    <ol>
+      <li>Module :<div class="formula">$$|H(2j)| = \frac{100\,\sqrt{1 + 1}}{2\,\sqrt{1 + 100}\,\sqrt{1 + 0{,}0016}} \approx \frac{141{,}4}{20{,}1} \approx 7{,}0,$$</div>soit 16,9 dB.</li>
+      <li>L'écart \(+2{,}9\) dB vient presque entièrement du zéro (\(+3\) dB à sa cassure) : le pôle en 0,2 rad/s est une décade plus bas et celui en 50 rad/s bien plus haut.</li>
+      <li>Phase : \(-90° - \arctan 10 + \arctan 1 - \arctan 0{,}04\), soit \(-90° - 84{,}3° + 45° - 2{,}3° \approx -131{,}6°\), alors que la phase asymptotique saute de \(-180°\) à \(-90°\) en ce point.</li>
+    </ol>
+  </div>
+  <div class="method-box">
+    <strong>Exemple — l'arctangente d'un deuxième ordre</strong>
+    <p>Deuxième ordre \(\xi = 0{,}3\), en \(u = \omega/\omega_0 = 2\) : \(1 - u^2 + 2j\xi u = -3 + 1{,}2j\). Le point est dans le demi-plan gauche : son argument vaut \(180° - \arctan(1{,}2/3) = 158{,}2°\), et la phase du deuxième ordre est \(-158{,}2°\). Le calcul naïf \(\arctan\big(1{,}2/(-3)\big) = -21{,}8°\) donnerait une phase de \(+21{,}8°\), absurde pour un système qui doit tendre vers \(-180°\).</p>
+  </div>
+  <h3>Calcul numérique d'un diagramme de Bode</h3>
+  <p>Le calcul exact se programme en quelques lignes avec les nombres complexes de Python : on remplace \(p\) par \(j\omega\) (écrit <code>1j * w</code>) pour un tableau de pulsations réparties en échelle logarithmique. La fonction <code>np.angle</code> renvoie un angle entre \(-180°\) et \(180°\) : au-delà, la phase « saute » de 360°, et <code>np.unwrap</code> rétablit la continuité.</p>
+  <pre class="codeblock"><span class="kw">import</span> numpy <span class="kw">as</span> np
+
+<span class="kw">def</span> bode(H, w):
+    <span class="str">"""Gain (dB) et phase (°) de H(p) aux pulsations w (rad/s)."""</span>
+    Hj = H(1j * w)                                  <span class="cmt"># p remplacé par jω</span>
+    G = 20 * np.log10(np.abs(Hj))
+    phi = np.degrees(np.unwrap(np.angle(Hj)))       <span class="cmt"># unwrap : pas de saut de 360°</span>
+    <span class="kw">return</span> G, phi
+
+H = <span class="kw">lambda</span> p: 2 / (1 + p)**3                        <span class="cmt"># FTBO du chapitre « Stabilité »</span>
+w = np.logspace(-2, 2, 2001)                        <span class="cmt"># 4 décades, 500 points par décade</span>
+G, phi = bode(H, w)
+k = np.argmax(G &lt; 0)                                <span class="cmt"># premier point sous 0 dB</span>
+<span class="kw">print</span>(round(w[k], 3), round(phi[k], 1))           <span class="cmt"># 0.769 -112.7</span>
+<span class="kw">print</span>(round(phi[-1], 1))                          <span class="cmt"># -268.3 (np.angle seul : +91.7)</span></pre>
+  <p>La pulsation trouvée est celle du premier point de la grille sous 0 dB : la précision dépend du pas (ici 0,2 %). La valeur exacte, \(\omega = \sqrt{2^{2/3} - 1} \approx 0{,}766\ \text{rad/s}\), se retrouve en affinant la grille ou par dichotomie.</p>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§5 · LIRE UN DIAGRAMME DE BODE</div>
+  <h2>Du relevé au modèle</h2>
+  <div class="method-box">
+    <strong>Identifier une fonction de transfert sur un Bode mesuré</strong>
+    <ol>
+      <li>Pente et phase aux basses pulsations : 0 dB/déc et 0° pour la classe 0, \(-20\) dB/déc et \(-90°\) pour la classe 1.</li>
+      <li>Gain : \(K = 10^{G_0/20}\) en classe 0 ; en classe 1, \(K\) est la pulsation où la droite de départ (prolongée) coupe 0 dB.</li>
+      <li>Chaque changement de pente donne une cassure ; une bosse de résonance signale un deuxième ordre peu amorti.</li>
+      <li>Vérifier sur la phase : chaque pôle retire 90° au total, chaque zéro en ajoute 90°. Une phase qui continue de chuter alors que le gain a une pente constante trahit un <strong>retard pur</strong>.</li>
+    </ol>
+  </div>
+  <div class="method-box">
+    <strong>Exemple — identifier un deuxième ordre résonant</strong>
+    <p>Un relevé montre : aux basses pulsations, un palier à 14 dB et une phase nulle ; une bosse de gain ; la phase vaut \(-90°\) en 8 rad/s, où le gain vaut 20 dB ; aux hautes pulsations, une pente de \(-40\) dB/déc et une phase qui tend vers \(-180°\).</p>
+    <ol>
+      <li>Classe 0, deux pôles (pente finale \(-40\), phase finale \(-180°\)), bosse : deuxième ordre peu amorti, \(K = 10^{14/20} \approx 5\).</li>
+      <li>La phase vaut \(-90°\) en \(\omega_0\) quel que soit \(\xi\) : \(\omega_0 = 8\ \text{rad/s}\).</li>
+      <li>En \(\omega_0\), \(|H| = K/(2\xi)\) : \(10^{20/20} = 10 = 5/(2\xi)\), d'où \(\xi = 0{,}25\).</li>
+      <li>Modèle : \(H(p) = \dfrac{5}{1 + 0{,}0625\,p + p^2/64}\). Contrôle : la résonance prévue est en \(8\sqrt{1 - 2\xi^2} \approx 7{,}5\ \text{rad/s}\), à 20,3 dB.</li>
+    </ol>
+  </div>
+  <div class="prop-box">
+    <strong>Bande passante.</strong> La bande passante à \(-3\) dB est l'intervalle de pulsations où le gain reste à moins de 3 dB de sa valeur en basses pulsations. Pour une boucle fermée, sa largeur est de l'ordre de la pulsation de coupure à 0 dB de la boucle ouverte, et le temps de réponse varie comme son inverse (§8).
+  </div>
+  <div class="method-box">
+    <strong>Exemple — bande passante d'un premier ordre</strong>
+    <p>\(H(p) = \dfrac{K}{1 + 0{,}2p}\) : le gain réel vaut \(20\log K - 3\) dB à la cassure, donc la bande passante est \([0\ ;\ 5\ \text{rad/s}]\), soit 0,8 Hz. Son temps de réponse à 5 % vaut \(3\tau = 0{,}6\ \text{s}\) : le produit \(t_{r5\%}\cdot\omega_{-3\,dB} = 3\) est fixe, un système rapide a une large bande passante.</p>
+  </div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§6 · LE DEUXIÈME ORDRE DANS UN TRACÉ</div>
+  <h2>Deux premiers ordres ou une résonance</h2>
+  <div class="intro">Un trinôme \(1 + \frac{2\xi}{\omega_0}p + \frac{p^2}{\omega_0^2}\) au dénominateur se traite de deux façons selon son amortissement : s'il est bien amorti, comme deux premiers ordres ; sinon, comme une seule cassure de pente \(-40\) dB/déc, corrigée en \(\omega_0\).</div>
+  <div class="prop-box">
+    <strong>Si \(\xi \geq 1\)</strong>, le trinôme a deux racines réelles négatives et se factorise en \((1 + \tau_1p)(1 + \tau_2p)\), avec \(\tau_1\tau_2 = 1/\omega_0^2\) et \(\tau_1 + \tau_2 = 2\xi/\omega_0\) : deux cassures en \(1/\tau_1\) et \(1/\tau_2\), de part et d'autre de \(\omega_0\) (moyenne géométrique). Le tracé est celui de deux premiers ordres.<br>
+    <strong>Si \(\xi \lt 1\)</strong>, asymptotes : horizontale jusqu'à \(\omega_0\), puis pente \(-40\) dB/déc ; phase asymptotique 0° puis \(-180°\). En \(\omega_0\), la courbe réelle passe à
+    <div class="formula" data-nom="Gain d'un 2e ordre en ω₀">$$G_{dB}(\omega_0) = 20\log K - 20\log(2\xi),\qquad \varphi(\omega_0) = -90°,$$</div>
+    soit au-dessus de l'asymptote si \(\xi \lt 0{,}5\), en dessous si \(\xi \gt 0{,}5\). Il y a résonance (maximum du gain) si et seulement si \(\xi \lt 1/\sqrt2 \approx 0{,}71\) : voir <a href="#sys2/cours">« Systèmes du 2e ordre »</a>, §3, pour \(\omega_r\) et le facteur de résonance \(Q_r = |H(j\omega_r)|/K\).
+  </div>
+  <div class="method-box">
+    <strong>Exemple — un deuxième ordre qui n'en a que le nom</strong>
+    <p>\(H(p) = \dfrac{10}{1 + 1{,}1p + 0{,}1p^2}\) : \(\omega_0 = 1/\sqrt{0{,}1} \approx 3{,}16\ \text{rad/s}\) et \(2\xi/\omega_0 = 1{,}1\), d'où \(\xi \approx 1{,}74\).</p>
+    <ol>
+      <li>\(\xi \gt 1\) : les racines de \(0{,}1p^2 + 1{,}1p + 1\) sont \(-1\) et \(-10\), donc<div class="formula">$$1 + 1{,}1p + 0{,}1p^2 = (1 + p)(1 + 0{,}1p).$$</div></li>
+      <li>C'est l'exemple 1 du §3 : deux cassures en 1 et 10 rad/s, de part et d'autre de \(\omega_0 = \sqrt{1 \times 10}\).</li>
+    </ol>
+  </div>
+  <div class="method-box">
+    <strong>Exemple — une résonance qui coûte de la marge</strong>
+    <p>Boucle ouverte d'un axe avec une transmission souple : \(H(p) = \dfrac{2}{p\,\big(1 + 0{,}02p + 0{,}0025p^2\big)}\), soit \(\omega_0 = 20\ \text{rad/s}\) et \(\xi = 0{,}02 \times 20/2 = 0{,}2\).</p>
+    <ol>
+      <li>Asymptotes : droite de l'intégrateur (6 dB en \(\omega = 1\), 0 dB en \(\omega = 2\)), puis \(-60\) dB/déc après 20 rad/s. En \(\omega_0\), l'asymptote vaut \(20\log(2/20) = -20\) dB.</li>
+      <li>Correction en \(\omega_0\) : \(-20\log(2 \times 0{,}2) = +8\) dB, donc \(-12\) dB réels ; et la phase y vaut exactement \(-90° - 90° = -180°\).</li>
+      <li>La boucle coupe 0 dB vers 2 rad/s avec une phase de \(-92°\), mais à 20 rad/s elle n'a que 12 dB de marge de gain, contre 26 dB si la transmission était amortie (\(\xi = 1\)).</li>
+    </ol>
+  </div>
+  <figure class="schema">
+<svg viewBox="0 0 410 308" role="img" aria-label="Diagramme de Bode d'un intégrateur suivi d'un deuxième ordre peu amorti : la résonance relève le gain de 8 décibels à omega zéro et réduit la marge de gain">
+<line x1="58" y1="34.2" x2="388" y2="34.2" class="sk-axis" style="opacity:.35"/>
+<text x="52" y="38.2" class="lab-muted" text-anchor="end">20</text>
+<line x1="58" y1="58.5" x2="388" y2="58.5" class="sk-axis" style="opacity:.35"/>
+<text x="52" y="62.5" class="lab-muted" text-anchor="end">0</text>
+<line x1="58" y1="82.8" x2="388" y2="82.8" class="sk-axis" style="opacity:.35"/>
+<text x="52" y="86.8" class="lab-muted" text-anchor="end">−20</text>
+<line x1="58" y1="107.1" x2="388" y2="107.1" class="sk-axis" style="opacity:.35"/>
+<text x="52" y="111.1" class="lab-muted" text-anchor="end">−40</text>
+<line x1="58" y1="131.4" x2="388" y2="131.4" class="sk-axis" style="opacity:.35"/>
+<text x="52" y="135.4" class="lab-muted" text-anchor="end">−60</text>
+<line x1="58" y1="146" x2="58" y2="22" class="sk-axis" style="opacity:.35"/>
+<line x1="152.9" y1="146" x2="152.9" y2="22" class="sk-axis" style="opacity:.35"/>
+<line x1="181.5" y1="146" x2="181.5" y2="22" class="sk-axis" style="opacity:.35"/>
+<line x1="247.8" y1="146" x2="247.8" y2="22" class="sk-axis" style="opacity:.35"/>
+<line x1="276.4" y1="146" x2="276.4" y2="22" class="sk-axis" style="opacity:.35"/>
+<line x1="342.7" y1="146" x2="342.7" y2="22" class="sk-axis" style="opacity:.35"/>
+<rect x="58" y="22" width="330" height="124" class="sk-axis" style="fill:none"/>
+<text x="52" y="14" class="lab-muted" text-anchor="end">G (dB)</text>
+<polyline points="58,26.8 276.4,82.8" class="sk-accent2" style="stroke-dasharray:5 4"/>
+<polyline points="58,26.8 59.7,27.3 61.3,27.7 63,28.1 64.6,28.5 66.3,29 67.9,29.4 69.6,29.8 71.3,30.2 72.9,30.7 74.6,31.1 76.2,31.5 77.9,31.9 79.6,32.4 81.2,32.8 82.9,33.2 84.5,33.6 86.2,34.1 87.8,34.5 89.5,34.9 91.2,35.3 92.8,35.8 94.5,36.2 96.1,36.6 97.8,37 99.5,37.5 101.1,37.9 102.8,38.3 104.4,38.7 106.1,39.2 107.7,39.6 109.4,40 111.1,40.4 112.7,40.9 114.4,41.3 116,41.7 117.7,42.1 119.4,42.6 121,43 122.7,43.4 124.3,43.8 126,44.3 127.6,44.7 129.3,45.1 131,45.5 132.6,46 134.3,46.4 135.9,46.8 137.6,47.2 139.3,47.7 140.9,48.1 142.6,48.5 144.2,48.9 145.9,49.4 147.5,49.8 149.2,50.2 150.9,50.7 152.5,51.1 154.2,51.5 155.8,51.9 157.5,52.4 159.2,52.8 160.8,53.2 162.5,53.6 164.1,54.1 165.8,54.5 167.4,54.9 169.1,55.4 170.8,55.8 172.4,56.2 174.1,56.6 175.7,57.1 177.4,57.5 179.1,57.9 180.7,58.4 182.4,58.8 184,59.2 185.7,59.7 187.3,60.1 189,60.6 190.7,61 192.3,61.4 194,61.9 195.6,62.3 197.3,62.7 199,63.2 200.6,63.6 202.3,64.1 203.9,64.5 205.6,65 207.2,65.4 208.9,65.9 210.6,66.3 212.2,66.8 213.9,67.3 215.5,67.7 217.2,68.2 218.9,68.7 220.5,69.2 222.2,69.6 223.8,70.1 225.5,70.6 227.1,71.1 228.8,71.6 230.5,72.1 232.1,72.6 233.8,73.1 235.4,73.7 237.1,74.2 238.8,74.7 240.4,75.3 242.1,75.8 243.7,76.4 245.4,77 247,77.5 248.7,78.1 250.4,78.7 252,79.4 253.7,80 255.3,80.6 257,81.3 258.7,82 260.3,82.7 262,83.4 263.6,84.1 265.3,84.8 266.9,85.5 268.6,86.3 270.3,87.1 271.9,87.9 273.6,88.7 275.2,89.5 276.9,90.4 278.6,91.2 280.2,92.1 281.9,93 283.5,93.9 285.2,94.9 286.8,95.8 288.5,96.8 290.2,97.7 291.8,98.7 293.5,99.7 295.1,100.8 296.8,101.8 298.5,102.9 300.1,103.9 301.8,105 303.4,106.1 305.1,107.2 306.7,108.3 308.4,109.4 310.1,110.6 311.7,111.7 313.4,112.8 315,114 316.7,115.2 318.4,116.3 320,117.5 321.7,118.7 323.3,119.9 325,121.1 326.6,122.3 328.3,123.5 330,124.7 331.6,125.9 333.3,127.2 334.9,128.4 336.6,129.6 338.3,130.8 339.9,132.1 341.6,133.3 343.2,134.6 344.9,135.8 346.5,137.1 348.2,138.3 349.9,139.6 351.5,140.8 353.2,142.1 354.8,143.3 356.5,144.6 358.2,145.8" class="sk-ink"/>
+<polyline points="58,26.8 59.7,27.3 61.3,27.7 63,28.1 64.6,28.5 66.3,29 67.9,29.4 69.6,29.8 71.3,30.2 72.9,30.7 74.6,31.1 76.2,31.5 77.9,31.9 79.6,32.4 81.2,32.8 82.9,33.2 84.5,33.6 86.2,34.1 87.8,34.5 89.5,34.9 91.2,35.3 92.8,35.8 94.5,36.2 96.1,36.6 97.8,37 99.5,37.5 101.1,37.9 102.8,38.3 104.4,38.7 106.1,39.2 107.7,39.6 109.4,40 111.1,40.4 112.7,40.9 114.4,41.3 116,41.7 117.7,42.1 119.4,42.6 121,43 122.7,43.4 124.3,43.8 126,44.2 127.6,44.7 129.3,45.1 131,45.5 132.6,45.9 134.3,46.4 135.9,46.8 137.6,47.2 139.3,47.6 140.9,48.1 142.6,48.5 144.2,48.9 145.9,49.3 147.5,49.8 149.2,50.2 150.9,50.6 152.5,51 154.2,51.5 155.8,51.9 157.5,52.3 159.2,52.7 160.8,53.1 162.5,53.6 164.1,54 165.8,54.4 167.4,54.8 169.1,55.2 170.8,55.7 172.4,56.1 174.1,56.5 175.7,56.9 177.4,57.3 179.1,57.8 180.7,58.2 182.4,58.6 184,59 185.7,59.4 187.3,59.8 189,60.3 190.7,60.7 192.3,61.1 194,61.5 195.6,61.9 197.3,62.3 199,62.7 200.6,63.1 202.3,63.5 203.9,63.9 205.6,64.3 207.2,64.7 208.9,65.1 210.6,65.5 212.2,65.9 213.9,66.3 215.5,66.7 217.2,67.1 218.9,67.4 220.5,67.8 222.2,68.2 223.8,68.5 225.5,68.9 227.1,69.2 228.8,69.6 230.5,69.9 232.1,70.3 233.8,70.6 235.4,70.9 237.1,71.2 238.8,71.5 240.4,71.8 242.1,72 243.7,72.3 245.4,72.5 247,72.7 248.7,72.9 250.4,73.1 252,73.2 253.7,73.3 255.3,73.4 257,73.4 258.7,73.4 260.3,73.4 262,73.3 263.6,73.1 265.3,73 266.9,72.7 268.6,72.5 270.3,72.3 271.9,72.2 273.6,72.3 275.2,72.6 276.9,73.4 278.6,74.6 280.2,76.1 281.9,77.9 283.5,79.8 285.2,81.7 286.8,83.6 288.5,85.5 290.2,87.4 291.8,89.2 293.5,90.9 295.1,92.6 296.8,94.3 298.5,95.9 300.1,97.6 301.8,99.1 303.4,100.7 305.1,102.2 306.7,103.7 308.4,105.2 310.1,106.6 311.7,108.1 313.4,109.5 315,110.9 316.7,112.3 318.4,113.7 320,115.1 321.7,116.5 323.3,117.8 325,119.2 326.6,120.5 328.3,121.9 330,123.2 331.6,124.6 333.3,125.9 334.9,127.2 336.6,128.5 338.3,129.8 339.9,131.2 341.6,132.5 343.2,133.8 344.9,135.1 346.5,136.4 348.2,137.7 349.9,139 351.5,140.3 353.2,141.6 354.8,142.9 356.5,144.2 358.2,145.4" class="sk-accent"/>
+<line x1="276.4" y1="73.1" x2="276.4" y2="58.5" class="sk-green"/>
+<line x1="270.9" y1="58.5" x2="281.8" y2="58.5" class="sk-green"/>
+<circle cx="276.4" cy="73.1" r="3" class="fl-accent"/>
+<circle cx="276.4" cy="82.8" r="3" class="fl-ink"/>
+<text x="282.4" y="64.5" class="lab-green lab-b">M<tspan dy="4" font-size="12">G</tspan><tspan dy="-4"> ≈ 12 dB</tspan></text>
+<circle cx="181.9" cy="58.5" r="3" class="fl-accent"/>
+<text x="186.9" y="52.5" class="lab-accent">ω<tspan dy="4" font-size="12">c0</tspan><tspan dy="-4"> ≈ 2</tspan></text>
+<text x="65.5" y="68.2" class="lab-accent2">−20 dB/déc</text>
+<text x="321.7" y="121.7" class="lab-accent2">−60</text>
+<line x1="58" y1="180.5" x2="388" y2="180.5" class="sk-axis" style="opacity:.35"/>
+<text x="52" y="184.5" class="lab-muted" text-anchor="end">−90</text>
+<line x1="58" y1="221" x2="388" y2="221" class="sk-axis" style="opacity:.35"/>
+<text x="52" y="225" class="lab-muted" text-anchor="end">−180</text>
+<line x1="58" y1="261.5" x2="388" y2="261.5" class="sk-axis" style="opacity:.35"/>
+<text x="52" y="265.5" class="lab-muted" text-anchor="end">−270</text>
+<line x1="58" y1="266" x2="58" y2="176" class="sk-axis" style="opacity:.35"/>
+<line x1="152.9" y1="266" x2="152.9" y2="176" class="sk-axis" style="opacity:.35"/>
+<line x1="181.5" y1="266" x2="181.5" y2="176" class="sk-axis" style="opacity:.35"/>
+<line x1="247.8" y1="266" x2="247.8" y2="176" class="sk-axis" style="opacity:.35"/>
+<line x1="276.4" y1="266" x2="276.4" y2="176" class="sk-axis" style="opacity:.35"/>
+<line x1="342.7" y1="266" x2="342.7" y2="176" class="sk-axis" style="opacity:.35"/>
+<rect x="58" y="176" width="330" height="90" class="sk-axis" style="fill:none"/>
+<text x="52" y="168" class="lab-muted" text-anchor="end">φ (°)</text>
+<polyline points="58,180.5 276.4,180.5 276.4,261.5 388,261.5" class="sk-accent2" style="stroke-dasharray:5 4"/>
+<polyline points="58,180.8 59.7,180.8 61.3,180.8 63,180.8 64.6,180.8 66.3,180.8 67.9,180.8 69.6,180.8 71.3,180.9 72.9,180.9 74.6,180.9 76.2,180.9 77.9,180.9 79.6,180.9 81.2,181 82.9,181 84.5,181 86.2,181 87.8,181 89.5,181.1 91.2,181.1 92.8,181.1 94.5,181.1 96.1,181.2 97.8,181.2 99.5,181.2 101.1,181.2 102.8,181.3 104.4,181.3 106.1,181.3 107.7,181.4 109.4,181.4 111.1,181.4 112.7,181.5 114.4,181.5 116,181.6 117.7,181.6 119.4,181.6 121,181.7 122.7,181.7 124.3,181.8 126,181.8 127.6,181.9 129.3,182 131,182 132.6,182.1 134.3,182.1 135.9,182.2 137.6,182.3 139.3,182.4 140.9,182.4 142.6,182.5 144.2,182.6 145.9,182.7 147.5,182.8 149.2,182.9 150.9,183 152.5,183.1 154.2,183.2 155.8,183.3 157.5,183.4 159.2,183.5 160.8,183.6 162.5,183.7 164.1,183.9 165.8,184 167.4,184.2 169.1,184.3 170.8,184.5 172.4,184.6 174.1,184.8 175.7,185 177.4,185.2 179.1,185.3 180.7,185.5 182.4,185.8 184,186 185.7,186.2 187.3,186.4 189,186.7 190.7,186.9 192.3,187.2 194,187.4 195.6,187.7 197.3,188 199,188.3 200.6,188.6 202.3,189 203.9,189.3 205.6,189.7 207.2,190 208.9,190.4 210.6,190.8 212.2,191.2 213.9,191.6 215.5,192.1 217.2,192.5 218.9,193 220.5,193.5 222.2,194 223.8,194.6 225.5,195.1 227.1,195.7 228.8,196.2 230.5,196.9 232.1,197.5 233.8,198.1 235.4,198.8 237.1,199.5 238.8,200.2 240.4,200.9 242.1,201.7 243.7,202.4 245.4,203.2 247,204 248.7,204.9 250.4,205.7 252,206.6 253.7,207.5 255.3,208.4 257,209.3 258.7,210.2 260.3,211.2 262,212.2 263.6,213.1 265.3,214.1 266.9,215.1 268.6,216.2 270.3,217.2 271.9,218.2 273.6,219.2 275.2,220.3 276.9,221.3 278.6,222.4 280.2,223.4 281.9,224.4 283.5,225.4 285.2,226.5 286.8,227.5 288.5,228.5 290.2,229.5 291.8,230.4 293.5,231.4 295.1,232.3 296.8,233.3 298.5,234.2 300.1,235.1 301.8,236 303.4,236.8 305.1,237.7 306.7,238.5 308.4,239.3 310.1,240.1 311.7,240.8 313.4,241.5 315,242.3 316.7,243 318.4,243.6 320,244.3 321.7,244.9 323.3,245.5 325,246.1 326.6,246.7 328.3,247.2 330,247.8 331.6,248.3 333.3,248.8 334.9,249.3 336.6,249.7 338.3,250.2 339.9,250.6 341.6,251 343.2,251.4 344.9,251.8 346.5,252.2 348.2,252.6 349.9,252.9 351.5,253.2 353.2,253.6 354.8,253.9 356.5,254.2 358.2,254.5 359.8,254.7 361.5,255 363.1,255.2 364.8,255.5 366.4,255.7 368.1,256 369.8,256.2 371.4,256.4 373.1,256.6 374.7,256.8 376.4,257 378.1,257.1 379.7,257.3 381.4,257.5 383,257.6 384.7,257.8 386.3,257.9 388,258.1" class="sk-ink"/>
+<polyline points="58,180.6 59.7,180.6 61.3,180.6 63,180.6 64.6,180.6 66.3,180.6 67.9,180.6 69.6,180.6 71.3,180.6 72.9,180.6 74.6,180.6 76.2,180.6 77.9,180.6 79.6,180.6 81.2,180.6 82.9,180.6 84.5,180.6 86.2,180.6 87.8,180.6 89.5,180.6 91.2,180.6 92.8,180.6 94.5,180.6 96.1,180.6 97.8,180.6 99.5,180.6 101.1,180.6 102.8,180.7 104.4,180.7 106.1,180.7 107.7,180.7 109.4,180.7 111.1,180.7 112.7,180.7 114.4,180.7 116,180.7 117.7,180.7 119.4,180.7 121,180.7 122.7,180.7 124.3,180.8 126,180.8 127.6,180.8 129.3,180.8 131,180.8 132.6,180.8 134.3,180.8 135.9,180.8 137.6,180.9 139.3,180.9 140.9,180.9 142.6,180.9 144.2,180.9 145.9,180.9 147.5,181 149.2,181 150.9,181 152.5,181 154.2,181 155.8,181.1 157.5,181.1 159.2,181.1 160.8,181.1 162.5,181.2 164.1,181.2 165.8,181.2 167.4,181.2 169.1,181.3 170.8,181.3 172.4,181.3 174.1,181.4 175.7,181.4 177.4,181.4 179.1,181.5 180.7,181.5 182.4,181.6 184,181.6 185.7,181.7 187.3,181.7 189,181.8 190.7,181.8 192.3,181.9 194,181.9 195.6,182 197.3,182 199,182.1 200.6,182.2 202.3,182.3 203.9,182.3 205.6,182.4 207.2,182.5 208.9,182.6 210.6,182.7 212.2,182.8 213.9,182.9 215.5,183 217.2,183.1 218.9,183.2 220.5,183.3 222.2,183.5 223.8,183.6 225.5,183.8 227.1,183.9 228.8,184.1 230.5,184.3 232.1,184.5 233.8,184.7 235.4,184.9 237.1,185.1 238.8,185.4 240.4,185.7 242.1,186 243.7,186.3 245.4,186.6 247,187 248.7,187.5 250.4,187.9 252,188.5 253.7,189.1 255.3,189.8 257,190.5 258.7,191.4 260.3,192.5 262,193.7 263.6,195.1 265.3,196.8 266.9,198.9 268.6,201.4 270.3,204.5 271.9,208.2 273.6,212.5 275.2,217.4 276.9,222.6 278.6,227.6 280.2,232.2 281.9,236.2 283.5,239.5 285.2,242.2 286.8,244.4 288.5,246.3 290.2,247.8 291.8,249.1 293.5,250.2 295.1,251.1 296.8,252 298.5,252.7 300.1,253.3 301.8,253.9 303.4,254.4 305.1,254.8 306.7,255.2 308.4,255.6 310.1,255.9 311.7,256.2 313.4,256.5 315,256.8 316.7,257 318.4,257.3 320,257.5 321.7,257.7 323.3,257.8 325,258 326.6,258.2 328.3,258.3 330,258.5 331.6,258.6 333.3,258.7 334.9,258.9 336.6,259 338.3,259.1 339.9,259.2 341.6,259.3 343.2,259.4 344.9,259.5 346.5,259.6 348.2,259.6 349.9,259.7 351.5,259.8 353.2,259.9 354.8,259.9 356.5,260 358.2,260.1 359.8,260.1 361.5,260.2 363.1,260.2 364.8,260.3 366.4,260.3 368.1,260.4 369.8,260.4 371.4,260.5 373.1,260.5 374.7,260.5 376.4,260.6 378.1,260.6 379.7,260.7 381.4,260.7 383,260.7 384.7,260.8 386.3,260.8 388,260.8" class="sk-accent"/>
+<line x1="58" y1="221" x2="388" y2="221" class="sk-ink" style="opacity:.6"/><circle cx="276.4" cy="221" r="3" class="fl-accent"/>
+<text x="58" y="282" class="lab-muted" text-anchor="middle">0,1</text>
+<text x="152.9" y="282" class="lab-muted" text-anchor="middle">1</text>
+<text x="181.5" y="282" class="lab-muted" text-anchor="middle">2</text>
+<text x="247.8" y="282" class="lab-muted" text-anchor="middle">10</text>
+<text x="276.4" y="282" class="lab-muted" text-anchor="middle">20</text>
+<text x="342.7" y="282" class="lab-muted" text-anchor="middle">100</text>
+<text x="388" y="300" class="lab-muted" text-anchor="end">ω (rad/s, échelle log)</text>
+<line x1="140" y1="10" x2="158" y2="10" class="sk-accent"/><text x="164" y="14" class="lab-accent">ξ = 0,2</text><line x1="230" y1="10" x2="248" y2="10" class="sk-ink"/><text x="254" y="14" class="lab-muted">ξ = 1</text><line x1="310" y1="10" x2="328" y2="10" class="sk-accent2" style="stroke-dasharray:5 4"/><text x="334" y="14" class="lab-accent2">asymptotes</text>
+</svg>
+<figcaption>Bode de \(H(p) = \dfrac{2}{p\,\big(1 + 0{,}02p + 0{,}0025p^2\big)}\) (\(\omega_0 = 20\) rad/s, \(\xi = 0{,}2\)) et de la même FTBO avec \(\xi = 1\). Les asymptotes sont communes ; en \(\omega_0\), la courbe réelle passe \(-20\log(2\xi) \approx 8\) dB au-dessus de l'asymptote, là même où la phase vaut \(-180°\) : la marge de gain tombe de 26 dB à 12 dB.</figcaption>
+</figure>
+  <div class="notice"><strong>Erreur classique</strong> : tracer deux cassures en \(\omega_0\) pour un deuxième ordre peu amorti (le gain réel n'y est pas 6 dB sous l'asymptote mais \(-20\log(2\xi)\) au-dessus ou au-dessous), ou au contraire une seule cassure en \(\omega_0\) pour un trinôme très amorti, dont les deux cassures réelles peuvent être éloignées d'une décade.</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§7 · LE RETARD PUR</div>
+  <h2>Un gain plat, une phase sans fond</h2>
+  <div class="intro">Un transport de matière (tapis, canalisation), une durée de calcul ou de transmission, la propagation de la chaleur dans une paroi retardent le signal sans l'atténuer. Ce retard pur ne change pas le gain mais menace la stabilité, parce que sa phase décroît sans limite.</div>
+  <div class="prop-box">
+    <strong>Retard pur \(e^{-Tp}\).</strong> Pour \(p = j\omega\), \(|e^{-j\omega T}| = 1\) et \(\arg e^{-j\omega T} = -\omega T\) :
+    <div class="formula" data-nom="Bode d'un retard pur">$$G_{dB} = 0,\qquad \varphi(\omega) = -\omega T\ \text{(rad)} = -\frac{180}{\pi}\,\omega T\ \text{(°)}.$$</div>
+    La phase est <strong>proportionnelle à \(\omega\)</strong> : sur l'échelle logarithmique du Bode, elle n'a pas d'asymptote et plonge de plus en plus vite. Pour \(\omega T \ll 1\), le retard se confond avec un premier ordre de constante de temps \(T\) (même phase \(-\omega T\) au premier ordre), mais les deux s'écartent dès que \(\omega T\) approche 1.
+  </div>
+  <div class="method-box">
+    <strong>Exemple — repérer et mesurer un retard sur un four</strong>
+    <p>Un four est modélisé par \(G(p) = \dfrac{2\,e^{-Tp}}{1 + 5p}\) (temps en secondes). On mesure la phase \(-107{,}3°\) en 1 rad/s et \(-141{,}6°\) en 2 rad/s.</p>
+    <ol>
+      <li>Phase du premier ordre seul : \(-\arctan 5 = -78{,}7°\) en 1 rad/s, \(-\arctan 10 = -84{,}3°\) en 2 rad/s.</li>
+      <li>Phase manquante : \(28{,}6°\) puis \(57{,}3°\), proportionnelle à \(\omega\) : c'est la signature d'un retard.</li>
+      <li>\(\omega T = 28{,}6° = 0{,}50\ \text{rad}\) en 1 rad/s : \(T = 0{,}5\ \text{s}\) (même valeur avec le point à 2 rad/s).</li>
+    </ol>
+  </div>
+  <figure class="schema">
+<svg viewBox="0 0 410 298" role="img" aria-label="Diagramme de Bode d'un premier ordre avec et sans retard pur : gain identique, phase qui plonge sans limite avec le retard">
+<line x1="58" y1="33.4" x2="388" y2="33.4" class="sk-axis" style="opacity:.35"/>
+<text x="52" y="37.4" class="lab-muted" text-anchor="end">6</text>
+<line x1="58" y1="83" x2="388" y2="83" class="sk-axis" style="opacity:.35"/>
+<text x="52" y="87" class="lab-muted" text-anchor="end">−20</text>
+<line x1="58" y1="102" x2="58" y2="22" class="sk-axis" style="opacity:.35"/>
+<line x1="168" y1="102" x2="168" y2="22" class="sk-axis" style="opacity:.35"/>
+<line x1="201.1" y1="102" x2="201.1" y2="22" class="sk-axis" style="opacity:.35"/>
+<line x1="278" y1="102" x2="278" y2="22" class="sk-axis" style="opacity:.35"/>
+<line x1="311.1" y1="102" x2="311.1" y2="22" class="sk-axis" style="opacity:.35"/>
+<line x1="388" y1="102" x2="388" y2="22" class="sk-axis" style="opacity:.35"/>
+<rect x="58" y="22" width="330" height="80" class="sk-axis" style="fill:none"/>
+<text x="52" y="14" class="lab-muted" text-anchor="end">G (dB)</text>
+<polyline points="58,33.4 201.1,33.4 388,98.1" class="sk-accent2" style="stroke-dasharray:5 4"/>
+<polyline points="58,33.4 60,33.4 61.9,33.4 63.9,33.4 65.8,33.4 67.8,33.4 69.7,33.4 71.7,33.4 73.6,33.4 75.6,33.4 77.5,33.4 79.5,33.4 81.4,33.4 83.4,33.4 85.3,33.5 87.3,33.5 89.2,33.5 91.2,33.5 93.1,33.5 95.1,33.5 97.1,33.5 99,33.5 101,33.5 102.9,33.5 104.9,33.5 106.8,33.5 108.8,33.6 110.7,33.6 112.7,33.6 114.6,33.6 116.6,33.6 118.5,33.6 120.5,33.7 122.4,33.7 124.4,33.7 126.3,33.7 128.3,33.8 130.2,33.8 132.2,33.8 134.2,33.9 136.1,33.9 138.1,34 140,34 142,34.1 143.9,34.1 145.9,34.2 147.8,34.2 149.8,34.3 151.7,34.4 153.7,34.5 155.6,34.5 157.6,34.6 159.5,34.7 161.5,34.8 163.4,34.9 165.4,35.1 167.3,35.2 169.3,35.3 171.3,35.5 173.2,35.6 175.2,35.8 177.1,36 179.1,36.2 181,36.4 183,36.6 184.9,36.8 186.9,37 188.8,37.3 190.8,37.5 192.7,37.8 194.7,38.1 196.6,38.4 198.6,38.7 200.5,39 202.5,39.4 204.4,39.7 206.4,40.1 208.4,40.5 210.3,40.9 212.3,41.3 214.2,41.7 216.2,42.1 218.1,42.6 220.1,43 222,43.5 224,44 225.9,44.5 227.9,45 229.8,45.5 231.8,46 233.7,46.6 235.7,47.1 237.6,47.7 239.6,48.2 241.6,48.8 243.5,49.4 245.5,49.9 247.4,50.5 249.4,51.1 251.3,51.7 253.3,52.3 255.2,52.9 257.2,53.6 259.1,54.2 261.1,54.8 263,55.4 265,56.1 266.9,56.7 268.9,57.3 270.8,58 272.8,58.6 274.7,59.3 276.7,59.9 278.7,60.6 280.6,61.2 282.6,61.9 284.5,62.5 286.5,63.2 288.4,63.8 290.4,64.5 292.3,65.2 294.3,65.8 296.2,66.5 298.2,67.1 300.1,67.8 302.1,68.5 304,69.1 306,69.8 307.9,70.5 309.9,71.1 311.8,71.8 313.8,72.5 315.8,73.2 317.7,73.8 319.7,74.5 321.6,75.2 323.6,75.8 325.5,76.5 327.5,77.2 329.4,77.9 331.4,78.5 333.3,79.2 335.3,79.9 337.2,80.6 339.2,81.2 341.1,81.9 343.1,82.6 345,83.3 347,83.9 348.9,84.6 350.9,85.3 352.9,86 354.8,86.6 356.8,87.3 358.7,88 360.7,88.7 362.6,89.3 364.6,90 366.5,90.7 368.5,91.4 370.4,92 372.4,92.7 374.3,93.4 376.3,94.1 378.2,94.7 380.2,95.4 382.1,96.1 384.1,96.8 386,97.4 388,98.1" class="sk-accent"/>
+<line x1="58" y1="135.8" x2="388" y2="135.8" class="sk-axis" style="opacity:.35"/>
+<text x="52" y="139.8" class="lab-muted" text-anchor="end">0</text>
+<line x1="58" y1="169.6" x2="388" y2="169.6" class="sk-axis" style="opacity:.35"/>
+<text x="52" y="173.6" class="lab-muted" text-anchor="end">−90</text>
+<line x1="58" y1="203.4" x2="388" y2="203.4" class="sk-axis" style="opacity:.35"/>
+<text x="52" y="207.4" class="lab-muted" text-anchor="end">−180</text>
+<line x1="58" y1="237.2" x2="388" y2="237.2" class="sk-axis" style="opacity:.35"/>
+<text x="52" y="241.2" class="lab-muted" text-anchor="end">−270</text>
+<line x1="58" y1="256" x2="58" y2="132" class="sk-axis" style="opacity:.35"/>
+<line x1="168" y1="256" x2="168" y2="132" class="sk-axis" style="opacity:.35"/>
+<line x1="201.1" y1="256" x2="201.1" y2="132" class="sk-axis" style="opacity:.35"/>
+<line x1="278" y1="256" x2="278" y2="132" class="sk-axis" style="opacity:.35"/>
+<line x1="311.1" y1="256" x2="311.1" y2="132" class="sk-axis" style="opacity:.35"/>
+<line x1="388" y1="256" x2="388" y2="132" class="sk-axis" style="opacity:.35"/>
+<rect x="58" y="132" width="330" height="124" class="sk-axis" style="fill:none"/>
+<text x="52" y="124" class="lab-muted" text-anchor="end">φ (°)</text>
+<polyline points="58,136.8 60,136.9 61.9,136.9 63.9,137 65.8,137 67.8,137.1 69.7,137.1 71.7,137.2 73.6,137.2 75.6,137.3 77.5,137.4 79.5,137.4 81.4,137.5 83.4,137.6 85.3,137.7 87.3,137.7 89.2,137.8 91.2,137.9 93.1,138 95.1,138.1 97.1,138.2 99,138.3 101,138.4 102.9,138.5 104.9,138.6 106.8,138.7 108.8,138.9 110.7,139 112.7,139.1 114.6,139.2 116.6,139.4 118.5,139.5 120.5,139.7 122.4,139.9 124.4,140 126.3,140.2 128.3,140.4 130.2,140.6 132.2,140.8 134.2,141 136.1,141.2 138.1,141.4 140,141.6 142,141.8 143.9,142.1 145.9,142.3 147.8,142.6 149.8,142.8 151.7,143.1 153.7,143.4 155.6,143.7 157.6,144 159.5,144.3 161.5,144.6 163.4,144.9 165.4,145.3 167.3,145.6 169.3,146 171.3,146.3 173.2,146.7 175.2,147.1 177.1,147.5 179.1,147.9 181,148.3 183,148.7 184.9,149.1 186.9,149.5 188.8,149.9 190.8,150.4 192.7,150.8 194.7,151.2 196.6,151.7 198.6,152.1 200.5,152.5 202.5,153 204.4,153.4 206.4,153.9 208.4,154.3 210.3,154.7 212.3,155.2 214.2,155.6 216.2,156 218.1,156.4 220.1,156.8 222,157.2 224,157.6 225.9,158 227.9,158.4 229.8,158.8 231.8,159.1 233.7,159.5 235.7,159.9 237.6,160.2 239.6,160.5 241.6,160.9 243.5,161.2 245.5,161.5 247.4,161.8 249.4,162.1 251.3,162.3 253.3,162.6 255.2,162.9 257.2,163.1 259.1,163.4 261.1,163.6 263,163.8 265,164 266.9,164.3 268.9,164.5 270.8,164.7 272.8,164.9 274.7,165 276.7,165.2 278.7,165.4 280.6,165.5 282.6,165.7 284.5,165.9 286.5,166 288.4,166.1 290.4,166.3 292.3,166.4 294.3,166.5 296.2,166.7 298.2,166.8 300.1,166.9 302.1,167 304,167.1 306,167.2 307.9,167.3 309.9,167.4 311.8,167.5 313.8,167.5 315.8,167.6 317.7,167.7 319.7,167.8 321.6,167.9 323.6,167.9 325.5,168 327.5,168 329.4,168.1 331.4,168.2 333.3,168.2 335.3,168.3 337.2,168.3 339.2,168.4 341.1,168.4 343.1,168.5 345,168.5 347,168.6 348.9,168.6 350.9,168.6 352.9,168.7 354.8,168.7 356.8,168.7 358.7,168.8 360.7,168.8 362.6,168.8 364.6,168.9 366.5,168.9 368.5,168.9 370.4,169 372.4,169 374.3,169 376.3,169 378.2,169 380.2,169.1 382.1,169.1 384.1,169.1 386,169.1 388,169.1" class="sk-ink"/>
+<polyline points="58,136.9 60,137 61.9,137 63.9,137.1 65.8,137.2 67.8,137.2 69.7,137.3 71.7,137.3 73.6,137.4 75.6,137.5 77.5,137.5 79.5,137.6 81.4,137.7 83.4,137.8 85.3,137.9 87.3,137.9 89.2,138 91.2,138.1 93.1,138.2 95.1,138.3 97.1,138.4 99,138.5 101,138.7 102.9,138.8 104.9,138.9 106.8,139 108.8,139.2 110.7,139.3 112.7,139.4 114.6,139.6 116.6,139.8 118.5,139.9 120.5,140.1 122.4,140.3 124.4,140.5 126.3,140.6 128.3,140.8 130.2,141 132.2,141.3 134.2,141.5 136.1,141.7 138.1,142 140,142.2 142,142.5 143.9,142.7 145.9,143 147.8,143.3 149.8,143.6 151.7,143.9 153.7,144.2 155.6,144.5 157.6,144.9 159.5,145.2 161.5,145.6 163.4,145.9 165.4,146.3 167.3,146.7 169.3,147.1 171.3,147.5 173.2,147.9 175.2,148.3 177.1,148.8 179.1,149.2 181,149.7 183,150.1 184.9,150.6 186.9,151.1 188.8,151.6 190.8,152.1 192.7,152.6 194.7,153.1 196.6,153.6 198.6,154.1 200.5,154.7 202.5,155.2 204.4,155.7 206.4,156.3 208.4,156.8 210.3,157.3 212.3,157.9 214.2,158.4 216.2,159 218.1,159.5 220.1,160 222,160.6 224,161.1 225.9,161.6 227.9,162.2 229.8,162.7 231.8,163.2 233.7,163.8 235.7,164.3 237.6,164.8 239.6,165.3 241.6,165.9 243.5,166.4 245.5,166.9 247.4,167.4 249.4,168 251.3,168.5 253.3,169 255.2,169.5 257.2,170.1 259.1,170.6 261.1,171.2 263,171.7 265,172.2 266.9,172.8 268.9,173.4 270.8,173.9 272.8,174.5 274.7,175.1 276.7,175.7 278.7,176.3 280.6,176.9 282.6,177.5 284.5,178.2 286.5,178.9 288.4,179.5 290.4,180.2 292.3,180.9 294.3,181.7 296.2,182.4 298.2,183.2 300.1,184 302.1,184.8 304,185.7 306,186.5 307.9,187.4 309.9,188.4 311.8,189.3 313.8,190.3 315.8,191.4 317.7,192.4 319.7,193.5 321.6,194.7 323.6,195.9 325.5,197.1 327.5,198.4 329.4,199.7 331.4,201.1 333.3,202.5 335.3,204 337.2,205.5 339.2,207.1 341.1,208.8 343.1,210.5 345,212.3 347,214.2 348.9,216.1 350.9,218.2 352.9,220.3 354.8,222.4 356.8,224.7 358.7,227.1 360.7,229.6 362.6,232.1 364.6,234.8 366.5,237.6 368.5,240.5 370.4,243.5 372.4,246.6 374.3,249.9 376.3,253.3" class="sk-accent"/>
+<line x1="278" y1="165.3" x2="278" y2="176.1" class="sk-green"/>
+<line x1="274.3" y1="176.1" x2="281.7" y2="176.1" class="sk-green"/>
+<line x1="274.3" y1="165.3" x2="281.7" y2="165.3" class="sk-green"/>
+<line x1="311.1" y1="167.4" x2="311.1" y2="189" class="sk-green"/>
+<line x1="307.4" y1="189" x2="314.8" y2="189" class="sk-green"/>
+<line x1="307.4" y1="167.4" x2="314.8" y2="167.4" class="sk-green"/>
+<text x="270" y="188.4" class="lab-green" text-anchor="end">−29°</text>
+<text x="319.1" y="158.3" class="lab-green">−57°</text>
+<text x="66.7" y="177.8" class="lab-accent">avec retard</text>
+<text x="66.7" y="164.3" class="lab-muted">sans retard</text>
+<text x="58" y="272" class="lab-muted" text-anchor="middle">0,01</text>
+<text x="168" y="272" class="lab-muted" text-anchor="middle">0,1</text>
+<text x="201.1" y="272" class="lab-muted" text-anchor="middle">0,2</text>
+<text x="278" y="272" class="lab-muted" text-anchor="middle">1</text>
+<text x="311.1" y="272" class="lab-muted" text-anchor="middle">2</text>
+<text x="388" y="272" class="lab-muted" text-anchor="middle">10</text>
+<text x="388" y="290" class="lab-muted" text-anchor="end">ω (rad/s, échelle log)</text>
+</svg>
+<figcaption>Bode de \(G(p) = \dfrac{2\,e^{-0{,}5p}}{1 + 5p}\) (four, temps en secondes). Le gain est celui du premier ordre seul ; la phase perd en plus \(\omega T\) radians, soit 29° en 1 rad/s et 57° en 2 rad/s : proportionnelle à \(\omega\), elle semble « plonger » sur l'échelle logarithmique.</figcaption>
+</figure>
+  <div class="notice"><strong>Erreur classique</strong> : oublier de convertir \(\omega T\) (en radians) en degrés avant de l'ajouter aux arctangentes, ou chercher un retard sur la courbe de gain, où il est invisible. Le retard se lit uniquement sur la phase.</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§8 · DE LA BOUCLE OUVERTE À LA BOUCLE FERMÉE</div>
+  <h2>Le Bode d'un système asservi</h2>
+  <div class="intro">On trace le Bode de la boucle ouverte (FTBO) parce qu'il s'obtient par simple addition des blocs. Il renseigne aussi sur la boucle fermée (FTBF) : sa précision aux basses pulsations, sa bande passante et sa résonance éventuelle.</div>
+  <div class="prop-box">
+    <strong>Boucle à retour unitaire</strong>, \(H_{BF} = \dfrac{H_{BO}}{1 + H_{BO}}\) :
+    <ul>
+      <li>là où \(|H_{BO}| \gg 1\) (basses pulsations), \(H_{BF} \approx 1\) : gain 0 dB, phase nulle, la sortie suit la consigne ;</li>
+      <li>là où \(|H_{BO}| \ll 1\) (hautes pulsations), \(H_{BF} \approx H_{BO}\) : la boucle fermée a le Bode de la boucle ouverte ;</li>
+      <li>la transition se fait autour de la pulsation de coupure à 0 dB \(\omega_{c0}\) de la FTBO : la bande passante à \(-3\) dB de la boucle fermée est du même ordre que \(\omega_{c0}\) (typiquement entre \(\omega_{c0}\) et \(2\,\omega_{c0}\)).</li>
+    </ul>
+    En classe 0, le palier de la FTBF vaut \(\dfrac{K}{1 + K}\), un peu sous 0 dB ; dès la classe 1, il vaut exactement 0 dB.
+  </div>
+  <div class="method-box">
+    <strong>Exemple — bande passante d'un asservissement</strong>
+    <p>FTBO \(H_{BO}(p) = \dfrac{10}{p\,(1 + 0{,}1p)}\), retour unitaire.</p>
+    <ol>
+      <li>Coupure de la FTBO : \(\dfrac{10}{\omega\sqrt{1 + 0{,}01\,\omega^2}} = 1\), soit \(0{,}01\,\omega^4 + \omega^2 - 100 = 0\), d'où \(\omega^2 \approx 61{,}8\) et \(\omega_{c0} \approx 7{,}9\ \text{rad/s}\).</li>
+      <li>FTBF : \(\dfrac{10}{0{,}1p^2 + p + 10}\), soit \(\dfrac{1}{1 + 0{,}1p + 0{,}01p^2}\) : deuxième ordre de gain 1, \(\omega_0 = 10\ \text{rad/s}\), \(\xi = 0{,}5\).</li>
+      <li>\(\xi \lt 0{,}71\) : légère résonance, \(+1{,}25\) dB en \(\omega_r = 7{,}1\ \text{rad/s}\). Le gain repasse à \(-3\) dB en \(\omega = 12{,}7\ \text{rad/s}\) : bande passante \([0\ ;\ 12{,}7\ \text{rad/s}]\), environ \(1{,}6\,\omega_{c0}\).</li>
+    </ol>
+  </div>
+  <figure class="schema">
+<svg viewBox="0 0 410 308" role="img" aria-label="Diagrammes de Bode d'une boucle ouverte et de la boucle fermée correspondante : la boucle fermée vaut 0 décibel tant que la boucle ouverte est grande, puis la suit">
+<line x1="58" y1="24.4" x2="388" y2="24.4" class="sk-axis" style="opacity:.35"/>
+<text x="52" y="28.4" class="lab-muted" text-anchor="end">40</text>
+<line x1="58" y1="48.2" x2="388" y2="48.2" class="sk-axis" style="opacity:.35"/>
+<text x="52" y="52.2" class="lab-muted" text-anchor="end">20</text>
+<line x1="58" y1="72.1" x2="388" y2="72.1" class="sk-axis" style="opacity:.35"/>
+<text x="52" y="76.1" class="lab-muted" text-anchor="end">0</text>
+<line x1="58" y1="95.9" x2="388" y2="95.9" class="sk-axis" style="opacity:.35"/>
+<text x="52" y="99.9" class="lab-muted" text-anchor="end">−20</text>
+<line x1="58" y1="119.8" x2="388" y2="119.8" class="sk-axis" style="opacity:.35"/>
+<text x="52" y="123.8" class="lab-muted" text-anchor="end">−40</text>
+<line x1="58" y1="143.6" x2="388" y2="143.6" class="sk-axis" style="opacity:.35"/>
+<text x="52" y="147.6" class="lab-muted" text-anchor="end">−60</text>
+<line x1="58" y1="146" x2="58" y2="22" class="sk-axis" style="opacity:.35"/>
+<line x1="140.5" y1="146" x2="140.5" y2="22" class="sk-axis" style="opacity:.35"/>
+<line x1="223" y1="146" x2="223" y2="22" class="sk-axis" style="opacity:.35"/>
+<line x1="305.5" y1="146" x2="305.5" y2="22" class="sk-axis" style="opacity:.35"/>
+<line x1="388" y1="146" x2="388" y2="22" class="sk-axis" style="opacity:.35"/>
+<rect x="58" y="22" width="330" height="124" class="sk-axis" style="fill:none"/>
+<text x="52" y="14" class="lab-muted" text-anchor="end">G (dB)</text>
+<polyline points="58,24.4 59.7,24.9 61.3,25.3 63,25.8 64.6,26.3 66.3,26.8 67.9,27.3 69.6,27.7 71.3,28.2 72.9,28.7 74.6,29.2 76.2,29.7 77.9,30.1 79.6,30.6 81.2,31.1 82.9,31.6 84.5,32.1 86.2,32.5 87.8,33 89.5,33.5 91.2,34 92.8,34.5 94.5,34.9 96.1,35.4 97.8,35.9 99.5,36.4 101.1,36.9 102.8,37.3 104.4,37.8 106.1,38.3 107.7,38.8 109.4,39.3 111.1,39.7 112.7,40.2 114.4,40.7 116,41.2 117.7,41.7 119.4,42.1 121,42.6 122.7,43.1 124.3,43.6 126,44.1 127.6,44.5 129.3,45 131,45.5 132.6,46 134.3,46.5 135.9,47 137.6,47.4 139.3,47.9 140.9,48.4 142.6,48.9 144.2,49.4 145.9,49.9 147.5,50.3 149.2,50.8 150.9,51.3 152.5,51.8 154.2,52.3 155.8,52.8 157.5,53.3 159.2,53.8 160.8,54.3 162.5,54.8 164.1,55.3 165.8,55.7 167.4,56.2 169.1,56.7 170.8,57.3 172.4,57.8 174.1,58.3 175.7,58.8 177.4,59.3 179.1,59.8 180.7,60.3 182.4,60.8 184,61.4 185.7,61.9 187.3,62.4 189,63 190.7,63.5 192.3,64.1 194,64.6 195.6,65.2 197.3,65.8 199,66.3 200.6,66.9 202.3,67.5 203.9,68.1 205.6,68.7 207.2,69.3 208.9,69.9 210.6,70.6 212.2,71.2 213.9,71.9 215.5,72.5 217.2,73.2 218.9,73.9 220.5,74.6 222.2,75.3 223.8,76 225.5,76.8 227.1,77.5 228.8,78.3 230.5,79 232.1,79.8 233.8,80.6 235.4,81.4 237.1,82.2 238.8,83 240.4,83.8 242.1,84.6 243.7,85.5 245.4,86.3 247,87.2 248.7,88 250.4,88.9 252,89.8 253.7,90.7 255.3,91.6 257,92.5 258.7,93.4 260.3,94.3 262,95.2 263.6,96.1 265.3,97 266.9,97.9 268.6,98.8 270.3,99.8 271.9,100.7 273.6,101.6 275.2,102.5 276.9,103.5 278.6,104.4 280.2,105.4 281.9,106.3 283.5,107.2 285.2,108.2 286.8,109.1 288.5,110.1 290.2,111 291.8,112 293.5,112.9 295.1,113.9 296.8,114.8 298.5,115.8 300.1,116.7 301.8,117.7 303.4,118.6 305.1,119.6 306.7,120.5 308.4,121.5 310.1,122.4 311.7,123.4 313.4,124.4 315,125.3 316.7,126.3 318.4,127.2 320,128.2 321.7,129.1 323.3,130.1 325,131.1 326.6,132 328.3,133 330,133.9 331.6,134.9 333.3,135.8 334.9,136.8 336.6,137.8 338.3,138.7 339.9,139.7 341.6,140.6 343.2,141.6 344.9,142.5 346.5,143.5 348.2,144.5 349.9,145.4" class="sk-accent2"/>
+<polyline points="58,72.1 59.7,72.1 61.3,72.1 63,72.1 64.6,72.1 66.3,72.1 67.9,72.1 69.6,72.1 71.3,72.1 72.9,72.1 74.6,72.1 76.2,72.1 77.9,72.1 79.6,72.1 81.2,72.1 82.9,72.1 84.5,72.1 86.2,72.1 87.8,72.1 89.5,72.1 91.2,72.1 92.8,72.1 94.5,72.1 96.1,72.1 97.8,72.1 99.5,72.1 101.1,72.1 102.8,72.1 104.4,72.1 106.1,72.1 107.7,72.1 109.4,72.1 111.1,72.1 112.7,72.1 114.4,72.1 116,72.1 117.7,72.1 119.4,72.1 121,72.1 122.7,72.1 124.3,72.1 126,72.1 127.6,72.1 129.3,72 131,72 132.6,72 134.3,72 135.9,72 137.6,72 139.3,72 140.9,72 142.6,72 144.2,72 145.9,72 147.5,72 149.2,72 150.9,72 152.5,72 154.2,72 155.8,72 157.5,71.9 159.2,71.9 160.8,71.9 162.5,71.9 164.1,71.9 165.8,71.9 167.4,71.8 169.1,71.8 170.8,71.8 172.4,71.8 174.1,71.8 175.7,71.7 177.4,71.7 179.1,71.7 180.7,71.6 182.4,71.6 184,71.5 185.7,71.5 187.3,71.4 189,71.4 190.7,71.3 192.3,71.2 194,71.2 195.6,71.1 197.3,71 199,71 200.6,70.9 202.3,70.8 203.9,70.8 205.6,70.7 207.2,70.6 208.9,70.6 210.6,70.6 212.2,70.6 213.9,70.7 215.5,70.8 217.2,70.9 218.9,71.1 220.5,71.5 222.2,71.8 223.8,72.3 225.5,72.9 227.1,73.5 228.8,74.3 230.5,75.1 232.1,75.9 233.8,76.8 235.4,77.8 237.1,78.7 238.8,79.7 240.4,80.8 242.1,81.8 243.7,82.8 245.4,83.8 247,84.9 248.7,85.9 250.4,86.9 252,88 253.7,89 255.3,90 257,91 258.7,92 260.3,93 262,94.1 263.6,95.1 265.3,96.1 266.9,97.1 268.6,98.1 270.3,99 271.9,100 273.6,101 275.2,102 276.9,103 278.6,104 280.2,104.9 281.9,105.9 283.5,106.9 285.2,107.9 286.8,108.8 288.5,109.8 290.2,110.8 291.8,111.8 293.5,112.7 295.1,113.7 296.8,114.7 298.5,115.6 300.1,116.6 301.8,117.5 303.4,118.5 305.1,119.5 306.7,120.4 308.4,121.4 310.1,122.4 311.7,123.3 313.4,124.3 315,125.3 316.7,126.2 318.4,127.2 320,128.1 321.7,129.1 323.3,130.1 325,131 326.6,132 328.3,132.9 330,133.9 331.6,134.9 333.3,135.8 334.9,136.8 336.6,137.7 338.3,138.7 339.9,139.7 341.6,140.6 343.2,141.6 344.9,142.5 346.5,143.5 348.2,144.4 349.9,145.4" class="sk-accent"/>
+<line x1="58" y1="75.7" x2="388" y2="75.7" class="sk-axis" style="stroke-dasharray:2 3"/>
+<circle cx="214.4" cy="72.1" r="3" class="fl-accent2"/>
+<text x="209.4" y="88.1" class="lab-accent2" text-anchor="end">ω<tspan dy="4" font-size="12">c0</tspan><tspan dy="-4"> ≈ 7,9</tspan></text>
+<circle cx="231.6" cy="75.7" r="3" class="fl-accent"/>
+<text x="237.6" y="67.7" class="lab-accent">−3 dB en 12,7</text>
+<text x="72.5" y="50.6" class="lab-accent2 lab-b">FTBO</text>
+<text x="72.5" y="84" class="lab-accent lab-b">FTBF</text>
+<line x1="58" y1="180.5" x2="388" y2="180.5" class="sk-axis" style="opacity:.35"/>
+<text x="52" y="184.5" class="lab-muted" text-anchor="end">0</text>
+<line x1="58" y1="221" x2="388" y2="221" class="sk-axis" style="opacity:.35"/>
+<text x="52" y="225" class="lab-muted" text-anchor="end">−90</text>
+<line x1="58" y1="261.5" x2="388" y2="261.5" class="sk-axis" style="opacity:.35"/>
+<text x="52" y="265.5" class="lab-muted" text-anchor="end">−180</text>
+<line x1="58" y1="266" x2="58" y2="176" class="sk-axis" style="opacity:.35"/>
+<line x1="140.5" y1="266" x2="140.5" y2="176" class="sk-axis" style="opacity:.35"/>
+<line x1="223" y1="266" x2="223" y2="176" class="sk-axis" style="opacity:.35"/>
+<line x1="305.5" y1="266" x2="305.5" y2="176" class="sk-axis" style="opacity:.35"/>
+<line x1="388" y1="266" x2="388" y2="176" class="sk-axis" style="opacity:.35"/>
+<rect x="58" y="176" width="330" height="90" class="sk-axis" style="fill:none"/>
+<text x="52" y="168" class="lab-muted" text-anchor="end">φ (°)</text>
+<polyline points="58,221.3 59.7,221.3 61.3,221.3 63,221.3 64.6,221.3 66.3,221.3 67.9,221.3 69.6,221.4 71.3,221.4 72.9,221.4 74.6,221.4 76.2,221.4 77.9,221.4 79.6,221.5 81.2,221.5 82.9,221.5 84.5,221.5 86.2,221.6 87.8,221.6 89.5,221.6 91.2,221.7 92.8,221.7 94.5,221.7 96.1,221.7 97.8,221.8 99.5,221.8 101.1,221.9 102.8,221.9 104.4,221.9 106.1,222 107.7,222 109.4,222.1 111.1,222.1 112.7,222.2 114.4,222.2 116,222.3 117.7,222.4 119.4,222.4 121,222.5 122.7,222.6 124.3,222.6 126,222.7 127.6,222.8 129.3,222.9 131,223 132.6,223.1 134.3,223.2 135.9,223.3 137.6,223.4 139.3,223.5 140.9,223.6 142.6,223.7 144.2,223.8 145.9,224 147.5,224.1 149.2,224.3 150.9,224.4 152.5,224.6 154.2,224.8 155.8,224.9 157.5,225.1 159.2,225.3 160.8,225.5 162.5,225.7 164.1,225.9 165.8,226.2 167.4,226.4 169.1,226.6 170.8,226.9 172.4,227.2 174.1,227.4 175.7,227.7 177.4,228 179.1,228.4 180.7,228.7 182.4,229 184,229.4 185.7,229.7 187.3,230.1 189,230.5 190.7,230.9 192.3,231.4 194,231.8 195.6,232.2 197.3,232.7 199,233.2 200.6,233.7 202.3,234.2 203.9,234.7 205.6,235.2 207.2,235.8 208.9,236.3 210.6,236.9 212.2,237.4 213.9,238 215.5,238.6 217.2,239.2 218.9,239.8 220.5,240.4 222.2,241 223.8,241.5 225.5,242.1 227.1,242.7 228.8,243.3 230.5,243.9 232.1,244.5 233.8,245.1 235.4,245.6 237.1,246.2 238.8,246.7 240.4,247.3 242.1,247.8 243.7,248.3 245.4,248.8 247,249.3 248.7,249.8 250.4,250.3 252,250.7 253.7,251.1 255.3,251.6 257,252 258.7,252.4 260.3,252.8 262,253.1 263.6,253.5 265.3,253.8 266.9,254.1 268.6,254.5 270.3,254.8 271.9,255.1 273.6,255.3 275.2,255.6 276.9,255.9 278.6,256.1 280.2,256.3 281.9,256.6 283.5,256.8 285.2,257 286.8,257.2 288.5,257.4 290.2,257.6 291.8,257.7 293.5,257.9 295.1,258.1 296.8,258.2 298.5,258.4 300.1,258.5 301.8,258.7 303.4,258.8 305.1,258.9 306.7,259 308.4,259.1 310.1,259.2 311.7,259.3 313.4,259.4 315,259.5 316.7,259.6 318.4,259.7 320,259.8 321.7,259.9 323.3,259.9 325,260 326.6,260.1 328.3,260.1 330,260.2 331.6,260.3 333.3,260.3 334.9,260.4 336.6,260.4 338.3,260.5 339.9,260.5 341.6,260.6 343.2,260.6 344.9,260.6 346.5,260.7 348.2,260.7 349.9,260.8 351.5,260.8 353.2,260.8 354.8,260.8 356.5,260.9 358.2,260.9 359.8,260.9 361.5,261 363.1,261 364.8,261 366.4,261 368.1,261.1 369.8,261.1 371.4,261.1 373.1,261.1 374.7,261.1 376.4,261.1 378.1,261.2 379.7,261.2 381.4,261.2 383,261.2 384.7,261.2 386.3,261.2 388,261.2" class="sk-accent2"/>
+<polyline points="58,180.8 59.7,180.8 61.3,180.8 63,180.8 64.6,180.8 66.3,180.8 67.9,180.8 69.6,180.9 71.3,180.9 72.9,180.9 74.6,180.9 76.2,180.9 77.9,180.9 79.6,181 81.2,181 82.9,181 84.5,181 86.2,181.1 87.8,181.1 89.5,181.1 91.2,181.2 92.8,181.2 94.5,181.2 96.1,181.2 97.8,181.3 99.5,181.3 101.1,181.4 102.8,181.4 104.4,181.4 106.1,181.5 107.7,181.5 109.4,181.6 111.1,181.6 112.7,181.7 114.4,181.7 116,181.8 117.7,181.9 119.4,181.9 121,182 122.7,182.1 124.3,182.1 126,182.2 127.6,182.3 129.3,182.4 131,182.5 132.6,182.6 134.3,182.7 135.9,182.8 137.6,182.9 139.3,183 140.9,183.1 142.6,183.3 144.2,183.4 145.9,183.5 147.5,183.7 149.2,183.8 150.9,184 152.5,184.2 154.2,184.3 155.8,184.5 157.5,184.7 159.2,184.9 160.8,185.1 162.5,185.4 164.1,185.6 165.8,185.9 167.4,186.1 169.1,186.4 170.8,186.7 172.4,187 174.1,187.4 175.7,187.7 177.4,188.1 179.1,188.5 180.7,188.9 182.4,189.4 184,189.9 185.7,190.4 187.3,190.9 189,191.5 190.7,192.2 192.3,192.8 194,193.6 195.6,194.3 197.3,195.2 199,196.1 200.6,197.1 202.3,198.2 203.9,199.3 205.6,200.6 207.2,202 208.9,203.5 210.6,205.1 212.2,206.9 213.9,208.7 215.5,210.8 217.2,212.9 218.9,215.1 220.5,217.4 222.2,219.8 223.8,222.2 225.5,224.6 227.1,226.9 228.8,229.1 230.5,231.2 232.1,233.3 233.8,235.1 235.4,236.9 237.1,238.5 238.8,240 240.4,241.4 242.1,242.7 243.7,243.8 245.4,244.9 247,245.9 248.7,246.8 250.4,247.7 252,248.4 253.7,249.2 255.3,249.8 257,250.5 258.7,251.1 260.3,251.6 262,252.1 263.6,252.6 265.3,253.1 266.9,253.5 268.6,253.9 270.3,254.3 271.9,254.6 273.6,255 275.2,255.3 276.9,255.6 278.6,255.9 280.2,256.1 281.9,256.4 283.5,256.6 285.2,256.9 286.8,257.1 288.5,257.3 290.2,257.5 291.8,257.7 293.5,257.8 295.1,258 296.8,258.2 298.5,258.3 300.1,258.5 301.8,258.6 303.4,258.7 305.1,258.9 306.7,259 308.4,259.1 310.1,259.2 311.7,259.3 313.4,259.4 315,259.5 316.7,259.6 318.4,259.7 320,259.8 321.7,259.9 323.3,259.9 325,260 326.6,260.1 328.3,260.1 330,260.2 331.6,260.3 333.3,260.3 334.9,260.4 336.6,260.4 338.3,260.5 339.9,260.5 341.6,260.6 343.2,260.6 344.9,260.6 346.5,260.7 348.2,260.7 349.9,260.8 351.5,260.8 353.2,260.8 354.8,260.8 356.5,260.9 358.2,260.9 359.8,260.9 361.5,261 363.1,261 364.8,261 366.4,261 368.1,261.1 369.8,261.1 371.4,261.1 373.1,261.1 374.7,261.1 376.4,261.1 378.1,261.2 379.7,261.2 381.4,261.2 383,261.2 384.7,261.2 386.3,261.2 388,261.2" class="sk-accent"/>
+<text x="58" y="282" class="lab-muted" text-anchor="middle">0,1</text>
+<text x="140.5" y="282" class="lab-muted" text-anchor="middle">1</text>
+<text x="223" y="282" class="lab-muted" text-anchor="middle">10</text>
+<text x="305.5" y="282" class="lab-muted" text-anchor="middle">100</text>
+<text x="388" y="282" class="lab-muted" text-anchor="middle">1000</text>
+<text x="388" y="300" class="lab-muted" text-anchor="end">ω (rad/s, échelle log)</text>
+</svg>
+<figcaption>FTBO \(\dfrac{10}{p\,(1 + 0{,}1p)}\) et FTBF \(\dfrac{1}{1 + 0{,}1p + 0{,}01p^2}\) (retour unitaire). Tant que \(|H_{BO}| \gg 1\), la FTBF vaut presque 1 (0 dB, 0°) ; au-delà de \(\omega_{c0}\), elle rejoint la FTBO. Sa bande passante à \(-3\) dB, 12,7 rad/s, est du même ordre que \(\omega_{c0} \approx 7{,}9\) rad/s.</figcaption>
+</figure>
+  <div class="notice">Une <strong>résonance de la boucle fermée</strong> signale une boucle ouverte qui passe près du point critique (gain 0 dB et phase \(-180°\)) : plus la marge de phase est faible, plus la bosse est haute et plus la réponse indicielle dépasse. C'est le lien entre ce chapitre et <a href="#stabilite/cours">« Stabilité des systèmes asservis »</a>.</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§9 · MESURER UNE RÉPONSE FRÉQUENTIELLE</div>
+  <h2>Du banc d'essai au modèle</h2>
+  <div class="intro">Identifier un modèle de comportement (programme D2, B3), c'est choisir l'entrée à imposer et la sortie à mesurer, relever le gain et la phase à plusieurs pulsations, puis vérifier qu'un modèle simple rend compte des mesures.</div>
+  <div class="method-box">
+    <strong>Le protocole</strong>
+    <ol>
+      <li><strong>Entrée</strong> : une sinusoïde autour du point de fonctionnement (une vitesse moyenne, une température de consigne), d'amplitude assez faible pour ne saturer ni l'actionneur ni la mesure, assez forte pour dominer le bruit. Vérifier que la sortie reste sinusoïdale : une sortie écrêtée ou déformée signale une non-linéarité, et le modèle linéaire n'est plus valable.</li>
+      <li><strong>Pulsations</strong> : réparties en échelle logarithmique (trois à cinq par décade), resserrées près des cassures et de la résonance, sur deux décades au moins de part et d'autre de la zone utile.</li>
+      <li><strong>Mesure</strong> : attendre la fin du régime transitoire, puis relever les amplitudes \(E_m\), \(S_m\) et le décalage temporel \(\Delta t\) entre deux maximums (ou deux passages par la valeur moyenne). \(G_{dB} = 20\log(S_m/E_m)\) et \(\varphi = -360°\cdot\Delta t/T = -360°\,f\,\Delta t\) si la sortie est en retard.</li>
+      <li><strong>Modèle</strong> : identifier les briques (§5), puis superposer le Bode calculé aux points mesurés (§4) et chiffrer l'écart ; s'il est trop grand, enrichir le modèle (une cassure de plus, un retard).</li>
+    </ol>
+  </div>
+  <div class="method-box">
+    <strong>Exemple — un point de mesure</strong>
+    <p>À \(f = 2\ \text{Hz}\) (\(\omega = 12{,}6\ \text{rad/s}\)), l'entrée a une amplitude de 2,0 V, la sortie de 1,6 V, et ses maximums arrivent 35 ms après ceux de l'entrée.</p>
+    <ol>
+      <li>Gain : \(20\log(1{,}6/2{,}0) = 20\log 0{,}8 \approx -1{,}9\) dB.</li>
+      <li>Phase : la période vaut 500 ms, donc \(\varphi = -360° \times 35/500 = -25{,}2°\).</li>
+      <li>Si un modèle prévoit \(-2{,}0\) dB et \(-24°\) à cette pulsation, l'écart (0,1 dB et 1°) est de l'ordre de la précision de lecture : le modèle est validé en ce point.</li>
+    </ol>
+  </div>
+  <div class="notice"><strong>Erreur classique</strong> : mesurer avant la fin du transitoire (amplitude et décalage faux), ou se tromper de signe : une sortie en retard a une phase négative. Pour un décalage supérieur à une demi-période, la phase dépasse \(-180°\) : suivre la phase de proche en proche depuis les basses pulsations pour ne pas la confondre avec une avance.</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">POUR ALLER PLUS LOIN · HORS PROGRAMME</div>
+  <h2>Autres représentations et suite du cours</h2>
+  <div class="intro">Rien de ce qui suit n'est exigible en PTSI.</div>
+  <ul>
+    <li><strong>Lieux de Black-Nichols et de Nyquist</strong> (hors programme des deux années) : ils portent la même information que le Bode. Le lieu de Black trace le gain en dB en fonction de la phase, gradué en pulsations ; le lieu de Nyquist trace \(H(j\omega)\) dans le plan complexe. Les marges de stabilité s'y lisent aussi, mais le programme les demande sur le diagramme de Bode.</li>
+    <li><strong>Correcteur à avance de phase</strong> \(K\,\dfrac{1 + aTp}{1 + Tp}\), \(a \gt 1\) : son Bode se trace avec les outils de ce chapitre (un zéro, puis un pôle) ; il apporte une phase maximale \(\varphi_m\), avec \(\sin\varphi_m = \dfrac{a - 1}{a + 1}\), en \(\omega_m = \dfrac{1}{T\sqrt a}\). Son réglage est au programme de 2ᵉ année : <a href="#correcteurs/cours">« Correction des SLCI »</a>, §5.</li>
+  </ul>
+</div>
+</template>
+<template class="pan-tpl" data-panneau="bode-meth">
+<div class="course-section">
+  <div class="sec-num">MÉTHODES · DIAGRAMMES DE BODE</div>
+  <h2>Les réflexes du chapitre</h2>
+  <div class="intro">Ces méthodes servent à passer d'une fonction de transfert à son diagramme de Bode, et inversement d'un relevé à un modèle ; elles préparent la lecture des marges de stabilité et de la bande passante.</div>
+  <div class="method-box"><strong>Méthode 1 — Calculer gain et phase à une pulsation</strong>
+    <ol>
+      <li>Remplacer \(p\) par \(j\omega\) dans la forme factorisée.</li>
+      <li>Module : produit des modules du numérateur sur produit des modules du dénominateur, avec \(|1 + j\tau\omega| = \sqrt{1 + \tau^2\omega^2}\) ; en dB, sommes et différences de \(20\log\).</li>
+      <li>Phase : somme des arctangentes du numérateur moins celles du dénominateur, \(-90°\) par intégrateur, \(-\omega T\) (converti en degrés) pour un retard ; pour un deuxième ordre au-delà de \(\omega_0\), \(-180° + \arctan\dfrac{2\xi u}{u^2 - 1}\).</li>
+    </ol>
+    <p><em>Exemple éclair :</em> \(H(p) = \dfrac{50}{p\,(1 + 0{,}1p)}\) en \(\omega = 10\ \text{rad/s}\) : \(|H| = \dfrac{50}{10\sqrt2} \approx 3{,}54\), soit 11,0 dB ; \(\varphi = -90° - \arctan 1 = -135°\).</p>
+  </div>
+  <div class="method-box"><strong>Méthode 2 — Calculer vite en décibels</strong>
+    <ol>
+      <li>×2 = +6 dB, ×10 = +20 dB, \(\times\sqrt2\) = +3 dB ; un produit de facteurs donne une somme de décibels.</li>
+      <li>Une décade sur une pente de \(-20 n\) dB/déc fait perdre \(20 n\) dB ; une octave (facteur 2), \(6 n\) dB.</li>
+      <li>Revenir au rapport : \(|H| = 10^{G_{dB}/20}\) (−12 dB ≈ 0,25 ; +26 dB ≈ 20).</li>
+    </ol>
+    <p><em>Exemple éclair :</em> un rapport 40 = 4 × 10 vaut \(12 + 20 = 32\) dB ; \(-26\) dB = \(-20 - 6\) dB correspond à \(0{,}1 \times 0{,}5 = 0{,}05\).</p>
+  </div>
+  <div class="method-box"><strong>Méthode 3 — Mettre une fonction de transfert sous forme canonique</strong>
+    <ol>
+      <li>Factoriser numérateur et dénominateur ; mettre chaque facteur \(p + a\) sous la forme \(a\,(1 + p/a)\), chaque trinôme sous la forme \(1 + \frac{2\xi}{\omega_0}p + \frac{p^2}{\omega_0^2}\).</li>
+      <li>Rassembler les constantes en un seul gain \(K\) ; compter les \(p\) en facteur au dénominateur : c'est la classe \(\alpha\).</li>
+      <li>Lister les cassures \(a = 1/\tau\) (et \(\omega_0\)) par ordre croissant, en notant pour chacune s'il s'agit d'un pôle ou d'un zéro.</li>
+    </ol>
+    <p><em>Exemple éclair :</em> \(\dfrac{20\,(p + 2)}{p\,(p + 10)} = \dfrac{20 \times 2\,(1 + 0{,}5p)}{10\,p\,(1 + 0{,}1p)} = \dfrac{4\,(1 + 0{,}5p)}{p\,(1 + 0{,}1p)}\) : \(K = 4\), classe 1, zéro en 2 rad/s, pôle en 10 rad/s.</p>
+  </div>
+  <div class="method-box"><strong>Méthode 4 — Tracer le gain asymptotique</strong>
+    <ol>
+      <li>Forme canonique ; classe \(\alpha\), gain \(K\), cassures rangées par ordre croissant.</li>
+      <li>Droite de départ de pente \(-20\alpha\) dB/déc passant par \(20\log K\) en \(\omega = 1\) (palier à \(20\log K\) en classe 0).</li>
+      <li>À chaque cassure : \(-20\) (pôle), \(+20\) (zéro), \(-40\) (deuxième ordre) dB/déc de pente en plus ; gain aux cassures de proche en proche.</li>
+      <li>Repérer la pulsation de coupure à 0 dB en résolvant l'équation de la droite qui y passe.</li>
+    </ol>
+    <p><em>Exemple éclair :</em> \(\dfrac{4\,(1 + 0{,}5p)}{p\,(1 + 0{,}1p)}\) : pente \(-20\) passant par 12 dB en \(\omega = 1\), d'où 6 dB en 2 rad/s ; palier à 6 dB de 2 à 10 rad/s (le zéro compense l'intégrateur) ; pente \(-20\) au-delà, qui coupe 0 dB en \(10 \times 10^{6/20} = 20\ \text{rad/s}\).</p>
+  </div>
+  <div class="method-box"><strong>Méthode 5 — Tracer la phase</strong>
+    <ol>
+      <li>Phase de départ \(-90°\alpha\) ; phase finale \(-90° \times\) (degré du dénominateur − degré du numérateur), sauf retard.</li>
+      <li>Asymptotes en marches : un pôle retire 90° à sa cassure, un zéro en ajoute 90°, un deuxième ordre retire 180°.</li>
+      <li>Calculer la phase exacte aux pulsations utiles (cassures, milieu logarithmique de deux cassures, coupure à 0 dB) par la somme des arctangentes, et raccorder.</li>
+    </ol>
+    <p><em>Exemple éclair :</em> même \(H\) : phase \(-90°\) au départ, marche à 0° entre 2 et 10 rad/s, retour à \(-90°\) au-delà. Au milieu logarithmique \(\sqrt{20} \approx 4{,}5\ \text{rad/s}\), la phase réelle vaut \(-90° + \arctan 2{,}24 - \arctan 0{,}45 \approx -48°\) : les deux cassures, trop proches, empêchent la phase d'atteindre 0°.</p>
+  </div>
+  <div class="method-box"><strong>Méthode 6 — Placer la courbe réelle</strong>
+    <ol>
+      <li>Cassure isolée d'un pôle : \(-3\) dB et \(-45°\) par rapport aux asymptotes ; à une octave, \(-1\) dB ; à une décade, l'écart de gain est négligeable et la phase vaut \(-5{,}7°\) ou \(-84{,}3°\). Pour un zéro, mêmes écarts de signe opposé.</li>
+      <li>Deuxième ordre : en \(\omega_0\), le gain réel est à \(-20\log(2\xi)\) de l'asymptote et la phase vaut \(-90°\).</li>
+      <li>Cassures à moins d'une décade l'une de l'autre : leurs corrections s'ajoutent ; calculer le point exact (méthode 1).</li>
+    </ol>
+    <p><em>Exemple éclair :</em> deuxième ordre de gain 1 en \(\omega_0\) : \(+14\) dB si \(\xi = 0{,}1\), \(-2{,}9\) dB si \(\xi = 0{,}7\) (presque comme un premier ordre).</p>
+  </div>
+  <div class="method-box"><strong>Méthode 7 — Trouver la pulsation de coupure à 0 dB</strong>
+    <ol>
+      <li>Estimer \(\omega_{c0}\) sur les asymptotes : écrire l'équation du segment qui traverse 0 dB.</li>
+      <li>Calculer la valeur exacte en résolvant \(|H(j\omega)| = 1\) : équation bicarrée pour deux facteurs, sinon essais successifs ou dichotomie (à la calculatrice ou en Python) en partant de l'estimation.</li>
+      <li>Vérifier que la valeur trouvée est cohérente avec le tracé (même segment, ou à côté d'une cassure proche).</li>
+    </ol>
+    <p><em>Exemple éclair :</em> \(\dfrac{10}{p\,(1 + 0{,}1p)}\) : l'asymptote coupe 0 dB exactement en 10 rad/s, à la cassure ; la courbe réelle, 3 dB plus bas, coupe plus tôt : \(0{,}01\,\omega^4 + \omega^2 - 100 = 0\) donne \(\omega_{c0} \approx 7{,}9\ \text{rad/s}\).</p>
+  </div>
+  <div class="method-box"><strong>Méthode 8 — Retrouver une fonction de transfert sur un Bode</strong>
+    <ol>
+      <li>Classe par la pente de départ et la phase de départ.</li>
+      <li>Gain par la valeur de la droite de départ en \(\omega = 1\) (ou par le palier en classe 0).</li>
+      <li>Une cassure par changement de pente, avec son signe ; une bosse = deuxième ordre (\(\omega_0\) où la phase vaut \(-90°\) relativement au départ, \(\xi\) par le gain en \(\omega_0\)).</li>
+      <li>Contrôler la phase totale ; un excès de phase proportionnel à \(\omega\) révèle un retard.</li>
+    </ol>
+    <p><em>Exemple éclair :</em> palier à 6 dB, une cassure en 5 rad/s suivie d'une pente de \(-20\) dB/déc, phase de 0° à \(-90°\) passant par \(-45°\) en 5 rad/s : \(H(p) = \dfrac{2}{1 + 0{,}2p}\) (\(10^{6/20} \approx 2\)).</p>
+  </div>
+  <div class="method-box"><strong>Méthode 9 — Exploiter un relevé à l'oscilloscope</strong>
+    <ol>
+      <li>Attendre la fin du régime transitoire ; vérifier que la sortie est sinusoïdale (sinon : saturation, amplitude d'entrée à réduire).</li>
+      <li>Gain : \(20\log(S_m/E_m)\).</li>
+      <li>Phase : \(\varphi = -360°\,f\,\Delta t\) pour une sortie en retard de \(\Delta t\) ; suivre la phase de proche en proche quand la fréquence augmente.</li>
+    </ol>
+    <p><em>Exemple éclair :</em> à 5 Hz, sortie d'amplitude moitié de celle de l'entrée, en retard de 20 ms : \(G = -6\) dB et \(\varphi = -360° \times 5 \times 0{,}020 = -36°\).</p>
+  </div>
+  <div class="method-box"><strong>Méthode 10 — Lire la boucle fermée sur la boucle ouverte</strong>
+    <ol>
+      <li>Basses pulsations (\(|H_{BO}| \gg 1\)) : \(H_{BF} \approx 1\), et exactement \(K/(1 + K)\) en classe 0.</li>
+      <li>Hautes pulsations (\(|H_{BO}| \ll 1\)) : \(H_{BF} \approx H_{BO}\).</li>
+      <li>Bande passante à \(-3\) dB de la boucle fermée : de l'ordre de \(\omega_{c0}\) (entre \(\omega_{c0}\) et \(2\,\omega_{c0}\) pour une boucle bien amortie) ; une résonance de la FTBF signale une marge de phase faible.</li>
+    </ol>
+    <p><em>Exemple éclair :</em> FTBO \(\dfrac{99}{1 + p}\) : FTBF \(\dfrac{0{,}99}{1 + 0{,}01p}\), palier à \(-0{,}09\) dB et bande passante de 100 rad/s ; la FTBO coupe 0 dB en \(\sqrt{99^2 - 1} \approx 99\ \text{rad/s}\).</p>
+  </div>
+  <div class="notice"><strong>Pièges classiques.</strong> Faire partir la pente d'un intégrateur de 0 dB au lieu de \(20\log K\) en \(\omega = 1\) ; oublier qu'un zéro <em>ajoute</em> de la pente ; placer une cassure en \(\tau\) au lieu de \(1/\tau\) ; calculer une marge sur la phase asymptotique ; mal déterminer l'arctangente d'un deuxième ordre au-delà de \(\omega_0\) ; oublier de convertir \(\omega T\) en degrés ; tracer les pulsations en échelle linéaire ; confondre fréquence \(f\) (Hz) et pulsation \(\omega = 2\pi f\) (rad/s).</div>
+</div>
+</template>
+<template class="pan-tpl" data-panneau="bode-exos">
+<div class="exo-wrapper">
+<div class="exo">
+  <span class="num">EXO 01</span><span class="diff">★ ☆ ☆</span>
+  <h3>Décibels et briques élémentaires</h3>
+  <div class="statement">Pulsations en rad/s.</div>
+  <div class="q"><strong>Q1.</strong> Convertir en décibels les rapports d'amplitudes 4, 0,5, 1 000 et 0,02.</div>
+  <div class="q"><strong>Q2.</strong> Un gain suit une pente de \(-40\) dB/décade sur deux décades. Par combien l'amplitude est-elle divisée ?</div>
+  <div class="q"><strong>Q3.</strong> Donner le gain (en dB) et la phase de \(H(p) = \dfrac{5}{p}\) pour \(\omega = 0{,}5\), 5 et 50 rad/s. Où coupe-t-il 0 dB ?</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> \(20\log 4 = 12\) dB ; \(20\log 0{,}5 = -6\) dB ; \(20\log 1000 = 60\) dB ; \(20\log 0{,}02 = 20\,(\log 2 - 2) \approx -34\) dB.</p>
+    <p><strong>Q2.</strong> \(-80\) dB, soit un rapport \(10^{-4}\) : l'amplitude est divisée par 10 000 (par 100 à chaque décade, car le gain varie comme \(1/\omega^2\)).</p>
+    <p><strong>Q3.</strong> \(|H| = 5/\omega\) : \(20\log 10 = 20\) dB en 0,5 rad/s, 0 dB en 5 rad/s, \(-20\) dB en 50 rad/s ; la phase vaut \(-90°\) à toute pulsation. Le gain coupe 0 dB en \(\omega = K = 5\ \text{rad/s}\).</p>
+  </div>
+</div>
+<div class="exo">
+  <span class="num">EXO 02</span><span class="diff">★ ★ ☆</span>
+  <h3>Tracé asymptotique et coupure à 0 dB</h3>
+  <div class="statement">\(H(p) = \dfrac{20}{(1 + 0{,}5p)(1 + 0{,}05p)}\).</div>
+  <div class="q"><strong>Q1.</strong> Donner le gain statique en dB et les pulsations de cassure.</div>
+  <div class="q"><strong>Q2.</strong> Tracer le diagramme asymptotique du gain ; donner le gain asymptotique en 20 rad/s.</div>
+  <div class="q"><strong>Q3.</strong> Estimer, sur les asymptotes, la pulsation où le gain vaut 0 dB. La valeur exacte est 24,9 rad/s : expliquer l'écart.</div>
+  <div class="q"><strong>Q4.</strong> Calculer la phase à cette pulsation.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> \(20\log 20 \approx 26\) dB ; cassures en \(1/0{,}5 = 2\) et \(1/0{,}05 = 20\ \text{rad/s}\).</p>
+    <p><strong>Q2.</strong> Horizontale à 26 dB jusqu'à 2 rad/s ; pente \(-20\) dB/déc de 2 à 20 rad/s, d'où \(26 - 20 = 6\) dB en 20 rad/s ; pente \(-40\) dB/déc au-delà.</p>
+    <p><strong>Q3.</strong> Sur la pente \(-40\) : \(6 - 40\log(\omega/20) = 0\), soit \(\omega = 20 \times 10^{0{,}15} \approx 28\ \text{rad/s}\). La courbe réelle passe sous les asymptotes au voisinage de la cassure en 20 rad/s (3 dB plus bas en 20 rad/s : 3,0 dB au lieu de 6) : elle atteint donc 0 dB un peu plus tôt, en 24,9 rad/s.</p>
+    <p><strong>Q4.</strong> \(\varphi = -\arctan(12{,}45) - \arctan(1{,}245)\), soit \(-85{,}4° - 51{,}2° \approx -137°\).</p>
+  </div>
+</div>
+<div class="exo">
+  <span class="num">EXO 03</span><span class="diff">★ ★ ☆</span>
+  <h3>Un réseau à avance de phase</h3>
+  <div class="statement">\(C(p) = \dfrac{1 + p}{1 + 0{,}1p}\) (pulsations en rad/s).</div>
+  <div class="q"><strong>Q1.</strong> Tracer les asymptotes du gain et de la phase.</div>
+  <div class="q"><strong>Q2.</strong> Calculer la phase et le gain en \(\omega_m = \sqrt{1 \times 10}\).</div>
+  <div class="q"><strong>Q3.</strong> Pourquoi parle-t-on d'« avance » de phase ? À quoi un tel bloc peut-il servir dans une boucle ?</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> Zéro en 1 rad/s puis pôle en 10 rad/s. Gain : 0 dB jusqu'à 1, pente \(+20\) dB/déc de 1 à 10, puis palier à \(+20\) dB. Phase asymptotique : 0°, puis \(+90°\) entre les cassures, puis 0°.</p>
+    <p><strong>Q2.</strong> \(\varphi(\omega_m) = \arctan 3{,}16 - \arctan 0{,}316\), soit \(72{,}5° - 17{,}5° = 55°\) : c'est le maximum, atteint au milieu (logarithmique) des cassures. Gain : \(\dfrac{\sqrt{1 + 10}}{\sqrt{1 + 0{,}1}} = \sqrt{10}\), soit 10 dB.</p>
+    <p><strong>Q3.</strong> La phase est positive : la sortie est en avance sur l'entrée. Placé dans une boucle, ce bloc remonte la phase de la boucle ouverte au voisinage de sa pulsation de coupure et augmente la marge de phase. C'est le correcteur à avance de phase, étudié en deuxième année.</p>
+  </div>
+</div>
+<div class="exo">
+  <span class="num">EXO 04</span><span class="diff">★ ★ ☆</span>
+  <h3>Retrouver la fonction de transfert</h3>
+  <div class="statement">Un diagramme de Bode relevé présente, en basses pulsations, une pente de \(-20\) dB/décade et une phase de \(-90°\) ; la droite de départ, prolongée, vaut 20 dB en \(\omega = 1\ \text{rad/s}\). À 5 rad/s, la pente devient \(-40\) dB/décade, et la phase tend vers \(-180°\) en hautes pulsations.</div>
+  <div class="q"><strong>Q1.</strong> Proposer une fonction de transfert.</div>
+  <div class="q"><strong>Q2.</strong> Calculer le gain asymptotique et le gain réel en 5 rad/s, ainsi que la phase.</div>
+  <div class="q"><strong>Q3.</strong> Où la droite de départ couperait-elle 0 dB ? Le gain réel coupe-t-il 0 dB avant ou après cette pulsation ?</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> Classe 1 (pente et phase de départ), gain \(K = 10^{20/20} = 10\), un pôle en 5 rad/s : \(H(p) = \dfrac{10}{p\,(1 + 0{,}2p)}\). La phase totale \(-90° - 90° = -180°\) est cohérente.</p>
+    <p><strong>Q2.</strong> Asymptote : \(20 - 20\log 5 = 6\) dB. Réel : \(\dfrac{10}{5\sqrt2} = \sqrt2\), soit 3 dB. Phase : \(-90° - 45° = -135°\).</p>
+    <p><strong>Q3.</strong> La droite \(10/\omega\) coupe 0 dB en 10 rad/s. Mais après 5 rad/s le gain chute à \(-40\) dB/déc : l'asymptote coupe 0 dB en \(5 \times 10^{6/40} \approx 7{,}1\ \text{rad/s}\), et le gain réel vers 6,2 rad/s, donc avant 10 rad/s.</p>
+  </div>
+</div>
+<div class="exo">
+  <span class="num">EXO 05</span><span class="diff">★ ★ ★</span>
+  <h3>Diagramme de Bode — tracé asymptotique et marges</h3>
+  <div class="statement">Un asservissement à retour unitaire a pour fonction de transfert en boucle ouverte \(H_{BO}(p) = \dfrac{100}{p\,(1 + 0{,}1p)(1 + 0{,}01p)}\) (pulsations en rad/s).</div>
+  <div class="q"><strong>Q1.</strong> Tracer le diagramme de Bode asymptotique, en gain et en phase. Donner les pulsations de cassure et les pentes.</div>
+  <div class="q"><strong>Q2.</strong> Estimer sur les asymptotes la pulsation de coupure à 0 dB \(\omega_{c0}\), puis calculer la phase exacte à cette pulsation. Que peut-on en conclure ?</div>
+  <div class="q"><strong>Q3.</strong> Calculer la valeur exacte de \(\omega_{c0}\) et la marge de phase \(M_\varphi\). Calculer la pulsation \(\omega_\pi\) où la phase vaut \(-180°\) et la marge de gain \(M_G\). Conclure.</div>
+  <div class="q"><strong>Q4.</strong> On remplace le gain 100 par un gain \(K\) réglable. Quelle valeur de \(K\) donne \(M_\varphi = 45°\) ? Quelle est alors la marge de gain ?</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> Forme canonique : classe 1, \(K = 100\) (40 dB en \(\omega = 1\)), cassures en \(1/0{,}1 = 10\) et \(1/0{,}01 = 100\ \text{rad/s}\). Gain : pente \(-20\) dB/déc jusqu'à 10 rad/s (on y arrive à \(40 - 20 = 20\) dB), \(-40\) dB/déc de 10 à 100 rad/s (on arrive à \(20 - 40 = -20\) dB), \(-60\) dB/déc au-delà. Phase asymptotique : \(-90°\), puis \(-180°\) entre 10 et 100 rad/s, puis \(-270°\).</p>
+    <p><strong>Q2.</strong> Sur le segment de pente \(-40\) : \(20 - 40\log(\omega/10) = 0\), soit \(\omega = 10\sqrt{10} \approx 31{,}6\ \text{rad/s}\). Phase exacte : \(-90° - \arctan 3{,}16 - \arctan 0{,}316\), soit \(-90° - 72{,}45° - 17{,}55° = -180°\) (car \(\arctan x + \arctan(1/x) = 90°\)). D'après les asymptotes, la boucle serait exactement à la limite de stabilité : l'estimation asymptotique ne suffit pas pour conclure, il faut le gain exact.</p>
+    <p><strong>Q3.</strong> Près de la cassure en 10 rad/s, la courbe réelle passe sous les asymptotes : elle coupe 0 dB un peu avant 31,6 rad/s. La résolution de \(|H_{BO}(j\omega)| = 1\) (dichotomie) donne \(\omega_{c0} \approx 30{,}1\ \text{rad/s}\), où la phase vaut \(-90° - \arctan 3{,}01 - \arctan 0{,}301\), soit \(-178{,}4°\) : \(M_\varphi \approx 1{,}6°\). La phase vaut \(-180°\) quand \(\arctan(0{,}1\omega) + \arctan(0{,}01\omega) = 90°\), c'est-à-dire \(0{,}1\omega \times 0{,}01\omega = 1\) : \(\omega_\pi = \sqrt{1000} \approx 31{,}6\ \text{rad/s}\). Le gain y vaut \(\dfrac{100}{31{,}6\,\sqrt{11}\,\sqrt{1{,}1}} = \dfrac{100}{110} \approx 0{,}91\), soit \(-0{,}83\) dB : \(M_G \approx 0{,}8\) dB. Les deux marges sont positives : la boucle fermée est stable, mais à peine (gain limite 110) ; sa réponse indicielle oscillerait longtemps. Il faut baisser le gain ou corriger la boucle.</p>
+    <figure class="schema">
+<svg viewBox="0 0 410 324" role="img" aria-label="Diagramme de Bode de 100 sur p fois un plus 0,1 p fois un plus 0,01 p : asymptotes et courbes réelles, coupure à 0 décibel juste avant la pulsation où la phase vaut moins 180 degrés">
+<line x1="58" y1="23.9" x2="388" y2="23.9" class="sk-axis" style="opacity:.35"/>
+<text x="52" y="27.9" class="lab-muted" text-anchor="end">60</text>
+<line x1="58" y1="43.4" x2="388" y2="43.4" class="sk-axis" style="opacity:.35"/>
+<text x="52" y="47.4" class="lab-muted" text-anchor="end">40</text>
+<line x1="58" y1="62.8" x2="388" y2="62.8" class="sk-axis" style="opacity:.35"/>
+<text x="52" y="66.8" class="lab-muted" text-anchor="end">20</text>
+<line x1="58" y1="82.3" x2="388" y2="82.3" class="sk-axis" style="opacity:.35"/>
+<text x="52" y="86.3" class="lab-muted" text-anchor="end">0</text>
+<line x1="58" y1="101.7" x2="388" y2="101.7" class="sk-axis" style="opacity:.35"/>
+<text x="52" y="105.7" class="lab-muted" text-anchor="end">−20</text>
+<line x1="58" y1="121.2" x2="388" y2="121.2" class="sk-axis" style="opacity:.35"/>
+<text x="52" y="125.2" class="lab-muted" text-anchor="end">−40</text>
+<line x1="58" y1="140.6" x2="388" y2="140.6" class="sk-axis" style="opacity:.35"/>
+<text x="52" y="144.6" class="lab-muted" text-anchor="end">−60</text>
+<line x1="58" y1="160.1" x2="388" y2="160.1" class="sk-axis" style="opacity:.35"/>
+<text x="52" y="164.1" class="lab-muted" text-anchor="end">−80</text>
+<line x1="58" y1="162" x2="58" y2="22" class="sk-axis" style="opacity:.35"/>
+<line x1="140.5" y1="162" x2="140.5" y2="22" class="sk-axis" style="opacity:.35"/>
+<line x1="223" y1="162" x2="223" y2="22" class="sk-axis" style="opacity:.35"/>
+<line x1="305.5" y1="162" x2="305.5" y2="22" class="sk-axis" style="opacity:.35"/>
+<line x1="388" y1="162" x2="388" y2="22" class="sk-axis" style="opacity:.35"/>
+<rect x="58" y="22" width="330" height="140" class="sk-axis" style="fill:none"/>
+<text x="52" y="14" class="lab-muted" text-anchor="end">G (dB)</text>
+<polyline points="58,23.9 223,62.8 305.5,101.7 388,160.1" class="sk-accent2" style="stroke-dasharray:5 4"/>
+<polyline points="58,23.9 59.7,24.3 61.3,24.7 63,25.1 64.6,25.5 66.3,25.9 67.9,26.3 69.6,26.7 71.3,27.1 72.9,27.5 74.6,27.9 76.2,28.2 77.9,28.6 79.6,29 81.2,29.4 82.9,29.8 84.5,30.2 86.2,30.6 87.8,31 89.5,31.4 91.2,31.8 92.8,32.2 94.5,32.5 96.1,32.9 97.8,33.3 99.5,33.7 101.1,34.1 102.8,34.5 104.4,34.9 106.1,35.3 107.7,35.7 109.4,36.1 111.1,36.5 112.7,36.9 114.4,37.2 116,37.6 117.7,38 119.4,38.4 121,38.8 122.7,39.2 124.3,39.6 126,40 127.6,40.4 129.3,40.8 131,41.2 132.6,41.6 134.3,42 135.9,42.3 137.6,42.7 139.3,43.1 140.9,43.5 142.6,43.9 144.2,44.3 145.9,44.7 147.5,45.1 149.2,45.5 150.9,45.9 152.5,46.3 154.2,46.7 155.8,47.1 157.5,47.5 159.2,47.9 160.8,48.3 162.5,48.7 164.1,49.1 165.8,49.5 167.4,49.9 169.1,50.3 170.8,50.7 172.4,51.2 174.1,51.6 175.7,52 177.4,52.4 179.1,52.8 180.7,53.3 182.4,53.7 184,54.1 185.7,54.5 187.3,55 189,55.4 190.7,55.9 192.3,56.3 194,56.8 195.6,57.2 197.3,57.7 199,58.2 200.6,58.6 202.3,59.1 203.9,59.6 205.6,60.1 207.2,60.6 208.9,61.1 210.6,61.6 212.2,62.2 213.9,62.7 215.5,63.2 217.2,63.8 218.9,64.4 220.5,64.9 222.2,65.5 223.8,66.1 225.5,66.7 227.1,67.3 228.8,67.9 230.5,68.6 232.1,69.2 233.8,69.8 235.4,70.5 237.1,71.2 238.8,71.8 240.4,72.5 242.1,73.2 243.7,73.9 245.4,74.6 247,75.3 248.7,76 250.4,76.8 252,77.5 253.7,78.2 255.3,79 257,79.7 258.7,80.5 260.3,81.2 262,82 263.6,82.8 265.3,83.6 266.9,84.4 268.6,85.2 270.3,86 271.9,86.8 273.6,87.6 275.2,88.4 276.9,89.2 278.6,90.1 280.2,90.9 281.9,91.7 283.5,92.6 285.2,93.5 286.8,94.3 288.5,95.2 290.2,96.1 291.8,97 293.5,97.9 295.1,98.8 296.8,99.7 298.5,100.6 300.1,101.6 301.8,102.5 303.4,103.5 305.1,104.4 306.7,105.4 308.4,106.4 310.1,107.4 311.7,108.4 313.4,109.4 315,110.4 316.7,111.5 318.4,112.5 320,113.6 321.7,114.6 323.3,115.7 325,116.7 326.6,117.8 328.3,118.9 330,120 331.6,121.1 333.3,122.2 334.9,123.3 336.6,124.4 338.3,125.5 339.9,126.6 341.6,127.8 343.2,128.9 344.9,130 346.5,131.2 348.2,132.3 349.9,133.4 351.5,134.6 353.2,135.7 354.8,136.9 356.5,138 358.2,139.2 359.8,140.3 361.5,141.5 363.1,142.6 364.8,143.8 366.4,145 368.1,146.1 369.8,147.3 371.4,148.4 373.1,149.6 374.7,150.8 376.4,151.9 378.1,153.1 379.7,154.3 381.4,155.4 383,156.6 384.7,157.8 386.3,158.9 388,160.1" class="sk-accent"/>
+<line x1="58" y1="82.3" x2="388" y2="82.3" class="sk-ink" style="opacity:.6"/>
+<circle cx="262.5" cy="82.3" r="3" class="fl-accent"/>
+<text x="256.5" y="98.3" class="lab-accent" text-anchor="end">ω<tspan dy="4" font-size="12">c0</tspan><tspan dy="-4"> ≈ 30</tspan></text>
+<text x="67.4" y="37.6" class="lab-accent2">−20</text>
+<text x="235.1" y="53.1" class="lab-accent2">−40</text>
+<text x="320" y="90.1" class="lab-accent2">−60</text>
+<line x1="58" y1="196.5" x2="388" y2="196.5" class="sk-axis" style="opacity:.35"/>
+<text x="52" y="200.5" class="lab-muted" text-anchor="end">−90</text>
+<line x1="58" y1="237" x2="388" y2="237" class="sk-axis" style="opacity:.35"/>
+<text x="52" y="241" class="lab-muted" text-anchor="end">−180</text>
+<line x1="58" y1="277.5" x2="388" y2="277.5" class="sk-axis" style="opacity:.35"/>
+<text x="52" y="281.5" class="lab-muted" text-anchor="end">−270</text>
+<line x1="58" y1="282" x2="58" y2="192" class="sk-axis" style="opacity:.35"/>
+<line x1="140.5" y1="282" x2="140.5" y2="192" class="sk-axis" style="opacity:.35"/>
+<line x1="223" y1="282" x2="223" y2="192" class="sk-axis" style="opacity:.35"/>
+<line x1="305.5" y1="282" x2="305.5" y2="192" class="sk-axis" style="opacity:.35"/>
+<line x1="388" y1="282" x2="388" y2="192" class="sk-axis" style="opacity:.35"/>
+<rect x="58" y="192" width="330" height="90" class="sk-axis" style="fill:none"/>
+<text x="52" y="184" class="lab-muted" text-anchor="end">φ (°)</text>
+<polyline points="58,196.5 223,196.5 223,237 305.5,237 305.5,277.5 388,277.5" class="sk-accent2" style="stroke-dasharray:5 4"/>
+<polyline points="58,196.8 59.7,196.8 61.3,196.8 63,196.8 64.6,196.8 66.3,196.9 67.9,196.9 69.6,196.9 71.3,196.9 72.9,196.9 74.6,197 76.2,197 77.9,197 79.6,197 81.2,197 82.9,197.1 84.5,197.1 86.2,197.1 87.8,197.2 89.5,197.2 91.2,197.2 92.8,197.2 94.5,197.3 96.1,197.3 97.8,197.4 99.5,197.4 101.1,197.4 102.8,197.5 104.4,197.5 106.1,197.6 107.7,197.6 109.4,197.7 111.1,197.7 112.7,197.8 114.4,197.9 116,197.9 117.7,198 119.4,198.1 121,198.1 122.7,198.2 124.3,198.3 126,198.4 127.6,198.5 129.3,198.6 131,198.7 132.6,198.8 134.3,198.9 135.9,199 137.6,199.1 139.3,199.2 140.9,199.4 142.6,199.5 144.2,199.6 145.9,199.8 147.5,199.9 149.2,200.1 150.9,200.3 152.5,200.4 154.2,200.6 155.8,200.8 157.5,201 159.2,201.2 160.8,201.5 162.5,201.7 164.1,201.9 165.8,202.2 167.4,202.4 169.1,202.7 170.8,203 172.4,203.3 174.1,203.6 175.7,203.9 177.4,204.3 179.1,204.6 180.7,205 182.4,205.4 184,205.7 185.7,206.2 187.3,206.6 189,207 190.7,207.5 192.3,208 194,208.4 195.6,208.9 197.3,209.5 199,210 200.6,210.6 202.3,211.1 203.9,211.7 205.6,212.3 207.2,212.9 208.9,213.5 210.6,214.2 212.2,214.8 213.9,215.5 215.5,216.2 217.2,216.9 218.9,217.6 220.5,218.3 222.2,219 223.8,219.7 225.5,220.4 227.1,221.1 228.8,221.8 230.5,222.6 232.1,223.3 233.8,224 235.4,224.8 237.1,225.5 238.8,226.2 240.4,226.9 242.1,227.7 243.7,228.4 245.4,229.1 247,229.8 248.7,230.5 250.4,231.2 252,231.9 253.7,232.6 255.3,233.3 257,234 258.7,234.7 260.3,235.4 262,236.1 263.6,236.7 265.3,237.4 266.9,238.1 268.6,238.8 270.3,239.5 271.9,240.2 273.6,240.9 275.2,241.6 276.9,242.3 278.6,243 280.2,243.7 281.9,244.4 283.5,245.1 285.2,245.8 286.8,246.5 288.5,247.2 290.2,248 291.8,248.7 293.5,249.4 295.1,250.1 296.8,250.9 298.5,251.6 300.1,252.3 301.8,253.1 303.4,253.8 305.1,254.5 306.7,255.2 308.4,255.9 310.1,256.6 311.7,257.3 313.4,258 315,258.7 316.7,259.3 318.4,260 320,260.6 321.7,261.2 323.3,261.8 325,262.4 326.6,263 328.3,263.6 330,264.1 331.6,264.7 333.3,265.2 334.9,265.7 336.6,266.2 338.3,266.6 339.9,267.1 341.6,267.5 343.2,267.9 344.9,268.4 346.5,268.7 348.2,269.1 349.9,269.5 351.5,269.8 353.2,270.2 354.8,270.5 356.5,270.8 358.2,271.1 359.8,271.4 361.5,271.6 363.1,271.9 364.8,272.1 366.4,272.4 368.1,272.6 369.8,272.8 371.4,273 373.1,273.2 374.7,273.4 376.4,273.6 378.1,273.8 379.7,273.9 381.4,274.1 383,274.3 384.7,274.4 386.3,274.5 388,274.7" class="sk-accent"/>
+<line x1="58" y1="237" x2="388" y2="237" class="sk-ink" style="opacity:.6"/>
+<circle cx="264.2" cy="237" r="3" class="fl-accent"/>
+<text x="270.2" y="229" class="lab-accent">ω<tspan dy="4" font-size="12">π</tspan><tspan dy="-4"> ≈ 31,6</tspan></text>
+<text x="58" y="298" class="lab-muted" text-anchor="middle">0,1</text>
+<text x="140.5" y="298" class="lab-muted" text-anchor="middle">1</text>
+<text x="223" y="298" class="lab-muted" text-anchor="middle">10</text>
+<text x="305.5" y="298" class="lab-muted" text-anchor="middle">100</text>
+<text x="388" y="298" class="lab-muted" text-anchor="middle">1000</text>
+<text x="388" y="316" class="lab-muted" text-anchor="end">ω (rad/s, échelle log)</text>
+</svg>
+<figcaption>Bode de \(H_{BO}(p) = \dfrac{100}{p\,(1 + 0{,}1p)(1 + 0{,}01p)}\). Le gain réel coupe 0 dB en \(\omega_{c0} \approx 30{,}2\) rad/s, à peine avant \(\omega_\pi = \sqrt{1000} \approx 31{,}6\) rad/s où la phase vaut \(-180°\) : la boucle fermée est stable, mais à la limite.</figcaption>
+</figure>
+    <p><strong>Q4.</strong> La phase ne dépend pas de \(K\). On cherche \(\omega\) où elle vaut \(-135°\) : \(\arctan(0{,}1\omega) + \arctan(0{,}01\omega) = 45°\), soit \(\dfrac{0{,}11\,\omega}{1 - 0{,}001\,\omega^2} = 1\), d'où \(0{,}001\,\omega^2 + 0{,}11\,\omega - 1 = 0\) et \(\omega \approx 8{,}44\ \text{rad/s}\). On impose 0 dB à cette pulsation : \(K = 8{,}44\,\sqrt{1 + 0{,}844^2}\,\sqrt{1 + 0{,}0844^2} \approx 11{,}1\). La marge de gain devient \(20\log(110/11{,}1) \approx 20\) dB : le réglage est confortable, au prix d'une boucle environ 3,6 fois plus lente (\(\omega_{c0}\) passe de 30 à 8,4 rad/s).</p>
+  </div>
+</div>
+<div class="exo">
+  <span class="num">EXO 06</span><span class="diff">★ ★ ★</span>
+  <h3>Un deuxième ordre résonant</h3>
+  <div class="statement">\(H(p) = \dfrac{4}{1 + 0{,}04p + 0{,}01p^2}\).</div>
+  <div class="q"><strong>Q1.</strong> Identifier \(K\), \(\omega_0\) et \(\xi\).</div>
+  <div class="q"><strong>Q2.</strong> Tracer les asymptotes du gain ; calculer le gain réel en \(\omega_0\).</div>
+  <div class="q"><strong>Q3.</strong> Le système résonne-t-il ? Calculer la pulsation de résonance et le gain maximal en dB.</div>
+  <div class="q"><strong>Q4.</strong> Donner la phase en 5, 10 et 20 rad/s.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> \(K = 4\) ; \(\dfrac{1}{\omega_0^2} = 0{,}01\) donc \(\omega_0 = 10\ \text{rad/s}\) ; \(\dfrac{2\xi}{\omega_0} = 0{,}04\) donc \(\xi = 0{,}2\).</p>
+    <p><strong>Q2.</strong> Horizontale à \(20\log 4 = 12\) dB, puis \(-40\) dB/déc après 10 rad/s. En \(\omega_0\) : \(|H| = \dfrac{K}{2\xi} = 10\), soit 20 dB : 8 dB au-dessus du coin des asymptotes.</p>
+    <p><strong>Q3.</strong> \(\xi = 0{,}2 \lt 0{,}71\) : oui. \(\omega_r = 10\sqrt{1 - 2 \times 0{,}04} \approx 9{,}6\ \text{rad/s}\) ; facteur de résonance \(Q_r = \dfrac{1}{2 \times 0{,}2\sqrt{1 - 0{,}04}} \approx 2{,}55\), donc \(|H|_{max} = 4 \times 2{,}55 \approx 10{,}2\), soit 20,2 dB.</p>
+    <p><strong>Q4.</strong> En 5 rad/s (\(u = 0{,}5\)) : \(-\arctan\dfrac{2 \times 0{,}2 \times 0{,}5}{1 - 0{,}25}\), soit \(-\arctan 0{,}267 \approx -15°\). En 10 rad/s : \(-90°\). En 20 rad/s (\(u = 2\)) : \(-\Big(180° - \arctan\dfrac{0{,}8}{3}\Big) \approx -165°\).</p>
+  </div>
+</div>
+<div class="exo">
+  <span class="num">EXO 07</span><span class="diff">★ ★ ★</span>
+  <h3>L'effet d'un retard pur</h3>
+  <div class="statement">Un procédé \(G(p) = \dfrac{10}{1 + p}\) est mesuré par un capteur qui introduit un retard \(T = 0{,}1\ \text{s}\) : la boucle ouverte devient \(H(p) = \dfrac{10\,e^{-0{,}1p}}{1 + p}\).</div>
+  <div class="q"><strong>Q1.</strong> Comparer les diagrammes de gain de \(G\) et de \(H\).</div>
+  <div class="q"><strong>Q2.</strong> Calculer la pulsation où le gain vaut 0 dB, puis la phase de \(G\) et celle de \(H\) à cette pulsation.</div>
+  <div class="q"><strong>Q3.</strong> À quelle pulsation la phase de \(H\) atteint-elle \(-180°\) ? Commenter.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> \(|e^{-j\omega T}| = 1\) : les deux diagrammes de gain sont identiques (20 dB, cassure en 1 rad/s, puis \(-20\) dB/déc).</p>
+    <p><strong>Q2.</strong> \(\dfrac{10}{\sqrt{1 + \omega^2}} = 1\) donne \(\omega = \sqrt{99} \approx 9{,}95\ \text{rad/s}\). Phase de \(G\) : \(-\arctan 9{,}95 = -84{,}3°\). Le retard ajoute \(-\omega T = -0{,}995\ \text{rad} = -57{,}0°\) : phase de \(H\) : \(-141{,}3°\).</p>
+    <p><strong>Q3.</strong> Il faut \(\arctan\omega + 0{,}1\,\omega\,\dfrac{180}{\pi} = 180°\) ; par essais successifs, \(\omega_{-180} \approx 16{,}3\ \text{rad/s}\) (\(86{,}5° + 93{,}5° = 180°\)). Sans retard, la phase de \(G\) n'atteint jamais \(-180°\) ; avec le retard, elle l'atteint à une pulsation où le gain vaut encore \(10/\sqrt{1 + 16{,}3^2} \approx 0{,}61\) (\(-4{,}3\) dB) : un gain multiplié par 1,6 suffirait à rendre la boucle instable.</p>
+  </div>
+</div>
+<div class="exo">
+  <span class="num">EXO 08</span><span class="diff">★ ★ ☆</span>
+  <h3>Identifier un vérin électrique à partir de relevés</h3>
+  <div class="statement">On commande un vérin électrique par une tension sinusoïdale d'amplitude \(E_m = 2\ \text{V}\) autour de son point de fonctionnement, et l'on relève à l'oscilloscope la tension de sa génératrice tachymétrique (image de la vitesse) : amplitude \(S_m\) et retard \(\Delta t\) de ses maximums sur ceux de l'entrée, en régime permanent.
+    <div style="overflow-x:auto"><table>
+      <tr><th>\(f\) (Hz)</th><th>0,2</th><th>1</th><th>3,18</th><th>10</th></tr>
+      <tr><td>\(S_m\) (V)</td><td>4,99</td><td>4,77</td><td>3,54</td><td>1,52</td></tr>
+      <tr><td>\(\Delta t\) (ms)</td><td>60</td><td>58</td><td>49</td><td>30</td></tr>
+    </table></div>
+  </div>
+  <div class="q"><strong>Q1.</strong> Calculer, pour chaque mesure, la pulsation, le gain en décibels et la phase en degrés.</div>
+  <div class="q"><strong>Q2.</strong> Proposer un modèle du premier ordre \(\dfrac{K}{1 + \tau p}\) en identifiant \(K\) et \(\tau\) sur le gain. Vérifier le gain prévu à 10 Hz.</div>
+  <div class="q"><strong>Q3.</strong> Comparer la phase mesurée à celle du modèle. Montrer qu'il faut lui ajouter un retard pur, et estimer ce retard.</div>
+  <div class="q"><strong>Q4.</strong> Pourquoi l'amplitude d'entrée doit-elle être modérée ? Pourquoi répartir les fréquences d'essai en échelle logarithmique ?</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> \(\omega = 2\pi f\), \(G = 20\log(S_m/2)\), \(\varphi = -360°\,f\,\Delta t\) (sortie en retard). On trouve \(\omega\) ≈ 1,26 ; 6,28 ; 20,0 ; 62,8 rad/s, \(G\) ≈ 7,9 ; 7,5 ; 5,0 ; \(-2{,}4\) dB et \(\varphi\) ≈ \(-4{,}3°\) ; \(-20{,}9°\) ; \(-56{,}1°\) ; \(-108°\).</p>
+    <p><strong>Q2.</strong> Aux basses fréquences, le gain tend vers 7,9 dB : \(K \approx 10^{7{,}9/20} \approx 2{,}5\). À 3,18 Hz, le gain vaut 5,0 dB, soit 3 dB sous le palier : c'est la cassure, \(1/\tau = 20\ \text{rad/s}\) et \(\tau = 0{,}05\ \text{s}\). À 10 Hz, le modèle prévoit \(\dfrac{2{,}5}{\sqrt{1 + (0{,}05 \times 62{,}8)^2}} \approx 0{,}76\), soit \(-2{,}4\) dB : le gain est bien décrit.</p>
+    <p><strong>Q3.</strong> Le modèle donne \(-\arctan(0{,}05\,\omega)\) : \(-3{,}6°\) ; \(-17{,}4°\) ; \(-45{,}0°\) ; \(-72{,}3°\). Il manque 0,7° ; 3,5° ; 11,1° ; 35,7°, un excès de phase proportionnel à \(\omega\) (il est multiplié par 5 quand \(\omega\) l'est, puis par 3,2) alors que le gain est correct : c'est un retard pur. En radians, \(\omega T \approx 0{,}623\) à 62,8 rad/s, d'où \(T \approx 10\ \text{ms}\) (les autres points donnent 9,7 ms). Modèle retenu : \(H(p) = \dfrac{2{,}5\,e^{-0{,}01p}}{1 + 0{,}05p}\).</p>
+    <p><strong>Q4.</strong> Une amplitude trop forte ferait saturer l'actionneur (courant, vitesse maximale) : la sortie ne serait plus sinusoïdale et le modèle linéaire n'aurait plus de sens ; trop faible, la mesure serait noyée dans le bruit. Le Bode se trace en échelle logarithmique : des fréquences réparties en progression géométrique (ici à peu près un rapport 3 à 5) donnent des points régulièrement espacés sur le diagramme, et l'on en ajoute autour de la cassure.</p>
+  </div>
+</div>
+<div class="exo">
+  <span class="num">EXO 09</span><span class="diff">★ ★ ★</span>
+  <h3>Bande passante d'un asservissement</h3>
+  <div class="statement">Un asservissement à retour unitaire a pour FTBO \(H_{BO}(p) = \dfrac{16}{p\,(1 + 0{,}25p)}\) (pulsations en rad/s).</div>
+  <div class="q"><strong>Q1.</strong> Calculer la pulsation de coupure à 0 dB \(\omega_{c0}\) de la FTBO et sa marge de phase.</div>
+  <div class="q"><strong>Q2.</strong> Écrire la FTBF sous forme canonique ; en déduire \(\omega_0\) et \(\xi\).</div>
+  <div class="q"><strong>Q3.</strong> La FTBF présente-t-elle une résonance ? Calculer sa bande passante à \(-3\) dB en montrant que \(u = \omega/\omega_0\) y vérifie \(u^4 - 2(1 - 2\xi^2)\,u^2 - 1 = 0\). Comparer à \(\omega_{c0}\).</div>
+  <div class="q"><strong>Q4.</strong> On divise le gain de la FTBO par 4. Reprendre \(\omega_{c0}\), \(M_\varphi\), \(\xi\) et la bande passante, et commenter.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> \(\dfrac{16}{\omega\sqrt{1 + \omega^2/16}} = 1\) donne \(\dfrac{\omega^4}{16} + \omega^2 - 256 = 0\), d'où \(\omega^2 = 8\,(\sqrt{65} - 1) \approx 56{,}5\) et \(\omega_{c0} \approx 7{,}52\ \text{rad/s}\). Phase : \(-90° - \arctan(0{,}25 \times 7{,}52) \approx -152°\), donc \(M_\varphi \approx 28°\) : marge faible.</p>
+    <p><strong>Q2.</strong> \(H_{BF} = \dfrac{16}{0{,}25p^2 + p + 16} = \dfrac{1}{1 + \frac{p}{16} + \frac{p^2}{64}}\) : gain 1, \(\omega_0 = 8\ \text{rad/s}\), \(\dfrac{2\xi}{\omega_0} = \dfrac{1}{16}\) donc \(\xi = 0{,}25\).</p>
+    <p><strong>Q3.</strong> \(\xi \lt 0{,}71\) : résonance en \(\omega_r = 8\sqrt{1 - 2 \times 0{,}0625} \approx 7{,}5\ \text{rad/s}\), de facteur \(\dfrac{1}{2\xi\sqrt{1 - \xi^2}} \approx 2{,}07\) (+6,3 dB). Le gain vaut \(-3\) dB quand \(|H_{BF}|^2 = \dfrac{1}{(1 - u^2)^2 + 4\xi^2u^2} = \dfrac12\), soit \(u^4 - 2(1 - 2\xi^2)\,u^2 - 1 = 0\) ; la racine positive est \(u^2 = 0{,}875 + \sqrt{0{,}875^2 + 1} \approx 2{,}204\), d'où \(u \approx 1{,}48\) et \(\omega_{-3\,dB} \approx 11{,}9\ \text{rad/s}\), environ \(1{,}6\,\omega_{c0}\).</p>
+    <p><strong>Q4.</strong> Avec un gain 4 : \(\dfrac{\omega^4}{16} + \omega^2 - 16 = 0\) donne \(\omega_{c0} \approx 3{,}14\ \text{rad/s}\) et \(M_\varphi \approx 90° - \arctan 0{,}79 \approx 52°\). FTBF : \(\omega_0 = 4\ \text{rad/s}\), \(\xi = 0{,}5\) ; résonance de 1,25 dB seulement ; \(u^2 = 0{,}5 + \sqrt{1{,}25} \approx 1{,}618\), bande passante \(\approx 5{,}1\ \text{rad/s}\). La boucle est deux fois plus lente (bande passante 5,1 au lieu de 11,9 rad/s) mais bien mieux amortie : c'est le compromis rapidité / stabilité qu'arbitrent les marges.</p>
+  </div>
+</div>
+<div class="exo">
+  <span class="num">EXO 10</span><span class="diff">★ ★ ☆</span>
+  <h3>Un deuxième ordre très amorti</h3>
+  <div class="statement">\(H(p) = \dfrac{5}{1 + 0{,}6p + 0{,}05p^2}\) (pulsations en rad/s).</div>
+  <div class="q"><strong>Q1.</strong> Identifier \(K\), \(\omega_0\) et \(\xi\).</div>
+  <div class="q"><strong>Q2.</strong> Factoriser le dénominateur et tracer le diagramme asymptotique du gain.</div>
+  <div class="q"><strong>Q3.</strong> Calculer le gain réel et la phase en \(\omega_0\). Comparer avec les asymptotes de la question 2, puis avec celles, à une seule cassure en \(\omega_0\), d'un deuxième ordre. Quelles asymptotes faut-il tracer ?</div>
+  <div class="q"><strong>Q4.</strong> Calculer gain réel et phase en 2 et en 10 rad/s.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> \(K = 5\) (14 dB) ; \(1/\omega_0^2 = 0{,}05\) donc \(\omega_0 = \sqrt{20} \approx 4{,}47\ \text{rad/s}\) ; \(2\xi/\omega_0 = 0{,}6\) donc \(\xi \approx 1{,}34\).</p>
+    <p><strong>Q2.</strong> \(\xi \gt 1\) : les racines de \(0{,}05p^2 + 0{,}6p + 1\) sont \(-2\) et \(-10\), d'où \((1 + 0{,}5p)(1 + 0{,}1p)\). Asymptotes : palier à 14 dB jusqu'à 2 rad/s, pente \(-20\) dB/déc de 2 à 10 rad/s (on arrive à 0 dB), pente \(-40\) dB/déc au-delà.</p>
+    <p><strong>Q3.</strong> En \(\omega_0\), \(|H| = K/(2\xi) = 5/2{,}68 \approx 1{,}86\), soit 5,4 dB, et \(\varphi = -90°\). Les asymptotes à deux cassures donnent \(14 - 20\log(4{,}47/2) \approx 7{,}0\) dB : écart de \(-1{,}6\) dB, les deux cassures étant assez proches pour que leurs corrections s'ajoutent. L'asymptote à une seule cassure en \(\omega_0\) donne 14 dB, à 8,6 dB de la courbe réelle : pour \(\xi \geq 1\), on trace les deux premiers ordres, beaucoup plus fidèles.</p>
+    <p><strong>Q4.</strong> En 2 rad/s : \(|H| = \dfrac{5}{\sqrt{1 + 1}\,\sqrt{1 + 0{,}04}} \approx 3{,}47\), soit 10,8 dB (3,2 dB sous l'asymptote), et \(\varphi = -45° - 11{,}3° \approx -56{,}3°\). En 10 rad/s : \(-3{,}2\) dB (asymptote 0 dB) et \(\varphi = -78{,}7° - 45° \approx -123{,}7°\).</p>
+  </div>
+</div>
+
+<div class="exo concours">
+  <span class="num">CONCOURS PT</span><span class="diff">★ ★ ★</span>
+  <h3>Identification fréquentielle d'un axe motorisé</h3>
+  <div class="exo-source">
+    Exercice <strong>original</strong> au format des épreuves de Sciences industrielles PT (thème <em>réponse fréquentielle</em>). Pour t'entraîner sur les sujets réellement tombés :
+    <a href="https://www.banquept.fr/rubrique38.html" target="_blank" rel="noopener">annales officielles de la Banque PT</a>.
+  </div>
+  <div class="statement">
+    On relève la réponse fréquentielle d'un axe motorisé entre sa tension de commande et sa position mesurée :
+    <div style="overflow-x:auto"><table>
+      <tr><th>\(\omega\) (rad/s)</th><th>1</th><th>2</th><th>20</th><th>200</th></tr>
+      <tr><td>gain (dB)</td><td>12,0</td><td>6,0</td><td>−17,0</td><td>−54,0</td></tr>
+      <tr><td>phase (°)</td><td>−92,9</td><td>−95,7</td><td>−135,0</td><td>−174,3</td></tr>
+    </table></div>
+  </div>
+  <p class="exo-part">Partie A — Identification</p>
+  <div class="q"><strong>A1.</strong> Justifier la présence d'un intégrateur et estimer le gain \(K\).</div>
+  <div class="q"><strong>A2.</strong> Montrer qu'un modèle \(H(p) = \dfrac{K}{p\,(1 + \tau p)}\) convient et déterminer \(\tau\). Vérifier le modèle sur le point à 200 rad/s.</div>
+  <p class="exo-part">Partie B — Mise en boucle</p>
+  <div class="q"><strong>B1.</strong> L'axe est bouclé par un retour unitaire. Calculer la pulsation de coupure à 0 dB de la boucle ouverte, la phase correspondante et la marge de phase.</div>
+  <div class="q"><strong>B2.</strong> Écrire la fonction de transfert en boucle fermée sous forme canonique. Le positionnement présentera-t-il un dépassement ?</div>
+  <p class="exo-part">Partie C — Bande passante de l'axe asservi</p>
+  <div class="q"><strong>C1.</strong> Factoriser la FTBF en deux premiers ordres et tracer son diagramme asymptotique de gain.</div>
+  <div class="q"><strong>C2.</strong> Calculer la bande passante à \(-3\) dB de la boucle fermée et la comparer à la pulsation de coupure à 0 dB de la boucle ouverte.</div>
+  <p class="exo-part">Partie D — Commande numérique</p>
+  <div class="q"><strong>D1.</strong> La commande est maintenant calculée par un microcontrôleur, qui ajoute un retard \(T = 20\ \text{ms}\) dans la boucle. Que deviennent le diagramme de gain de la FTBO, sa pulsation de coupure à 0 dB et la marge de phase ?</div>
+  <div class="q"><strong>D2.</strong> Le cahier des charges impose \(M_\varphi \geq 45°\). Quel retard la boucle peut-elle tolérer au maximum ?</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>A1.</strong> Entre 1 et 2 rad/s, le gain perd 6 dB par octave (soit \(-20\) dB/déc) et la phase est proche de \(-90°\) : comportement d'intégrateur. En \(\omega = 1\), le gain d'un intégrateur \(K/p\) vaut \(20\log K\) : \(K = 10^{12/20} \approx 4\ \text{s}^{-1}\).</p>
+    <p><strong>A2.</strong> La phase atteint \(-135°\) en 20 rad/s : le premier ordre y apporte \(-45°\), c'est sa cassure, donc \(\tau = 1/20 = 0{,}05\ \text{s}\). Contrôle à 200 rad/s : \(|H| = \dfrac{4}{200\sqrt{1 + 100}} \approx 1{,}99\times 10^{-3}\), soit \(-54\) dB, et \(\varphi = -90° - \arctan 10 = -174{,}3°\) : le modèle convient.</p>
+    <p><strong>B1.</strong> \(\dfrac{4}{\omega\sqrt{1 + 0{,}0025\,\omega^2}} = 1\) donne \(0{,}0025\,\omega^4 + \omega^2 - 16 = 0\), d'où \(\omega^2 \approx 15{,}4\) et \(\omega_{c0} \approx 3{,}9\ \text{rad/s}\). Phase : \(-90° - \arctan(0{,}05 \times 3{,}9) \approx -101°\), donc \(M_\varphi \approx 79°\).</p>
+    <p><strong>B2.</strong> \(H_{BF}(p) = \dfrac{4}{0{,}05p^2 + p + 4}\), soit \(H_{BF}(p) = \dfrac{1}{1 + 0{,}25p + 0{,}0125p^2}\) : \(\omega_0 = \sqrt{80} \approx 8{,}9\ \text{rad/s}\) et \(\xi = \dfrac{0{,}25\,\omega_0}{2} \approx 1{,}12\). Comme \(\xi \gt 1\), la réponse est apériodique : aucun dépassement.</p>
+    <p><strong>C1.</strong> Les racines de \(0{,}0125p^2 + 0{,}25p + 1\) sont \(p \approx -5{,}53\) et \(-14{,}47\ \text{s}^{-1}\) : \(H_{BF}(p) = \dfrac{1}{(1 + 0{,}181p)(1 + 0{,}069p)}\). Asymptotes : 0 dB jusqu'à 5,5 rad/s, \(-20\) dB/déc jusqu'à 14,5 rad/s, \(-40\) dB/déc au-delà ; pas de résonance.</p>
+    <p><strong>C2.</strong> \(|H_{BF}(j\omega)| = 1/\sqrt2\) se résout numériquement : \(\omega_{-3\,dB} \approx 4{,}9\ \text{rad/s}\), un peu sous la première cassure (les deux cassures, proches, se cumulent). C'est environ \(1{,}25\,\omega_{c0}\) : on retrouve que la bande passante de la boucle fermée est du même ordre que la pulsation de coupure à 0 dB de la boucle ouverte.</p>
+    <p><strong>D1.</strong> Le retard ne modifie pas le gain : même diagramme de gain, même \(\omega_{c0} \approx 3{,}93\ \text{rad/s}\). Il retire à la phase \(\omega_{c0}T = 3{,}93 \times 0{,}02 \approx 0{,}079\ \text{rad} = 4{,}5°\) : \(M_\varphi \approx 79° - 4{,}5° \approx 74°\). Sur un axe aussi lent, 20 ms de retard sont presque sans effet.</p>
+    <p><strong>D2.</strong> Le retard peut consommer au plus \(79° - 45° = 34°\), soit 0,59 rad, à la pulsation \(\omega_{c0}\) : \(T_{max} = 0{,}59/3{,}93 \approx 0{,}15\ \text{s}\).</p>
+  </div>
+</div>
+
+</div>
+</template>

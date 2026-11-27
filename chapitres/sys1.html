@@ -1,0 +1,999 @@
+<!-- Chapitre « Systèmes du 1er ordre » (sys1) : contenu des onglets Cours, Méthodes et Exercices, chargé à l'ouverture du chapitre.
+     On l'édite ici, puis : node tools/chapitres.js (docs/chargement-chapitres.md). -->
+<template class="pan-tpl" data-panneau="s1-cours">
+<!-- ============ SYSTÈMES DU 1er ORDRE : COURS ============ -->
+<div class="course-section">
+  <div class="sec-num">AU PROGRAMME · PTSI</div>
+  <h2>Ce que le programme officiel demande</h2>
+  <div class="intro">Ce chapitre couvre le modèle du premier ordre, au semestre S1 (modèle de connaissance, réponses temporelles) puis S2 (identification, validation, performances) du programme de sciences industrielles : compétences B2 « Modéliser », B3 « Valider un modèle », C2 « Résoudre » et D2 « Expérimenter ». Il s'appuie sur <a href="#slci/cours">« SLCI : modélisation et transformée de Laplace »</a> (fonction de transfert, table des transformées, théorèmes du retard et de la valeur finale). La réponse fréquentielle n'y est vue que pour le premier ordre : le tracé des diagrammes de Bode est dans <a href="#bode/cours">« Réponse fréquentielle et diagrammes de Bode »</a>, les performances d'un asservissement dans <a href="#precision/cours">« Performances : précision et rapidité »</a>. <strong>Tout est exigible en 1ʳᵉ année</strong>, sauf la dernière section.</div>
+  <div class="reveal" onclick="this.classList.toggle('open')">
+    <span class="label">Programme officiel</span>
+    <span class="prompt">Les capacités exigibles, dans l'ordre du chapitre</span>
+    <div class="content">
+      <ul>
+        <li><strong>Établir un modèle de connaissance par des fonctions de transfert</strong> (B2, S1) : équation différentielle, forme canonique \(\dfrac{K}{1 + \tau p}\), gain statique, constante de temps, pôle (§1).</li>
+        <li><strong>Modéliser le signal d'entrée</strong> (B2, S1) : échelon (§2), rampe et impulsion (§3), sinusoïde (§4).</li>
+        <li><strong>Déterminer la réponse temporelle</strong> (C2, S1) : expression de la réponse à un échelon (§2) ; allures des réponses à une impulsion, à une rampe (§3) et à une sinusoïde en régime permanent (§4). Le programme précise que la résolution des équations différentielles et les transformées inverses de Laplace ne sont pas exigibles : les calculs du chapitre sont donnés pour comprendre d'où viennent les résultats à retenir.</li>
+        <li><strong>Déterminer la réponse fréquentielle</strong> (C2, S2) : diagrammes de Bode réel et asymptotique d'un premier ordre (§4 ; méthode générale dans <a href="#bode/cours">« Bode »</a>, §2 et §3).</li>
+        <li><strong>Établir un modèle de comportement à partir d'une réponse temporelle ou fréquentielle</strong> (B2, S2) : identification de \(K\) et \(\tau\) (§5) ; modèles voisins, gain, intégrateur, retard (§7).</li>
+        <li><strong>Choisir les entrées à imposer et les sorties pour identifier un modèle de comportement</strong> (D2, S2) : §5.</li>
+        <li><strong>Vérifier la cohérence du modèle en confrontant les résultats analytiques ou numériques aux résultats expérimentaux</strong> (B3, S2) : §8, avec une simulation par la méthode d'Euler (lien avec l'informatique).</li>
+        <li><strong>Critères de performances</strong> (C1, C2, S2) : temps de réponse à 5 %, temps de montée (§2), bande passante (§4), écart statique et écart de traînage d'un premier ordre bouclé (§3, §6 ; cas général dans <a href="#precision/cours">« Performances »</a>, §2).</li>
+      </ul>
+      <p>Relève de la 2ᵉ année : la linéarisation autour d'un point de fonctionnement et la réduction de l'ordre d'un modèle par les pôles dominants (S3), les non-linéarités et les limites de validité d'un modèle (S4). Pour aller plus loin (fin de chapitre) : linéariser un réservoir, identifier \(\tau\) par une régression linéaire.</p>
+    </div>
+  </div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§1 · LE MODÈLE DU PREMIER ORDRE</div>
+  <h2>Deux paramètres : un gain et une constante de temps</h2>
+  <div class="intro">Un système du premier ordre accumule une grandeur (charge d'un condensateur, énergie thermique, volume de liquide, énergie cinétique d'un rotor) et la restitue en proportion de ce qu'il contient. Il réagit sans à-coup et sans dépassement, à une vitesse fixée par une seule durée caractéristique. C'est le modèle le plus utilisé de l'automatique, souvent comme première approximation d'un système plus complexe.</div>
+  <div class="def-box">
+    Un système du <strong>premier ordre</strong> est régi par
+    <div class="formula" data-nom="Équation du premier ordre">$$\tau\,\frac{ds}{dt} + s(t) = K\,e(t),$$</div>
+    soit, sous conditions initiales nulles,
+    <div class="formula" data-nom="FT du premier ordre">$$H(p) = \frac{S(p)}{E(p)} = \frac{K}{1 + \tau p}.$$</div>
+    \(K\) est le <strong>gain statique</strong> (unité de \(s\) sur unité de \(e\)), \(\tau\) la <strong>constante de temps</strong> (en secondes). L'unique pôle vaut \(-1/\tau\) : il est négatif, le système est stable.
+  </div>
+  <div style="overflow-x:auto"><table>
+    <tr><th>Système</th><th>Entrée → sortie</th><th>Gain \(K\)</th><th>Constante de temps \(\tau\)</th></tr>
+    <tr><td>Circuit RC</td><td>tension d'entrée → tension du condensateur</td><td>1</td><td>\(RC\)</td></tr>
+    <tr><td>Enceinte chauffée</td><td>puissance → écart de température</td><td>\(R_{th}\)</td><td>\(R_{th}C\)</td></tr>
+    <tr><td>Moteur à courant continu (\(L\) négligée)</td><td>tension → vitesse</td><td>\(\dfrac{k}{Rf + k^2}\)</td><td>\(\dfrac{RJ}{Rf + k^2}\)</td></tr>
+    <tr><td>Réservoir linéarisé (2ᵉ année)</td><td>débit → niveau</td><td>\(\dfrac{2\sqrt{h_0}}{k}\)</td><td>\(\dfrac{2S\sqrt{h_0}}{k}\)</td></tr>
+  </table></div>
+  <p>Dans le tableau, \(R_{th}\) est la résistance thermique des parois (K/W) et \(C\) la capacité thermique de l'enceinte (J/K) ; pour le moteur, \(R\) est la résistance de l'induit, \(k\) la constante de couple, \(J\) l'inertie et \(f\) le coefficient de frottement visqueux. Le réservoir n'est un premier ordre qu'après linéarisation autour d'un niveau \(h_0\) (voir la fin du chapitre).</p>
+  <div class="method-box">
+    <strong>Exemple — mettre un modèle sous forme canonique</strong>
+    <p>Un système obéit à \(0{,}4\,s'(t) + 2\,s(t) = 5\,e(t)\).</p>
+    <ol>
+      <li>La forme canonique exige le coefficient 1 devant \(s\) : on divise par 2, d'où \(0{,}2\,s' + s = 2{,}5\,e\).</li>
+      <li>Par identification : \(K = 2{,}5\) et \(\tau = 0{,}2\ \text{s}\) ; \(H(p) = \dfrac{2{,}5}{1 + 0{,}2p}\), pôle \(-5\ \text{s}^{-1}\).</li>
+      <li>En Laplace, la même règle s'applique : \(\dfrac{5}{2 + 0{,}4p} = \dfrac{2{,}5}{1 + 0{,}2p}\) (on divise numérateur et dénominateur par le terme constant du dénominateur).</li>
+    </ol>
+  </div>
+  <div class="method-box">
+    <strong>Exemple — un moteur à courant continu</strong>
+    <p>Un moteur a pour résistance d'induit \(R = 2\ \Omega\), constante \(k = 0{,}1\ \text{V}\cdot\text{s}\cdot\text{rad}^{-1}\) (ou N·m/A), inertie ramenée \(J = 2\times10^{-3}\ \text{kg}\cdot\text{m}^2\), frottement visqueux \(f = 10^{-3}\ \text{N}\cdot\text{m}\cdot\text{s}\cdot\text{rad}^{-1}\) ; on néglige son inductance.</p>
+    <ol>
+      <li>\(Rf + k^2 = 0{,}002 + 0{,}01 = 0{,}012\ \text{N}\cdot\text{m}\cdot\text{s}\cdot\text{rad}^{-1}\cdot\Omega\).</li>
+      <li>\(K = \dfrac{k}{Rf + k^2} = 8{,}33\ \text{rad}\cdot\text{s}^{-1}\cdot\text{V}^{-1}\) et \(\tau = \dfrac{RJ}{Rf + k^2} = 0{,}333\ \text{s}\).</li>
+      <li>Sous 12 V, la vitesse tend vers \(12K = 100\ \text{rad/s}\), soit 955 tr/min, et l'atteint à 5 % près au bout de \(3\tau = 1{,}0\ \text{s}\).</li>
+    </ol>
+  </div>
+  <div class="reveal" onclick="this.classList.toggle('open')">
+    <span class="label">Démonstration</span>
+    <span class="prompt">Pourquoi le moteur est un premier ordre</span>
+    <div class="content">
+      <p>Équation électrique (inductance négligée) : \(u = Ri + k\,\Omega\). Équation mécanique : \(J\,\dfrac{d\Omega}{dt} = k\,i - f\,\Omega\). On élimine \(i = (u - k\Omega)/R\) : \(J\,\Omega' = \dfrac{k}{R}\,(u - k\,\Omega) - f\,\Omega\), soit \(RJ\,\Omega' + (Rf + k^2)\,\Omega = k\,u\). On divise par \(Rf + k^2\) pour obtenir la forme canonique \(\tau\,\Omega' + \Omega = K\,u\), avec les valeurs du tableau.</p>
+    </div>
+  </div>
+  <div class="notice"><strong>Erreur classique</strong> : lire \(K\) et \(\tau\) sans avoir mis le terme constant du dénominateur à 1. Dans \(\dfrac{5}{2 + p}\), le gain n'est pas 5 mais 2,5, et la constante de temps n'est pas 1 s mais 0,5 s. Contrôler aussi les unités : \(\tau\) en secondes, \(K\) en unité de sortie par unité d'entrée.</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§2 · LA RÉPONSE INDICIELLE</div>
+  <h2>Une montée exponentielle sans dépassement</h2>
+  <div class="intro">La réponse à un échelon est l'essai de référence : on l'obtient en basculant brusquement l'entrée d'une valeur constante à une autre (on ferme un interrupteur, on change une consigne). Son expression est <strong>à connaître</strong> ; c'est sur elle que se lisent le gain, la rapidité et l'absence de dépassement.</div>
+  <div class="prop-box">
+    Pour un échelon d'amplitude \(E_0\) : \(S(p) = \dfrac{K E_0}{p\,(1 + \tau p)} = K E_0\Big(\dfrac{1}{p} - \dfrac{1}{p + 1/\tau}\Big)\), donc
+    <div class="formula" data-nom="Réponse indicielle du premier ordre">$$s(t) = K E_0\big(1 - e^{-t/\tau}\big)\quad (t \geq 0).$$</div>
+    <ul>
+      <li>valeur finale \(K E_0\), atteinte sans dépassement ;</li>
+      <li>pente à l'origine \(K E_0/\tau\) : la <strong>tangente à l'origine</strong> atteint la valeur finale à \(t = \tau\) ;</li>
+      <li>à \(t = \tau\), \(s = 63\ \%\) de la valeur finale ; à \(2\tau\), 86 % ; à \(3\tau\), 95 % ; à \(5\tau\), 99 % ;</li>
+      <li><strong>temps de réponse à 5 %</strong> : \(t_{r5\%} = \tau\ln 20 \approx 3\tau\).</li>
+    </ul>
+  </div>
+  <figure class="schema">
+<svg viewBox="0 0 400 176" role="img" aria-label="Réponse indicielle d'un premier ordre : tangente à l'origine, 63 % à tau, 95 % à trois tau">
+<line x1="46" y1="154" x2="388" y2="154" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<line x1="46" y1="154" x2="46" y2="12" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<text x="390" y="158" class="lab-muted lab-it">t</text>
+<text x="42" y="10" class="lab-muted lab-it" text-anchor="end">s(t)</text>
+<line x1="46" y1="37.9" x2="376" y2="37.9" class="sk-dash"/>
+<line x1="46" y1="154" x2="109.5" y2="37.9" class="sk-accent2" style="stroke-dasharray:5 4"/>
+<line x1="109.5" y1="154" x2="109.5" y2="80.6" class="sk-axis"/>
+<line x1="236.4" y1="154" x2="236.4" y2="43.7" class="sk-axis"/>
+<line x1="46" y1="43.7" x2="376" y2="43.7" class="sk-axis" style="stroke-dasharray:2 3"/>
+<polyline points="46,154 47.7,151 49.3,148.1 51,145.2 52.6,142.5 54.3,139.8 55.9,137.2 57.6,134.6 59.3,132.1 60.9,129.7 62.6,127.3 64.2,125 65.9,122.8 67.6,120.6 69.2,118.4 70.9,116.4 72.5,114.3 74.2,112.4 75.8,110.4 77.5,108.6 79.2,106.8 80.8,105 82.5,103.3 84.1,101.6 85.8,99.9 87.5,98.3 89.1,96.8 90.8,95.3 92.4,93.8 94.1,92.3 95.7,90.9 97.4,89.6 99.1,88.2 100.7,86.9 102.4,85.7 104,84.4 105.7,83.2 107.4,82.1 109,80.9 110.7,79.8 112.3,78.7 114,77.7 115.6,76.7 117.3,75.7 119,74.7 120.6,73.7 122.3,72.8 123.9,71.9 125.6,71 127.3,70.2 128.9,69.4 130.6,68.5 132.2,67.8 133.9,67 135.5,66.2 137.2,65.5 138.9,64.8 140.5,64.1 142.2,63.4 143.8,62.8 145.5,62.1 147.2,61.5 148.8,60.9 150.5,60.3 152.1,59.7 153.8,59.2 155.4,58.6 157.1,58.1 158.8,57.6 160.4,57.1 162.1,56.6 163.7,56.1 165.4,55.6 167.1,55.2 168.7,54.7 170.4,54.3 172,53.9 173.7,53.4 175.3,53 177,52.7 178.7,52.3 180.3,51.9 182,51.5 183.6,51.2 185.3,50.9 187,50.5 188.6,50.2 190.3,49.9 191.9,49.6 193.6,49.3 195.2,49 196.9,48.7 198.6,48.4 200.2,48.1 201.9,47.9 203.5,47.6 205.2,47.4 206.9,47.1 208.5,46.9 210.2,46.7 211.8,46.4 213.5,46.2 215.1,46 216.8,45.8 218.5,45.6 220.1,45.4 221.8,45.2 223.4,45 225.1,44.8 226.8,44.7 228.4,44.5 230.1,44.3 231.7,44.1 233.4,44 235,43.8 236.7,43.7 238.4,43.5 240,43.4 241.7,43.2 243.3,43.1 245,43 246.7,42.8 248.3,42.7 250,42.6 251.6,42.5 253.3,42.4 254.9,42.2 256.6,42.1 258.3,42 259.9,41.9 261.6,41.8 263.2,41.7 264.9,41.6 266.6,41.5 268.2,41.4 269.9,41.3 271.5,41.3 273.2,41.2 274.8,41.1 276.5,41 278.2,40.9 279.8,40.8 281.5,40.8 283.1,40.7 284.8,40.6 286.5,40.6 288.1,40.5 289.8,40.4 291.4,40.4 293.1,40.3 294.7,40.2 296.4,40.2 298.1,40.1 299.7,40.1 301.4,40 303,40 304.7,39.9 306.4,39.8 308,39.8 309.7,39.7 311.3,39.7 313,39.7 314.6,39.6 316.3,39.6 318,39.5 319.6,39.5 321.3,39.4 322.9,39.4 324.6,39.4 326.3,39.3 327.9,39.3 329.6,39.3 331.2,39.2 332.9,39.2 334.5,39.2 336.2,39.1 337.9,39.1 339.5,39.1 341.2,39 342.8,39 344.5,39 346.2,39 347.8,38.9 349.5,38.9 351.1,38.9 352.8,38.9 354.4,38.8 356.1,38.8 357.8,38.8 359.4,38.8 361.1,38.7 362.7,38.7 364.4,38.7 366.1,38.7 367.7,38.7 369.4,38.6 371,38.6 372.7,38.6 374.3,38.6 376,38.6" class="sk-accent"/>
+<circle cx="109.5" cy="80.6" r="3" class="fl-accent"/>
+<circle cx="236.4" cy="43.7" r="3" class="fl-accent"/>
+<text x="115.5" y="94.6" class="lab-accent">63 %</text>
+<text x="242.4" y="59.7" class="lab-accent">95 %</text>
+<text x="40" y="41.9" class="lab-muted" text-anchor="end">KE₀</text>
+<text x="109.5" y="170" class="lab-muted lab-it" text-anchor="middle">τ</text>
+<text x="236.4" y="170" class="lab-muted lab-it" text-anchor="middle">3τ</text>
+<text x="114.5" y="32.1" class="lab-accent2">tangente</text>
+</svg>
+<figcaption>Réponse indicielle d'un premier ordre. La tangente à l'origine atteint la valeur finale à \(t = \tau\), où la sortie vaut 63 % de \(KE_0\) ; elle reste à moins de 5 % de \(KE_0\) à partir de \(3\tau\). Pas de dépassement.</figcaption>
+</figure>
+  <div class="notice">La constante de temps ne dépend pas de l'amplitude de l'échelon : un four du premier ordre met le même temps pour monter de 10 °C ou de 100 °C. C'est une conséquence de la linéarité. En pratique, la puissance de chauffe sature et le modèle cesse d'être valable pour les grands échelons.</div>
+  <h3>Temps de réponse et temps de montée</h3>
+  <p>La sortie atteint la fraction \(x\) de sa variation finale à l'instant \(t_x\) tel que \(1 - e^{-t_x/\tau} = x\) :</p>
+  <div class="formula" data-nom="Instant d'une fraction de la variation">$$t_x = -\tau\ln(1 - x).$$</div>
+  <div style="overflow-x:auto"><table>
+    <tr><th>Fraction \(x\)</th><th>10 %</th><th>50 %</th><th>63 %</th><th>90 %</th><th>95 %</th><th>99 %</th></tr>
+    <tr><td>\(t_x/\tau\)</td><td>0,105</td><td>0,693</td><td>1</td><td>2,30</td><td>3,00</td><td>4,61</td></tr>
+  </table></div>
+  <div class="def-box">
+    Le <strong>temps de réponse à 5 %</strong>, \(t_{r5\%}\) (noté aussi \(t_{5\%}\)), est l'instant à partir duquel la sortie reste dans la bande ± 5 % autour de sa valeur finale. Le <strong>temps de montée</strong> \(t_m\) est la durée mise pour passer de 10 % à 90 % de la variation finale. Pour un premier ordre :
+    <div class="formula" data-nom="Temps de réponse et de montée du premier ordre">$$t_{r5\%} = \tau\ln 20 \approx 3\tau,\qquad t_m = \tau\ln 9 \approx 2{,}2\,\tau.$$</div>
+  </div>
+  <p>Le temps de montée mesure la vivacité du début de la réponse ; le temps de réponse, le moment où l'on peut considérer le régime permanent atteint. Pour un premier ordre, les deux sont proportionnels à \(\tau\) : un seul paramètre fixe toute la rapidité.</p>
+  <div class="method-box">
+    <strong>Exemple — un four qui ne part pas de zéro</strong>
+    <p>Un four du premier ordre, de gain \(K = 0{,}05\ \text{K/W}\) et de constante de temps \(\tau = 12\ \text{min}\), est à l'équilibre à 20 °C, chauffage coupé. On lui applique 1,5 kW.</p>
+    <ol>
+      <li>Le modèle porte sur les <strong>variations</strong> autour de l'équilibre de départ : \(\theta(t) = 20 + K P_0\big(1 - e^{-t/\tau}\big)\), avec \(K P_0 = 75\ \text{K}\). Température finale : 95 °C.</li>
+      <li>À \(t = \tau = 12\) min : \(20 + 0{,}632 \times 75 = 67{,}4\) °C.</li>
+      <li>80 °C correspond à 60 K sur 75, soit \(x = 0{,}8\) : \(t = \tau\ln 5 = 19{,}3\ \text{min}\).</li>
+      <li>\(t_{r5\%} = 3\tau = 36\ \text{min}\) ; \(t_m = 2{,}2\,\tau = 26\ \text{min}\).</li>
+    </ol>
+  </div>
+  <div class="notice"><strong>Erreur classique</strong> : quand la sortie ne part pas de zéro, prendre 63 % de la <em>valeur</em> finale (\(0{,}63 \times 95 = 60\) °C) au lieu de 63 % de la <em>variation</em> (67,4 °C). Les pourcentages du premier ordre portent toujours sur la variation \(\Delta s\) depuis l'état d'équilibre de départ.</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§3 · RÉPONSES À UNE RAMPE ET À UNE IMPULSION</div>
+  <h2>Suivre une consigne qui varie</h2>
+  <div class="intro">Une consigne ne fait pas que des sauts : un axe doit suivre une trajectoire à vitesse constante (rampe), un capteur subit un choc bref (impulsion). Le programme demande l'<strong>allure</strong> de ces réponses : retard et écart pour la rampe, saut puis décroissance pour l'impulsion.</div>
+  <div class="prop-box">
+    <strong>Rampe</strong> \(e(t) = a\,t\) : \(S(p) = \dfrac{K a}{p^2(1 + \tau p)} = K a\Big(\dfrac{1}{p^2} - \dfrac{\tau}{p} + \dfrac{\tau}{p + 1/\tau}\Big)\), d'où
+    <div class="formula" data-nom="Réponse à une rampe du premier ordre">$$s(t) = K a\big(t - \tau + \tau\,e^{-t/\tau}\big).$$</div>
+    En régime permanent, \(s(t) \approx K a\,(t - \tau)\). Pour \(K = 1\), la sortie suit la rampe avec un <strong>retard</strong> \(\tau\), c'est-à-dire un écart constant \(e - s \to a\tau\) : l'<strong>écart de traînage</strong>. Pour \(K \neq 1\), les pentes diffèrent et l'écart croît sans limite.
+  </div>
+  <figure class="schema">
+<svg viewBox="0 0 400 172" role="img" aria-label="Réponse d'un premier ordre de gain un à une rampe : la sortie suit avec un retard tau et un écart de traînage a tau">
+<line x1="46" y1="150" x2="388" y2="150" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<line x1="46" y1="150" x2="46" y2="8" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<text x="390" y="154" class="lab-muted lab-it">t</text>
+<polyline points="46,150 47.7,149.4 49.3,148.7 51,148.1 52.6,147.5 54.3,146.9 55.9,146.2 57.6,145.6 59.3,145 60.9,144.3 62.6,143.7 64.2,143.1 65.9,142.5 67.6,141.8 69.2,141.2 70.9,140.6 72.5,139.9 74.2,139.3 75.8,138.7 77.5,138 79.2,137.4 80.8,136.8 82.5,136.2 84.1,135.5 85.8,134.9 87.5,134.3 89.1,133.6 90.8,133 92.4,132.4 94.1,131.8 95.7,131.1 97.4,130.5 99.1,129.9 100.7,129.2 102.4,128.6 104,128 105.7,127.4 107.4,126.7 109,126.1 110.7,125.5 112.3,124.8 114,124.2 115.6,123.6 117.3,122.9 119,122.3 120.6,121.7 122.3,121.1 123.9,120.4 125.6,119.8 127.3,119.2 128.9,118.5 130.6,117.9 132.2,117.3 133.9,116.7 135.5,116 137.2,115.4 138.9,114.8 140.5,114.1 142.2,113.5 143.8,112.9 145.5,112.3 147.2,111.6 148.8,111 150.5,110.4 152.1,109.7 153.8,109.1 155.4,108.5 157.1,107.9 158.8,107.2 160.4,106.6 162.1,106 163.7,105.3 165.4,104.7 167.1,104.1 168.7,103.4 170.4,102.8 172,102.2 173.7,101.6 175.3,100.9 177,100.3 178.7,99.7 180.3,99 182,98.4 183.6,97.8 185.3,97.2 187,96.5 188.6,95.9 190.3,95.3 191.9,94.6 193.6,94 195.2,93.4 196.9,92.8 198.6,92.1 200.2,91.5 201.9,90.9 203.5,90.2 205.2,89.6 206.9,89 208.5,88.4 210.2,87.7 211.8,87.1 213.5,86.5 215.1,85.8 216.8,85.2 218.5,84.6 220.1,83.9 221.8,83.3 223.4,82.7 225.1,82.1 226.8,81.4 228.4,80.8 230.1,80.2 231.7,79.5 233.4,78.9 235,78.3 236.7,77.7 238.4,77 240,76.4 241.7,75.8 243.3,75.1 245,74.5 246.7,73.9 248.3,73.3 250,72.6 251.6,72 253.3,71.4 254.9,70.7 256.6,70.1 258.3,69.5 259.9,68.8 261.6,68.2 263.2,67.6 264.9,67 266.6,66.3 268.2,65.7 269.9,65.1 271.5,64.4 273.2,63.8 274.8,63.2 276.5,62.6 278.2,61.9 279.8,61.3 281.5,60.7 283.1,60 284.8,59.4 286.5,58.8 288.1,58.2 289.8,57.5 291.4,56.9 293.1,56.3 294.7,55.6 296.4,55 298.1,54.4 299.7,53.8 301.4,53.1 303,52.5 304.7,51.9 306.4,51.2 308,50.6 309.7,50 311.3,49.3 313,48.7 314.6,48.1 316.3,47.5 318,46.8 319.6,46.2 321.3,45.6 322.9,44.9 324.6,44.3 326.3,43.7 327.9,43.1 329.6,42.4 331.2,41.8 332.9,41.2 334.5,40.5 336.2,39.9 337.9,39.3 339.5,38.7 341.2,38 342.8,37.4 344.5,36.8 346.2,36.1 347.8,35.5 349.5,34.9 351.1,34.3 352.8,33.6 354.4,33 356.1,32.4 357.8,31.7 359.4,31.1 361.1,30.5 362.7,29.8 364.4,29.2 366.1,28.6 367.7,28 369.4,27.3 371,26.7 372.7,26.1 374.3,25.4 376,24.8" class="sk-dash"/>
+<polyline points="46,150 47.7,150 49.3,150 51,149.9 52.6,149.9 54.3,149.8 55.9,149.7 57.6,149.6 59.3,149.5 60.9,149.4 62.6,149.2 64.2,149.1 65.9,148.9 67.6,148.8 69.2,148.6 70.9,148.4 72.5,148.2 74.2,147.9 75.8,147.7 77.5,147.5 79.2,147.2 80.8,147 82.5,146.7 84.1,146.4 85.8,146.1 87.5,145.8 89.1,145.5 90.8,145.2 92.4,144.9 94.1,144.5 95.7,144.2 97.4,143.9 99.1,143.5 100.7,143.2 102.4,142.8 104,142.4 105.7,142 107.4,141.6 109,141.3 110.7,140.9 112.3,140.4 114,140 115.6,139.6 117.3,139.2 119,138.8 120.6,138.3 122.3,137.9 123.9,137.5 125.6,137 127.3,136.6 128.9,136.1 130.6,135.6 132.2,135.2 133.9,134.7 135.5,134.2 137.2,133.8 138.9,133.3 140.5,132.8 142.2,132.3 143.8,131.8 145.5,131.3 147.2,130.8 148.8,130.3 150.5,129.8 152.1,129.3 153.8,128.8 155.4,128.3 157.1,127.7 158.8,127.2 160.4,126.7 162.1,126.2 163.7,125.6 165.4,125.1 167.1,124.6 168.7,124 170.4,123.5 172,123 173.7,122.4 175.3,121.9 177,121.3 178.7,120.8 180.3,120.2 182,119.7 183.6,119.1 185.3,118.6 187,118 188.6,117.4 190.3,116.9 191.9,116.3 193.6,115.7 195.2,115.2 196.9,114.6 198.6,114 200.2,113.5 201.9,112.9 203.5,112.3 205.2,111.7 206.9,111.1 208.5,110.6 210.2,110 211.8,109.4 213.5,108.8 215.1,108.2 216.8,107.6 218.5,107.1 220.1,106.5 221.8,105.9 223.4,105.3 225.1,104.7 226.8,104.1 228.4,103.5 230.1,102.9 231.7,102.3 233.4,101.7 235,101.1 236.7,100.5 238.4,99.9 240,99.3 241.7,98.7 243.3,98.1 245,97.5 246.7,96.9 248.3,96.3 250,95.7 251.6,95.1 253.3,94.5 254.9,93.9 256.6,93.3 258.3,92.7 259.9,92.1 261.6,91.5 263.2,90.9 264.9,90.3 266.6,89.7 268.2,89.1 269.9,88.4 271.5,87.8 273.2,87.2 274.8,86.6 276.5,86 278.2,85.4 279.8,84.8 281.5,84.2 283.1,83.5 284.8,82.9 286.5,82.3 288.1,81.7 289.8,81.1 291.4,80.5 293.1,79.9 294.7,79.2 296.4,78.6 298.1,78 299.7,77.4 301.4,76.8 303,76.1 304.7,75.5 306.4,74.9 308,74.3 309.7,73.7 311.3,73.1 313,72.4 314.6,71.8 316.3,71.2 318,70.6 319.6,70 321.3,69.3 322.9,68.7 324.6,68.1 326.3,67.5 327.9,66.8 329.6,66.2 331.2,65.6 332.9,65 334.5,64.4 336.2,63.7 337.9,63.1 339.5,62.5 341.2,61.9 342.8,61.2 344.5,60.6 346.2,60 347.8,59.4 349.5,58.8 351.1,58.1 352.8,57.5 354.4,56.9 356.1,56.3 357.8,55.6 359.4,55 361.1,54.4 362.7,53.8 364.4,53.1 366.1,52.5 367.7,51.9 369.4,51.3 371,50.6 372.7,50 374.3,49.4 376,48.8" class="sk-accent"/>
+<line x1="109.5" y1="150" x2="376" y2="48.9" class="sk-accent2" style="stroke-dasharray:5 4"/>
+<line x1="312.5" y1="73" x2="312.5" y2="48.9" class="sk-ink"/>
+<text x="318.5" y="64.9" class="lab-b lab-it">aτ</text>
+<text x="355" y="20.8" class="lab-muted" text-anchor="end">e(t) = at</text>
+<text x="363.3" y="70.6" class="lab-accent lab-it" text-anchor="middle">s(t)</text>
+<text x="109.5" y="166" class="lab-muted lab-it" text-anchor="middle">τ</text>
+</svg>
+<figcaption>Réponse à une rampe \(e = at\) d'un premier ordre de gain \(K = 1\) : la sortie suit la consigne avec un retard \(\tau\), donc un écart constant \(a\tau\) (écart de traînage).</figcaption>
+</figure>
+  <div class="method-box">
+    <strong>Exemple — un capteur de température en retard</strong>
+    <p>Une sonde de température se comporte comme un premier ordre de gain 1 et de constante de temps \(\tau = 8\ \text{s}\). Le fluide où elle plonge se réchauffe régulièrement de 0,5 K/s.</p>
+    <ol>
+      <li>En régime permanent, l'indication suit la vraie température avec un retard de 8 s, donc un écart de traînage \(a\tau = 0{,}5 \times 8 = 4\ \text{K}\) : la sonde lit 4 K de moins que la réalité.</li>
+      <li>Au bout de 8 s, le fluide a pris 4 K, mais la sonde n'en indique que \(0{,}5\,(8 - 8 + 8\,e^{-1}) = 1{,}5\ \text{K}\).</li>
+      <li>Si la sonde avait un gain de 0,9 (défaut d'étalonnage), l'écart \(a t - 0{,}9\,a(t - \tau)\) croîtrait de \(0{,}1\,a = 0{,}05\) K par seconde, sans limite.</li>
+    </ol>
+  </div>
+  <div class="prop-box">
+    <strong>Impulsion</strong> : \(S(p) = H(p)\), donc \(h(t) = \dfrac{K}{\tau}\,e^{-t/\tau}\) : un saut à \(K/\tau\) puis une décroissance exponentielle de même constante de temps. C'est la dérivée de la réponse indicielle unitaire, comme l'impulsion est la dérivée de l'échelon.
+  </div>
+  <figure class="schema">
+<svg viewBox="0 0 400 176" role="img" aria-label="Réponse impulsionnelle d'un premier ordre : saut à K sur tau puis décroissance exponentielle">
+<line x1="52" y1="154" x2="388" y2="154" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<line x1="52" y1="154" x2="52" y2="12" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<text x="390" y="158" class="lab-muted lab-it">t</text>
+<text x="48" y="10" class="lab-muted lab-it" text-anchor="end">h(t)</text>
+<line x1="52" y1="37.9" x2="114.3" y2="154" class="sk-accent2" style="stroke-dasharray:5 4"/>
+<line x1="114.3" y1="154" x2="114.3" y2="111.3" class="sk-axis"/>
+<line x1="238.9" y1="154" x2="238.9" y2="148.2" class="sk-axis"/>
+<polyline points="52,37.9 53.5,40.7 55,43.3 56.4,45.9 57.9,48.4 59.4,50.9 60.9,53.3 62.4,55.7 63.8,58 65.3,60.3 66.8,62.5 68.3,64.6 69.8,66.7 71.2,68.8 72.7,70.8 74.2,72.7 75.7,74.6 77.2,76.5 78.6,78.3 80.1,80.1 81.6,81.8 83.1,83.5 84.5,85.2 86,86.8 87.5,88.3 89,89.9 90.5,91.4 91.9,92.9 93.4,94.3 94.9,95.7 96.4,97.1 97.9,98.4 99.3,99.7 100.8,101 102.3,102.2 103.8,103.4 105.3,104.6 106.7,105.8 108.2,106.9 109.7,108 111.2,109.1 112.7,110.2 114.1,111.2 115.6,112.2 117.1,113.2 118.6,114.1 120.1,115.1 121.5,116 123,116.9 124.5,117.7 126,118.6 127.5,119.4 128.9,120.2 130.4,121 131.9,121.8 133.4,122.6 134.8,123.3 136.3,124 137.8,124.7 139.3,125.4 140.8,126.1 142.2,126.7 143.7,127.4 145.2,128 146.7,128.6 148.2,129.2 149.6,129.8 151.1,130.4 152.6,130.9 154.1,131.4 155.6,132 157,132.5 158.5,133 160,133.5 161.5,134 163,134.4 164.4,134.9 165.9,135.3 167.4,135.8 168.9,136.2 170.4,136.6 171.8,137 173.3,137.4 174.8,137.8 176.3,138.2 177.8,138.6 179.2,138.9 180.7,139.3 182.2,139.6 183.7,140 185.2,140.3 186.6,140.6 188.1,140.9 189.6,141.2 191.1,141.5 192.5,141.8 194,142.1 195.5,142.4 197,142.7 198.5,142.9 199.9,143.2 201.4,143.5 202.9,143.7 204.4,143.9 205.9,144.2 207.3,144.4 208.8,144.6 210.3,144.9 211.8,145.1 213.3,145.3 214.7,145.5 216.2,145.7 217.7,145.9 219.2,146.1 220.7,146.3 222.1,146.4 223.6,146.6 225.1,146.8 226.6,147 228.1,147.1 229.5,147.3 231,147.4 232.5,147.6 234,147.7 235.5,147.9 236.9,148 238.4,148.2 239.9,148.3 241.4,148.4 242.8,148.6 244.3,148.7 245.8,148.8 247.3,148.9 248.8,149.1 250.2,149.2 251.7,149.3 253.2,149.4 254.7,149.5 256.2,149.6 257.6,149.7 259.1,149.8 260.6,149.9 262.1,150 263.6,150.1 265,150.2 266.5,150.3 268,150.4 269.5,150.5 271,150.5 272.4,150.6 273.9,150.7 275.4,150.8 276.9,150.9 278.4,150.9 279.8,151 281.3,151.1 282.8,151.1 284.3,151.2 285.8,151.3 287.2,151.3 288.7,151.4 290.2,151.5 291.7,151.5 293.2,151.6 294.6,151.6 296.1,151.7 297.6,151.7 299.1,151.8 300.5,151.9 302,151.9 303.5,152 305,152 306.5,152 307.9,152.1 309.4,152.1 310.9,152.2 312.4,152.2 313.9,152.3 315.3,152.3 316.8,152.3 318.3,152.4 319.8,152.4 321.3,152.5 322.7,152.5 324.2,152.5 325.7,152.6 327.2,152.6 328.7,152.6 330.1,152.7 331.6,152.7 333.1,152.7 334.6,152.8 336.1,152.8 337.5,152.8 339,152.8 340.5,152.9 342,152.9 343.5,152.9 344.9,152.9 346.4,153 347.9,153 349.4,153 350.8,153 352.3,153.1 353.8,153.1 355.3,153.1 356.8,153.1 358.2,153.1 359.7,153.2 361.2,153.2 362.7,153.2 364.2,153.2 365.6,153.2 367.1,153.3 368.6,153.3 370.1,153.3 371.6,153.3 373,153.3 374.5,153.3 376,153.4" class="sk-accent"/>
+<circle cx="52" cy="37.9" r="3" class="fl-accent"/>
+<circle cx="114.3" cy="111.3" r="3" class="fl-accent"/>
+<circle cx="238.9" cy="148.2" r="3" class="fl-accent"/>
+<text x="46" y="41.9" class="lab-muted" text-anchor="end">K/τ</text>
+<text x="121.3" y="105.3" class="lab-accent">37 %</text>
+<text x="245.9" y="140.2" class="lab-accent">5 %</text>
+<text x="114.3" y="170" class="lab-muted lab-it" text-anchor="middle">τ</text>
+<text x="238.9" y="170" class="lab-muted lab-it" text-anchor="middle">3τ</text>
+<text x="86.3" y="82" class="lab-accent2">tangente</text>
+</svg>
+<figcaption>Réponse impulsionnelle d'un premier ordre : saut à \(K/\tau\) puis décroissance exponentielle de même constante de temps. La tangente à l'origine coupe l'axe des temps en \(t = \tau\), où il reste 37 % de la valeur initiale ; il en reste 5 % à \(3\tau\).</figcaption>
+</figure>
+  <p>L'impulsion de Dirac est une idéalisation : en pratique, c'est une entrée d'aire \(A\) (énergie, quantité de mouvement, charge) appliquée pendant une durée très courte devant \(\tau\). La réponse vaut alors \(A\,h(t)\), quelle que soit la forme exacte de l'impulsion. Les trois réponses se déduisent l'une de l'autre : la réponse à une rampe est la primitive de la réponse indicielle, qui est elle-même la primitive de la réponse impulsionnelle.</p>
+  <div class="method-box">
+    <strong>Exemple — une brève impulsion de chauffage</strong>
+    <p>Une enceinte de gain \(K = 0{,}05\ \text{K/W}\) et de constante de temps \(\tau = 600\ \text{s}\) reçoit 6 kW pendant 0,5 s, soit une énergie \(A = 3\ \text{kJ}\).</p>
+    <ol>
+      <li>La durée (0,5 s) est très courte devant \(\tau\) : on assimile l'entrée à une impulsion d'aire \(A\).</li>
+      <li>\(\Delta\theta(t) = A\,\dfrac{K}{\tau}\,e^{-t/\tau}\), qui part de \(\dfrac{3000 \times 0{,}05}{600} = 0{,}25\ \text{K}\) (le calcul exact avec l'impulsion rectangulaire donne aussi 0,25 K).</li>
+      <li>L'élévation retombe à 37 % au bout de 10 min et à 5 % au bout de 30 min.</li>
+    </ol>
+  </div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§4 · LA RÉPONSE FRÉQUENTIELLE</div>
+  <h2>Un filtre passe-bas</h2>
+  <div class="intro">Soumis à une entrée sinusoïdale \(e(t) = E_m\sin(\omega t)\), un SLCI stable finit par répondre par une sinusoïde de <strong>même pulsation</strong>, \(s(t) = S_m\sin(\omega t + \varphi)\). Le rapport des amplitudes et le déphasage se lisent sur le nombre complexe \(H(j\omega)\), obtenu en remplaçant \(p\) par \(j\omega\) : \(S_m/E_m = |H(j\omega)|\) et \(\varphi = \arg H(j\omega)\). Cette section donne les résultats propres au premier ordre ; la méthode générale de tracé des diagrammes de Bode est dans <a href="#bode/cours">« Réponse fréquentielle et diagrammes de Bode »</a>.</div>
+  <figure class="schema">
+<svg viewBox="0 0 400 214" role="img" aria-label="Réponse d'un capteur du premier ordre à une température sinusoïdale : amplitude réduite et retard">
+<line x1="52" y1="95" x2="352" y2="95" class="sk-axis"/>
+<line x1="52" y1="170" x2="52" y2="8" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<line x1="52" y1="95" x2="364" y2="95" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<text x="366" y="99" class="lab-muted lab-it">t (s)</text>
+<line x1="52" y1="34.5" x2="352" y2="34.5" class="sk-axis" style="opacity:.35"/>
+<text x="46" y="38.5" class="lab-muted" text-anchor="end">5 K</text>
+<line x1="52" y1="155.5" x2="352" y2="155.5" class="sk-axis" style="opacity:.35"/>
+<text x="46" y="159.5" class="lab-muted" text-anchor="end">−5 K</text>
+<line x1="172" y1="48.6" x2="352" y2="48.6" class="sk-accent" style="stroke-width:1;stroke-dasharray:2 3"/>
+<polyline points="52,95 52.8,92.4 53.7,89.7 54.5,87.1 55.3,84.5 56.2,81.9 57,79.3 57.8,76.8 58.7,74.3 59.5,71.8 60.4,69.4 61.2,67 62,64.7 62.9,62.4 63.7,60.2 64.5,58.1 65.4,56 66.2,54 67,52.1 67.9,50.3 68.7,48.6 69.5,46.9 70.4,45.4 71.2,43.9 72.1,42.5 72.9,41.3 73.7,40.1 74.6,39 75.4,38.1 76.2,37.3 77.1,36.5 77.9,35.9 78.7,35.4 79.6,35 80.4,34.7 81.2,34.6 82.1,34.5 82.9,34.6 83.8,34.8 84.6,35.1 85.4,35.5 86.3,36 87.1,36.7 87.9,37.4 88.8,38.3 89.6,39.2 90.4,40.3 91.3,41.5 92.1,42.8 92.9,44.2 93.8,45.7 94.6,47.2 95.5,48.9 96.3,50.7 97.1,52.5 98,54.4 98.8,56.4 99.6,58.5 100.5,60.7 101.3,62.9 102.1,65.1 103,67.5 103.8,69.9 104.6,72.3 105.5,74.8 106.3,77.3 107.2,79.8 108,82.4 108.8,85 109.7,87.6 110.5,90.2 111.3,92.9 112.2,95.5 113,98.2 113.8,100.8 114.7,103.4 115.5,106.1 116.3,108.6 117.2,111.2 118,113.7 118.9,116.2 119.7,118.7 120.5,121.1 121.4,123.5 122.2,125.8 123,128 123.9,130.2 124.7,132.3 125.5,134.4 126.4,136.3 127.2,138.2 128,140 128.9,141.8 129.7,143.4 130.6,144.9 131.4,146.4 132.2,147.7 133.1,149 133.9,150.1 134.7,151.2 135.6,152.1 136.4,152.9 137.2,153.6 138.1,154.2 138.9,154.7 139.7,155.1 140.6,155.3 141.4,155.5 142.3,155.5 143.1,155.4 143.9,155.2 144.8,154.9 145.6,154.4 146.4,153.9 147.3,153.2 148.1,152.4 148.9,151.5 149.8,150.5 150.6,149.4 151.4,148.2 152.3,146.9 153.1,145.5 153.9,144 154.8,142.4 155.6,140.7 156.5,139 157.3,137.1 158.1,135.2 159,133.2 159.8,131.1 160.6,128.9 161.5,126.7 162.3,124.4 163.1,122.1 164,119.7 164.8,117.2 165.6,114.7 166.5,112.2 167.3,109.7 168.2,107.1 169,104.5 169.8,101.9 170.7,99.2 171.5,96.6 172.3,93.9 173.2,91.3 174,88.7 174.8,86 175.7,83.4 176.5,80.8 177.3,78.3 178.2,75.8 179,73.3 179.9,70.8 180.7,68.4 181.5,66.1 182.4,63.8 183.2,61.5 184,59.4 184.9,57.3 185.7,55.2 186.5,53.3 187.4,51.4 188.2,49.6 189,47.9 189.9,46.3 190.7,44.8 191.6,43.3 192.4,42 193.2,40.8 194.1,39.7 194.9,38.7 195.7,37.7 196.6,36.9 197.4,36.3 198.2,35.7 199.1,35.2 199.9,34.9 200.7,34.6 201.6,34.5 202.4,34.5 203.3,34.6 204.1,34.9 204.9,35.2 205.8,35.7 206.6,36.3 207.4,36.9 208.3,37.7 209.1,38.7 209.9,39.7 210.8,40.8 211.6,42 212.4,43.3 213.3,44.8 214.1,46.3 215,47.9 215.8,49.6 216.6,51.4 217.5,53.3 218.3,55.2 219.1,57.3 220,59.4 220.8,61.5 221.6,63.8 222.5,66.1 223.3,68.4 224.1,70.8 225,73.3 225.8,75.8 226.7,78.3 227.5,80.8 228.3,83.4 229.2,86 230,88.7 230.8,91.3 231.7,93.9 232.5,96.6 233.3,99.2 234.2,101.9 235,104.5 235.8,107.1 236.7,109.7 237.5,112.2 238.4,114.7 239.2,117.2 240,119.7 240.9,122.1 241.7,124.4 242.5,126.7 243.4,128.9 244.2,131.1 245,133.2 245.9,135.2 246.7,137.1 247.5,139 248.4,140.7 249.2,142.4 250.1,144 250.9,145.5 251.7,146.9 252.6,148.2 253.4,149.4 254.2,150.5 255.1,151.5 255.9,152.4 256.7,153.2 257.6,153.9 258.4,154.4 259.2,154.9 260.1,155.2 260.9,155.4 261.7,155.5 262.6,155.5 263.4,155.3 264.3,155.1 265.1,154.7 265.9,154.2 266.8,153.6 267.6,152.9 268.4,152.1 269.3,151.2 270.1,150.1 270.9,149 271.8,147.7 272.6,146.4 273.4,144.9 274.3,143.4 275.1,141.8 276,140 276.8,138.2 277.6,136.3 278.5,134.4 279.3,132.3 280.1,130.2 281,128 281.8,125.8 282.6,123.5 283.5,121.1 284.3,118.7 285.1,116.2 286,113.7 286.8,111.2 287.7,108.6 288.5,106.1 289.3,103.4 290.2,100.8 291,98.2 291.8,95.5 292.7,92.9 293.5,90.2 294.3,87.6 295.2,85 296,82.4 296.8,79.8 297.7,77.3 298.5,74.8 299.4,72.3 300.2,69.9 301,67.5 301.9,65.1 302.7,62.9 303.5,60.7 304.4,58.5 305.2,56.4 306,54.4 306.9,52.5 307.7,50.7 308.5,48.9 309.4,47.2 310.2,45.7 311.1,44.2 311.9,42.8 312.7,41.5 313.6,40.3 314.4,39.2 315.2,38.3 316.1,37.4 316.9,36.7 317.7,36 318.6,35.5 319.4,35.1 320.2,34.8 321.1,34.6 321.9,34.5 322.8,34.6 323.6,34.7 324.4,35 325.3,35.4 326.1,35.9 326.9,36.5 327.8,37.3 328.6,38.1 329.4,39 330.3,40.1 331.1,41.3 331.9,42.5 332.8,43.9 333.6,45.4 334.5,46.9 335.3,48.6 336.1,50.3 337,52.1 337.8,54 338.6,56 339.5,58.1 340.3,60.2 341.1,62.4 342,64.7 342.8,67 343.6,69.4 344.5,71.8 345.3,74.3 346.2,76.8 347,79.3 347.8,81.9 348.7,84.5 349.5,87.1 350.3,89.7 351.2,92.4 352,95" class="sk-dash"/>
+<polyline points="52,95 52.8,94.9 53.7,94.7 54.5,94.4 55.3,94 56.2,93.4 57,92.8 57.8,92 58.7,91.2 59.5,90.3 60.4,89.2 61.2,88.2 62,87 62.9,85.8 63.7,84.6 64.5,83.3 65.4,82 66.2,80.6 67,79.2 67.9,77.8 68.7,76.3 69.5,74.9 70.4,73.4 71.2,71.9 72.1,70.5 72.9,69 73.7,67.6 74.6,66.2 75.4,64.8 76.2,63.4 77.1,62 77.9,60.7 78.7,59.4 79.6,58.2 80.4,57 81.2,55.9 82.1,54.8 82.9,53.8 83.8,52.8 84.6,51.9 85.4,51 86.3,50.3 87.1,49.5 87.9,48.9 88.8,48.3 89.6,47.9 90.4,47.4 91.3,47.1 92.1,46.9 92.9,46.7 93.8,46.6 94.6,46.6 95.5,46.7 96.3,46.8 97.1,47.1 98,47.4 98.8,47.8 99.6,48.3 100.5,48.9 101.3,49.5 102.1,50.3 103,51.1 103.8,52 104.6,52.9 105.5,54 106.3,55.1 107.2,56.3 108,57.6 108.8,58.9 109.7,60.3 110.5,61.8 111.3,63.3 112.2,64.8 113,66.5 113.8,68.2 114.7,69.9 115.5,71.7 116.3,73.5 117.2,75.3 118,77.2 118.9,79.1 119.7,81.1 120.5,83.1 121.4,85.1 122.2,87.1 123,89.1 123.9,91.1 124.7,93.2 125.5,95.2 126.4,97.3 127.2,99.3 128,101.3 128.9,103.4 129.7,105.4 130.6,107.3 131.4,109.3 132.2,111.2 133.1,113.1 133.9,114.9 134.7,116.8 135.6,118.5 136.4,120.3 137.2,121.9 138.1,123.6 138.9,125.1 139.7,126.7 140.6,128.1 141.4,129.5 142.3,130.8 143.1,132.1 143.9,133.3 144.8,134.4 145.6,135.4 146.4,136.4 147.3,137.2 148.1,138 148.9,138.7 149.8,139.4 150.6,139.9 151.4,140.4 152.3,140.7 153.1,141 153.9,141.2 154.8,141.3 155.6,141.3 156.5,141.2 157.3,141.1 158.1,140.8 159,140.5 159.8,140.1 160.6,139.5 161.5,138.9 162.3,138.3 163.1,137.5 164,136.7 164.8,135.7 165.6,134.7 166.5,133.6 167.3,132.5 168.2,131.3 169,130 169.8,128.6 170.7,127.2 171.5,125.7 172.3,124.1 173.2,122.5 174,120.9 174.8,119.2 175.7,117.4 176.5,115.6 177.3,113.8 178.2,111.9 179,110 179.9,108.1 180.7,106.1 181.5,104.1 182.4,102.1 183.2,100.1 184,98.1 184.9,96.1 185.7,94.1 186.5,92 187.4,90 188.2,88 189,86 189.9,84 190.7,82.1 191.6,80.1 192.4,78.2 193.2,76.3 194.1,74.5 194.9,72.7 195.7,70.9 196.6,69.2 197.4,67.6 198.2,66 199.1,64.4 199.9,62.9 200.7,61.5 201.6,60.1 202.4,58.8 203.3,57.6 204.1,56.4 204.9,55.3 205.8,54.3 206.6,53.4 207.4,52.5 208.3,51.8 209.1,51.1 209.9,50.5 210.8,49.9 211.6,49.5 212.4,49.2 213.3,48.9 214.1,48.7 215,48.6 215.8,48.6 216.6,48.7 217.5,48.9 218.3,49.2 219.1,49.6 220,50 220.8,50.5 221.6,51.2 222.5,51.9 223.3,52.6 224.1,53.5 225,54.4 225.8,55.5 226.7,56.6 227.5,57.7 228.3,59 229.2,60.3 230,61.7 230.8,63.1 231.7,64.6 232.5,66.2 233.3,67.8 234.2,69.5 235,71.2 235.8,72.9 236.7,74.7 237.5,76.6 238.4,78.5 239.2,80.4 240,82.3 240.9,84.3 241.7,86.3 242.5,88.3 243.4,90.3 244.2,92.3 245,94.3 245.9,96.3 246.7,98.4 247.5,100.4 248.4,102.4 249.2,104.4 250.1,106.4 250.9,108.3 251.7,110.3 252.6,112.2 253.4,114 254.2,115.9 255.1,117.6 255.9,119.4 256.7,121.1 257.6,122.7 258.4,124.3 259.2,125.9 260.1,127.4 260.9,128.8 261.7,130.1 262.6,131.4 263.4,132.7 264.3,133.8 265.1,134.9 265.9,135.9 266.8,136.8 267.6,137.6 268.4,138.4 269.3,139.1 270.1,139.6 270.9,140.2 271.8,140.6 272.6,140.9 273.4,141.1 274.3,141.3 275.1,141.4 276,141.3 276.8,141.2 277.6,141 278.5,140.7 279.3,140.4 280.1,139.9 281,139.3 281.8,138.7 282.6,138 283.5,137.2 284.3,136.3 285.1,135.4 286,134.3 286.8,133.2 287.7,132 288.5,130.8 289.3,129.4 290.2,128.1 291,126.6 291.8,125.1 292.7,123.5 293.5,121.9 294.3,120.2 295.2,118.5 296,116.7 296.8,114.9 297.7,113 298.5,111.2 299.4,109.2 300.2,107.3 301,105.3 301.9,103.3 302.7,101.3 303.5,99.3 304.4,97.3 305.2,95.3 306,93.3 306.9,91.2 307.7,89.2 308.5,87.2 309.4,85.2 310.2,83.2 311.1,81.3 311.9,79.4 312.7,77.5 313.6,75.6 314.4,73.8 315.2,72 316.1,70.3 316.9,68.6 317.7,66.9 318.6,65.3 319.4,63.8 320.2,62.3 321.1,60.9 321.9,59.6 322.8,58.3 323.6,57.1 324.4,56 325.3,54.9 326.1,53.9 326.9,53 327.8,52.2 328.6,51.5 329.4,50.8 330.3,50.2 331.1,49.8 331.9,49.4 332.8,49 333.6,48.8 334.5,48.7 335.3,48.6 336.1,48.7 337,48.8 337.8,49 338.6,49.3 339.5,49.7 340.3,50.2 341.1,50.8 342,51.4 342.8,52.2 343.6,53 344.5,53.9 345.3,54.8 346.2,55.9 347,57 347.8,58.2 348.7,59.5 349.5,60.8 350.3,62.2 351.2,63.7 352,65.2" class="sk-accent"/>
+<line x1="202" y1="34.5" x2="202" y2="21.2" class="sk-axis" style="stroke-dasharray:2 3"/>
+<line x1="215.3" y1="48.6" x2="215.3" y2="21.2" class="sk-axis" style="stroke-dasharray:2 3"/>
+<line x1="202" y1="24.8" x2="215.3" y2="24.8" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<text x="221.3" y="28.8" class="lab-b">Δt ≈ 6,7 s</text>
+<text x="158" y="52.6" class="lab-accent lab-it" text-anchor="end">S</text>
+<text x="159" y="56.6" class="lab-accent" font-size="12">m</text>
+<text x="52" y="204" class="lab-muted">- - e(t) : fluide</text>
+<text x="352" y="204" class="lab-accent" text-anchor="end">— s(t) : capteur</text>
+<text x="52" y="186" class="lab-muted" text-anchor="middle">0</text>
+<text x="112" y="186" class="lab-muted" text-anchor="middle">30</text>
+<text x="172" y="186" class="lab-muted" text-anchor="middle">60</text>
+<text x="232" y="186" class="lab-muted" text-anchor="middle">90</text>
+<text x="292" y="186" class="lab-muted" text-anchor="middle">120</text>
+</svg>
+<figcaption>Capteur de température du premier ordre (\(K = 1\), \(\tau = 8\) s) plongé dans un fluide dont la température oscille de ± 5 K avec une période de 60 s (tirets). Après un court régime transitoire, l'indication \(s(t)\) est une sinusoïde de même période, d'amplitude \(S_m \approx 3{,}8\) K, en retard de \(\Delta t \approx 6{,}7\) s.</figcaption>
+</figure>
+  <div class="prop-box">
+    Pour le premier ordre :
+    <div class="formula" data-nom="Gain et phase du premier ordre">$$|H(j\omega)| = \frac{K}{\sqrt{1 + \tau^2\omega^2}},\qquad \varphi(\omega) = -\arctan(\tau\omega).$$</div>
+    <ul>
+      <li>basses pulsations (\(\omega \ll 1/\tau\)) : \(G_{dB} = 20\log|H| \approx 20\log K\), \(\varphi \approx 0\) ;</li>
+      <li>hautes pulsations (\(\omega \gg 1/\tau\)) : \(|H| \approx \dfrac{K}{\tau\omega}\), une droite de pente \(-20\ \text{dB}\) par décade, et \(\varphi \to -90°\) ;</li>
+      <li>à la <strong>pulsation de cassure</strong> \(\omega_c = 1/\tau\) : \(|H| = K/\sqrt2\), soit 3 dB sous l'asymptote, et \(\varphi = -45°\).</li>
+    </ul>
+  </div>
+  <div class="method-box">
+    <strong>Exemple — la sonde dans un fluide dont la température oscille</strong>
+    <p>La sonde du §3 (\(K = 1\), \(\tau = 8\ \text{s}\)) plonge dans un fluide dont la température oscille de ± 5 K autour de sa moyenne, avec une période de 60 s (figure ci-dessus).</p>
+    <ol>
+      <li>\(\omega = \dfrac{2\pi}{60} = 0{,}105\ \text{rad/s}\) et \(\tau\omega = 0{,}84\) : on est sous la cassure, mais pas très loin.</li>
+      <li>\(|H| = \dfrac{1}{\sqrt{1 + 0{,}84^2}} = 0{,}77\) : la sonde indique ± 3,8 K, soit 23 % de moins que la réalité.</li>
+      <li>\(\varphi = -\arctan 0{,}84 = -40°\), c'est-à-dire un retard \(\Delta t = |\varphi|/\omega = 0{,}698/0{,}105 = 6{,}7\ \text{s}\).</li>
+    </ol>
+  </div>
+  <figure class="schema">
+<svg viewBox="0 0 410 282" role="img" aria-label="Diagramme de Bode d'un premier ordre : asymptotes et courbes réelles de gain et de phase">
+<line x1="58" y1="35.8" x2="388" y2="35.8" class="sk-axis" style="opacity:.35"/>
+<text x="52" y="39.8" class="lab-muted" text-anchor="end">20 log K</text>
+<line x1="58" y1="81.6" x2="388" y2="81.6" class="sk-axis" style="opacity:.35"/>
+<text x="52" y="85.6" class="lab-muted" text-anchor="end">−20</text>
+<line x1="58" y1="127.4" x2="388" y2="127.4" class="sk-axis" style="opacity:.35"/>
+<text x="52" y="131.4" class="lab-muted" text-anchor="end">−40</text>
+<line x1="58" y1="132" x2="58" y2="22" class="sk-axis" style="opacity:.35"/>
+<line x1="140.5" y1="132" x2="140.5" y2="22" class="sk-axis" style="opacity:.35"/>
+<line x1="223" y1="132" x2="223" y2="22" class="sk-axis" style="opacity:.35"/>
+<line x1="305.5" y1="132" x2="305.5" y2="22" class="sk-axis" style="opacity:.35"/>
+<line x1="388" y1="132" x2="388" y2="22" class="sk-axis" style="opacity:.35"/>
+<rect x="58" y="22" width="330" height="110" class="sk-axis" style="fill:none"/>
+<text x="52" y="14" class="lab-muted" text-anchor="end">G (dB)</text>
+<polyline points="58,35.8 223,35.8 388,127.4" class="sk-accent2" style="stroke-dasharray:5 4"/>
+<polyline points="58,35.8 60.8,35.8 63.5,35.8 66.3,35.8 69.1,35.8 71.9,35.8 74.6,35.8 77.4,35.8 80.2,35.8 83,35.8 85.7,35.8 88.5,35.8 91.3,35.8 94.1,35.8 96.8,35.8 99.6,35.8 102.4,35.8 105.1,35.8 107.9,35.8 110.7,35.8 113.5,35.8 116.2,35.8 119,35.8 121.8,35.8 124.6,35.8 127.3,35.8 130.1,35.8 132.9,35.8 135.6,35.8 138.4,35.8 141.2,35.9 144,35.9 146.7,35.9 149.5,35.9 152.3,35.9 155.1,36 157.8,36 160.6,36.1 163.4,36.1 166.2,36.2 168.9,36.2 171.7,36.3 174.5,36.4 177.2,36.5 180,36.6 182.8,36.8 185.6,36.9 188.3,37.1 191.1,37.3 193.9,37.5 196.7,37.8 199.4,38.1 202.2,38.5 205,38.9 207.7,39.3 210.5,39.8 213.3,40.3 216.1,40.9 218.8,41.6 221.6,42.3 224.4,43 227.2,43.9 229.9,44.8 232.7,45.7 235.5,46.7 238.3,47.8 241,48.9 243.8,50 246.6,51.2 249.3,52.4 252.1,53.7 254.9,55 257.7,56.4 260.4,57.7 263.2,59.1 266,60.5 268.8,61.9 271.5,63.4 274.3,64.8 277.1,66.3 279.8,67.7 282.6,69.2 285.4,70.7 288.2,72.2 290.9,73.7 293.7,75.2 296.5,76.7 299.3,78.3 302,79.8 304.8,81.3 307.6,82.8 310.4,84.4 313.1,85.9 315.9,87.4 318.7,88.9 321.4,90.5 324.2,92 327,93.6 329.8,95.1 332.5,96.6 335.3,98.2 338.1,99.7 340.9,101.2 343.6,102.8 346.4,104.3 349.2,105.9 351.9,107.4 354.7,108.9 357.5,110.5 360.3,112 363,113.6 365.8,115.1 368.6,116.6 371.4,118.2 374.1,119.7 376.9,121.3 379.7,122.8 382.5,124.3 385.2,125.9 388,127.4" class="sk-accent"/>
+<circle cx="223" cy="42.6" r="3" class="fl-accent"/>
+<text x="215" y="60.6" class="lab-accent" text-anchor="end">−3 dB</text>
+<text x="312" y="70.1" class="lab-accent2">−20 dB/déc</text>
+<line x1="58" y1="169.3" x2="388" y2="169.3" class="sk-axis" style="opacity:.35"/>
+<text x="52" y="173.3" class="lab-muted" text-anchor="end">0</text>
+<line x1="58" y1="202" x2="388" y2="202" class="sk-axis" style="opacity:.35"/>
+<text x="52" y="206" class="lab-muted" text-anchor="end">−45</text>
+<line x1="58" y1="234.7" x2="388" y2="234.7" class="sk-axis" style="opacity:.35"/>
+<text x="52" y="238.7" class="lab-muted" text-anchor="end">−90</text>
+<line x1="58" y1="242" x2="58" y2="162" class="sk-axis" style="opacity:.35"/>
+<line x1="140.5" y1="242" x2="140.5" y2="162" class="sk-axis" style="opacity:.35"/>
+<line x1="223" y1="242" x2="223" y2="162" class="sk-axis" style="opacity:.35"/>
+<line x1="305.5" y1="242" x2="305.5" y2="162" class="sk-axis" style="opacity:.35"/>
+<line x1="388" y1="242" x2="388" y2="162" class="sk-axis" style="opacity:.35"/>
+<rect x="58" y="162" width="330" height="80" class="sk-axis" style="fill:none"/>
+<text x="52" y="154" class="lab-muted" text-anchor="end">φ (°)</text>
+<polyline points="58,169.3 140.5,169.3 305.5,234.7 388,234.7" class="sk-accent2" style="stroke-dasharray:5 4"/>
+<polyline points="58,169.7 60.8,169.7 63.5,169.8 66.3,169.8 69.1,169.8 71.9,169.9 74.6,169.9 77.4,170 80.2,170 83,170.1 85.7,170.2 88.5,170.2 91.3,170.3 94.1,170.4 96.8,170.5 99.6,170.6 102.4,170.7 105.1,170.8 107.9,171 110.7,171.1 113.5,171.2 116.2,171.4 119,171.6 121.8,171.7 124.6,171.9 127.3,172.2 130.1,172.4 132.9,172.6 135.6,172.9 138.4,173.2 141.2,173.5 144,173.8 146.7,174.2 149.5,174.6 152.3,175 155.1,175.5 157.8,176 160.6,176.5 163.4,177.1 166.2,177.7 168.9,178.3 171.7,179 174.5,179.8 177.2,180.6 180,181.5 182.8,182.4 185.6,183.4 188.3,184.4 191.1,185.5 193.9,186.7 196.7,187.9 199.4,189.2 202.2,190.5 205,191.9 207.7,193.4 210.5,194.9 213.3,196.4 216.1,198 218.8,199.6 221.6,201.2 224.4,202.8 227.2,204.4 229.9,206 232.7,207.6 235.5,209.1 238.3,210.6 241,212.1 243.8,213.5 246.6,214.8 249.3,216.1 252.1,217.3 254.9,218.5 257.7,219.6 260.4,220.6 263.2,221.6 266,222.5 268.8,223.4 271.5,224.2 274.3,225 277.1,225.7 279.8,226.3 282.6,226.9 285.4,227.5 288.2,228 290.9,228.5 293.7,229 296.5,229.4 299.3,229.8 302,230.2 304.8,230.5 307.6,230.8 310.4,231.1 313.1,231.4 315.9,231.6 318.7,231.8 321.4,232.1 324.2,232.3 327,232.4 329.8,232.6 332.5,232.8 335.3,232.9 338.1,233 340.9,233.2 343.6,233.3 346.4,233.4 349.2,233.5 351.9,233.6 354.7,233.7 357.5,233.8 360.3,233.8 363,233.9 365.8,234 368.6,234 371.4,234.1 374.1,234.1 376.9,234.2 379.7,234.2 382.5,234.2 385.2,234.3 388,234.3" class="sk-accent"/>
+<circle cx="223" cy="202" r="3" class="fl-accent"/>
+<text x="58" y="258" class="lab-muted" text-anchor="middle">0,01/τ</text>
+<text x="140.5" y="258" class="lab-muted" text-anchor="middle">0,1/τ</text>
+<text x="223" y="258" class="lab-muted" text-anchor="middle">1/τ</text>
+<text x="305.5" y="258" class="lab-muted" text-anchor="middle">10/τ</text>
+<text x="388" y="258" class="lab-muted" text-anchor="middle">100/τ</text>
+<text x="388" y="276" class="lab-muted" text-anchor="end">ω (échelle logarithmique)</text>
+</svg>
+<figcaption>Bode d'un premier ordre \(K/(1 + \tau p)\). Gain : plat à \(20\log K\), puis pente \(-20\) dB/décade après la cassure \(\omega = 1/\tau\), où la courbe réelle passe 3 dB sous les asymptotes. Phase : de 0° à \(-90°\), \(-45°\) à la cassure.</figcaption>
+</figure>
+  <div class="prop-box">
+    <strong>Rapidité et bande passante vont ensemble.</strong> La bande passante à \(-3\) dB est \([0, 1/\tau]\) et le temps de réponse vaut \(3\tau\) : leur produit est fixe, \(t_{r5\%}\cdot\omega_c = 3\). Un système rapide laisse passer les hautes pulsations, un système lent les filtre. La sonde du §3 a une bande passante de 0,125 rad/s (0,02 Hz) et un temps de réponse de 24 s : elle ne peut pas suivre une fluctuation de quelques secondes.
+  </div>
+  <div class="notice"><strong>Erreur classique</strong> : confondre \(\tau\) (en secondes) et \(\omega_c = 1/\tau\) (en rad/s), ou \(\omega_c\) et la fréquence \(f_c = \omega_c/2\pi\) (en Hz). Une cassure « à 50 » doit toujours être lue avec son unité.</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§5 · IDENTIFIER UN PREMIER ORDRE</div>
+  <h2>Lire \(K\) et \(\tau\) sur un relevé</h2>
+  <div class="intro">Identifier, c'est choisir un modèle de comportement et en déterminer les paramètres à partir d'un essai. Le modèle du premier ordre se reconnaît à trois signes : un départ avec une pente non nulle, aucun dépassement, un palier.</div>
+  <h3>Choisir l'essai</h3>
+  <ul>
+    <li>Partir d'un <strong>régime permanent</strong> (sortie stabilisée), puis appliquer un échelon : son amplitude doit être assez grande pour que la variation de la sortie domine le bruit de mesure, mais assez petite pour rester dans le domaine où le système est linéaire (pas de saturation de l'actionneur, pas de butée).</li>
+    <li>Enregistrer l'entrée et la sortie jusqu'au palier (au moins \(4\tau\) à \(5\tau\)), avec un point de mesure toutes les quelques secondes si \(\tau\) vaut quelques minutes (au moins une dizaine de points par constante de temps).</li>
+    <li>On peut aussi faire un essai harmonique (sinusoïdes de pulsations croissantes) et identifier sur le diagramme de Bode ; il est plus long, mais chaque point se mesure en régime établi, sur plusieurs périodes, ce qui le rend peu sensible au bruit.</li>
+  </ul>
+  <div class="method-box">
+    <strong>Sur une réponse indicielle</strong>
+    <ol>
+      <li>Vérifier l'allure : départ avec une pente non nulle, pas de dépassement, palier.</li>
+      <li>\(K = \dfrac{\Delta s_\infty}{\Delta e}\) : variation finale de la sortie sur amplitude de l'échelon, avec les unités.</li>
+      <li>\(\tau\) = instant où la sortie atteint 63 % de sa variation finale. La tangente à l'origine donne la même valeur mais elle est imprécise sur un relevé bruité ; on peut aussi mesurer \(t_{r5\%}\) et prendre \(\tau = t_{r5\%}/3\).</li>
+    </ol>
+  </div>
+  <div class="method-box">
+    <strong>Sur un diagramme de Bode</strong>
+    <ol>
+      <li>\(K = 10^{G_0/20}\), où \(G_0\) est le gain en basses pulsations.</li>
+      <li>\(\tau = 1/\omega_c\), où \(\omega_c\) est la pulsation à laquelle le gain a perdu 3 dB, ou bien celle où la phase vaut \(-45°\).</li>
+      <li>Contrôle : pente de \(-20\) dB/décade et phase tendant vers \(-90°\) en hautes pulsations.</li>
+    </ol>
+  </div>
+  <figure class="schema">
+<svg viewBox="0 0 400 212" role="img" aria-label="Relevé de la température d'une étuve après un échelon de puissance, avec la lecture à 63 %">
+<line x1="52" y1="159.5" x2="376" y2="159.5" class="sk-axis" style="opacity:.3"/>
+<line x1="52" y1="134.5" x2="376" y2="134.5" class="sk-axis" style="opacity:.3"/>
+<line x1="52" y1="109.5" x2="376" y2="109.5" class="sk-axis" style="opacity:.3"/>
+<line x1="52" y1="84.5" x2="376" y2="84.5" class="sk-axis" style="opacity:.3"/>
+<line x1="52" y1="59.5" x2="376" y2="59.5" class="sk-axis" style="opacity:.3"/>
+<line x1="52" y1="34.5" x2="376" y2="34.5" class="sk-axis" style="opacity:.3"/>
+<line x1="88" y1="172" x2="88" y2="22" class="sk-axis" style="opacity:.3"/>
+<line x1="124" y1="172" x2="124" y2="22" class="sk-axis" style="opacity:.3"/>
+<line x1="160" y1="172" x2="160" y2="22" class="sk-axis" style="opacity:.3"/>
+<line x1="196" y1="172" x2="196" y2="22" class="sk-axis" style="opacity:.3"/>
+<line x1="232" y1="172" x2="232" y2="22" class="sk-axis" style="opacity:.3"/>
+<line x1="268" y1="172" x2="268" y2="22" class="sk-axis" style="opacity:.3"/>
+<line x1="304" y1="172" x2="304" y2="22" class="sk-axis" style="opacity:.3"/>
+<line x1="340" y1="172" x2="340" y2="22" class="sk-axis" style="opacity:.3"/>
+<line x1="376" y1="172" x2="376" y2="22" class="sk-axis" style="opacity:.3"/>
+<rect x="52" y="22" width="324" height="150" class="sk-axis" style="fill:none"/>
+<text x="46" y="163.5" class="lab-muted" text-anchor="end">20</text>
+<text x="46" y="138.5" class="lab-muted" text-anchor="end">30</text>
+<text x="46" y="113.5" class="lab-muted" text-anchor="end">40</text>
+<text x="46" y="88.5" class="lab-muted" text-anchor="end">50</text>
+<text x="46" y="63.5" class="lab-muted" text-anchor="end">60</text>
+<text x="46" y="38.5" class="lab-muted" text-anchor="end">70</text>
+<text x="52" y="188" class="lab-muted" text-anchor="middle">0</text>
+<text x="106" y="188" class="lab-muted" text-anchor="middle">150</text>
+<text x="160" y="188" class="lab-muted" text-anchor="middle">300</text>
+<text x="214" y="188" class="lab-muted" text-anchor="middle">450</text>
+<text x="268" y="188" class="lab-muted" text-anchor="middle">600</text>
+<text x="322" y="188" class="lab-muted" text-anchor="middle">750</text>
+<text x="376" y="188" class="lab-muted" text-anchor="middle">900</text>
+<text x="376" y="205" class="lab-muted lab-it" text-anchor="end">t (s)</text>
+<text x="46" y="14" class="lab-muted" text-anchor="end">θ (°C)</text>
+<line x1="52" y1="34.5" x2="376" y2="34.5" class="sk-dash"/>
+<line x1="52" y1="78.7" x2="106" y2="78.7" class="sk-accent2" style="stroke-dasharray:5 4"/>
+<line x1="106" y1="172" x2="106" y2="78.7" class="sk-accent2" style="stroke-dasharray:5 4"/>
+<circle cx="52" cy="154.5" r="1.7" class="fl-ink"/><circle cx="55.6" cy="150.2" r="1.7" class="fl-ink"/><circle cx="59.2" cy="143.5" r="1.7" class="fl-ink"/><circle cx="62.8" cy="136.5" r="1.7" class="fl-ink"/><circle cx="66.4" cy="129.5" r="1.7" class="fl-ink"/><circle cx="70" cy="123.2" r="1.7" class="fl-ink"/><circle cx="73.6" cy="117" r="1.7" class="fl-ink"/><circle cx="77.2" cy="111" r="1.7" class="fl-ink"/><circle cx="80.8" cy="106.5" r="1.7" class="fl-ink"/><circle cx="84.4" cy="101.8" r="1.7" class="fl-ink"/><circle cx="88" cy="96.8" r="1.7" class="fl-ink"/><circle cx="91.6" cy="92.7" r="1.7" class="fl-ink"/><circle cx="95.2" cy="89" r="1.7" class="fl-ink"/><circle cx="98.8" cy="85.5" r="1.7" class="fl-ink"/><circle cx="102.4" cy="81.8" r="1.7" class="fl-ink"/><circle cx="106" cy="78.5" r="1.7" class="fl-ink"/><circle cx="109.6" cy="76.2" r="1.7" class="fl-ink"/><circle cx="113.2" cy="73.2" r="1.7" class="fl-ink"/><circle cx="116.8" cy="71" r="1.7" class="fl-ink"/><circle cx="120.4" cy="68.5" r="1.7" class="fl-ink"/><circle cx="124" cy="66.5" r="1.7" class="fl-ink"/><circle cx="127.6" cy="63.8" r="1.7" class="fl-ink"/><circle cx="131.2" cy="62.2" r="1.7" class="fl-ink"/><circle cx="134.8" cy="59.8" r="1.7" class="fl-ink"/><circle cx="138.4" cy="58" r="1.7" class="fl-ink"/><circle cx="142" cy="56.8" r="1.7" class="fl-ink"/><circle cx="145.6" cy="56" r="1.7" class="fl-ink"/><circle cx="149.2" cy="54" r="1.7" class="fl-ink"/><circle cx="152.8" cy="52.5" r="1.7" class="fl-ink"/><circle cx="156.4" cy="51.3" r="1.7" class="fl-ink"/><circle cx="160" cy="50.8" r="1.7" class="fl-ink"/><circle cx="163.6" cy="49.3" r="1.7" class="fl-ink"/><circle cx="167.2" cy="48.5" r="1.7" class="fl-ink"/><circle cx="170.8" cy="47.5" r="1.7" class="fl-ink"/><circle cx="174.4" cy="46" r="1.7" class="fl-ink"/><circle cx="178" cy="45.8" r="1.7" class="fl-ink"/><circle cx="181.6" cy="44.7" r="1.7" class="fl-ink"/><circle cx="185.2" cy="43.8" r="1.7" class="fl-ink"/><circle cx="188.8" cy="43.8" r="1.7" class="fl-ink"/><circle cx="192.4" cy="43" r="1.7" class="fl-ink"/><circle cx="196" cy="42.2" r="1.7" class="fl-ink"/><circle cx="199.6" cy="41.8" r="1.7" class="fl-ink"/><circle cx="203.2" cy="41.8" r="1.7" class="fl-ink"/><circle cx="206.8" cy="40.8" r="1.7" class="fl-ink"/><circle cx="210.4" cy="40" r="1.7" class="fl-ink"/><circle cx="214" cy="40.5" r="1.7" class="fl-ink"/><circle cx="217.6" cy="39.3" r="1.7" class="fl-ink"/><circle cx="221.2" cy="39.3" r="1.7" class="fl-ink"/><circle cx="224.8" cy="39.3" r="1.7" class="fl-ink"/><circle cx="228.4" cy="38" r="1.7" class="fl-ink"/><circle cx="232" cy="38" r="1.7" class="fl-ink"/><circle cx="235.6" cy="38.5" r="1.7" class="fl-ink"/><circle cx="239.2" cy="37.8" r="1.7" class="fl-ink"/><circle cx="242.8" cy="37.5" r="1.7" class="fl-ink"/><circle cx="246.4" cy="37.5" r="1.7" class="fl-ink"/><circle cx="250" cy="37" r="1.7" class="fl-ink"/><circle cx="253.6" cy="37" r="1.7" class="fl-ink"/><circle cx="257.2" cy="36.8" r="1.7" class="fl-ink"/><circle cx="260.8" cy="36.2" r="1.7" class="fl-ink"/><circle cx="264.4" cy="36.8" r="1.7" class="fl-ink"/><circle cx="268" cy="36.2" r="1.7" class="fl-ink"/><circle cx="271.6" cy="36.5" r="1.7" class="fl-ink"/><circle cx="275.2" cy="36.2" r="1.7" class="fl-ink"/><circle cx="278.8" cy="36.5" r="1.7" class="fl-ink"/><circle cx="282.4" cy="36.2" r="1.7" class="fl-ink"/><circle cx="286" cy="36" r="1.7" class="fl-ink"/><circle cx="289.6" cy="35.5" r="1.7" class="fl-ink"/><circle cx="293.2" cy="35.2" r="1.7" class="fl-ink"/><circle cx="296.8" cy="36" r="1.7" class="fl-ink"/><circle cx="300.4" cy="35.8" r="1.7" class="fl-ink"/><circle cx="304" cy="35.2" r="1.7" class="fl-ink"/><circle cx="307.6" cy="36.2" r="1.7" class="fl-ink"/><circle cx="311.2" cy="35.5" r="1.7" class="fl-ink"/><circle cx="314.8" cy="35.2" r="1.7" class="fl-ink"/><circle cx="318.4" cy="34.7" r="1.7" class="fl-ink"/><circle cx="322" cy="35" r="1.7" class="fl-ink"/><circle cx="325.6" cy="35.2" r="1.7" class="fl-ink"/><circle cx="329.2" cy="35.2" r="1.7" class="fl-ink"/><circle cx="332.8" cy="35.2" r="1.7" class="fl-ink"/><circle cx="336.4" cy="34.5" r="1.7" class="fl-ink"/><circle cx="340" cy="35.2" r="1.7" class="fl-ink"/><circle cx="343.6" cy="35" r="1.7" class="fl-ink"/><circle cx="347.2" cy="34.7" r="1.7" class="fl-ink"/><circle cx="350.8" cy="35" r="1.7" class="fl-ink"/><circle cx="354.4" cy="35" r="1.7" class="fl-ink"/><circle cx="358" cy="35.2" r="1.7" class="fl-ink"/><circle cx="361.6" cy="34.7" r="1.7" class="fl-ink"/><circle cx="365.2" cy="35" r="1.7" class="fl-ink"/><circle cx="368.8" cy="34.3" r="1.7" class="fl-ink"/><circle cx="372.4" cy="34.5" r="1.7" class="fl-ink"/><circle cx="376" cy="34.7" r="1.7" class="fl-ink"/>
+<circle cx="106" cy="78.7" r="3.2" class="fl-accent2"/>
+<text x="109.6" y="95.7" class="lab-accent2">52,3 °C à t ≈ 150 s</text>
+<text x="372.4" y="51.5" class="lab-muted" text-anchor="end">palier 70 °C</text>
+</svg>
+<figcaption>Relevé de la température d'une étuve (un point toutes les 10 s) : à \(t = 0\), la puissance passe de 0 à 800 W. La température part de 22 °C et se stabilise à 70 °C ; elle atteint 63 % de sa variation, 52,3 °C, vers \(t = 150\) s. Le départ est légèrement arrondi : c'est la sonde, qui a sa propre petite constante de temps.</figcaption>
+</figure>
+  <div class="method-box">
+    <strong>Exemple — identifier une étuve sur un relevé</strong>
+    <p>On enregistre la température d'une étuve à l'équilibre à 22 °C, puis on fait passer la puissance de chauffe de 0 à 800 W (figure ci-dessus).</p>
+    <ol>
+      <li>Allure : pas de dépassement, un palier à 70 °C. Le tout début est un peu arrondi (la sonde a sa propre inertie), mais la courbe a ensuite l'allure d'une exponentielle : on retient un premier ordre.</li>
+      <li>Gain : \(\Delta\theta_\infty = 70 - 22 = 48\ \text{K}\) pour \(\Delta P = 800\ \text{W}\), donc \(K = 0{,}060\ \text{K/W}\).</li>
+      <li>Constante de temps : 63 % de la variation, c'est \(22 + 0{,}632 \times 48 = 52{,}3\) °C, lu vers \(t = 150\ \text{s}\) : \(\tau \approx 150\ \text{s}\).</li>
+      <li>Contrôle : 95 % de la variation (67,6 °C) est atteint vers 440 s, ce qui donne \(\tau \approx 440/3 \approx 147\ \text{s}\), cohérent. Modèle retenu : \(H(p) = \dfrac{0{,}06}{1 + 150p}\) (K/W).</li>
+      <li>La tangente à l'origine est ici inutilisable : la pente mesurée sur les dix premières secondes (0,17 K/s) est moitié moindre que la pente \(K\Delta P/\tau = 0{,}32\) K/s du modèle, à cause du départ arrondi.</li>
+    </ol>
+  </div>
+  <div class="method-box">
+    <strong>Exemple — un moteur identifié en deux mesures</strong>
+    <p>Sous un échelon de 12 V, un moteur atteint 2 400 tr/min en régime permanent et 1 512 tr/min au bout de 0,15 s.</p>
+    <ol>
+      <li>\(K = \dfrac{2400}{12} = 200\ \text{tr}\cdot\text{min}^{-1}\cdot\text{V}^{-1}\), soit \(200 \times \dfrac{2\pi}{60} \approx 20{,}9\ \text{rad}\cdot\text{s}^{-1}\cdot\text{V}^{-1}\).</li>
+      <li>\(1512/2400 = 0{,}63\) : on est à \(t = \tau\), donc \(\tau = 0{,}15\ \text{s}\).</li>
+      <li>Modèle : \(H(p) = \dfrac{20{,}9}{1 + 0{,}15p}\) ; temps de réponse à 5 % prévu : 0,45 s.</li>
+    </ol>
+  </div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§6 · LE PREMIER ORDRE DANS UNE BOUCLE</div>
+  <h2>Boucler accélère</h2>
+  <div class="prop-box">
+    <ul>
+      <li>Un premier ordre \(\dfrac{K}{1 + \tau p}\) précédé d'un gain \(K_c\) et bouclé par un retour unitaire reste un premier ordre, de gain \(\dfrac{K_cK}{1 + K_cK}\) et de constante de temps \(\dfrac{\tau}{1 + K_cK}\) : plus rapide, mais avec un écart statique \(\dfrac{1}{1 + K_cK}\) à l'échelon.</li>
+      <li>Un <strong>intégrateur</strong> \(\dfrac{K}{p}\) bouclé par un retour unitaire donne \(\dfrac{K}{p + K} = \dfrac{1}{1 + p/K}\) : un premier ordre de gain exactement 1 et de constante de temps \(1/K\). C'est le cas d'un axe positionné par un moteur commandé en vitesse : la position finale égale la consigne.</li>
+    </ul>
+  </div>
+  <div class="reveal" onclick="this.classList.toggle('open')">
+    <span class="label">Démonstration</span>
+    <span class="prompt">La fonction de transfert en boucle fermée</span>
+    <div class="content">
+      <p>Avec un retour unitaire, \(H_{BF} = \dfrac{H_{BO}}{1 + H_{BO}}\) (chapitre <a href="#schblocs/cours">« Schéma-blocs et systèmes asservis »</a>). Pour \(H_{BO} = \dfrac{K_cK}{1 + \tau p}\) : \(H_{BF} = \dfrac{K_cK}{1 + K_cK + \tau p}\), et l'on divise par \(1 + K_cK\) pour retrouver la forme canonique. L'écart statique à un échelon unité vaut \(1 - H_{BF}(0) = \dfrac{1}{1 + K_cK}\).</p>
+    </div>
+  </div>
+  <div class="method-box">
+    <strong>Exemple — boucler le moteur du §1 en vitesse</strong>
+    <p>Le moteur du §1 (\(K = 8{,}33\ \text{rad}\cdot\text{s}^{-1}\cdot\text{V}^{-1}\), \(\tau = 0{,}333\ \text{s}\)) est commandé par \(u = K_c\,(\Omega_c - \Omega)\), avec \(K_c = 2\ \text{V}\cdot\text{s}\cdot\text{rad}^{-1}\) (capteur et adaptateur ramenés à un retour unitaire).</p>
+    <ol>
+      <li>\(K_cK = 16{,}7\) : gain en boucle fermée \(\dfrac{16{,}7}{17{,}7} = 0{,}943\), constante de temps \(\dfrac{0{,}333}{17{,}7} = 18{,}8\ \text{ms}\).</li>
+      <li>Temps de réponse : \(3 \times 18{,}8 = 56\ \text{ms}\), contre 1 s en boucle ouverte ; écart statique \(1/17{,}7 = 5{,}7\ \%\) de la consigne.</li>
+      <li>Mais pour une consigne de 100 rad/s, la commande vaut \(u(0^+) = K_c \times 100 = 200\ \text{V}\) à l'instant de l'échelon : un variateur alimenté en 24 V sature, et la réponse réelle est bien plus lente que prévu.</li>
+    </ol>
+  </div>
+  <div class="method-box">
+    <strong>Exemple — un axe positionné</strong>
+    <p>Un axe linéaire commandé en vitesse a pour FTBO \(\dfrac{K}{p}\), avec \(K = 20\ \text{s}^{-1}\).</p>
+    <ol>
+      <li>En boucle fermée : premier ordre de gain 1 et de constante de temps \(1/K = 0{,}05\ \text{s}\), d'où \(t_{r5\%} = 0{,}15\ \text{s}\) et un écart statique nul.</li>
+      <li>Pour une consigne en rampe de 0,1 m/s, l'écart de traînage vaut \(a/K = 0{,}1/20 = 5\ \text{mm}\) (formule générale : <a href="#precision/cours">« Performances »</a>, §2).</li>
+    </ol>
+  </div>
+  <div class="notice">Ces résultats paraissent sans limite (gain infini, rapidité infinie). En réalité, la commande sature et les constantes de temps négligées (inductance, capteur) font apparaître un ordre plus élevé, qui peut osciller : c'est l'objet du chapitre « Stabilité des systèmes asservis ».</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§7 · RECONNAÎTRE UN MODÈLE DE COMPORTEMENT</div>
+  <h2>Premier ordre, intégrateur, retard</h2>
+  <div class="intro">Tous les relevés ne sont pas des premiers ordres. Le programme cite, comme modèles de comportement, le gain pur, l'intégrateur, le dérivateur, le retard, le premier et le deuxième ordre (<a href="#slci/cours">« SLCI »</a>, §5). Bien les distinguer sur une réponse indicielle évite d'identifier \(\tau\) sur une courbe qui n'est pas une exponentielle.</div>
+  <div style="overflow-x:auto"><table>
+    <tr><th>Allure de la réponse à un échelon \(E_0\)</th><th>Modèle</th><th>Paramètres lus</th></tr>
+    <tr><td>saut immédiat à une valeur constante</td><td>gain pur \(K\)</td><td>\(K = \Delta s/E_0\)</td></tr>
+    <tr><td>rampe dès l'origine</td><td>intégrateur \(\dfrac{K}{p}\)</td><td>pente \(= KE_0\)</td></tr>
+    <tr><td>départ en pente, palier, pas de dépassement</td><td>premier ordre \(\dfrac{K}{1 + \tau p}\)</td><td>\(K\), \(\tau\) (63 %)</td></tr>
+    <tr><td>rien pendant \(T\), puis une exponentielle</td><td>premier ordre retardé \(\dfrac{K\,e^{-Tp}}{1 + \tau p}\)</td><td>\(T\), puis \(K\), \(\tau\)</td></tr>
+    <tr><td>départ à tangente horizontale, puis une rampe</td><td>intégrateur et premier ordre \(\dfrac{K}{p\,(1 + \tau p)}\)</td><td>pente \(KE_0\), \(\tau\) (asymptote)</td></tr>
+    <tr><td>départ à tangente horizontale, palier, avec ou sans dépassement</td><td>deuxième ordre (<a href="#sys2/cours">chapitre suivant</a>)</td><td>\(K\), \(\xi\), \(\omega_0\)</td></tr>
+  </table></div>
+  <h3>Le premier ordre retardé</h3>
+  <div class="def-box">
+    Un <strong>retard pur</strong> \(T\) (transport d'une matière dans un tuyau, sur un convoyeur, d'une information dans un réseau) décale la sortie sans la déformer : \(s(t) = e(t - T)\), de fonction de transfert \(e^{-Tp}\) (théorème du retard). Associé à un premier ordre :
+    <div class="formula" data-nom="Premier ordre retardé">$$H(p) = \frac{K\,e^{-Tp}}{1 + \tau p},\qquad s(t) = K E_0\big(1 - e^{-(t - T)/\tau}\big)\ \text{pour } t \geq T,\quad s = 0 \text{ avant}.$$</div>
+  </div>
+  <figure class="schema">
+<svg viewBox="0 0 400 178" role="img" aria-label="Réponse indicielle d'un premier ordre retardé : rien pendant le retard T, puis une exponentielle">
+<line x1="52" y1="154" x2="364" y2="154" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<line x1="52" y1="154" x2="52" y2="12" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<text x="366" y="158" class="lab-muted lab-it">t (s)</text>
+<text x="48" y="10" class="lab-muted lab-it" text-anchor="end">s / KE₀</text>
+<line x1="52" y1="41" x2="352" y2="41" class="sk-dash"/>
+<line x1="52" y1="82.6" x2="132" y2="82.6" class="sk-axis" style="stroke-dasharray:2 3"/>
+<line x1="132" y1="154" x2="132" y2="82.6" class="sk-axis" style="stroke-dasharray:2 3"/>
+<line x1="232" y1="154" x2="232" y2="46.6" class="sk-axis" style="stroke-dasharray:2 3"/>
+<polyline points="52,154 52.8,154 53.5,154 54.3,154 55,154 55.8,154 56.5,154 57.3,154 58,154 58.8,154 59.5,154 60.3,154 61,154 61.8,154 62.5,154 63.3,154 64,154 64.8,154 65.5,154 66.3,154 67,154 67.8,154 68.5,154 69.3,154 70,154 70.8,154 71.5,154 72.3,154 73.1,154 73.8,154 74.6,154 75.3,154 76.1,154 76.8,154 77.6,154 78.3,154 79.1,154 79.8,154 80.6,154 81.3,154 82.1,153.8 82.8,152.1 83.6,150.5 84.3,148.9 85.1,147.2 85.8,145.7 86.6,144.1 87.3,142.6 88.1,141 88.8,139.5 89.6,138.1 90.3,136.6 91.1,135.2 91.8,133.8 92.6,132.4 93.4,131 94.1,129.7 94.9,128.4 95.6,127.1 96.4,125.8 97.1,124.5 97.9,123.3 98.6,122 99.4,120.8 100.1,119.6 100.9,118.5 101.6,117.3 102.4,116.2 103.1,115 103.9,113.9 104.6,112.8 105.4,111.8 106.1,110.7 106.9,109.7 107.6,108.7 108.4,107.6 109.1,106.6 109.9,105.7 110.6,104.7 111.4,103.7 112.2,102.8 112.9,101.9 113.7,101 114.4,100.1 115.2,99.2 115.9,98.3 116.7,97.5 117.4,96.6 118.2,95.8 118.9,95 119.7,94.2 120.4,93.4 121.2,92.6 121.9,91.8 122.7,91.1 123.4,90.3 124.2,89.6 124.9,88.9 125.7,88.1 126.4,87.4 127.2,86.7 127.9,86.1 128.7,85.4 129.4,84.7 130.2,84.1 130.9,83.4 131.7,82.8 132.5,82.2 133.2,81.6 134,80.9 134.7,80.4 135.5,79.8 136.2,79.2 137,78.6 137.7,78.1 138.5,77.5 139.2,77 140,76.4 140.7,75.9 141.5,75.4 142.2,74.9 143,74.3 143.7,73.8 144.5,73.4 145.2,72.9 146,72.4 146.7,71.9 147.5,71.5 148.2,71 149,70.6 149.7,70.1 150.5,69.7 151.2,69.3 152,68.8 152.8,68.4 153.5,68 154.3,67.6 155,67.2 155.8,66.8 156.5,66.4 157.3,66 158,65.7 158.8,65.3 159.5,64.9 160.3,64.6 161,64.2 161.8,63.9 162.5,63.5 163.3,63.2 164,62.9 164.8,62.5 165.5,62.2 166.3,61.9 167,61.6 167.8,61.3 168.5,61 169.3,60.7 170,60.4 170.8,60.1 171.5,59.8 172.3,59.5 173.1,59.3 173.8,59 174.6,58.7 175.3,58.4 176.1,58.2 176.8,57.9 177.6,57.7 178.3,57.4 179.1,57.2 179.8,56.9 180.6,56.7 181.3,56.5 182.1,56.2 182.8,56 183.6,55.8 184.3,55.6 185.1,55.3 185.8,55.1 186.6,54.9 187.3,54.7 188.1,54.5 188.8,54.3 189.6,54.1 190.3,53.9 191.1,53.7 191.8,53.5 192.6,53.3 193.4,53.1 194.1,53 194.9,52.8 195.6,52.6 196.4,52.4 197.1,52.3 197.9,52.1 198.6,51.9 199.4,51.8 200.1,51.6 200.9,51.4 201.6,51.3 202.4,51.1 203.1,51 203.9,50.8 204.6,50.7 205.4,50.5 206.1,50.4 206.9,50.3 207.6,50.1 208.4,50 209.1,49.8 209.9,49.7 210.6,49.6 211.4,49.5 212.2,49.3 212.9,49.2 213.7,49.1 214.4,49 215.2,48.8 215.9,48.7 216.7,48.6 217.4,48.5 218.2,48.4 218.9,48.3 219.7,48.2 220.4,48.1 221.2,47.9 221.9,47.8 222.7,47.7 223.4,47.6 224.2,47.5 224.9,47.4 225.7,47.3 226.4,47.2 227.2,47.2 227.9,47.1 228.7,47 229.4,46.9 230.2,46.8 230.9,46.7 231.7,46.6 232.5,46.5 233.2,46.5 234,46.4 234.7,46.3 235.5,46.2 236.2,46.1 237,46.1 237.7,46 238.5,45.9 239.2,45.8 240,45.8 240.7,45.7 241.5,45.6 242.2,45.5 243,45.5 243.7,45.4 244.5,45.3 245.2,45.3 246,45.2 246.7,45.1 247.5,45.1 248.2,45 249,45 249.7,44.9 250.5,44.8 251.2,44.8 252,44.7 252.8,44.7 253.5,44.6 254.3,44.6 255,44.5 255.8,44.5 256.5,44.4 257.3,44.4 258,44.3 258.8,44.3 259.5,44.2 260.3,44.2 261,44.1 261.8,44.1 262.5,44 263.3,44 264,43.9 264.8,43.9 265.5,43.8 266.3,43.8 267,43.7 267.8,43.7 268.5,43.7 269.3,43.6 270,43.6 270.8,43.5 271.5,43.5 272.3,43.5 273.1,43.4 273.8,43.4 274.6,43.4 275.3,43.3 276.1,43.3 276.8,43.3 277.6,43.2 278.3,43.2 279.1,43.2 279.8,43.1 280.6,43.1 281.3,43.1 282.1,43 282.8,43 283.6,43 284.3,42.9 285.1,42.9 285.8,42.9 286.6,42.8 287.3,42.8 288.1,42.8 288.8,42.8 289.6,42.7 290.3,42.7 291.1,42.7 291.8,42.7 292.6,42.6 293.4,42.6 294.1,42.6 294.9,42.6 295.6,42.5 296.4,42.5 297.1,42.5 297.9,42.5 298.6,42.4 299.4,42.4 300.1,42.4 300.9,42.4 301.6,42.4 302.4,42.3 303.1,42.3 303.9,42.3 304.6,42.3 305.4,42.3 306.1,42.2 306.9,42.2 307.6,42.2 308.4,42.2 309.1,42.2 309.9,42.1 310.6,42.1 311.4,42.1 312.2,42.1 312.9,42.1 313.7,42.1 314.4,42 315.2,42 315.9,42 316.7,42 317.4,42 318.2,42 318.9,41.9 319.7,41.9 320.4,41.9 321.2,41.9 321.9,41.9 322.7,41.9 323.4,41.9 324.2,41.8 324.9,41.8 325.7,41.8 326.4,41.8 327.2,41.8 327.9,41.8 328.7,41.8 329.4,41.8 330.2,41.7 330.9,41.7 331.7,41.7 332.5,41.7 333.2,41.7 334,41.7 334.7,41.7 335.5,41.7 336.2,41.7 337,41.6 337.7,41.6 338.5,41.6 339.2,41.6 340,41.6 340.7,41.6 341.5,41.6 342.2,41.6 343,41.6 343.7,41.6 344.5,41.5 345.2,41.5 346,41.5 346.7,41.5 347.5,41.5 348.2,41.5 349,41.5 349.7,41.5 350.5,41.5 351.2,41.5 352,41.5" class="sk-accent"/>
+<circle cx="132" cy="82.6" r="3" class="fl-accent"/>
+<circle cx="232" cy="46.6" r="3" class="fl-accent"/>
+<line x1="52" y1="133.7" x2="82" y2="133.7" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<text x="67" y="127.7" class="lab-b lab-it" text-anchor="middle">T</text>
+<line x1="82" y1="103.1" x2="132" y2="103.1" class="sk-accent2" marker-end="url(#sk-arrow-accent2)"/>
+<text x="107" y="97.1" class="lab-accent2 lab-it" text-anchor="middle">τ</text>
+<text x="139" y="98.6" class="lab-accent">63 %</text>
+<text x="239" y="62.6" class="lab-accent">95 %</text>
+<text x="46" y="45" class="lab-muted" text-anchor="end">1</text>
+<text x="82" y="170" class="lab-muted" text-anchor="middle">3</text>
+<text x="132" y="170" class="lab-muted" text-anchor="middle">8</text>
+<text x="232" y="170" class="lab-muted" text-anchor="middle">18</text>
+<text x="352" y="170" class="lab-muted" text-anchor="middle">30</text>
+</svg>
+<figcaption>Réponse indicielle d'un premier ordre retardé (\(T = 3\) s, \(\tau = 5\) s). Rien ne se passe pendant le retard \(T\) ; ensuite, c'est la réponse du premier ordre, décalée de \(T\) : 63 % à \(T + \tau = 8\) s, 95 % à \(T + 3\tau = 18\) s.</figcaption>
+</figure>
+  <div class="method-box">
+    <strong>Exemple — l'eau chaude d'une douche</strong>
+    <p>On ouvre un mitigeur thermostatique : l'eau chaude parcourt 2,4 m de tuyau à 0,8 m/s, puis la température au pommeau évolue comme un premier ordre de constante de temps 5 s.</p>
+    <ol>
+      <li>Retard de transport : \(T = 2{,}4/0{,}8 = 3\ \text{s}\), pendant lesquels rien ne change.</li>
+      <li>63 % de la variation est atteint à \(T + \tau = 8\ \text{s}\), et la bande des 5 % à \(T + 3\tau = 18\ \text{s}\).</li>
+      <li>Identification sur un relevé : \(T\) = instant où la sortie commence à varier, puis \(\tau\) = (instant des 63 %) \(- T\). Mesurer \(\tau\) depuis l'instant de l'échelon donnerait 8 s au lieu de 5 s.</li>
+    </ol>
+  </div>
+  <h3>L'intégrateur suivi d'un premier ordre</h3>
+  <p>La position \(\theta\) d'un axe de moteur est l'intégrale de sa vitesse, qui est un premier ordre : \(\dfrac{\theta(p)}{U(p)} = \dfrac{K}{p\,(1 + \tau p)}\). Sous un échelon \(U_0\),</p>
+  <div class="formula" data-nom="Réponse indicielle d'un intégrateur et d'un premier ordre">$$\theta(t) = K U_0\Big[t - \tau\big(1 - e^{-t/\tau}\big)\Big] \;\approx\; K U_0\,(t - \tau)\ \text{pour } t \gg \tau.$$</div>
+  <figure class="schema">
+<svg viewBox="0 0 400 196" role="img" aria-label="Réponse d'un intégrateur suivi d'un premier ordre à un échelon : une rampe en retard de tau">
+<line x1="52" y1="158" x2="364" y2="158" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<line x1="52" y1="158" x2="52" y2="10" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<text x="366" y="162" class="lab-muted lab-it">t (s)</text>
+<text x="48" y="8" class="lab-muted lab-it" text-anchor="end">θ (rad)</text>
+<line x1="100" y1="158" x2="352" y2="31.1" class="sk-accent2" style="stroke-dasharray:5 4"/>
+<polyline points="52,158 53,158 54,158 55,158 56,157.9 57,157.9 58,157.8 59,157.8 60,157.7 61,157.6 62,157.5 63,157.4 64,157.3 65,157.2 66,157.1 67.1,156.9 68.1,156.8 69.1,156.6 70.1,156.5 71.1,156.3 72.1,156.2 73.1,156 74.1,155.8 75.1,155.6 76.1,155.4 77.1,155.2 78.1,155 79.1,154.8 80.1,154.6 81.1,154.3 82.1,154.1 83.1,153.9 84.1,153.6 85.1,153.4 86.1,153.1 87.1,152.9 88.1,152.6 89.1,152.3 90.1,152 91.1,151.8 92.1,151.5 93.1,151.2 94.1,150.9 95.1,150.6 96.1,150.3 97.2,150 98.2,149.7 99.2,149.4 100.2,149.1 101.2,148.7 102.2,148.4 103.2,148.1 104.2,147.7 105.2,147.4 106.2,147.1 107.2,146.7 108.2,146.4 109.2,146 110.2,145.7 111.2,145.3 112.2,145 113.2,144.6 114.2,144.2 115.2,143.9 116.2,143.5 117.2,143.1 118.2,142.7 119.2,142.4 120.2,142 121.2,141.6 122.2,141.2 123.2,140.8 124.2,140.4 125.2,140 126.2,139.6 127.3,139.2 128.3,138.8 129.3,138.4 130.3,138 131.3,137.6 132.3,137.2 133.3,136.8 134.3,136.4 135.3,136 136.3,135.5 137.3,135.1 138.3,134.7 139.3,134.3 140.3,133.9 141.3,133.4 142.3,133 143.3,132.6 144.3,132.1 145.3,131.7 146.3,131.3 147.3,130.8 148.3,130.4 149.3,130 150.3,129.5 151.3,129.1 152.3,128.6 153.3,128.2 154.3,127.8 155.3,127.3 156.3,126.9 157.4,126.4 158.4,126 159.4,125.5 160.4,125.1 161.4,124.6 162.4,124.2 163.4,123.7 164.4,123.2 165.4,122.8 166.4,122.3 167.4,121.9 168.4,121.4 169.4,121 170.4,120.5 171.4,120 172.4,119.6 173.4,119.1 174.4,118.6 175.4,118.2 176.4,117.7 177.4,117.2 178.4,116.8 179.4,116.3 180.4,115.8 181.4,115.4 182.4,114.9 183.4,114.4 184.4,113.9 185.4,113.5 186.4,113 187.5,112.5 188.5,112 189.5,111.6 190.5,111.1 191.5,110.6 192.5,110.1 193.5,109.6 194.5,109.2 195.5,108.7 196.5,108.2 197.5,107.7 198.5,107.2 199.5,106.8 200.5,106.3 201.5,105.8 202.5,105.3 203.5,104.8 204.5,104.4 205.5,103.9 206.5,103.4 207.5,102.9 208.5,102.4 209.5,101.9 210.5,101.4 211.5,101 212.5,100.5 213.5,100 214.5,99.5 215.5,99 216.5,98.5 217.6,98 218.6,97.5 219.6,97 220.6,96.6 221.6,96.1 222.6,95.6 223.6,95.1 224.6,94.6 225.6,94.1 226.6,93.6 227.6,93.1 228.6,92.6 229.6,92.1 230.6,91.6 231.6,91.1 232.6,90.6 233.6,90.2 234.6,89.7 235.6,89.2 236.6,88.7 237.6,88.2 238.6,87.7 239.6,87.2 240.6,86.7 241.6,86.2 242.6,85.7 243.6,85.2 244.6,84.7 245.6,84.2 246.6,83.7 247.7,83.2 248.7,82.7 249.7,82.2 250.7,81.7 251.7,81.2 252.7,80.7 253.7,80.2 254.7,79.7 255.7,79.2 256.7,78.7 257.7,78.2 258.7,77.7 259.7,77.2 260.7,76.7 261.7,76.2 262.7,75.7 263.7,75.2 264.7,74.7 265.7,74.2 266.7,73.7 267.7,73.2 268.7,72.7 269.7,72.2 270.7,71.7 271.7,71.2 272.7,70.7 273.7,70.2 274.7,69.7 275.7,69.2 276.7,68.7 277.8,68.2 278.8,67.7 279.8,67.2 280.8,66.7 281.8,66.2 282.8,65.7 283.8,65.2 284.8,64.7 285.8,64.2 286.8,63.7 287.8,63.2 288.8,62.7 289.8,62.2 290.8,61.7 291.8,61.2 292.8,60.7 293.8,60.2 294.8,59.7 295.8,59.2 296.8,58.7 297.8,58.2 298.8,57.7 299.8,57.2 300.8,56.7 301.8,56.2 302.8,55.7 303.8,55.2 304.8,54.7 305.8,54.2 306.8,53.7 307.9,53.2 308.9,52.7 309.9,52.2 310.9,51.7 311.9,51.2 312.9,50.7 313.9,50.2 314.9,49.7 315.9,49.2 316.9,48.7 317.9,48.2 318.9,47.7 319.9,47.1 320.9,46.6 321.9,46.1 322.9,45.6 323.9,45.1 324.9,44.6 325.9,44.1 326.9,43.6 327.9,43.1 328.9,42.6 329.9,42.1 330.9,41.6 331.9,41.1 332.9,40.6 333.9,40.1 334.9,39.6 335.9,39.1 336.9,38.6 338,38.1 339,37.6 340,37.1 341,36.6 342,36.1 343,35.6 344,35.1 345,34.6 346,34 347,33.5 348,33 349,32.5 350,32 351,31.5 352,31" class="sk-accent"/>
+<circle cx="100" cy="158" r="3.2" class="fl-accent2"/>
+<text x="172" y="174" class="lab-muted" text-anchor="middle">0,2</text>
+<text x="232" y="174" class="lab-muted" text-anchor="middle">0,3</text>
+<text x="292" y="174" class="lab-muted" text-anchor="middle">0,4</text>
+<text x="352" y="174" class="lab-muted" text-anchor="middle">0,5</text>
+<line x1="52" y1="107.6" x2="352" y2="107.6" class="sk-axis" style="opacity:.3"/>
+<text x="46" y="111.6" class="lab-muted" text-anchor="end">50</text>
+<line x1="52" y1="57.3" x2="352" y2="57.3" class="sk-axis" style="opacity:.3"/>
+<text x="46" y="61.3" class="lab-muted" text-anchor="end">100</text>
+<text x="100" y="174" class="lab-accent2 lab-it" text-anchor="middle">τ</text>
+<text x="232" y="73.5" class="lab-accent2" text-anchor="end">asymptote : pente K U₀</text>
+<text x="304" y="75.1" class="lab-accent lab-it">θ(t)</text>
+</svg>
+<figcaption>Position \(\theta(t)\) d'un axe de moteur alimenté par un échelon \(U_0\) : modèle \(\dfrac{K}{p\,(1 + \tau p)}\). Le départ est à tangente horizontale, puis la courbe rejoint une asymptote de pente \(KU_0\) qui coupe l'axe des temps en \(t = \tau\) (ici \(KU_0 = 300\) rad/s et \(\tau = 0{,}08\) s).</figcaption>
+</figure>
+  <div class="method-box">
+    <strong>Exemple — identifier un moteur sur sa position</strong>
+    <p>Sous un échelon de 6 V, la position d'un moteur rejoint une droite de pente 300 rad/s qui coupe l'axe des temps à 0,08 s (figure ci-dessus).</p>
+    <ol>
+      <li>Pente de l'asymptote : \(KU_0 = 300\ \text{rad/s}\), donc \(K = 50\ \text{rad}\cdot\text{s}^{-1}\cdot\text{V}^{-1}\) (c'est le gain du premier ordre « vitesse »).</li>
+      <li>Abscisse à l'origine de l'asymptote : \(\tau = 0{,}08\ \text{s}\).</li>
+      <li>Contrôle : à 0,5 s, le modèle donne \(300\,\big(0{,}5 - 0{,}08\,(1 - e^{-6{,}25})\big) = 126\ \text{rad}\), sur l'asymptote à 0,1 % près.</li>
+    </ol>
+  </div>
+  <div class="notice"><strong>Erreur classique</strong> : prendre une réponse à tangente horizontale au départ pour un premier ordre. Un premier ordre démarre toujours avec la pente \(KE_0/\tau\), non nulle ; une tangente horizontale signale un ordre au moins égal à 2 (deux premiers ordres en série, un intégrateur et un premier ordre, ou un deuxième ordre).</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§8 · VALIDER UN MODÈLE</div>
+  <h2>Confronter le modèle à la mesure</h2>
+  <div class="intro">Un modèle identifié n'est utile que s'il prévoit correctement ce qu'on ne lui a pas montré. Le valider, c'est comparer ses prévisions (calculées à la main ou simulées) à des mesures, de préférence sur un <strong>autre essai</strong> que celui qui a servi à l'identifier, et conclure sur l'écart.</div>
+  <h3>Simuler le modèle : la méthode d'Euler</h3>
+  <p>Pour une entrée quelconque (échelon puis coupure, consigne en paliers…), on résout numériquement \(\tau\,s' + s = K\,e(t)\) écrite sous la forme \(s' = F(t, s) = \dfrac{K\,e(t) - s}{\tau}\), avec la fonction <span class="code-inline">euler</span> du chapitre <a href="#pynum/cours">« Méthodes numériques »</a>, §6 : \(s_{k+1} = s_k + h\,F(t_k, s_k)\). Le pas \(h\) doit être petit devant \(\tau\) (une à quelques dizaines de pas par constante de temps).</p>
+  <pre class="codeblock"><span class="kw">def</span> euler(F, t0, y0, h, n):
+    <span class="str">"""Méthode d'Euler pour y' = F(t, y), y(t0) = y0 : renvoie les listes
+    des instants t_k = t0 + k*h et des approximations y_k de y(t_k), k = 0, …, n."""</span>
+    ts, ys = [t0], [y0]
+    y = y0
+    <span class="kw">for</span> k <span class="kw">in</span> range(n):
+        y = y + h * F(t0 + k * h, y)      <span class="cmt"># pente au point (t_k, y_k)</span>
+        ts.append(t0 + (k + 1) * h)
+        ys.append(y)
+    <span class="kw">return</span> ts, ys
+
+K, tau = 0.06, 150.0                  <span class="cmt"># modèle de l'étuve identifié au §5 (K/W, s)</span>
+
+<span class="kw">def</span> P(t):
+    <span class="kw">return</span> 800.0 <span class="kw">if</span> t &lt; 600 <span class="kw">else</span> 0.0   <span class="cmt"># chauffe à 800 W, puis coupure à 600 s</span>
+
+<span class="kw">def</span> F(t, theta):
+    <span class="kw">return</span> (K * P(t) - theta) / tau     <span class="cmt"># tau theta' + theta = K P(t), theta = écart à 22 °C</span>
+
+ts, thetas = euler(F, 0, 0.0, 5.0, 240)  <span class="cmt"># 240 pas de 5 s : 1 200 s</span>
+<span class="kw">for</span> k <span class="kw">in</span> (20, 60, 120, 140, 180, 240):  <span class="cmt"># t = 100, 300, 600, 700, 900, 1 200 s</span>
+    print(ts[k], round(22 + thetas[k], 1))</pre>
+  <p>Le programme, exécuté tel quel, affiche :</p>
+  <pre class="codeblock">100.0 45.6
+300.0 63.7
+600.0 69.2
+700.0 45.9
+900.0 28.2
+1200.0 22.8</pre>
+  <figure class="schema">
+<svg viewBox="0 0 400 202" role="img" aria-label="Validation du modèle de l'étuve sur un essai de chauffe puis de refroidissement">
+<line x1="52" y1="150.3" x2="376" y2="150.3" class="sk-axis" style="opacity:.3"/>
+<line x1="52" y1="127" x2="376" y2="127" class="sk-axis" style="opacity:.3"/>
+<line x1="52" y1="103.7" x2="376" y2="103.7" class="sk-axis" style="opacity:.3"/>
+<line x1="52" y1="80.3" x2="376" y2="80.3" class="sk-axis" style="opacity:.3"/>
+<line x1="52" y1="57" x2="376" y2="57" class="sk-axis" style="opacity:.3"/>
+<line x1="52" y1="33.7" x2="376" y2="33.7" class="sk-axis" style="opacity:.3"/>
+<line x1="106" y1="162" x2="106" y2="22" class="sk-axis" style="opacity:.3"/>
+<line x1="160" y1="162" x2="160" y2="22" class="sk-axis" style="opacity:.3"/>
+<line x1="214" y1="162" x2="214" y2="22" class="sk-axis" style="opacity:.3"/>
+<line x1="268" y1="162" x2="268" y2="22" class="sk-axis" style="opacity:.3"/>
+<line x1="322" y1="162" x2="322" y2="22" class="sk-axis" style="opacity:.3"/>
+<line x1="376" y1="162" x2="376" y2="22" class="sk-axis" style="opacity:.3"/>
+<rect x="52" y="22" width="324" height="140" class="sk-axis" style="fill:none"/>
+<text x="46" y="154.3" class="lab-muted" text-anchor="end">20</text>
+<text x="46" y="107.7" class="lab-muted" text-anchor="end">40</text>
+<text x="46" y="61" class="lab-muted" text-anchor="end">60</text>
+<text x="52" y="178" class="lab-muted" text-anchor="middle">0</text>
+<text x="133" y="178" class="lab-muted" text-anchor="middle">300</text>
+<text x="214" y="178" class="lab-muted" text-anchor="middle">600</text>
+<text x="295" y="178" class="lab-muted" text-anchor="middle">900</text>
+<text x="376" y="178" class="lab-muted" text-anchor="middle">1200</text>
+<text x="376" y="195" class="lab-muted lab-it" text-anchor="end">t (s)</text>
+<text x="46" y="14" class="lab-muted" text-anchor="end">θ (°C)</text>
+<polyline points="52,145.7 53.4,141.9 54.7,138.3 56,134.8 57.4,131.5 58.8,128.2 60.1,125.1 61.5,122 62.8,119.1 64.2,116.2 65.5,113.5 66.8,110.8 68.2,108.2 69.5,105.7 70.9,103.3 72.2,101 73.6,98.8 75,96.6 76.3,94.5 77.7,92.5 79,90.5 80.3,88.6 81.7,86.8 83,85 84.4,83.3 85.8,81.7 87.1,80.1 88.5,78.5 89.8,77 91.2,75.6 92.5,74.2 93.8,72.8 95.2,71.5 96.6,70.3 97.9,69 99.2,67.9 100.6,66.7 102,65.6 103.3,64.6 104.7,63.5 106,62.5 107.3,61.6 108.7,60.6 110,59.7 111.4,58.9 112.8,58 114.1,57.2 115.5,56.4 116.8,55.7 118.2,54.9 119.5,54.2 120.8,53.5 122.2,52.9 123.5,52.2 124.9,51.6 126.2,51 127.6,50.4 128.9,49.9 130.3,49.3 131.6,48.8 133,48.3 134.3,47.8 135.7,47.4 137.1,46.9 138.4,46.5 139.8,46 141.1,45.6 142.4,45.2 143.8,44.8 145.1,44.5 146.5,44.1 147.8,43.8 149.2,43.4 150.6,43.1 151.9,42.8 153.2,42.5 154.6,42.2 155.9,41.9 157.3,41.6 158.7,41.4 160,41.1 161.4,40.9 162.7,40.6 164.1,40.4 165.4,40.2 166.8,39.9 168.1,39.7 169.4,39.5 170.8,39.3 172.2,39.1 173.5,39 174.8,38.8 176.2,38.6 177.6,38.5 178.9,38.3 180.2,38.1 181.6,38 182.9,37.8 184.3,37.7 185.7,37.6 187,37.4 188.3,37.3 189.7,37.2 191,37.1 192.4,37 193.8,36.9 195.1,36.7 196.5,36.6 197.8,36.5 199.2,36.4 200.5,36.4 201.8,36.3 203.2,36.2 204.6,36.1 205.9,36 207.2,35.9 208.6,35.9 209.9,35.8 211.3,35.7 212.7,35.6 214,35.6 215.3,39.3 216.7,42.8 218,46.2 219.4,49.5 220.8,52.7 222.1,55.8 223.4,58.8 224.8,61.7 226.2,64.5 227.5,67.2 228.8,69.8 230.2,72.4 231.6,74.8 232.9,77.2 234.2,79.5 235.6,81.7 236.9,83.8 238.3,85.9 239.7,87.9 241,89.8 242.3,91.6 243.7,93.4 245.1,95.2 246.4,96.9 247.8,98.5 249.1,100.1 250.5,101.6 251.8,103.1 253.2,104.5 254.5,105.9 255.8,107.2 257.2,108.5 258.5,109.7 259.9,110.9 261.2,112.1 262.6,113.2 263.9,114.3 265.3,115.3 266.6,116.3 268,117.3 269.4,118.2 270.7,119.2 272.1,120 273.4,120.9 274.8,121.7 276.1,122.5 277.4,123.3 278.8,124 280.1,124.8 281.5,125.5 282.9,126.1 284.2,126.8 285.6,127.4 286.9,128 288.2,128.6 289.6,129.2 291,129.7 292.3,130.3 293.6,130.8 295,131.3 296.4,131.7 297.7,132.2 299,132.7 300.4,133.1 301.8,133.5 303.1,133.9 304.4,134.3 305.8,134.7 307.1,135.1 308.5,135.4 309.8,135.7 311.2,136.1 312.6,136.4 313.9,136.7 315.2,137 316.6,137.3 317.9,137.6 319.3,137.8 320.7,138.1 322,138.4 323.4,138.6 324.7,138.8 326.1,139.1 327.4,139.3 328.8,139.5 330.1,139.7 331.4,139.9 332.8,140.1 334.1,140.3 335.5,140.5 336.9,140.6 338.2,140.8 339.6,141 340.9,141.1 342.2,141.3 343.6,141.4 344.9,141.6 346.3,141.7 347.6,141.8 349,142 350.3,142.1 351.7,142.2 353.1,142.3 354.4,142.4 355.8,142.5 357.1,142.6 358.4,142.7 359.8,142.8 361.2,142.9 362.5,143 363.9,143.1 365.2,143.2 366.6,143.3 367.9,143.4 369.2,143.4 370.6,143.5 371.9,143.6 373.3,143.7 374.6,143.7 376,143.8" class="sk-accent"/>
+<circle cx="52" cy="145.7" r="1.8" class="fl-ink"/><circle cx="57.4" cy="134.7" r="1.8" class="fl-ink"/><circle cx="62.8" cy="121.9" r="1.8" class="fl-ink"/><circle cx="68.2" cy="110.9" r="1.8" class="fl-ink"/><circle cx="73.6" cy="100.9" r="1.8" class="fl-ink"/><circle cx="79" cy="92.2" r="1.8" class="fl-ink"/><circle cx="84.4" cy="84.3" r="1.8" class="fl-ink"/><circle cx="89.8" cy="78" r="1.8" class="fl-ink"/><circle cx="95.2" cy="71.9" r="1.8" class="fl-ink"/><circle cx="100.6" cy="67.7" r="1.8" class="fl-ink"/><circle cx="106" cy="62.4" r="1.8" class="fl-ink"/><circle cx="111.4" cy="59.1" r="1.8" class="fl-ink"/><circle cx="116.8" cy="55.6" r="1.8" class="fl-ink"/><circle cx="122.2" cy="53" r="1.8" class="fl-ink"/><circle cx="127.6" cy="50.5" r="1.8" class="fl-ink"/><circle cx="133" cy="48.1" r="1.8" class="fl-ink"/><circle cx="138.4" cy="46" r="1.8" class="fl-ink"/><circle cx="143.8" cy="44.9" r="1.8" class="fl-ink"/><circle cx="149.2" cy="43.2" r="1.8" class="fl-ink"/><circle cx="154.6" cy="41.8" r="1.8" class="fl-ink"/><circle cx="160" cy="41.1" r="1.8" class="fl-ink"/><circle cx="165.4" cy="40.4" r="1.8" class="fl-ink"/><circle cx="170.8" cy="39" r="1.8" class="fl-ink"/><circle cx="176.2" cy="38.8" r="1.8" class="fl-ink"/><circle cx="181.6" cy="38.6" r="1.8" class="fl-ink"/><circle cx="187" cy="37.6" r="1.8" class="fl-ink"/><circle cx="192.4" cy="36.9" r="1.8" class="fl-ink"/><circle cx="197.8" cy="36.9" r="1.8" class="fl-ink"/><circle cx="203.2" cy="36.5" r="1.8" class="fl-ink"/><circle cx="208.6" cy="35.8" r="1.8" class="fl-ink"/><circle cx="214" cy="35.1" r="1.8" class="fl-ink"/><circle cx="219.4" cy="45.8" r="1.8" class="fl-ink"/><circle cx="224.8" cy="58.9" r="1.8" class="fl-ink"/><circle cx="230.2" cy="69.6" r="1.8" class="fl-ink"/><circle cx="235.6" cy="79.4" r="1.8" class="fl-ink"/><circle cx="241" cy="88.3" r="1.8" class="fl-ink"/><circle cx="246.4" cy="95.5" r="1.8" class="fl-ink"/><circle cx="251.8" cy="101.8" r="1.8" class="fl-ink"/><circle cx="257.2" cy="107.9" r="1.8" class="fl-ink"/><circle cx="262.6" cy="113" r="1.8" class="fl-ink"/><circle cx="268" cy="117" r="1.8" class="fl-ink"/><circle cx="273.4" cy="120.7" r="1.8" class="fl-ink"/><circle cx="278.8" cy="123.5" r="1.8" class="fl-ink"/><circle cx="284.2" cy="127.2" r="1.8" class="fl-ink"/><circle cx="289.6" cy="129.3" r="1.8" class="fl-ink"/><circle cx="295" cy="131.7" r="1.8" class="fl-ink"/><circle cx="300.4" cy="133.8" r="1.8" class="fl-ink"/><circle cx="305.8" cy="134.7" r="1.8" class="fl-ink"/><circle cx="311.2" cy="136.1" r="1.8" class="fl-ink"/><circle cx="316.6" cy="137.7" r="1.8" class="fl-ink"/><circle cx="322" cy="138" r="1.8" class="fl-ink"/><circle cx="327.4" cy="139.1" r="1.8" class="fl-ink"/><circle cx="332.8" cy="140.1" r="1.8" class="fl-ink"/><circle cx="338.2" cy="140.8" r="1.8" class="fl-ink"/><circle cx="343.6" cy="141.2" r="1.8" class="fl-ink"/><circle cx="349" cy="142.6" r="1.8" class="fl-ink"/><circle cx="354.4" cy="142.4" r="1.8" class="fl-ink"/><circle cx="359.8" cy="142.9" r="1.8" class="fl-ink"/><circle cx="365.2" cy="144" r="1.8" class="fl-ink"/><circle cx="370.6" cy="143.6" r="1.8" class="fl-ink"/><circle cx="376" cy="144" r="1.8" class="fl-ink"/>
+<line x1="214" y1="162" x2="214" y2="22" class="sk-dash"/>
+<text x="211.3" y="127" class="lab-muted" text-anchor="end">coupure</text>
+<text x="211.3" y="142" class="lab-muted" text-anchor="end">à 600 s</text>
+<text x="311.2" y="61.7" class="lab-accent">modèle</text>
+<text x="311.2" y="76.7" class="lab-accent">(Euler)</text>
+<text x="141.1" y="113" class="lab-b">points : mesures</text>
+</svg>
+<figcaption>Validation sur un essai différent de celui de l'identification : chauffe à 800 W pendant 600 s, puis coupure. Points : mesures ; trait : modèle \(K = 0{,}06\) K/W, \(\tau = 150\) s simulé par la méthode d'Euler (pas de 5 s). L'écart ne dépasse pas 1,6 °C (3 % de la variation), juste après les changements de puissance.</figcaption>
+</figure>
+  <div class="method-box">
+    <strong>Exemple — valider le modèle de l'étuve</strong>
+    <p>On réalise un second essai : chauffe à 800 W pendant 600 s, puis coupure (figure ci-dessus). On compare les mesures au modèle simulé.</p>
+    <div style="overflow-x:auto"><table>
+      <tr><th>\(t\) (s)</th><th>100</th><th>300</th><th>600</th><th>700</th><th>900</th><th>1 200</th></tr>
+      <tr><td>modèle (°C)</td><td>45,6</td><td>63,7</td><td>69,2</td><td>45,9</td><td>28,2</td><td>22,8</td></tr>
+      <tr><td>mesure (°C)</td><td>44,9</td><td>63,8</td><td>69,4</td><td>46,6</td><td>28,0</td><td>22,7</td></tr>
+    </table></div>
+    <ol>
+      <li>Écarts : au plus 0,7 °C sur ces instants, et 1,6 °C au pire juste après la coupure, soit 3 % de la variation de 48 K. Le modèle est validé pour cet usage (prévoir une température à quelques degrés près).</li>
+      <li>Les écarts ne sont pas du bruit : ils sont systématiquement de même signe juste après chaque changement de puissance. Ils trahissent la petite constante de temps de la sonde, négligée. Un modèle plus fin (deux premiers ordres) les réduirait.</li>
+      <li>Précision du calcul : avec un pas de 5 s (\(\tau/30\)), Euler donne 52,6 °C à 150 s, pour 52,3 °C exactement ; avec un pas de 1 s, 52,4 °C. L'erreur de méthode, proportionnelle au pas, reste ici petite devant l'écart modèle-mesure.</li>
+    </ol>
+  </div>
+  <div class="notice"><strong>Erreur classique</strong> : valider un modèle sur l'essai même qui a servi à l'identifier. L'accord est alors forcé aux points choisis (63 %, palier) et ne prouve rien ailleurs. Autre piège : conclure sans ordre de grandeur. « Le modèle est bon » doit s'accompagner d'un écart chiffré, comparé à la précision attendue par le cahier des charges.</div>
+  <p>Le modèle n'est valable que dans le domaine où le système reste linéaire : un four ne dépasse pas sa puissance maximale, un moteur sa tension d'alimentation. L'étude des non-linéarités (saturation, seuil, hystérésis) et des limites de validité d'un modèle relève de la 2ᵉ année.</p>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">POUR ALLER PLUS LOIN · HORS PROGRAMME</div>
+  <h2>Linéariser, ajuster par régression</h2>
+  <div class="intro">Deux compléments utiles, non exigibles en PTSI : le premier est au programme de 2ᵉ année (S3), le second relève du traitement de données.</div>
+  <h3>Linéariser un modèle autour d'un point de fonctionnement</h3>
+  <p>Un réservoir de section \(S\) alimenté par un débit \(q_e\) se vide par un orifice : \(S\,\dfrac{dh}{dt} = q_e - k\sqrt{h}\). Cette équation n'est pas linéaire. Autour d'un niveau d'équilibre \(h_0\) (où \(q_{e0} = k\sqrt{h_0}\)), on remplace \(\sqrt{h}\) par sa tangente, \(\sqrt{h_0} + \dfrac{h - h_0}{2\sqrt{h_0}}\). Les petites variations \(\delta h\) et \(\delta q\) obéissent alors à \(\dfrac{2S\sqrt{h_0}}{k}\,\delta h' + \delta h = \dfrac{2\sqrt{h_0}}{k}\,\delta q\) : un premier ordre, dont le gain et la constante de temps dépendent du point de fonctionnement (dernière ligne du tableau du §1).</p>
+  <h3>Identifier \(\tau\) par une régression linéaire</h3>
+  <p>Pour un premier ordre, \(\ln\!\Big(1 - \dfrac{\Delta s(t)}{\Delta s_\infty}\Big) = -\dfrac{t}{\tau}\) : les points \(\big(t, \ln(1 - \Delta s/\Delta s_\infty)\big)\) s'alignent sur une droite de pente \(-1/\tau\). Une régression linéaire (par exemple <span class="code-inline">numpy.polyfit</span>) utilise alors tous les points du relevé au lieu d'un seul, ce qui réduit l'effet du bruit. On écarte les points proches du palier, où le logarithme amplifie le bruit, et ceux du tout début si le départ est arrondi.</p>
+</div>
+</template>
+<template class="pan-tpl" data-panneau="s1-meth">
+<div class="course-section">
+  <div class="sec-num">MÉTHODES · SYSTÈMES DU 1er ORDRE</div>
+  <h2>Les réflexes du chapitre</h2>
+  <div class="intro">Dix savoir-faire pour mettre un système sous forme de premier ordre, prévoir ses réponses, l'identifier sur un relevé et vérifier le modèle obtenu. Les numéros de section renvoient au cours.</div>
+
+  <div class="method-box"><strong>Méthode 1 — Mettre un modèle sous la forme d'un premier ordre</strong>
+    <ol>
+      <li>Écrire l'équation différentielle et la diviser par le coefficient de \(s\) pour obtenir \(\tau\,s' + s = K\,e\).</li>
+      <li>Ou, en Laplace, diviser numérateur et dénominateur par le terme constant du dénominateur : \(\dfrac{b}{a + c\,p} = \dfrac{b/a}{1 + (c/a)\,p}\).</li>
+      <li>Contrôler les unités : \(\tau\) en secondes, \(K\) en unité de sortie par unité d'entrée ; le pôle vaut \(-1/\tau\) (§1).</li>
+    </ol>
+    <p><em>Exemple éclair :</em> \(\dfrac{12}{4 + 2p} = \dfrac{3}{1 + 0{,}5p}\) : \(K = 3\) et \(\tau = 0{,}5\ \text{s}\) (et non 12 et 2 s).</p>
+  </div>
+
+  <div class="method-box"><strong>Méthode 2 — Exploiter une réponse indicielle</strong>
+    <ol>
+      <li>Valeur finale \(K E_0\), atteinte sans dépassement ; pente à l'origine \(KE_0/\tau\).</li>
+      <li>Repères : 63 % à \(\tau\), 86 % à \(2\tau\), 95 % à \(3\tau\) ; temps de réponse \(t_{r5\%} = 3\tau\), temps de montée (10 % → 90 %) \(t_m = 2{,}2\,\tau\) (§2).</li>
+      <li>Instant où la sortie atteint une fraction \(x\) de sa variation finale : \(t = -\tau\ln(1 - x)\) (\(x = 0{,}9\) donne \(2{,}3\,\tau\)).</li>
+    </ol>
+    <p><em>Exemple éclair :</em> \(K = 4\), \(\tau = 0{,}25\ \text{s}\), échelon \(E_0 = 2\) : valeur finale 8, \(s(0{,}25\ \text{s}) = 5{,}06\), 90 % atteint à 0,58 s, \(t_{r5\%} = 0{,}75\ \text{s}\).</p>
+  </div>
+
+  <div class="method-box"><strong>Méthode 3 — Raisonner en variations autour d'un équilibre</strong>
+    <ol>
+      <li>Repérer l'état d'équilibre de départ \((e_0, s_0)\) : le modèle relie les variations \(\Delta e = e - e_0\) et \(\Delta s = s - s_0\).</li>
+      <li>Écrire \(s(t) = s_0 + K\,\Delta e\,\big(1 - e^{-t/\tau}\big)\).</li>
+      <li>Appliquer les pourcentages (63 %, 95 %) à la variation \(K\,\Delta e\), jamais à la valeur finale (§2).</li>
+    </ol>
+    <p><em>Exemple éclair :</em> un moteur (\(K = 50\ \text{tr}\cdot\text{min}^{-1}\cdot\text{V}^{-1}\), \(\tau = 0{,}2\ \text{s}\)) tourne à 300 tr/min sous 6 V ; on passe à 9 V. Vitesse finale \(300 + 50 \times 3 = 450\) tr/min ; à 0,2 s, \(300 + 0{,}632 \times 150 = 395\) tr/min.</p>
+  </div>
+
+  <div class="method-box"><strong>Méthode 4 — Identifier \(K\) et \(\tau\)</strong>
+    <ol>
+      <li>Vérifier l'allure d'un premier ordre : départ en pente, pas de dépassement, palier (§5, §7).</li>
+      <li>Indiciel : \(K = \Delta s_\infty/\Delta e\), \(\tau\) à 63 % de la variation (ou \(t_{r5\%}/3\)).</li>
+      <li>Fréquentiel : \(K = 10^{G_0/20}\), \(\tau = 1/\omega_c\) avec \(\omega_c\) à \(-3\) dB ou à \(-45°\).</li>
+      <li>Contrôler sur un autre point de la courbe (95 % à \(3\tau\), ou \(-20\) dB à \(10\,\omega_c\)).</li>
+    </ol>
+    <p><em>Exemple éclair :</em> un échelon de 0 à 10 V fait passer la sortie de 1,0 à 4,0 V, et la sortie vaut 2,9 V à 40 ms. \(K = 3/10 = 0{,}30\) ; 2,9 V est à 63 % de la variation, donc \(\tau = 40\ \text{ms}\) ; contrôle : la sortie doit valoir 3,85 V à 120 ms.</p>
+  </div>
+
+  <div class="method-box"><strong>Méthode 5 — Tracer le Bode d'un premier ordre</strong>
+    <ol>
+      <li>Asymptote basse : horizontale à \(20\log K\) ; asymptote haute : pente \(-20\) dB/décade, les deux se coupant en \(\omega_c = 1/\tau\).</li>
+      <li>Courbe réelle : 3 dB sous le coin des asymptotes, 1 dB sous à \(\omega_c/2\) et \(2\,\omega_c\).</li>
+      <li>Phase : 0° jusqu'à \(\omega_c/10\), \(-45°\) en \(\omega_c\), \(-90°\) au-delà de \(10\,\omega_c\) ; asymptote oblique entre les deux (§4 ; méthode générale : <a href="#bode/cours">« Bode »</a>, §3).</li>
+    </ol>
+    <p><em>Exemple éclair :</em> \(\dfrac{5}{1 + 0{,}02p}\) : plateau à 14 dB, cassure à 50 rad/s ; à 500 rad/s, gain \(\approx 14 - 20 = -6\) dB et phase \(-84°\).</p>
+  </div>
+
+  <div class="method-box"><strong>Méthode 6 — Calculer la réponse à une sinusoïde</strong>
+    <ol>
+      <li>Vérifier que le système est stable et attendre la fin du régime transitoire (quelques \(\tau\)).</li>
+      <li>Amplitude : \(S_m = |H(j\omega)|\,E_m = \dfrac{K E_m}{\sqrt{1 + \tau^2\omega^2}}\) ; déphasage \(\varphi = -\arctan(\tau\omega)\), en radians pour écrire \(s(t)\).</li>
+      <li>Traduire le déphasage en retard temporel si besoin : \(\Delta t = |\varphi|/\omega\) (§4).</li>
+    </ol>
+    <p><em>Exemple éclair :</em> \(H = \dfrac{2}{1 + 0{,}1p}\), \(e = 3\sin(20t)\) : \(\tau\omega = 2\), \(S_m = \dfrac{6}{\sqrt5} = 2{,}68\), \(\varphi = -63{,}4° = -1{,}11\ \text{rad}\), donc \(s(t) = 2{,}68\sin(20t - 1{,}11)\).</p>
+  </div>
+
+  <div class="method-box"><strong>Méthode 7 — Prévoir les réponses à une rampe et à une impulsion</strong>
+    <ol>
+      <li>Rampe \(at\) : en régime permanent, \(s(t) \approx K a\,(t - \tau)\), soit un retard \(\tau\) sur la rampe \(K a t\).</li>
+      <li>Si \(K = 1\), l'écart de traînage vaut \(a\tau\) ; si \(K \neq 1\), l'écart diverge (§3).</li>
+      <li>Impulsion d'aire \(A\) (durée très courte devant \(\tau\)) : saut à \(AK/\tau\), puis décroissance en \(e^{-t/\tau}\).</li>
+    </ol>
+    <p><em>Exemple éclair :</em> \(K = 1\), \(\tau = 0{,}5\ \text{s}\), rampe de 2 V/s : la sortie suit avec 0,5 s de retard, soit 1 V d'écart.</p>
+  </div>
+
+  <div class="method-box"><strong>Méthode 8 — Identifier un premier ordre retardé, ou un intégrateur suivi d'un premier ordre</strong>
+    <ol>
+      <li>Premier ordre retardé (rien ne bouge pendant \(T\)) : \(T\) = instant où la sortie commence à varier ; \(\tau\) = (instant des 63 %) \(- T\) ; \(K\) comme d'habitude.</li>
+      <li>Intégrateur et premier ordre (départ à tangente horizontale puis rampe) : tracer l'asymptote ; sa pente vaut \(KE_0\), son abscisse à l'origine vaut \(\tau\) (§7).</li>
+    </ol>
+    <p><em>Exemple éclair :</em> une sortie immobile jusqu'à 1,2 s atteint 63 % de sa variation à 3,0 s : \(T = 1{,}2\ \text{s}\), \(\tau = 1{,}8\ \text{s}\). Une position rejoint une droite de pente 4 mm/s pour un échelon de 2 V, coupant l'axe des temps à 0,3 s : \(K = 2\ \text{mm}\cdot\text{s}^{-1}\cdot\text{V}^{-1}\), \(\tau = 0{,}3\ \text{s}\).</p>
+  </div>
+
+  <div class="method-box"><strong>Méthode 9 — Boucler un premier ordre</strong>
+    <ol>
+      <li>Écrire la FTBO \(\dfrac{K_cK}{1 + \tau p}\) puis la FTBF \(\dfrac{K_cK}{1 + K_cK + \tau p}\), et diviser par \(1 + K_cK\).</li>
+      <li>Lire \(K' = \dfrac{K_cK}{1 + K_cK}\), \(\tau' = \dfrac{\tau}{1 + K_cK}\), \(t_{r5\%} = 3\tau'\) et l'écart statique \(\dfrac{1}{1 + K_cK}\) (§6).</li>
+      <li>Vérifier la commande au premier instant, \(u(0^+) = K_c\,E_0\) : si elle dépasse ce que l'actionneur peut fournir, le modèle linéaire surestime la rapidité.</li>
+    </ol>
+    <p><em>Exemple éclair :</em> \(K = 4\), \(\tau = 2\ \text{s}\), \(K_c = 2\) : \(K_cK = 8\), \(K' = 0{,}89\), \(\tau' = 0{,}22\ \text{s}\), \(t_{r5\%} = 0{,}67\ \text{s}\), écart statique 11 %.</p>
+  </div>
+
+  <div class="method-box"><strong>Méthode 10 — Simuler et valider un modèle</strong>
+    <ol>
+      <li>Écrire l'équation sous la forme \(s' = F(t, s) = \dfrac{K e(t) - s}{\tau}\) et appliquer la méthode d'Euler, \(s_{k+1} = s_k + h\,F(t_k, s_k)\), avec un pas \(h\) au plus égal à \(\tau/10\) (§8).</li>
+      <li>Comparer la simulation aux mesures d'un essai <strong>différent</strong> de celui de l'identification ; chiffrer l'écart (en valeur et en pourcentage de la variation).</li>
+      <li>Conclure : écart compatible avec la précision attendue ? écart systématique (modèle trop simple) ou aléatoire (bruit) ?</li>
+    </ol>
+    <p><em>Exemple éclair :</em> \(K E_0 = 1\), \(\tau = 0{,}5\ \text{s}\), pas \(h = 0{,}05\ \text{s}\) : le premier pas donne \(s_1 = 0{,}05 \times 1/0{,}5 = 0{,}10\), pour \(1 - e^{-0{,}1} = 0{,}095\) exactement ; 100 pas couvrent 5 s, soit \(10\tau\).</p>
+  </div>
+
+  <div class="notice"><strong>Pièges classiques</strong> : confondre \(\tau\) (en secondes) et \(\omega_c = 1/\tau\) (en rad/s) ; lire 63 % de la valeur finale et non de la variation quand le système ne part pas de zéro ; croire le système en régime permanent à \(t = \tau\) (il n'est qu'à 63 %) ; oublier de convertir les tr/min en rad/s ; identifier \(\tau\) sur une réponse à tangente horizontale (ce n'est pas un premier ordre) ou mesurer \(\tau\) depuis l'échelon quand il y a un retard ; valider un modèle sur l'essai qui a servi à l'identifier.</div>
+</div>
+</template>
+<template class="pan-tpl" data-panneau="s1-exos">
+<div class="exo-wrapper">
+<div class="exo">
+  <span class="num">EXO 01</span><span class="diff">★ ☆ ☆</span>
+  <h3>Identification à partir de la réponse indicielle</h3>
+  <div class="statement">Un système, au repos, est soumis à un échelon \(E = 5\ \text{V}\). Sa sortie atteint un régime permanent \(s_\infty = 15\ \text{V}\) sans dépasser cette valeur, et la tangente à l'origine de la réponse coupe l'asymptote \(s = 15\ \text{V}\) à \(t = 0{,}2\ \text{s}\).</div>
+  <div class="q"><strong>Q1.</strong> Identifier \(K\) et \(\tau\).</div>
+  <div class="q"><strong>Q2.</strong> Écrire la fonction de transfert et l'expression de \(s(t)\).</div>
+  <div class="q"><strong>Q3.</strong> Calculer \(s(0{,}2\ \text{s})\), \(s(1\ \text{s})\) et le temps de réponse à 5 %.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> L'allure (pente non nulle au départ, pas de dépassement, palier) est celle d'un premier ordre. \(K = s_\infty/E = 15/5 = 3\) (sans unité, V/V). La tangente à l'origine atteint la valeur finale à \(t = \tau\) : \(\tau = 0{,}2\ \text{s}\).</p>
+    <p><strong>Q2.</strong> \(H(p) = \dfrac{3}{1 + 0{,}2p}\) et \(s(t) = 15\,\big(1 - e^{-t/0{,}2}\big)\ \text{V}\).</p>
+    <p><strong>Q3.</strong> \(s(0{,}2) = 15\,(1 - e^{-1}) \approx 9{,}48\ \text{V}\), soit 63 % de la valeur finale, comme attendu à \(t = \tau\). \(s(1) = 15\,(1 - e^{-5}) \approx 14{,}9\ \text{V}\), soit 99,3 %. \(t_{r5\%} = 3\tau = 0{,}6\ \text{s}\).</p>
+  </div>
+</div>
+<div class="exo">
+  <span class="num">EXO 02</span><span class="diff">★ ★ ☆</span>
+  <h3>Circuit RC — réponse indicielle et réponse fréquentielle</h3>
+  <div class="statement">Un circuit RC (sortie : tension du condensateur) a pour composants \(R = 10\ \text{k}\Omega\) et \(C = 100\ \mu\text{F}\). Le condensateur est initialement déchargé ; l'entrée est un échelon \(E = 5\ \text{V}\).</div>
+  <div class="q"><strong>Q1.</strong> Calculer \(\tau\) et \(\omega_c\). Écrire \(H(p)\).</div>
+  <div class="q"><strong>Q2.</strong> Calculer \(s(1\ \text{s})\) et le temps pour atteindre 90 % de \(E\).</div>
+  <div class="q"><strong>Q3.</strong> Calculer \(|H(j\omega_c)|\) en dB, puis \(|H|\) à \(\omega = 10\,\omega_c\).</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> \(\tau = RC = 10^4 \times 10^{-4} = 1\ \text{s}\), \(\omega_c = 1/\tau = 1\ \text{rad/s}\), \(H(p) = \dfrac{1}{1 + p}\) (gain 1 : en régime permanent, le condensateur se charge à la tension d'entrée).</p>
+    <p><strong>Q2.</strong> \(s(1) = 5\,(1 - e^{-1}) \approx 3{,}16\ \text{V}\). Pour 90 % : \(1 - e^{-t/\tau} = 0{,}9\), donc \(t = -\tau\ln(0{,}1) \approx 2{,}3\ \text{s}\).</p>
+    <p><strong>Q3.</strong> \(|H(j\omega_c)| = 1/\sqrt{2}\), soit \(-3\ \text{dB}\). À \(\omega = 10\,\omega_c\) : \(|H| = 1/\sqrt{1 + 100} \approx 0{,}0995\), soit \(-20\ \text{dB}\) : on est sur l'asymptote de pente \(-20\) dB/décade.</p>
+  </div>
+</div>
+<div class="exo">
+  <span class="num">EXO 03</span><span class="diff">★ ★ ☆</span>
+  <h3>Bode — tracé asymptotique</h3>
+  <div class="statement">\(H(p) = \dfrac{10}{1 + 0{,}01p}\).</div>
+  <div class="q"><strong>Q1.</strong> Donner \(K\), \(\tau\), \(\omega_c\) et le gain en basses pulsations en dB.</div>
+  <div class="q"><strong>Q2.</strong> Tracer les asymptotes du diagramme de Bode en gain et en phase.</div>
+  <div class="q"><strong>Q3.</strong> Calculer le gain réel et la phase à \(\omega = \omega_c\) et à \(\omega = 100\,\omega_c\).</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> \(K = 10\), \(\tau = 0{,}01\ \text{s}\), \(\omega_c = 100\ \text{rad/s}\). Gain en basses pulsations : \(20\log 10 = 20\ \text{dB}\).</p>
+    <p><strong>Q2.</strong> Gain : horizontale à 20 dB pour \(\omega \lt 100\ \text{rad/s}\), puis droite de pente \(-20\) dB/décade partant du point (100 rad/s ; 20 dB), qui passe par 0 dB à \(\omega = 1000\ \text{rad/s}\). Phase : asymptotes 0° et \(-90°\), avec \(-45°\) en \(\omega_c\) (voir <a href="#bode/cours">« Bode »</a>, §2).</p>
+    <p><strong>Q3.</strong> En \(\omega_c = 100\ \text{rad/s}\) : \(G = 20 - 3 = 17\ \text{dB}\) (gain \(10/\sqrt2\)), \(\varphi = -45°\). En \(100\,\omega_c = 10^4\ \text{rad/s}\) : \(G = 20 - 20\log\sqrt{1 + 10^4} \approx -20\ \text{dB}\), \(\varphi = -\arctan 100 \approx -89{,}4°\).</p>
+  </div>
+</div>
+<div class="exo">
+  <span class="num">EXO 04</span><span class="diff">★ ★ ☆</span>
+  <h3>Système thermique — constante de temps</h3>
+  <div class="statement">Une petite enceinte chauffante, de masse \(m = 2\ \text{kg}\) et de capacité thermique massique \(c_p = 500\ \text{J}\cdot\text{kg}^{-1}\cdot\text{K}^{-1}\), échange avec l'air ambiant à \(T_0 = 20\) °C par sa surface \(S = 0{,}5\ \text{m}^2\), avec un coefficient d'échange \(h = 10\ \text{W}\cdot\text{m}^{-2}\cdot\text{K}^{-1}\). On la suppose à température uniforme \(T(t)\), initialement égale à \(T_0\), et on la chauffe avec une puissance \(P(t)\).</div>
+  <div class="q"><strong>Q1.</strong> Écrire le bilan d'énergie, puis calculer \(\tau\) et \(K\) (entrée : puissance en W ; sortie : écart de température \(T - T_0\)).</div>
+  <div class="q"><strong>Q2.</strong> Pour une puissance de chauffage \(P = 100\ \text{W}\), calculer la température d'équilibre.</div>
+  <div class="q"><strong>Q3.</strong> Au bout de combien de temps l'écart de température atteint-il 95 % de sa valeur finale ? Quelle est la température à \(t = \tau\) ?</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> Pendant \(dt\), l'énergie reçue sert à chauffer l'enceinte ou part dans l'air : \(m c_p\,\dfrac{dT}{dt} = P - hS\,(T - T_0)\). Avec \(\theta = T - T_0\) : \(\dfrac{m c_p}{hS}\,\theta' + \theta = \dfrac{1}{hS}\,P\). D'où \(\tau = \dfrac{m c_p}{hS} = \dfrac{2 \times 500}{10 \times 0{,}5} = 200\ \text{s}\) et \(K = \dfrac{1}{hS} = 0{,}2\ \text{K/W}\).</p>
+    <p><strong>Q2.</strong> \(\theta_\infty = KP = 0{,}2 \times 100 = 20\ \text{K}\), donc \(T_{eq} = T_0 + \theta_\infty = 40\) °C.</p>
+    <p><strong>Q3.</strong> \(1 - e^{-t/\tau} = 0{,}95\), donc \(t = -200\ln(0{,}05) \approx 600\ \text{s} = 10\ \text{min}\) (\(3\tau\)). À \(t = \tau = 200\ \text{s}\) : \(T = 20 + 0{,}632 \times 20 = 32{,}6\) °C. Attention : 63 % porte sur l'écart (20 K), pas sur la température finale (40 °C).</p>
+  </div>
+</div>
+<div class="exo">
+  <span class="num">EXO 05</span><span class="diff">★ ★ ☆</span>
+  <h3>Association de systèmes du 1er ordre</h3>
+  <div class="statement">\(H_1(p) = \dfrac{2}{1 + 0{,}1p}\) et \(H_2(p) = \dfrac{5}{1 + 0{,}5p}\) sont placés en série.</div>
+  <div class="q"><strong>Q1.</strong> Calculer \(H(p) = H_1(p)\,H_2(p)\). Quel est l'ordre du système résultant ?</div>
+  <div class="q"><strong>Q2.</strong> Calculer le gain statique et les deux pulsations de cassure.</div>
+  <div class="q"><strong>Q3.</strong> Tracer les asymptotes du gain de Bode. Quelle est la pente en hautes pulsations ?</div>
+  <div class="q"><strong>Q4.</strong> Mettre \(H(p)\) sous la forme canonique d'un deuxième ordre \(\dfrac{K}{1 + \frac{2\xi}{\omega_0}p + \frac{p^2}{\omega_0^2}}\) (chapitre <a href="#sys2/cours">« Systèmes du 2e ordre »</a>). Que vaut \(\xi\) ? La réponse indicielle peut-elle dépasser sa valeur finale ?</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> \(H(p) = \dfrac{10}{(1 + 0{,}1p)(1 + 0{,}5p)}\) : ordre 2 (deux pôles).</p>
+    <p><strong>Q2.</strong> Gain statique \(K = 2 \times 5 = 10\), soit 20 dB. Cassures : \(\omega_1 = 1/0{,}5 = 2\ \text{rad/s}\) et \(\omega_2 = 1/0{,}1 = 10\ \text{rad/s}\).</p>
+    <p><strong>Q3.</strong> Horizontale à 20 dB jusqu'à 2 rad/s ; pente \(-20\) dB/décade de 2 à 10 rad/s (le gain asymptotique passe de 20 dB à \(20 - 20\log 5 = 6\) dB) ; pente \(-40\) dB/décade au-delà (deux pôles).</p>
+    <p><strong>Q4.</strong> \((1 + 0{,}1p)(1 + 0{,}5p) = 1 + 0{,}6p + 0{,}05p^2\). Donc \(\dfrac{1}{\omega_0^2} = 0{,}05\), \(\omega_0 = 4{,}47\ \text{rad/s}\), et \(\dfrac{2\xi}{\omega_0} = 0{,}6\), \(\xi = 0{,}3 \times 4{,}47 = 1{,}34\). Comme \(\xi \gt 1\) (c'est toujours le cas pour deux premiers ordres en série, \(\xi = 1\) seulement si les constantes de temps sont égales), la réponse indicielle est apériodique : jamais de dépassement, mais un départ à tangente horizontale.</p>
+  </div>
+</div>
+<div class="exo">
+  <span class="num">EXO 06</span><span class="diff">★ ★ ★</span>
+  <h3>Identification par Bode et vérification temporelle</h3>
+  <div class="statement">Le diagramme de Bode relevé sur un système montre un gain de 26 dB en basses pulsations, une pente de \(-20\) dB/décade en hautes pulsations et une cassure en \(\omega_c = 50\ \text{rad/s}\), où la phase vaut \(-45°\). On soumet ensuite le système, au repos, à un échelon \(E = 2\ \text{V}\).</div>
+  <div class="q"><strong>Q1.</strong> Identifier \(K\) et \(\tau\). Écrire \(H(p)\).</div>
+  <div class="q"><strong>Q2.</strong> Écrire \(s(t)\) et calculer la valeur finale.</div>
+  <div class="q"><strong>Q3.</strong> À quelle fréquence (en Hz) le gain est-il réduit de moitié (en valeur linéaire) par rapport au gain en basses pulsations ?</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> Pente \(-20\) dB/décade et \(-45°\) à la cassure : premier ordre. \(K = 10^{26/20} = 10^{1{,}3} \approx 20\) ; \(\tau = 1/\omega_c = 0{,}02\ \text{s}\) ; \(H(p) = \dfrac{20}{1 + 0{,}02p}\).</p>
+    <p><strong>Q2.</strong> \(s(t) = 40\,\big(1 - e^{-50t}\big)\ \text{V}\) ; valeur finale \(KE = 40\ \text{V}\), atteinte à 5 % près en \(3\tau = 60\ \text{ms}\).</p>
+    <p><strong>Q3.</strong> \(|H| = K/2\) quand \(\sqrt{1 + \omega^2\tau^2} = 2\), soit \(\omega = \sqrt{3}/\tau = 50\sqrt{3} \approx 86{,}6\ \text{rad/s}\) et \(f = 86{,}6/(2\pi) \approx 13{,}8\ \text{Hz}\). Ne pas confondre avec la coupure à \(-3\) dB, où \(|H| = K/\sqrt{2}\) (en \(f_c = 50/2\pi \approx 8{,}0\ \text{Hz}\)) ; une division par 2 correspond à \(-6\) dB.</p>
+  </div>
+</div>
+<div class="exo">
+  <span class="num">EXO 07</span><span class="diff">★ ☆ ☆</span>
+  <h3>Lire les performances d'un premier ordre</h3>
+  <div class="statement">Un système du premier ordre a pour fonction de transfert \(H(p) = \dfrac{K}{1 + \tau p}\), avec \(K = 2{,}0\) et \(\tau = 0{,}50\ \text{s}\). On lui applique, au repos, un échelon d'entrée d'amplitude \(E_0 = 1{,}0\).</div>
+  <div class="q"><strong>Q1.</strong> Donner l'expression de la sortie \(s(t)\), sa valeur finale et sa valeur à \(t = 0{,}5\ \text{s}\).</div>
+  <div class="q"><strong>Q2.</strong> Définir et calculer le temps de réponse à 5 % et le temps de montée (10 % → 90 %).</div>
+  <div class="q"><strong>Q3.</strong> Donner le gain statique en dB, la pulsation de coupure et la pente de l'asymptote en hautes pulsations.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> \(s(t) = K E_0\,(1 - e^{-t/\tau}) = 2{,}0\,(1 - e^{-2t})\). Valeur finale : \(K E_0 = 2{,}0\). À \(t = \tau = 0{,}5\ \text{s}\) : \(2 \times 0{,}632 = 1{,}26\).</p>
+    <p><strong>Q2.</strong> Temps de réponse à 5 % : instant à partir duquel la sortie reste à moins de 5 % de sa valeur finale ; sans dépassement, c'est l'instant où elle atteint 95 % : \(t_{r5\%} = \tau\ln 20 \approx 3\tau = 1{,}5\ \text{s}\). Temps de montée : \(t_m = \tau\ln 9 \approx 2{,}2\,\tau = 1{,}1\ \text{s}\).</p>
+    <p><strong>Q3.</strong> \(20\log K = 20\log 2 \approx 6\ \text{dB}\) ; \(\omega_c = 1/\tau = 2{,}0\ \text{rad/s}\) ; pente \(-20\) dB/décade (phase tendant vers \(-90°\)).</p>
+  </div>
+</div>
+<div class="exo">
+  <span class="num">EXO 08</span><span class="diff">★ ★ ☆</span>
+  <h3>Asservissement d'un procédé du premier ordre</h3>
+  <div class="statement">Un procédé du premier ordre \(H(p) = \dfrac{K_0}{1 + \tau p}\) (\(K_0 = 2{,}0\), \(\tau = 0{,}50\ \text{s}\)) est placé dans une boucle à retour unitaire, précédé d'un correcteur proportionnel de gain \(K_c = 4{,}0\).</div>
+  <div class="q"><strong>Q1.</strong> Établir la FTBF. Montrer qu'elle reste du premier ordre et donner sa constante de temps \(\tau'\) et son gain statique \(K'\).</div>
+  <div class="q"><strong>Q2.</strong> Comparer les temps de réponse à 5 % en boucle ouverte et en boucle fermée.</div>
+  <div class="q"><strong>Q3.</strong> Calculer l'écart statique pour une consigne en échelon unitaire.</div>
+  <div class="q"><strong>Q4.</strong> Quelle valeur de \(K_c\) ramènerait l'écart statique à 2 % ? Que vaudrait alors \(\tau'\) ? Pourquoi ne peut-on pas augmenter \(K_c\) indéfiniment en pratique ?</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong></p><div class="formula">$$\text{FTBF} = \frac{K_cH}{1 + K_cH} = \frac{K_cK_0}{1 + K_cK_0 + \tau p} = \frac{K'}{1 + \tau' p},$$</div><p>avec \(K' = \dfrac{K_cK_0}{1 + K_cK_0}\) et \(\tau' = \dfrac{\tau}{1 + K_cK_0}\). Avec \(K_cK_0 = 8{,}0\) : \(K' = 8/9 \approx 0{,}89\) et \(\tau' = 0{,}50/9 \approx 0{,}056\ \text{s}\).</p>
+    <p><strong>Q2.</strong> Boucle ouverte : \(3\tau = 1{,}5\ \text{s}\) ; boucle fermée : \(3\tau' \approx 0{,}17\ \text{s}\). Le bouclage divise la constante de temps par \(1 + K_cK_0 = 9\).</p>
+    <p><strong>Q3.</strong> \(\varepsilon_s = 1 - K' = \dfrac{1}{1 + K_cK_0} = \dfrac{1}{9} \approx 0{,}11\), soit 11 % de la consigne.</p>
+    <p><strong>Q4.</strong> \(\dfrac{1}{1 + 2K_c} = 0{,}02\) donne \(K_c = 24{,}5\), et \(\tau' = 0{,}5/50 = 0{,}01\ \text{s}\). Mais la commande au premier instant vaut \(K_c\) fois l'échelon de consigne : l'actionneur sature ; de plus, les constantes de temps négligées (capteur, actionneur) font apparaître un ordre plus élevé et la boucle finit par osciller (chapitre <a href="#stabilite/cours">« Stabilité des systèmes asservis »</a>). Pour annuler l'écart sans gain excessif, on ajoute un intégrateur dans le correcteur (correcteur PI, 2ᵉ année).</p>
+  </div>
+</div>
+<div class="exo">
+  <span class="num">EXO 09</span><span class="diff">★ ★ ☆</span>
+  <h3>Identifier un convoyeur qui ne part pas du repos</h3>
+  <div class="statement">
+    <p>Un convoyeur tourne en régime permanent à 0,40 m/s sous une tension de commande de 6 V. À \(t = 0\), la tension passe à 9 V. On relève sa vitesse \(v\) :</p>
+    <div style="overflow-x:auto"><table>
+      <tr><th>\(t\) (s)</th><td>0</td><td>0,4</td><td>0,8</td><td>1,2</td><td>1,6</td><td>2,4</td><td>3,6</td><td>6,0</td></tr>
+      <tr><th>\(v\) (m/s)</th><td>0,400</td><td>0,485</td><td>0,546</td><td>0,590</td><td>0,621</td><td>0,659</td><td>0,685</td><td>0,698</td></tr>
+    </table></div>
+    <p>La vitesse se stabilise ensuite à 0,700 m/s.</p>
+  </div>
+  <div class="q"><strong>Q1.</strong> Justifier un modèle du premier ordre et calculer son gain \(K\).</div>
+  <div class="q"><strong>Q2.</strong> Déterminer la constante de temps \(\tau\).</div>
+  <div class="q"><strong>Q3.</strong> Calculer le temps de réponse à 5 % et le temps de montée.</div>
+  <div class="q"><strong>Q4.</strong> Prévoir la vitesse à \(t = 2\ \text{s}\) et l'instant où la vitesse atteint 0,65 m/s.</div>
+  <div class="q"><strong>Q5.</strong> Un camarade cherche l'instant où \(v = 0{,}63 \times 0{,}70 = 0{,}441\ \text{m/s}\). Quelle constante de temps trouve-t-il ? Expliquer son erreur.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> La vitesse croît dès l'échelon (pente non nulle), sans dépassement, vers un palier : premier ordre. On raisonne en variations : \(\Delta v_\infty = 0{,}70 - 0{,}40 = 0{,}30\ \text{m/s}\) pour \(\Delta u = 3\ \text{V}\), donc \(K = 0{,}10\ \text{m}\cdot\text{s}^{-1}\cdot\text{V}^{-1}\).</p>
+    <p><strong>Q2.</strong> 63 % de la variation : \(0{,}40 + 0{,}632 \times 0{,}30 = 0{,}590\ \text{m/s}\), atteint à \(t = 1{,}2\ \text{s}\) : \(\tau = 1{,}2\ \text{s}\). Contrôle : à \(3\tau = 3{,}6\ \text{s}\), la variation vaut \(0{,}285/0{,}30 = 95\ \%\).</p>
+    <p><strong>Q3.</strong> \(t_{r5\%} = 3\tau = 3{,}6\ \text{s}\) ; \(t_m = 2{,}2\,\tau = 2{,}6\ \text{s}\).</p>
+    <p><strong>Q4.</strong> \(v(2) = 0{,}40 + 0{,}30\,(1 - e^{-2/1{,}2}) = 0{,}643\ \text{m/s}\). Pour 0,65 m/s, la fraction de la variation vaut \(0{,}25/0{,}30 = 5/6\), d'où \(t = -\tau\ln(1/6) = 1{,}2\ln 6 \approx 2{,}15\ \text{s}\).</p>
+    <p><strong>Q5.</strong> 0,441 m/s ne représente que \(0{,}041/0{,}30 = 14\ \%\) de la variation, atteints vers \(t = -1{,}2\ln(0{,}863) \approx 0{,}18\ \text{s}\) : il trouverait \(\tau \approx 0{,}18\ \text{s}\), près de sept fois trop petit. Les 63 % portent sur la variation depuis l'équilibre de départ, pas sur la valeur finale.</p>
+  </div>
+</div>
+<div class="exo">
+  <span class="num">EXO 10</span><span class="diff">★ ★ ☆</span>
+  <h3>Un échangeur avec un retard de transport</h3>
+  <div class="statement">Un échangeur de chaleur réchauffe de l'eau ; on agit sur l'ouverture de la vanne de vapeur (en %) et l'on mesure la température de l'eau en sortie, à quelques mètres de l'échangeur. Partant d'un équilibre, on ouvre la vanne de 30 % supplémentaires à \(t = 0\). La température ne commence à monter qu'à \(t = 2{,}5\ \text{s}\) ; elle atteint 63 % de sa variation à \(t = 6{,}5\ \text{s}\) et gagne au total 18 K.</div>
+  <div class="q"><strong>Q1.</strong> Proposer un modèle de comportement et identifier ses trois paramètres.</div>
+  <div class="q"><strong>Q2.</strong> Calculer le temps de réponse à 5 %.</div>
+  <div class="q"><strong>Q3.</strong> Un camarade a négligé le retard et identifié un premier ordre de constante de temps 6,5 s. Comparer les deux modèles à \(t = 2\ \text{s}\) et à \(t = 6{,}5\ \text{s}\).</div>
+  <div class="q"><strong>Q4.</strong> La vanne oscille autour de sa position moyenne à la pulsation \(\omega = 0{,}25\ \text{rad/s}\). Calculer l'amplitude de la température (en K par % d'ouverture) et son déphasage, sachant qu'un retard pur ne change pas l'amplitude et retarde la phase de \(\omega T\) (en radians).</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> Rien pendant 2,5 s, puis une montée sans dépassement : premier ordre retardé \(H(p) = \dfrac{K\,e^{-Tp}}{1 + \tau p}\), avec \(T = 2{,}5\ \text{s}\) (temps de transport de l'eau jusqu'à la sonde), \(\tau = 6{,}5 - 2{,}5 = 4\ \text{s}\) (les 63 % se comptent depuis le début de la montée) et \(K = 18/30 = 0{,}6\ \text{K}/\%\).</p>
+    <p><strong>Q2.</strong> \(t_{r5\%} = T + 3\tau = 2{,}5 + 12 = 14{,}5\ \text{s}\).</p>
+    <p><strong>Q3.</strong> À 2 s, la vraie température n'a pas bougé, alors que le modèle sans retard prévoit déjà \(18\,(1 - e^{-2/6{,}5}) = 4{,}8\ \text{K}\). À 6,5 s, les deux donnent 11,4 K (63 %) : c'est le point choisi pour identifier. Le modèle sans retard réagit trop tôt ; dans une boucle, il ferait croire à une marge de stabilité que le système réel n'a pas.</p>
+    <p><strong>Q4.</strong> \(\tau\omega = 1\) : amplitude \(\dfrac{0{,}6}{\sqrt{1 + 1}} = 0{,}42\ \text{K}/\%\) ; phase</p><div class="formula">$$\varphi = -\arctan 1 - \omega T = -45° - 0{,}625\ \text{rad} = -45° - 35{,}8° \approx -81°.$$</div><p>Le retard double presque le déphasage, sans rien changer au gain.</p>
+  </div>
+</div>
+<div class="exo">
+  <span class="num">EXO 11</span><span class="diff">★ ★ ★</span>
+  <h3>Axe de positionnement : intégrateur et premier ordre</h3>
+  <div class="statement">On alimente le moteur d'un axe de positionnement, à l'arrêt, par un échelon de tension \(U_0 = 2\ \text{V}\) et l'on enregistre la position angulaire \(\theta(t)\) du moteur. Le départ est à tangente horizontale ; ensuite, la courbe rejoint une droite de pente 40 rad/s qui coupe l'axe des temps à \(t = 0{,}05\ \text{s}\).</div>
+  <div class="q"><strong>Q1.</strong> Proposer un modèle \(\dfrac{\theta(p)}{U(p)}\) et identifier ses paramètres.</div>
+  <div class="q"><strong>Q2.</strong> Calculer \(\theta(1\ \text{s})\). En déduire l'erreur commise en utilisant l'asymptote à cet instant.</div>
+  <div class="q"><strong>Q3.</strong> Quelle est la fonction de transfert de la vitesse \(\Omega = d\theta/dt\) ? Au bout de combien de temps la vitesse est-elle établie à 5 % près ?</div>
+  <div class="q"><strong>Q4.</strong> On asservit la position : \(u = K_c\,(\theta_c - \theta)\), retour unitaire. Montrer que la FTBF est un deuxième ordre de gain 1 et exprimer \(\omega_0\) et \(\xi\) en fonction de \(K_cK\) et \(\tau\).</div>
+  <div class="q"><strong>Q5.</strong> Calculer \(K_c\) pour \(\xi = 1\), puis le temps de réponse (on donne, au régime critique, \(t_{r5\%}\,\omega_0 \approx 4{,}75\)). Comparer à la prévision obtenue en négligeant \(\tau\) (modèle intégrateur pur).</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> Tangente horizontale puis rampe : intégrateur et premier ordre, \(\dfrac{\theta(p)}{U(p)} = \dfrac{K}{p\,(1 + \tau p)}\). Pente de l'asymptote : \(KU_0 = 40\ \text{rad/s}\), donc \(K = 20\ \text{rad}\cdot\text{s}^{-1}\cdot\text{V}^{-1}\) ; abscisse à l'origine : \(\tau = 0{,}05\ \text{s}\).</p>
+    <p><strong>Q2.</strong> \(\theta(1) = 40\,\big[1 - 0{,}05\,(1 - e^{-20})\big] = 38{,}0\ \text{rad}\). L'asymptote donne \(40\,(1 - 0{,}05) = 38{,}0\ \text{rad}\) aussi : au bout de \(20\tau\), l'écart (\(40 \times 0{,}05\,e^{-20}\)) est négligeable.</p>
+    <p><strong>Q3.</strong> \(\Omega(p) = p\,\theta(p)\), donc \(\dfrac{\Omega(p)}{U(p)} = \dfrac{K}{1 + \tau p}\) : premier ordre, vitesse finale 40 rad/s, établie à 5 % près en \(3\tau = 0{,}15\ \text{s}\).</p>
+    <p><strong>Q4.</strong> \(H_{BO} = \dfrac{K_cK}{p\,(1 + \tau p)}\), d'où</p><div class="formula">$$H_{BF} = \frac{K_cK}{\tau p^2 + p + K_cK} = \frac{1}{1 + \frac{1}{K_cK}\,p + \frac{\tau}{K_cK}\,p^2}.$$</div><p>Par identification : gain 1, \(\omega_0 = \sqrt{\dfrac{K_cK}{\tau}}\), \(\xi = \dfrac{1}{2\sqrt{K_cK\tau}}\).</p>
+    <p><strong>Q5.</strong> \(\xi = 1\) : \(K_cK = \dfrac{1}{4\tau} = 5\ \text{s}^{-1}\), donc \(K_c = 0{,}25\ \text{V/rad}\) ; \(\omega_0 = \sqrt{5/0{,}05} = 10\ \text{rad/s}\) et \(t_{r5\%} \approx 4{,}75/10 = 0{,}47\ \text{s}\). En négligeant \(\tau\), la boucle serait un premier ordre de constante de temps \(1/(K_cK) = 0{,}2\ \text{s}\), soit \(t_{r5\%} = 0{,}6\ \text{s}\) : l'ordre de grandeur est bon, mais seul le modèle complet prévoit qu'au-delà de \(K_c = 0{,}25\ \text{V/rad}\) la réponse dépasse la consigne et oscille (\(\xi \lt 1\)).</p>
+  </div>
+</div>
+
+<div class="exo concours">
+  <span class="num">CONCOURS PT</span><span class="diff">★ ★ ★</span>
+  <h3>Régulation de température d'une couveuse néonatale</h3>
+  <div class="exo-source">
+    Exercice <strong>original</strong> au format des épreuves de Sciences industrielles PT (thème <em>modélisation, identification et asservissement d'un système du premier ordre</em>). Pour t'entraîner sur les sujets réellement tombés :
+    <a href="https://www.banquept.fr/rubrique38.html" target="_blank" rel="noopener">annales officielles de la Banque PT</a>.
+  </div>
+  <div class="statement">
+    <p>Une couveuse maintient l'air qui entoure un nouveau-né à une température de consigne de 34 °C, dans une pièce à \(\theta_a = 25\) °C. Une résistance chauffante fournit une puissance \(P(t)\) comprise entre 0 et \(P_{max} = 200\ \text{W}\). On note \(x(t) = \theta(t) - \theta_a\) l'écart de la température de l'air à l'ambiante.</p>
+    <p>Données de conception : capacité thermique de l'air et des parois \(C = 6{,}0\ \text{kJ/K}\) ; conductance thermique des parois \(G = 10\ \text{W/K}\) (la puissance perdue vaut \(G\,x\)).</p>
+  </div>
+
+  <p class="exo-part">Partie A — Modèle de connaissance</p>
+  <div class="q"><strong>A1.</strong> Écrire le bilan d'énergie de l'air de la couveuse. Montrer que \(\dfrac{X(p)}{P(p)}\) est un premier ordre et calculer \(K\) et \(\tau\).</div>
+  <div class="q"><strong>A2.</strong> Quelle puissance constante faut-il pour maintenir 34 °C ? Partant de 25 °C, combien de temps la couveuse met-elle alors à s'approcher de 34 °C à 5 % près ?</div>
+  <div class="q"><strong>A3.</strong> Quelle est la température maximale que la couveuse peut atteindre ?</div>
+
+  <p class="exo-part">Partie B — Identification et validation</p>
+  <div class="statement">
+    <p>Sur un prototype à l'équilibre à 25 °C, on applique un échelon de 100 W et l'on relève :</p>
+    <div style="overflow-x:auto"><table>
+      <tr><th>\(t\) (min)</th><td>0</td><td>2</td><td>4</td><td>6</td><td>8</td><td>10</td><td>15</td><td>20</td><td>30</td><td>40</td><td>60</td></tr>
+      <tr><th>\(\theta\) (°C)</th><td>25,0</td><td>26,4</td><td>27,9</td><td>29,2</td><td>30,2</td><td>31,0</td><td>32,4</td><td>33,3</td><td>34,1</td><td>34,4</td><td>34,5</td></tr>
+    </table></div>
+  </div>
+  <div class="q"><strong>B1.</strong> Pourquoi a-t-on choisi un échelon de 100 W plutôt que de 200 W, à partir d'un état d'équilibre ?</div>
+  <div class="q"><strong>B2.</strong> Identifier \(K\) et \(\tau\) à partir du relevé (palier atteint à 60 min).</div>
+  <div class="q"><strong>B3.</strong> Comparer au modèle de la partie A. Proposer une explication de l'écart sur le gain. Le modèle de conception est-il acceptable ?</div>
+
+  <p class="exo-part">Partie C — La sonde de température</p>
+  <div class="q"><strong>C1.</strong> La sonde se comporte comme un premier ordre de gain 1 et de constante de temps \(\tau_s = 20\ \text{s}\). Au début d'une chauffe à pleine puissance, la température de l'air monte d'environ 1,9 K/min. Quel écart la sonde présente-t-elle alors ?</div>
+  <div class="q"><strong>C2.</strong> Justifier que, pour la suite, on puisse assimiler la sonde à un gain unitaire.</div>
+
+  <p class="exo-part">Partie D — Régulation proportionnelle</p>
+  <div class="statement">On prend le modèle identifié en B (\(K = 0{,}095\ \text{K/W}\), \(\tau = 600\ \text{s}\)). La commande est \(P = K_c\,(x_c - x)\), avec \(x_c = 9\ \text{K}\) (consigne de 34 °C).</div>
+  <div class="q"><strong>D1.</strong> Sans tenir compte de la limite \(P_{max}\), donner la FTBF \(\dfrac{X(p)}{X_c(p)}\). Le cahier des charges impose un écart statique d'au plus 0,3 K : en déduire la valeur minimale de \(K_c\). Avec \(K_c = 320\ \text{W/K}\), calculer l'écart statique et le temps de réponse prévus.</div>
+  <div class="q"><strong>D2.</strong> Calculer la puissance demandée à l'instant où l'on fixe la consigne. Conclure sur la validité de la prévision de D1.</div>
+  <div class="q"><strong>D3.</strong> Pendant la phase saturée, \(P = P_{max}\). Calculer l'instant où la commande cesse d'être saturée, puis estimer le temps de réponse réel.</div>
+  <div class="q"><strong>D4.</strong> Écrire un programme Python qui simule la boucle avec saturation par la méthode d'Euler (fonction <span class="code-inline">euler(F, t0, y0, h, n)</span> du cours, §8) et qui affiche la valeur finale et le temps de réponse à 5 %.</div>
+
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>A1.</strong> \(C\,\dfrac{dx}{dt} = P - G\,x\), soit \(\dfrac{C}{G}\,x' + x = \dfrac{1}{G}\,P\) : premier ordre de gain \(K = 1/G = 0{,}10\ \text{K/W}\) et de constante de temps \(\tau = C/G = 6000/10 = 600\ \text{s} = 10\ \text{min}\).</p>
+    <p><strong>A2.</strong> En régime permanent, \(P = G\,x = 10 \times 9 = 90\ \text{W}\). Sans régulation, la température s'approche de 34 °C comme \(9\,(1 - e^{-t/\tau})\) : à 5 % près au bout de \(3\tau = 30\ \text{min}\), beaucoup trop lent pour une couveuse dont on ouvre les hublots.</p>
+    <p><strong>A3.</strong> \(x_{max} = K\,P_{max} = 20\ \text{K}\), soit 45 °C : la puissance est largement suffisante, ce qui permettra d'accélérer la chauffe en boucle fermée.</p>
+    <p><strong>B1.</strong> Partir d'un équilibre permet de mesurer une variation due au seul échelon. 100 W donnent une variation de l'ordre de 10 K, grande devant le bruit de mesure, sans s'approcher de la limite de l'actionneur ni d'une température dangereuse pour le matériel ; à 200 W, on monterait vers 45 °C, hors du domaine d'utilisation.</p>
+    <p><strong>B2.</strong> Variation finale : \(34{,}5 - 25{,}0 = 9{,}5\ \text{K}\) pour 100 W, donc \(K = 0{,}095\ \text{K/W}\). 63 % de la variation : \(25 + 0{,}632 \times 9{,}5 = 31{,}0\) °C, atteint à 10 min : \(\tau = 600\ \text{s}\). Contrôle : 95 % (34,0 °C) est atteint entre 20 et 30 min, vers \(3\tau = 30\ \text{min}\).</p>
+    <p><strong>B3.</strong> La constante de temps est celle prévue ; le gain est 5 % plus faible, ce qui correspond à une conductance réelle de \(1/0{,}095 = 10{,}5\ \text{W/K}\) : fuites d'air par les hublots et la ventilation, non comptées dans \(G\). Un écart de 5 % est acceptable pour un modèle de conception ; pour régler la boucle, on garde le modèle identifié.</p>
+    <p><strong>C1.</strong> Rampe \(a = 1{,}9/60 \approx 0{,}032\ \text{K/s}\) : écart de traînage \(a\tau_s \approx 0{,}63\ \text{K}\), avec un retard de 20 s. La sonde sous-estime la température pendant la chauffe.</p>
+    <p><strong>C2.</strong> \(\tau_s = 20\ \text{s}\) est trente fois plus petite que \(\tau = 600\ \text{s}\) : l'effet de la sonde ne se voit qu'au tout début des réponses (quelques dizaines de secondes) et n'affecte ni le gain ni l'allure générale. On l'assimile à un gain unitaire, en gardant en tête que cette simplification devra être vérifiée si la boucle devient très rapide.</p>
+    <p><strong>D1.</strong> \(\dfrac{X(p)}{X_c(p)} = \dfrac{K_cK}{1 + K_cK + \tau p} = \dfrac{K'}{1 + \tau' p}\), avec \(K' = \dfrac{K_cK}{1 + K_cK}\) et \(\tau' = \dfrac{\tau}{1 + K_cK}\). Écart statique : \(\dfrac{x_c}{1 + K_cK} \le 0{,}3\) impose \(1 + K_cK \ge 30\), donc \(K_c \ge 29/0{,}095 \approx 305\ \text{W/K}\). Avec \(K_c = 320\ \text{W/K}\) : \(K_cK = 30{,}4\), écart \(9/31{,}4 = 0{,}29\ \text{K}\) (température finale 33,7 °C), \(\tau' = 600/31{,}4 = 19\ \text{s}\), \(t_{r5\%} = 3\tau' \approx 57\ \text{s}\).</p>
+    <p><strong>D2.</strong> \(P(0^+) = K_c\,x_c = 320 \times 9 = 2880\ \text{W}\), quatorze fois \(P_{max}\). La résistance chauffe à 200 W tant que \(K_c\,(x_c - x)\) dépasse 200 W : le modèle linéaire n'est plus valable au début de la réponse, et la prévision de 57 s est beaucoup trop optimiste.</p>
+    <p><strong>D3.</strong> Phase saturée : \(x(t) = K P_{max}\,(1 - e^{-t/\tau}) = 19\,(1 - e^{-t/600})\). La saturation cesse quand \(320\,(9 - x) = 200\), soit \(x = 8{,}375\ \text{K}\), atteint en \(t = -600\ln(1 - 8{,}375/19) \approx 349\ \text{s}\). La bande des 5 % autour de la valeur finale \(8{,}71\ \text{K}\) commence à \(8{,}28\ \text{K}\), atteint en \(t = -600\ln(1 - 8{,}28/19) \approx 343\ \text{s}\) ; la réponse est monotone, donc \(t_{r5\%} \approx 5{,}7\ \text{min}\), six fois plus que la prévision linéaire, et cinq fois moins qu'en boucle ouverte.</p>
+    <p><strong>D4.</strong> On borne la commande dans la fonction \(F\) :</p>
+    <pre class="codeblock"><span class="kw">def</span> euler(F, t0, y0, h, n):
+    ts, ys = [t0], [y0]
+    y = y0
+    <span class="kw">for</span> k <span class="kw">in</span> range(n):
+        y = y + h * F(t0 + k * h, y)
+        ts.append(t0 + (k + 1) * h)
+        ys.append(y)
+    <span class="kw">return</span> ts, ys
+
+K, tau, Kc, Pmax = 0.095, 600.0, 320.0, 200.0
+xc = 9.0                                        <span class="cmt"># consigne : 34 °C, soit 9 K au-dessus de l'ambiante</span>
+
+<span class="kw">def</span> F(t, x):
+    P = min(Pmax, max(0.0, Kc * (xc - x)))      <span class="cmt"># commande proportionnelle, bornée à [0, Pmax]</span>
+    <span class="kw">return</span> (K * P - x) / tau
+
+ts, xs = euler(F, 0, 0.0, 1.0, 900)             <span class="cmt"># pas de 1 s, petit devant tau' = 19 s</span>
+xf = xs[-1]
+k = max(i <span class="kw">for</span> i <span class="kw">in</span> range(len(xs)) <span class="kw">if</span> abs(xs[i] - xf) &gt; 0.05 * xf)
+print(round(xf, 2), ts[k + 1])                  <span class="cmt"># dernier instant hors de la bande, plus un pas</span></pre>
+    <p>Le programme affiche :</p>
+    <pre class="codeblock">8.71 343.0</pre>
+    <p>On retrouve la valeur finale de D1 (8,71 K) et le temps de réponse de D3 (343 s). Sans la ligne qui borne \(P\), le même programme donne 56 s, la prévision linéaire.</p>
+  </div>
+</div>
+
+</div>
+</template>

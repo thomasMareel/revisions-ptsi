@@ -1,0 +1,1801 @@
+<!-- Chapitre « Images : matrices de pixels » (pyimages) : contenu des onglets Cours, Méthodes et Exercices, chargé à l'ouverture du chapitre.
+     On l'édite ici, puis : node tools/chapitres.js (docs/chargement-chapitres.md). -->
+<template class="pan-tpl" data-panneau="img-cours">
+<div class="course-section">
+  <div class="sec-num">AU PROGRAMME · INFORMATIQUE</div>
+  <h2>Ce que le programme officiel demande</h2>
+  <div class="intro">Le thème « Matrices de pixels et images » du premier semestre sert surtout de terrain d'entraînement aux <strong>tableaux à deux dimensions</strong> : créer, parcourir, copier une liste de listes, calculer des indices, évaluer un coût. Les algorithmes sont courts, mais chaque erreur d'indice se voit tout de suite sur l'image. On utilise les listes du chapitre « Types construits », les boucles imbriquées du chapitre « Recherche séquentielle, dictionnaires et dichotomie », et l'on retrouvera les histogrammes dans « Modules, fichiers et statistiques ».</div>
+  <div class="reveal" onclick="this.classList.toggle('open')">
+    <span class="label">Programme officiel</span>
+    <span class="prompt">Les notions du programme couvertes par ce chapitre, dans l'ordre du cours</span>
+    <div class="content"><ul>
+      <li><strong>Matrices de pixels et images</strong> (1ᵉʳ semestre) : image en niveaux de gris ou en couleurs (RVB) représentée par un tableau à deux dimensions (§1).</li>
+      <li><strong>Manipulation de tableaux à deux dimensions</strong> : création par compréhension, accès <span class="code-inline">img[i][j]</span>, parcours par boucles imbriquées, copie et son caractère superficiel (annexe Python) (§2).</li>
+      <li><strong>Transformations élémentaires</strong> (exemples d'activité) : négatif, seuillage, luminosité, passage en niveaux de gris, histogramme (§3).</li>
+      <li><strong>Algorithmes de rotation</strong> : symétries, quart de tour, rotation d'un angle quelconque (§4).</li>
+      <li><strong>Algorithmes de réduction et d'agrandissement</strong> (§5).</li>
+      <li><strong>Modification d'une image par convolution</strong> : principe (§6), flou (§7), détection de contours (§8).</li>
+      <li><strong>Complexité dans le pire cas</strong> (premiers éléments, 1ᵉʳ semestre) : coût de chaque traitement en fonction du nombre de pixels, à chaque section.</li>
+    </ul>
+    <p>Hors programme : les formats de fichiers d'image et la compression (PNG, JPEG), les modules de lecture d'images et numpy (leur documentation est toujours fournie, voir « Pour aller plus loin »), l'interpolation bilinéaire, les autres espaces de couleur.</p></div>
+  </div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§1 · UNE IMAGE EST UN TABLEAU DE PIXELS</div>
+  <h2>Pixels, définition et niveaux de gris</h2>
+  <div class="intro">Un capteur d'appareil photo, un scanner ou un écran découpent l'image en une grille de petits carrés de couleur uniforme, les <strong>pixels</strong> (de l'anglais <em>picture element</em>). Pour un programme, une image n'est donc qu'un tableau de nombres à deux dimensions : la traiter, c'est parcourir et modifier ce tableau.</div>
+
+  <div class="def-box">Une <strong>image matricielle</strong> de \(h\) lignes et \(l\) colonnes est un tableau <span class="code-inline">img</span> à deux dimensions : <span class="code-inline">img[i][j]</span> est la valeur du pixel de la <strong>ligne</strong> \(i\) et de la <strong>colonne</strong> \(j\), avec \(0 \le i \le h - 1\) (lignes numérotées de haut en bas) et \(0 \le j \le l - 1\) (colonnes de gauche à droite). Le nombre de pixels \(h \times l\) est la <strong>définition</strong> de l'image.</div>
+
+  <p>Ce que contient chaque case dépend du type d'image :</p>
+  <ul>
+    <li><strong>niveaux de gris</strong> : un entier de 0 (noir) à 255 (blanc), soit 256 niveaux codés sur 8 bits, un octet ;</li>
+    <li><strong>image binaire</strong> (noir et blanc pur) : deux valeurs seulement, 0 et 1, ou 0 et 255 ;</li>
+    <li><strong>couleur RVB</strong> : un triplet \((r, v, b)\) d'intensités de rouge, de vert et de bleu, chacune de 0 à 255 ; l'œil fait la synthèse additive des trois. Ainsi \((255, 0, 0)\) est un rouge pur, \((255, 255, 0)\) un jaune, \((0, 0, 0)\) le noir, \((255, 255, 255)\) le blanc et \((128, 128, 128)\) un gris moyen. Il y a \(256^3 = 16\,777\,216\) couleurs possibles.</li>
+  </ul>
+
+<figure class="schema">
+<svg viewBox="0 0 350 250" role="img" aria-label="Image de 5 lignes et 6 colonnes en niveaux de gris, avec les numéros de ligne i et de colonne j ; le pixel de la ligne 2 et de la colonne 4 vaut 0">
+<rect x="46" y="46" width="180" height="150" class="px-fond"/>
+<rect x="106" y="46" width="30" height="30" class="px" fill-opacity="0.10"/>
+<rect x="136" y="46" width="60" height="30" class="px" fill-opacity="0.29"/>
+<rect x="196" y="46" width="30" height="30" class="px" fill-opacity="0.10"/>
+<text x="61" y="65" class="px-t" text-anchor="middle" style="font-size:12px">255</text>
+<text x="91" y="65" class="px-t" text-anchor="middle" style="font-size:12px">255</text>
+<text x="121" y="65" class="px-t" text-anchor="middle" style="font-size:12px">230</text>
+<text x="151" y="65" class="px-t" text-anchor="middle" style="font-size:12px">180</text>
+<text x="181" y="65" class="px-t" text-anchor="middle" style="font-size:12px">180</text>
+<text x="211" y="65" class="px-t" text-anchor="middle" style="font-size:12px">230</text>
+<rect x="76" y="76" width="30" height="30" class="px" fill-opacity="0.22"/>
+<rect x="106" y="76" width="30" height="30" class="px" fill-opacity="0.65"/>
+<rect x="136" y="76" width="60" height="30" class="px" fill-opacity="0.84"/>
+<rect x="196" y="76" width="30" height="30" class="px" fill-opacity="0.65"/>
+<text x="61" y="95" class="px-t" text-anchor="middle" style="font-size:12px">255</text>
+<text x="91" y="95" class="px-t" text-anchor="middle" style="font-size:12px">200</text>
+<text x="121" y="95" class="px-tc" text-anchor="middle" style="font-size:12px">90</text>
+<text x="151" y="95" class="px-tc" text-anchor="middle" style="font-size:12px">40</text>
+<text x="181" y="95" class="px-tc" text-anchor="middle" style="font-size:12px">40</text>
+<text x="211" y="95" class="px-tc" text-anchor="middle" style="font-size:12px">90</text>
+<rect x="46" y="106" width="30" height="30" class="px" fill-opacity="0.10"/>
+<rect x="76" y="106" width="30" height="30" class="px" fill-opacity="0.65"/>
+<rect x="106" y="106" width="90" height="30" class="px" fill-opacity="1.00"/>
+<rect x="196" y="106" width="30" height="30" class="px" fill-opacity="0.84"/>
+<text x="61" y="125" class="px-t" text-anchor="middle" style="font-size:12px">230</text>
+<text x="91" y="125" class="px-tc" text-anchor="middle" style="font-size:12px">90</text>
+<text x="121" y="125" class="px-tc" text-anchor="middle" style="font-size:12px">0</text>
+<text x="151" y="125" class="px-tc" text-anchor="middle" style="font-size:12px">0</text>
+<text x="181" y="125" class="px-tc" text-anchor="middle" style="font-size:12px">0</text>
+<text x="211" y="125" class="px-tc" text-anchor="middle" style="font-size:12px">40</text>
+<rect x="46" y="136" width="30" height="30" class="px" fill-opacity="0.22"/>
+<rect x="76" y="136" width="30" height="30" class="px" fill-opacity="0.65"/>
+<rect x="106" y="136" width="30" height="30" class="px" fill-opacity="0.84"/>
+<rect x="136" y="136" width="30" height="30" class="px" fill-opacity="1.00"/>
+<rect x="166" y="136" width="30" height="30" class="px" fill-opacity="0.84"/>
+<rect x="196" y="136" width="30" height="30" class="px" fill-opacity="0.65"/>
+<text x="61" y="155" class="px-t" text-anchor="middle" style="font-size:12px">200</text>
+<text x="91" y="155" class="px-tc" text-anchor="middle" style="font-size:12px">90</text>
+<text x="121" y="155" class="px-tc" text-anchor="middle" style="font-size:12px">40</text>
+<text x="151" y="155" class="px-tc" text-anchor="middle" style="font-size:12px">0</text>
+<text x="181" y="155" class="px-tc" text-anchor="middle" style="font-size:12px">40</text>
+<text x="211" y="155" class="px-tc" text-anchor="middle" style="font-size:12px">90</text>
+<rect x="76" y="166" width="30" height="30" class="px" fill-opacity="0.10"/>
+<rect x="106" y="166" width="30" height="30" class="px" fill-opacity="0.29"/>
+<rect x="136" y="166" width="30" height="30" class="px" fill-opacity="0.49"/>
+<rect x="166" y="166" width="30" height="30" class="px" fill-opacity="0.29"/>
+<rect x="196" y="166" width="30" height="30" class="px" fill-opacity="0.10"/>
+<text x="61" y="185" class="px-t" text-anchor="middle" style="font-size:12px">255</text>
+<text x="91" y="185" class="px-t" text-anchor="middle" style="font-size:12px">230</text>
+<text x="121" y="185" class="px-t" text-anchor="middle" style="font-size:12px">180</text>
+<text x="151" y="185" class="px-t" text-anchor="middle" style="font-size:12px">130</text>
+<text x="181" y="185" class="px-t" text-anchor="middle" style="font-size:12px">180</text>
+<text x="211" y="185" class="px-t" text-anchor="middle" style="font-size:12px">230</text>
+<path d="M46 76H226M46 106H226M46 136H226M46 166H226M76 46V196M106 46V196M136 46V196M166 46V196M196 46V196" class="sk-axis" stroke-width="0.6"/>
+<rect x="166" y="106" width="30" height="30" class="sk-accent" stroke-width="2.6"/>
+<text x="61" y="38" class="lab-muted" text-anchor="middle">0</text>
+<text x="91" y="38" class="lab-muted" text-anchor="middle">1</text>
+<text x="121" y="38" class="lab-muted" text-anchor="middle">2</text>
+<text x="151" y="38" class="lab-muted" text-anchor="middle">3</text>
+<text x="181" y="38" class="lab-muted" text-anchor="middle">4</text>
+<text x="211" y="38" class="lab-muted" text-anchor="middle">5</text>
+<text x="38" y="65" class="lab-muted" text-anchor="end">0</text>
+<text x="38" y="95" class="lab-muted" text-anchor="end">1</text>
+<text x="38" y="125" class="lab-muted" text-anchor="end">2</text>
+<text x="38" y="155" class="lab-muted" text-anchor="end">3</text>
+<text x="38" y="185" class="lab-muted" text-anchor="end">4</text>
+<line x1="46" y1="18" x2="226" y2="18" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<text x="234" y="22" class="lab-it">j (colonne)</text>
+<line x1="14" y1="46" x2="14" y2="196" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<text x="8" y="218" class="lab-it">i</text>
+<text x="8" y="234" class="lab-it">(ligne)</text>
+<line x1="228" y1="121.0" x2="240" y2="121.0" class="sk-accent" stroke-width="1.4"/>
+<text x="244" y="125" class="lab-accent" style="font-size:12px;font-family:var(--font-code)">img[2][4] = 0</text>
+<text x="136" y="218" class="lab-muted" text-anchor="middle" style="font-family:var(--font-code)">h = len(img) = 5</text>
+<text x="136" y="236" class="lab-muted" text-anchor="middle" style="font-family:var(--font-code)">l = len(img[0]) = 6</text>
+</svg>
+<figcaption>Une image en niveaux de gris de 5 lignes et 6 colonnes : chaque case affiche la valeur stockée (0 = noir, 255 = blanc). L'indice <span class="code-inline">i</span> numérote les lignes <strong>de haut en bas</strong>, l'indice <span class="code-inline">j</span> les colonnes de gauche à droite ; l'origine est le coin supérieur gauche.</figcaption>
+</figure>
+
+  <p>En Python, sans module, on range l'image ligne par ligne dans une liste de listes ; la figure ci-dessus s'écrit :</p>
+<pre class="codeblock">img = [[255, 255, 230, 180, 180, 230],
+       [255, 200, 90, 40, 40, 90],
+       [230, 90, 0, 0, 0, 40],
+       [200, 90, 40, 0, 40, 90],
+       [255, 230, 180, 130, 180, 230]]
+h, l = len(img), len(img[0])   <span class="cmt"># 5 lignes, 6 colonnes</span>
+print(img[2][4])               <span class="cmt"># 0 : ligne 2, colonne 4</span>
+img[0][0] = 0                  <span class="cmt"># le coin supérieur gauche devient noir</span></pre>
+
+  <div class="notice"><strong>Erreur classique</strong> : confondre \((i, j)\) avec les coordonnées \((x, y)\) d'un repère de mathématiques. Le premier indice est la ligne, il <strong>descend</strong> ; le second est la colonne. Le point d'abscisse \(x\) et d'ordonnée \(y\) mesurées depuis le coin supérieur gauche est donc <span class="code-inline">img[y][x]</span>. Écrire <span class="code-inline">img[j][i]</span> au lieu de <span class="code-inline">img[i][j]</span> passe inaperçu sur une image carrée et provoque une <span class="code-inline">IndexError</span> sur les autres.</div>
+
+  <div class="prop-box"><strong>Place en mémoire.</strong> Sans compression, une image en niveaux de gris occupe \(h \times l\) octets et une image RVB \(3 \times h \times l\) octets. Une photographie de \(4000 \times 3000\) pixels (12 mégapixels) occupe donc 36 Mo en RVB : d'où l'intérêt des formats compressés, hors programme.</div>
+
+  <div class="method-box"><strong>Exemple — une image Full HD</strong>
+    <p>Un écran « Full HD » affiche des images de 1080 lignes et 1920 colonnes.</p>
+    <ol>
+      <li>Définition : \(1920 \times 1080 = 2\,073\,600\) pixels, environ deux millions.</li>
+      <li>Taille en RVB : \(3 \times 2\,073\,600 = 6\,220\,800\) octets, soit 6,2 Mo par image ; une vidéo non compressée à 25 images par seconde demanderait 155,5 Mo par seconde.</li>
+      <li>Certains formats rangent les pixels « à plat », dans une liste de \(h \times l\) valeurs, ligne après ligne. Le pixel \((i, j)\) y occupe la position \(k = i \times l + j\) ; inversement \(i\) est le quotient <span class="code-inline">k // l</span> et \(j\) le reste <span class="code-inline">k % l</span>. Par exemple la position \(k = 4000\) correspond à la ligne \(i = 2\) et à la colonne \(j = 160\), car \(4000 = 2 \times 1920 + 160\).</li>
+    </ol>
+  </div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§2 · TABLEAUX À DEUX DIMENSIONS EN PYTHON</div>
+  <h2>Créer, parcourir et copier une liste de listes</h2>
+  <div class="intro">Une liste de listes se manipule avec les outils de l'annexe Python : compréhension, <span class="code-inline">len</span>, accès par indice, tranches. Deux pièges guettent : créer des lignes qui n'en sont qu'une, et croire qu'une copie superficielle protège l'original.</div>
+
+  <div class="def-box">Un <strong>tableau à deux dimensions</strong> de \(h\) lignes et \(l\) colonnes est une liste de \(h\) listes, toutes de longueur \(l\). <span class="code-inline">len(img)</span> vaut \(h\), <span class="code-inline">len(img[0])</span> vaut \(l\) ; <span class="code-inline">img[i]</span> est la ligne \(i\) (une liste) et <span class="code-inline">img[i][j]</span> le pixel \((i, j)\).</div>
+
+  <h3>Créer une image</h3>
+  <p>Pour créer une image uniforme, on construit chaque ligne par une compréhension, ce qui fabrique une <strong>nouvelle</strong> liste à chaque tour :</p>
+<pre class="codeblock"><span class="kw">def</span> image_vide(h, l, v):
+    <span class="cmt"># h lignes de l pixels, tous égaux à v ; chaque ligne est une NOUVELLE liste</span>
+    <span class="kw">return</span> [[v] * l <span class="kw">for</span> i <span class="kw">in</span> range(h)]</pre>
+<pre class="codeblock">noire = image_vide(3, 4, 0)    <span class="cmt"># 3 lignes de 4 pixels noirs</span>
+noire[1][2] = 255
+print(noire)                   <span class="cmt"># [[0, 0, 0, 0], [0, 0, 255, 0], [0, 0, 0, 0]]</span></pre>
+
+  <div class="notice"><strong>Erreur classique</strong> : écrire <span class="code-inline">[[0] * l] * h</span>. L'opérateur <span class="code-inline">*</span> répète la <em>référence</em> de la ligne <span class="code-inline">[0] * l</span>, il ne la recopie pas : les \(h\) lignes sont un seul et même objet, et modifier un pixel modifie toute la colonne.</div>
+<pre class="codeblock">img = [[0] * 3] * 2
+img[0][1] = 255
+print(img)    <span class="cmt"># [[0, 255, 0], [0, 255, 0]] : les deux lignes ont changé</span></pre>
+<figure class="schema" style="max-width:420px">
+<svg viewBox="0 0 350 220" role="img" aria-label="En haut, la liste créée par [[0] * 3] * 2 contient deux références vers une même ligne ; en bas, la compréhension crée deux lignes distinctes">
+<text x="10" y="16" class="lab-accent" style="font-size:13px;font-family:var(--font-code)">[[0] * 3] * 2</text>
+<text x="46" y="64" class="lab-b" text-anchor="end" style="font-size:13px;font-family:var(--font-code)">img</text>
+<rect x="56" y="32" width="24" height="48" class="sk-ink fl-paper" stroke-width="1.2"/>
+<line x1="56" y1="56" x2="80" y2="56" class="sk-ink" stroke-width="1.2"/>
+<circle cx="68" cy="44" r="3" class="fl-ink"/><circle cx="68" cy="68" r="3" class="fl-ink"/>
+<rect x="170" y="44" width="24" height="24" class="sk-ink fl-paper" stroke-width="1.2"/>
+<text x="182" y="60.5" text-anchor="middle" style="font-size:13px;font-family:var(--font-code)">0</text>
+<rect x="194" y="44" width="24" height="24" class="sk-ink fl-paper" stroke-width="1.2"/>
+<text x="206" y="60.5" text-anchor="middle" style="font-size:13px;font-family:var(--font-code)">0</text>
+<rect x="218" y="44" width="24" height="24" class="sk-ink fl-paper" stroke-width="1.2"/>
+<text x="230" y="60.5" text-anchor="middle" style="font-size:13px;font-family:var(--font-code)">0</text>
+<path d="M71,44 C120,40 140,50 164,54" class="sk-accent" marker-end="url(#sk-arrow-accent)"/>
+<path d="M71,68 C120,72 140,62 164,60" class="sk-accent" marker-end="url(#sk-arrow-accent)"/>
+<text x="252" y="52" class="lab-muted">une seule ligne,</text>
+<text x="252" y="68" class="lab-muted">deux références</text>
+<text x="10" y="138" class="lab-green" style="font-size:13px;font-family:var(--font-code)">[[0] * 3 for i in range(2)]</text>
+<text x="46" y="186" class="lab-b" text-anchor="end" style="font-size:13px;font-family:var(--font-code)">img</text>
+<rect x="56" y="154" width="24" height="48" class="sk-ink fl-paper" stroke-width="1.2"/>
+<line x1="56" y1="178" x2="80" y2="178" class="sk-ink" stroke-width="1.2"/>
+<circle cx="68" cy="166" r="3" class="fl-ink"/><circle cx="68" cy="190" r="3" class="fl-ink"/>
+<rect x="170" y="150" width="24" height="24" class="sk-ink fl-paper" stroke-width="1.2"/>
+<text x="182" y="166.5" text-anchor="middle" style="font-size:13px;font-family:var(--font-code)">0</text>
+<rect x="194" y="150" width="24" height="24" class="sk-ink fl-paper" stroke-width="1.2"/>
+<text x="206" y="166.5" text-anchor="middle" style="font-size:13px;font-family:var(--font-code)">0</text>
+<rect x="218" y="150" width="24" height="24" class="sk-ink fl-paper" stroke-width="1.2"/>
+<text x="230" y="166.5" text-anchor="middle" style="font-size:13px;font-family:var(--font-code)">0</text>
+<rect x="170" y="184" width="24" height="24" class="sk-ink fl-paper" stroke-width="1.2"/>
+<text x="182" y="200.5" text-anchor="middle" style="font-size:13px;font-family:var(--font-code)">0</text>
+<rect x="194" y="184" width="24" height="24" class="sk-ink fl-paper" stroke-width="1.2"/>
+<text x="206" y="200.5" text-anchor="middle" style="font-size:13px;font-family:var(--font-code)">0</text>
+<rect x="218" y="184" width="24" height="24" class="sk-ink fl-paper" stroke-width="1.2"/>
+<text x="230" y="200.5" text-anchor="middle" style="font-size:13px;font-family:var(--font-code)">0</text>
+<path d="M71,166 C110,166 130,162 164,162" class="sk-green" marker-end="url(#sk-arrow-green)"/>
+<path d="M71,190 C110,190 130,196 164,196" class="sk-green" marker-end="url(#sk-arrow-green)"/>
+<text x="252" y="174" class="lab-muted">deux lignes</text>
+<text x="252" y="190" class="lab-muted">indépendantes</text>
+<line x1="10" y1="106" x2="340" y2="106" class="sk-dash"/>
+</svg>
+<figcaption>Ce que construit chaque écriture. En haut, <span class="code-inline">[[0] * 3] * 2</span> répète deux fois la <em>référence</em> d'une même ligne : modifier <span class="code-inline">img[0][1]</span> modifie aussi <span class="code-inline">img[1][1]</span>. En bas, la compréhension évalue <span class="code-inline">[0] * 3</span> à chaque tour : deux lignes indépendantes.</figcaption>
+</figure>
+
+  <h3>Parcourir une image</h3>
+  <p>On parcourt les pixels comme on lit une page : ligne par ligne, et dans chaque ligne de gauche à droite. Deux boucles imbriquées suffisent :</p>
+<pre class="codeblock"><span class="kw">def</span> nb_pixels_sombres(img, s):
+    <span class="cmt"># nombre de pixels de valeur strictement inférieure à s</span>
+    n = 0
+    <span class="kw">for</span> i <span class="kw">in</span> range(len(img)):
+        <span class="kw">for</span> j <span class="kw">in</span> range(len(img[0])):
+            <span class="kw">if</span> img[i][j] &lt; s:
+                n = n + 1
+    <span class="kw">return</span> n</pre>
+  <p>Quand seules les valeurs comptent, on peut parcourir directement les lignes puis leurs éléments (<span class="code-inline">for ligne in img:</span> puis <span class="code-inline">for v in ligne:</span>), comme dans la fonction <span class="code-inline">histogramme</span> du §3.</p>
+
+  <div class="prop-box"><strong>Coût d'un parcours.</strong> Le corps de la boucle interne est exécuté \(h \times l\) fois, et chaque exécution coûte un temps constant (une comparaison, une addition). Le coût est donc un \(O(h\,l)\), c'est-à-dire <strong>linéaire en le nombre \(n = h\,l\) de pixels</strong>. Aucun traitement qui regarde tous les pixels ne peut faire mieux.</div>
+
+  <h3>Copier une image</h3>
+  <p>La copie d'une liste (<span class="code-inline">t[:]</span> ou <span class="code-inline">t.copy()</span>) est <strong>superficielle</strong> : elle crée une nouvelle liste extérieure, mais ses éléments sont les mêmes objets. Pour une image, les lignes sont donc partagées. Une copie complète recopie chaque ligne :</p>
+<pre class="codeblock"><span class="kw">def</span> copie(img):
+    <span class="cmt"># copie profonde d'une image : on recopie chaque ligne</span>
+    <span class="kw">return</span> [ligne[:] <span class="kw">for</span> ligne <span class="kw">in</span> img]</pre>
+<pre class="codeblock">a = [[10, 20], [30, 40]]
+b = a[:]           <span class="cmt"># copie superficielle : nouvelle liste, MÊMES lignes</span>
+b[0][0] = 99
+print(a)           <span class="cmt"># [[99, 20], [30, 40]] : a a été modifiée</span>
+c = copie(a)       <span class="cmt"># chaque ligne est recopiée</span>
+c[1][1] = 0
+print(a)           <span class="cmt"># [[99, 20], [30, 40]] : a n'a pas changé</span></pre>
+
+  <div class="method-box"><strong>Exemple — trouver le premier pixel noir</strong>
+    <p>On cherche, dans l'ordre de lecture, le premier pixel noir de l'image du §1 (avant la modification de son coin), et l'on veut connaître le coût dans le pire cas.</p>
+<pre class="codeblock"><span class="kw">def</span> premier_noir(img):
+    <span class="cmt"># (i, j) du premier pixel nul dans l'ordre de lecture, None s'il n'y en a pas</span>
+    <span class="kw">for</span> i <span class="kw">in</span> range(len(img)):
+        <span class="kw">for</span> j <span class="kw">in</span> range(len(img[0])):
+            <span class="kw">if</span> img[i][j] == 0:
+                <span class="kw">return</span> (i, j)       <span class="cmt"># return interrompt les deux boucles</span>
+    <span class="kw">return</span> <span class="kw">None</span>
+
+img = [[255, 255, 230, 180, 180, 230],
+       [255, 200, 90, 40, 40, 90],
+       [230, 90, 0, 0, 0, 40],
+       [200, 90, 40, 0, 40, 90],
+       [255, 230, 180, 130, 180, 230]]
+print(premier_noir(img))     <span class="cmt"># (2, 2)</span></pre>
+    <ol>
+      <li>Les lignes 0 et 1 ne contiennent aucun 0 : 12 tests négatifs.</li>
+      <li>Dans la ligne 2, <span class="code-inline">img[2][0]</span> = 230 et <span class="code-inline">img[2][1]</span> = 90, puis <span class="code-inline">img[2][2]</span> = 0 : la fonction renvoie \((2, 2)\) après 15 tests.</li>
+      <li>Pire cas : une image sans pixel noir, où les \(h\,l\) pixels sont testés avant de renvoyer <span class="code-inline">None</span>. Le coût est un \(O(h\,l)\).</li>
+    </ol>
+  </div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§3 · TRANSFORMATIONS PIXEL PAR PIXEL</div>
+  <h2>Négatif, seuillage, luminosité, niveaux de gris</h2>
+  <div class="intro">Les traitements les plus simples remplacent chaque pixel par une fonction de sa seule valeur : le résultat en un point ne dépend pas des voisins. Ils se programment tous sur le même modèle, un parcours de l'image qui remplit une image résultat.</div>
+
+<pre class="codeblock"><span class="kw">def</span> negatif(img):
+    h, l = len(img), len(img[0])
+    res = image_vide(h, l, 0)
+    <span class="kw">for</span> i <span class="kw">in</span> range(h):
+        <span class="kw">for</span> j <span class="kw">in</span> range(l):
+            res[i][j] = 255 - img[i][j]
+    <span class="kw">return</span> res
+
+<span class="kw">def</span> seuillage(img, s):
+    h, l = len(img), len(img[0])
+    res = image_vide(h, l, 0)
+    <span class="kw">for</span> i <span class="kw">in</span> range(h):
+        <span class="kw">for</span> j <span class="kw">in</span> range(l):
+            <span class="kw">if</span> img[i][j] &gt;= s:
+                res[i][j] = 255
+    <span class="kw">return</span> res</pre>
+<figure class="schema">
+<svg viewBox="0 0 360 140" role="img" aria-label="Une image 4 par 4, son négatif et son seuillage à 128">
+<rect x="10" y="14" width="104" height="104" class="px-fond"/>
+<rect x="10" y="14" width="26" height="26" class="px" fill-opacity="0.02"/>
+<rect x="36" y="14" width="26" height="26" class="px" fill-opacity="0.18"/>
+<rect x="62" y="14" width="26" height="26" class="px" fill-opacity="0.37"/>
+<rect x="88" y="14" width="26" height="26" class="px" fill-opacity="0.53"/>
+<text x="23" y="31" class="px-t" text-anchor="middle" style="font-size:12px">250</text>
+<text x="49" y="31" class="px-t" text-anchor="middle" style="font-size:12px">210</text>
+<text x="75" y="31" class="px-t" text-anchor="middle" style="font-size:12px">160</text>
+<text x="101" y="31" class="px-tc" text-anchor="middle" style="font-size:12px">120</text>
+<rect x="10" y="40" width="26" height="26" class="px" fill-opacity="0.22"/>
+<rect x="36" y="40" width="26" height="26" class="px" fill-opacity="0.41"/>
+<rect x="62" y="40" width="26" height="26" class="px" fill-opacity="0.61"/>
+<rect x="88" y="40" width="26" height="26" class="px" fill-opacity="0.76"/>
+<text x="23" y="57" class="px-t" text-anchor="middle" style="font-size:12px">200</text>
+<text x="49" y="57" class="px-t" text-anchor="middle" style="font-size:12px">150</text>
+<text x="75" y="57" class="px-tc" text-anchor="middle" style="font-size:12px">100</text>
+<text x="101" y="57" class="px-tc" text-anchor="middle" style="font-size:12px">60</text>
+<rect x="10" y="66" width="26" height="26" class="px" fill-opacity="0.45"/>
+<rect x="36" y="66" width="26" height="26" class="px" fill-opacity="0.65"/>
+<rect x="62" y="66" width="26" height="26" class="px" fill-opacity="0.80"/>
+<rect x="88" y="66" width="26" height="26" class="px" fill-opacity="0.92"/>
+<text x="23" y="83" class="px-t" text-anchor="middle" style="font-size:12px">140</text>
+<text x="49" y="83" class="px-tc" text-anchor="middle" style="font-size:12px">90</text>
+<text x="75" y="83" class="px-tc" text-anchor="middle" style="font-size:12px">50</text>
+<text x="101" y="83" class="px-tc" text-anchor="middle" style="font-size:12px">20</text>
+<rect x="10" y="92" width="26" height="26" class="px" fill-opacity="0.69"/>
+<rect x="36" y="92" width="26" height="26" class="px" fill-opacity="0.84"/>
+<rect x="62" y="92" width="26" height="26" class="px" fill-opacity="0.96"/>
+<rect x="88" y="92" width="26" height="26" class="px" fill-opacity="1.00"/>
+<text x="23" y="109" class="px-tc" text-anchor="middle" style="font-size:12px">80</text>
+<text x="49" y="109" class="px-tc" text-anchor="middle" style="font-size:12px">40</text>
+<text x="75" y="109" class="px-tc" text-anchor="middle" style="font-size:12px">10</text>
+<text x="101" y="109" class="px-tc" text-anchor="middle" style="font-size:12px">0</text>
+<path d="M10 40H114M10 66H114M10 92H114M36 14V118M62 14V118M88 14V118" class="sk-axis" stroke-width="0.6"/>
+<text x="62" y="138" class="lab-muted" text-anchor="middle">image de départ</text>
+<rect x="128" y="14" width="104" height="104" class="px-fond"/>
+<rect x="128" y="14" width="26" height="26" class="px" fill-opacity="0.98"/>
+<rect x="154" y="14" width="26" height="26" class="px" fill-opacity="0.82"/>
+<rect x="180" y="14" width="26" height="26" class="px" fill-opacity="0.63"/>
+<rect x="206" y="14" width="26" height="26" class="px" fill-opacity="0.47"/>
+<text x="141" y="31" class="px-tc" text-anchor="middle" style="font-size:12px">5</text>
+<text x="167" y="31" class="px-tc" text-anchor="middle" style="font-size:12px">45</text>
+<text x="193" y="31" class="px-tc" text-anchor="middle" style="font-size:12px">95</text>
+<text x="219" y="31" class="px-t" text-anchor="middle" style="font-size:12px">135</text>
+<rect x="128" y="40" width="26" height="26" class="px" fill-opacity="0.78"/>
+<rect x="154" y="40" width="26" height="26" class="px" fill-opacity="0.59"/>
+<rect x="180" y="40" width="26" height="26" class="px" fill-opacity="0.39"/>
+<rect x="206" y="40" width="26" height="26" class="px" fill-opacity="0.24"/>
+<text x="141" y="57" class="px-tc" text-anchor="middle" style="font-size:12px">55</text>
+<text x="167" y="57" class="px-tc" text-anchor="middle" style="font-size:12px">105</text>
+<text x="193" y="57" class="px-t" text-anchor="middle" style="font-size:12px">155</text>
+<text x="219" y="57" class="px-t" text-anchor="middle" style="font-size:12px">195</text>
+<rect x="128" y="66" width="26" height="26" class="px" fill-opacity="0.55"/>
+<rect x="154" y="66" width="26" height="26" class="px" fill-opacity="0.35"/>
+<rect x="180" y="66" width="26" height="26" class="px" fill-opacity="0.20"/>
+<rect x="206" y="66" width="26" height="26" class="px" fill-opacity="0.08"/>
+<text x="141" y="83" class="px-tc" text-anchor="middle" style="font-size:12px">115</text>
+<text x="167" y="83" class="px-t" text-anchor="middle" style="font-size:12px">165</text>
+<text x="193" y="83" class="px-t" text-anchor="middle" style="font-size:12px">205</text>
+<text x="219" y="83" class="px-t" text-anchor="middle" style="font-size:12px">235</text>
+<rect x="128" y="92" width="26" height="26" class="px" fill-opacity="0.31"/>
+<rect x="154" y="92" width="26" height="26" class="px" fill-opacity="0.16"/>
+<rect x="180" y="92" width="26" height="26" class="px" fill-opacity="0.04"/>
+<text x="141" y="109" class="px-t" text-anchor="middle" style="font-size:12px">175</text>
+<text x="167" y="109" class="px-t" text-anchor="middle" style="font-size:12px">215</text>
+<text x="193" y="109" class="px-t" text-anchor="middle" style="font-size:12px">245</text>
+<text x="219" y="109" class="px-t" text-anchor="middle" style="font-size:12px">255</text>
+<path d="M128 40H232M128 66H232M128 92H232M154 14V118M180 14V118M206 14V118" class="sk-axis" stroke-width="0.6"/>
+<text x="180" y="138" class="lab-muted" text-anchor="middle">négatif</text>
+<rect x="246" y="14" width="104" height="104" class="px-fond"/>
+<rect x="324" y="14" width="26" height="26" class="px" fill-opacity="1.00"/>
+<text x="259" y="31" class="px-t" text-anchor="middle" style="font-size:12px">255</text>
+<text x="285" y="31" class="px-t" text-anchor="middle" style="font-size:12px">255</text>
+<text x="311" y="31" class="px-t" text-anchor="middle" style="font-size:12px">255</text>
+<text x="337" y="31" class="px-tc" text-anchor="middle" style="font-size:12px">0</text>
+<rect x="298" y="40" width="52" height="26" class="px" fill-opacity="1.00"/>
+<text x="259" y="57" class="px-t" text-anchor="middle" style="font-size:12px">255</text>
+<text x="285" y="57" class="px-t" text-anchor="middle" style="font-size:12px">255</text>
+<text x="311" y="57" class="px-tc" text-anchor="middle" style="font-size:12px">0</text>
+<text x="337" y="57" class="px-tc" text-anchor="middle" style="font-size:12px">0</text>
+<rect x="272" y="66" width="78" height="26" class="px" fill-opacity="1.00"/>
+<text x="259" y="83" class="px-t" text-anchor="middle" style="font-size:12px">255</text>
+<text x="285" y="83" class="px-tc" text-anchor="middle" style="font-size:12px">0</text>
+<text x="311" y="83" class="px-tc" text-anchor="middle" style="font-size:12px">0</text>
+<text x="337" y="83" class="px-tc" text-anchor="middle" style="font-size:12px">0</text>
+<rect x="246" y="92" width="104" height="26" class="px" fill-opacity="1.00"/>
+<text x="259" y="109" class="px-tc" text-anchor="middle" style="font-size:12px">0</text>
+<text x="285" y="109" class="px-tc" text-anchor="middle" style="font-size:12px">0</text>
+<text x="311" y="109" class="px-tc" text-anchor="middle" style="font-size:12px">0</text>
+<text x="337" y="109" class="px-tc" text-anchor="middle" style="font-size:12px">0</text>
+<path d="M246 40H350M246 66H350M246 92H350M272 14V118M298 14V118M324 14V118" class="sk-axis" stroke-width="0.6"/>
+<text x="298" y="138" class="lab-muted" text-anchor="middle">seuillage à 128</text>
+</svg>
+<figcaption>Deux transformations <strong>pixel par pixel</strong> : le négatif remplace chaque valeur \(v\) par \(255 - v\) ; le seuillage à 128 met en blanc (255) les pixels de valeur au moins 128 et en noir (0) les autres.</figcaption>
+</figure>
+
+  <h3>Rester entre 0 et 255</h3>
+  <p>Éclaircir une image, c'est ajouter une constante \(d\) à chaque pixel. Mais \(250 + 60 = 310\) n'est pas un niveau de gris : il faut <strong>écrêter</strong> le résultat dans \([0, 255]\). On écrit une fois pour toutes une fonction qui arrondit à l'entier le plus proche et écrête ; elle resservira pour les convolutions.</p>
+<pre class="codeblock"><span class="kw">def</span> borner(x):
+    <span class="cmt"># entier le plus proche de x, ramené dans [0, 255]</span>
+    <span class="kw">if</span> x &lt;= 0:
+        <span class="kw">return</span> 0
+    <span class="kw">if</span> x &gt;= 255:
+        <span class="kw">return</span> 255
+    <span class="kw">return</span> int(x + 0.5)
+
+<span class="kw">def</span> luminosite(img, d):
+    h, l = len(img), len(img[0])
+    res = image_vide(h, l, 0)
+    <span class="kw">for</span> i <span class="kw">in</span> range(h):
+        <span class="kw">for</span> j <span class="kw">in</span> range(l):
+            res[i][j] = borner(img[i][j] + d)
+    <span class="kw">return</span> res</pre>
+<pre class="codeblock">print(luminosite([[10, 200], [250, 0]], 60))    <span class="cmt"># [[70, 255], [255, 60]]</span></pre>
+  <div class="notice"><strong>Erreur classique</strong> : oublier l'écrêtage. Avec une liste de listes, on obtient des « pixels » à 310 que l'affichage refusera ou tronquera ; avec les tableaux du module numpy, souvent utilisés en TP, le calcul se fait modulo 256 et \(250 + 60\) donne \(54\) : le blanc devient gris foncé (voir « Pour aller plus loin »).</div>
+
+  <h3>De la couleur au gris</h3>
+  <p>Pour passer d'une image RVB à une image en niveaux de gris, on remplace chaque triplet par une moyenne <strong>pondérée</strong>, car l'œil est bien plus sensible au vert qu'au bleu : \(g = 0{,}299\,r + 0{,}587\,v + 0{,}114\,b\) (pondération des normes de télévision ; une simple moyenne des trois donne une image acceptable mais moins fidèle). Le dépaquetage d'un tuple récupère les trois composantes en une ligne :</p>
+<pre class="codeblock"><span class="kw">def</span> en_gris(img):
+    <span class="cmt"># img[i][j] est un triplet (r, v, b)</span>
+    h, l = len(img), len(img[0])
+    res = image_vide(h, l, 0)
+    <span class="kw">for</span> i <span class="kw">in</span> range(h):
+        <span class="kw">for</span> j <span class="kw">in</span> range(l):
+            r, v, b = img[i][j]
+            res[i][j] = borner(0.299 * r + 0.587 * v + 0.114 * b)
+    <span class="kw">return</span> res</pre>
+
+  <h3>Histogramme d'une image</h3>
+  <p>L'<strong>histogramme</strong> compte, pour chaque niveau \(v\) de 0 à 255, le nombre de pixels qui valent \(v\). Une image sombre a un histogramme tassé vers 0, une image peu contrastée un histogramme étroit. Les niveaux sont des entiers de 0 à 255 : ils servent directement d'indices dans une liste de 256 compteurs.</p>
+<pre class="codeblock"><span class="kw">def</span> histogramme(img):
+    hist = [0] * 256
+    <span class="kw">for</span> ligne <span class="kw">in</span> img:
+        <span class="kw">for</span> v <span class="kw">in</span> ligne:
+            hist[v] = hist[v] + 1
+    <span class="kw">return</span> hist</pre>
+  <p>Coût : 256 affectations pour créer la liste, plus un temps constant par pixel, soit \(O(h\,l)\) dès que l'image a plus de quelques centaines de pixels.</p>
+
+  <div class="prop-box"><strong>Nouvelle image ou modification en place ?</strong> Une transformation pixel par pixel peut aussi s'écrire <em>en place</em> (<span class="code-inline">img[i][j] = 255 - img[i][j]</span>) : chaque pixel ne dépend que de lui-même, l'ordre de parcours est sans importance. On économise la mémoire d'une image, mais l'original est perdu. Ce ne sera plus possible pour la convolution (§6), où chaque pixel dépend de ses voisins.</div>
+
+  <div class="method-box"><strong>Exemple — négatif et seuillage à la main</strong>
+    <p>On applique les deux traitements à la ligne <span class="code-inline">[250, 210, 160, 120]</span> (première ligne de la figure).</p>
+    <ol>
+      <li>Négatif : \(255 - 250 = 5\), \(255 - 210 = 45\), \(255 - 160 = 95\), \(255 - 120 = 135\) ; on obtient <span class="code-inline">[5, 45, 95, 135]</span>. Appliqué deux fois, le négatif redonne l'image de départ.</li>
+      <li>Seuillage à 128 : 250, 210 et 160 sont au moins égaux à 128 et deviennent 255 ; 120 devient 0. On obtient <span class="code-inline">[255, 255, 255, 0]</span>. L'information perdue ne se retrouve pas : deux images différentes peuvent avoir le même seuillage.</li>
+      <li>Coût de chacun sur une image entière : \(h\,l\) affectations, un \(O(h\,l)\).</li>
+    </ol>
+  </div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§4 · SYMÉTRIES ET ROTATIONS</div>
+  <h2>Déplacer les pixels sans changer leurs valeurs</h2>
+  <div class="intro">Une transformation géométrique ne modifie pas les valeurs des pixels : elle les change de place. Pour la programmer sans rien oublier, on part de l'image d'<strong>arrivée</strong> et l'on se demande, pour chacun de ses pixels, de quel pixel de l'image de départ il vient.</div>
+
+  <div class="prop-box"><strong>Méthode de l'antécédent.</strong> On crée l'image résultat aux bonnes dimensions, on la parcourt, et pour chaque pixel \((i, j)\) on calcule les indices \((i', j')\) de son antécédent : <span class="code-inline">res[i][j] = img[i'][j']</span>. Chaque pixel d'arrivée reçoit ainsi exactement une valeur.</div>
+
+<pre class="codeblock"><span class="kw">def</span> miroir(img):
+    <span class="cmt"># symétrie par rapport à l'axe vertical (la gauche passe à droite)</span>
+    h, l = len(img), len(img[0])
+    res = image_vide(h, l, 0)
+    <span class="kw">for</span> i <span class="kw">in</span> range(h):
+        <span class="kw">for</span> j <span class="kw">in</span> range(l):
+            res[i][j] = img[i][l - 1 - j]
+    <span class="kw">return</span> res
+
+<span class="kw">def</span> retournement(img):
+    <span class="cmt"># symétrie par rapport à l'axe horizontal (le haut passe en bas)</span>
+    h, l = len(img), len(img[0])
+    res = image_vide(h, l, 0)
+    <span class="kw">for</span> i <span class="kw">in</span> range(h):
+        <span class="kw">for</span> j <span class="kw">in</span> range(l):
+            res[i][j] = img[h - 1 - i][j]
+    <span class="kw">return</span> res
+
+<span class="kw">def</span> transposee(img):
+    h, l = len(img), len(img[0])
+    res = image_vide(l, h, 0)
+    <span class="kw">for</span> i <span class="kw">in</span> range(l):
+        <span class="kw">for</span> j <span class="kw">in</span> range(h):
+            res[i][j] = img[j][i]
+    <span class="kw">return</span> res</pre>
+
+  <h3>Quart de tour</h3>
+  <p>Tourner une image d'un quart de tour échange le rôle des lignes et des colonnes : une image \(h \times l\) devient une image \(l \times h\). Pour trouver la formule, on suit deux coins. Dans le sens trigonométrique (sens direct), le coin supérieur droit \((0, l - 1)\) arrive en haut à gauche \((0, 0)\), et le coin supérieur gauche \((0, 0)\) arrive en bas à gauche \((l - 1, 0)\) : la ligne \(i\) du résultat est faite de la colonne \(l - 1 - i\) de l'image de départ, lue de haut en bas.</p>
+<figure class="schema">
+<svg viewBox="0 0 360 200" role="img" aria-label="Une image de 4 lignes et 5 colonnes dont les coins sont marqués A, B, C, D, et son quart de tour dans le sens trigonométrique, de 5 lignes et 4 colonnes">
+<rect x="10" y="30" width="140" height="112" class="px-fond"/>
+<rect x="10" y="30" width="28" height="28" class="px" fill-opacity="1.00"/>
+<text x="24" y="48.5" class="px-tc lab-b" text-anchor="middle" style="font-size:13px">A</text>
+<text x="136" y="48.5" class="px-t lab-b" text-anchor="middle" style="font-size:13px">B</text>
+<rect x="10" y="58" width="84" height="28" class="px" fill-opacity="1.00"/>
+<rect x="10" y="86" width="28" height="28" class="px" fill-opacity="1.00"/>
+<rect x="10" y="114" width="28" height="28" class="px" fill-opacity="1.00"/>
+<rect x="122" y="114" width="28" height="28" class="px" fill-opacity="0.53"/>
+<text x="24" y="132.5" class="px-tc lab-b" text-anchor="middle" style="font-size:13px">D</text>
+<text x="136" y="132.5" class="px-tc lab-b" text-anchor="middle" style="font-size:13px">C</text>
+<path d="M10 58H150M10 86H150M10 114H150M38 30V142M66 30V142M94 30V142M122 30V142" class="sk-axis" stroke-width="0.6"/>
+<text x="80" y="162" text-anchor="middle" style="font-size:12px;font-family:var(--font-code)">img</text>
+<text x="80" y="178" class="lab-muted" text-anchor="middle">4 × 5</text>
+<line x1="160" y1="86" x2="210" y2="86" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<text x="187" y="78" class="lab-muted" text-anchor="middle">quart de tour</text>
+<text x="187" y="104" class="lab-muted" text-anchor="middle">sens direct</text>
+<rect x="222" y="16" width="112" height="140" class="px-fond"/>
+<rect x="306" y="16" width="28" height="28" class="px" fill-opacity="0.53"/>
+<text x="236" y="34.5" class="px-t lab-b" text-anchor="middle" style="font-size:13px">B</text>
+<text x="320" y="34.5" class="px-tc lab-b" text-anchor="middle" style="font-size:13px">C</text>
+<rect x="250" y="72" width="28" height="28" class="px" fill-opacity="1.00"/>
+<rect x="250" y="100" width="28" height="28" class="px" fill-opacity="1.00"/>
+<rect x="222" y="128" width="112" height="28" class="px" fill-opacity="1.00"/>
+<text x="236" y="146.5" class="px-tc lab-b" text-anchor="middle" style="font-size:13px">A</text>
+<text x="320" y="146.5" class="px-tc lab-b" text-anchor="middle" style="font-size:13px">D</text>
+<path d="M222 44H334M222 72H334M222 100H334M222 128H334M250 16V156M278 16V156M306 16V156" class="sk-axis" stroke-width="0.6"/>
+<text x="278" y="176" text-anchor="middle" style="font-size:12px;font-family:var(--font-code)">rotation_gauche(img)</text>
+<text x="278" y="192" class="lab-muted" text-anchor="middle">5 × 4</text>
+</svg>
+<figcaption>Quart de tour dans le sens trigonométrique : l'image de \(h = 4\) lignes et \(l = 5\) colonnes devient une image de 5 lignes et 4 colonnes. Le coin B (en haut à droite) passe en haut à gauche, A en bas à gauche : le pixel \((i, j)\) de l'image d'arrivée vient du pixel \((j,\ l - 1 - i)\) de l'image de départ.</figcaption>
+</figure>
+<pre class="codeblock"><span class="kw">def</span> rotation_gauche(img):
+    <span class="cmt"># quart de tour dans le sens trigonométrique : l lignes, h colonnes</span>
+    h, l = len(img), len(img[0])
+    res = image_vide(l, h, 0)
+    <span class="kw">for</span> i <span class="kw">in</span> range(l):
+        <span class="kw">for</span> j <span class="kw">in</span> range(h):
+            res[i][j] = img[j][l - 1 - i]
+    <span class="kw">return</span> res
+
+<span class="kw">def</span> rotation_droite(img):
+    <span class="cmt"># quart de tour dans le sens horaire</span>
+    h, l = len(img), len(img[0])
+    res = image_vide(l, h, 0)
+    <span class="kw">for</span> i <span class="kw">in</span> range(l):
+        <span class="kw">for</span> j <span class="kw">in</span> range(h):
+            res[i][j] = img[h - 1 - j][i]
+    <span class="kw">return</span> res</pre>
+
+  <div><table>
+    <tr><th>Transformation</th><th>Taille du résultat</th><th><span class="code-inline">res[i][j]</span> vaut</th></tr>
+    <tr><td>symétrie d'axe vertical (miroir)</td><td>\(h \times l\)</td><td><span class="code-inline">img[i][l-1-j]</span></td></tr>
+    <tr><td>symétrie d'axe horizontal</td><td>\(h \times l\)</td><td><span class="code-inline">img[h-1-i][j]</span></td></tr>
+    <tr><td>transposition</td><td>\(l \times h\)</td><td><span class="code-inline">img[j][i]</span></td></tr>
+    <tr><td>quart de tour, sens direct</td><td>\(l \times h\)</td><td><span class="code-inline">img[j][l-1-i]</span></td></tr>
+    <tr><td>quart de tour, sens horaire</td><td>\(l \times h\)</td><td><span class="code-inline">img[h-1-j][i]</span></td></tr>
+    <tr><td>demi-tour</td><td>\(h \times l\)</td><td><span class="code-inline">img[h-1-i][l-1-j]</span></td></tr>
+  </table></div>
+  <p>Chacune de ces fonctions remplit \(h\,l\) pixels en temps constant chacun : coût \(O(h\,l)\). On vérifie aussi que le quart de tour horaire est la transposition suivie du miroir, et que quatre quarts de tour redonnent l'image.</p>
+
+  <div class="method-box"><strong>Exemple — dérouler un quart de tour</strong>
+    <p>On tourne <span class="code-inline">A = [[1, 2, 3], [4, 5, 6]]</span> (\(h = 2\), \(l = 3\)) d'un quart de tour dans le sens direct.</p>
+    <ol>
+      <li>Le résultat a \(l = 3\) lignes et \(h = 2\) colonnes.</li>
+      <li>Ligne 0 : <span class="code-inline">res[0][0] = A[0][2] = 3</span> et <span class="code-inline">res[0][1] = A[1][2] = 6</span>.</li>
+      <li>Ligne 1 : <span class="code-inline">A[0][1] = 2</span> et <span class="code-inline">A[1][1] = 5</span> ; ligne 2 : <span class="code-inline">A[0][0] = 1</span> et <span class="code-inline">A[1][0] = 4</span>.</li>
+      <li>Résultat : <span class="code-inline">[[3, 6], [2, 5], [1, 4]]</span>. Contrôle : la dernière colonne <span class="code-inline">3, 6</span> de \(A\) est devenue la première ligne.</li>
+    </ol>
+  </div>
+
+  <h3>Rotation d'un angle quelconque</h3>
+  <p>Pour tourner l'image d'un angle \(\theta\) autour de son centre \((c_i, c_j) = \left(\frac{h-1}{2}, \frac{l-1}{2}\right)\), on repère chaque pixel par ses coordonnées dans un repère usuel centré sur l'image : \(x = j - c_j\) vers la droite et \(y = c_i - i\) vers le haut. Le pixel d'arrivée \((x, y)\) a pour antécédent le point obtenu par la rotation d'angle \(-\theta\) :</p>
+  <div class="formula" data-nom="Antécédent par une rotation d'angle θ">$$\begin{cases} x_0 = x\cos\theta + y\sin\theta \\ y_0 = -x\sin\theta + y\cos\theta \end{cases}$$</div>
+  <p>puis on revient aux indices \(i_0 = c_i - y_0\), \(j_0 = c_j + x_0\), qui ne sont pas entiers : on prend le pixel <strong>le plus proche</strong>, et une couleur de fond si l'antécédent sort de l'image. Les fonctions <span class="code-inline">cos</span> et <span class="code-inline">sin</span> (angle en radians) viennent du module <span class="code-inline">math</span>.</p>
+<pre class="codeblock"><span class="kw">from</span> math <span class="kw">import</span> cos, sin, pi</pre>
+<pre class="codeblock"><span class="kw">def</span> rotation(img, theta, fond):
+    <span class="cmt"># rotation d'angle theta (radians, sens trigonométrique) autour du centre</span>
+    h, l = len(img), len(img[0])
+    ci, cj = (h - 1) / 2, (l - 1) / 2
+    c, s = cos(theta), sin(theta)
+    res = image_vide(h, l, fond)
+    <span class="kw">for</span> i <span class="kw">in</span> range(h):
+        <span class="kw">for</span> j <span class="kw">in</span> range(l):
+            x, y = j - cj, ci - i          <span class="cmt"># repère usuel : y vers le haut</span>
+            xs = c * x + s * y             <span class="cmt"># antécédent par la rotation</span>
+            ys = -s * x + c * y            <span class="cmt"># d'angle theta</span>
+            a, b = ci - ys + 0.5, cj + xs + 0.5   <span class="cmt"># + 0.5 : arrondi au plus proche</span>
+            <span class="kw">if</span> a &gt;= 0 <span class="kw">and</span> a &lt; h <span class="kw">and</span> b &gt;= 0 <span class="kw">and</span> b &lt; l:
+                res[i][j] = img[int(a)][int(b)]
+    <span class="kw">return</span> res</pre>
+  <p>Ajouter 0,5 puis prendre la partie entière (<span class="code-inline">int</span>) arrondit au plus proche un nombre positif ; le test sur <span class="code-inline">a</span> et <span class="code-inline">b</span> est fait <em>avant</em>, car <span class="code-inline">int</span> tronque vers 0 les nombres négatifs (<span class="code-inline">int(-0.7)</span> vaut 0, un indice valide qui ne devrait pas l'être).</p>
+<figure class="schema">
+<svg viewBox="0 0 340 180" role="img" aria-label="Un carré noir tourné de 30 degrés de deux façons : la méthode directe laisse des pixels blancs isolés dans le carré, la méthode par antécédent n'en laisse aucun">
+<rect x="12" y="12" width="141" height="141" class="px-fond"/>
+<rect x="77.8" y="30.8" width="9.4" height="9.4" class="fl-accent"/>
+<rect x="87.2" y="30.8" width="18.8" height="9.4" class="px" fill-opacity="1.00"/>
+<rect x="59" y="40.2" width="9.4" height="9.4" class="fl-accent"/>
+<rect x="68.4" y="40.2" width="37.6" height="9.4" class="px" fill-opacity="1.00"/>
+<rect x="49.6" y="49.6" width="28.2" height="9.4" class="px" fill-opacity="1.00"/>
+<rect x="77.8" y="49.6" width="9.4" height="9.4" class="fl-accent"/>
+<rect x="87.2" y="49.6" width="28.2" height="9.4" class="px" fill-opacity="1.00"/>
+<rect x="30.8" y="59" width="84.6" height="9.4" class="px" fill-opacity="1.00"/>
+<rect x="115.4" y="59" width="9.4" height="9.4" class="fl-accent"/>
+<rect x="30.8" y="68.4" width="37.6" height="9.4" class="px" fill-opacity="1.00"/>
+<rect x="68.4" y="68.4" width="9.4" height="9.4" class="fl-accent"/>
+<rect x="77.8" y="68.4" width="9.4" height="9.4" class="px" fill-opacity="1.00"/>
+<rect x="87.2" y="68.4" width="9.4" height="9.4" class="fl-accent"/>
+<rect x="96.6" y="68.4" width="28.2" height="9.4" class="px" fill-opacity="1.00"/>
+<rect x="30.8" y="77.8" width="9.4" height="9.4" class="fl-accent"/>
+<rect x="40.2" y="77.8" width="9.4" height="9.4" class="px" fill-opacity="1.00"/>
+<rect x="49.6" y="77.8" width="9.4" height="9.4" class="fl-accent"/>
+<rect x="59" y="77.8" width="47" height="9.4" class="px" fill-opacity="1.00"/>
+<rect x="106" y="77.8" width="9.4" height="9.4" class="fl-accent"/>
+<rect x="115.4" y="77.8" width="9.4" height="9.4" class="px" fill-opacity="1.00"/>
+<rect x="124.8" y="77.8" width="9.4" height="9.4" class="fl-accent"/>
+<rect x="40.2" y="87.2" width="94" height="9.4" class="px" fill-opacity="1.00"/>
+<rect x="40.2" y="96.6" width="9.4" height="9.4" class="fl-accent"/>
+<rect x="49.6" y="96.6" width="84.6" height="9.4" class="px" fill-opacity="1.00"/>
+<rect x="49.6" y="106" width="28.2" height="9.4" class="px" fill-opacity="1.00"/>
+<rect x="77.8" y="106" width="9.4" height="9.4" class="fl-accent"/>
+<rect x="87.2" y="106" width="28.2" height="9.4" class="px" fill-opacity="1.00"/>
+<rect x="59" y="115.4" width="37.6" height="9.4" class="px" fill-opacity="1.00"/>
+<rect x="96.6" y="115.4" width="9.4" height="9.4" class="fl-accent"/>
+<rect x="59" y="124.8" width="18.8" height="9.4" class="px" fill-opacity="1.00"/>
+<rect x="77.8" y="124.8" width="9.4" height="9.4" class="fl-accent"/>
+<path d="M12 21.4H153M12 30.8H153M12 40.2H153M12 49.6H153M12 59H153M12 68.4H153M12 77.8H153M12 87.2H153M12 96.6H153M12 106H153M12 115.4H153M12 124.8H153M12 134.2H153M12 143.6H153M21.4 12V153M30.8 12V153M40.2 12V153M49.6 12V153M59 12V153M68.4 12V153M77.8 12V153M87.2 12V153M96.6 12V153M106 12V153M115.4 12V153M124.8 12V153M134.2 12V153M143.6 12V153" class="sk-axis" stroke-width="0.6"/>
+<rect x="189" y="12" width="141" height="141" class="px-fond"/>
+<rect x="254.8" y="30.8" width="28.2" height="9.4" class="px" fill-opacity="1.00"/>
+<rect x="236" y="40.2" width="47" height="9.4" class="px" fill-opacity="1.00"/>
+<rect x="226.6" y="49.6" width="65.8" height="9.4" class="px" fill-opacity="1.00"/>
+<rect x="207.8" y="59" width="94" height="9.4" class="px" fill-opacity="1.00"/>
+<rect x="207.8" y="68.4" width="94" height="9.4" class="px" fill-opacity="1.00"/>
+<rect x="207.8" y="77.8" width="103.4" height="9.4" class="px" fill-opacity="1.00"/>
+<rect x="217.2" y="87.2" width="94" height="9.4" class="px" fill-opacity="1.00"/>
+<rect x="217.2" y="96.6" width="94" height="9.4" class="px" fill-opacity="1.00"/>
+<rect x="226.6" y="106" width="65.8" height="9.4" class="px" fill-opacity="1.00"/>
+<rect x="236" y="115.4" width="47" height="9.4" class="px" fill-opacity="1.00"/>
+<rect x="236" y="124.8" width="28.2" height="9.4" class="px" fill-opacity="1.00"/>
+<path d="M189 21.4H330M189 30.8H330M189 40.2H330M189 49.6H330M189 59H330M189 68.4H330M189 77.8H330M189 87.2H330M189 96.6H330M189 106H330M189 115.4H330M189 124.8H330M189 134.2H330M189 143.6H330M198.4 12V153M207.8 12V153M217.2 12V153M226.6 12V153M236 12V153M245.4 12V153M254.8 12V153M264.2 12V153M273.6 12V153M283 12V153M292.4 12V153M301.8 12V153M311.2 12V153M320.6 12V153" class="sk-axis" stroke-width="0.6"/>
+<text x="82.5" y="175" class="lab-muted" text-anchor="middle">pixel source → destination</text>
+<text x="259.5" y="175" class="lab-muted" text-anchor="middle">destination ← source</text>
+</svg>
+<figcaption>Rotation de 30° d'un carré noir. À gauche, chaque pixel <em>source</em> est envoyé vers la destination la plus proche : certaines destinations ne sont jamais atteintes (14 trous, en couleur) et d'autres le sont deux fois. À droite, on part de chaque pixel <em>d'arrivée</em> et on va chercher son antécédent : aucun trou.</figcaption>
+</figure>
+  <div class="notice"><strong>Erreur classique</strong> : parcourir l'image de <em>départ</em> et envoyer chaque pixel vers sa destination arrondie. Deux pixels voisins peuvent tomber sur la même case, et certaines cases ne reçoivent rien : l'image tournée est criblée de trous. Pour un quart de tour, le problème ne se pose pas (la correspondance entre pixels est exacte) ; pour un angle quelconque, seule la méthode de l'antécédent convient.</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§5 · RÉDUIRE ET AGRANDIR</div>
+  <h2>Changer la définition d'une image</h2>
+  <div class="intro">Fabriquer une vignette, envoyer une photo plus légère, zoomer sur un détail : on change le nombre de pixels, et il faut décider quelle valeur donner à chaque pixel de la nouvelle image. C'est encore la méthode de l'antécédent, avec des divisions entières dans les indices.</div>
+
+  <h3>Réduire d'un facteur entier \(k\)</h3>
+  <p>La méthode la plus simple garde un pixel sur \(k\) dans chaque direction (sous-échantillonnage). L'image obtenue a <span class="code-inline">h // k</span> lignes et <span class="code-inline">l // k</span> colonnes ; une compréhension double l'écrit en une ligne :</p>
+<pre class="codeblock"><span class="kw">def</span> reduction(img, k):
+    <span class="cmt"># on garde un pixel sur k dans chaque direction</span>
+    h, l = len(img), len(img[0])
+    <span class="kw">return</span> [[img[k * i][k * j] <span class="kw">for</span> j <span class="kw">in</span> range(l // k)] <span class="kw">for</span> i <span class="kw">in</span> range(h // k)]</pre>
+  <p>Mais elle jette l'information des autres pixels. Sur un damier dont les cases font un pixel, garder un pixel sur deux ne garde que les cases noires (ou que les blanches) : le damier devient uniformément noir. Il vaut mieux remplacer chaque bloc \(k \times k\) par la <strong>moyenne</strong> de ses pixels, ce qui donne ici un gris uniforme, plus fidèle :</p>
+<pre class="codeblock"><span class="kw">def</span> reduction_moyenne(img, k):
+    <span class="cmt"># chaque bloc k × k est remplacé par la moyenne de ses pixels</span>
+    h2, l2 = len(img) // k, len(img[0]) // k
+    res = image_vide(h2, l2, 0)
+    <span class="kw">for</span> i <span class="kw">in</span> range(h2):
+        <span class="kw">for</span> j <span class="kw">in</span> range(l2):
+            s = 0
+            <span class="kw">for</span> a <span class="kw">in</span> range(k):
+                <span class="kw">for</span> b <span class="kw">in</span> range(k):
+                    s = s + img[k * i + a][k * j + b]
+            res[i][j] = borner(s / (k * k))
+    <span class="kw">return</span> res</pre>
+<figure class="schema">
+<svg viewBox="0 0 330 290" role="img" aria-label="En haut, réduction d'une image 4 par 4 en 2 par 2 par moyenne des blocs ; en bas, agrandissement d'une image 2 par 2 en 4 par 4 par duplication des pixels">
+<rect x="12" y="12" width="100" height="100" class="px-fond"/>
+<rect x="12" y="12" width="25" height="25" class="px" fill-opacity="1.00"/>
+<rect x="37" y="12" width="25" height="25" class="px" fill-opacity="0.96"/>
+<rect x="62" y="12" width="25" height="25" class="px" fill-opacity="0.22"/>
+<rect x="87" y="12" width="25" height="25" class="px" fill-opacity="0.18"/>
+<text x="24.5" y="28.5" class="px-tc" text-anchor="middle" style="font-size:12px">0</text>
+<text x="49.5" y="28.5" class="px-tc" text-anchor="middle" style="font-size:12px">10</text>
+<text x="74.5" y="28.5" class="px-t" text-anchor="middle" style="font-size:12px">200</text>
+<text x="99.5" y="28.5" class="px-t" text-anchor="middle" style="font-size:12px">210</text>
+<rect x="12" y="37" width="25" height="25" class="px" fill-opacity="0.92"/>
+<rect x="37" y="37" width="25" height="25" class="px" fill-opacity="0.88"/>
+<rect x="62" y="37" width="25" height="25" class="px" fill-opacity="0.14"/>
+<rect x="87" y="37" width="25" height="25" class="px" fill-opacity="0.10"/>
+<text x="24.5" y="53.5" class="px-tc" text-anchor="middle" style="font-size:12px">20</text>
+<text x="49.5" y="53.5" class="px-tc" text-anchor="middle" style="font-size:12px">30</text>
+<text x="74.5" y="53.5" class="px-t" text-anchor="middle" style="font-size:12px">220</text>
+<text x="99.5" y="53.5" class="px-t" text-anchor="middle" style="font-size:12px">230</text>
+<rect x="12" y="62" width="25" height="25" class="px" fill-opacity="0.02"/>
+<rect x="37" y="62" width="25" height="25" class="px" fill-opacity="0.06"/>
+<rect x="62" y="62" width="25" height="25" class="px" fill-opacity="0.61"/>
+<rect x="87" y="62" width="25" height="25" class="px" fill-opacity="0.65"/>
+<text x="24.5" y="78.5" class="px-t" text-anchor="middle" style="font-size:12px">250</text>
+<text x="49.5" y="78.5" class="px-t" text-anchor="middle" style="font-size:12px">240</text>
+<text x="74.5" y="78.5" class="px-tc" text-anchor="middle" style="font-size:12px">100</text>
+<text x="99.5" y="78.5" class="px-tc" text-anchor="middle" style="font-size:12px">90</text>
+<rect x="12" y="87" width="25" height="25" class="px" fill-opacity="0.10"/>
+<rect x="37" y="87" width="25" height="25" class="px" fill-opacity="0.14"/>
+<rect x="62" y="87" width="25" height="25" class="px" fill-opacity="0.73"/>
+<rect x="87" y="87" width="25" height="25" class="px" fill-opacity="0.76"/>
+<text x="24.5" y="103.5" class="px-t" text-anchor="middle" style="font-size:12px">230</text>
+<text x="49.5" y="103.5" class="px-t" text-anchor="middle" style="font-size:12px">220</text>
+<text x="74.5" y="103.5" class="px-tc" text-anchor="middle" style="font-size:12px">70</text>
+<text x="99.5" y="103.5" class="px-tc" text-anchor="middle" style="font-size:12px">60</text>
+<path d="M12 37H112M12 62H112M12 87H112M37 12V112M62 12V112M87 12V112" class="sk-axis" stroke-width="0.6"/>
+<line x1="122" y1="62" x2="192" y2="62" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<text x="159" y="54" class="lab-muted" text-anchor="middle">moyenne</text>
+<text x="159" y="80" class="lab-muted" text-anchor="middle">des blocs 2 × 2</text>
+<rect x="206" y="37" width="50" height="50" class="px-fond"/>
+<rect x="206" y="37" width="25" height="25" class="px" fill-opacity="0.94"/>
+<rect x="231" y="37" width="25" height="25" class="px" fill-opacity="0.16"/>
+<text x="218.5" y="53.5" class="px-tc" text-anchor="middle" style="font-size:12px">15</text>
+<text x="243.5" y="53.5" class="px-t" text-anchor="middle" style="font-size:12px">215</text>
+<rect x="206" y="62" width="25" height="25" class="px" fill-opacity="0.08"/>
+<rect x="231" y="62" width="25" height="25" class="px" fill-opacity="0.69"/>
+<text x="218.5" y="78.5" class="px-t" text-anchor="middle" style="font-size:12px">235</text>
+<text x="243.5" y="78.5" class="px-tc" text-anchor="middle" style="font-size:12px">80</text>
+<path d="M206 62H256M231 37V87" class="sk-axis" stroke-width="0.6"/>
+<text x="62" y="132" text-anchor="middle" style="font-size:13px;font-family:var(--font-code)">img : 4 × 4</text>
+<text x="231" y="107" text-anchor="middle" style="font-size:13px;font-family:var(--font-code)">2 × 2</text>
+<rect x="37" y="185" width="50" height="50" class="px-fond"/>
+<rect x="37" y="185" width="25" height="25" class="px" fill-opacity="0.84"/>
+<rect x="62" y="185" width="25" height="25" class="px" fill-opacity="0.22"/>
+<text x="49.5" y="201.5" class="px-tc" text-anchor="middle" style="font-size:12px">40</text>
+<text x="74.5" y="201.5" class="px-t" text-anchor="middle" style="font-size:12px">200</text>
+<rect x="37" y="210" width="25" height="25" class="px" fill-opacity="0.37"/>
+<rect x="62" y="210" width="25" height="25" class="px" fill-opacity="0.65"/>
+<text x="49.5" y="226.5" class="px-t" text-anchor="middle" style="font-size:12px">160</text>
+<text x="74.5" y="226.5" class="px-tc" text-anchor="middle" style="font-size:12px">90</text>
+<path d="M37 210H87M62 185V235" class="sk-axis" stroke-width="0.6"/>
+<line x1="122" y1="210" x2="192" y2="210" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<text x="159" y="202" class="lab-muted" text-anchor="middle">duplication</text>
+<text x="159" y="228" class="lab-muted" text-anchor="middle">facteur 2</text>
+<rect x="206" y="160" width="100" height="100" class="px-fond"/>
+<rect x="206" y="160" width="50" height="25" class="px" fill-opacity="0.84"/>
+<rect x="256" y="160" width="50" height="25" class="px" fill-opacity="0.22"/>
+<text x="218.5" y="176.5" class="px-tc" text-anchor="middle" style="font-size:12px">40</text>
+<text x="243.5" y="176.5" class="px-tc" text-anchor="middle" style="font-size:12px">40</text>
+<text x="268.5" y="176.5" class="px-t" text-anchor="middle" style="font-size:12px">200</text>
+<text x="293.5" y="176.5" class="px-t" text-anchor="middle" style="font-size:12px">200</text>
+<rect x="206" y="185" width="50" height="25" class="px" fill-opacity="0.84"/>
+<rect x="256" y="185" width="50" height="25" class="px" fill-opacity="0.22"/>
+<text x="218.5" y="201.5" class="px-tc" text-anchor="middle" style="font-size:12px">40</text>
+<text x="243.5" y="201.5" class="px-tc" text-anchor="middle" style="font-size:12px">40</text>
+<text x="268.5" y="201.5" class="px-t" text-anchor="middle" style="font-size:12px">200</text>
+<text x="293.5" y="201.5" class="px-t" text-anchor="middle" style="font-size:12px">200</text>
+<rect x="206" y="210" width="50" height="25" class="px" fill-opacity="0.37"/>
+<rect x="256" y="210" width="50" height="25" class="px" fill-opacity="0.65"/>
+<text x="218.5" y="226.5" class="px-t" text-anchor="middle" style="font-size:12px">160</text>
+<text x="243.5" y="226.5" class="px-t" text-anchor="middle" style="font-size:12px">160</text>
+<text x="268.5" y="226.5" class="px-tc" text-anchor="middle" style="font-size:12px">90</text>
+<text x="293.5" y="226.5" class="px-tc" text-anchor="middle" style="font-size:12px">90</text>
+<rect x="206" y="235" width="50" height="25" class="px" fill-opacity="0.37"/>
+<rect x="256" y="235" width="50" height="25" class="px" fill-opacity="0.65"/>
+<text x="218.5" y="251.5" class="px-t" text-anchor="middle" style="font-size:12px">160</text>
+<text x="243.5" y="251.5" class="px-t" text-anchor="middle" style="font-size:12px">160</text>
+<text x="268.5" y="251.5" class="px-tc" text-anchor="middle" style="font-size:12px">90</text>
+<text x="293.5" y="251.5" class="px-tc" text-anchor="middle" style="font-size:12px">90</text>
+<path d="M206 185H306M206 210H306M206 235H306M231 160V260M256 160V260M281 160V260" class="sk-axis" stroke-width="0.6"/>
+<text x="62" y="255" text-anchor="middle" style="font-size:13px;font-family:var(--font-code)">2 × 2</text>
+<text x="256" y="280" text-anchor="middle" style="font-size:13px;font-family:var(--font-code)">4 × 4</text>
+<line x1="12" y1="148" x2="320" y2="148" class="sk-dash"/>
+</svg>
+<figcaption>En haut, réduction d'un facteur 2 : chaque bloc 2 × 2 (par exemple 0, 10, 20, 30) est remplacé par sa moyenne (15). En bas, agrandissement d'un facteur 2 : chaque pixel est recopié dans un bloc 2 × 2, l'image devient « pixelisée ».</figcaption>
+</figure>
+
+  <h3>Agrandir</h3>
+  <p>Pour agrandir d'un facteur entier \(k\), chaque pixel devient un bloc \(k \times k\) : le pixel \((i, j)\) de l'image agrandie vient du pixel <span class="code-inline">(i // k, j // k)</span>. Pour une taille d'arrivée quelconque \(H \times L\), on prend de même le pixel d'origine le plus proche « en proportion », \(\left(\lfloor i\,h/H \rfloor, \lfloor j\,l/L \rfloor\right)\) : c'est la méthode du <strong>plus proche voisin</strong>.</p>
+<pre class="codeblock"><span class="kw">def</span> agrandissement(img, k):
+    <span class="cmt"># chaque pixel devient un bloc k × k</span>
+    h, l = len(img), len(img[0])
+    res = image_vide(k * h, k * l, 0)
+    <span class="kw">for</span> i <span class="kw">in</span> range(k * h):
+        <span class="kw">for</span> j <span class="kw">in</span> range(k * l):
+            res[i][j] = img[i // k][j // k]
+    <span class="kw">return</span> res
+
+<span class="kw">def</span> redimensionner(img, H, L):
+    <span class="cmt"># plus proche voisin : nouvelle image de H lignes et L colonnes</span>
+    h, l = len(img), len(img[0])
+    res = image_vide(H, L, 0)
+    <span class="kw">for</span> i <span class="kw">in</span> range(H):
+        <span class="kw">for</span> j <span class="kw">in</span> range(L):
+            res[i][j] = img[i * h // H][j * l // L]
+    <span class="kw">return</span> res</pre>
+
+  <div class="prop-box"><strong>Coûts.</strong> Le sous-échantillonnage remplit \((h/k)(l/k)\) pixels : \(O(h\,l/k^2)\). La réduction par moyenne lit chaque pixel de l'image de départ une fois : \(O(h\,l)\). L'agrandissement remplit les \(k^2\,h\,l\) pixels de l'image d'arrivée : \(O(k^2\,h\,l)\). En général, le coût est au moins proportionnel à la taille de l'image produite.</div>
+
+  <div class="notice"><strong>Erreur classique</strong> : écrire <span class="code-inline">img[i * h / H]</span> (le quotient <span class="code-inline">/</span> est un flottant, refusé comme indice) ou <span class="code-inline">img[i // H * h]</span> (presque toujours 0). L'ordre des opérations compte : on multiplie d'abord, on divise ensuite, avec <span class="code-inline">//</span>.</div>
+
+  <div class="method-box"><strong>Exemple — réduire puis agrandir</strong>
+    <p>On réduit l'image \(4 \times 4\) de la figure par moyenne des blocs \(2 \times 2\), puis on agrandit le résultat d'un facteur 2.</p>
+    <ol>
+      <li>Bloc en haut à gauche : \((0 + 10 + 20 + 30)/4 = 15\) ; en haut à droite : \((200 + 210 + 220 + 230)/4 = 215\) ; en bas : \(235\) et \(80\). La réduction donne <span class="code-inline">[[15, 215], [235, 80]]</span>.</li>
+      <li>L'agrandissement recopie chaque valeur dans un bloc \(2 \times 2\) : <span class="code-inline">[[15, 15, 215, 215], [15, 15, 215, 215], …]</span>. On ne retrouve pas l'image de départ : les détails à l'intérieur des blocs sont perdus.</li>
+      <li>Dans l'autre ordre, agrandir d'un facteur \(k\) puis sous-échantillonner d'un facteur \(k\) redonne exactement l'image : <span class="code-inline">reduction(agrandissement(img, k), k) == img</span>.</li>
+    </ol>
+  </div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§6 · CONVOLUTION : LE PRINCIPE</div>
+  <h2>Remplacer chaque pixel par une moyenne pondérée de ses voisins</h2>
+  <div class="intro">Flou, netteté, contours : beaucoup de traitements obéissent au même schéma. La nouvelle valeur d'un pixel est une combinaison linéaire des valeurs de ses voisins, avec des coefficients fixés à l'avance et rangés dans un petit tableau, le <strong>noyau</strong>. Seul le noyau change d'un traitement à l'autre.</div>
+
+  <div class="def-box">Un <strong>noyau</strong> (ou masque) est un tableau \(K\) de \(p \times p\) coefficients, avec \(p\) impair (le plus souvent \(p = 3\)) ; on note \(r = (p-1)/2\) son rayon. La <strong>convolution</strong> de l'image par \(K\) remplace chaque pixel \((i, j)\) assez éloigné du bord par la somme pondérée des pixels de la fenêtre \(p \times p\) centrée sur lui :
+  <div class="formula" data-nom="Convolution par un noyau p × p">$$\text{nouveau}(i, j) = \sum_{a=0}^{p-1}\,\sum_{b=0}^{p-1} K[a][b]\times \text{img}[i + a - r][j + b - r]$$</div>
+  </div>
+<figure class="schema">
+<svg viewBox="0 0 350 180" role="img" aria-label="Une fenêtre 3 par 3 de l'image, encadrée, est multipliée case à case par le noyau puis sommée : on obtient 141">
+<rect x="10" y="26" width="130" height="130" class="px-fond"/>
+<rect x="10" y="26" width="78" height="26" class="px" fill-opacity="0.96"/>
+<rect x="88" y="26" width="52" height="26" class="px" fill-opacity="0.22"/>
+<text x="23" y="43" class="px-tc" text-anchor="middle" style="font-size:12px">10</text>
+<text x="49" y="43" class="px-tc" text-anchor="middle" style="font-size:12px">10</text>
+<text x="75" y="43" class="px-tc" text-anchor="middle" style="font-size:12px">10</text>
+<text x="101" y="43" class="px-t" text-anchor="middle" style="font-size:12px">200</text>
+<text x="127" y="43" class="px-t" text-anchor="middle" style="font-size:12px">200</text>
+<rect x="10" y="52" width="78" height="26" class="px" fill-opacity="0.96"/>
+<rect x="88" y="52" width="52" height="26" class="px" fill-opacity="0.22"/>
+<text x="23" y="69" class="px-tc" text-anchor="middle" style="font-size:12px">10</text>
+<text x="49" y="69" class="px-tc" text-anchor="middle" style="font-size:12px">10</text>
+<text x="75" y="69" class="px-tc" text-anchor="middle" style="font-size:12px">10</text>
+<text x="101" y="69" class="px-t" text-anchor="middle" style="font-size:12px">200</text>
+<text x="127" y="69" class="px-t" text-anchor="middle" style="font-size:12px">200</text>
+<rect x="10" y="78" width="52" height="26" class="px" fill-opacity="0.96"/>
+<rect x="62" y="78" width="78" height="26" class="px" fill-opacity="0.22"/>
+<text x="23" y="95" class="px-tc" text-anchor="middle" style="font-size:12px">10</text>
+<text x="49" y="95" class="px-tc" text-anchor="middle" style="font-size:12px">10</text>
+<text x="75" y="95" class="px-t" text-anchor="middle" style="font-size:12px">200</text>
+<text x="101" y="95" class="px-t" text-anchor="middle" style="font-size:12px">200</text>
+<text x="127" y="95" class="px-t" text-anchor="middle" style="font-size:12px">200</text>
+<rect x="10" y="104" width="26" height="26" class="px" fill-opacity="0.96"/>
+<rect x="36" y="104" width="104" height="26" class="px" fill-opacity="0.22"/>
+<text x="23" y="121" class="px-tc" text-anchor="middle" style="font-size:12px">10</text>
+<text x="49" y="121" class="px-t" text-anchor="middle" style="font-size:12px">200</text>
+<text x="75" y="121" class="px-t" text-anchor="middle" style="font-size:12px">200</text>
+<text x="101" y="121" class="px-t" text-anchor="middle" style="font-size:12px">200</text>
+<text x="127" y="121" class="px-t" text-anchor="middle" style="font-size:12px">200</text>
+<rect x="10" y="130" width="130" height="26" class="px" fill-opacity="0.22"/>
+<text x="23" y="147" class="px-t" text-anchor="middle" style="font-size:12px">200</text>
+<text x="49" y="147" class="px-t" text-anchor="middle" style="font-size:12px">200</text>
+<text x="75" y="147" class="px-t" text-anchor="middle" style="font-size:12px">200</text>
+<text x="101" y="147" class="px-t" text-anchor="middle" style="font-size:12px">200</text>
+<text x="127" y="147" class="px-t" text-anchor="middle" style="font-size:12px">200</text>
+<path d="M10 52H140M10 78H140M10 104H140M10 130H140M36 26V156M62 26V156M88 26V156M114 26V156" class="sk-axis" stroke-width="0.6"/>
+<rect x="36" y="52" width="78" height="78" class="sk-accent" stroke-width="2.6"/>
+<text x="75" y="16" text-anchor="middle" style="font-size:13px;font-family:var(--font-code)">img</text>
+<text x="156" y="96" class="lab-b" text-anchor="middle" style="font-size:16px">×</text>
+<rect x="170" y="52" width="26" height="26" class="sk-ink fl-paper" stroke-width="1.2"/>
+<text x="183" y="69.5" text-anchor="middle" style="font-size:13px;font-family:var(--font-code)">1</text>
+<rect x="196" y="52" width="26" height="26" class="sk-ink fl-paper" stroke-width="1.2"/>
+<text x="209" y="69.5" text-anchor="middle" style="font-size:13px;font-family:var(--font-code)">2</text>
+<rect x="222" y="52" width="26" height="26" class="sk-ink fl-paper" stroke-width="1.2"/>
+<text x="235" y="69.5" text-anchor="middle" style="font-size:13px;font-family:var(--font-code)">1</text>
+<rect x="170" y="78" width="26" height="26" class="sk-ink fl-paper" stroke-width="1.2"/>
+<text x="183" y="95.5" text-anchor="middle" style="font-size:13px;font-family:var(--font-code)">2</text>
+<rect x="196" y="78" width="26" height="26" class="sk-ink fl-paper" stroke-width="1.2"/>
+<text x="209" y="95.5" text-anchor="middle" style="font-size:13px;font-family:var(--font-code)">4</text>
+<rect x="222" y="78" width="26" height="26" class="sk-ink fl-paper" stroke-width="1.2"/>
+<text x="235" y="95.5" text-anchor="middle" style="font-size:13px;font-family:var(--font-code)">2</text>
+<rect x="170" y="104" width="26" height="26" class="sk-ink fl-paper" stroke-width="1.2"/>
+<text x="183" y="121.5" text-anchor="middle" style="font-size:13px;font-family:var(--font-code)">1</text>
+<rect x="196" y="104" width="26" height="26" class="sk-ink fl-paper" stroke-width="1.2"/>
+<text x="209" y="121.5" text-anchor="middle" style="font-size:13px;font-family:var(--font-code)">2</text>
+<rect x="222" y="104" width="26" height="26" class="sk-ink fl-paper" stroke-width="1.2"/>
+<text x="235" y="121.5" text-anchor="middle" style="font-size:13px;font-family:var(--font-code)">1</text>
+<rect x="170" y="52" width="78" height="78" class="sk-accent" stroke-width="2.2"/>
+<text x="209" y="42" text-anchor="middle" style="font-size:13px;font-family:var(--font-code)">K (÷ 16)</text>
+<text x="262" y="96" class="lab-b" style="font-size:16px">→</text>
+<rect x="282" y="78" width="36" height="26" class="sk-accent fl-paper" stroke-width="2.2"/>
+<text x="300" y="95.5" class="lab-b" text-anchor="middle" style="font-size:13px">141</text>
+<text x="75" y="178" class="lab-muted">somme pondérée : 2250 ; 2250 / 16 ≈ 141</text>
+</svg>
+<figcaption>Calcul d'un pixel par convolution : on pose le noyau sur la fenêtre 3 × 3 centrée sur le pixel (2, 2), on multiplie case à case, on additionne (2250) et on divise par 16, la somme des coefficients du noyau : le pixel filtré vaut 141. On recommence en décalant la fenêtre d'une case.</figcaption>
+</figure>
+
+  <p>Le pixel \((i, j)\) n'est calculable que si sa fenêtre tient dans l'image : \(r \le i \le h - 1 - r\) et \(r \le j \le l - 1 - r\). La fonction ci-dessous ne calcule que ces pixels ; l'image produite a \(h - p + 1\) lignes et \(l - p + 1\) colonnes, et sa case <span class="code-inline">res[i][j]</span> correspond au pixel \((i + r, j + r)\) de l'image de départ. Elle renvoie les sommes brutes (des flottants si le noyau en contient) ; on arrondit et on écrête ensuite selon le traitement.</p>
+<pre class="codeblock"><span class="kw">def</span> convolution(img, K):
+    <span class="cmt"># K : noyau carré p × p, p impair ; res[i][j] correspond au pixel (i + p//2, j + p//2)</span>
+    h, l = len(img), len(img[0])
+    p = len(K)
+    res = image_vide(h - p + 1, l - p + 1, 0)
+    <span class="kw">for</span> i <span class="kw">in</span> range(h - p + 1):
+        <span class="kw">for</span> j <span class="kw">in</span> range(l - p + 1):
+            s = 0
+            <span class="kw">for</span> a <span class="kw">in</span> range(p):
+                <span class="kw">for</span> b <span class="kw">in</span> range(p):
+                    s = s + K[a][b] * img[i + a][j + b]
+            res[i][j] = s
+    <span class="kw">return</span> res</pre>
+
+  <div class="notice"><strong>Erreur classique</strong> : écrire le résultat dans l'image elle-même. Le pixel \((i, j + 1)\) serait alors calculé à partir d'un voisin \((i, j)\) déjà modifié, et le résultat dépendrait de l'ordre de parcours. Une convolution s'écrit <strong>toujours</strong> dans une nouvelle image.</div>
+
+  <div class="notice"><strong>Les bords.</strong> Les pixels trop proches du bord n'ont pas de fenêtre complète. Trois conventions coexistent : produire une image plus petite (choix de ce cours), recopier ces pixels sans les modifier, ou prolonger l'image en répétant ses pixels de bord. Un sujet de concours précise toujours la sienne.</div>
+
+  <div class="prop-box"><strong>Coût.</strong> Il y a \((h - p + 1)(l - p + 1)\) pixels à calculer, et chacun demande \(p^2\) multiplications et additions : le coût est un \(O(h\,l\,p^2)\). Pour un noyau \(3 \times 3\) fixé, c'est un \(O(h\,l)\), mais un noyau \(15 \times 15\) coûte 25 fois plus cher qu'un \(3 \times 3\).</div>
+
+  <div class="reveal" onclick="this.classList.toggle('open')"><span class="label">Vocabulaire</span><span class="prompt">Convolution ou corrélation ?</span><div class="content"><p>En mathématiques, la convolution utilise le noyau retourné, \(K[p - 1 - a][p - 1 - b]\) ; le calcul ci-dessus s'appelle alors une corrélation. En traitement d'image, on dit couramment « convolution » dans les deux cas, et la différence disparaît pour les noyaux symétriques (flous). Pour les noyaux de dérivation du §8, retourner le noyau change seulement le signe du résultat, ce qui ne change pas sa valeur absolue.</p></div></div>
+
+  <div class="method-box"><strong>Exemple — calculer un pixel à la main</strong>
+    <p>On reprend la figure : noyau \(K\) = <span class="code-inline">[[1, 2, 1], [2, 4, 2], [1, 2, 1]]</span>, divisé par 16, au pixel \((2, 2)\).</p>
+    <ol>
+      <li>La fenêtre est formée des lignes 1 à 3 et des colonnes 1 à 3 : <span class="code-inline">[10, 10, 200]</span>, <span class="code-inline">[10, 200, 200]</span>, <span class="code-inline">[200, 200, 200]</span>.</li>
+      <li>Produits ligne par ligne : \(10 + 20 + 200 = 230\), puis \(20 + 800 + 400 = 1220\), puis \(200 + 400 + 200 = 800\) ; somme : \(2250\).</li>
+      <li>Division par 16 : \(140{,}625\), arrondi à 141. Dans <span class="code-inline">convolution(img, K)</span>, cette valeur (avant division) est rangée en <span class="code-inline">res[1][1]</span>.</li>
+      <li>Contrôle : avec le noyau identité <span class="code-inline">[[0, 0, 0], [0, 1, 0], [0, 0, 0]]</span>, la convolution renvoie l'image privée de son cadre d'un pixel.</li>
+    </ol>
+  </div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§7 · FLOU</div>
+  <h2>Lisser une image</h2>
+  <div class="intro">Le flou atténue les variations rapides d'intensité : bruit, détails fins, bords nets. C'est l'effet d'une mise au point ratée, où la lumière d'un point se répartit sur ses voisins. On l'obtient avec un noyau à coefficients positifs de somme 1.</div>
+
+  <h3>Flou moyenneur</h3>
+  <p>Le noyau le plus simple donne le même poids \(\frac{1}{9}\) aux neuf pixels de la fenêtre : chaque pixel devient la moyenne de son voisinage.</p>
+<pre class="codeblock"><span class="kw">def</span> flou(img):
+    K = [[1 / 9, 1 / 9, 1 / 9],
+         [1 / 9, 1 / 9, 1 / 9],
+         [1 / 9, 1 / 9, 1 / 9]]
+    c = convolution(img, K)
+    <span class="kw">return</span> [[borner(x) <span class="kw">for</span> x <span class="kw">in</span> ligne] <span class="kw">for</span> ligne <span class="kw">in</span> c]</pre>
+<figure class="schema">
+<svg viewBox="0 0 350 200" role="img" aria-label="Une image noire portant un carré blanc et un pixel blanc isolé, et son flou moyenneur 3 par 3">
+<rect x="10" y="12" width="161" height="161" class="px-fond"/>
+<rect x="10" y="12" width="161" height="23" class="px" fill-opacity="1.00"/>
+<text x="21.5" y="27.5" class="px-tc" text-anchor="middle" style="font-size:12px">0</text>
+<text x="44.5" y="27.5" class="px-tc" text-anchor="middle" style="font-size:12px">0</text>
+<text x="67.5" y="27.5" class="px-tc" text-anchor="middle" style="font-size:12px">0</text>
+<text x="90.5" y="27.5" class="px-tc" text-anchor="middle" style="font-size:12px">0</text>
+<text x="113.5" y="27.5" class="px-tc" text-anchor="middle" style="font-size:12px">0</text>
+<text x="136.5" y="27.5" class="px-tc" text-anchor="middle" style="font-size:12px">0</text>
+<text x="159.5" y="27.5" class="px-tc" text-anchor="middle" style="font-size:12px">0</text>
+<rect x="10" y="35" width="115" height="23" class="px" fill-opacity="1.00"/>
+<rect x="148" y="35" width="23" height="23" class="px" fill-opacity="1.00"/>
+<text x="21.5" y="50.5" class="px-tc" text-anchor="middle" style="font-size:12px">0</text>
+<text x="44.5" y="50.5" class="px-tc" text-anchor="middle" style="font-size:12px">0</text>
+<text x="67.5" y="50.5" class="px-tc" text-anchor="middle" style="font-size:12px">0</text>
+<text x="90.5" y="50.5" class="px-tc" text-anchor="middle" style="font-size:12px">0</text>
+<text x="113.5" y="50.5" class="px-tc" text-anchor="middle" style="font-size:12px">0</text>
+<text x="136.5" y="50.5" class="px-t" text-anchor="middle" style="font-size:12px">255</text>
+<text x="159.5" y="50.5" class="px-tc" text-anchor="middle" style="font-size:12px">0</text>
+<rect x="10" y="58" width="161" height="23" class="px" fill-opacity="1.00"/>
+<text x="21.5" y="73.5" class="px-tc" text-anchor="middle" style="font-size:12px">0</text>
+<text x="44.5" y="73.5" class="px-tc" text-anchor="middle" style="font-size:12px">0</text>
+<text x="67.5" y="73.5" class="px-tc" text-anchor="middle" style="font-size:12px">0</text>
+<text x="90.5" y="73.5" class="px-tc" text-anchor="middle" style="font-size:12px">0</text>
+<text x="113.5" y="73.5" class="px-tc" text-anchor="middle" style="font-size:12px">0</text>
+<text x="136.5" y="73.5" class="px-tc" text-anchor="middle" style="font-size:12px">0</text>
+<text x="159.5" y="73.5" class="px-tc" text-anchor="middle" style="font-size:12px">0</text>
+<rect x="10" y="81" width="23" height="23" class="px" fill-opacity="1.00"/>
+<rect x="102" y="81" width="69" height="23" class="px" fill-opacity="1.00"/>
+<text x="21.5" y="96.5" class="px-tc" text-anchor="middle" style="font-size:12px">0</text>
+<text x="44.5" y="96.5" class="px-t" text-anchor="middle" style="font-size:12px">255</text>
+<text x="67.5" y="96.5" class="px-t" text-anchor="middle" style="font-size:12px">255</text>
+<text x="90.5" y="96.5" class="px-t" text-anchor="middle" style="font-size:12px">255</text>
+<text x="113.5" y="96.5" class="px-tc" text-anchor="middle" style="font-size:12px">0</text>
+<text x="136.5" y="96.5" class="px-tc" text-anchor="middle" style="font-size:12px">0</text>
+<text x="159.5" y="96.5" class="px-tc" text-anchor="middle" style="font-size:12px">0</text>
+<rect x="10" y="104" width="23" height="23" class="px" fill-opacity="1.00"/>
+<rect x="102" y="104" width="69" height="23" class="px" fill-opacity="1.00"/>
+<text x="21.5" y="119.5" class="px-tc" text-anchor="middle" style="font-size:12px">0</text>
+<text x="44.5" y="119.5" class="px-t" text-anchor="middle" style="font-size:12px">255</text>
+<text x="67.5" y="119.5" class="px-t" text-anchor="middle" style="font-size:12px">255</text>
+<text x="90.5" y="119.5" class="px-t" text-anchor="middle" style="font-size:12px">255</text>
+<text x="113.5" y="119.5" class="px-tc" text-anchor="middle" style="font-size:12px">0</text>
+<text x="136.5" y="119.5" class="px-tc" text-anchor="middle" style="font-size:12px">0</text>
+<text x="159.5" y="119.5" class="px-tc" text-anchor="middle" style="font-size:12px">0</text>
+<rect x="10" y="127" width="23" height="23" class="px" fill-opacity="1.00"/>
+<rect x="102" y="127" width="69" height="23" class="px" fill-opacity="1.00"/>
+<text x="21.5" y="142.5" class="px-tc" text-anchor="middle" style="font-size:12px">0</text>
+<text x="44.5" y="142.5" class="px-t" text-anchor="middle" style="font-size:12px">255</text>
+<text x="67.5" y="142.5" class="px-t" text-anchor="middle" style="font-size:12px">255</text>
+<text x="90.5" y="142.5" class="px-t" text-anchor="middle" style="font-size:12px">255</text>
+<text x="113.5" y="142.5" class="px-tc" text-anchor="middle" style="font-size:12px">0</text>
+<text x="136.5" y="142.5" class="px-tc" text-anchor="middle" style="font-size:12px">0</text>
+<text x="159.5" y="142.5" class="px-tc" text-anchor="middle" style="font-size:12px">0</text>
+<rect x="10" y="150" width="161" height="23" class="px" fill-opacity="1.00"/>
+<text x="21.5" y="165.5" class="px-tc" text-anchor="middle" style="font-size:12px">0</text>
+<text x="44.5" y="165.5" class="px-tc" text-anchor="middle" style="font-size:12px">0</text>
+<text x="67.5" y="165.5" class="px-tc" text-anchor="middle" style="font-size:12px">0</text>
+<text x="90.5" y="165.5" class="px-tc" text-anchor="middle" style="font-size:12px">0</text>
+<text x="113.5" y="165.5" class="px-tc" text-anchor="middle" style="font-size:12px">0</text>
+<text x="136.5" y="165.5" class="px-tc" text-anchor="middle" style="font-size:12px">0</text>
+<text x="159.5" y="165.5" class="px-tc" text-anchor="middle" style="font-size:12px">0</text>
+<path d="M10 35H171M10 58H171M10 81H171M10 104H171M10 127H171M10 150H171M33 12V173M56 12V173M79 12V173M102 12V173M125 12V173M148 12V173" class="sk-axis" stroke-width="0.6"/>
+<line x1="177" y1="92.5" x2="213" y2="92.5" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<text x="197" y="84.5" class="lab-muted" text-anchor="middle">flou 3 × 3</text>
+<rect x="225" y="35" width="115" height="115" class="px-fond"/>
+<rect x="225" y="35" width="69" height="23" class="px" fill-opacity="1.00"/>
+<rect x="294" y="35" width="46" height="23" class="px" fill-opacity="0.89"/>
+<text x="236.5" y="50.5" class="px-tc" text-anchor="middle" style="font-size:12px">0</text>
+<text x="259.5" y="50.5" class="px-tc" text-anchor="middle" style="font-size:12px">0</text>
+<text x="282.5" y="50.5" class="px-tc" text-anchor="middle" style="font-size:12px">0</text>
+<text x="305.5" y="50.5" class="px-tc" text-anchor="middle" style="font-size:12px">28</text>
+<text x="328.5" y="50.5" class="px-tc" text-anchor="middle" style="font-size:12px">28</text>
+<rect x="225" y="58" width="23" height="23" class="px" fill-opacity="0.78"/>
+<rect x="248" y="58" width="23" height="23" class="px" fill-opacity="0.67"/>
+<rect x="271" y="58" width="46" height="23" class="px" fill-opacity="0.78"/>
+<rect x="317" y="58" width="23" height="23" class="px" fill-opacity="0.89"/>
+<text x="236.5" y="73.5" class="px-tc" text-anchor="middle" style="font-size:12px">57</text>
+<text x="259.5" y="73.5" class="px-tc" text-anchor="middle" style="font-size:12px">85</text>
+<text x="282.5" y="73.5" class="px-tc" text-anchor="middle" style="font-size:12px">57</text>
+<text x="305.5" y="73.5" class="px-tc" text-anchor="middle" style="font-size:12px">57</text>
+<text x="328.5" y="73.5" class="px-tc" text-anchor="middle" style="font-size:12px">28</text>
+<rect x="225" y="81" width="23" height="23" class="px" fill-opacity="0.56"/>
+<rect x="248" y="81" width="23" height="23" class="px" fill-opacity="0.33"/>
+<rect x="271" y="81" width="23" height="23" class="px" fill-opacity="0.56"/>
+<rect x="294" y="81" width="23" height="23" class="px" fill-opacity="0.78"/>
+<rect x="317" y="81" width="23" height="23" class="px" fill-opacity="1.00"/>
+<text x="236.5" y="96.5" class="px-tc" text-anchor="middle" style="font-size:12px">113</text>
+<text x="259.5" y="96.5" class="px-t" text-anchor="middle" style="font-size:12px">170</text>
+<text x="282.5" y="96.5" class="px-tc" text-anchor="middle" style="font-size:12px">113</text>
+<text x="305.5" y="96.5" class="px-tc" text-anchor="middle" style="font-size:12px">57</text>
+<text x="328.5" y="96.5" class="px-tc" text-anchor="middle" style="font-size:12px">0</text>
+<rect x="225" y="104" width="23" height="23" class="px" fill-opacity="0.33"/>
+<rect x="271" y="104" width="23" height="23" class="px" fill-opacity="0.33"/>
+<rect x="294" y="104" width="23" height="23" class="px" fill-opacity="0.67"/>
+<rect x="317" y="104" width="23" height="23" class="px" fill-opacity="1.00"/>
+<text x="236.5" y="119.5" class="px-t" text-anchor="middle" style="font-size:12px">170</text>
+<text x="259.5" y="119.5" class="px-t" text-anchor="middle" style="font-size:12px">255</text>
+<text x="282.5" y="119.5" class="px-t" text-anchor="middle" style="font-size:12px">170</text>
+<text x="305.5" y="119.5" class="px-tc" text-anchor="middle" style="font-size:12px">85</text>
+<text x="328.5" y="119.5" class="px-tc" text-anchor="middle" style="font-size:12px">0</text>
+<rect x="225" y="127" width="23" height="23" class="px" fill-opacity="0.56"/>
+<rect x="248" y="127" width="23" height="23" class="px" fill-opacity="0.33"/>
+<rect x="271" y="127" width="23" height="23" class="px" fill-opacity="0.56"/>
+<rect x="294" y="127" width="23" height="23" class="px" fill-opacity="0.78"/>
+<rect x="317" y="127" width="23" height="23" class="px" fill-opacity="1.00"/>
+<text x="236.5" y="142.5" class="px-tc" text-anchor="middle" style="font-size:12px">113</text>
+<text x="259.5" y="142.5" class="px-t" text-anchor="middle" style="font-size:12px">170</text>
+<text x="282.5" y="142.5" class="px-tc" text-anchor="middle" style="font-size:12px">113</text>
+<text x="305.5" y="142.5" class="px-tc" text-anchor="middle" style="font-size:12px">57</text>
+<text x="328.5" y="142.5" class="px-tc" text-anchor="middle" style="font-size:12px">0</text>
+<path d="M225 58H340M225 81H340M225 104H340M225 127H340M248 35V150M271 35V150M294 35V150M317 35V150" class="sk-axis" stroke-width="0.6"/>
+<text x="90.5" y="193" text-anchor="middle" style="font-size:13px;font-family:var(--font-code)">img : 7 × 7</text>
+<text x="282.5" y="170" text-anchor="middle" style="font-size:13px;font-family:var(--font-code)">flou(img) : 5 × 5</text>
+</svg>
+<figcaption>Flou moyenneur : chaque pixel devient la moyenne des 9 pixels de sa fenêtre. Le bord net du carré s'étale en dégradé et le pixel blanc isolé (en haut à droite) se dilue : il ne vaut plus que 28, et ses voisins aussi. L'image filtrée a une ligne et une colonne de moins de chaque côté : la fenêtre doit tenir dans l'image.</figcaption>
+</figure>
+
+  <h3>Flou gaussien</h3>
+  <p>Le flou moyenneur donne autant de poids à un coin de la fenêtre qu'à son centre, ce qui crée des artefacts en forme de carrés. Un noyau qui privilégie le centre, comme <span class="code-inline">[[1, 2, 1], [2, 4, 2], [1, 2, 1]]</span> divisé par 16, approche la répartition en cloche (dite gaussienne) d'un vrai flou optique. Avec des coefficients entiers, on ne divise qu'une fois, à la fin :</p>
+<pre class="codeblock"><span class="kw">def</span> flou_gauss(img):
+    K = [[1, 2, 1],
+         [2, 4, 2],
+         [1, 2, 1]]
+    c = convolution(img, K)
+    <span class="kw">return</span> [[borner(x / 16) <span class="kw">for</span> x <span class="kw">in</span> ligne] <span class="kw">for</span> ligne <span class="kw">in</span> c]</pre>
+
+  <div class="prop-box"><strong>Somme des coefficients égale à 1.</strong> Si les coefficients sont positifs et de somme 1, chaque pixel filtré est une moyenne pondérée de ses voisins : il reste entre le plus petit et le plus grand d'entre eux, donc dans \([0, 255]\), et une zone uniforme n'est pas modifiée (une zone à 90 reste à 90). La luminosité moyenne de l'image est conservée. Pour flouter davantage, on prend un noyau plus grand ou l'on applique plusieurs fois le filtre.</div>
+
+  <div class="method-box"><strong>Exemple — l'effet du flou sur un bord et sur un pixel isolé</strong>
+    <p>On suit trois pixels de la figure (image noire de 7 × 7 pixels portant un carré blanc 3 × 3 et un pixel blanc isolé).</p>
+    <ol>
+      <li>Centre du carré, pixel \((4, 2)\) : ses 9 voisins sont blancs, il reste à \(255\).</li>
+      <li>Coin du carré, pixel \((3, 3)\) : sa fenêtre contient 4 pixels blancs, il passe à \(4 \times 255/9 \approx 113\) ; le bord net devient un dégradé.</li>
+      <li>Pixel isolé \((1, 5)\) : il est le seul pixel blanc de sa fenêtre et tombe à \(255/9 \approx 28\), comme ses voisins \((1, 4)\) et \((2, 5)\). Un défaut ponctuel (bruit) est fortement atténué, ce qui justifie de flouter une image bruitée avant de chercher ses contours (§8).</li>
+    </ol>
+  </div>
+
+  <div class="notice"><strong>Accentuer la netteté.</strong> Le noyau <span class="code-inline">[[0, -1, 0], [-1, 5, -1], [0, -1, 0]]</span>, de somme 1 lui aussi, fait l'inverse : il renforce l'écart entre un pixel et ses voisins. Ses coefficients négatifs peuvent faire sortir le résultat de \([0, 255]\) : l'écrêtage par <span class="code-inline">borner</span> est indispensable.</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§8 · DÉTECTION DE CONTOURS</div>
+  <h2>Repérer les variations brusques d'intensité</h2>
+  <div class="intro">Un contour est une ligne où l'intensité change fortement d'un pixel à l'autre. Pour le détecter, on estime la « dérivée » de l'image dans les deux directions par des différences entre voisins, puis on garde les pixels où elle est grande.</div>
+
+  <h3>Gradient discret</h3>
+  <p>La variation horizontale au pixel \((i, j)\) s'estime par la différence de ses voisins de droite et de gauche, \(\text{img}[i][j+1] - \text{img}[i][j-1]\), et la variation verticale par \(\text{img}[i+1][j] - \text{img}[i-1][j]\). Ce sont deux convolutions. Le <strong>filtre de Sobel</strong> fait la même chose sur trois lignes (ou trois colonnes) voisines, pondérées 1, 2, 1, ce qui le rend moins sensible au bruit :</p>
+  <div class="formula" data-nom="Noyaux de Sobel">$$K_x = \begin{pmatrix} -1 & 0 & 1 \\ -2 & 0 & 2 \\ -1 & 0 & 1 \end{pmatrix} \qquad K_y = \begin{pmatrix} -1 & -2 & -1 \\ 0 & 0 & 0 \\ 1 & 2 & 1 \end{pmatrix}$$</div>
+  <p>Les deux convolutions donnent en chaque pixel les composantes \(g_x\) et \(g_y\) d'un vecteur gradient, qui pointe vers les pixels plus clairs. Sa norme mesure la force du contour :</p>
+  <div class="formula" data-nom="Norme du gradient">$$N(i, j) = \sqrt{g_x(i, j)^2 + g_y(i, j)^2}$$</div>
+  <p>Il reste à <strong>seuiller</strong> : les pixels où \(N\) dépasse un seuil choisi sont des pixels de contour (ici coloriés en noir sur fond blanc). La racine carrée <span class="code-inline">sqrt</span> vient du module <span class="code-inline">math</span>.</p>
+<pre class="codeblock"><span class="kw">from</span> math <span class="kw">import</span> sqrt</pre>
+<pre class="codeblock">SOBEL_X = [[-1, 0, 1],
+           [-2, 0, 2],
+           [-1, 0, 1]]
+
+SOBEL_Y = [[-1, -2, -1],
+           [0, 0, 0],
+           [1, 2, 1]]
+
+<span class="kw">def</span> contours(img, seuil):
+    <span class="cmt"># 0 (noir) sur les contours, 255 (blanc) ailleurs</span>
+    gx = convolution(img, SOBEL_X)
+    gy = convolution(img, SOBEL_Y)
+    h, l = len(gx), len(gx[0])
+    res = image_vide(h, l, 255)
+    <span class="kw">for</span> i <span class="kw">in</span> range(h):
+        <span class="kw">for</span> j <span class="kw">in</span> range(l):
+            <span class="kw">if</span> sqrt(gx[i][j] ** 2 + gy[i][j] ** 2) &gt;= seuil:
+                res[i][j] = 0
+    <span class="kw">return</span> res</pre>
+<figure class="schema">
+<svg viewBox="0 0 330 150" role="img" aria-label="Une image contenant un losange sombre, la norme de son gradient de Sobel, et les contours obtenus par seuillage">
+<rect x="10" y="12" width="105" height="105" class="px-fond"/>
+<rect x="10" y="12" width="105" height="10.5" class="px" fill-opacity="0.10"/>
+<rect x="10" y="22.5" width="105" height="10.5" class="px" fill-opacity="0.10"/>
+<rect x="10" y="33" width="42" height="10.5" class="px" fill-opacity="0.10"/>
+<rect x="52" y="33" width="21" height="10.5" class="px" fill-opacity="0.84"/>
+<rect x="73" y="33" width="42" height="10.5" class="px" fill-opacity="0.10"/>
+<rect x="10" y="43.5" width="31.5" height="10.5" class="px" fill-opacity="0.10"/>
+<rect x="41.5" y="43.5" width="42" height="10.5" class="px" fill-opacity="0.84"/>
+<rect x="83.5" y="43.5" width="31.5" height="10.5" class="px" fill-opacity="0.10"/>
+<rect x="10" y="54" width="21" height="10.5" class="px" fill-opacity="0.10"/>
+<rect x="31" y="54" width="63" height="10.5" class="px" fill-opacity="0.84"/>
+<rect x="94" y="54" width="21" height="10.5" class="px" fill-opacity="0.10"/>
+<rect x="10" y="64.5" width="21" height="10.5" class="px" fill-opacity="0.10"/>
+<rect x="31" y="64.5" width="63" height="10.5" class="px" fill-opacity="0.84"/>
+<rect x="94" y="64.5" width="21" height="10.5" class="px" fill-opacity="0.10"/>
+<rect x="10" y="75" width="31.5" height="10.5" class="px" fill-opacity="0.10"/>
+<rect x="41.5" y="75" width="42" height="10.5" class="px" fill-opacity="0.84"/>
+<rect x="83.5" y="75" width="31.5" height="10.5" class="px" fill-opacity="0.10"/>
+<rect x="10" y="85.5" width="42" height="10.5" class="px" fill-opacity="0.10"/>
+<rect x="52" y="85.5" width="21" height="10.5" class="px" fill-opacity="0.84"/>
+<rect x="73" y="85.5" width="42" height="10.5" class="px" fill-opacity="0.10"/>
+<rect x="10" y="96" width="105" height="10.5" class="px" fill-opacity="0.10"/>
+<rect x="10" y="106.5" width="105" height="10.5" class="px" fill-opacity="0.10"/>
+<path d="M10 22.5H115M10 33H115M10 43.5H115M10 54H115M10 64.5H115M10 75H115M10 85.5H115M10 96H115M10 106.5H115M20.5 12V117M31 12V117M41.5 12V117M52 12V117M62.5 12V117M73 12V117M83.5 12V117M94 12V117M104.5 12V117" class="sk-axis" stroke-width="0.6"/>
+<rect x="141" y="22.5" width="84" height="84" class="px-fond"/>
+<rect x="162" y="22.5" width="10.5" height="10.5" class="px" fill-opacity="0.32"/>
+<rect x="172.5" y="22.5" width="21" height="10.5" class="px" fill-opacity="0.71"/>
+<rect x="193.5" y="22.5" width="10.5" height="10.5" class="px" fill-opacity="0.32"/>
+<rect x="151.5" y="33" width="10.5" height="10.5" class="px" fill-opacity="0.32"/>
+<rect x="162" y="33" width="10.5" height="10.5" class="px" fill-opacity="0.95"/>
+<rect x="172.5" y="33" width="21" height="10.5" class="px" fill-opacity="1.00"/>
+<rect x="193.5" y="33" width="10.5" height="10.5" class="px" fill-opacity="0.95"/>
+<rect x="204" y="33" width="10.5" height="10.5" class="px" fill-opacity="0.32"/>
+<rect x="141" y="43.5" width="10.5" height="10.5" class="px" fill-opacity="0.32"/>
+<rect x="151.5" y="43.5" width="21" height="10.5" class="px" fill-opacity="0.95"/>
+<rect x="172.5" y="43.5" width="21" height="10.5" class="px" fill-opacity="0.32"/>
+<rect x="193.5" y="43.5" width="21" height="10.5" class="px" fill-opacity="0.95"/>
+<rect x="214.5" y="43.5" width="10.5" height="10.5" class="px" fill-opacity="0.32"/>
+<rect x="141" y="54" width="10.5" height="10.5" class="px" fill-opacity="0.71"/>
+<rect x="151.5" y="54" width="10.5" height="10.5" class="px" fill-opacity="1.00"/>
+<rect x="162" y="54" width="10.5" height="10.5" class="px" fill-opacity="0.32"/>
+<rect x="193.5" y="54" width="10.5" height="10.5" class="px" fill-opacity="0.32"/>
+<rect x="204" y="54" width="10.5" height="10.5" class="px" fill-opacity="1.00"/>
+<rect x="214.5" y="54" width="10.5" height="10.5" class="px" fill-opacity="0.71"/>
+<rect x="141" y="64.5" width="10.5" height="10.5" class="px" fill-opacity="0.71"/>
+<rect x="151.5" y="64.5" width="10.5" height="10.5" class="px" fill-opacity="1.00"/>
+<rect x="162" y="64.5" width="10.5" height="10.5" class="px" fill-opacity="0.32"/>
+<rect x="193.5" y="64.5" width="10.5" height="10.5" class="px" fill-opacity="0.32"/>
+<rect x="204" y="64.5" width="10.5" height="10.5" class="px" fill-opacity="1.00"/>
+<rect x="214.5" y="64.5" width="10.5" height="10.5" class="px" fill-opacity="0.71"/>
+<rect x="141" y="75" width="10.5" height="10.5" class="px" fill-opacity="0.32"/>
+<rect x="151.5" y="75" width="21" height="10.5" class="px" fill-opacity="0.95"/>
+<rect x="172.5" y="75" width="21" height="10.5" class="px" fill-opacity="0.32"/>
+<rect x="193.5" y="75" width="21" height="10.5" class="px" fill-opacity="0.95"/>
+<rect x="214.5" y="75" width="10.5" height="10.5" class="px" fill-opacity="0.32"/>
+<rect x="151.5" y="85.5" width="10.5" height="10.5" class="px" fill-opacity="0.32"/>
+<rect x="162" y="85.5" width="10.5" height="10.5" class="px" fill-opacity="0.95"/>
+<rect x="172.5" y="85.5" width="21" height="10.5" class="px" fill-opacity="1.00"/>
+<rect x="193.5" y="85.5" width="10.5" height="10.5" class="px" fill-opacity="0.95"/>
+<rect x="204" y="85.5" width="10.5" height="10.5" class="px" fill-opacity="0.32"/>
+<rect x="162" y="96" width="10.5" height="10.5" class="px" fill-opacity="0.32"/>
+<rect x="172.5" y="96" width="21" height="10.5" class="px" fill-opacity="0.71"/>
+<rect x="193.5" y="96" width="10.5" height="10.5" class="px" fill-opacity="0.32"/>
+<path d="M141 33H225M141 43.5H225M141 54H225M141 64.5H225M141 75H225M141 85.5H225M141 96H225M151.5 22.5V106.5M162 22.5V106.5M172.5 22.5V106.5M183 22.5V106.5M193.5 22.5V106.5M204 22.5V106.5M214.5 22.5V106.5" class="sk-axis" stroke-width="0.6"/>
+<rect x="251" y="22.5" width="84" height="84" class="px-fond"/>
+<rect x="282.5" y="22.5" width="21" height="10.5" class="px" fill-opacity="1.00"/>
+<rect x="272" y="33" width="42" height="10.5" class="px" fill-opacity="1.00"/>
+<rect x="261.5" y="43.5" width="21" height="10.5" class="px" fill-opacity="1.00"/>
+<rect x="303.5" y="43.5" width="21" height="10.5" class="px" fill-opacity="1.00"/>
+<rect x="251" y="54" width="21" height="10.5" class="px" fill-opacity="1.00"/>
+<rect x="314" y="54" width="21" height="10.5" class="px" fill-opacity="1.00"/>
+<rect x="251" y="64.5" width="21" height="10.5" class="px" fill-opacity="1.00"/>
+<rect x="314" y="64.5" width="21" height="10.5" class="px" fill-opacity="1.00"/>
+<rect x="261.5" y="75" width="21" height="10.5" class="px" fill-opacity="1.00"/>
+<rect x="303.5" y="75" width="21" height="10.5" class="px" fill-opacity="1.00"/>
+<rect x="272" y="85.5" width="42" height="10.5" class="px" fill-opacity="1.00"/>
+<rect x="282.5" y="96" width="21" height="10.5" class="px" fill-opacity="1.00"/>
+<path d="M251 33H335M251 43.5H335M251 54H335M251 64.5H335M251 75H335M251 85.5H335M251 96H335M261.5 22.5V106.5M272 22.5V106.5M282.5 22.5V106.5M293 22.5V106.5M303.5 22.5V106.5M314 22.5V106.5M324.5 22.5V106.5" class="sk-axis" stroke-width="0.6"/>
+<text x="62.5" y="137" class="lab-muted" text-anchor="middle">image</text>
+<text x="183" y="137" class="lab-muted" text-anchor="middle">norme du gradient</text>
+<text x="293" y="137" class="lab-muted" text-anchor="middle">seuil à 300</text>
+</svg>
+<figcaption>Détection de contours : la norme du gradient (au centre, d'autant plus foncée qu'elle est grande) est nulle dans les zones uniformes et grande là où l'intensité change brusquement ; un seuillage ne garde que le bord du losange.</figcaption>
+</figure>
+
+  <div class="prop-box"><strong>Somme des coefficients nulle.</strong> Les noyaux de dérivation ont une somme de coefficients nulle : dans une zone uniforme, le résultat est 0, il n'y a pas de contour. Le choix du seuil règle la sensibilité : trop bas, le bruit et les textures deviennent des contours ; trop haut, les contours peu contrastés disparaissent.</div>
+
+  <div class="notice"><strong>Erreur classique</strong> : écrêter \(g_x\) et \(g_y\) dans \([0, 255]\) avant de calculer la norme. Les composantes du gradient sont négatives quand l'intensité décroît ; les ramener à 0 supprimerait la moitié des contours (le passage du clair au sombre, dans le sens de lecture). On n'écrête ni n'arrondit que le résultat final.</div>
+
+  <div class="method-box"><strong>Exemple — un bord vertical</strong>
+    <p>Une image de 5 lignes identiques <span class="code-inline">[0, 0, 0, 255, 255, 255]</span> présente un bord vertical entre les colonnes 2 et 3.</p>
+    <ol>
+      <li>Pixel \((2, 1)\) : sa fenêtre (colonnes 0 à 2) est entièrement noire, \(g_x = g_y = 0\) ; pas de contour.</li>
+      <li>Pixel \((2, 2)\) : la colonne de droite de sa fenêtre vaut 255 et celle de gauche 0 : \(g_x = (1 + 2 + 1) \times 255 = 1020\), \(g_y = 0\), \(N = 1020\).</li>
+      <li>Pixel \((2, 3)\) : même calcul, \(N = 1020\) ; pixel \((2, 4)\) : fenêtre uniforme blanche, \(N = 0\).</li>
+      <li>Avec un seuil de 100, chaque ligne de <span class="code-inline">contours(img, 100)</span> vaut <span class="code-inline">[255, 0, 0, 255]</span> (colonnes 1 à 4 de l'image) : le contour a deux pixels d'épaisseur, de part et d'autre du bord.</li>
+    </ol>
+  </div>
+
+  <h3>Le laplacien</h3>
+  <p>Le noyau <span class="code-inline">[[0, 1, 0], [1, -4, 1], [0, 1, 0]]</span> estime la somme des dérivées secondes : il est nul dans les zones uniformes et sur les dégradés réguliers, et change de signe au passage d'un contour. Il est très sensible au bruit : on floute d'abord l'image, puis on cherche les contours.</p>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">POUR ALLER PLUS LOIN · IMAGES ET MODULES</div>
+  <h2>Ce que l'on rencontre en TP</h2>
+  <div class="intro">Rien de ce qui suit n'est exigible : un énoncé qui s'en sert en donne toujours la documentation.</div>
+  <ul>
+    <li><strong>Lire une image</strong> : on charge un fichier avec une fonction de module (par exemple <span class="code-inline">imread</span> du module <span class="code-inline">matplotlib.pyplot</span>, ou le module PIL), qui renvoie souvent un tableau du module numpy plutôt qu'une liste de listes. On y accède par <span class="code-inline">img[i, j]</span>, et <span class="code-inline">img.shape</span> vaut <span class="code-inline">(h, l)</span> en niveaux de gris, <span class="code-inline">(h, l, 3)</span> en RVB.</li>
+    <li><strong>Calculs modulo 256</strong> : les pixels d'un tel tableau sont souvent des entiers sur 8 bits (type <span class="code-inline">uint8</span>), et les opérations se font modulo 256 (\(200 + 100\) donne \(44\)). On convertit en entier Python (<span class="code-inline">int(img[i, j])</span>) avant de calculer.</li>
+    <li><strong>Autres traitements</strong> : l'interpolation bilinéaire, qui agrandit sans effet de marches d'escalier ; le filtre médian, qui remplace chaque pixel par la médiane de sa fenêtre et efface le bruit ponctuel sans flouter les bords (ce n'est pas une convolution) ; la compression JPEG, qui découpe l'image en blocs de \(8 \times 8\) pixels.</li>
+  </ul>
+</div>
+
+</template>
+<template class="pan-tpl" data-panneau="img-meth">
+<div class="course-section">
+  <div class="sec-num">MÉTHODES · IMAGES ET PIXELS</div>
+  <h2>Les réflexes du chapitre</h2>
+  <div class="intro">Huit savoir-faire pour écrire sans erreur d'indice un traitement d'image sur une liste de listes, le dérouler à la main et en donner le coût.</div>
+
+  <div class="method-box"><strong>Méthode 1 — Repérer un pixel et parcourir une image</strong>
+    <ol>
+      <li>Nommer les dimensions : <span class="code-inline">h = len(img)</span> lignes, <span class="code-inline">l = len(img[0])</span> colonnes.</li>
+      <li>Lire <span class="code-inline">img[i][j]</span> comme « ligne \(i\), colonne \(j\) », la ligne 0 étant en haut ; un point d'abscisse \(x\) et d'ordonnée \(y\) mesurées depuis le coin supérieur gauche est <span class="code-inline">img[y][x]</span>.</li>
+      <li>Parcourir par deux boucles imbriquées, <span class="code-inline">for i in range(h):</span> puis <span class="code-inline">for j in range(l):</span>, ou directement par <span class="code-inline">for ligne in img:</span> puis <span class="code-inline">for v in ligne:</span> si les indices sont inutiles.</li>
+      <li>Annoncer le coût : \(h\,l\) passages dans le corps de boucle, soit \(O(h\,l)\).</li>
+    </ol>
+    <p><em>Exemple éclair :</em> dans <span class="code-inline">[[255, 0, 255], [255, 255, 0]]</span>, \(h = 2\), \(l = 3\), il y a 4 pixels blancs, et <span class="code-inline">img[1][2]</span> vaut 0.</p>
+  </div>
+  <div class="notice"><strong>Piège</strong> : écrire <span class="code-inline">for j in range(len(img))</span> pour les colonnes. Sur une image qui n'est pas carrée, on oublie des colonnes ou l'on sort du tableau.</div>
+
+  <div class="method-box"><strong>Méthode 2 — Créer une image résultat sans alias</strong>
+    <ol>
+      <li>Déterminer d'abord les dimensions \(H \times L\) du résultat : les mêmes pour un traitement pixel par pixel, \(l \times h\) après un quart de tour, \((h - p + 1) \times (l - p + 1)\) après une convolution par un noyau \(p \times p\).</li>
+      <li>La créer par compréhension, <span class="code-inline">[[0] * L for i in range(H)]</span>, qui fabrique une nouvelle ligne à chaque tour ; jamais <span class="code-inline">[[0] * L] * H</span>.</li>
+      <li>Pour partir d'une copie de l'image, recopier chaque ligne : <span class="code-inline">[ligne[:] for ligne in img]</span>. <span class="code-inline">img[:]</span> ou <span class="code-inline">img.copy()</span> ne copient que la liste des lignes.</li>
+    </ol>
+<pre class="codeblock">t = [[0] * 2] * 2
+t[1][0] = 5
+print(t)       <span class="cmt"># [[5, 0], [5, 0]] : une seule ligne, deux fois</span></pre>
+  </div>
+
+  <div class="method-box"><strong>Méthode 3 — Programmer une transformation géométrique</strong>
+    <ol>
+      <li>Fixer les dimensions de l'image d'arrivée.</li>
+      <li>Pour un pixel \((i, j)\) d'<strong>arrivée</strong>, trouver les indices \((i', j')\) de son antécédent dans l'image de départ, en suivant deux coins.</li>
+      <li>Vérifier la formule sur les quatre coins : chaque indice doit rester entre 0 et la dimension moins 1.</li>
+      <li>Parcourir l'image d'arrivée et écrire <span class="code-inline">res[i][j] = img[i'][j']</span>.</li>
+      <li>Contrôler par une propriété simple : quatre quarts de tour, deux symétries ou deux transpositions redonnent l'image.</li>
+    </ol>
+    <p><em>Exemple éclair :</em> pour un demi-tour, le coin \((0, 0)\) d'arrivée vient du coin opposé \((h - 1, l - 1)\), et un pas vers la droite à l'arrivée est un pas vers la gauche au départ : <span class="code-inline">res[i][j] = img[h-1-i][l-1-j]</span>, image de même taille.</p>
+  </div>
+  <div class="notice"><strong>Piège</strong> : parcourir l'image de départ et « envoyer » chaque pixel vers sa destination. Pour une rotation d'un angle quelconque, des pixels d'arrivée ne reçoivent rien (trous) ; on part toujours de l'arrivée.</div>
+
+  <div class="method-box"><strong>Méthode 4 — Réduire ou agrandir une image</strong>
+    <ol>
+      <li>Réduction d'un facteur entier \(k\) : dimensions <span class="code-inline">h // k</span> et <span class="code-inline">l // k</span> ; le pixel \((i, j)\) vient de \((k\,i, k\,j)\) (sous-échantillonnage) ou vaut la moyenne du bloc de coin \((k\,i, k\,j)\) (plus fidèle).</li>
+      <li>Agrandissement d'un facteur entier \(k\) : dimensions \(k\,h\) et \(k\,l\) ; le pixel \((i, j)\) vient de <span class="code-inline">(i // k, j // k)</span>.</li>
+      <li>Taille quelconque \(H \times L\) (plus proche voisin) : le pixel \((i, j)\) vient de <span class="code-inline">(i * h // H, j * l // L)</span>, en multipliant avant de diviser.</li>
+    </ol>
+    <p><em>Exemple éclair :</em> en passant d'une image \(3 \times 4\) à une image \(6 \times 8\), le pixel \((5, 7)\) vient de \((5 \times 3 // 6,\ 7 \times 4 // 8) = (2, 3)\), le coin inférieur droit : la formule ne sort pas de l'image.</p>
+  </div>
+
+  <div class="method-box"><strong>Méthode 5 — Appliquer un noyau de convolution à la main</strong>
+    <ol>
+      <li>Vérifier que la fenêtre \(p \times p\) centrée sur le pixel tient dans l'image ; sinon appliquer la convention de bord de l'énoncé.</li>
+      <li>Poser le noyau sur la fenêtre, multiplier case à case et additionner.</li>
+      <li>Diviser par le facteur de normalisation s'il y en a un (9 pour le flou moyenneur, 16 pour le flou gaussien), puis arrondir et écrêter dans \([0, 255]\) si l'on veut un niveau de gris.</li>
+      <li>Pour le pixel suivant, décaler la fenêtre en lisant toujours l'image de <strong>départ</strong> : le résultat s'écrit dans une autre image.</li>
+    </ol>
+    <p><em>Exemple éclair :</em> flou moyenneur sur la fenêtre <span class="code-inline">[[0, 0, 9], [0, 9, 9], [9, 9, 9]]</span> : la somme vaut 54, le pixel filtré \(54/9 = 6\).</p>
+  </div>
+  <div class="notice"><strong>Piège</strong> : convoluer « en place ». Le voisin de gauche, déjà modifié, entre dans le calcul du pixel suivant : le résultat dépend du sens de parcours et n'est plus une convolution.</div>
+
+  <div class="method-box"><strong>Méthode 6 — Reconnaître l'effet d'un noyau</strong>
+    <ol>
+      <li>Calculer la <strong>somme des coefficients</strong> : 1 si le noyau conserve les zones uniformes (flou, accentuation), 0 s'il les annule (dérivation, contours).</li>
+      <li>Regarder les <strong>signes</strong> : tous positifs, c'est une moyenne pondérée, donc un flou, qui reste dans \([0, 255]\) ; des coefficients négatifs imposent d'écrêter (accentuation) ou de prendre une valeur absolue ou une norme (contours).</li>
+      <li>Regarder la <strong>forme</strong> : une différence entre colonnes de droite et de gauche détecte les variations horizontales, donc les bords verticaux ; entre lignes du bas et du haut, les bords horizontaux.</li>
+    </ol>
+    <p><em>Exemple éclair :</em> <span class="code-inline">[[0, 0, 0], [-1, 0, 1], [0, 0, 0]]</span> a une somme nulle et calcule « droite moins gauche » : il est nul dans une zone uniforme et grand en valeur absolue sur un bord vertical.</p>
+  </div>
+
+  <div class="method-box"><strong>Méthode 7 — Évaluer le coût d'un traitement d'image</strong>
+    <ol>
+      <li>Compter les pixels calculés (souvent ceux de l'image produite).</li>
+      <li>Multiplier par le coût d'un pixel : constant pour un traitement pixel par pixel ou une transformation géométrique, \(p^2\) pour une convolution par un noyau \(p \times p\), \(k^2\) pour une moyenne de blocs \(k \times k\).</li>
+      <li>Exprimer le résultat avec \(n = h\,l\) : \(O(n)\), \(O(n\,p^2)\)…, puis l'appliquer aux tailles de l'énoncé.</li>
+    </ol>
+    <p><em>Exemple éclair :</em> un flou \(5 \times 5\) sur une image \(1000 \times 1000\) calcule \(996^2\) pixels de 25 produits chacun, soit environ \(2{,}5 \times 10^7\) multiplications.</p>
+  </div>
+
+  <div class="method-box"><strong>Méthode 8 — Traiter une image en couleurs</strong>
+    <ol>
+      <li>Un pixel est un triplet \((r, v, b)\) : le récupérer par dépaquetage, <span class="code-inline">r, v, b = img[i][j]</span>.</li>
+      <li>Traiter chaque composante comme un niveau de gris (négatif, écrêtage, convolution canal par canal), puis reformer le triplet.</li>
+      <li>Pour passer au gris, calculer \(0{,}299\,r + 0{,}587\,v + 0{,}114\,b\), puis arrondir.</li>
+    </ol>
+<pre class="codeblock">r, v, b = (255, 128, 0)              <span class="cmt"># un orange</span>
+print((255 - r, 255 - v, 255 - b))   <span class="cmt"># (0, 127, 255) : son négatif, un bleu</span></pre>
+  </div>
+  <div class="notice"><strong>Piège</strong> : un tuple n'est pas modifiable. <span class="code-inline">img[i][j][0] = 0</span> lève une <span class="code-inline">TypeError</span> ; on remplace le triplet entier, <span class="code-inline">img[i][j] = (0, v, b)</span>.</div>
+</div>
+</template>
+<template class="pan-tpl" data-panneau="img-exos">
+<div class="exo-wrapper">
+
+<div class="exo"><span class="num">EXO 01</span><span class="diff">★ ☆ ☆</span>
+  <h3>Lire une image et compter ses pixels</h3>
+  <div class="statement">On considère l'image en niveaux de gris suivante.
+<pre class="codeblock">img = [[12, 200, 200, 35],
+       [0, 255, 90, 255],
+       [128, 64, 255, 0]]</pre>
+  </div>
+  <div class="q"><strong>Q1.</strong> Que valent <span class="code-inline">len(img)</span>, <span class="code-inline">len(img[0])</span>, <span class="code-inline">img[1][3]</span> et <span class="code-inline">img[2][0]</span> ? Que provoque l'évaluation de <span class="code-inline">img[3][0]</span> ?</div>
+  <div class="q"><strong>Q2.</strong> Écrire une fonction <span class="code-inline">compte(img, v)</span> qui renvoie le nombre de pixels de valeur <span class="code-inline">v</span>. Que renvoient <span class="code-inline">compte(img, 255)</span> et <span class="code-inline">compte(img, 0)</span> ?</div>
+  <div class="q"><strong>Q3.</strong> Écrire une fonction <span class="code-inline">luminosite_moyenne(img)</span> qui renvoie la moyenne des niveaux de gris. La calculer pour <span class="code-inline">img</span>.</div>
+  <div class="q"><strong>Q4.</strong> Donner le coût de ces deux fonctions pour une image de \(h\) lignes et \(l\) colonnes.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution"><h4>Correction</h4>
+    <p><strong>Q1.</strong> L'image a 3 lignes et 4 colonnes : <span class="code-inline">len(img)</span> vaut 3 et <span class="code-inline">len(img[0])</span> vaut 4. <span class="code-inline">img[1][3]</span> (ligne 1, colonne 3) vaut 255 et <span class="code-inline">img[2][0]</span> vaut 128. Les lignes sont numérotées de 0 à 2 : <span class="code-inline">img[3]</span> n'existe pas et Python lève une <span class="code-inline">IndexError</span>.</p>
+    <p><strong>Q2.</strong> On parcourt toutes les valeurs ; les indices sont inutiles.</p>
+<pre class="codeblock"><span class="kw">def</span> compte(img, v):
+    n = 0
+    <span class="kw">for</span> ligne <span class="kw">in</span> img:
+        <span class="kw">for</span> x <span class="kw">in</span> ligne:
+            <span class="kw">if</span> x == v:
+                n = n + 1
+    <span class="kw">return</span> n
+
+print(compte(img, 255), compte(img, 0))    <span class="cmt"># 3 2</span></pre>
+    <p><strong>Q3.</strong> On additionne toutes les valeurs et l'on divise par le nombre de pixels.</p>
+<pre class="codeblock"><span class="kw">def</span> luminosite_moyenne(img):
+    s = 0
+    <span class="kw">for</span> ligne <span class="kw">in</span> img:
+        <span class="kw">for</span> x <span class="kw">in</span> ligne:
+            s = s + x
+    <span class="kw">return</span> s / (len(img) * len(img[0]))
+
+print(luminosite_moyenne(img))    <span class="cmt"># 124.5</span></pre>
+    <p>La somme des 12 pixels vaut \(447 + 600 + 447 = 1494\), et \(1494 / 12 = 124{,}5\) : l'image est plutôt sombre en moyenne (le gris moyen est 127,5).</p>
+    <p><strong>Q4.</strong> Chaque fonction exécute \(h\,l\) fois un corps de boucle de coût constant : le coût est un \(O(h\,l)\), linéaire en le nombre de pixels.</p>
+  </div>
+</div>
+
+<div class="exo"><span class="num">EXO 02</span><span class="diff">★ ☆ ☆</span>
+  <h3>Négatif : en place, ou dans une nouvelle image ?</h3>
+  <div class="statement">Le négatif d'une image en niveaux de gris remplace chaque valeur \(v\) par \(255 - v\).</div>
+  <div class="q"><strong>Q1.</strong> Écrire une fonction <span class="code-inline">negatif_en_place(img)</span> qui modifie l'image et ne renvoie rien.</div>
+  <div class="q"><strong>Q2.</strong> Un élève veut au contraire laisser l'image intacte et écrit :
+<pre class="codeblock"><span class="kw">def</span> negatif_faux(img):
+    res = img
+    <span class="kw">for</span> i <span class="kw">in</span> range(len(img)):
+        <span class="kw">for</span> j <span class="kw">in</span> range(len(img[0])):
+            res[i][j] = 255 - img[i][j]
+    <span class="kw">return</span> res</pre>
+  On exécute <span class="code-inline">a = [[0, 100]]</span> puis <span class="code-inline">b = negatif_faux(a)</span>. Que valent <span class="code-inline">a</span> et <span class="code-inline">b</span> ? Même question si la première ligne de la fonction est <span class="code-inline">res = img[:]</span>.</div>
+  <div class="q"><strong>Q3.</strong> Écrire une fonction <span class="code-inline">negatif(img)</span> correcte, en une ligne, à l'aide d'une compréhension.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution"><h4>Correction</h4>
+    <p><strong>Q1.</strong> Chaque pixel ne dépend que de lui-même : on peut écrire directement dans l'image.</p>
+<pre class="codeblock"><span class="kw">def</span> negatif_en_place(img):
+    <span class="kw">for</span> i <span class="kw">in</span> range(len(img)):
+        <span class="kw">for</span> j <span class="kw">in</span> range(len(img[0])):
+            img[i][j] = 255 - img[i][j]
+
+a = [[0, 100], [255, 30]]
+negatif_en_place(a)
+print(a)    <span class="cmt"># [[255, 155], [0, 225]]</span></pre>
+    <p><strong>Q2.</strong> <span class="code-inline">res = img</span> ne copie rien : <span class="code-inline">res</span> est un second nom de la même liste. La fonction modifie donc <span class="code-inline">a</span>, et <span class="code-inline">b</span> est ce même objet : les deux valent <span class="code-inline">[[255, 155]]</span>. Avec <span class="code-inline">res = img[:]</span>, <span class="code-inline">res</span> est une nouvelle liste, mais ses éléments sont les <em>mêmes lignes</em> que celles de <span class="code-inline">img</span> (copie superficielle) : écrire <span class="code-inline">res[0][1]</span> modifie la ligne partagée, et le résultat est identique.</p>
+<pre class="codeblock">a = [[0, 100]]
+b = negatif_faux(a)
+print(a, b)    <span class="cmt"># [[255, 155]] [[255, 155]]</span></pre>
+    <p><strong>Q3.</strong> La compréhension construit des lignes neuves :</p>
+<pre class="codeblock"><span class="kw">def</span> negatif(img):
+    <span class="kw">return</span> [[255 - x <span class="kw">for</span> x <span class="kw">in</span> ligne] <span class="kw">for</span> ligne <span class="kw">in</span> img]
+
+a = [[0, 100]]
+print(negatif(a), a)    <span class="cmt"># [[255, 155]] [[0, 100]]</span></pre>
+  </div>
+</div>
+
+<div class="exo"><span class="num">EXO 03</span><span class="diff">★ ★ ☆</span>
+  <h3>Le piège de la création et de la copie</h3>
+  <div class="statement">On exécute le programme suivant.
+<pre class="codeblock">t = [[0] * 3] * 3
+<span class="kw">for</span> i <span class="kw">in</span> range(3):
+    t[i][i] = 1
+print(t)</pre>
+  </div>
+  <div class="q"><strong>Q1.</strong> Qu'affiche-t-il ? Expliquer.</div>
+  <div class="q"><strong>Q2.</strong> Corriger la première ligne pour obtenir la matrice identité \(3 \times 3\).</div>
+  <div class="q"><strong>Q3.</strong> Qu'affiche <span class="code-inline">print(u)</span> après les instructions <span class="code-inline">u = [[1, 2], [3, 4]]</span>, <span class="code-inline">v = u.copy()</span>, <span class="code-inline">v[0][0] = 7</span>, <span class="code-inline">v[1] = [0, 0]</span> ?</div>
+  <div class="q"><strong>Q4.</strong> Écrire une fonction <span class="code-inline">image_uniforme(h, l, v)</span> qui crée une image de \(h\) lignes et \(l\) colonnes de valeur \(v\), sans compréhension, à l'aide de <span class="code-inline">append</span>.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution"><h4>Correction</h4>
+    <p><strong>Q1.</strong> Il affiche <span class="code-inline">[[1, 1, 1], [1, 1, 1], [1, 1, 1]]</span>. L'opérateur <span class="code-inline">*</span> a répété trois fois la référence d'une seule liste <span class="code-inline">[0, 0, 0]</span> : <span class="code-inline">t[0]</span>, <span class="code-inline">t[1]</span> et <span class="code-inline">t[2]</span> sont le même objet. La boucle met successivement ses cases 0, 1 et 2 à 1, et cette ligne unique est affichée trois fois.</p>
+    <p><strong>Q2.</strong> On crée une nouvelle ligne à chaque tour :</p>
+<pre class="codeblock">t = [[0] * 3 <span class="kw">for</span> i <span class="kw">in</span> range(3)]
+<span class="kw">for</span> i <span class="kw">in</span> range(3):
+    t[i][i] = 1
+print(t)    <span class="cmt"># [[1, 0, 0], [0, 1, 0], [0, 0, 1]]</span></pre>
+    <p><strong>Q3.</strong> <span class="code-inline">v</span> est une nouvelle liste dont les éléments sont les lignes de <span class="code-inline">u</span>. <span class="code-inline">v[0][0] = 7</span> modifie la ligne partagée, donc <span class="code-inline">u</span> ; <span class="code-inline">v[1] = [0, 0]</span> remplace la référence rangée dans <span class="code-inline">v</span> seulement. On obtient <span class="code-inline">[[7, 2], [3, 4]]</span>.</p>
+<pre class="codeblock">u = [[1, 2], [3, 4]]
+v = u.copy()
+v[0][0] = 7
+v[1] = [0, 0]
+print(u)    <span class="cmt"># [[7, 2], [3, 4]]</span></pre>
+    <p><strong>Q4.</strong> La liste <span class="code-inline">ligne</span> est recréée à chaque tour de la boucle externe :</p>
+<pre class="codeblock"><span class="kw">def</span> image_uniforme(h, l, v):
+    img = []
+    <span class="kw">for</span> i <span class="kw">in</span> range(h):
+        ligne = []
+        <span class="kw">for</span> j <span class="kw">in</span> range(l):
+            ligne.append(v)
+        img.append(ligne)
+    <span class="kw">return</span> img</pre>
+  </div>
+</div>
+
+<div class="exo"><span class="num">EXO 04</span><span class="diff">★ ★ ☆</span>
+  <h3>Symétries et quarts de tour</h3>
+  <div class="statement">On note <span class="code-inline">A = [[1, 2, 3], [4, 5, 6]]</span>. On dispose des fonctions <span class="code-inline">miroir</span> (symétrie d'axe vertical) et <span class="code-inline">transposee</span> du cours.
+<pre class="codeblock"><span class="kw">def</span> image_vide(h, l, v):
+    <span class="cmt"># h lignes de l pixels, tous égaux à v ; chaque ligne est une NOUVELLE liste</span>
+    <span class="kw">return</span> [[v] * l <span class="kw">for</span> i <span class="kw">in</span> range(h)]
+
+<span class="kw">def</span> miroir(img):
+    <span class="cmt"># symétrie par rapport à l'axe vertical (la gauche passe à droite)</span>
+    h, l = len(img), len(img[0])
+    res = image_vide(h, l, 0)
+    <span class="kw">for</span> i <span class="kw">in</span> range(h):
+        <span class="kw">for</span> j <span class="kw">in</span> range(l):
+            res[i][j] = img[i][l - 1 - j]
+    <span class="kw">return</span> res
+
+<span class="kw">def</span> transposee(img):
+    h, l = len(img), len(img[0])
+    res = image_vide(l, h, 0)
+    <span class="kw">for</span> i <span class="kw">in</span> range(l):
+        <span class="kw">for</span> j <span class="kw">in</span> range(h):
+            res[i][j] = img[j][i]
+    <span class="kw">return</span> res</pre>
+  </div>
+  <div class="q"><strong>Q1.</strong> Écrire une fonction <span class="code-inline">demi_tour(img)</span>. Que renvoie-t-elle pour <span class="code-inline">A</span> ?</div>
+  <div class="q"><strong>Q2.</strong> Écrire une fonction <span class="code-inline">rotation_droite(img)</span> (quart de tour dans le sens horaire), en justifiant la formule par deux coins. La dérouler sur <span class="code-inline">A</span>.</div>
+  <div class="q"><strong>Q3.</strong> Combien de fois faut-il appliquer <span class="code-inline">rotation_droite</span>, <span class="code-inline">transposee</span> ou <span class="code-inline">demi_tour</span> pour retrouver l'image de départ ?</div>
+  <div class="q"><strong>Q4.</strong> Montrer que <span class="code-inline">rotation_droite(img)</span> et <span class="code-inline">miroir(transposee(img))</span> sont égales pour toute image.</div>
+  <div class="q"><strong>Q5.</strong> Comparer le coût du calcul direct de <span class="code-inline">rotation_droite(img)</span> et de celui de <span class="code-inline">miroir(transposee(img))</span>.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution"><h4>Correction</h4>
+    <p><strong>Q1.</strong> Le coin \((0, 0)\) d'arrivée vient du coin opposé \((h - 1, l - 1)\) ; un pas vers la droite (vers le bas) à l'arrivée est un pas vers la gauche (vers le haut) au départ.</p>
+<pre class="codeblock"><span class="kw">def</span> demi_tour(img):
+    h, l = len(img), len(img[0])
+    res = image_vide(h, l, 0)
+    <span class="kw">for</span> i <span class="kw">in</span> range(h):
+        <span class="kw">for</span> j <span class="kw">in</span> range(l):
+            res[i][j] = img[h - 1 - i][l - 1 - j]
+    <span class="kw">return</span> res
+
+A = [[1, 2, 3], [4, 5, 6]]
+print(demi_tour(A))    <span class="cmt"># [[6, 5, 4], [3, 2, 1]]</span></pre>
+    <p><strong>Q2.</strong> Le résultat a \(l\) lignes et \(h\) colonnes. Dans le sens horaire, le coin inférieur gauche \((h - 1, 0)\) monte en haut à gauche \((0, 0)\), et le coin supérieur gauche \((0, 0)\) part en haut à droite \((0, h - 1)\) : la ligne 0 du résultat est la colonne 0 de l'image lue de bas en haut. Ainsi <span class="code-inline">res[i][j] = img[h-1-j][i]</span>, et les quatre coins restent dans l'image.</p>
+<pre class="codeblock"><span class="kw">def</span> rotation_droite(img):
+    h, l = len(img), len(img[0])
+    res = image_vide(l, h, 0)
+    <span class="kw">for</span> i <span class="kw">in</span> range(l):
+        <span class="kw">for</span> j <span class="kw">in</span> range(h):
+            res[i][j] = img[h - 1 - j][i]
+    <span class="kw">return</span> res
+
+print(rotation_droite(A))    <span class="cmt"># [[4, 1], [5, 2], [6, 3]]</span></pre>
+    <p>Déroulé (\(h = 2\)) : <span class="code-inline">res[0][0] = A[1][0] = 4</span>, <span class="code-inline">res[0][1] = A[0][0] = 1</span>, puis <span class="code-inline">res[1] = [A[1][1], A[0][1]] = [5, 2]</span> et <span class="code-inline">res[2] = [6, 3]</span>.</p>
+    <p><strong>Q3.</strong> Quatre quarts de tour font un tour complet : 4 fois. La transposition et le demi-tour sont leurs propres inverses : 2 fois.</p>
+<pre class="codeblock">r = A
+<span class="kw">for</span> k <span class="kw">in</span> range(4):
+    r = rotation_droite(r)
+<span class="kw">assert</span> r == A
+<span class="kw">assert</span> transposee(transposee(A)) == A <span class="kw">and</span> demi_tour(demi_tour(A)) == A</pre>
+    <p><strong>Q4.</strong> Notons \(T\) = <span class="code-inline">transposee(img)</span>, de \(l\) lignes et \(h\) colonnes. Le miroir de \(T\) vaut en \((i, j)\) : \(T[i][h - 1 - j] = \text{img}[h - 1 - j][i]\), c'est-à-dire exactement <span class="code-inline">rotation_droite(img)[i][j]</span>. Les deux images ont les mêmes dimensions et les mêmes pixels : elles sont égales.</p>
+    <p><strong>Q5.</strong> Les deux méthodes coûtent \(O(h\,l)\). La composition parcourt l'image deux fois et crée une image intermédiaire : elle est environ deux fois plus lente et demande deux fois plus de mémoire, sans changer l'ordre de grandeur.</p>
+  </div>
+</div>
+
+<div class="exo"><span class="num">EXO 05</span><span class="diff">★ ★ ☆</span>
+  <h3>Damier, réduction et agrandissement</h3>
+  <div class="statement">On dispose des fonctions <span class="code-inline">reduction(img, k)</span> (sous-échantillonnage : un pixel sur \(k\)) et <span class="code-inline">reduction_moyenne(img, k)</span> (moyenne des blocs \(k \times k\), arrondie) du cours.
+<pre class="codeblock"><span class="kw">def</span> borner(x):
+    <span class="cmt"># entier le plus proche de x, ramené dans [0, 255]</span>
+    <span class="kw">if</span> x &lt;= 0:
+        <span class="kw">return</span> 0
+    <span class="kw">if</span> x &gt;= 255:
+        <span class="kw">return</span> 255
+    <span class="kw">return</span> int(x + 0.5)
+
+<span class="kw">def</span> reduction(img, k):
+    <span class="cmt"># on garde un pixel sur k dans chaque direction</span>
+    h, l = len(img), len(img[0])
+    <span class="kw">return</span> [[img[k * i][k * j] <span class="kw">for</span> j <span class="kw">in</span> range(l // k)] <span class="kw">for</span> i <span class="kw">in</span> range(h // k)]
+
+<span class="kw">def</span> reduction_moyenne(img, k):
+    <span class="cmt"># chaque bloc k × k est remplacé par la moyenne de ses pixels</span>
+    h2, l2 = len(img) // k, len(img[0]) // k
+    res = image_vide(h2, l2, 0)
+    <span class="kw">for</span> i <span class="kw">in</span> range(h2):
+        <span class="kw">for</span> j <span class="kw">in</span> range(l2):
+            s = 0
+            <span class="kw">for</span> a <span class="kw">in</span> range(k):
+                <span class="kw">for</span> b <span class="kw">in</span> range(k):
+                    s = s + img[k * i + a][k * j + b]
+            res[i][j] = borner(s / (k * k))
+    <span class="kw">return</span> res</pre>
+  </div>
+  <div class="q"><strong>Q1.</strong> Écrire une fonction <span class="code-inline">damier(n)</span> qui renvoie l'image \(n \times n\) dont le pixel \((i, j)\) vaut 255 si \(i + j\) est pair et 0 sinon.</div>
+  <div class="q"><strong>Q2.</strong> Que renvoient <span class="code-inline">reduction(damier(8), 2)</span> et <span class="code-inline">reduction_moyenne(damier(8), 2)</span> ? Laquelle des deux réductions est la plus fidèle ?</div>
+  <div class="q"><strong>Q3.</strong> Écrire une fonction <span class="code-inline">agrandissement(img, k)</span> qui remplace chaque pixel par un bloc \(k \times k\). Pour une photo de \(3000 \times 4000\) pixels et \(k = 2\), donner la taille du résultat et le nombre d'affectations de pixels.</div>
+  <div class="q"><strong>Q4.</strong> Cette photo est réduite d'un facteur 4 par moyenne. Donner les dimensions obtenues et le nombre d'additions effectuées.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution"><h4>Correction</h4>
+    <p><strong>Q1.</strong> On utilise le reste de la division par 2 :</p>
+<pre class="codeblock"><span class="kw">def</span> damier(n):
+    img = [[0] * n <span class="kw">for</span> i <span class="kw">in</span> range(n)]
+    <span class="kw">for</span> i <span class="kw">in</span> range(n):
+        <span class="kw">for</span> j <span class="kw">in</span> range(n):
+            <span class="kw">if</span> (i + j) % 2 == 0:
+                img[i][j] = 255
+    <span class="kw">return</span> img</pre>
+    <p><strong>Q2.</strong> Le sous-échantillonnage garde les pixels \((2i, 2j)\), pour lesquels \(2i + 2j\) est pair : on obtient une image \(4 \times 4\) entièrement blanche. Chaque bloc \(2 \times 2\) du damier contient deux pixels à 255 et deux à 0, de moyenne 127,5, arrondie à 128 : la réduction par moyenne donne un gris uniforme. C'est la plus fidèle : vu de loin, un damier fin paraît gris, pas blanc.</p>
+<pre class="codeblock">print(reduction(damier(8), 2)[0])            <span class="cmt"># [255, 255, 255, 255]</span>
+print(reduction_moyenne(damier(8), 2)[0])    <span class="cmt"># [128, 128, 128, 128]</span></pre>
+    <p><strong>Q3.</strong> Le pixel \((i, j)\) de l'image agrandie vient de \((i // k, j // k)\).</p>
+<pre class="codeblock"><span class="kw">def</span> agrandissement(img, k):
+    h, l = len(img), len(img[0])
+    res = [[0] * (k * l) <span class="kw">for</span> i <span class="kw">in</span> range(k * h)]
+    <span class="kw">for</span> i <span class="kw">in</span> range(k * h):
+        <span class="kw">for</span> j <span class="kw">in</span> range(k * l):
+            res[i][j] = img[i // k][j // k]
+    <span class="kw">return</span> res</pre>
+    <p>Le résultat a \(6000 \times 8000 = 48\) millions de pixels, chacun affecté une fois : \(4{,}8 \times 10^7\) affectations, \(k^2 = 4\) fois plus que de pixels au départ. Le coût est un \(O(k^2\,h\,l)\).</p>
+    <p><strong>Q4.</strong> On obtient \(3000 // 4 = 750\) lignes et \(4000 // 4 = 1000\) colonnes. Chaque pixel de départ est ajouté une fois à la somme de son bloc : \(12 \times 10^6\) additions, plus une division par pixel d'arrivée (\(750\,000\) divisions).</p>
+  </div>
+</div>
+
+<div class="exo"><span class="num">EXO 06</span><span class="diff">★ ★ ☆</span>
+  <h3>Étirer le contraste</h3>
+  <div class="statement">Une photographie prise dans le brouillard n'utilise que les niveaux compris entre son minimum \(m\) et son maximum \(M\), avec \(m \lt M\). L'<strong>étirement de contraste</strong> remplace chaque niveau \(v\) par \(\dfrac{(v - m) \times 255}{M - m}\), arrondi à l'entier le plus proche, de sorte que \(m\) devienne 0 et \(M\) devienne 255. On dispose de la fonction <span class="code-inline">borner</span> du cours.
+<pre class="codeblock"><span class="kw">def</span> borner(x):
+    <span class="cmt"># entier le plus proche de x, ramené dans [0, 255]</span>
+    <span class="kw">if</span> x &lt;= 0:
+        <span class="kw">return</span> 0
+    <span class="kw">if</span> x &gt;= 255:
+        <span class="kw">return</span> 255
+    <span class="kw">return</span> int(x + 0.5)</pre>
+  </div>
+  <div class="q"><strong>Q1.</strong> Écrire une fonction <span class="code-inline">extremes(img)</span> qui renvoie le couple <span class="code-inline">(m, M)</span> en un seul parcours de l'image.</div>
+  <div class="q"><strong>Q2.</strong> Écrire une fonction <span class="code-inline">etirement(img)</span> qui renvoie l'image étirée. L'appliquer à <span class="code-inline">[[100, 120], [110, 140]]</span>.</div>
+  <div class="q"><strong>Q3.</strong> Que se passe-t-il si l'image est uniforme ? Corriger la fonction en conséquence.</div>
+  <div class="q"><strong>Q4.</strong> L'image étirée utilise-t-elle davantage de niveaux de gris différents que l'image de départ ?</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution"><h4>Correction</h4>
+    <p><strong>Q1.</strong> On initialise \(m\) et \(M\) avec un pixel de l'image (et non avec 0 et 255, qui fausseraient le résultat), puis on les met à jour.</p>
+<pre class="codeblock"><span class="kw">def</span> extremes(img):
+    m, M = img[0][0], img[0][0]
+    <span class="kw">for</span> ligne <span class="kw">in</span> img:
+        <span class="kw">for</span> v <span class="kw">in</span> ligne:
+            <span class="kw">if</span> v &lt; m:
+                m = v
+            <span class="kw">if</span> v &gt; M:
+                M = v
+    <span class="kw">return</span> m, M</pre>
+    <p><strong>Q2 et Q3.</strong> Si l'image est uniforme, \(M - m = 0\) et la division lève une <span class="code-inline">ZeroDivisionError</span> : il n'y a rien à étirer, on renvoie une copie.</p>
+<pre class="codeblock"><span class="kw">def</span> etirement(img):
+    m, M = extremes(img)
+    <span class="kw">if</span> m == M:                   <span class="cmt"># image uniforme : rien à étirer</span>
+        <span class="kw">return</span> [ligne[:] <span class="kw">for</span> ligne <span class="kw">in</span> img]
+    <span class="kw">return</span> [[borner((v - m) * 255 / (M - m)) <span class="kw">for</span> v <span class="kw">in</span> ligne] <span class="kw">for</span> ligne <span class="kw">in</span> img]
+
+print(etirement([[100, 120], [110, 140]]))    <span class="cmt"># [[0, 128], [64, 255]]</span></pre>
+    <p>Ici \(m = 100\) et \(M = 140\) : \(120\) donne \(20 \times 255/40 = 127{,}5\), arrondi à 128, et \(110\) donne \(63{,}75\), arrondi à 64.</p>
+    <p><strong>Q4.</strong> Non. Deux niveaux égaux restent égaux, et deux niveaux différents restent différents (la pente \(255/(M - m)\) est au moins égale à 1, l'arrondi ne peut pas les confondre) : l'image étirée a exactement autant de niveaux différents. Son histogramme est « écarté » : il s'étend de 0 à 255, mais avec des niveaux vides entre les niveaux utilisés.</p>
+  </div>
+</div>
+
+<div class="exo"><span class="num">EXO 07</span><span class="diff">★ ★ ☆</span>
+  <h3>Flou moyenneur avec bords recopiés</h3>
+  <div class="statement">On veut un flou moyenneur \(3 \times 3\) qui renvoie une image de <strong>même taille</strong> : les pixels du bord (première et dernière lignes et colonnes) sont recopiés sans modification. On considère l'image
+<pre class="codeblock">E = [[0, 0, 0, 0, 0],
+     [0, 90, 90, 90, 0],
+     [0, 90, 180, 90, 0],
+     [0, 90, 90, 90, 0],
+     [0, 0, 0, 0, 0]]</pre>
+  </div>
+  <div class="q"><strong>Q1.</strong> Calculer à la main les pixels \((1, 1)\), \((1, 2)\) et \((2, 2)\) de l'image floutée.</div>
+  <div class="q"><strong>Q2.</strong> Écrire une fonction <span class="code-inline">flou_meme_taille(img)</span>, en arrondissant chaque moyenne à l'entier le plus proche.</div>
+  <div class="q"><strong>Q3.</strong> Un élève, pour économiser la mémoire, écrit directement les moyennes dans <span class="code-inline">img</span>, en parcourant les lignes de haut en bas et chaque ligne de gauche à droite. Quelles valeurs obtient-il pour les pixels \((1, 1)\) et \((1, 2)\) ? Conclure.</div>
+  <div class="q"><strong>Q4.</strong> Quel est le coût de ce flou pour une image \(h \times l\) ? Et pour un flou moyenneur \(p \times p\) ?</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution"><h4>Correction</h4>
+    <p><strong>Q1.</strong> Fenêtre du pixel \((1, 1)\) : lignes et colonnes 0 à 2, qui contiennent \(90, 90\) (ligne 1) et \(90, 180\) (ligne 2) ; somme \(450\), d'où \(450/9 = 50\). Fenêtre de \((1, 2)\) : lignes 0 à 2 et colonnes 1 à 3, soit \(90, 90, 90\) et \(90, 180, 90\) ; somme \(630\), d'où \(70\). Fenêtre de \((2, 2)\) : huit pixels à 90 et un à 180, somme \(900\), d'où \(100\).</p>
+    <p><strong>Q2.</strong> On part d'une copie (les bords sont ainsi déjà recopiés) et l'on ne recalcule que l'intérieur, en lisant toujours <span class="code-inline">img</span> :</p>
+<pre class="codeblock"><span class="kw">def</span> flou_meme_taille(img):
+    h, l = len(img), len(img[0])
+    res = [ligne[:] <span class="kw">for</span> ligne <span class="kw">in</span> img]
+    <span class="kw">for</span> i <span class="kw">in</span> range(1, h - 1):
+        <span class="kw">for</span> j <span class="kw">in</span> range(1, l - 1):
+            s = 0
+            <span class="kw">for</span> a <span class="kw">in</span> range(-1, 2):
+                <span class="kw">for</span> b <span class="kw">in</span> range(-1, 2):
+                    s = s + img[i + a][j + b]
+            res[i][j] = int(s / 9 + 0.5)    <span class="cmt"># arrondi (s est positif)</span>
+    <span class="kw">return</span> res
+
+<span class="kw">for</span> ligne <span class="kw">in</span> flou_meme_taille(E):
+    print(ligne)</pre>
+    <p>On obtient les lignes <span class="code-inline">[0, 50, 70, 50, 0]</span>, <span class="code-inline">[0, 70, 100, 70, 0]</span> et <span class="code-inline">[0, 50, 70, 50, 0]</span> entre deux lignes nulles.</p>
+    <p><strong>Q3.</strong> Le pixel \((1, 1)\) est le premier calculé : 50, comme avant. Mais il est alors écrit dans <span class="code-inline">img</span>, et la fenêtre de \((1, 2)\) contient ce 50 au lieu du 90 d'origine : la somme vaut \(630 - 40 = 590\), d'où \(590/9 \approx 65{,}6\), arrondi à 66 au lieu de 70. L'erreur se propage ensuite à tous les pixels : une convolution ne s'écrit jamais en place.</p>
+    <p><strong>Q4.</strong> \((h - 2)(l - 2)\) pixels de 9 additions chacun : \(O(h\,l)\). Pour un noyau \(p \times p\), chaque pixel coûte \(p^2\) additions : \(O(h\,l\,p^2)\).</p>
+  </div>
+</div>
+
+<div class="exo"><span class="num">EXO 08</span><span class="diff">★ ★ ★</span>
+  <h3>Contours par différences de voisins</h3>
+  <div class="statement">Pour \(0 \le i \le h - 2\) et \(0 \le j \le l - 2\), on pose \(g_x = \text{img}[i][j+1] - \text{img}[i][j]\) et \(g_y = \text{img}[i+1][j] - \text{img}[i][j]\) ; le pixel \((i, j)\) est un pixel de contour si \(|g_x| + |g_y| \ge s\), où \(s\) est un seuil. On pourra utiliser la fonction <span class="code-inline">abs</span> : <span class="code-inline">abs(x)</span> renvoie la valeur absolue du nombre <span class="code-inline">x</span>. On considère
+<pre class="codeblock">F = [[10, 10, 10, 10],
+     [10, 10, 200, 200],
+     [10, 10, 200, 200]]</pre>
+  </div>
+  <div class="q"><strong>Q1.</strong> Calculer \(g_x\) et \(g_y\) aux pixels \((0, 1)\), \((0, 2)\), \((1, 1)\) et \((1, 2)\) de <span class="code-inline">F</span>.</div>
+  <div class="q"><strong>Q2.</strong> Écrire une fonction <span class="code-inline">contours_simples(img, s)</span> qui renvoie l'image de \(h - 1\) lignes et \(l - 1\) colonnes valant 0 sur les pixels de contour et 255 ailleurs. Que renvoie-t-elle pour <span class="code-inline">F</span> et \(s = 100\) ?</div>
+  <div class="q"><strong>Q3.</strong> Pourquoi ne pas tester simplement \(g_x + g_y \ge s\) ?</div>
+  <div class="q"><strong>Q4.</strong> Dans une zone noire (0), un pixel isolé vaut 255 (un défaut du capteur). Combien de pixels de contour crée-t-il avec \(s = 100\) ? Que faire avant la détection pour l'éviter ?</div>
+  <div class="q"><strong>Q5.</strong> Donner le coût de <span class="code-inline">contours_simples</span>.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution"><h4>Correction</h4>
+    <p><strong>Q1.</strong> En \((0, 1)\) : \(g_x = 10 - 10 = 0\), \(g_y = F[1][1] - F[0][1] = 0\). En \((0, 2)\) : \(g_x = 0\), \(g_y = 200 - 10 = 190\). En \((1, 1)\) : \(g_x = 200 - 10 = 190\), \(g_y = F[2][1] - F[1][1] = 0\). En \((1, 2)\) : \(g_x = 0\) et \(g_y = 0\) (zone uniforme à 200).</p>
+    <p><strong>Q2.</strong></p>
+<pre class="codeblock"><span class="kw">def</span> contours_simples(img, s):
+    h, l = len(img), len(img[0])
+    res = [[255] * (l - 1) <span class="kw">for</span> i <span class="kw">in</span> range(h - 1)]
+    <span class="kw">for</span> i <span class="kw">in</span> range(h - 1):
+        <span class="kw">for</span> j <span class="kw">in</span> range(l - 1):
+            gx = img[i][j + 1] - img[i][j]
+            gy = img[i + 1][j] - img[i][j]
+            <span class="kw">if</span> abs(gx) + abs(gy) &gt;= s:
+                res[i][j] = 0
+    <span class="kw">return</span> res
+
+print(contours_simples(F, 100))    <span class="cmt"># [[255, 255, 0], [255, 0, 255]]</span></pre>
+    <p>Les deux pixels de contour, \((0, 2)\) et \((1, 1)\), longent le coin du carré clair, juste avant le changement de valeur (la différence regarde vers la droite et vers le bas).</p>
+    <p><strong>Q3.</strong> Les différences sont négatives quand l'intensité décroît. Avec \(g_x + g_y\), un passage du clair au sombre (\(g_x = -190\)) ne serait jamais détecté, et un bord diagonal où \(g_x = 100\) et \(g_y = -100\) donnerait 0. La somme des valeurs absolues est, comme la norme euclidienne du cours, insensible aux signes.</p>
+    <p><strong>Q4.</strong> Notons \((a, b)\) le pixel isolé. Il est pixel de contour lui-même (\(g_x = 0 - 255\)), ainsi que son voisin de gauche \((a, b - 1)\) (\(g_x = 255\)) et son voisin du haut \((a - 1, b)\) (\(g_y = 255\)) : trois pixels de contour pour un défaut. Un flou préalable le ramène à 28 environ (exemple du §7), et les différences restent sous le seuil.</p>
+<pre class="codeblock">Z = [[0] * 5 <span class="kw">for</span> i <span class="kw">in</span> range(5)]
+Z[2][2] = 255
+n = 0
+<span class="kw">for</span> ligne <span class="kw">in</span> contours_simples(Z, 100):
+    <span class="kw">for</span> v <span class="kw">in</span> ligne:
+        <span class="kw">if</span> v == 0:
+            n = n + 1
+print(n)    <span class="cmt"># 3</span></pre>
+    <p><strong>Q5.</strong> \((h - 1)(l - 1)\) pixels, chacun en temps constant : \(O(h\,l)\).</p>
+  </div>
+</div>
+
+<div class="exo"><span class="num">EXO 09</span><span class="diff">★ ★ ☆</span>
+  <h3>Recadrer, incruster, encadrer</h3>
+  <div class="statement">On manipule des images en niveaux de gris représentées par des listes de listes. On rappelle que la tranche <span class="code-inline">t[a:b]</span> est une <strong>nouvelle</strong> liste formée des éléments d'indices \(a\) à \(b - 1\) de <span class="code-inline">t</span>.</div>
+  <div class="q"><strong>Q1.</strong> Écrire une fonction <span class="code-inline">recadrer(img, i0, j0, H, L)</span> qui renvoie la sous-image de \(H\) lignes et \(L\) colonnes dont le coin supérieur gauche est le pixel \((i0, j0)\), en utilisant des tranches. On vérifiera par une assertion que la sous-image tient dans l'image. Le résultat est-il indépendant de <span class="code-inline">img</span> ?</div>
+  <div class="q"><strong>Q2.</strong> Écrire une fonction <span class="code-inline">incruster(fond, motif, i0, j0)</span> qui recopie <span class="code-inline">motif</span> dans <span class="code-inline">fond</span> (modifié en place), le pixel \((0, 0)\) du motif allant en \((i0, j0)\) ; les pixels du motif qui sortiraient du fond sont ignorés.</div>
+  <div class="q"><strong>Q3.</strong> Écrire une fonction <span class="code-inline">encadrer(img, e, v)</span> qui renvoie l'image entourée d'un cadre d'épaisseur \(e\) pixels et de valeur \(v\).</div>
+  <div class="q"><strong>Q4.</strong> Donner le coût de chacune des trois fonctions.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution"><h4>Correction</h4>
+    <p><strong>Q1.</strong> On découpe les lignes \(i0\) à \(i0 + H - 1\), puis dans chacune les colonnes \(j0\) à \(j0 + L - 1\).</p>
+<pre class="codeblock"><span class="kw">def</span> recadrer(img, i0, j0, H, L):
+    <span class="kw">assert</span> i0 + H &lt;= len(img) <span class="kw">and</span> j0 + L &lt;= len(img[0])
+    <span class="kw">return</span> [ligne[j0:j0 + L] <span class="kw">for</span> ligne <span class="kw">in</span> img[i0:i0 + H]]
+
+M = [[1, 2, 3, 4], [5, 6, 7, 8], [9, 10, 11, 12]]
+print(recadrer(M, 1, 1, 2, 2))    <span class="cmt"># [[6, 7], [10, 11]]</span></pre>
+    <p>Chaque ligne du résultat est une tranche, donc une liste neuve, et ses éléments sont des entiers (non modifiables) : modifier le résultat ne modifie pas <span class="code-inline">img</span>.</p>
+    <p><strong>Q2.</strong> Le pixel \((a, b)\) du motif va en \((i0 + a, j0 + b)\), à condition de rester dans le fond.</p>
+<pre class="codeblock"><span class="kw">def</span> incruster(fond, motif, i0, j0):
+    <span class="kw">for</span> a <span class="kw">in</span> range(len(motif)):
+        <span class="kw">for</span> b <span class="kw">in</span> range(len(motif[0])):
+            i, j = i0 + a, j0 + b
+            <span class="kw">if</span> i &lt; len(fond) <span class="kw">and</span> j &lt; len(fond[0]):
+                fond[i][j] = motif[a][b]
+
+N = [[0] * 4 <span class="kw">for</span> i <span class="kw">in</span> range(3)]
+incruster(N, [[7, 7], [7, 7]], 2, 3)
+print(N)    <span class="cmt"># [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 7]]</span></pre>
+    <p>(On suppose \(i0 \ge 0\) et \(j0 \ge 0\) ; seul le coin du motif tient ici dans le fond.)</p>
+    <p><strong>Q3.</strong> On crée une image uniforme de \(h + 2e\) lignes et \(l + 2e\) colonnes, puis on y recopie l'image décalée de \(e\) dans les deux directions.</p>
+<pre class="codeblock"><span class="kw">def</span> encadrer(img, e, v):
+    h, l = len(img), len(img[0])
+    res = [[v] * (l + 2 * e) <span class="kw">for</span> i <span class="kw">in</span> range(h + 2 * e)]
+    <span class="kw">for</span> i <span class="kw">in</span> range(h):
+        <span class="kw">for</span> j <span class="kw">in</span> range(l):
+            res[i + e][j + e] = img[i][j]
+    <span class="kw">return</span> res
+
+print(encadrer([[5, 6]], 1, 0))    <span class="cmt"># [[0, 0, 0, 0], [0, 5, 6, 0], [0, 0, 0, 0]]</span></pre>
+    <p><strong>Q4.</strong> <span class="code-inline">recadrer</span> recopie \(H\,L\) pixels (plus \(H\) éléments pour la tranche des lignes) : \(O(H\,L)\), indépendamment de la taille de l'image. <span class="code-inline">incruster</span> coûte \(O(h_m\,l_m)\), où \(h_m \times l_m\) est la taille du motif. <span class="code-inline">encadrer</span> crée \((h + 2e)(l + 2e)\) pixels : \(O((h + 2e)(l + 2e))\).</p>
+  </div>
+</div>
+
+<div class="exo concours"><span class="num">CONCOURS PT</span><span class="diff">★ ★ ★</span>
+  <h3>Contrôle visuel de pièces découpées</h3>
+  <div class="exo-source">Exercice <strong>original</strong> au format des épreuves PT (thème : traitement d'image pour le contrôle de production).</div>
+  <div class="statement"><p>Une caméra fixée au-dessus d'un tapis roulant photographie des pièces de tôle découpées au laser. Chaque photographie est une image carrée de \(n \times n\) pixels en niveaux de gris, représentée par une liste de \(n\) listes de \(n\) entiers de 0 à 255 ; la pièce apparaît sombre sur le tapis clair. Un pixel représente un carré de 0,5 mm de côté.</p>
+  <p>On dispose de la fonction suivante, qui fait tourner une image carrée d'un quart de tour dans le sens trigonométrique :</p>
+<pre class="codeblock"><span class="kw">def</span> image_vide(h, l, v):
+    <span class="cmt"># h lignes de l pixels, tous égaux à v ; chaque ligne est une NOUVELLE liste</span>
+    <span class="kw">return</span> [[v] * l <span class="kw">for</span> i <span class="kw">in</span> range(h)]
+
+<span class="kw">def</span> rotation_gauche(img):
+    <span class="cmt"># quart de tour dans le sens trigonométrique : l lignes, h colonnes</span>
+    h, l = len(img), len(img[0])
+    res = image_vide(l, h, 0)
+    <span class="kw">for</span> i <span class="kw">in</span> range(l):
+        <span class="kw">for</span> j <span class="kw">in</span> range(h):
+            res[i][j] = img[j][l - 1 - i]
+    <span class="kw">return</span> res</pre>
+  <p>On pourra utiliser la fonction <span class="code-inline">round</span> : <span class="code-inline">round(x)</span> renvoie l'entier le plus proche du flottant <span class="code-inline">x</span>. Toute autre fonction utilisée doit être écrite.</p></div>
+
+  <div class="exo-part">Partie A — Image binaire et aire</div>
+  <div class="q"><strong>Q1.</strong> Écrire une fonction <span class="code-inline">binariser(img, s)</span> qui renvoie une image de mêmes dimensions valant 1 là où <span class="code-inline">img[i][j] &lt; s</span> (pièce) et 0 ailleurs (tapis).</div>
+  <div class="q"><strong>Q2.</strong> Écrire une fonction <span class="code-inline">aire(b)</span> qui renvoie le nombre de pixels à 1 d'une image binaire <span class="code-inline">b</span>. Quelle est l'aire, en mm², d'une pièce qui occupe 6000 pixels ?</div>
+  <div class="q"><strong>Q3.</strong> Donner la complexité de <span class="code-inline">binariser</span> et de <span class="code-inline">aire</span> en fonction de \(n\).</div>
+
+  <div class="exo-part">Partie B — Centrer la pièce</div>
+  <div class="q"><strong>Q4.</strong> Écrire une fonction <span class="code-inline">centre(b)</span> qui renvoie le couple <span class="code-inline">(ic, jc)</span> des moyennes des indices de ligne et de colonne des pixels de la pièce. On vérifiera par une assertion que la pièce n'est pas vide.</div>
+  <div class="q"><strong>Q5.</strong> Écrire une fonction <span class="code-inline">translation(b, di, dj)</span> qui renvoie l'image binaire dans laquelle le pixel \((i, j)\) de <span class="code-inline">b</span> a été déplacé en \((i + di, j + dj)\) ; les pixels sortant de l'image sont perdus et ceux qui ne reçoivent rien valent 0. Les entiers <span class="code-inline">di</span> et <span class="code-inline">dj</span> peuvent être négatifs.</div>
+  <div class="q"><strong>Q6.</strong> En déduire une fonction <span class="code-inline">recentrer(b)</span> qui translate la pièce pour amener son centre au plus près du centre \(\left(\frac{n-1}{2}, \frac{n-1}{2}\right)\) de l'image.</div>
+
+  <div class="exo-part">Partie C — Comparer à la pièce de référence</div>
+  <div class="q"><strong>Q7.</strong> Écrire une fonction <span class="code-inline">ecart(b1, b2)</span> qui renvoie le nombre de pixels où deux images binaires de même taille diffèrent.</div>
+  <div class="q"><strong>Q8.</strong> La pièce peut être posée tournée de 0, 1, 2 ou 3 quarts de tour. Écrire une fonction <span class="code-inline">orientation(b, ref)</span> qui renvoie le couple <span class="code-inline">(k, e)</span> où \(k\) est le nombre de quarts de tour (sens trigonométrique) qui, appliqués à <span class="code-inline">b</span>, minimisent l'écart \(e\) avec <span class="code-inline">ref</span>. Les deux images sont supposées déjà recentrées.</div>
+  <div class="q"><strong>Q9.</strong> Une pièce est conforme si cet écart minimal ne dépasse pas 2 % de l'aire de la pièce de référence. Écrire une fonction <span class="code-inline">conforme(img, ref, s)</span>, où <span class="code-inline">img</span> est la photographie brute et <span class="code-inline">ref</span> l'image binaire recentrée de la pièce de référence.</div>
+
+  <div class="exo-part">Partie D — Tenir la cadence</div>
+  <div class="q"><strong>Q10.</strong> Évaluer le nombre d'opérations élémentaires effectuées par <span class="code-inline">conforme</span> en fonction de \(n\). Avec \(n = 1000\), et un programme Python qui effectue environ \(10^7\) opérations élémentaires par seconde, peut-on contrôler 5 pièces par seconde ? Proposer une solution.</div>
+
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution"><h4>Correction</h4>
+    <p><strong>Q1.</strong></p>
+<pre class="codeblock"><span class="kw">def</span> binariser(img, s):
+    n = len(img)
+    b = image_vide(n, n, 0)
+    <span class="kw">for</span> i <span class="kw">in</span> range(n):
+        <span class="kw">for</span> j <span class="kw">in</span> range(n):
+            <span class="kw">if</span> img[i][j] &lt; s:
+                b[i][j] = 1
+    <span class="kw">return</span> b</pre>
+    <p><strong>Q2.</strong> Les pixels valent 0 ou 1 : leur somme est le nombre de pixels de la pièce.</p>
+<pre class="codeblock"><span class="kw">def</span> aire(b):
+    s = 0
+    <span class="kw">for</span> ligne <span class="kw">in</span> b:
+        <span class="kw">for</span> v <span class="kw">in</span> ligne:
+            s = s + v
+    <span class="kw">return</span> s</pre>
+    <p>Un pixel couvre \(0{,}5 \times 0{,}5 = 0{,}25\ \text{mm}^2\) : 6000 pixels font \(1500\ \text{mm}^2\), soit \(15\ \text{cm}^2\).</p>
+    <p><strong>Q3.</strong> Les deux fonctions font \(n^2\) passages de coût constant : \(O(n^2)\), linéaire en le nombre de pixels.</p>
+    <p><strong>Q4.</strong> On accumule les indices des pixels de la pièce, puis on divise par leur nombre.</p>
+<pre class="codeblock"><span class="kw">def</span> centre(b):
+    n = len(b)
+    si, sj, k = 0, 0, 0
+    <span class="kw">for</span> i <span class="kw">in</span> range(n):
+        <span class="kw">for</span> j <span class="kw">in</span> range(n):
+            <span class="kw">if</span> b[i][j] == 1:
+                si, sj, k = si + i, sj + j, k + 1
+    <span class="kw">assert</span> k &gt; 0
+    <span class="kw">return</span> si / k, sj / k</pre>
+    <p><strong>Q5.</strong> Méthode de l'antécédent : le pixel \((i, j)\) d'arrivée vient de \((i - di, j - dj)\), s'il est dans l'image.</p>
+<pre class="codeblock"><span class="kw">def</span> translation(b, di, dj):
+    n = len(b)
+    res = image_vide(n, n, 0)
+    <span class="kw">for</span> i <span class="kw">in</span> range(n):
+        <span class="kw">for</span> j <span class="kw">in</span> range(n):
+            i0, j0 = i - di, j - dj
+            <span class="kw">if</span> 0 &lt;= i0 <span class="kw">and</span> i0 &lt; n <span class="kw">and</span> 0 &lt;= j0 <span class="kw">and</span> j0 &lt; n:
+                res[i][j] = b[i0][j0]
+    <span class="kw">return</span> res</pre>
+    <p><strong>Q6.</strong> Le déplacement à appliquer est la différence entre le centre de l'image et celui de la pièce, arrondie :</p>
+<pre class="codeblock"><span class="kw">def</span> recentrer(b):
+    n = len(b)
+    ic, jc = centre(b)
+    c = (n - 1) / 2
+    <span class="kw">return</span> translation(b, round(c - ic), round(c - jc))</pre>
+    <p><strong>Q7.</strong></p>
+<pre class="codeblock"><span class="kw">def</span> ecart(b1, b2):
+    n = len(b1)
+    e = 0
+    <span class="kw">for</span> i <span class="kw">in</span> range(n):
+        <span class="kw">for</span> j <span class="kw">in</span> range(n):
+            <span class="kw">if</span> b1[i][j] != b2[i][j]:
+                e = e + 1
+    <span class="kw">return</span> e</pre>
+    <p><strong>Q8.</strong> On essaie les quatre orientations en tournant <span class="code-inline">b</span> d'un quart de tour à chaque étape, et l'on garde la meilleure. Une rotation autour du centre de l'image laisse une pièce recentrée centrée (au pixel près).</p>
+<pre class="codeblock"><span class="kw">def</span> orientation(b, ref):
+    meilleur, emin = 0, ecart(b, ref)
+    r = b
+    <span class="kw">for</span> k <span class="kw">in</span> range(1, 4):
+        r = rotation_gauche(r)
+        e = ecart(r, ref)
+        <span class="kw">if</span> e &lt; emin:
+            meilleur, emin = k, e
+    <span class="kw">return</span> meilleur, emin</pre>
+    <p><strong>Q9.</strong></p>
+<pre class="codeblock"><span class="kw">def</span> conforme(img, ref, s):
+    b = recentrer(binariser(img, s))
+    k, e = orientation(b, ref)
+    <span class="kw">return</span> e &lt;= 0.02 * aire(ref)</pre>
+    <p><strong>Q10.</strong> Chaque étape parcourt l'image une fois : binarisation, calcul du centre, translation, trois rotations, quatre écarts, une aire, soit une douzaine de parcours de \(n^2\) pixels, chacun de quelques opérations : de l'ordre de \(10\,n^2\) à \(50\,n^2\) opérations, un \(O(n^2)\). Pour \(n = 1000\), cela fait \(10^7\) à \(5 \times 10^7\) opérations, soit 1 à 5 secondes par pièce : la cadence de 5 pièces par seconde n'est pas tenue. On peut réduire l'image d'un facteur 4 par moyenne avant le contrôle (\(n = 250\), 16 fois moins de pixels, d'où 0,06 à 0,3 seconde par pièce, au prix d'une précision de 2 mm au lieu de 0,5 mm), ne traiter que la boîte qui contient la pièce, ou confier ces calculs à un module de calcul sur tableaux bien plus rapide (documentation fournie).</p>
+<pre class="codeblock"><span class="cmt"># vérification : une pièce en L, puis la même pièce tournée et décalée</span>
+n = 21
+ref_img = [[230] * n <span class="kw">for</span> i <span class="kw">in</span> range(n)]
+<span class="kw">for</span> i <span class="kw">in</span> range(4, 15):
+    <span class="kw">for</span> j <span class="kw">in</span> range(6, 10):
+        ref_img[i][j] = 30
+<span class="kw">for</span> i <span class="kw">in</span> range(11, 15):
+    <span class="kw">for</span> j <span class="kw">in</span> range(10, 16):
+        ref_img[i][j] = 30
+ref = recentrer(binariser(ref_img, 128))
+b = translation(rotation_gauche(binariser(ref_img, 128)), 2, -3)
+photo = [[30 * v + 230 * (1 - v) <span class="kw">for</span> v <span class="kw">in</span> ligne] <span class="kw">for</span> ligne <span class="kw">in</span> b]
+print(orientation(recentrer(binariser(photo, 128)), ref))    <span class="cmt"># (3, 0)</span>
+print(conforme(photo, ref, 128))                            <span class="cmt"># True</span></pre>
+  </div>
+</div>
+
+</div>
+</template>

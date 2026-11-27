@@ -1,0 +1,1348 @@
+<!-- Chapitre « Machine à courant continu » (mcc) : contenu des onglets Cours, Méthodes et Exercices, chargé à l'ouverture du chapitre.
+     On l'édite ici, puis : node tools/chapitres.js (docs/chargement-chapitres.md). -->
+<template class="pan-tpl" data-panneau="mcc-cours">
+
+<div class="course-section">
+  <div class="sec-num">AU PROGRAMME · PTSI</div>
+  <h2>Ce que le programme officiel demande</h2>
+  <div class="intro">La machine à courant continu (MCC) est l'actionneur électrique le plus simple à modéliser : deux relations linéaires, \(E = K\Omega\) et \(C_{em} = KI\), relient le monde électrique au monde mécanique. Elle occupe la fonction <strong>convertir</strong> de la chaîne de puissance, juste après le convertisseur statique qui assure la fonction <strong>moduler</strong> (<a href="#ingsys/cours">« Ingénierie système »</a>, §8 ; <a href="#cvs/cours">« Convertisseurs statiques »</a>). Son principe physique est établi en physique (<a href="#induction/cours">« Induction électromagnétique »</a>, §8 et §11) ; ce chapitre en fait un modèle d'ingénieur : équations, schéma-blocs, quadrants, bilan de puissance, réponse à un échelon, association avec un hacheur.</div>
+  <div class="reveal" onclick="this.classList.toggle('open')">
+    <span class="label">Programme officiel</span>
+    <span class="prompt">Les capacités du programme, dans l'ordre du chapitre</span>
+    <div class="content">
+      <ul>
+        <li><strong>Identifier et décrire les chaînes fonctionnelles</strong> : fonctions alimenter, moduler, convertir, transmettre et agir (A3, S1) ; <strong>identifier les grandeurs d'effort et de flux</strong> (D1, S2) : tension et courant, couple et vitesse (§1).</li>
+        <li><strong>Analyser le fonctionnement du moteur à courant continu</strong> à partir des rails de Laplace et citer des exemples d'utilisation (programme de physique de PTSI, partie 1.7.5) : force de Laplace, f.é.m. induite, conversion parfaite \(EI = C_{em}\Omega\) (§2, §3, §10).</li>
+        <li><strong>Écrire les équations électrique et mécanique en précisant les conventions de signe</strong> (physique, 1.7.5) (§3).</li>
+        <li><strong>Établir un modèle de connaissance par des fonctions de transfert</strong> et <strong>modéliser un système par schéma-blocs</strong> (B2, S1) (§4, §6).</li>
+        <li><strong>Réversibilité</strong> : fonctionnement dans les quatre quadrants et réversibilité exigée de l'alimentation (B2, S2, avec « Convertisseurs statiques » §3) (§4, §8).</li>
+        <li><strong>Effectuer un bilan énergétique</strong> (physique, 1.7.5) : pertes et rendement (§5).</li>
+        <li><strong>Déterminer la réponse temporelle</strong> d'un modèle d'ordre 1 ou 2 à un échelon (C2, S1) et <strong>établir un modèle de comportement</strong> à partir d'une réponse temporelle (B2, S2) (§6, §9).</li>
+        <li>Point de fonctionnement avec une charge (§7) ; association avec le convertisseur qui la module, le hacheur (B2, S2) (§8).</li>
+        <li><strong>Choisir les entrées à imposer et les sorties pour identifier un modèle</strong> (D2, S2) : essais d'identification (§9).</li>
+      </ul>
+      <p><strong>Vu en avance (2ᵉ année)</strong> : le programme de sciences industrielles place le <em>modèle électromécanique de la machine à courant continu</em> et le <em>bilan des puissances</em> d'un convertisseur électromécanique au semestre S4 (compétence B2 « Modéliser un convertisseur électromécanique »), de même que la commande des machines en couple et en vitesse ; le rendement, l'inertie et le couple ramenés relèvent du semestre S3, l'ondulation du courant dans un convertisseur aussi. Ce modèle est pourtant utilisé dès la 1ʳᵉ année : ses équations sont exactement celles que la physique de PTSI établit pour le moteur à entrefer plan, et la MCC est l'exemple type des modèles du premier et du deuxième ordre. Le chapitre « Machines synchrone et asynchrone » de 2ᵉ année en fait le rappel (§9).</p>
+      <p>Hors programme (fin de chapitre) : la physique interne des machines (formule de la f.é.m. en fonction du bobinage, réaction d'induit, commutation), les modes d'excitation et le réglage de vitesse par le flux.</p>
+      <p>Notations (celles de la 2ᵉ année) : \(u\), \(i\), \(e\) pour les grandeurs qui varient, \(U\), \(I\), \(E\) en régime permanent ; \(K\) constante de f.é.m. et de couple (on la trouve aussi notée \(k\), en particulier dans le simulateur et les premières cartes de ce chapitre, et dans « Convertisseurs statiques ») ; \(C_{em}\) couple électromagnétique, \(C_r\) couple résistant, \(C_u\) couple utile sur l'arbre ; \(\Omega\) vitesse angulaire en rad/s ; \(\alpha\) rapport cyclique du hacheur.</p>
+    </div>
+  </div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§1 · PRÉSENTATION</div>
+  <h2>La machine à courant continu : convertisseur électromécanique</h2>
+  <div class="intro">La MCC est un convertisseur d'énergie totalement réversible. Elle peut fonctionner dans les deux sens : électrique → mécanique (moteur) ou mécanique → électrique (génératrice). C'est l'actionneur électromécanique de référence en automatique et en robotique.</div>
+
+  <h3>Deux modes de fonctionnement</h3>
+  <div class="def-box">
+    <strong>Mode moteur (récepteur) :</strong> la machine convertit de l'énergie électrique en énergie mécanique.
+    $$P_{\text{élec}} = U \cdot I \longrightarrow P_{\text{méc}} = C_u \cdot \Omega$$
+  </div>
+  <div class="def-box">
+    <strong>Mode génératrice (générateur) :</strong> la machine convertit de l'énergie mécanique en énergie électrique.
+    $$P_{\text{méc}} = C_u \cdot \Omega \longrightarrow P_{\text{élec}} = U \cdot I$$
+  </div>
+  <p>Dans les deux cas, un <strong>champ magnétique</strong> est indispensable à la conversion. C'est pourquoi on parle de convertisseur <em>électromécanique</em>.</p>
+
+  <h3>Les trois grandes parties de la machine</h3>
+  <ul>
+    <li><strong>Stator (inducteur) :</strong> partie fixe. Produit le champ magnétique, soit par des aimants permanents (ferrites, néodyme-fer-bore), soit par des bobines (enroulement inducteur) parcourues par un courant continu.</li>
+    <li><strong>Rotor (induit) :</strong> partie mobile. Cylindre en tôles magnétiques isolées, sur lequel sont répartis les conducteurs actifs. C'est la partie qui tourne.</li>
+    <li><strong>Collecteur à balais :</strong> assure la liaison électrique entre le circuit fixe et le rotor en rotation. Le collecteur (lames de cuivre) est solidaire du rotor, les balais (charbons) sont fixes et frottent sur le collecteur.</li>
+  </ul>
+  <p>L'<strong>entrefer</strong> désigne l'espace entre le stator et le rotor, là où se situent les conducteurs actifs soumis aux forces électromagnétiques.</p>
+<figure class="schema">
+<svg viewBox="0 0 470 256" role="img" aria-label="Coupe d'une machine à courant continu bipolaire : inducteur fixe à deux pôles N et S, induit tournant portant des conducteurs, courant entrant sous le pôle N et sortant sous le pôle S, forces de Laplace de sens opposés qui créent un couple, balais frottant sur le collecteur">
+<circle cx="200" cy="128" r="112" class="sk-ink fl-soft"/>
+<circle cx="200" cy="128" r="112" class="sk-ink"/>
+<circle cx="200" cy="128" r="96" class="sk-ink fl-paper"/>
+<path d="M126.5,66.3 A96,96 0 0 0 126.5,189.7 L151,169.1 A64,64 0 0 1 151,86.9 Z" class="sk-ink fl-accent-soft"/>
+<path d="M273.5,189.7 A96,96 0 0 0 273.5,66.3 L249,86.9 A64,64 0 0 1 249,169.1 Z" class="sk-ink fl-accent2-soft"/>
+<text x="118" y="133" class="lab-accent lab-b" text-anchor="middle">N</text>
+<text x="282" y="133" class="lab-accent2 lab-b" text-anchor="middle">S</text>
+<circle cx="200" cy="128" r="56" class="sk-ink fl-paper"/>
+<line x1="138" y1="128" x2="183" y2="128" class="sk-dash"/>
+<line x1="217" y1="128" x2="260" y2="128" class="sk-dash" marker-end="url(#sk-arrow-ink)"/>
+<text x="170" y="123" text-anchor="middle"><tspan class="lab-b">B</tspan></text>
+<circle cx="159.3" cy="104.5" r="5.5" class="sk-ink fl-paper"/>
+<line x1="155.8" y1="101" x2="162.8" y2="108" class="sk-ink" style="stroke-width:1.2"/>
+<line x1="155.8" y1="108" x2="162.8" y2="101" class="sk-ink" style="stroke-width:1.2"/>
+<circle cx="153.7" cy="119.8" r="5.5" class="sk-ink fl-paper"/>
+<line x1="150.2" y1="116.3" x2="157.2" y2="123.3" class="sk-ink" style="stroke-width:1.2"/>
+<line x1="150.2" y1="123.3" x2="157.2" y2="116.3" class="sk-ink" style="stroke-width:1.2"/>
+<circle cx="153.7" cy="136.2" r="5.5" class="sk-ink fl-paper"/>
+<line x1="150.2" y1="132.7" x2="157.2" y2="139.7" class="sk-ink" style="stroke-width:1.2"/>
+<line x1="150.2" y1="139.7" x2="157.2" y2="132.7" class="sk-ink" style="stroke-width:1.2"/>
+<circle cx="159.3" cy="151.5" r="5.5" class="sk-ink fl-paper"/>
+<line x1="155.8" y1="148" x2="162.8" y2="155" class="sk-ink" style="stroke-width:1.2"/>
+<line x1="155.8" y1="155" x2="162.8" y2="148" class="sk-ink" style="stroke-width:1.2"/>
+<circle cx="240.7" cy="151.5" r="5.5" class="sk-ink fl-paper"/>
+<circle cx="240.7" cy="151.5" r="1.8" class="fl-ink"/>
+<circle cx="246.3" cy="136.2" r="5.5" class="sk-ink fl-paper"/>
+<circle cx="246.3" cy="136.2" r="1.8" class="fl-ink"/>
+<circle cx="246.3" cy="119.8" r="5.5" class="sk-ink fl-paper"/>
+<circle cx="246.3" cy="119.8" r="1.8" class="fl-ink"/>
+<circle cx="240.7" cy="104.5" r="5.5" class="sk-ink fl-paper"/>
+<circle cx="240.7" cy="104.5" r="1.8" class="fl-ink"/>
+<line x1="153" y1="148" x2="153" y2="178" class="sk-green" marker-end="url(#sk-arrow-green)"/>
+<line x1="247" y1="108" x2="247" y2="78" class="sk-green" marker-end="url(#sk-arrow-green)"/>
+<text x="170" y="190" class="lab-green" text-anchor="middle"><tspan class="lab-b">F</tspan></text>
+<text x="231" y="76" class="lab-green" text-anchor="middle"><tspan class="lab-b">F</tspan></text>
+<path d="M215,102 A30,30 0 0 0 185,102" class="sk-accent" marker-end="url(#sk-arrow-accent)"/>
+<text x="202" y="91" class="lab-accent lab-it" text-anchor="middle">Ω</text>
+<circle cx="200" cy="128" r="13" class="sk-ink fl-soft"/>
+<circle cx="200" cy="128" r="13" class="sk-ink"/>
+<rect x="196" y="106" width="8" height="9" class="sk-ink fl-ink"/>
+<rect x="196" y="141" width="8" height="9" class="sk-ink fl-ink"/>
+<line x1="270" y1="42" x2="318" y2="24" class="sk-axis"/>
+<text x="322" y="24" class="lab-muted">inducteur (stator)</text>
+<line x1="238" y1="168" x2="318" y2="224" class="sk-axis"/>
+<text x="322" y="228" class="lab-muted">induit (rotor)</text>
+<line x1="204" y1="148" x2="318" y2="198" class="sk-axis"/>
+<text x="322" y="202" class="lab-muted">balais et collecteur</text>
+<line x1="260" y1="126" x2="318" y2="88" class="sk-axis"/>
+<text x="322" y="92" class="lab-muted">entrefer</text>
+<text x="88" y="24" class="lab-muted" text-anchor="middle"><tspan class="lab-b">B</tspan> : de N vers S</text>
+</svg>
+<figcaption>Coupe d'une machine bipolaire. L'inducteur (stator) crée le champ <strong>B</strong>, dirigé du pôle N vers le pôle S à travers l'induit. Sous le pôle N, le courant entre dans le plan (×) ; sous le pôle S, il en sort (•) : les forces de Laplace <strong>F</strong> sont opposées et créent un couple dans le sens de Ω. Le collecteur, monté en réalité à une extrémité de l'arbre, est dessiné au centre : en tournant, il inverse le courant d'un conducteur quand celui-ci passe d'un pôle à l'autre.</figcaption>
+</figure>
+
+  <h3>Rôle du collecteur à balais</h3>
+  <p>Le collecteur remplit deux fonctions essentielles :</p>
+  <ul>
+    <li>Alimenter l'induit en courant (passage du courant des balais fixes vers les conducteurs rotatifs).</li>
+    <li><strong>Inverser le sens du courant</strong> dans les spires au bon moment, afin de maintenir le couple toujours dans le même sens et assurer la continuité du mouvement.</li>
+  </ul>
+  <div class="notice">
+    Sans le collecteur, le couple changerait de sens à chaque demi-tour et le moteur s'arrêterait. C'est le collecteur qui transforme un courant alternatif induit en courant continu aux bornes (ou inversement). Revers de la médaille : les balais s'usent et produisent des étincelles, d'où l'essor des machines « sans balais », où un onduleur et un capteur de position remplacent le collecteur (2ᵉ année : « Machines synchrone et asynchrone », §7).
+  </div>
+
+  <h3>La MCC dans la chaîne de puissance</h3>
+  <p>Dans un système, la MCC assure la fonction <strong>convertir</strong> : elle reçoit l'énergie électrique dosée par le modulateur (un hacheur, piloté par la chaîne d'information) et la rend sous forme mécanique au transmetteur (réducteur, poulies, vis), qui la porte jusqu'à l'effecteur. Chaque liaison transporte une puissance qui est le produit d'une <strong>grandeur d'effort</strong> et d'une <strong>grandeur de flux</strong> : tension \(U\) et courant \(I\) côté électrique, couple \(C\) et vitesse angulaire \(\Omega\) côté mécanique (force et vitesse en translation).</p>
+  <div class="method-box">
+    <strong>Exemple — efforts et flux le long de la chaîne d'une visseuse sans fil</strong>
+    <p>Batterie 18 V (alimenter), variateur à gâchette, c'est-à-dire un hacheur (moduler), MCC (convertir), réducteur épicycloïdal de rapport 1/12 et de rendement 0,90 (transmettre), mandrin et embout (agir). Gâchette enfoncée : le moteur absorbe 10 A et tourne à 18 000 tr/min avec un rendement de 0,75.</p>
+    <ol>
+      <li>Puissance absorbée par le moteur : \(P_a = UI = 18 \times 10 = 180\ \text{W}\) (effort \(U\), flux \(I\)).</li>
+      <li>Puissance mécanique du moteur : \(0{,}75 \times 180 = 135\ \text{W}\) ; vitesse \(\Omega_m = 18\,000 \times \pi/30 = 1\,885\ \text{rad/s}\), d'où le couple \(C_m = 135/1\,885 = 0{,}072\ \text{N·m}\).</li>
+      <li>En sortie du réducteur : \(\Omega_s = \Omega_m/12 = 157\ \text{rad/s}\) (1 500 tr/min), \(P_s = 0{,}90 \times 135 = 121{,}5\ \text{W}\), \(C_s = 121{,}5/157 = 0{,}77\ \text{N·m}\) : le réducteur divise le flux par 12 et multiplie l'effort par \(12 \times 0{,}90 = 10{,}8\).</li>
+      <li>Autonomie à pleine puissance avec une batterie de 2 Ah : énergie \(18 \times 2 = 36\ \text{Wh}\), soit environ \(36/180\ \text{h} = 12\ \text{min}\).</li>
+    </ol>
+  </div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§2 · PRINCIPE DE FONCTIONNEMENT</div>
+  <h2>Loi de Laplace et force électromotrice</h2>
+  <div class="intro">Le fonctionnement de la MCC repose sur deux lois de l'électromagnétisme, établies en physique : la force de Laplace (force sur un conducteur parcouru par un courant dans un champ magnétique) et la loi de Faraday (f.é.m. induite dans un conducteur en mouvement dans un champ magnétique). Le moteur à entrefer plan de <a href="#induction/cours">« Induction électromagnétique »</a> (§11) en est la version la plus simple : des rails de Laplace « enroulés » en cercle.</div>
+
+  <h3>Force de Laplace — mode moteur</h3>
+  <div class="def-box">
+    Un élément de conducteur \(\mathrm{d}\vec\ell\), parcouru par un courant \(I\) et plongé dans un champ magnétique \(\vec{B}\), est soumis à la force élémentaire :
+    $$\mathrm{d}\vec{F} = I\,\mathrm{d}\vec{\ell} \wedge \vec{B}$$
+    Direction : règle des trois doigts de la main droite (pouce = courant, index = champ, majeur = force).
+  </div>
+  <p>Dans la MCC en mode moteur : l'induit, parcouru par le courant, est plongé dans le champ de l'inducteur → forces de Laplace → couple → rotation. Le collecteur inverse le courant au bon moment pour maintenir le couple dans le même sens.</p>
+
+  <h3>Loi de Faraday — mode génératrice</h3>
+  <p>Un circuit dont le flux magnétique \(\Phi\) varie est le siège d'une force électromotrice (f.é.m.), en convention générateur :</p>
+  <div class="formula">$$e = -\frac{\mathrm{d}\Phi}{\mathrm{d}t}$$</div>
+  <p>Dans la MCC en mode génératrice : un couple extérieur impose la rotation → les conducteurs balaient le champ de l'inducteur → f.é.m. → courant si une charge est branchée. En mode moteur, la même f.é.m. existe et s'oppose au courant qui fait tourner la machine (loi de Lenz) : on l'appelle <strong>force contre-électromotrice</strong> et on la note \(E\), fléchée en convention récepteur.</p>
+
+  <h3>Les deux situations résumées</h3>
+  <div class="prop-box">
+    <strong>Courant \(I\) imposé + champ \(\vec B\)</strong> → forces → couple → rotation → <em>moteur</em> (récepteur).<br>
+    <strong>Vitesse \(\Omega\) imposée + champ \(\vec B\)</strong> → f.é.m. \(E\) → tension aux bornes → <em>génératrice</em> (générateur).<br>
+    Les deux effets coexistent toujours : un moteur qui tourne produit une f.é.m., une génératrice qui débite subit un couple résistant.
+  </div>
+  <div class="method-box">
+    <strong>Exemple — d'où vient la constante \(K\) (modèle simplifié)</strong>
+    <p>Un induit de rayon \(r = 2\ \text{cm}\) porte, sous les pôles, \(N = 100\) conducteurs actifs de longueur \(\ell = 5\ \text{cm}\), reliés en série par le collecteur, dans un champ radial \(B = 0{,}60\ \text{T}\).</p>
+    <ol>
+      <li>Force sur un conducteur parcouru par \(I = 3\ \text{A}\) : \(F = BI\ell = 0{,}60 \times 3 \times 0{,}05 = 0{,}090\ \text{N}\), tangente au rotor ; moment \(rF = 1{,}8\ \text{mN·m}\). Pour les 100 conducteurs : \(C_{em} = NB\ell r\,I = 0{,}18\ \text{N·m}\).</li>
+      <li>F.é.m. d'un conducteur, de vitesse \(v = r\Omega\) : \(B\ell v = B\ell r\,\Omega\) ; à \(\Omega = 340\ \text{rad/s}\), \(0{,}204\ \text{V}\), soit \(E = NB\ell r\,\Omega = 20{,}4\ \text{V}\) pour les 100 conducteurs en série.</li>
+      <li>Le même produit \(K = NB\ell r = 0{,}060\) apparaît dans les deux relations : \(C_{em} = KI\) (en N·m/A) et \(E = K\Omega\) (en V·s/rad). Ce sont les valeurs du moteur de référence utilisé dans tout le chapitre (§3).</li>
+    </ol>
+  </div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§3 · MODÉLISATION ÉLECTROMÉCANIQUE</div>
+  <h2>F.é.m., couple et équations de la MCC</h2>
+  <div class="intro">Pour analyser et concevoir des systèmes utilisant une MCC, on établit des modèles mathématiques reliant les grandeurs électriques (\(U\), \(I\), \(E\)) aux grandeurs mécaniques (\(\Omega\), \(C_{em}\)). Ces modèles sont les fondements du dimensionnement et de l'asservissement. On suppose le flux de l'inducteur constant (aimants permanents, ou inducteur bobiné alimenté sous courant constant).</div>
+
+  <h3>Force électromotrice et couple électromagnétique</h3>
+  <div class="prop-box">
+    <strong>Relations de la MCC à flux constant.</strong> La f.é.m. est proportionnelle à la vitesse, le couple électromagnétique au courant, avec la <strong>même constante</strong> \(K\) :
+    <div class="formula" data-nom="F.é.m. et couple de la MCC">$$E = K\,\Omega \qquad\qquad C_{em} = K\,I$$</div>
+    \(K\) s'exprime en V·s/rad (pour \(E\)) ou, ce qui est équivalent, en N·m/A (pour \(C_{em}\)). La puissance électromagnétique est convertie sans perte : \(P_{em} = EI = C_{em}\,\Omega\).
+  </div>
+  <div class="reveal" onclick="this.classList.toggle('open')">
+    <span class="label">Démonstration</span>
+    <span class="prompt">Pourquoi la même constante dans les deux relations</span>
+    <div class="content">
+      <p>Les forces de Laplace qui s'exercent sur les conducteurs et la f.é.m. induite dans ces mêmes conducteurs ont la même origine. En physique, on montre que la puissance des forces de Laplace est l'opposée de la puissance électrique de la f.é.m. induite (\(P_L + e\,i = 0\), <a href="#induction/cours">« Induction »</a>, §8). Avec \(e = -E\) (f.c.é.m. fléchée en convention récepteur) : \(C_{em}\,\Omega = E\,I\) quels que soient \(I\) et \(\Omega\). Si \(E = K_E\,\Omega\) et \(C_{em} = K_T\,I\), alors \(K_T\,I\,\Omega = K_E\,\Omega\,I\), donc \(K_T = K_E\) en unités SI.</p>
+    </div>
+  </div>
+  <div class="notice"><strong>Erreur classique</strong> : un catalogue donne souvent la constante de f.é.m. en V pour 1 000 tr/min et la constante de couple en mN·m/A ; les deux nombres diffèrent, mais c'est la même constante une fois convertie en unités SI (§10). Toujours exprimer \(\Omega\) en rad/s : \(\Omega = \pi N/30\) si \(N\) est en tr/min.</div>
+
+  <h3>Équation électrique de l'induit</h3>
+  <p>L'induit est modélisé par une résistance \(R\) (résistance des bobinages et des contacts balais-collecteur), une inductance \(L\) (inductance du bobinage) et la f.é.m. en série. En convention récepteur (moteur) :</p>
+<figure class="schema">
+<svg viewBox="0 0 400 156" role="img" aria-label="Modèle électrique de l'induit : entre les deux bornes, une résistance R, une inductance L et une force électromotrice e égale à K Ω en série ; courant i entrant par la borne du haut et tension u fléchée vers cette borne, convention récepteur">
+<circle cx="60" cy="40" r="3.5" class="sk-ink fl-paper"/>
+<circle cx="60" cy="130" r="3.5" class="sk-ink fl-paper"/>
+<line x1="63.5" y1="40" x2="110" y2="40" class="sk-ink"/>
+<rect x="110" y="33" width="40" height="14" class="sk-ink fl-paper"/>
+<line x1="150" y1="40" x2="176" y2="40" class="sk-ink"/>
+<path d="M176,40 a7,7 0 0 1 14,0 a7,7 0 0 1 14,0 a7,7 0 0 1 14,0 a7,7 0 0 1 14,0" class="sk-ink"/>
+<line x1="232" y1="40" x2="290" y2="40" class="sk-ink"/>
+<line x1="290" y1="40" x2="290" y2="69.0" class="sk-ink"/>
+<circle cx="290" cy="85.0" r="16" class="sk-ink fl-paper"/>
+<line x1="290" y1="69.0" x2="290" y2="101.0" class="sk-ink"/>
+<line x1="290" y1="101.0" x2="290" y2="130" class="sk-ink"/>
+<line x1="290" y1="130" x2="63.5" y2="130" class="sk-ink"/>
+<line x1="72" y1="40" x2="96" y2="40" class="sk-accent" marker-end="url(#sk-arrow-accent)"/>
+<text x="84" y="31" class="lab-accent lab-it" text-anchor="middle">i</text>
+<line x1="40" y1="124" x2="40" y2="48" class="sk-accent2" marker-end="url(#sk-arrow-accent2)"/>
+<text x="30" y="90" class="lab-accent2 lab-it" text-anchor="end">u</text>
+<line x1="318" y1="112" x2="318" y2="58" class="sk-accent2" marker-end="url(#sk-arrow-accent2)"/>
+<text x="326" y="90" class="lab-accent2 lab-it">e = KΩ</text>
+<line x1="148" y1="60" x2="114" y2="60" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<text x="130" y="77" class="lab-muted lab-it" text-anchor="middle">R i</text>
+<line x1="230" y1="60" x2="180" y2="60" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<text x="205" y="77" class="lab-muted lab-it" text-anchor="middle">L di/dt</text>
+<text x="130" y="27" class="lab-it" text-anchor="middle">R</text>
+<text x="204" y="27" class="lab-it" text-anchor="middle">L</text>
+<text x="175" y="150" class="lab-muted" text-anchor="middle">induit vu de ses bornes (balais)</text>
+</svg>
+<figcaption>Modèle électrique de l'induit, en convention récepteur (moteur) : \(u = R\,i + L\,\dfrac{\mathrm di}{\mathrm dt} + e\), avec la f.é.m. \(e = K\Omega\), qui s'oppose au courant quand la machine fonctionne en moteur (force contre-électromotrice). En régime permanent : \(U = RI + E\).</figcaption>
+</figure>
+  <div class="formula" data-nom="Équation électrique de la MCC">$$u = e + R\,i + L\,\frac{\mathrm{d}i}{\mathrm{d}t} \qquad\text{avec } e = K\,\Omega$$</div>
+  <p><strong>En régime permanent</strong> (courant constant, \(L\,\mathrm{d}i/\mathrm{d}t = 0\)) :</p>
+  <div class="formula" data-nom="MCC en régime permanent">$$U = E + R\,I$$</div>
+  <p><strong>En convention générateur</strong> (génératrice qui débite, courant fléché sortant par la borne +) : \(u = e - R\,i - L\,\dfrac{\mathrm{d}i}{\mathrm{d}t}\), soit \(U = E - RI\) en régime permanent. On peut aussi garder la convention récepteur : le courant est alors simplement négatif (§4).</p>
+
+  <h3>Équation mécanique</h3>
+  <p>Le principe fondamental de la dynamique appliqué au rotor et à la charge qu'il entraîne, en rotation autour de son axe (théorème du moment dynamique) :</p>
+  <div class="formula" data-nom="Équation mécanique de la MCC">$$J\,\frac{\mathrm{d}\Omega}{\mathrm{d}t} = C_{em} - C_r - f\,\Omega$$</div>
+  <p>avec \(J\) le moment d'inertie du rotor et de la charge ramenée sur son arbre (kg·m²), \(f\) le coefficient de frottement visqueux (N·m·s/rad), \(C_r\) le couple résistant de la charge (N·m). En régime permanent (\(\mathrm{d}\Omega/\mathrm{d}t = 0\)) : \(C_{em} = C_r + f\,\Omega\).</p>
+  <div class="method-box">
+    <strong>Exemple — point de fonctionnement du moteur de référence</strong>
+    <p>Moteur de référence du chapitre : \(R = 1{,}2\ \Omega\), \(L = 1{,}5\ \text{mH}\), \(K = 0{,}060\ \text{V·s/rad}\), \(J = 4{,}0\times10^{-5}\ \text{kg·m}^2\) (rotor et charge), frottements négligés. Alimenté sous \(U = 24\ \text{V}\), il entraîne une charge de couple résistant \(C_r = 0{,}18\ \text{N·m}\).</p>
+    <ol>
+      <li>Équation mécanique en régime permanent : \(C_{em} = C_r\), donc \(I = C_r/K = 0{,}18/0{,}060 = 3{,}0\ \text{A}\). C'est la charge qui fixe le courant.</li>
+      <li>Équation électrique : \(E = U - RI = 24 - 1{,}2 \times 3{,}0 = 20{,}4\ \text{V}\).</li>
+      <li>Vitesse : \(\Omega = E/K = 20{,}4/0{,}060 = 340\ \text{rad/s}\), soit \(340 \times 30/\pi \approx 3\,250\ \text{tr/min}\). C'est la tension qui fixe (à peu près) la vitesse.</li>
+      <li>Contrôle énergétique : \(UI = 72\ \text{W} = RI^2 + EI = 10{,}8 + 61{,}2\) et \(EI = 61{,}2\ \text{W} = C_{em}\Omega = 0{,}18 \times 340\).</li>
+    </ol>
+  </div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§4 · SCHÉMA BLOC ET CARACTÉRISTIQUE</div>
+  <h2>Modèle de comportement et fonctionnement en 4 quadrants</h2>
+  <div class="intro">Le passage dans le domaine de Laplace permet d'obtenir le schéma-blocs de la chaîne de conversion électromécanique, indispensable pour l'automatique. La caractéristique couple-vitesse illustre les quatre modes de fonctionnement possibles.</div>
+
+  <h3>Modèle dans le domaine de Laplace</h3>
+  <p>En appliquant la transformée de Laplace (conditions initiales nulles) aux équations de la MCC :</p>
+  <div class="formula">$$U(p) = E(p) + (R + Lp)\,I(p)$$</div>
+  <div class="formula">$$E(p) = K\,\Omega(p) \qquad C_{em}(p) = K\,I(p)$$</div>
+  <div class="formula">$$C_{em}(p) - C_r(p) = (f + Jp)\,\Omega(p)$$</div>
+<figure class="schema">
+<svg viewBox="0 0 460 140" role="img" aria-label="Schéma-blocs de la machine à courant continu : la tension U moins la f.é.m. E attaque le bloc 1 sur R plus L p qui donne le courant I, multiplié par K il donne le couple électromagnétique ; on retranche le couple résistant, le bloc 1 sur f plus J p donne la vitesse Ω, qui revient par le gain K pour former la f.é.m. E">
+<text x="14" y="44" class="lab-it">U(p)</text>
+<polyline points="14,52 50,52" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<circle cx="61" cy="52" r="11" class="sk-ink fl-paper"/>
+<line x1="53.3" y1="44.3" x2="68.7" y2="59.7" class="sk-ink" style="opacity:.45"/>
+<line x1="53.3" y1="59.7" x2="68.7" y2="44.3" class="sk-ink" style="opacity:.45"/>
+<text x="45" y="46" class="lab-b" text-anchor="middle">+</text>
+<text x="51" y="78" class="lab-b" text-anchor="middle">−</text>
+<polyline points="72,52 98,52" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<rect x="98" y="34" width="68" height="36" rx="2" class="sk-ink fl-paper"/><text x="132" y="56.5" text-anchor="middle"></text>
+<line x1="106" y1="52" x2="158" y2="52" class="sk-ink" style="stroke-width:1"/>
+<text x="132" y="47" text-anchor="middle">1</text>
+<text x="132" y="65" class="lab-it" text-anchor="middle">R + Lp</text>
+<polyline points="166,52 196,52" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<text x="181" y="44" class="lab-it" text-anchor="middle">I(p)</text>
+<rect x="196" y="37" width="30" height="30" rx="2" class="sk-ink fl-paper"/><text x="211" y="56.5" class="lab-it" text-anchor="middle">K</text>
+<polyline points="226,52 262,52" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<text x="244" y="30" class="lab-it" text-anchor="middle">C<tspan dy="4" font-size="12">em</tspan></text>
+<circle cx="273" cy="52" r="11" class="sk-ink fl-paper"/>
+<line x1="265.3" y1="44.3" x2="280.7" y2="59.7" class="sk-ink" style="opacity:.45"/>
+<line x1="265.3" y1="59.7" x2="280.7" y2="44.3" class="sk-ink" style="opacity:.45"/>
+<text x="257" y="46" class="lab-b" text-anchor="middle">+</text>
+<text x="289" y="40" class="lab-b" text-anchor="middle">−</text>
+<polyline points="273,8 273,41" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<text x="280" y="16" class="lab-it">C<tspan dy="4" font-size="12">r</tspan>(p)</text>
+<polyline points="284,52 310,52" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<rect x="310" y="34" width="68" height="36" rx="2" class="sk-ink fl-paper"/><text x="344" y="56.5" text-anchor="middle"></text>
+<line x1="318" y1="52" x2="370" y2="52" class="sk-ink" style="stroke-width:1"/>
+<text x="344" y="47" text-anchor="middle">1</text>
+<text x="344" y="65" class="lab-it" text-anchor="middle">f + Jp</text>
+<polyline points="378,52 450,52" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<text x="440" y="44" class="lab-it" text-anchor="end">Ω(p)</text>
+<circle cx="408" cy="52" r="2.6" class="fl-ink"/>
+<polyline points="408,52 408,118 258,118" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<rect x="228" y="103" width="30" height="30" rx="2" class="sk-ink fl-paper"/><text x="243" y="122.5" class="lab-it" text-anchor="middle">K</text>
+<polyline points="228,118 61,118 61,63" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<text x="150" y="112" class="lab-it" text-anchor="middle">E(p)</text>
+</svg>
+<figcaption>Schéma-blocs de la machine à courant continu. Le bloc électrique \(\dfrac{1}{R + Lp}\) donne le courant, le gain \(K\) le couple, le bloc mécanique \(\dfrac{1}{f + Jp}\) la vitesse ; la f.é.m. \(E = K\Omega\) referme une boucle interne, propre à la machine (aucun capteur). Le couple résistant \(C_r\) est une perturbation.</figcaption>
+</figure>
+  <div class="notice">
+    La boucle de la f.é.m. n'est pas celle d'un système asservi : aucun capteur, aucun correcteur, c'est la <strong>contre-réaction naturelle</strong> de la machine. Elle stabilise la vitesse : si \(\Omega\) augmente, \(E\) augmente, \(I\) diminue et \(C_{em}\) diminue. Réduction du schéma (<a href="#schblocs/cours">« Schéma-blocs »</a>, §3) et réponse à un échelon : §6.
+  </div>
+
+  <h3>Caractéristique couple-vitesse</h3>
+  <p>En régime permanent, \(U = K\Omega + RI\) et \(C_{em} = KI\) donnent :</p>
+  <div class="formula" data-nom="Caractéristique couple-vitesse">$$C_{em} = \frac{K}{R}\,U - \frac{K^2}{R}\,\Omega \qquad\Longleftrightarrow\qquad \Omega = \frac{U}{K} - \frac{R}{K^2}\,C_{em}$$</div>
+  <p>C'est un réseau de droites parallèles, une par valeur de \(U\), de pente \(-K^2/R\) (toujours négative). Deux points remarquables : le <strong>couple de démarrage</strong> \(C_{dém} = KU/R\) (à \(\Omega = 0\), courant \(I_{dém} = U/R\)) et la <strong>vitesse à vide</strong> \(\Omega_0 = U/K\) (à \(C_{em} = 0\), frottements négligés).</p>
+  <div class="method-box">
+    <strong>Exemple — caractéristique du moteur de référence sous 24 V</strong>
+    <ol>
+      <li>Vitesse à vide : \(\Omega_0 = 24/0{,}060 = 400\ \text{rad/s}\) (3 820 tr/min).</li>
+      <li>Démarrage : \(I_{dém} = 24/1{,}2 = 20\ \text{A}\), \(C_{dém} = 0{,}060 \times 20 = 1{,}2\ \text{N·m}\) : près de sept fois le courant et le couple du point de fonctionnement du §3.</li>
+      <li>Pente : \(R/K^2 = 1{,}2/0{,}0036 = 333\ \text{rad·s}^{-1}\) par N·m. Pour \(C_{em} = 0{,}18\ \text{N·m}\), la vitesse baisse de \(333 \times 0{,}18 = 60\ \text{rad/s}\) : \(\Omega = 340\ \text{rad/s}\), comme au §3. La vitesse varie peu avec la charge : la MCC est « raide ».</li>
+    </ol>
+  </div>
+
+  <h3>Fonctionnement dans les 4 quadrants</h3>
+  <div class="def-box">
+    La MCC peut fonctionner dans les 4 quadrants du plan \((C_{em}, \Omega)\), couple en abscisse :
+    <ul style="margin-top:0.4rem">
+      <li><strong>Quadrant 1</strong> (\(C_{em} > 0\), \(\Omega > 0\)) : moteur en marche avant — \(I > 0\), \(U > 0\).</li>
+      <li><strong>Quadrant 2</strong> (\(C_{em} \lt 0\), \(\Omega > 0\)) : frein en marche avant, la machine fonctionne en génératrice — \(I \lt 0\), \(U > 0\) en général.</li>
+      <li><strong>Quadrant 3</strong> (\(C_{em} \lt 0\), \(\Omega \lt 0\)) : moteur en marche arrière — \(I \lt 0\), \(U \lt 0\).</li>
+      <li><strong>Quadrant 4</strong> (\(C_{em} > 0\), \(\Omega \lt 0\)) : frein en marche arrière, la machine fonctionne en génératrice — \(I > 0\), \(U \lt 0\) en général.</li>
+    </ul>
+  </div>
+<figure class="schema">
+<svg viewBox="0 0 460 300" role="img" aria-label="Caractéristiques de la machine à courant continu dans le plan couple-vitesse, couple en abscisse : quatre droites parallèles de pente négative pour U égal à 24, 12, moins 12 et moins 24 volts ; quadrants moteur 1 et 3 teintés, quadrants frein 2 et 4 ; point A en quadrant 1 et point B en quadrant 4">
+<rect x="215" y="26" width="165" height="120" class="fl-accent-soft"/>
+<rect x="50" y="146" width="165" height="120" class="fl-accent-soft"/>
+<line x1="73.6" y1="26" x2="73.6" y2="266" class="sk-axis" style="opacity:.35"/>
+<line x1="144.3" y1="26" x2="144.3" y2="266" class="sk-axis" style="opacity:.35"/>
+<line x1="285.7" y1="26" x2="285.7" y2="266" class="sk-axis" style="opacity:.35"/>
+<line x1="356.4" y1="26" x2="356.4" y2="266" class="sk-axis" style="opacity:.35"/>
+<line x1="50" y1="246" x2="380" y2="246" class="sk-axis" style="opacity:.35"/>
+<line x1="50" y1="196" x2="380" y2="196" class="sk-axis" style="opacity:.35"/>
+<line x1="50" y1="96" x2="380" y2="96" class="sk-axis" style="opacity:.35"/>
+<line x1="50" y1="46" x2="380" y2="46" class="sk-axis" style="opacity:.35"/>
+<line x1="50" y1="146" x2="392" y2="146" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<line x1="215" y1="266" x2="215" y2="14" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<text x="396" y="120" class="lab-muted lab-it">C<tspan dy="4" font-size="12">em</tspan></text>
+<text x="396" y="138" class="lab-muted">(N·m)</text>
+<text x="223" y="20" class="lab-muted lab-it">Ω (rad/s)</text>
+<line x1="73.6" y1="146" x2="73.6" y2="150" class="sk-axis"/>
+<text x="73.6" y="163" class="lab-muted" text-anchor="middle">−1,2</text>
+<line x1="144.3" y1="146" x2="144.3" y2="150" class="sk-axis"/>
+<text x="144.3" y="163" class="lab-muted" text-anchor="middle">−0,6</text>
+<line x1="285.7" y1="146" x2="285.7" y2="150" class="sk-axis"/>
+<text x="285.7" y="163" class="lab-muted" text-anchor="middle">0,6</text>
+<line x1="356.4" y1="146" x2="356.4" y2="150" class="sk-axis"/>
+<text x="356.4" y="163" class="lab-muted" text-anchor="middle">1,2</text>
+<line x1="211" y1="246" x2="215" y2="246" class="sk-axis"/>
+<text x="208" y="250" class="lab-muted" text-anchor="end">−400</text>
+<line x1="211" y1="196" x2="215" y2="196" class="sk-axis"/>
+<text x="208" y="200" class="lab-muted" text-anchor="end">−200</text>
+<line x1="211" y1="96" x2="215" y2="96" class="sk-axis"/>
+<text x="208" y="100" class="lab-muted" text-anchor="end">200</text>
+<line x1="211" y1="46" x2="215" y2="46" class="sk-axis"/>
+<text x="208" y="50" class="lab-muted" text-anchor="end">400</text>
+<polyline points="186.8,26.1 380,162.7" class="sk-accent"/>
+<polyline points="116,26 380,212.7" class="sk-accent"/>
+<polyline points="50,79.3 314,266" class="sk-accent2"/>
+<polyline points="50,129.3 243.2,265.9" class="sk-accent2"/>
+<text x="386" y="171.7" class="lab-accent">24 V</text>
+<text x="386" y="221.7" class="lab-accent">12 V</text>
+<text x="44" y="83.3" class="lab-accent2" text-anchor="end">−12 V</text>
+<text x="44" y="133.3" class="lab-accent2" text-anchor="end">−24 V</text>
+<circle cx="236.2" cy="61" r="3.2" class="fl-ink"/>
+<text x="244.2" y="77" class="lab-b">A</text>
+<circle cx="236.2" cy="196" r="3.2" class="fl-ink"/>
+<text x="244.2" y="190" class="lab-b">B</text>
+<text x="332.9" y="34.8" class="lab-accent lab-b" text-anchor="middle">Q1 · moteur</text>
+<text x="91.2" y="34.8" class="lab-muted lab-b" text-anchor="middle">Q2 · frein</text>
+<text x="103" y="256" class="lab-accent2 lab-b" text-anchor="middle">Q3 · moteur</text>
+<text x="338.8" y="256" class="lab-muted lab-b" text-anchor="middle">Q4 · frein</text>
+</svg>
+<figcaption>Caractéristiques \(\Omega = \dfrac{U}{K} - \dfrac{R}{K^2}\,C_{em}\) du moteur de référence (\(K = 0{,}060\ \text{V·s/rad}\), \(R = 1{,}2\ \Omega\)) dans le plan \((C_{em}, \Omega)\), couple en abscisse. Changer \(U\) translate la droite sans changer sa pente. Chaque droite traverse trois quadrants : la machine passe de moteur à frein sans changer de tension, selon la charge. A : moteur en marche avant (§3) ; B : charge retenue à la descente, sous \(U = -8{,}4\ \text{V}\) (exemple ci-dessous). Fond teinté : fonctionnement en moteur (Q1, Q3).</figcaption>
+</figure>
+  <p>En mode moteur (Q1 et Q3) : \(C_{em}\) et \(\Omega\) de <strong>même signe</strong> — le couple crée le mouvement, la puissance électromagnétique \(EI = C_{em}\Omega\) est positive.</p>
+  <p>En mode génératrice (Q2 et Q4) : \(C_{em}\) et \(\Omega\) de <strong>signes opposés</strong> — le couple s'oppose au mouvement (effet de frein), la machine reçoit de la puissance mécanique et la convertit en puissance électrique.</p>
+  <div class="prop-box">
+    Le signe de \(I\) est celui de \(C_{em}\) (\(C_{em} = KI\)) ; celui de \(U\) est celui de \(\Omega\), au terme \(RI\) près (\(U = K\Omega + RI\)).<br>
+    Pour passer de Q1 à Q2 ou de Q3 à Q4 (le couple s'inverse, le sens de rotation est gardé) : alimentation réversible <strong>en courant</strong>.<br>
+    Pour passer de Q1 à Q4 ou de Q2 à Q3 (le sens de rotation s'inverse, le signe du couple est gardé) : alimentation réversible <strong>en tension</strong>.<br>
+    Les quatre quadrants exigent une alimentation réversible en tension et en courant (hacheur en pont en H, §8).
+  </div>
+  <div class="method-box">
+    <strong>Exemple — charge retenue à la descente (point B de la figure)</strong>
+    <p>Le moteur de référence entraîne un petit treuil. À la descente, la charge exerce sur l'arbre un couple moteur que la machine doit retenir : \(C_{em} = +0{,}18\ \text{N·m}\) alors que \(\Omega = -200\ \text{rad/s}\).</p>
+    <ol>
+      <li>\(I = C_{em}/K = 3{,}0\ \text{A}\) et \(E = K\Omega = -12\ \text{V}\), d'où \(U = E + RI = -12 + 3{,}6 = -8{,}4\ \text{V}\) : quadrant 4, frein en marche arrière.</li>
+      <li>Puissance électromagnétique : \(EI = -36\ \text{W}\) : la machine reçoit 36 W de la charge qui descend (\(C_{em}\,|\Omega| = 0{,}18 \times 200\)).</li>
+      <li>Puissance électrique : \(UI = -25{,}2\ \text{W}\) : 25,2 W sont renvoyés vers l'alimentation, 10,8 W perdus par effet Joule (\(RI^2\)). L'alimentation doit être réversible en tension (le courant garde son signe).</li>
+    </ol>
+  </div>
+  <div class="notice">
+    <strong>Freinage par contre-courant.</strong> Inverser brutalement la tension d'un moteur qui tourne en marche avant place aussi la machine en Q2, mais avec \(U \lt 0\) : elle reçoit alors de l'énergie de la source <em>et</em> de la charge, et tout est dissipé dans \(R\) (courant très élevé, exercice 04). Le freinage avec récupération garde \(U > 0\) et inverse seulement le courant.<br>
+    <strong>Plan choisi.</strong> La numérotation dépend du plan : dans le plan \((u, i)\) de la sortie d'un convertisseur (<a href="#cvs/cours">« Convertisseurs statiques »</a>, §3 ; <a href="#hacheurs/cours">« Les hacheurs »</a>), les axes sont échangés et le freinage en marche avant y porte le numéro 4. Toujours préciser le plan avant de nommer un quadrant.
+  </div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§5 · BILAN DE PUISSANCE ET RENDEMENT</div>
+  <h2>Les pertes et le rendement de la MCC</h2>
+  <div class="intro">La MCC n'est pas un convertisseur parfait. Une partie de l'énergie est dissipée sous forme de pertes Joule, de pertes magnétiques et de pertes mécaniques. Le bilan de puissance permet de quantifier ces pertes et de calculer le rendement.</div>
+
+  <h3>Bilan en mode moteur</h3>
+  <p>La puissance suit la chaîne : électrique → électromagnétique → mécanique utile, avec des pertes à chaque étape.</p>
+  <div class="formula">$$P_a = U I \ \xrightarrow{\ -P_j = RI^2\ }\ P_{em} = E I = C_{em}\Omega \ \xrightarrow{\ -P_c\ }\ P_u = C_u\,\Omega$$</div>
+  <div class="prop-box">
+    \(P_{em} = P_a - P_j = U\,I - R\,I^2\)<br>
+    \(P_u = P_{em} - P_c\)<br>
+    \(\boxed{P_u = P_a - P_j - P_c}\)
+  </div>
+  <div class="notice">Les pertes mécaniques (frottements des balais et des roulements, ventilation) et les pertes magnétiques \(P_{fer}\) (voir ci-dessous) se retranchent au même étage. On les regroupe en <strong>pertes collectives</strong> \(P_c\), à peu près indépendantes de la charge à vitesse donnée : un essai à vide les mesure (\(P_c = U I_0 - R I_0^2\)). Elles correspondent à un couple de pertes \(C_p = P_c/\Omega = C_{em} - C_u\) : le couple utile est un peu plus faible que le couple électromagnétique.</div>
+
+  <h3>Bilan en mode génératrice</h3>
+  <p>La puissance suit la chaîne inverse : mécanique → électromagnétique → électrique utile.</p>
+  <div class="formula">$$P_a = C_u\,\Omega \ \xrightarrow{\ -P_c\ }\ P_{em} = E I \ \xrightarrow{\ -P_j = RI^2\ }\ P_u = U I$$</div>
+  <div class="prop-box">
+    \(P_{em} = P_a - P_c\)<br>
+    \(P_u = P_{em} - P_j\)<br>
+    \(\boxed{P_u = P_a - P_j - P_c}\)
+  </div>
+  <p>Ici \(C_u\) est le couple fourni sur l'arbre par ce qui entraîne la génératrice, et \(I\) le courant débité (convention générateur).</p>
+
+  <h3>Rendement</h3>
+  <div class="formula" data-nom="Rendement d'une MCC">$$\eta = \frac{P_u}{P_a}$$</div>
+
+  <h3>Les trois types de pertes</h3>
+  <div class="def-box">
+    <strong>Pertes Joule</strong> \(P_j = R\,I^2\) : dues à la résistance du bobinage d'induit (un inducteur bobiné ajoute ses propres pertes Joule \(r\,i_e^2\), fournies par sa source d'excitation). Augmentent avec \(I^2\), donc avec le carré du couple. Remède : ventilation, limitation du courant.
+  </div>
+  <div class="def-box">
+    <strong>Pertes magnétiques</strong> \(P_{fer}\) : dues à l'hystérésis et aux courants de Foucault dans le fer de l'induit. Dépendent de \(B\) et de \(\Omega\). Remèdes : fer au silicium, feuilletage de l'induit.
+  </div>
+  <div class="def-box">
+    <strong>Pertes mécaniques</strong> \(P_{méc}\) : dues aux frottements (balais-collecteur, roulements) et à la ventilation. Augmentent avec \(\Omega\). Remèdes : roulements de qualité, lubrification.
+  </div>
+<figure class="schema">
+<svg viewBox="0 0 430 252" role="img" aria-label="Rendement du moteur de référence sous 24 volts en fonction du courant : nul à très faible courant, maximal vers 1,7 ampère, puis décroissant lentement ; courbes en pointillés des parts de pertes Joule et collectives, qui se croisent au maximum">
+<line x1="118" y1="22" x2="118" y2="218" class="sk-axis" style="opacity:.35"/>
+<line x1="190" y1="22" x2="190" y2="218" class="sk-axis" style="opacity:.35"/>
+<line x1="262" y1="22" x2="262" y2="218" class="sk-axis" style="opacity:.35"/>
+<line x1="334" y1="22" x2="334" y2="218" class="sk-axis" style="opacity:.35"/>
+<line x1="46" y1="178.8" x2="406" y2="178.8" class="sk-axis" style="opacity:.35"/>
+<line x1="46" y1="139.6" x2="406" y2="139.6" class="sk-axis" style="opacity:.35"/>
+<line x1="46" y1="100.4" x2="406" y2="100.4" class="sk-axis" style="opacity:.35"/>
+<line x1="46" y1="61.2" x2="406" y2="61.2" class="sk-axis" style="opacity:.35"/>
+<line x1="46" y1="218" x2="418" y2="218" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<line x1="46" y1="218" x2="46" y2="10" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<text x="414" y="210" class="lab-muted lab-it" text-anchor="end">I (A)</text>
+<text x="52" y="14" class="lab-muted lab-it">η</text>
+<line x1="118" y1="218" x2="118" y2="222" class="sk-axis"/>
+<text x="118" y="235" class="lab-muted" text-anchor="middle">2</text>
+<line x1="190" y1="218" x2="190" y2="222" class="sk-axis"/>
+<text x="190" y="235" class="lab-muted" text-anchor="middle">4</text>
+<line x1="262" y1="218" x2="262" y2="222" class="sk-axis"/>
+<text x="262" y="235" class="lab-muted" text-anchor="middle">6</text>
+<line x1="334" y1="218" x2="334" y2="222" class="sk-axis"/>
+<text x="334" y="235" class="lab-muted" text-anchor="middle">8</text>
+<line x1="406" y1="218" x2="406" y2="222" class="sk-axis"/>
+<text x="406" y="235" class="lab-muted" text-anchor="middle">10</text>
+<line x1="42" y1="178.8" x2="46" y2="178.8" class="sk-axis"/>
+<text x="39" y="182.8" class="lab-muted" text-anchor="end">0,2</text>
+<line x1="42" y1="139.6" x2="46" y2="139.6" class="sk-axis"/>
+<text x="39" y="143.6" class="lab-muted" text-anchor="end">0,4</text>
+<line x1="42" y1="100.4" x2="46" y2="100.4" class="sk-axis"/>
+<text x="39" y="104.4" class="lab-muted" text-anchor="end">0,6</text>
+<line x1="42" y1="61.2" x2="46" y2="61.2" class="sk-axis"/>
+<text x="39" y="65.2" class="lab-muted" text-anchor="end">0,8</text>
+<line x1="42" y1="22" x2="46" y2="22" class="sk-axis"/>
+<text x="39" y="26" class="lab-muted" text-anchor="end">1,0</text>
+<polyline points="51.8,205.9 53.5,163.5 55.7,133.4 58.5,109.5 62.2,91.2 64.5,83.8 67,77.7 69.8,72.6 73.2,68 76.9,64.4 81.2,61.4 86,59.2 91.5,57.5 97.8,56.4 104.9,55.9 122.3,56.5 144.8,59.5 173.9,65 211.6,73.4 260.5,85.3 406,122.9" class="sk-accent"/>
+<polyline points="51.8,216.4 406,120" class="sk-dash"/>
+<polyline points="51.8,35.6 53.5,78.5 55.7,109.2 58.5,133.9 62.2,153.2 67,168 69.8,173.9 73.2,179.4 76.9,184 81.2,188.1 86,191.7 91.5,194.9 97.8,197.7 104.9,200.2 122.3,204.2 144.8,207.4 173.9,209.8 211.6,211.7 260.5,213.1 406,215.1" class="sk-dash"/>
+<text x="305.2" y="165.4" class="lab-muted">Joule / absorbée</text>
+<text x="74.8" y="159.2" class="lab-muted">collectives / absorbée</text>
+<line x1="108.1" y1="218" x2="108.1" y2="55.8" class="sk-dash"/>
+<circle cx="108.1" cy="55.8" r="3.2" class="fl-accent"/>
+<text x="114.1" y="46.8" class="lab-accent">η max = 0,83 à 1,73 A</text>
+<circle cx="154" cy="61.1" r="3.2" class="fl-ink"/>
+<text x="150" y="81.1" class="lab-b">A : 0,80</text>
+</svg>
+<figcaption>Rendement \(\eta = 1 - \dfrac{RI}{U} - \dfrac{P_c}{UI}\) du moteur de référence sous 24 V, avec des pertes collectives \(P_c = 3{,}6\ \text{W}\) supposées constantes. À faible charge, les pertes collectives dominent ; à forte charge, les pertes Joule. Le maximum est atteint quand les deux sont égales (\(RI^2 = P_c\)). Point A : 3 A, rendement 0,80.</figcaption>
+</figure>
+  <div class="method-box">
+    <strong>Exemple — bilan du moteur de référence au point A</strong>
+    <p>Un essai à vide sous 24 V donne \(I_0 = 0{,}15\ \text{A}\). En charge, le moteur absorbe \(I = 3{,}0\ \text{A}\) sous 24 V.</p>
+    <ol>
+      <li>Pertes collectives (essai à vide) : \(P_c = 24 \times 0{,}15 - 1{,}2 \times 0{,}15^2 = 3{,}6\ \text{W}\) (les pertes Joule à vide, 0,03 W, sont négligeables).</li>
+      <li>En charge : \(P_a = 72\ \text{W}\), \(P_j = 1{,}2 \times 3^2 = 10{,}8\ \text{W}\), \(P_{em} = 61{,}2\ \text{W}\), \(P_u = 61{,}2 - 3{,}6 = 57{,}6\ \text{W}\).</li>
+      <li>Rendement : \(\eta = 57{,}6/72 = 0{,}80\). Vitesse \(\Omega = (24 - 3{,}6)/0{,}060 = 340\ \text{rad/s}\), couple utile \(C_u = 57{,}6/340 = 0{,}169\ \text{N·m}\), à comparer à \(C_{em} = 0{,}18\ \text{N·m}\).</li>
+      <li>Le rendement est maximal quand \(RI^2 = P_c\), c'est-à-dire pour \(I = \sqrt{3{,}6/1{,}2} \approx 1{,}7\ \text{A}\) : il vaut alors 0,83 (figure). Au démarrage, ou à vide, il est nul : toute l'énergie absorbée est perdue.</li>
+    </ol>
+  </div>
+  <div class="notice"><strong>Ordres de grandeur</strong> : rendement de 50 à 70 % pour un petit moteur de quelques watts, 75 à 90 % pour un moteur de quelques centaines de watts à quelques kilowatts, plus de 90 % pour les grosses machines. Les pertes finissent en chaleur : c'est l'échauffement qui limite le courant permanent (§10).</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§6 · RÉPONSE À UN ÉCHELON : MODÈLE D'ORDRE 1 OU 2</div>
+  <h2>Deux constantes de temps, électrique et électromécanique</h2>
+  <div class="intro">Brancher le moteur sur une tension fixe, c'est lui appliquer un échelon. Selon les constantes de temps de l'induit et de la charge, sa vitesse se comporte comme un premier ou un deuxième ordre : c'est l'exemple type des chapitres <a href="#sys1/cours">« Systèmes du 1er ordre »</a> et <a href="#sys2/cours">« Systèmes du 2e ordre »</a>, dont on reprend le vocabulaire.</div>
+
+  <h3>Fonction de transfert complète</h3>
+  <p>En réduisant le schéma-blocs du §4 (boucle de retour \(K\)), pour \(C_r = 0\) :</p>
+  <div class="formula" data-nom="FT de la MCC">$$H(p) = \frac{\Omega(p)}{U(p)} = \frac{K}{(R + Lp)(f + Jp) + K^2} = \frac{K}{LJ\,p^2 + (RJ + Lf)\,p + Rf + K^2}$$</div>
+  <p>C'est un <strong>deuxième ordre</strong>, de gain statique \(K_s = \dfrac{K}{Rf + K^2}\) (noté \(K\) dans « Systèmes du 1er ordre », où la constante du moteur est notée \(k\)). On fait apparaître deux durées caractéristiques :</p>
+  <div class="def-box">
+    <strong>Constante de temps électrique</strong> \(\tau_e = \dfrac{L}{R}\) : temps d'établissement du courant, rotor bloqué.<br>
+    <strong>Constante de temps électromécanique</strong> \(\tau_m = \dfrac{RJ}{K^2}\) (frottements négligés) : temps de mise en vitesse du rotor et de sa charge.
+  </div>
+  <p>Frottements négligés (\(f = 0\)), le dénominateur s'écrit \(K^2\,(1 + \tau_m p + \tau_e\tau_m p^2)\), d'où :</p>
+  <div class="formula" data-nom="MCC : forme canonique (f = 0)">$$H(p) = \frac{1/K}{1 + \tau_m\,p + \tau_e\tau_m\,p^2} \qquad \omega_0 = \frac{1}{\sqrt{\tau_e\tau_m}} \qquad \xi = \frac{1}{2}\sqrt{\frac{\tau_m}{\tau_e}}$$</div>
+  <div class="prop-box">
+    <strong>Ordre 1 ou ordre 2 ?</strong> Si \(\tau_m \geq 4\tau_e\), alors \(\xi \geq 1\) : les deux pôles sont réels, la vitesse monte sans dépassement. Si de plus \(\tau_e \ll \tau_m\) (en pratique \(\tau_m \gt 10\,\tau_e\)), le pôle électrique, beaucoup plus rapide, peut être négligé :
+    <div class="formula" data-nom="MCC : modèle du premier ordre">$$H(p) \approx \frac{K_s}{1 + \tau_m\,p} \qquad K_s = \frac{1}{K} \qquad t_{r5\%} \approx 3\,\tau_m$$</div>
+    Avec un frottement visqueux, le premier ordre devient \(K_s = \dfrac{K}{Rf + K^2}\) et \(\tau = \dfrac{RJ}{Rf + K^2}\) (« Systèmes du 1er ordre », §1). Si \(\tau_m \lt 4\tau_e\) (charge très légère, inductance élevée), la vitesse oscille : modèle du deuxième ordre obligatoire.
+  </div>
+  <div class="reveal" onclick="this.classList.toggle('open')">
+    <span class="label">Démonstration</span>
+    <span class="prompt">Réduction du schéma-blocs et forme canonique</span>
+    <div class="content">
+      <p>Chaîne directe : \(\dfrac{K}{(R + Lp)(f + Jp)}\) ; chaîne de retour : \(K\). Formule de la boucle fermée : \(H = \dfrac{G}{1 + GK} = \dfrac{K}{(R + Lp)(f + Jp) + K^2}\). Avec \(f = 0\) :</p>
+      <div class="formula">$$(R + Lp)Jp + K^2 = K^2\left(1 + \frac{RJ}{K^2}\,p + \frac{LJ}{K^2}\,p^2\right)$$</div>
+      <p>et \(\dfrac{LJ}{K^2} = \dfrac{L}{R}\cdot\dfrac{RJ}{K^2} = \tau_e\tau_m\). Par identification avec \(1 + \dfrac{2\xi}{\omega_0}p + \dfrac{p^2}{\omega_0^2}\) : \(\omega_0^2 = \dfrac{1}{\tau_e\tau_m}\) et \(\dfrac{2\xi}{\omega_0} = \tau_m\), d'où \(\xi = \dfrac{\tau_m\,\omega_0}{2} = \dfrac{1}{2}\sqrt{\dfrac{\tau_m}{\tau_e}}\).</p>
+    </div>
+  </div>
+<figure class="schema">
+<svg viewBox="0 0 430 312" role="img" aria-label="Réponse du moteur de référence à vide à un échelon de 24 volts : vitesse qui monte vers 400 radians par seconde sans dépassement, et courant qui part de zéro, culmine à 16,8 ampères vers 3,4 millisecondes puis décroît ; en pointillés le modèle du premier ordre, dont le courant part de 20 ampères">
+<line x1="106" y1="20" x2="106" y2="130" class="sk-axis" style="opacity:.35"/>
+<line x1="166" y1="20" x2="166" y2="130" class="sk-axis" style="opacity:.35"/>
+<line x1="226" y1="20" x2="226" y2="130" class="sk-axis" style="opacity:.35"/>
+<line x1="286" y1="20" x2="286" y2="130" class="sk-axis" style="opacity:.35"/>
+<line x1="346" y1="20" x2="346" y2="130" class="sk-axis" style="opacity:.35"/>
+<line x1="46" y1="105" x2="406" y2="105" class="sk-axis" style="opacity:.35"/>
+<line x1="46" y1="80" x2="406" y2="80" class="sk-axis" style="opacity:.35"/>
+<line x1="46" y1="55" x2="406" y2="55" class="sk-axis" style="opacity:.35"/>
+<line x1="46" y1="30" x2="406" y2="30" class="sk-axis" style="opacity:.35"/>
+<line x1="46" y1="130" x2="418" y2="130" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<line x1="46" y1="130" x2="46" y2="8" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<line x1="42" y1="105" x2="46" y2="105" class="sk-axis"/>
+<text x="39" y="109" class="lab-muted" text-anchor="end">100</text>
+<line x1="42" y1="80" x2="46" y2="80" class="sk-axis"/>
+<text x="39" y="84" class="lab-muted" text-anchor="end">200</text>
+<line x1="42" y1="55" x2="46" y2="55" class="sk-axis"/>
+<text x="39" y="59" class="lab-muted" text-anchor="end">300</text>
+<line x1="42" y1="30" x2="46" y2="30" class="sk-axis"/>
+<text x="39" y="34" class="lab-muted" text-anchor="end">400</text>
+<text x="52" y="14" class="lab-muted lab-it">Ω (rad/s)</text>
+<polyline points="46,130 58.2,115.8 71.1,103.1 84.7,91.6 99.1,81.5 114.4,72.5 130.7,64.7 148.2,57.9 167.2,52 187.1,47.1 208.7,43.1 232.4,39.7 258.8,37 288.1,34.8 321.4,33.2 406,31.1" class="sk-dash"/>
+<polyline points="46,130 49.9,128.9 54.6,125.7 76.9,103.2 86.2,94.5 98.1,84.7 110.5,76 124.1,68 138.7,61 154.3,55 171.1,49.7 189.9,45.2 210.6,41.4 233.4,38.3 258.9,35.8 287.4,33.9 320.3,32.5 406,30.7" class="sk-accent"/>
+<line x1="46" y1="35" x2="406" y2="35" class="sk-axis" style="stroke-dasharray:2 3"/>
+<text x="400" y="49" class="lab-muted" text-anchor="end">95 %</text>
+<line x1="106" y1="172" x2="106" y2="282" class="sk-axis" style="opacity:.35"/>
+<line x1="166" y1="172" x2="166" y2="282" class="sk-axis" style="opacity:.35"/>
+<line x1="226" y1="172" x2="226" y2="282" class="sk-axis" style="opacity:.35"/>
+<line x1="286" y1="172" x2="286" y2="282" class="sk-axis" style="opacity:.35"/>
+<line x1="346" y1="172" x2="346" y2="282" class="sk-axis" style="opacity:.35"/>
+<line x1="46" y1="257" x2="406" y2="257" class="sk-axis" style="opacity:.35"/>
+<line x1="46" y1="232" x2="406" y2="232" class="sk-axis" style="opacity:.35"/>
+<line x1="46" y1="207" x2="406" y2="207" class="sk-axis" style="opacity:.35"/>
+<line x1="46" y1="182" x2="406" y2="182" class="sk-axis" style="opacity:.35"/>
+<line x1="46" y1="282" x2="418" y2="282" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<line x1="46" y1="282" x2="46" y2="160" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<line x1="42" y1="257" x2="46" y2="257" class="sk-axis"/>
+<text x="39" y="261" class="lab-muted" text-anchor="end">5</text>
+<line x1="42" y1="232" x2="46" y2="232" class="sk-axis"/>
+<text x="39" y="236" class="lab-muted" text-anchor="end">10</text>
+<line x1="42" y1="207" x2="46" y2="207" class="sk-axis"/>
+<text x="39" y="211" class="lab-muted" text-anchor="end">15</text>
+<line x1="42" y1="182" x2="46" y2="182" class="sk-axis"/>
+<text x="39" y="186" class="lab-muted" text-anchor="end">20</text>
+<line x1="106" y1="282" x2="106" y2="286" class="sk-axis"/>
+<text x="106" y="299" class="lab-muted" text-anchor="middle">10</text>
+<line x1="166" y1="282" x2="166" y2="286" class="sk-axis"/>
+<text x="166" y="299" class="lab-muted" text-anchor="middle">20</text>
+<line x1="226" y1="282" x2="226" y2="286" class="sk-axis"/>
+<text x="226" y="299" class="lab-muted" text-anchor="middle">30</text>
+<line x1="286" y1="282" x2="286" y2="286" class="sk-axis"/>
+<text x="286" y="299" class="lab-muted" text-anchor="middle">40</text>
+<line x1="346" y1="282" x2="346" y2="286" class="sk-axis"/>
+<text x="346" y="299" class="lab-muted" text-anchor="middle">50</text>
+<line x1="406" y1="282" x2="406" y2="286" class="sk-axis"/>
+<text x="406" y="299" class="lab-muted" text-anchor="middle">60</text>
+<text x="52" y="166" class="lab-muted lab-it">i (A)</text>
+<text x="414" y="274" class="lab-muted lab-it" text-anchor="end">t (ms)</text>
+<polyline points="46,182 58.2,196.2 71.1,208.9 84.7,220.4 99.1,230.5 114.4,239.5 130.7,247.3 148.2,254.1 167.2,260 187.1,264.9 208.7,268.9 232.4,272.3 258.8,275 288.1,277.2 321.4,278.8 406,280.9" class="sk-dash"/>
+<polyline points="46,282 49.7,243 51.8,228.5 54.2,216.9 56.7,208.4 59.5,202.5 62.7,199.1 66.3,197.9 70.2,198.8 75,201.6 106.1,227.4 117.6,235.5 129.6,242.6 142.7,249.2 156.6,255 171.5,260.1 187.5,264.5 205.5,268.4 225.2,271.6 246.8,274.3 270.8,276.5 328.1,279.5 406,281.2" class="sk-accent"/>
+<circle cx="66.3" cy="197.9" r="3.2" class="fl-accent"/>
+<text x="73.3" y="201.9" class="lab-accent">16,8 A à 3,4 ms</text>
+<text x="142" y="217" class="lab-muted">ordre 1 (L négligée)</text>
+<text x="166" y="95" class="lab-accent">ordre 2</text>
+</svg>
+<figcaption>Démarrage à vide sous un échelon de 24 V (moteur de référence, \(\tau_e = 1{,}25\ \text{ms}\), \(\tau_m = 13{,}3\ \text{ms}\)). Trait plein : modèle du deuxième ordre (inductance comprise), calculé numériquement ; pointillés : premier ordre (\(L\) négligée). Les vitesses se confondent presque ; le courant, lui, ne peut pas sauter à \(U/R = 20\ \text{A}\) : l'inductance le fait monter en quelques \(\tau_e\) jusqu'à un pic de 16,8 A.</figcaption>
+</figure>
+  <div class="method-box">
+    <strong>Exemple — démarrage à vide du moteur de référence</strong>
+    <ol>
+      <li>\(\tau_e = 1{,}5\times10^{-3}/1{,}2 = 1{,}25\ \text{ms}\) ; \(\tau_m = 1{,}2 \times 4\times10^{-5}/0{,}060^2 = 13{,}3\ \text{ms}\) : \(\tau_m/\tau_e = 10{,}7\).</li>
+      <li>\(\omega_0 = 1/\sqrt{1{,}25\times10^{-3} \times 13{,}3\times10^{-3}} = 245\ \text{rad/s}\) et \(\xi = \frac12\sqrt{10{,}7} = 1{,}63\) : régime apériodique, pôles réels \(-84\ \text{s}^{-1}\) et \(-716\ \text{s}^{-1}\) (constantes de temps 11,9 ms et 1,4 ms).</li>
+      <li>Modèle du premier ordre : \(\Omega(t) = 400\,(1 - e^{-t/\tau_m})\), qui atteint 95 % de 400 rad/s en \(3\tau_m = 40\ \text{ms}\) ; le calcul du deuxième ordre donne 37 ms : l'approximation est très bonne pour la vitesse.</li>
+      <li>Pour le courant, elle l'est moins : le premier ordre annonce un saut à \(U/R = 20\ \text{A}\) à \(t = 0\), le deuxième ordre un pic de 16,8 A au bout de 3,4 ms. L'ordre de grandeur reste le même : un échelon de tension appelle un fort courant de démarrage.</li>
+    </ol>
+  </div>
+  <div class="notice"><strong>Erreur classique</strong> : croire qu'un démarrage direct coûte peu d'énergie. À vide et sans frottement, la source fournit \(U\int i\,\mathrm{d}t = J\Omega_f^2\) (car \(K\int i\,\mathrm{d}t = J\Omega_f\) et \(U = K\Omega_f\)), dont la moitié seulement, \(\frac12 J\Omega_f^2\), est stockée en énergie cinétique : l'autre moitié part en effet Joule dans l'induit, quelle que soit la valeur de \(R\). Pour le moteur de référence : 6,4 J fournis, 3,2 J stockés.</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§7 · POINT DE FONCTIONNEMENT AVEC UNE CHARGE</div>
+  <h2>Où se fixent la vitesse et le courant</h2>
+  <div class="intro">En régime permanent, la vitesse se fixe là où le couple du moteur équilibre exactement celui de la charge : c'est le <strong>point de fonctionnement</strong>. Le trouver demande de connaître la caractéristique de la charge, ramenée sur l'arbre moteur.</div>
+
+  <h3>Caractéristiques des charges usuelles</h3>
+  <ul>
+    <li><strong>Couple constant</strong> : levage, convoyeur, frottement sec : \(C_r = C_0\), quelle que soit la vitesse.</li>
+    <li><strong>Frottement visqueux</strong> : \(C_r = f\,\Omega\).</li>
+    <li><strong>Couple quadratique</strong> : ventilateur, pompe centrifuge, hélice, véhicule à grande vitesse (traînée aérodynamique) : \(C_r = a\,\Omega^2\).</li>
+  </ul>
+  <div class="prop-box">
+    <strong>Point de fonctionnement.</strong> Il vérifie \(C_{em}(\Omega) = C_r(\Omega)\), avec \(C_{em}(\Omega) = \dfrac{K}{R}\,(U - K\Omega)\) (frottements internes inclus dans \(C_r\)). Graphiquement : intersection de la caractéristique du moteur et de celle de la charge. Le courant s'en déduit : \(I = C_{em}/K\).<br>
+    Il est <strong>stable</strong> si un léger excès de vitesse fait apparaître un couple qui ralentit : \(\dfrac{\mathrm{d}(C_{em} - C_r)}{\mathrm{d}\Omega} \lt 0\). C'est toujours le cas avec la MCC (pente \(-K^2/R\)) et une charge dont le couple ne décroît pas avec la vitesse.
+  </div>
+<figure class="schema">
+<svg viewBox="0 0 430 296" role="img" aria-label="Points de fonctionnement dans le plan couple-vitesse : trois caractéristiques du moteur pour 24, 16,9 et 12 volts, une courbe parabolique de ventilateur et une droite verticale de charge à couple constant ; les points de fonctionnement sont les intersections">
+<line x1="106" y1="24" x2="106" y2="244" class="sk-axis" style="opacity:.35"/>
+<line x1="166" y1="24" x2="166" y2="244" class="sk-axis" style="opacity:.35"/>
+<line x1="226" y1="24" x2="226" y2="244" class="sk-axis" style="opacity:.35"/>
+<line x1="286" y1="24" x2="286" y2="244" class="sk-axis" style="opacity:.35"/>
+<line x1="346" y1="24" x2="346" y2="244" class="sk-axis" style="opacity:.35"/>
+<line x1="46" y1="194" x2="406" y2="194" class="sk-axis" style="opacity:.35"/>
+<line x1="46" y1="144" x2="406" y2="144" class="sk-axis" style="opacity:.35"/>
+<line x1="46" y1="94" x2="406" y2="94" class="sk-axis" style="opacity:.35"/>
+<line x1="46" y1="44" x2="406" y2="44" class="sk-axis" style="opacity:.35"/>
+<line x1="46" y1="244" x2="418" y2="244" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<line x1="46" y1="244" x2="46" y2="12" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<text x="418" y="280" class="lab-muted lab-it" text-anchor="end">C<tspan dy="4" font-size="12">em</tspan> (N·m)</text>
+<text x="52" y="16" class="lab-muted lab-it">Ω (rad/s)</text>
+<line x1="106" y1="244" x2="106" y2="248" class="sk-axis"/>
+<text x="106" y="261" class="lab-muted" text-anchor="middle">0,1</text>
+<line x1="166" y1="244" x2="166" y2="248" class="sk-axis"/>
+<text x="166" y="261" class="lab-muted" text-anchor="middle">0,2</text>
+<line x1="226" y1="244" x2="226" y2="248" class="sk-axis"/>
+<text x="226" y="261" class="lab-muted" text-anchor="middle">0,3</text>
+<line x1="286" y1="244" x2="286" y2="248" class="sk-axis"/>
+<text x="286" y="261" class="lab-muted" text-anchor="middle">0,4</text>
+<line x1="346" y1="244" x2="346" y2="248" class="sk-axis"/>
+<text x="346" y="261" class="lab-muted" text-anchor="middle">0,5</text>
+<line x1="406" y1="244" x2="406" y2="248" class="sk-axis"/>
+<text x="406" y="261" class="lab-muted" text-anchor="middle">0,6</text>
+<line x1="42" y1="194" x2="46" y2="194" class="sk-axis"/>
+<text x="39" y="198" class="lab-muted" text-anchor="end">100</text>
+<line x1="42" y1="144" x2="46" y2="144" class="sk-axis"/>
+<text x="39" y="148" class="lab-muted" text-anchor="end">200</text>
+<line x1="42" y1="94" x2="46" y2="94" class="sk-axis"/>
+<text x="39" y="98" class="lab-muted" text-anchor="end">300</text>
+<line x1="42" y1="44" x2="46" y2="44" class="sk-axis"/>
+<text x="39" y="48" class="lab-muted" text-anchor="end">400</text>
+<polyline points="46,44 406,144" class="sk-accent"/>
+<text x="362" y="124.7" class="lab-accent">24 V</text>
+<polyline points="46,103.4 406,203.4" class="sk-accent"/>
+<text x="290" y="164" class="lab-accent">16,9 V</text>
+<polyline points="46,144 406,244" class="sk-accent"/>
+<text x="320" y="213" class="lab-accent">12 V</text>
+<polyline points="46,244 46.7,230 48.8,216 52.3,202.1 57,188.8 63.2,174.8 70.4,161.6 78.9,148.3 89.3,134.4 101,120.4 114.2,106.4 127.9,93.2 143.8,79.2 160.1,65.9 178.8,52 198.8,38 220.2,24" class="sk-accent2"/>
+<text x="203.3" y="43" class="lab-accent2">ventilateur</text>
+<line x1="154" y1="244" x2="154" y2="24" class="sk-green"/>
+<text x="159" y="236.5" class="lab-green">couple constant 0,18 N·m</text>
+<circle cx="151" cy="73.2" r="3.2" class="fl-accent2"/>
+<circle cx="154" cy="74" r="3.2" class="fl-green"/>
+<circle cx="102.2" cy="119" r="3.2" class="fl-accent2"/>
+<circle cx="154" cy="133.4" r="3.2" class="fl-green"/>
+<circle cx="76.2" cy="152.4" r="3.2" class="fl-accent2"/>
+<circle cx="154" cy="174" r="3.2" class="fl-green"/>
+</svg>
+<figcaption>Point de fonctionnement = intersection de la caractéristique du moteur et de celle de la charge, ramenée à l'arbre. Droites rouges : moteur sous 24 V, 16,9 V et 12 V. Bleu : ventilateur, \(C_r = a\Omega^2\) avec \(a = 1{,}5\times10^{-6}\ \text{N·m·s}^2\) (points à 342, 250 et 183 rad/s). Vert : charge à couple constant 0,18 N·m (points à 340, 221 et 140 rad/s). Le ventilateur ralentit davantage quand la tension baisse, puisque son couple diminue avec la vitesse.</figcaption>
+</figure>
+  <div class="method-box">
+    <strong>Exemple — régler la vitesse d'un ventilateur</strong>
+    <p>Le moteur de référence entraîne un ventilateur : \(C_r = a\Omega^2\), \(a = 1{,}5\times10^{-6}\ \text{N·m·s}^2\) (frottements du moteur compris).</p>
+    <ol>
+      <li>Sous 24 V : \(a\Omega^2 = \dfrac{K}{R}(U - K\Omega)\), soit \(1{,}5\times10^{-6}\,\Omega^2 + 0{,}003\,\Omega - 1{,}2 = 0\). La racine positive vaut \(\Omega = 342\ \text{rad/s}\) ; \(C_r = 0{,}175\ \text{N·m}\), \(I = 2{,}92\ \text{A}\).</li>
+      <li>Sous 12 V : la même méthode donne \(\Omega = 183\ \text{rad/s}\), \(I = 0{,}84\ \text{A}\). Diviser la tension par 2 divise ici la vitesse par 1,9 et le couple par 3,5.</li>
+      <li>Tension pour \(\Omega = 250\ \text{rad/s}\) : \(C_r = 1{,}5\times10^{-6} \times 250^2 = 0{,}094\ \text{N·m}\), \(I = 1{,}56\ \text{A}\), \(U = K\Omega + RI = 15 + 1{,}9 = 16{,}9\ \text{V}\). Un hacheur alimenté sous 24 V la fournit avec un rapport cyclique \(\alpha = 16{,}9/24 \approx 0{,}70\) (§8).</li>
+    </ol>
+  </div>
+  <h3>Charge ramenée sur l'arbre moteur</h3>
+  <p>Entre le moteur et la charge, un transmetteur de rapport \(k = \Omega_{\text{charge}}/\Omega_m\) et de rendement \(\eta\) transforme le couple : en marche motrice, la charge de couple \(C_{\text{charge}}\) impose au moteur \(C_r = k\,C_{\text{charge}}/\eta\), et son inertie compte pour \(J_{\text{charge}}\,k^2\) dans \(J\). Ce calcul, au programme de 2ᵉ année (S3), est détaillé dans <a href="#energsi/cours">« Énergétique des systèmes »</a> (§6, §7).</p>
+  <div class="method-box">
+    <strong>Exemple — treuil à réducteur</strong>
+    <p>Une masse \(m = 20\ \text{kg}\) est levée par un tambour de rayon 1 cm, entraîné par le moteur à travers un réducteur de rapport \(k = 1/50\) et de rendement 0,80 (\(g = 9{,}81\ \text{m/s}^2\)).</p>
+    <ol>
+      <li>Couple sur le tambour : \(mg \times 0{,}01 = 1{,}96\ \text{N·m}\).</li>
+      <li>Couple ramené sur l'arbre moteur, à la montée : \(C_r = 1{,}96/(50 \times 0{,}80) = 0{,}049\ \text{N·m}\), soit \(I = 0{,}82\ \text{A}\) pour le moteur de référence.</li>
+      <li>Inertie équivalente de la masse, ramenée sur l'arbre moteur : \(m\,(0{,}01/50)^2 = 8\times10^{-7}\ \text{kg·m}^2\), négligeable devant l'inertie du rotor : le réducteur « cache » l'inertie de la charge.</li>
+    </ol>
+  </div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§8 · ALIMENTATION PAR UN HACHEUR</div>
+  <h2>Moduler la tension pour régler la vitesse et freiner</h2>
+  <div class="intro">Une batterie ou un bus continu fournit une tension fixe \(U_0\). Pour régler la vitesse, il faut moduler la tension appliquée à l'induit : c'est le rôle du <strong>hacheur</strong>, qui découpe \(U_0\) à haute fréquence (<a href="#cvs/cours">« Convertisseurs statiques »</a>, §8 ; <a href="#hacheurs/cours">« Les hacheurs »</a>). La source est notée \(U_0\) ici, car \(E\) désigne la f.é.m. ; les chapitres sur les convertisseurs la notent \(E\) et la f.é.m. du moteur \(E_m\).</div>
+  <div class="prop-box">
+    <strong>Valeur moyenne.</strong> Un hacheur série de rapport cyclique \(\alpha\) applique \(u = U_0\) pendant \(\alpha T\), puis \(u = 0\) : \(\langle u\rangle = \alpha\,U_0\). La période de découpage (de l'ordre de \(50\ \mu\text{s}\)) est très courte devant \(\tau_e\) et \(\tau_m\) : le courant ondule peu, la vitesse pas du tout, et en moyenne
+    <div class="formula" data-nom="MCC sur hacheur">$$\alpha\,U_0 = K\,\Omega + R\,\langle i\rangle \qquad\Longrightarrow\qquad \Omega = \frac{\alpha\,U_0 - R\,\langle i\rangle}{K}$$</div>
+    Le rapport cyclique règle la vitesse ; la charge fixe le courant moyen \(\langle i\rangle = C_{em}/K\).
+  </div>
+  <h3>Quel hacheur pour quels quadrants ?</h3>
+  <div style="overflow-x:auto"><table>
+    <tr><th>Besoin</th><th>Quadrants \((C_{em}, \Omega)\)</th><th>Signes à la sortie</th><th>Hacheur</th></tr>
+    <tr><td>Tourner dans un sens, sans freinage électrique</td><td>Q1</td><td>\(u \geq 0\), \(i \geq 0\)</td><td>série (« Les hacheurs », §2)</td></tr>
+    <tr><td>Freiner en récupérant l'énergie, un seul sens de rotation</td><td>Q1 et Q2</td><td>\(u \geq 0\), \(i\) des deux signes</td><td>réversible en courant (§3)</td></tr>
+    <tr><td>Retenir une charge entraînante (levage)</td><td>Q1 et Q4</td><td>\(i \geq 0\), \(u\) des deux signes</td><td>réversible en tension</td></tr>
+    <tr><td>Les deux sens, en moteur et en frein (robot, véhicule)</td><td>les quatre</td><td>\(u\) et \(i\) des deux signes</td><td>pont en H (§4)</td></tr>
+  </table></div>
+  <div class="method-box">
+    <strong>Exemple — rapport cyclique pour une vitesse imposée</strong>
+    <p>Le moteur de référence, alimenté par un hacheur série sous \(U_0 = 24\ \text{V}\) à \(f_d = 20\ \text{kHz}\), entraîne la charge du §3 (\(C_r = 0{,}18\ \text{N·m}\)). On veut \(\Omega = 200\ \text{rad/s}\).</p>
+    <ol>
+      <li>Courant moyen fixé par la charge : \(\langle i\rangle = 0{,}18/0{,}060 = 3{,}0\ \text{A}\).</li>
+      <li>Tension moyenne nécessaire : \(\langle u\rangle = K\Omega + R\langle i\rangle = 12 + 3{,}6 = 15{,}6\ \text{V}\), d'où \(\alpha = 15{,}6/24 = 0{,}65\).</li>
+      <li>Ondulation crête à crête du courant (formule établie dans « Les hacheurs », §5) :
+        <div class="formula">$$\Delta i \approx \frac{\alpha(1-\alpha)\,U_0}{L f_d} = \frac{0{,}65 \times 0{,}35 \times 24}{1{,}5\times10^{-3} \times 2\times10^4} = 0{,}18\ \text{A}$$</div>
+        soit 6 % du courant moyen : le couple ondule à peine.</li>
+    </ol>
+  </div>
+  <h3>Démarrer sans surintensité</h3>
+  <p>Un échelon de tension appelle un fort courant (§6). Avec un hacheur, on fait croître \(\alpha\) progressivement : si la tension moyenne monte de 0 à \(U_0\) en une durée \(T_r\) grande devant \(\tau_m\), la vitesse suit la rampe, avec l'accélération \(\dfrac{U_0}{K\,T_r}\), et le courant vaut à peu près</p>
+  <div class="formula" data-nom="Démarrage en rampe">$$i \approx \frac{J\,U_0}{K^2\,T_r} + \frac{C_r}{K}$$</div>
+<figure class="schema">
+<svg viewBox="0 0 430 292" role="img" aria-label="Démarrage à vide du moteur de référence : sous un échelon de 24 volts, le courant culmine à près de 17 ampères ; sous une rampe de tension de 50 millisecondes, il reste vers 5,3 ampères pendant la montée et la vitesse suit la rampe avec un léger retard">
+<line x1="118" y1="20" x2="118" y2="120" class="sk-axis" style="opacity:.35"/>
+<line x1="190" y1="20" x2="190" y2="120" class="sk-axis" style="opacity:.35"/>
+<line x1="262" y1="20" x2="262" y2="120" class="sk-axis" style="opacity:.35"/>
+<line x1="334" y1="20" x2="334" y2="120" class="sk-axis" style="opacity:.35"/>
+<line x1="46" y1="97.3" x2="406" y2="97.3" class="sk-axis" style="opacity:.35"/>
+<line x1="46" y1="74.5" x2="406" y2="74.5" class="sk-axis" style="opacity:.35"/>
+<line x1="46" y1="51.8" x2="406" y2="51.8" class="sk-axis" style="opacity:.35"/>
+<line x1="46" y1="29.1" x2="406" y2="29.1" class="sk-axis" style="opacity:.35"/>
+<line x1="46" y1="120" x2="418" y2="120" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<line x1="46" y1="120" x2="46" y2="8" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<line x1="42" y1="97.3" x2="46" y2="97.3" class="sk-axis"/>
+<text x="39" y="101.3" class="lab-muted" text-anchor="end">100</text>
+<line x1="42" y1="74.5" x2="46" y2="74.5" class="sk-axis"/>
+<text x="39" y="78.5" class="lab-muted" text-anchor="end">200</text>
+<line x1="42" y1="51.8" x2="46" y2="51.8" class="sk-axis"/>
+<text x="39" y="55.8" class="lab-muted" text-anchor="end">300</text>
+<line x1="42" y1="29.1" x2="46" y2="29.1" class="sk-axis"/>
+<text x="39" y="33.1" class="lab-muted" text-anchor="end">400</text>
+<text x="52" y="14" class="lab-muted lab-it">Ω (rad/s)</text>
+<polyline points="46,120 48.5,118.9 51.7,115.4 66.2,93.3 75,81.4 83.1,72.5 91.7,64.7 102.6,56.6 114.7,49.9 128,44.4 142.7,39.9 158.3,36.6 176,34.1 196.4,32.2 220.7,30.9 284.1,29.5 406,29.1" class="sk-dash"/>
+<polyline points="46,120 60.3,119.4 74.5,117.2 90.6,113 109.1,106.7 130.5,98.1 156.1,86.7 235.5,48.4 247.6,43.7 260.6,39.9 272.1,37.4 284.8,35.3 314.5,32.2 352.4,30.4 406,29.5" class="sk-accent"/>
+<line x1="118" y1="160" x2="118" y2="260" class="sk-axis" style="opacity:.35"/>
+<line x1="190" y1="160" x2="190" y2="260" class="sk-axis" style="opacity:.35"/>
+<line x1="262" y1="160" x2="262" y2="260" class="sk-axis" style="opacity:.35"/>
+<line x1="334" y1="160" x2="334" y2="260" class="sk-axis" style="opacity:.35"/>
+<line x1="46" y1="235" x2="406" y2="235" class="sk-axis" style="opacity:.35"/>
+<line x1="46" y1="210" x2="406" y2="210" class="sk-axis" style="opacity:.35"/>
+<line x1="46" y1="185" x2="406" y2="185" class="sk-axis" style="opacity:.35"/>
+<line x1="46" y1="260" x2="418" y2="260" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<line x1="46" y1="260" x2="46" y2="148" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<line x1="42" y1="235" x2="46" y2="235" class="sk-axis"/>
+<text x="39" y="239" class="lab-muted" text-anchor="end">5</text>
+<line x1="42" y1="210" x2="46" y2="210" class="sk-axis"/>
+<text x="39" y="214" class="lab-muted" text-anchor="end">10</text>
+<line x1="42" y1="185" x2="46" y2="185" class="sk-axis"/>
+<text x="39" y="189" class="lab-muted" text-anchor="end">15</text>
+<line x1="118" y1="260" x2="118" y2="264" class="sk-axis"/>
+<text x="118" y="277" class="lab-muted" text-anchor="middle">20</text>
+<line x1="190" y1="260" x2="190" y2="264" class="sk-axis"/>
+<text x="190" y="277" class="lab-muted" text-anchor="middle">40</text>
+<line x1="262" y1="260" x2="262" y2="264" class="sk-axis"/>
+<text x="262" y="277" class="lab-muted" text-anchor="middle">60</text>
+<line x1="334" y1="260" x2="334" y2="264" class="sk-axis"/>
+<text x="334" y="277" class="lab-muted" text-anchor="middle">80</text>
+<line x1="406" y1="260" x2="406" y2="264" class="sk-axis"/>
+<text x="406" y="277" class="lab-muted" text-anchor="middle">100</text>
+<text x="52" y="154" class="lab-muted lab-it">i (A)</text>
+<text x="414" y="252" class="lab-muted lab-it" text-anchor="end">t (ms)</text>
+<polyline points="46,260 48.3,220.4 50.9,194.7 52.4,186.3 54.1,180.5 56,177 58.2,175.9 60.8,177 63.9,180.2 78.3,200.6 87,211.4 95,219.5 103.4,226.7 114.2,234.1 126,240.3 138.9,245.5 153.4,249.6 168.7,252.7 186,255.1 206,256.9 229.7,258.2 291,259.6 406,260" class="sk-dash"/>
+<polyline points="46,260 51.3,258.8 69.2,250.9 82.3,246.3 97.1,242.5 113.7,239.6 134.1,237.2 158.3,235.5 187.8,234.4 226.1,233.8 231.4,235 249.2,242.7 262.4,247.2 277.1,250.9 293.7,253.9 314.1,256.2 338.3,257.8 367.8,258.9 406,259.5" class="sk-accent"/>
+<text x="89.2" y="190" class="lab-muted">échelon de 24 V</text>
+<text x="233.2" y="195" class="lab-accent">rampe de 0 à 24 V en 50 ms</text>
+<line x1="46" y1="233.3" x2="226" y2="233.3" class="sk-axis" style="stroke-dasharray:2 3"/>
+</svg>
+<figcaption>Démarrage à vide du moteur de référence. Pointillés : échelon de 24 V (pic de courant de 16,8 A). Trait plein : la commande du hacheur fait croître la tension moyenne de 0 à 24 V en 50 ms. La vitesse suit la rampe avec un retard d'environ \(\tau_m\) ; le courant se stabilise près de \(\dfrac{J U}{K^2 T_r} = 5{,}3\ \text{A}\), le courant qu'il faut pour donner au rotor l'accélération de la rampe.</figcaption>
+</figure>
+  <div class="method-box">
+    <strong>Exemple — durée de rampe pour limiter le courant à 6 A</strong>
+    <ol>
+      <li>À vide (\(C_r = 0\)) : \(T_r \geq \dfrac{J\,U_0}{K^2\,I_{max}} = \dfrac{4\times10^{-5} \times 24}{0{,}0036 \times 6} = 44\ \text{ms}\).</li>
+      <li>Avec \(T_r = 50\ \text{ms}\), la simulation (figure) donne un courant maximal de 5,2 A, contre 16,8 A pour l'échelon : la formule approchée (5,3 A) est fiable dès que \(T_r\) dépasse quelques \(\tau_m\).</li>
+    </ol>
+  </div>
+  <div class="notice"><strong>Vu en avance (2ᵉ année)</strong> : en pratique, on ne règle pas \(\alpha\) « à la main » : une boucle de courant (correcteur PI) commande le hacheur pour que le courant suive une consigne, ce qui fixe le couple et le limite ; une boucle de vitesse, autour d'elle, élabore cette consigne. C'est la commande en couple et en vitesse du programme de 2ᵉ année (<a href="#correcteurs/cours">« Correction des SLCI »</a>, §7).</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§9 · IDENTIFIER LES PARAMÈTRES PAR DES ESSAIS</div>
+  <h2>Trois essais simples pour R, K, les pertes et l'inertie</h2>
+  <div class="intro">Une documentation n'est pas toujours disponible, et la charge modifie l'inertie et les frottements. On identifie alors le modèle par des essais : on choisit l'entrée à imposer (tension, couple) et la sortie à mesurer (courant, vitesse) de façon à isoler un seul paramètre à la fois (<a href="#sys1/cours">« Systèmes du 1er ordre »</a>, §5).</div>
+  <div style="overflow-x:auto"><table>
+    <tr><th>Essai</th><th>Entrée imposée</th><th>Mesures</th><th>Paramètre obtenu</th></tr>
+    <tr><td>Rotor bloqué</td><td>faible tension continue \(U_b\)</td><td>courant \(I_b\) établi</td><td>\(R = U_b/I_b\) (car \(\Omega = 0\), donc \(E = 0\))</td></tr>
+    <tr><td>Rotor bloqué, échelon</td><td>échelon de tension</td><td>courant \(i(t)\)</td><td>\(\tau_e = L/R\), à 63 % du courant final</td></tr>
+    <tr><td>À vide</td><td>tension nominale \(U\)</td><td>courant \(I_0\), vitesse \(\Omega_0\)</td><td>\(K = \dfrac{U - RI_0}{\Omega_0}\) ; pertes collectives \(P_c = UI_0 - RI_0^2\)</td></tr>
+    <tr><td>Réponse indicielle</td><td>échelon de tension</td><td>vitesse \(\Omega(t)\)</td><td>\(\tau_m\) (premier ordre), d'où \(J = \tau_m K^2/R\)</td></tr>
+    <tr><td>Lâcher (ralentissement)</td><td>alimentation coupée à \(\Omega_0\)</td><td>décélération initiale</td><td>\(J = \dfrac{C_p}{|\mathrm{d}\Omega/\mathrm{d}t|}\) avec \(C_p = P_c/\Omega_0\)</td></tr>
+  </table></div>
+  <div class="method-box">
+    <strong>Exemple — identification d'un moteur inconnu</strong>
+    <ol>
+      <li>Rotor bloqué sous 2,0 V : le courant s'établit à 2,5 A, d'où \(R = 0{,}80\ \Omega\). Il atteint 63 % de cette valeur en 1,0 ms : \(\tau_e = 1{,}0\ \text{ms}\), \(L = R\tau_e = 0{,}80\ \text{mH}\).</li>
+      <li>À vide sous 24 V : \(I_0 = 0{,}30\ \text{A}\) et 2 950 tr/min, soit \(\Omega_0 = 309\ \text{rad/s}\). \(E = 24 - 0{,}80 \times 0{,}30 = 23{,}76\ \text{V}\), d'où \(K = 23{,}76/309 = 0{,}0769\ \text{V·s/rad}\) ; \(P_c = 7{,}2 - 0{,}07 = 7{,}13\ \text{W}\).</li>
+      <li>Réponse à un échelon de tension, moteur accouplé à sa charge : temps de réponse à 5 % de la vitesse 75 ms, sans dépassement. Premier ordre : \(\tau_m = 75/3 = 25\ \text{ms}\) et \(J = \tau_m K^2/R = 0{,}025 \times 0{,}0769^2/0{,}80 = 1{,}85\times10^{-4}\ \text{kg·m}^2\). Contrôle : \(\tau_m = 25\ \text{ms} \gg 4\tau_e\), le premier ordre est justifié.</li>
+      <li>Vérification par un lâcher : couple de pertes \(C_p = 7{,}13/309 = 0{,}023\ \text{N·m}\) ; décélération attendue \(C_p/J = 125\ \text{rad/s}^2\), soit un arrêt en 2,5 s environ si \(C_p\) reste constant. Une mesure très différente signalerait une erreur sur \(J\) ou sur le modèle des pertes.</li>
+    </ol>
+  </div>
+  <div class="notice"><strong>Erreur classique</strong> : mesurer \(R\) à l'ohmmètre rotor libre, ou sous une tension trop forte qui fait tourner le rotor (la f.é.m. fausse la mesure). Autre piège : identifier \(\tau_m\) sur le moteur seul, puis l'utiliser une fois la charge accouplée ; \(\tau_m\) est proportionnelle à l'inertie totale.</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§10 · DOCUMENTATION, ORDRES DE GRANDEUR ET UTILISATIONS</div>
+  <h2>Lire un catalogue et choisir un point de fonctionnement</h2>
+  <div class="intro">Les fabricants donnent les paramètres du modèle sous des formes et des unités variées. Savoir les convertir et les recouper permet de vérifier qu'un moteur convient à un point de fonctionnement, et de repérer une donnée incohérente.</div>
+  <h3>Données d'un catalogue et conversions</h3>
+  <ul>
+    <li><strong>Constante de couple</strong> en mN·m/A : diviser par 1 000 pour obtenir \(K\) en N·m/A.</li>
+    <li><strong>Constante de vitesse</strong> en tr/min par volt : c'est \(1/K\) exprimée en tr/min ; \(K = \dfrac{30}{\pi\,k_n}\) avec \(k_n\) en tr/min/V.</li>
+    <li><strong>Constante de f.é.m.</strong> en V pour 1 000 tr/min : diviser par \(1\,000\,\pi/30 \approx 104{,}7\).</li>
+    <li><strong>Courant permanent maximal</strong> (limite thermique) et <strong>courant crête</strong> (limite des aimants et du collecteur) ; couple permanent \(\approx K\,I_{\text{perm}}\), moins le couple de frottement \(K I_0\).</li>
+  </ul>
+  <div class="method-box">
+    <strong>Exemple — vérifier une fiche technique et un point de service</strong>
+    <p>Fiche d'un moteur 24 V : constante de couple 49,7 mN·m/A ; constante de vitesse 192 tr/min/V ; constante de f.é.m. 5,20 V pour 1 000 tr/min ; résistance 1,6 Ω ; courant à vide 0,12 A ; courant permanent maximal 2,4 A.</p>
+    <ol>
+      <li>Cohérence : \(K = 0{,}0497\ \text{N·m/A}\) ; \(1/K = 20{,}1\ \text{rad·s}^{-1}\text{/V} = 192\ \text{tr/min/V}\) ; \(5{,}20/104{,}7 = 0{,}0497\ \text{V·s/rad}\). Les trois données décrivent la même constante.</li>
+      <li>Vitesse à vide sous 24 V : \((24 - 1{,}6 \times 0{,}12)/0{,}0497 = 479\ \text{rad/s}\), soit 4 570 tr/min. Courant de démarrage : 15 A, plus de six fois le courant permanent.</li>
+      <li>Point de service demandé : 0,10 N·m à 3 000 tr/min (314 rad/s). Courant \(I = 0{,}10/0{,}0497 + 0{,}12 = 2{,}13\ \text{A}\) (inférieur à 2,4 A : acceptable en permanence) ; tension \(U = 0{,}0497 \times 314 + 1{,}6 \times 2{,}13 = 19{,}0\ \text{V}\), donc \(\alpha \approx 0{,}79\) sous 24 V. Puissance utile : 31 W.</li>
+    </ol>
+  </div>
+  <h3>Ordres de grandeur</h3>
+  <div style="overflow-x:auto"><table>
+    <tr><th>Application</th><th>Tension</th><th>Puissance</th><th>\(K\) (V·s/rad)</th><th>\(R\)</th></tr>
+    <tr><td>Micromoteur de jouet</td><td>1,5 à 6 V</td><td>0,1 à 2 W</td><td>0,001 à 0,005</td><td>1 à 10 Ω</td></tr>
+    <tr><td>Robot, imprimante, petit axe</td><td>12 à 48 V</td><td>10 à 200 W</td><td>0,02 à 0,2</td><td>0,2 à 5 Ω</td></tr>
+    <tr><td>Lève-vitre, essuie-glace</td><td>12 V</td><td>20 à 100 W</td><td>0,01 à 0,05</td><td>0,1 à 1 Ω</td></tr>
+    <tr><td>Démarreur d'automobile</td><td>12 V</td><td>1 à 3 kW</td><td>0,01 à 0,02</td><td>≈ 10 mΩ</td></tr>
+    <tr><td>Traction industrielle (chariots), laminoirs anciens</td><td>48 à 750 V</td><td>1 kW à 1 MW</td><td>0,1 à plus de 10</td><td>de 1 Ω à quelques mΩ</td></tr>
+  </table></div>
+  <p>Exemples d'utilisation (programme de physique) : jouets et modélisme, petits appareils sur batterie (visseuses, brosses à dents), équipements automobiles (essuie-glaces, lève-vitres, sièges, démarreur), robotique et servomoteurs. Dans les applications neuves de puissance, la MCC laisse place aux machines synchrones autopilotées (« sans balais ») et asynchrones, qui ne demandent pas d'entretien de collecteur (2ᵉ année : <a href="#machalt/cours">« Machines synchrone et asynchrone »</a>, §9).</p>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">POUR ALLER PLUS LOIN · HORS PROGRAMME</div>
+  <h2>Un peu de physique des machines</h2>
+  <div class="intro">Le programme de sciences industrielles précise que la physique des convertisseurs électromécaniques n'est pas au programme : le modèle \(E = K\Omega\), \(C_{em} = KI\) suffit. Voici d'où viennent les valeurs de \(K\) et quelques compléments de culture technique.</div>
+  <h3>Expression de \(K\) en fonction du bobinage</h3>
+  <p>Pour une machine à \(p\) paires de pôles, dont l'induit porte \(N\) conducteurs actifs répartis en \(2a\) voies d'enroulement en parallèle, sous un flux \(\Phi\) par pôle, la f.é.m. vaut (formule dite d'Arnold) :</p>
+  <div class="formula">$$E = \frac{p\,N}{2\pi\,a}\,\Phi\,\Omega \qquad\text{soit}\qquad K = \frac{p\,N}{2\pi\,a}\,\Phi$$</div>
+  <p>\(K\) est proportionnelle au flux de l'inducteur. L'exemple du §2 en est une version simplifiée (un conducteur dans un champ uniforme \(B\), une seule voie).</p>
+  <h3>Excitation et réglage par le flux</h3>
+  <p>Un inducteur bobiné permet de faire varier le flux : en excitation séparée, réduire le courant d'excitation diminue \(K\), ce qui augmente la vitesse à tension donnée mais diminue le couple par ampère (fonctionnement à puissance constante, ou <em>défluxage</em>, exercice 05). D'autres couplages existent : excitation série (inducteur en série avec l'induit, couple de démarrage très élevé, ancienne traction ferroviaire et démarreurs), excitation shunt (en parallèle). Les machines à aimants permanents, qui dominent aujourd'hui, ont un flux fixe.</p>
+  <h3>Réaction d'induit et commutation</h3>
+  <p>Le courant de l'induit crée lui-même un champ, qui déforme celui de l'inducteur (réaction d'induit) et réduit légèrement le flux à fort courant. Au moment où le collecteur inverse le courant d'une spire, l'inductance de celle-ci s'y oppose : la commutation produit des étincelles aux balais, que l'on limite par des pôles auxiliaires dans les grosses machines. Ces phénomènes, comme la saturation magnétique, sont négligés dans le modèle linéaire du cours.</p>
+</div>
+
+</template>
+<template class="pan-tpl" data-panneau="mcc-meth">
+
+<div class="course-section">
+  <div class="sec-num">MÉTHODES · MCC</div>
+  <h2>Stratégies pour les exercices sur la MCC</h2>
+  <div class="intro">Les exercices de MCC suivent des schémas récurrents : point de fonctionnement en régime permanent (§3, §4, §7), bilan de puissance (§5), quadrant de fonctionnement (§4), modèle dynamique et schéma-blocs (§4, §6), association avec un hacheur (§8), identification et documentation (§9, §10). Notations du cours : \(E = K\Omega\), \(C_{em} = KI\), \(U = E + RI\) en moteur (convention récepteur), \(K\) en unités SI (notée \(k\) dans le simulateur).</div>
+
+  <div class="method-box">
+    <strong>Méthode 1 — Résoudre un problème de régime permanent</strong>
+    <ol style="margin-top:0.4rem">
+      <li><span class="step">Étape 1.</span> Identifier le mode (moteur ou génératrice) et la convention de signe (récepteur ou générateur).</li>
+      <li><span class="step">Étape 2.</span> Écrire la loi des mailles : moteur → \(U = E + R\,I\) ; génératrice en convention générateur → \(U = E - R\,I\).</li>
+      <li><span class="step">Étape 3.</span> Utiliser \(E = K\,\Omega\) pour relier \(E\) et \(\Omega\) (\(\Omega\) en rad/s : \(\Omega = \pi N/30\) si \(N\) est en tr/min).</li>
+      <li><span class="step">Étape 4.</span> Utiliser \(C_{em} = K\,I\) pour relier \(C_{em}\) et \(I\).</li>
+      <li><span class="step">Étape 5.</span> Appliquer l'équation mécanique en régime permanent : \(C_{em} = C_r + f\,\Omega\).</li>
+      <li><span class="step">Étape 6.</span> Faire le bilan de puissance pour vérifier la cohérence (\(U I = R I^2 + E I\) et \(E I = C_{em}\Omega\)).</li>
+    </ol>
+    <p><em>Exemple éclair :</em> \(K = 0{,}20\ \text{V·s/rad}\), \(R = 1{,}5\ \Omega\), \(U = 36\ \text{V}\), \(C_r = 1{,}2\ \text{N·m}\), frottements négligés. \(I = C_r/K = 6\ \text{A}\), \(E = 36 - 1{,}5\times6 = 27\ \text{V}\), \(\Omega = 27/0{,}20 = 135\ \text{rad/s}\) (≈ 1 290 tr/min). Contrôle : \(UI = 216\ \text{W} = 54 + 162\) et \(EI = 162\ \text{W} = C_{em}\Omega\).</p>
+  </div>
+
+  <div class="method-box">
+    <strong>Méthode 2 — Calculer la vitesse à vide et le couple de démarrage</strong>
+    <ol style="margin-top:0.4rem">
+      <li><span class="step">Vitesse à vide idéale</span> (\(C_r = 0\) et frottements négligés, donc \(I = 0\)) : \(\Omega_0 = U/K\).</li>
+      <li><span class="step">Vitesse à vide réelle</span> (frottement visqueux \(f\)) : \(KI_0 = f\Omega_0\) et \(U = RI_0 + K\Omega_0\) donnent \(\Omega_0 = \dfrac{KU}{K^2 + Rf}\), un peu inférieure à \(U/K\), avec \(I_0 = f\Omega_0/K \neq 0\).</li>
+      <li><span class="step">Couple de démarrage</span> (\(\Omega = 0\), donc \(E = 0\)) : \(I_{dém} = U/R\) donc \(C_{dém} = K\,U/R\). C'est le couple maximal sur la caractéristique — attention à ne pas dépasser le courant admissible !</li>
+      <li><span class="step">Caractéristique</span> \(C_{em}(\Omega)\) : droite passant par \((0, C_{dém})\) et \((U/K, 0)\) : \(C_{em} = \dfrac{KU}{R} - \dfrac{K^2}{R}\,\Omega\).</li>
+    </ol>
+    <p><em>Exemple éclair :</em> \(K = 0{,}08\ \text{V·s/rad}\), \(R = 1{,}2\ \Omega\), \(U = 12\ \text{V}\) : \(U/K = 150\ \text{rad/s}\), \(I_{dém} = 10\ \text{A}\), \(C_{dém} = 0{,}8\ \text{N·m}\). Avec \(f = 10^{-4}\ \text{N·m·s/rad}\) : \(\Omega_0 = 0{,}96/0{,}00652 \approx 147\ \text{rad/s}\) et \(I_0 \approx 0{,}18\ \text{A}\).</p>
+  </div>
+
+  <div class="method-box">
+    <strong>Méthode 3 — Trouver le point de fonctionnement avec une charge</strong>
+    <ol style="margin-top:0.4rem">
+      <li><span class="step">Moteur.</span> Écrire la caractéristique \(C_{em}(\Omega) = \dfrac{K}{R}(U - K\Omega)\) (méthode 2).</li>
+      <li><span class="step">Charge.</span> Écrire le couple résistant ramené à l'arbre moteur, frottements compris : constant (levage), proportionnel à \(\Omega\) (frottement visqueux), en \(\Omega^2\) (ventilateur, pompe).</li>
+      <li><span class="step">Équilibre.</span> Résoudre \(C_{em}(\Omega) = C_r(\Omega)\) et garder la racine physique (\(\Omega > 0\) en marche avant) ; en déduire \(I = C_{em}/K\).</li>
+      <li><span class="step">Stabilité.</span> Le point est stable si \(\dfrac{\mathrm{d}(C_{em} - C_r)}{\mathrm{d}\Omega} \lt 0\) : toujours le cas avec la pente \(-K^2/R\) de la MCC et une charge dont le couple ne décroît pas avec la vitesse.</li>
+    </ol>
+    <p><em>Exemple éclair :</em> moteur de la méthode 2 (\(C_{em} = 0{,}8 - 0{,}00533\,\Omega\)) et ventilateur \(C_r = 2\times10^{-5}\,\Omega^2\). L'équation \(2\times10^{-5}\,\Omega^2 + 0{,}00533\,\Omega - 0{,}8 = 0\) donne \(\Omega \approx 107\ \text{rad/s}\), \(C \approx 0{,}23\ \text{N·m}\), \(I \approx 2{,}9\ \text{A}\) ; point stable.</p>
+  </div>
+
+  <div class="method-box">
+    <strong>Méthode 4 — Faire le bilan de puissance et calculer le rendement</strong>
+    <ol style="margin-top:0.4rem">
+      <li><span class="step">Moteur :</span> \(P_a = UI\) → \(P_{em} = EI\) → \(P_u = C_u\Omega\). Pertes : \(P_j = RI^2\) entre \(P_a\) et \(P_{em}\) ; pertes collectives \(P_c\) (mécaniques et fer) entre \(P_{em}\) et \(P_u\).</li>
+      <li><span class="step">Génératrice :</span> \(P_a = C_u\Omega\) → \(P_{em} = EI\) → \(P_u = UI\). Mêmes types de pertes, dans l'ordre inverse.</li>
+      <li><span class="step">Essai à vide :</span> à la vitesse de service, sans charge, la machine absorbe \(U I_0\) ; les pertes collectives valent \(P_c = U I_0 - R I_0^2\) et sont supposées inchangées en charge.</li>
+      <li><span class="step">Vérifier :</span> \(P_a = P_u + P_j + P_c\). Rendement : \(\eta = P_u/P_a\) (toujours inférieur à 1) ; il est maximal quand \(RI^2 = P_c\).</li>
+    </ol>
+    <p><em>Exemple éclair :</em> \(R = 2\ \Omega\), \(U = 24\ \text{V}\) ; à vide \(I_0 = 0{,}5\ \text{A}\), d'où \(P_c = 12 - 0{,}5 = 11{,}5\ \text{W}\). En charge, \(I = 3\ \text{A}\) : \(P_a = 72\ \text{W}\), \(P_j = 18\ \text{W}\), \(P_u = 72 - 18 - 11{,}5 = 42{,}5\ \text{W}\), \(\eta \approx 0{,}59\).</p>
+  </div>
+
+  <div class="method-box">
+    <strong>Méthode 5 — Identifier le quadrant et choisir la réversibilité de l'alimentation</strong>
+    <ol style="margin-top:0.4rem">
+      <li>Calculer ou identifier le signe de \(\Omega\) (sens de rotation), puis celui de \(C_{em} = K\,I\) (signe de \(I\)).</li>
+      <li>Placer le point dans le plan \((C_{em}, \Omega)\) du cours (couple en abscisse) : Q1 (\(\Omega > 0\), \(C > 0\)) moteur en marche avant ; Q2 (\(\Omega > 0\), \(C \lt 0\)) frein en marche avant ; Q3 (\(\Omega \lt 0\), \(C \lt 0\)) moteur en marche arrière ; Q4 (\(\Omega \lt 0\), \(C > 0\)) frein en marche arrière.</li>
+      <li>En déduire les signes de \(I\) (celui de \(C_{em}\)) et de \(U\) (celui de \(\Omega\), au terme \(RI\) près : \(U = K\Omega + RI\)).</li>
+      <li>En frein (Q2, Q4), la puissance électrique \(UI\) est négative : la machine, génératrice, renvoie de l'énergie vers sa source — à condition que l'alimentation l'accepte (ascenseurs, trains, véhicules électriques). Sinon, il faut une résistance de freinage.</li>
+      <li>Réversibilité nécessaire : en courant pour passer de Q1 à Q2 (freiner sans changer de sens) ; en tension pour passer de Q1 à Q4 (changer de sens à couple de même signe) ; les deux pour les quatre quadrants (pont en H).</li>
+    </ol>
+<figure class="schema">
+<svg viewBox="0 0 360 250" role="img" aria-label="Plan couple-vitesse de la MCC : quadrant 1 moteur en marche avant avec I et U positifs, quadrant 2 frein en marche avant avec I négatif et U positif, quadrant 3 moteur en marche arrière avec I et U négatifs, quadrant 4 frein en marche arrière avec I positif et U négatif">
+<rect x="180" y="16" width="160" height="106" class="fl-accent-soft"/>
+<rect x="20" y="122" width="160" height="104" class="fl-accent-soft"/>
+<line x1="14" y1="122" x2="346" y2="122" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<line x1="180" y1="234" x2="180" y2="8" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<text x="342" y="140" class="lab-muted lab-it" text-anchor="end">C<tspan dy="4" font-size="12">em</tspan></text>
+<text x="188" y="16" class="lab-muted lab-it">Ω</text>
+<text x="262" y="48" class="lab-accent lab-b" text-anchor="middle">Q1 · moteur</text>
+<text x="262" y="66" class="lab-accent" text-anchor="middle">marche avant</text>
+<text x="262" y="92" class="lab-muted" text-anchor="middle">I &gt; 0 · U &gt; 0</text>
+<text x="98" y="48" class="lab-accent2 lab-b" text-anchor="middle">Q2 · frein</text>
+<text x="98" y="66" class="lab-accent2" text-anchor="middle">marche avant</text>
+<text x="98" y="92" class="lab-muted" text-anchor="middle">I &lt; 0 · U &gt; 0</text>
+<text x="98" y="158" class="lab-accent lab-b" text-anchor="middle">Q3 · moteur</text>
+<text x="98" y="176" class="lab-accent" text-anchor="middle">marche arrière</text>
+<text x="98" y="202" class="lab-muted" text-anchor="middle">I &lt; 0 · U &lt; 0</text>
+<text x="262" y="158" class="lab-accent2 lab-b" text-anchor="middle">Q4 · frein</text>
+<text x="262" y="176" class="lab-accent2" text-anchor="middle">marche arrière</text>
+<text x="262" y="202" class="lab-muted" text-anchor="middle">I &gt; 0 · U &lt; 0</text>
+</svg>
+<figcaption>Plan (C<sub>em</sub>, Ω) de la MCC, couple en abscisse : en moteur (Q1, Q3, fond teinté), couple et vitesse ont le même signe ; en frein (Q2, Q4), ils sont de signes opposés. Le signe de U est celui de Ω au terme RI près (freinage avec récupération).</figcaption>
+</figure>
+    <p><em>Exemple éclair :</em> \(K = 0{,}1\ \text{V·s/rad}\), \(R = 0{,}5\ \Omega\), \(\Omega = 150\ \text{rad/s}\), \(I = -4\ \text{A}\) : \(E = 15\ \text{V}\), \(U = 15 - 2 = 13\ \text{V}\), \(C_{em} = -0{,}4\ \text{N·m}\) → Q2. La source reçoit \(-UI = 52\ \text{W}\) ; la charge en fournit \(60\ \text{W}\), dont 8 W perdus par effet Joule.</p>
+  </div>
+  <div class="notice"><strong>Piège</strong> : la numérotation des quadrants dépend du plan. Dans le plan \((u, i)\) de la sortie d'un hacheur, le freinage en marche avant porte le numéro 4. Toujours dire dans quel plan on raisonne, et nommer le régime en clair (« frein en marche avant »).</div>
+
+  <div class="method-box">
+    <strong>Méthode 6 — Établir le schéma-blocs et la fonction de transfert</strong>
+    <ol style="margin-top:0.4rem">
+      <li><span class="step">Laplace.</span> Transformer les équations, conditions initiales nulles : \(U = E + (R + Lp)I\), \(E = K\Omega\), \(C_{em} = KI\), \(C_{em} - C_r = (f + Jp)\Omega\).</li>
+      <li><span class="step">Schéma-blocs.</span> Comparateur \(U - E\), bloc \(1/(R + Lp)\), gain \(K\), comparateur \(C_{em} - C_r\), bloc \(1/(f + Jp)\), retour de f.é.m. par le gain \(K\).</li>
+      <li><span class="step">Fonction de transfert</span> (\(C_r = 0\)) : \(\dfrac{\Omega(p)}{U(p)} = \dfrac{K}{(R + Lp)(f + Jp) + K^2}\), du deuxième ordre.</li>
+      <li><span class="step">Ordre 1 ou 2.</span> Calculer \(\tau_e = L/R\) et \(\tau_m = RJ/K^2\). Si \(\tau_m \gg \tau_e\) (en pratique plus de 10 fois), \(L\) et \(f\) négligés : \(\dfrac{\Omega(p)}{U(p)} = \dfrac{1/K}{1 + \tau_m p}\), temps de réponse à 5 % ≈ \(3\tau_m\). Sinon, garder le deuxième ordre : \(\omega_0 = 1/\sqrt{\tau_e\tau_m}\), \(\xi = \frac12\sqrt{\tau_m/\tau_e}\) (sans frottement) ; dépassement si \(\tau_m \lt 4\tau_e\).</li>
+    </ol>
+    <p><em>Exemple éclair :</em> \(K = 0{,}05\ \text{V·s/rad}\), \(R = 1\ \Omega\), \(J = 5\times10^{-5}\ \text{kg·m}^2\) : \(\tau_m = 5\times10^{-5}/0{,}0025 = 20\ \text{ms}\), gain \(1/K = 20\ \text{rad·s}^{-1}\text{/V}\). Avec \(L = 0{,}5\ \text{mH}\), \(\tau_e = 0{,}5\ \text{ms}\) : 40 fois plus court, premier ordre justifié. Sous un échelon de 12 V : 240 rad/s atteints à 5 % près en 60 ms environ.</p>
+  </div>
+
+  <div class="method-box">
+    <strong>Méthode 7 — Exploiter une documentation constructeur</strong>
+    <ol style="margin-top:0.4rem">
+      <li><span class="step">Unités.</span> Ramener toutes les données en SI : vitesses en rad/s (\(\times\pi/30\) depuis les tr/min), constante de f.é.m. donnée en V pour 1 000 tr/min à diviser par \(1000\pi/30 \approx 104{,}7\), constante de couple en mN·m/A à diviser par 1 000, constante de vitesse en tr/min/V à inverser (\(K = 30/(\pi k_n)\)).</li>
+      <li><span class="step">Cohérence.</span> En SI, constante de f.é.m. et constante de couple sont égales : les valeurs converties doivent coïncider (aux arrondis du catalogue près).</li>
+      <li><span class="step">Limites.</span> Repérer le courant permanent admissible (échauffement) et le courant crête ; en déduire le couple permanent \(KI_n\) et la tension nécessaire au point de service par \(U = K\Omega + RI\).</li>
+    </ol>
+    <p><em>Exemple éclair :</em> constante de f.é.m. 12 V pour 1 000 tr/min, soit \(K = 12/104{,}7 \approx 0{,}115\ \text{V·s/rad}\) : le catalogue doit annoncer une constante de couple d'environ \(115\ \text{mN·m/A}\).</p>
+  </div>
+
+  <div class="method-box">
+    <strong>Méthode 8 — Identifier les paramètres d'une MCC à partir d'essais</strong>
+    <ol style="margin-top:0.4rem">
+      <li><span class="step">Résistance.</span> Rotor bloqué (\(\Omega = 0\), donc \(E = 0\)), sous une faible tension continue : \(R = U_b/I_b\). Le temps de montée du courant donne \(\tau_e = L/R\).</li>
+      <li><span class="step">Constante \(K\).</span> À vide sous une tension \(U\) : mesurer \(I_0\) et \(\Omega_0\) ; \(K = (U - RI_0)/\Omega_0\). En même temps, \(P_c = UI_0 - RI_0^2\).</li>
+      <li><span class="step">Inertie.</span> Imposer un échelon de tension, relever la vitesse : si elle monte sans dépassement, premier ordre, \(\tau_m = t_{r5\%}/3\) (ou à 63 % de la valeur finale), puis \(J = \tau_m K^2/R\) (frottements négligés).</li>
+      <li><span class="step">Contrôle.</span> Vérifier \(\tau_m \gg \tau_e\) (sinon le modèle du premier ordre ne vaut pas) et recouper par un autre essai (lâcher, documentation).</li>
+    </ol>
+    <p><em>Exemple éclair :</em> rotor bloqué sous 1,5 V : 3,0 A, d'où \(R = 0{,}50\ \Omega\). À vide sous 12 V : 0,40 A à 2 200 tr/min (230 rad/s) : \(K = (12 - 0{,}20)/230 = 0{,}051\ \text{V·s/rad}\), \(P_c = 4{,}7\ \text{W}\). Échelon : \(t_{r5\%} = 60\ \text{ms}\), d'où \(\tau_m = 20\ \text{ms}\) et \(J = 0{,}020 \times 0{,}051^2/0{,}50 \approx 1{,}0\times10^{-4}\ \text{kg·m}^2\).</p>
+  </div>
+
+  <div class="method-box">
+    <strong>Méthode 9 — Régler la vitesse par un hacheur : rapport cyclique et réversibilité</strong>
+    <ol style="margin-top:0.4rem">
+      <li><span class="step">Courant moyen.</span> La charge le fixe : \(\langle i\rangle = (C_r + f\Omega)/K\), positif en moteur, négatif pour freiner.</li>
+      <li><span class="step">Tension moyenne.</span> \(\langle u\rangle = K\Omega + R\langle i\rangle\) (les tensions moyennes aux bornes de \(L\) sont nulles en régime périodique).</li>
+      <li><span class="step">Rapport cyclique.</span> Hacheur série ou réversible en courant : \(\alpha = \langle u\rangle/U_0\), qui doit rester entre 0 et 1 ; sinon la tension de la source ne suffit pas. Pont en H en commande bipolaire : \(\langle u\rangle = (2\alpha - 1)U_0\).</li>
+      <li><span class="step">Réversibilité.</span> Signes de \(\langle u\rangle\) et \(\langle i\rangle\) sur tout le cycle → type de hacheur (cours, §8).</li>
+    </ol>
+    <p><em>Exemple éclair :</em> \(U_0 = 48\ \text{V}\), \(K = 0{,}15\ \text{V·s/rad}\), \(R = 0{,}4\ \Omega\), \(C_r = 1{,}2\ \text{N·m}\), vitesse 1 500 tr/min (157 rad/s). \(\langle i\rangle = 8\ \text{A}\), \(\langle u\rangle = 23{,}6 + 3{,}2 = 26{,}8\ \text{V}\), \(\alpha = 0{,}56\). Pour freiner à la même vitesse avec \(\langle i\rangle = -8\ \text{A}\) : \(\langle u\rangle = 23{,}6 - 3{,}2 = 20{,}4\ \text{V}\), \(\alpha = 0{,}42\), \(u > 0\) et \(i \lt 0\) : hacheur réversible en courant, qui renvoie 163 W à la source.</p>
+  </div>
+
+  <div class="method-box">
+    <strong>Méthode 10 — Limiter le courant de démarrage</strong>
+    <ol style="margin-top:0.4rem">
+      <li><span class="step">Diagnostic.</span> Démarrage direct : \(I_{dém} = U/R\) ; comparer au courant crête admissible \(I_{max}\).</li>
+      <li><span class="step">Résistance de démarrage</span> (solution ancienne, dissipative) : \(R_{add} = U/I_{max} - R\), retirée quand \(E = K\Omega\) a assez augmenté.</li>
+      <li><span class="step">Rampe de tension</span> (hacheur) : pendant une montée de 0 à \(U_0\) en \(T_r \gg \tau_m\), \(i \approx \dfrac{JU_0}{K^2T_r} + \dfrac{C_r}{K}\) ; choisir \(T_r \geq \dfrac{J\,U_0}{K^2\,(I_{max} - C_r/K)}\).</li>
+      <li><span class="step">Boucle de courant</span> (2ᵉ année) : la consigne de courant est simplement saturée à \(I_{max}\).</li>
+    </ol>
+    <p><em>Exemple éclair :</em> moteur de la méthode 9, \(J = 2\times10^{-3}\ \text{kg·m}^2\), \(I_{max} = 15\ \text{A}\). Démarrage direct sous 48 V : 120 A. Rampe : \(T_r \geq \dfrac{2\times10^{-3} \times 48}{0{,}0225 \times (15 - 8)} = 0{,}61\ \text{s}\), grand devant \(\tau_m = RJ/K^2 = 36\ \text{ms}\) : la formule s'applique.</p>
+  </div>
+
+  <div class="notice"><strong>Pièges classiques de la MCC</strong>
+    <ul style="margin-top:0.4rem">
+      <li>Confondre la convention récepteur (\(U = E + RI\)) et générateur (\(U = E - RI\)). En moteur → récepteur ; en génératrice → générateur, ou récepteur avec \(I \lt 0\).</li>
+      <li>Oublier les frottements dans l'équation mécanique (\(C_{em} \neq C_r\) en général) ou les pertes collectives dans le bilan.</li>
+      <li>Laisser une vitesse en tr/min dans \(E = K\Omega\) ou une constante de catalogue non convertie.</li>
+      <li>Démarrage : à \(\Omega = 0\), \(E = 0\) donc \(I = U/R\) → peut être très élevé ! Nécessité d'un rhéostat de démarrage ou d'une alimentation progressive avec limitation de courant (hacheur).</li>
+      <li>À vide : \(I_0 \neq 0\) car il faut un couple pour vaincre les frottements. Donc \(E_0 = U - R\,I_0 \lt U\).</li>
+      <li>Annoncer « freinage avec récupération » pour une simple inversion de tension : c'est un freinage par contre-courant, dissipatif.</li>
+      <li>Utiliser le modèle du premier ordre sans vérifier \(\tau_m \gg \tau_e\), ou un \(\tau_m\) mesuré sans la charge.</li>
+    </ul>
+  </div>
+</div>
+
+</template>
+<template class="pan-tpl" data-panneau="mcc-exos">
+
+<div class="exo-wrapper">
+
+<div class="exo">
+  <span class="num">EXO 01</span><span class="diff">★ ☆ ☆</span>
+  <h3>Caractéristique de la MCC</h3>
+  <div class="statement">Une MCC à flux constant a les paramètres : \(R = 2\ \Omega\), \(K = 0{,}5\ \text{V·s/rad}\), \(J = 0{,}01\ \text{kg·m}^2\), \(f = 0{,}02\ \text{N·m·s/rad}\). Elle est alimentée par \(U = 24\ \text{V}\).</div>
+  <div class="q"><strong>Q1.</strong> Rappeler l'équation de la f.é.m. \(E = K\,\Omega\). Calculer la vitesse à vide idéale (frottements négligés, \(I = 0\)), puis la vitesse à vide réelle compte tenu du frottement visqueux, et le courant à vide correspondant.</div>
+  <div class="q"><strong>Q2.</strong> En charge, le moteur tourne à \(\Omega = 40\ \text{rad/s}\). Calculer le courant \(I\), le couple électromagnétique \(C_{em} = K\,I\) et le couple résistant \(C_r\) de la charge.</div>
+  <div class="q"><strong>Q3.</strong> Calculer la puissance électrique absorbée, la puissance mécanique utile et le rendement.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> À vide idéal : \(U = E = K\,\Omega_0\), donc \(\Omega_0 = U/K = 24/0{,}5 = 48\ \text{rad/s}\) (environ 460 tr/min). Avec le frottement, \(KI_0 = f\Omega_0\) et \(U = RI_0 + K\Omega_0\), d'où</p>
+    <div class="formula">$$\Omega_0 = \frac{KU}{K^2 + Rf} = \frac{12}{0{,}25 + 0{,}04} \approx 41{,}4\ \text{rad/s}$$</div>
+    <p>et \(I_0 = f\Omega_0/K \approx 1{,}66\ \text{A}\) : le frottement est loin d'être négligeable ici.</p>
+    <p><strong>Q2.</strong> Loi des mailles : \(U = R I + K\Omega\), donc \(I = (U - K\Omega)/R\), soit \(I = (24 - 0{,}5\times40)/2 = 2\ \text{A}\). \(C_{em} = K\,I = 0{,}5\times2 = 1\ \text{N·m}\). Équation mécanique en régime permanent : \(C_r = C_{em} - f\Omega = 1 - 0{,}8 = 0{,}2\ \text{N·m}\).</p>
+    <p><strong>Q3.</strong> \(P_a = UI = 24\times2 = 48\ \text{W}\). Pertes Joule : \(R I^2 = 2\times4 = 8\ \text{W}\). \(P_u = C_{em}\Omega - f\Omega^2 = 40 - 32 = 8\ \text{W}\) (\(= C_r\Omega\)). Rendement : \(\eta = P_u/P_a = 8/48 \approx 17\ \%\). Il est faible car le moteur, à 40 rad/s, est presque à vide (vitesse à vide réelle 41,4 rad/s) : les frottements absorbent l'essentiel de la puissance électromagnétique.</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 02</span><span class="diff">★ ☆ ☆</span>
+  <h3>Bilan de puissance</h3>
+  <div class="statement">Une MCC à flux constant (\(R = 1\ \Omega\)) tourne à \(N = 1500\ \text{tr/min}\) sous \(U = 220\ \text{V}\) en absorbant \(I = 15\ \text{A}\). Le couple utile mesuré sur l'arbre vaut \(C_u = 18{,}5\ \text{N·m}\).</div>
+  <div class="q"><strong>Q1.</strong> Convertir la vitesse en rad/s. Calculer la f.é.m., en déduire la constante \(K\) et le couple électromagnétique.</div>
+  <div class="q"><strong>Q2.</strong> Établir le bilan de puissance : \(P_a \to P_j \to P_{em} \to P_u\).</div>
+  <div class="q"><strong>Q3.</strong> En déduire les pertes collectives (mécaniques et fer), le couple de pertes correspondant et le rendement.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> \(\Omega = 1500\times\pi/30 = 157{,}1\ \text{rad/s}\). \(E = U - R I = 220 - 1\times15 = 205\ \text{V}\), d'où \(K = E/\Omega = 205/157{,}1 \approx 1{,}305\ \text{V·s/rad}\) et \(C_{em} = KI \approx 19{,}6\ \text{N·m}\).</p>
+    <p><strong>Q2.</strong> \(P_a = UI = 220\times15 = 3300\ \text{W}\). \(P_j = R I^2 = 225\ \text{W}\). \(P_{em} = EI = 205\times15 = 3075\ \text{W}\) (\(= C_{em}\Omega\), contrôle). \(P_u = C_u\Omega = 18{,}5\times157{,}1 \approx 2906\ \text{W}\).</p>
+    <p><strong>Q3.</strong> Pertes collectives : \(P_c = P_{em} - P_u \approx 3075 - 2906 = 169\ \text{W}\), soit un couple de pertes \(C_{em} - C_u \approx 1{,}1\ \text{N·m}\). Rendement : \(\eta = P_u/P_a = 2906/3300 \approx 88\ \%\). Vérification : \(3300 = 2906 + 225 + 169\).</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 03</span><span class="diff">★ ★ ☆</span>
+  <h3>Démarrage par résistance additionnelle</h3>
+  <div class="statement">Une MCC (\(U = 220\ \text{V}\), \(R = 0{,}5\ \Omega\), \(K = 1{,}5\ \text{V·s/rad}\), courant admissible \(I_{max} = 30\ \text{A}\)) démarre avec une résistance additionnelle \(R_{add}\) en série avec l'induit, pour limiter le courant au démarrage (\(\Omega = 0\)).</div>
+  <div class="q"><strong>Q1.</strong> Sans \(R_{add}\), quel courant circulerait au démarrage ? Pourquoi est-ce dangereux ?</div>
+  <div class="q"><strong>Q2.</strong> Calculer \(R_{add}\) pour limiter le courant de démarrage à \(I_{max} = 30\ \text{A}\).</div>
+  <div class="q"><strong>Q3.</strong> À partir de quelle vitesse peut-on retirer \(R_{add}\) tout en restant sous \(I_{max}\) ? Comparer à la vitesse à vide idéale.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> Au démarrage : \(E = 0\) (pas encore de rotation). \(I_{dém} = U/R = 220/0{,}5 = 440\ \text{A}\). Dangereux : près de 15 fois le courant admissible, d'où un échauffement brutal de l'induit, des efforts mécaniques violents, une usure des balais et, pour une machine à aimants, un risque de démagnétisation.</p>
+    <p><strong>Q2.</strong> Avec \(R_{add}\) : \(I_{max} = U/(R + R_{add})\), soit</p>
+    <div class="formula">$$R_{add} = \frac{U}{I_{max}} - R = \frac{220}{30} - 0{,}5 = \boxed{6{,}83\ \Omega}$$</div>
+    <p><strong>Q3.</strong> Sans \(R_{add}\), \(I = (U - E)/R \leq I_{max}\) impose \(E \geq U - R I_{max} = 220 - 0{,}5\times30 = 205\ \text{V}\), soit \(\Omega \geq E/K\) :</p>
+    <div class="formula">$$\Omega \geq \frac{205}{1{,}5} = 136{,}7\ \text{rad/s} \approx 1305\ \text{tr/min}$$</div>
+    <p>La vitesse à vide idéale vaut \(U/K = 146{,}7\ \text{rad/s}\) : il faut atteindre environ 93 % de cette vitesse. En pratique, on retire la résistance par crans successifs, ou l'on alimente l'induit sous tension progressive avec limitation de courant (hacheur, cours §8).</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 04</span><span class="diff">★ ★ ☆</span>
+  <h3>Freinage par contre-courant ou avec récupération — quadrants</h3>
+  <div class="statement">Une MCC (\(R = 1\ \Omega\), \(K = 1{,}5\ \text{V·s/rad}\)) entraîne une charge inertielle (\(J = 0{,}02\ \text{kg·m}^2\), couple résistant négligé). Elle tourne en marche avant à \(\Omega_0 = 100\ \text{rad/s}\). On veut la freiner. On raisonne dans le plan \((C_{em}, \Omega)\) du cours, couple en abscisse.</div>
+  <div class="q"><strong>Q1.</strong> On inverse brutalement la tension d'alimentation (\(U = -220\ \text{V}\)). Dans quel quadrant se trouve-t-on juste après l'inversion ?</div>
+  <div class="q"><strong>Q2.</strong> Calculer le courant et le couple électromagnétique juste après l'inversion (la vitesse n'a pas encore changé).</div>
+  <div class="q"><strong>Q3.</strong> Écrire l'équation dynamique et en déduire la décélération initiale.</div>
+  <div class="q"><strong>Q4.</strong> Faire le bilan des puissances juste après l'inversion : puissance fournie par la source, puissance électromagnétique, pertes Joule. Où va l'énergie cinétique ?</div>
+  <div class="q"><strong>Q5.</strong> On freine maintenant avec un hacheur réversible en courant, qui abaisse la tension à \(U = 120\ \text{V}\) sans l'inverser. Calculer le courant, le couple, la décélération initiale et la puissance renvoyée à la source. Conclure.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> \(\Omega > 0\) (marche avant) et, on va le voir, \(C_{em} \lt 0\) (couple freinant) → <strong>quadrant 2</strong> : frein en marche avant. Ce mode, obtenu en inversant la tension, est le <em>freinage par contre-courant</em> (à ne pas confondre avec le freinage rhéostatique, où l'induit débite dans une résistance).</p>
+    <p><strong>Q2.</strong> Juste après l'inversion : \(\Omega = 100\ \text{rad/s}\) (inertie), \(E = K\Omega = 1{,}5\times100 = 150\ \text{V}\). La tension vaut \(-220\ \text{V}\), donc</p>
+    <div class="formula">$$I = \frac{U - E}{R} = \frac{-220 - 150}{1} = -370\ \text{A}$$</div>
+    <p>Très élevé ! \(C_{em} = K\,I = 1{,}5\times(-370) = -555\ \text{N·m}\).</p>
+    <p><strong>Q3.</strong> \(J\,\mathrm{d}\Omega/\mathrm{d}t = C_{em} - C_r \approx -555\ \text{N·m}\), soit \(\mathrm{d}\Omega/\mathrm{d}t = -555/0{,}02 = -27\,750\ \text{rad/s}^2\). Décélération extrêmement rapide, au prix d'un courant destructeur : il faudrait insérer une résistance de limitation.</p>
+    <p><strong>Q4.</strong> La source fournit \(UI = (-220)\times(-370) = 81\,400\ \text{W}\) ; la puissance électromagnétique \(EI = 150\times(-370) = -55\,500\ \text{W}\) est négative : la machine reçoit 55,5 kW de la charge (énergie cinétique). Les pertes Joule \(RI^2 = 136\,900\ \text{W} = 81\,400 + 55\,500\) absorbent tout : en contre-courant, la machine prend de l'énergie des deux côtés et la dissipe dans l'induit. Rien n'est récupéré, même si le point est en Q2 (avec ici \(U \lt 0\)).</p>
+    <p><strong>Q5.</strong> \(I = (120 - 150)/1 = -30\ \text{A}\) (le hacheur accepte le courant négatif), \(C_{em} = -45\ \text{N·m}\) : toujours le quadrant 2, mais avec \(U > 0\). Décélération initiale : \(-45/0{,}02 = -2250\ \text{rad/s}^2\). La source reçoit \(-UI = 3600\ \text{W}\) ; la charge cède \(-EI = 4500\ \text{W}\), dont 900 W de pertes Joule. C'est le <strong>freinage avec récupération</strong> : courant maîtrisé (de l'ordre du courant nominal) et énergie renvoyée vers la source, à condition que celle-ci l'accepte (batterie, bus réversible). Pour freiner jusqu'à l'arrêt, le hacheur abaisse progressivement \(U\) en suivant \(E\).</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 05</span><span class="diff">★ ★ ☆</span>
+  <h3>Réglage de vitesse par variation de flux (hors programme, pour aller plus loin)</h3>
+  <div class="statement">Le modèle du cours suppose un flux constant ; une MCC à excitation séparée permet pourtant de réduire le flux (<em>défluxage</em>) pour dépasser la vitesse nominale. On écrit toujours \(E = K\,\Omega\) et \(C_{em} = K\,I\), mais la constante \(K\) est proportionnelle au flux de l'inducteur, réglé par le courant d'excitation : \(K = K_n\,\Phi/\Phi_n\). À flux nominal \(\Phi_n\) : \(\Omega_n = 100\ \text{rad/s}\), \(C_n = 20\ \text{N·m}\), \(U_n = 200\ \text{V}\), \(R = 0{,}5\ \Omega\).</div>
+  <div class="q"><strong>Q1.</strong> Calculer \(K_n\) et le courant nominal \(I_n\).</div>
+  <div class="q"><strong>Q2.</strong> On réduit le flux à \(\Phi = 0{,}6\,\Phi_n\) en gardant \(U = U_n\). Calculer la nouvelle vitesse à vide idéale et la vitesse en charge pour le même courant \(I_n\).</div>
+  <div class="q"><strong>Q3.</strong> Quel est le couple électromagnétique dans ce cas ? Pourquoi parle-t-on d'un fonctionnement à « puissance constante » ?</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> \(C_n = K_n I_n\) et \(U_n = R I_n + K_n\Omega_n\). En posant \(x = K_n\) et \(I_n = 20/x\) : \(200 = 0{,}5\times20/x + 100x\), soit \(100x^2 - 200x + 10 = 0\), \(x^2 - 2x + 0{,}1 = 0\), \(x = 1 \pm \sqrt{0{,}9} = 1 \pm 0{,}949\). La solution physique (petite chute \(RI\)) est \(K_n \approx 1{,}949\ \text{V·s/rad}\), d'où \(I_n \approx 10{,}26\ \text{A}\) (l'autre racine donnerait 390 A).</p>
+    <p><strong>Q2.</strong> \(K' = 0{,}6\times1{,}949 = 1{,}169\ \text{V·s/rad}\). Vitesse à vide idéale : \(U_n/K' = 200/1{,}169 \approx 171\ \text{rad/s}\). En charge (\(I = I_n\)) :</p>
+    <div class="formula">$$\Omega' = \frac{U_n - R I_n}{K'} = \frac{200 - 5{,}13}{1{,}169} \approx 166{,}7\ \text{rad/s}$$</div>
+    <p>La vitesse a augmenté de 67 % (rapport exactement \(1/0{,}6\), puisque \(E = U_n - RI_n\) n'a pas changé).</p>
+    <p><strong>Q3.</strong> \(C'_{em} = K'\,I_n = 1{,}169\times10{,}26 \approx 12{,}0\ \text{N·m}\) (réduit dans le rapport 0,6). Puissance électromagnétique : \(P_{em} = EI_n = C'_{em}\Omega' \approx 2000\ \text{W} = C_n\Omega_n\). À tension et courant nominaux, \(E = U_n - RI_n\) est fixé, donc \(P_{em} = EI_n\) aussi : réduire le flux échange du couple contre de la vitesse à puissance constante. C'est le mode utilisé pour dépasser la vitesse nominale.</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 06</span><span class="diff">★ ★ ★</span>
+  <h3>Hacheur série + MCC — régime permanent et modèle dynamique</h3>
+  <div class="statement">Une MCC (\(K = 1{,}2\ \text{V·s/rad}\), \(R = 0{,}8\ \Omega\), \(L = 5\ \text{mH}\), \(J = 5\times10^{-3}\ \text{kg·m}^2\), \(f = 0{,}01\ \text{N·m·s/rad}\)) est alimentée par un hacheur série depuis une batterie de tension \(U_0 = 48\ \text{V}\), avec un rapport cyclique \(\alpha = 0{,}7\). La charge oppose un couple constant \(C_r = 1{,}5\ \text{N·m}\).</div>
+  <div class="q"><strong>Q1.</strong> Donner la valeur moyenne \(\langle u \rangle\) de la tension d'alimentation de l'induit.</div>
+  <div class="q"><strong>Q2.</strong> En régime permanent, calculer la vitesse \(\Omega\) et le courant moyen \(\langle i \rangle\) (on travaille sur les valeurs moyennes).</div>
+  <div class="q"><strong>Q3.</strong> Écrire les équations dans le domaine de Laplace et la fonction de transfert \(H(p) = \Omega(p)/U(p)\) pour \(C_r = 0\). Donner son gain statique, sa pulsation propre et son coefficient d'amortissement. Peut-on ici négliger l'inductance ?</div>
+  <div class="q"><strong>Q4.</strong> Dans quels quadrants ce hacheur permet-il de fonctionner ? Que faudrait-il pour freiner en récupérant l'énergie dans la batterie, puis pour inverser le sens de rotation ?</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> \(\langle u \rangle = \alpha U_0 = 0{,}7\times48 = 33{,}6\ \text{V}\).</p>
+    <p><strong>Q2.</strong> En régime permanent, les termes \(L\,\mathrm{d}i/\mathrm{d}t\) et \(J\,\mathrm{d}\Omega/\mathrm{d}t\) sont nuls en moyenne : \(\langle u\rangle = R\langle i\rangle + K\Omega\) et \(K\langle i\rangle = C_r + f\Omega\). La seconde donne \(\langle i\rangle = (1{,}5 + 0{,}01\,\Omega)/1{,}2\) ; en reportant dans la première :</p>
+    <div class="formula">$$\Omega = \frac{K\langle u\rangle - R\,C_r}{K^2 + Rf} = \frac{40{,}32 - 1{,}2}{1{,}44 + 0{,}008} \approx 27{,}0\ \text{rad/s}$$</div>
+    <p>puis \(\langle i\rangle = (1{,}5 + 0{,}27)/1{,}2 \approx 1{,}48\ \text{A}\). (Négliger le frottement donnerait 1,25 A : 15 % d'erreur sur le courant.)</p>
+    <p><strong>Q3.</strong> \(U(p) = (R + Lp)I(p) + K\Omega(p)\) et \(KI(p) - C_r(p) = (f + Jp)\Omega(p)\). Pour \(C_r = 0\) :</p>
+    <div class="formula">$$H(p) = \frac{K}{(R + Lp)(f + Jp) + K^2} = \frac{K}{LJ\,p^2 + (RJ + Lf)\,p + Rf + K^2}$$</div>
+    <p>Numériquement (unités SI) : \(LJ = 2{,}5\times10^{-5}\), \(RJ + Lf = 4{,}05\times10^{-3}\), \(Rf + K^2 = 1{,}448\). Gain statique \(K_s = K/(Rf + K^2) \approx 0{,}83\ \text{rad·s}^{-1}\text{/V}\) ; \(\omega_0 = \sqrt{1{,}448/2{,}5\times10^{-5}} \approx 241\ \text{rad/s}\) ; \(\xi = \dfrac{4{,}05\times10^{-3}}{2\sqrt{2{,}5\times10^{-5}\times1{,}448}} \approx 0{,}34\). Les pôles \(-81 \pm 227j\) sont à partie réelle négative : système stable, mais peu amorti (dépassement d'environ 32 % sur un échelon). On ne peut pas négliger \(L\) : la constante de temps électrique \(\tau_e = L/R = 6{,}25\ \text{ms}\) dépasse la constante électromécanique \(\tau_m = RJ/K^2 \approx 2{,}8\ \text{ms}\) ; le modèle du premier ordre ne vaut que si \(\tau_e \ll \tau_m\) (cours, §6 : ici \(\tau_m \lt 4\tau_e\), d'où les oscillations).</p>
+    <p><em>Remarque (hors programme) :</em> les mêmes équations s'écrivent sous forme matricielle \(\dot x = Ax + Bu\) avec \(x = (i, \Omega)\) ; les valeurs propres de \(A\) sont les pôles de \(H\).</p>
+    <p><strong>Q4.</strong> Le hacheur série ne fournit que \(u \geq 0\) et \(i \geq 0\) : la MCC ne peut fonctionner qu'en <strong>quadrant 1</strong> (moteur en marche avant). Pour freiner en marche avant avec récupération (quadrant 2 : \(I \lt 0\), \(U > 0\)), il faut un hacheur réversible en courant ; pour inverser aussi le sens de rotation (quadrants 3 et 4), un hacheur réversible en tension et en courant (pont en H).</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 07</span><span class="diff">★ ☆ ☆</span>
+  <h3>Chaîne de puissance d'un fauteuil roulant électrique</h3>
+  <div class="statement">Chaque roue motrice d'un fauteuil roulant est entraînée par sa propre MCC à travers un réducteur de rapport \(k = 1/32\) (vitesse de la roue sur vitesse du moteur) et de rendement 0,85. Les moteurs (\(K = 0{,}065\ \text{V·s/rad}\), \(R = 0{,}6\ \Omega\)) sont alimentés par une batterie de 24 V, 40 Ah, à travers un variateur à hacheur de rendement 0,95. Roues de rayon 0,17 m. Sur un sol légèrement montant, à 6 km/h, chaque roue motrice doit exercer sur le sol un effort de 30 N.</div>
+  <div class="q"><strong>Q1.</strong> Nommer les cinq fonctions de la chaîne de puissance et le constituant qui assure chacune. Indiquer les grandeurs d'effort et de flux à l'entrée et à la sortie du moteur.</div>
+  <div class="q"><strong>Q2.</strong> Calculer la vitesse angulaire de la roue et celle du moteur, puis le couple à la roue et le couple électromagnétique du moteur (pertes du moteur autres que Joule négligées).</div>
+  <div class="q"><strong>Q3.</strong> Calculer le courant, la f.é.m., la tension moyenne d'alimentation et le rapport cyclique du hacheur.</div>
+  <div class="q"><strong>Q4.</strong> Calculer les puissances le long de la chaîne pour une roue, le rendement global et l'autonomie (en heures et en kilomètres) à cette allure, les deux moteurs fonctionnant de la même façon.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> Alimenter : la batterie 24 V ; moduler : le variateur à hacheur, piloté par le joystick (chaîne d'information) ; convertir : la MCC ; transmettre : le réducteur ; agir : la roue, qui pousse sur le sol. Entrée du moteur : effort \(U\) (tension), flux \(I\) (courant) ; sortie : effort \(C\) (couple), flux \(\Omega\) (vitesse angulaire).</p>
+    <p><strong>Q2.</strong> \(v = 6/3{,}6 = 1{,}667\ \text{m/s}\) ; roue : \(\omega = v/r = 9{,}80\ \text{rad/s}\) ; moteur : \(\Omega = \omega/k = 32 \times 9{,}80 = 314\ \text{rad/s}\) (environ 3 000 tr/min). Couple à la roue : \(30 \times 0{,}17 = 5{,}1\ \text{N·m}\). Sur l'arbre moteur, le réducteur divise le couple par 32 mais le moteur doit aussi fournir les pertes du réducteur : \(C_{em} = \dfrac{5{,}1}{32 \times 0{,}85} = 0{,}1875\ \text{N·m}\).</p>
+    <p><strong>Q3.</strong> \(I = C_{em}/K = 0{,}1875/0{,}065 = 2{,}88\ \text{A}\) ; \(E = K\Omega = 0{,}065 \times 313{,}7 = 20{,}4\ \text{V}\) ; \(\langle u\rangle = E + RI = 20{,}4 + 1{,}7 = 22{,}1\ \text{V}\) ; \(\alpha = 22{,}1/24 = 0{,}92\). Le fauteuil est presque à sa vitesse maximale : sur une pente plus forte, il faudrait ralentir.</p>
+    <p><strong>Q4.</strong> Puissance à la roue : \(30 \times 1{,}667 = 50\ \text{W}\) ; sur l'arbre moteur : \(50/0{,}85 = 58{,}8\ \text{W}\) (\(= C_{em}\Omega\)) ; absorbée par le moteur : \(UI = 22{,}1 \times 2{,}88 = 63{,}8\ \text{W}\) (dont 5,0 W de pertes Joule) ; prise à la batterie : \(63{,}8/0{,}95 = 67{,}2\ \text{W}\). Rendement global : \(50/67{,}2 = 0{,}74\), produit des rendements \(0{,}95 \times 0{,}92 \times 0{,}85\). Deux moteurs : 134 W. Énergie de la batterie : \(24 \times 40 = 960\ \text{Wh}\), d'où une autonomie d'environ \(960/134 = 7{,}1\ \text{h}\), soit une quarantaine de kilomètres à 6 km/h (moins en pratique : batterie jamais vidée entièrement, démarrages, montées).</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 08</span><span class="diff">★ ★ ☆</span>
+  <h3>Identifier les paramètres d'un moteur par trois essais</h3>
+  <div class="statement">On veut le modèle d'un moteur à courant continu sans documentation. Trois essais sont réalisés.
+    <ul>
+      <li>Rotor bloqué, sous une tension continue de 3,0 V : courant établi 2,0 A.</li>
+      <li>À vide, sous 24 V : courant 0,20 A, vitesse 3 400 tr/min.</li>
+      <li>À vide, réponse à un échelon de 24 V à partir de l'arrêt (figure).</li>
+    </ul>
+    <figure class="schema">
+<svg viewBox="0 0 330 226" role="img" aria-label="Vitesse relevée lors d'un échelon de 24 volts : montée exponentielle sans dépassement de 0 à environ 355 radians par seconde en une centaine de millisecondes, quadrillage tous les 10 millisecondes et tous les 50 radians par seconde">
+<line x1="68.2" y1="20" x2="68.2" y2="190" class="sk-axis" style="opacity:.35"/>
+<line x1="90.3" y1="20" x2="90.3" y2="190" class="sk-axis" style="opacity:.35"/>
+<line x1="112.5" y1="20" x2="112.5" y2="190" class="sk-axis" style="opacity:.35"/>
+<line x1="134.7" y1="20" x2="134.7" y2="190" class="sk-axis" style="opacity:.35"/>
+<line x1="156.8" y1="20" x2="156.8" y2="190" class="sk-axis" style="opacity:.35"/>
+<line x1="179" y1="20" x2="179" y2="190" class="sk-axis" style="opacity:.35"/>
+<line x1="201.2" y1="20" x2="201.2" y2="190" class="sk-axis" style="opacity:.35"/>
+<line x1="223.3" y1="20" x2="223.3" y2="190" class="sk-axis" style="opacity:.35"/>
+<line x1="245.5" y1="20" x2="245.5" y2="190" class="sk-axis" style="opacity:.35"/>
+<line x1="267.7" y1="20" x2="267.7" y2="190" class="sk-axis" style="opacity:.35"/>
+<line x1="289.8" y1="20" x2="289.8" y2="190" class="sk-axis" style="opacity:.35"/>
+<line x1="46" y1="168.8" x2="312" y2="168.8" class="sk-axis" style="opacity:.35"/>
+<line x1="46" y1="147.5" x2="312" y2="147.5" class="sk-axis" style="opacity:.35"/>
+<line x1="46" y1="126.2" x2="312" y2="126.2" class="sk-axis" style="opacity:.35"/>
+<line x1="46" y1="105" x2="312" y2="105" class="sk-axis" style="opacity:.35"/>
+<line x1="46" y1="83.8" x2="312" y2="83.8" class="sk-axis" style="opacity:.35"/>
+<line x1="46" y1="62.5" x2="312" y2="62.5" class="sk-axis" style="opacity:.35"/>
+<line x1="46" y1="41.2" x2="312" y2="41.2" class="sk-axis" style="opacity:.35"/>
+<line x1="46" y1="190" x2="324" y2="190" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<line x1="46" y1="190" x2="46" y2="8" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<line x1="42" y1="147.5" x2="46" y2="147.5" class="sk-axis"/>
+<text x="39" y="151.5" class="lab-muted" text-anchor="end">100</text>
+<line x1="42" y1="105" x2="46" y2="105" class="sk-axis"/>
+<text x="39" y="109" class="lab-muted" text-anchor="end">200</text>
+<line x1="42" y1="62.5" x2="46" y2="62.5" class="sk-axis"/>
+<text x="39" y="66.5" class="lab-muted" text-anchor="end">300</text>
+<line x1="42" y1="20" x2="46" y2="20" class="sk-axis"/>
+<text x="39" y="24" class="lab-muted" text-anchor="end">400</text>
+<line x1="90.3" y1="190" x2="90.3" y2="194" class="sk-axis"/>
+<text x="90.3" y="207" class="lab-muted" text-anchor="middle">20</text>
+<line x1="134.7" y1="190" x2="134.7" y2="194" class="sk-axis"/>
+<text x="134.7" y="207" class="lab-muted" text-anchor="middle">40</text>
+<line x1="179" y1="190" x2="179" y2="194" class="sk-axis"/>
+<text x="179" y="207" class="lab-muted" text-anchor="middle">60</text>
+<line x1="223.3" y1="190" x2="223.3" y2="194" class="sk-axis"/>
+<text x="223.3" y="207" class="lab-muted" text-anchor="middle">80</text>
+<line x1="267.7" y1="190" x2="267.7" y2="194" class="sk-axis"/>
+<text x="267.7" y="207" class="lab-muted" text-anchor="middle">100</text>
+<line x1="312" y1="190" x2="312" y2="194" class="sk-axis"/>
+<text x="312" y="207" class="lab-muted" text-anchor="middle">120</text>
+<text x="52" y="14" class="lab-muted lab-it">Ω (rad/s)</text>
+<text x="322" y="222" class="lab-muted lab-it" text-anchor="end">t (ms)</text>
+<polyline points="46,190 46.8,189.7 47.8,188.5 50.1,183.8 61.6,151.5 69.3,132.6 76.5,117.8 84,104.7 88.6,97.8 93.4,91.4 98.4,85.5 103.6,80.1 109,75 114.7,70.4 120.6,66.3 126.8,62.4 133.2,59.1 139.8,56.1 146.9,53.4 154.3,51 170.7,47 189.6,44 211,41.9 236.8,40.4 268.9,39.5 312,39" class="sk-accent"/>
+</svg>
+<figcaption>Vitesse relevée après un échelon de 24 V appliqué au moteur à vide (quadrillage : 10 ms et 50 rad/s).</figcaption>
+</figure>
+  </div>
+  <div class="q"><strong>Q1.</strong> Justifier le choix de chaque essai : quelle entrée impose-t-on, quelle sortie mesure-t-on, quel paramètre isole-t-on ? Déduire \(R\) du premier essai.</div>
+  <div class="q"><strong>Q2.</strong> Déduire du deuxième essai la constante \(K\), les pertes collectives \(P_c\) et le couple de pertes \(C_p\) à cette vitesse.</div>
+  <div class="q"><strong>Q3.</strong> Relever sur la figure le temps de réponse à 5 % et l'instant où la vitesse atteint 63 % de sa valeur finale. Quel modèle adopter ? En déduire la constante de temps \(\tau_m\) et le moment d'inertie \(J\) (frottements négligés dans la dynamique).</div>
+  <div class="q"><strong>Q4.</strong> On coupe l'alimentation à 3 400 tr/min. En supposant \(C_p\) constant, calculer la décélération et la durée de l'arrêt. À quoi peut servir cet essai ?</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> Rotor bloqué : \(\Omega = 0\) donc \(E = 0\), et en continu \(L\,\mathrm{d}i/\mathrm{d}t = 0\) : la tension ne sert qu'à vaincre \(R\) ; on impose une faible tension pour ne pas dépasser le courant admissible. \(R = 3{,}0/2{,}0 = 1{,}5\ \Omega\). À vide : le courant est faible, la chute \(RI_0\) petite et connue : la tension donne \(E\), la vitesse mesurée donne \(K\). Échelon : la vitesse en fonction du temps révèle la dynamique, donc l'inertie.</p>
+    <p><strong>Q2.</strong> \(\Omega_0 = 3400\pi/30 = 356\ \text{rad/s}\) ; \(E = 24 - 1{,}5 \times 0{,}20 = 23{,}7\ \text{V}\) ; \(K = 23{,}7/356 = 0{,}0666\ \text{V·s/rad}\). \(P_c = 24 \times 0{,}20 - 1{,}5 \times 0{,}20^2 = 4{,}74\ \text{W}\) ; \(C_p = P_c/\Omega_0 = 0{,}0133\ \text{N·m}\) (c'est aussi \(KI_0\)).</p>
+    <p><strong>Q3.</strong> Valeur finale lue : 355 rad/s. 95 % (337 rad/s) est atteint vers 57 ms, 63 % (224 rad/s) vers 20 ms. La réponse ne dépasse pas et a l'allure d'une exponentielle (l'arrondi du tout début, dû à l'inductance, ne dure qu'une à deux millisecondes) : modèle du premier ordre. \(\tau_m \approx 20\ \text{ms}\) (méthode des 63 %) ou \(57/3 = 19\ \text{ms}\) (méthode des 5 %). Avec \(\tau_m = 20\ \text{ms}\) :</p>
+    <div class="formula">$$J = \frac{\tau_m K^2}{R} = \frac{0{,}020 \times 0{,}0666^2}{1{,}5} = 5{,}9\times10^{-5}\ \text{kg·m}^2$$</div>
+    <p> Les deux lectures diffèrent de 5 % : l'inductance de l'induit, négligée, rend le pôle dominant un peu plus rapide que \(\tau_m\) (cours, §6), et la lecture graphique a sa propre incertitude.</p>
+    <p><strong>Q4.</strong> Alimentation coupée, plus de courant donc plus de couple moteur : \(J\,\mathrm{d}\Omega/\mathrm{d}t = -C_p\), soit une décélération \(C_p/J = 0{,}0133/5{,}9\times10^{-5} \approx 225\ \text{rad/s}^2\) et un arrêt en \(356/225 \approx 1{,}6\ \text{s}\). Mesurer ce ralentissement permet de recouper \(J\) indépendamment de \(K\) et de \(R\) (essai de lâcher).</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 09</span><span class="diff">★ ★ ☆</span>
+  <h3>Ventilateur d'habitacle : hacheur ou résistance série ?</h3>
+  <div class="statement">Le pulseur d'air d'une voiture est entraîné par une MCC (\(K = 0{,}025\ \text{V·s/rad}\), \(R = 0{,}15\ \Omega\), inductance \(L = 0{,}2\ \text{mH}\)) alimentée par la batterie de 12 V. Le couple résistant du ventilateur, frottements compris, vaut \(C_r = a\Omega^2\) avec \(a = 1{,}0\times10^{-6}\ \text{N·m·s}^2\).</div>
+  <div class="q"><strong>Q1.</strong> Sous 12 V, calculer la vitesse, le couple, le courant, la puissance utile (\(a\Omega^3\)) et le rendement du moteur.</div>
+  <div class="q"><strong>Q2.</strong> On veut la moitié de cette vitesse avec un hacheur série commuté à 20 kHz. Calculer le couple, le courant moyen, la tension moyenne et le rapport cyclique.</div>
+  <div class="q"><strong>Q3.</strong> Les anciens véhicules obtenaient cette vitesse avec une résistance en série. Calculer sa valeur, la puissance qu'elle dissipe et le rendement de l'ensemble ; comparer au hacheur, supposé parfait.</div>
+  <div class="q"><strong>Q4.</strong> Estimer l'ondulation du courant avec la formule \(\Delta i \approx \alpha(1 - \alpha)U_0/(Lf_d)\) (chapitre « Les hacheurs », §5). Le courant reste-t-il continu ?</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> Point de fonctionnement : \(a\Omega^2 = \dfrac{K}{R}(U - K\Omega)\), soit \(10^{-6}\,\Omega^2 + 4{,}17\times10^{-3}\,\Omega - 2{,}0 = 0\). Racine positive : \(\Omega = 435\ \text{rad/s}\) (4 150 tr/min). \(C = a\Omega^2 = 0{,}189\ \text{N·m}\), \(I = C/K = 7{,}56\ \text{A}\). Puissance utile \(a\Omega^3 = 82{,}1\ \text{W}\), absorbée \(12 \times 7{,}56 = 90{,}7\ \text{W}\), pertes Joule 8,6 W : \(\eta = 0{,}91\) (seules les pertes Joule sont comptées, les frottements étant inclus dans la charge).</p>
+    <p><strong>Q2.</strong> \(\Omega = 217\ \text{rad/s}\) : \(C = 10^{-6} \times 217^2 = 0{,}0472\ \text{N·m}\) (quatre fois moins), \(\langle i\rangle = 1{,}89\ \text{A}\), \(\langle u\rangle = K\Omega + R\langle i\rangle = 5{,}43 + 0{,}28 = 5{,}72\ \text{V}\), \(\alpha = 5{,}72/12 = 0{,}48\).</p>
+    <p><strong>Q3.</strong> Même point avec une résistance \(R_s\) : \(12 = K\Omega + (R + R_s)\,I\), d'où \(R_s = \dfrac{12 - 5{,}43}{1{,}89} - 0{,}15 = 3{,}33\ \Omega\), qui dissipe \(R_sI^2 = 11{,}9\ \text{W}\), plus que la puissance utile (10,3 W). Rendement : \(10{,}3/(12 \times 1{,}89) = 0{,}45\), contre \(10{,}3/(5{,}72 \times 1{,}89) = 0{,}95\) avec le hacheur parfait. C'est tout l'intérêt de <strong>moduler</strong> par découpage : la tension est abaissée sans dissiper la différence.</p>
+    <p><strong>Q4.</strong></p>
+    <div class="formula">$$\Delta i \approx \frac{0{,}48 \times 0{,}52 \times 12}{0{,}2\times10^{-3} \times 2\times10^4} = 0{,}75\ \text{A}$$</div>
+    <p>crête à crête : le courant varie entre 1,52 et 2,26 A environ ; il reste positif, donc continu. La formule suppose \(R\) négligeable sur une période (\(\tau_e = L/R = 1{,}3\ \text{ms}\), contre une période de 50 µs : c'est le cas). L'ondulation relative (40 %) est forte mais sans effet sur la vitesse, filtrée par l'inertie.</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 10</span><span class="diff">★ ★ ☆</span>
+  <h3>Monte-charge : quadrants et choix du convertisseur</h3>
+  <div class="statement">Un monte-charge lève une masse \(m = 50\ \text{kg}\) au moyen d'un câble enroulé sur un tambour de rayon 5 cm, entraîné par une MCC (\(K = 0{,}20\ \text{V·s/rad}\), \(R = 0{,}5\ \Omega\)) à travers un réducteur de rapport \(k = 1/20\) et de rendement \(\eta = 0{,}90\). À la montée, le moteur fournit la puissance : \(C_r = k\,C_{\text{tambour}}/\eta\) ; à la descente, c'est la charge qui la fournit et le réducteur la transmet au moteur avec le même rendement : \(C_r = k\,C_{\text{tambour}}\,\eta\). Câble à 0,5 m/s dans les deux sens ; \(g = 9{,}81\ \text{m/s}^2\) ; source continue \(U_0 = 48\ \text{V}\). Régimes permanents.</div>
+  <div class="q"><strong>Q1.</strong> Calculer la vitesse du tambour, celle du moteur et le couple exercé par la charge sur le tambour.</div>
+  <div class="q"><strong>Q2.</strong> Montée : calculer le couple électromagnétique, le courant et la tension d'induit. Placer le point dans le plan \((C_{em}, \Omega)\).</div>
+  <div class="q"><strong>Q3.</strong> Descente : le moteur retient la charge. Mêmes calculs ; dans quel quadrant est-on ?</div>
+  <div class="q"><strong>Q4.</strong> Faire le bilan des puissances à la descente : puissance cédée par la charge, pertes du réducteur, pertes Joule, puissance renvoyée à la source.</div>
+  <div class="q"><strong>Q5.</strong> Quelle réversibilité le convertisseur doit-il avoir ? On utilise deux cellules en pont, deux diagonales fermées alternativement, qui donnent \(\langle u\rangle = (2\alpha - 1)\,U_0\) (« Convertisseurs statiques », §7). Calculer \(\alpha\) à la montée et à la descente.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> Tambour : \(\omega_t = v/r = 0{,}5/0{,}05 = 10\ \text{rad/s}\) ; moteur : \(\Omega = \omega_t/k = 200\ \text{rad/s}\) (1 910 tr/min). Couple de la charge sur le tambour : \(mgr = 50 \times 9{,}81 \times 0{,}05 = 24{,}5\ \text{N·m}\).</p>
+    <p><strong>Q2.</strong> \(C_{em} = C_r = \dfrac{24{,}5}{20 \times 0{,}90} = 1{,}36\ \text{N·m}\) ; \(I = 1{,}36/0{,}20 = 6{,}81\ \text{A}\) ; \(U = K\Omega + RI = 40 + 3{,}4 = 43{,}4\ \text{V}\). \(C_{em} > 0\), \(\Omega > 0\) : quadrant 1, moteur en marche avant.</p>
+    <p><strong>Q3.</strong> À la descente, le couple du moteur garde son signe (il retient le poids) alors que la vitesse s'inverse : \(C_{em} = \dfrac{24{,}5 \times 0{,}90}{20} = 1{,}10\ \text{N·m}\), \(I = 5{,}52\ \text{A}\), \(\Omega = -200\ \text{rad/s}\), \(U = -40 + 2{,}8 = -37{,}2\ \text{V}\). Quadrant 4 du plan \((C_{em}, \Omega)\) : frein en marche arrière. (Dans le plan \((u, i)\) d'un convertisseur, c'est le quadrant 2.)</p>
+    <p><strong>Q4.</strong> La charge cède \(mgv = 245\ \text{W}\) ; le réducteur en perd 10 %, il en arrive \(220{,}7\ \text{W}\) à l'arbre (\(= C_{em}|\Omega|\)) ; pertes Joule \(RI^2 = 15{,}2\ \text{W}\) ; la source reçoit \(-UI = 37{,}2 \times 5{,}52 = 205{,}5\ \text{W}\). Bilan : \(220{,}7 = 15{,}2 + 205{,}5\).</p>
+    <p><strong>Q5.</strong> Le courant ne change pas de signe, la tension si : convertisseur <strong>réversible en tension</strong>, non réversible en courant (deux transistors et deux diodes en diagonale, « Convertisseurs statiques », §7). Montée : \(\alpha = \dfrac{1 + 43{,}4/48}{2} = 0{,}95\) ; descente : \(\alpha = \dfrac{1 - 37{,}2/48}{2} = 0{,}11\). La source doit pouvoir recevoir 205 W (batterie, ou résistance de freinage sur le bus).</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 11</span><span class="diff">★ ★ ★</span>
+  <h3>Micromoteur : modèle du deuxième ordre et simulation par la méthode d'Euler</h3>
+  <div class="statement">Un micromoteur à vide (\(R = 2{,}0\ \Omega\), \(L = 4{,}0\ \text{mH}\), \(K = 0{,}020\ \text{V·s/rad}\), \(J = 5{,}0\times10^{-7}\ \text{kg·m}^2\), frottements négligés) reçoit, à l'arrêt, un échelon de tension de 6,0 V.</div>
+  <div class="q"><strong>Q1.</strong> Calculer \(\tau_e\) et \(\tau_m\). Le modèle du premier ordre est-il justifié ? Mettre \(\Omega(p)/U(p)\) sous forme canonique et calculer \(\omega_0\) et \(\xi\).</div>
+  <div class="q"><strong>Q2.</strong> Donner la vitesse finale, le dépassement relatif \(D_1 = e^{-\pi\xi/\sqrt{1-\xi^2}}\), la vitesse maximale et l'instant où elle est atteinte (\(t = \pi/\omega_p\), avec \(\omega_p = \omega_0\sqrt{1 - \xi^2}\)). Comparer au temps de réponse qu'annoncerait le premier ordre.</div>
+  <div class="q"><strong>Q3.</strong> Écrire les deux équations différentielles sous la forme \(i' = F(i, \Omega)\), \(\Omega' = G(i, \Omega)\), puis un programme Python qui les résout par la méthode d'Euler explicite. Quel pas choisir ?</div>
+  <div class="q"><strong>Q4.</strong> La simulation montre que le courant devient brièvement négatif pendant le dépassement. Expliquer.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> \(\tau_e = L/R = 2{,}0\ \text{ms}\) ; \(\tau_m = RJ/K^2\), soit \(\tau_m = 2{,}0 \times 5\times10^{-7}/(4\times10^{-4}) = 2{,}5\ \text{ms}\). Les deux constantes sont du même ordre (\(\tau_m \lt 4\tau_e\)) : le premier ordre n'est <strong>pas</strong> justifié. \(\dfrac{\Omega(p)}{U(p)} = \dfrac{1/K}{1 + \tau_m p + \tau_e\tau_m p^2}\), d'où \(\omega_0 = 1/\sqrt{\tau_e\tau_m} = 1/\sqrt{5\times10^{-6}} = 447\ \text{rad/s}\) et \(\xi = \frac12\sqrt{\tau_m/\tau_e} = \frac12\sqrt{1{,}25} = 0{,}56\).</p>
+    <p><strong>Q2.</strong> Vitesse finale \(U/K = 300\ \text{rad/s}\). \(D_1 = e^{-\pi \times 0{,}559/0{,}829} = 0{,}12\) : vitesse maximale \(300 \times 1{,}12 = 336\ \text{rad/s}\), atteinte à \(t = \pi/\omega_p\) avec \(\omega_p = 447 \times 0{,}829 = 371\ \text{rad/s}\), soit 8,5 ms. Le temps de réponse à 5 % vaut environ 11,8 ms (\(\omega_0 t_{r5\%} \approx 5{,}3\), abaque de « Systèmes du 2e ordre »), alors que le premier ordre annoncerait \(3\tau_m = 7{,}5\ \text{ms}\) et aucun dépassement.</p>
+    <p><strong>Q3.</strong> \(i' = \dfrac{U - Ri - K\Omega}{L}\) et \(\Omega' = \dfrac{K i}{J}\). Avec un pas \(h\) petit devant la plus courte constante de temps (ici \(\tau_e = 2\ \text{ms}\)), par exemple \(h = 20\ \mu\text{s}\) :</p>
+    <pre class="codeblock">R, L, K, J, U = 2.0, 4.0e-3, 0.020, 5.0e-7, 6.0
+h, n = 20e-6, 2000                    <span class="cmt"># pas de 20 µs, 40 ms simulées</span>
+t, i, w = 0.0, 0.0, 0.0                <span class="cmt"># départ à l'arrêt</span>
+T, I, W = [t], [i], [w]
+<span class="kw">for</span> k <span class="kw">in</span> range(n):
+    di = (U - R * i - K * w) / L     <span class="cmt"># équation électrique</span>
+    dw = K * i / J                   <span class="cmt"># équation mécanique</span>
+    i, w, t = i + h * di, w + h * dw, t + h
+    T.append(t); I.append(i); W.append(w)
+<span class="kw">print</span>(max(W), max(I), min(I))      <span class="cmt"># ≈ 336.7  1.74  -0.21</span></pre>
+    <p>Les deux mises à jour utilisent les valeurs de l'instant \(t_k\) (Euler explicite). Avec \(h = 20\ \mu\text{s}\), la vitesse maximale vaut 336,7 rad/s (valeur exacte 336,1) ; avec \(h = 0{,}1\ \text{ms}\), 339,3 rad/s : l'erreur croît avec le pas, et la méthode diverge si \(h\) devient comparable à \(\tau_e\).</p>
+    <p><strong>Q4.</strong> Pendant le dépassement, \(\Omega > U/K\), donc \(E = K\Omega > U\) : le courant \(i = (U - E - L\,\mathrm{d}i/\mathrm{d}t)/R\) s'inverse, le couple devient freinant et ramène la vitesse vers 300 rad/s. La machine passe brièvement en quadrant 2 ; avec un hacheur série (non réversible en courant), ce courant négatif serait impossible et la réponse serait différente.</p>
+  </div>
+</div>
+
+<div class="exo concours">
+  <span class="num">CONCOURS PT</span><span class="diff">★ ★ ★</span>
+  <h3>Machine à courant continu : modélisation, dynamique et freinage</h3>
+  <div class="exo-source">
+    Exercice <strong>original</strong> au format des épreuves de Sciences industrielles PT (thème <em>MCC</em>). Pour t'entraîner sur les sujets réellement tombés :
+    <a href="https://www.banquept.fr/rubrique38.html" target="_blank" rel="noopener">annales officielles de la Banque PT</a>.
+  </div>
+  <div class="statement">
+    Une machine à courant continu à aimants permanents (flux constant) entraîne l'axe d'un petit convoyeur. Elle a une résistance d'induit \(R = 2{,}0\ \Omega\), une constante \(K = 0{,}10\ \text{V·s/rad}\) (= N·m/A) et une inertie totale ramenée sur son arbre \(J = 2{,}0\times10^{-4}\ \text{kg·m}^2\). On néglige l'inductance de l'induit, les frottements et les pertes fer. Elle est alimentée par un hacheur réversible en courant, sous \(U = 24\ \text{V}\) en marche normale.
+  </div>
+
+  <p class="exo-part">Partie A — Équations et point de fonctionnement</p>
+  <div class="q"><strong>A1.</strong> Rappeler l'équation électrique de l'induit ainsi que les relations \(E = K\Omega\) et \(C_{em} = KI\).</div>
+  <div class="q"><strong>A2.</strong> En charge, l'induit appelle \(I = 2{,}0\ \text{A}\). Calculer la f.é.m. \(E\), la vitesse \(\Omega\) et le couple électromagnétique \(C_{em}\), égal au couple résistant \(C_r\) de la charge.</div>
+
+  <p class="exo-part">Partie B — Bilan de puissance</p>
+  <div class="q"><strong>B1.</strong> Calculer la puissance absorbée, les pertes Joule et la puissance électromagnétique. En déduire le rendement.</div>
+
+  <p class="exo-part">Partie C — Démarrage</p>
+  <div class="q"><strong>C1.</strong> Établir la fonction de transfert \(\Omega(p)/U(p)\) à vide (\(C_r = 0\)). Montrer qu'elle est du premier ordre et calculer son gain et sa constante de temps \(\tau_m\).</div>
+  <div class="q"><strong>C2.</strong> La machine, à l'arrêt et à vide, reçoit un échelon de 24 V. Donner \(\Omega(t)\), le temps de réponse à 5 % et le courant \(i(t)\). Comparer le courant initial au courant de A2 et proposer une solution s'il dépasse le courant crête admissible de 8 A.</div>
+
+  <p class="exo-part">Partie D — Freinage avec récupération</p>
+  <div class="q"><strong>D1.</strong> La machine tourne au point de A2. Le hacheur abaisse brusquement la tension à \(U = 16\ \text{V}\). Calculer le courant et le couple juste après, situer le point dans le plan \((C_{em}, \Omega)\) et faire le bilan des puissances.</div>
+  <div class="q"><strong>D2.</strong> La charge de A2 restant appliquée, écrire l'équation de la vitesse, en déduire \(\Omega(t)\) et la vitesse finale. Pendant combien de temps la machine renvoie-t-elle de l'énergie à la source ?</div>
+
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>A1.</strong> Équation électrique (convention récepteur, inductance négligée) : \(U = E + RI\). F.é.m. : \(E = K\Omega\). Couple électromagnétique : \(C_{em} = KI\) (même constante \(K\) en unités SI).</p>
+    <p><strong>A2.</strong> \(E = U - RI = 24 - 2{,}0\times2{,}0 = 20\ \text{V}\). \(\Omega = E/K = 20/0{,}10 = 200\ \text{rad/s}\) (≈ 1 910 tr/min). \(C_{em} = KI = 0{,}10\times2{,}0 = 0{,}20\ \text{N·m} = C_r\) (frottements négligés).</p>
+    <p><strong>B1.</strong> \(P_a = UI = 48\ \text{W}\) ; pertes Joule \(P_j = RI^2 = 8{,}0\ \text{W}\) ; puissance électromagnétique \(P_{em} = EI = 40\ \text{W}\) (\(= C_{em}\Omega = 40\ \text{W}\), cohérent). Pertes mécaniques et fer négligées, \(P_u = P_{em}\) : \(\eta = 40/48 \approx 0{,}83\) (83 %).</p>
+    <p><strong>C1.</strong> \(U = RI + K\Omega\) et \(KI = Jp\,\Omega\) donnent \(U = \left(\dfrac{RJ}{K}p + K\right)\Omega\), soit</p>
+    <div class="formula">$$\frac{\Omega(p)}{U(p)} = \frac{1/K}{1 + \tau_m p} \qquad \tau_m = \frac{RJ}{K^2} = \frac{2\times2\times10^{-4}}{0{,}01} = 0{,}04\ \text{s}$$</div>
+    <p>Gain \(1/K = 10\ \text{rad·s}^{-1}\text{/V}\).</p>
+    <p><strong>C2.</strong> \(\Omega(t) = 240\left(1 - e^{-t/\tau_m}\right)\) rad/s, qui atteint 95 % de 240 rad/s en \(3\tau_m = 0{,}12\ \text{s}\). Le courant \(i = (U - K\Omega)/R = 12\,e^{-t/\tau_m}\) A vaut 12 A au démarrage, six fois le courant de A2 et au-delà des 8 A admissibles. Solution : limiter le courant par le hacheur (boucle de courant saturée à 8 A, ou rampe de tension), ce qui allonge un peu le démarrage.</p>
+    <p><strong>D1.</strong> La vitesse n'a pas le temps de varier : \(E = 20\ \text{V}\), \(I = (16 - 20)/2{,}0 = -2{,}0\ \text{A}\), \(C_{em} = -0{,}20\ \text{N·m}\). Avec \(\Omega > 0\) et \(C_{em} \lt 0\) : <strong>quadrant 2</strong>, frein en marche avant (\(U > 0\), \(I \lt 0\)), possible parce que le hacheur est réversible en courant. Bilan : \(UI = -32\ \text{W}\) (la source <em>reçoit</em> 32 W), \(EI = -40\ \text{W}\) (la machine reçoit 40 W de la charge et de l'inertie), \(RI^2 = 8\ \text{W}\) : \(40 = 32 + 8\).</p>
+    <p><strong>D2.</strong> \(J\,\dfrac{\mathrm{d}\Omega}{\mathrm{d}t} = \dfrac{K(U - K\Omega)}{R} - C_r\), soit</p>
+    <div class="formula">$$\tau_m\frac{\mathrm{d}\Omega}{\mathrm{d}t} + \Omega = \frac{U}{K} - \frac{RC_r}{K^2} = 160 - 40 = 120\ \text{rad/s}$$</div>
+    <p>Avec \(\Omega(0) = 200\ \text{rad/s}\) :</p>
+    <div class="formula">$$\Omega(t) = 120 + 80\,e^{-t/\tau_m}\ \ \text{rad/s}$$</div>
+    <p>La vitesse tend vers 120 rad/s (nouveau point moteur, \(I = 2\ \text{A}\)). La décélération initiale vaut \((-0{,}20 - 0{,}20)/J = -2000\ \text{rad/s}^2\). Le courant est négatif tant que \(E > U\), c'est-à-dire \(\Omega > 160\ \text{rad/s}\) : \(80\,e^{-t/\tau_m} = 40\) donne \(t = \tau_m\ln 2 \approx 28\ \text{ms}\). Pendant ces 28 ms, la machine fonctionne en génératrice et renvoie de l'énergie à la source ; ensuite, elle repasse en moteur (quadrant 1) à vitesse réduite.</p>
+  </div>
+</div>
+
+</div>
+
+</template>

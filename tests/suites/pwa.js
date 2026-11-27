@@ -90,6 +90,32 @@ module.exports = {
       cache && cache.noms.includes(sw.version) && cache.entrees >= sw.precache.length,
       cache ? 'caches : ' + cache.noms.join(', ') + ' — ' + cache.entrees + ' entrée(s)' : 'aucun cache');
 
+    /* Contenu des chapitres (docs/chargement-chapitres.md) : mis en cache en arrière-plan, un fichier
+       par chapitre + l'index de recherche, dans le cache « ptsi-chapitres » ; une version périmée
+       (empreinte absente du manifeste) est retirée au passage suivant */
+    let chap = null;
+    const t2 = Date.now();
+    while (Date.now() - t2 < 120000) {
+      chap = await page.evaluate(async () => {
+        const M = window.__CHAPITRES || {}, attendus = Object.keys(M.v || {}).length + (M.recherche ? 1 : 0);
+        const c = (await caches.keys()).includes('ptsi-chapitres') ? await caches.open('ptsi-chapitres') : null;
+        return { attendus, entrees: c ? (await c.keys()).length : 0 };
+      });
+      if (chap.attendus && chap.entrees >= chap.attendus) break;
+      await pause(1000);
+    }
+    res.verifier('chapitres mis en cache en arrière-plan (« ptsi-chapitres » : ' + (chap ? chap.attendus : '?') + ' fichiers)',
+      !!(chap && chap.attendus && chap.entrees >= chap.attendus), chap ? chap.entrees + ' entrée(s) sur ' + chap.attendus : 'cache absent');
+    const perime = await page.evaluate(async () => {
+      const c = await caches.open('ptsi-chapitres');
+      const vieux = new URL('chapitres/rlc.html?v=00000000', location.href).href;
+      await c.put(vieux, new Response('<template class="pan-tpl" data-panneau="rlc-cours"></template>'));
+      if (window.__prechargerChapitres) window.__prechargerChapitres();
+      await new Promise(r => setTimeout(r, 1500));
+      return !!(await c.match(vieux));
+    });
+    res.verifier('version périmée d\'un chapitre retirée du cache', !perime, 'chapitres/rlc.html?v=00000000 toujours en cache');
+
     /* ---------- 3) Rechargement hors-ligne ---------- */
     journal.lieu = 'hors-ligne';
     const pbHL = [];
@@ -108,6 +134,9 @@ module.exports = {
       const pid = await page.evaluate(id => CHAPTERS_BY_ID[id].prefix + '-cours', og);
       const m = await etatMathJax(page, pid, 4000);
       if (!m || !m.mjx) pbHL.push('MathJax n\'a rendu aucune formule hors-ligne dans ' + pid);
+      // chapitre jamais ouvert en ligne : son contenu vient du cache « ptsi-chapitres »
+      const vide = await page.evaluate(id => { const p = document.getElementById(id); return !p || !p.querySelector('.course-section'); }, pid);
+      if (vide) pbHL.push('contenu du chapitre ' + og + ' absent hors-ligne (cache « ptsi-chapitres »)');
       journal.echecs.slice(nbEchecs).forEach(e => pbHL.push('requête échouée hors-ligne : ' + e.url + ' (' + e.erreur + ')'));
     } catch (e) {
       pbHL.push('le site ne démarre pas hors-ligne : ' + String(e.message).split('\n')[0]);

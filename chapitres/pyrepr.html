@@ -1,0 +1,1457 @@
+<!-- Chapitre « Représentation des nombres » (pyrepr) : contenu des onglets Cours, Méthodes et Exercices, chargé à l'ouverture du chapitre.
+     On l'édite ici, puis : node tools/chapitres.js (docs/chargement-chapitres.md). -->
+<template class="pan-tpl" data-panneau="repn-cours">
+<div class="course-section">
+  <div class="sec-num">AU PROGRAMME · INFORMATIQUE</div>
+  <h2>Ce que le programme officiel demande</h2>
+  <div class="intro">Ce chapitre couvre la partie 2.2 du programme d'informatique commune, « Représentation des nombres », étudiée au 2ᵉ semestre de 1ʳᵉ année. Le programme la présente « sans formalisation théorique » : il s'agit de comprendre comment la machine range les entiers et les réels dans des mots de taille fixe, pour expliquer les difficultés qu'on rencontre en programmant (dépassements, résultats « faux » avec des flottants) et les précautions à prendre dans les algorithmes de calcul numérique, en informatique comme en physique ou en sciences de l'ingénieur.</div>
+  <div class="reveal" onclick="this.classList.toggle('open')">
+    <span class="label">Programme officiel</span>
+    <span class="prompt">Les notions exigibles, dans l'ordre du chapitre (toutes du 2ᵉ semestre)</span>
+    <div class="content">
+      <ul>
+        <li><strong>Représentation des entiers positifs sur des mots de taille fixe</strong> (§1, §3). Le programme précise que « la conversion d'une base à une autre n'est pas un objectif de formation » : on la pratique au §2 seulement pour lire et écrire des mots binaires, et parce qu'elle fournit de bons exercices de programmation.</li>
+        <li><strong>Représentation des entiers signés sur des mots de taille fixe : complément à deux</strong> (§4).</li>
+        <li><strong>Entiers multi-précision de Python</strong>, distingués des entiers de taille fixe sans détailler leur implémentation ; difficulté à évaluer la complexité des opérations arithmétiques sur ces entiers (§5).</li>
+        <li><strong>Distinction entre nombres réels, décimaux et flottants</strong> : impossibilité de représenter certains réels ou décimaux dans un mot machine (§6).</li>
+        <li><strong>Représentation des flottants sur des mots de taille fixe ; notions de mantisse et d'exposant</strong> ; représentation de 0 (§7).</li>
+        <li><strong>Précision des calculs en flottants</strong>, en particulier pour les comparaisons (§8, §9).</li>
+      </ul>
+      <p>Hors programme (regroupé en fin de chapitre) : toute connaissance liée à la norme IEEE-754, les nombres dénormalisés, les infinis et les « NaN », le comparatif des modes d'arrondi.</p>
+      <p>D'usage courant mais absents de l'annexe Python du programme (un énoncé qui s'en sert les rappelle) : <span class="code-inline">abs</span>, <span class="code-inline">bin</span>, <span class="code-inline">int(…, 2)</span>, les modules <span class="code-inline">math</span>, <span class="code-inline">fractions</span> et <span class="code-inline">numpy</span>.</p>
+      <p>Voir aussi : les types <span class="code-inline">int</span> et <span class="code-inline">float</span> (chapitre « Bases de Python ») ; la terminaison d'une boucle à variant flottant et le coût des opérations (chapitre « Spécification, correction et complexité », §3 et §6) ; les erreurs d'arrondi dans les algorithmes de calcul approché (chapitre « Méthodes numériques »).</p>
+    </div>
+  </div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§1 · BITS, MOTS ET ENTIERS NATURELS</div>
+  <h2>Ce qu'un mot de n bits peut contenir</h2>
+  <div class="intro">La mémoire d'un ordinateur est une immense suite de <strong>bits</strong>, chacun valant 0 ou 1. Le processeur ne les manipule pas un par un mais par paquets de taille fixe, les <strong>mots</strong> : 8 bits (un <strong>octet</strong>), 16, 32 ou 64 bits. Tout nombre doit donc tenir dans un nombre de bits fixé à l'avance, et c'est l'origine de toutes les limites étudiées dans ce chapitre.</div>
+
+  <div class="def-box">L'<strong>écriture en base 2</strong> (ou écriture <strong>binaire</strong>) d'un entier naturel \(n\) est la suite de ses chiffres \(b_{k-1} \dots b_1 b_0\), chacun égal à 0 ou 1, tels que
+  $$n = \sum_{i=0}^{k-1} b_i\, 2^i = b_0 + 2\,b_1 + 4\,b_2 + \dots + 2^{k-1}\, b_{k-1}.$$
+  Le chiffre \(b_i\) est le <strong>bit de rang</strong> \(i\), de <strong>poids</strong> \(2^i\) ; \(b_0\) est le bit de <strong>poids faible</strong>, \(b_{k-1}\) le bit de <strong>poids fort</strong>. On note par exemple \((1011)_2 = 8 + 2 + 1 = 11\) pour distinguer l'écriture binaire de l'écriture décimale.</div>
+
+  <figure class="schema" style="max-width:380px">
+<svg viewBox="0 0 340 122" role="img" aria-label="Le mot de 8 bits 10110101 : au-dessus de chaque bit son poids, de 128 à gauche à 1 à droite ; les bits à 1 ont les poids 128, 32, 16, 4 et 1, de somme 181.">
+<text x="40" y="32" class="lab-muted" text-anchor="end">poids</text>
+<text x="63" y="32" class="lab-accent" text-anchor="middle">128</text>
+<rect x="46" y="40" width="34" height="30" class="sk-ink fl-accent-soft"/>
+<text x="63" y="60" class="lab-b" text-anchor="middle" style="font-size:15px;font-family:var(--font-code);font-variant-ligatures:none">1</text>
+<text x="97" y="32" class="lab-muted" text-anchor="middle">64</text>
+<rect x="80" y="40" width="34" height="30" class="sk-ink fl-paper"/>
+<text x="97" y="60" class="lab-b" text-anchor="middle" style="font-size:15px;font-family:var(--font-code);font-variant-ligatures:none">0</text>
+<text x="131" y="32" class="lab-accent" text-anchor="middle">32</text>
+<rect x="114" y="40" width="34" height="30" class="sk-ink fl-accent-soft"/>
+<text x="131" y="60" class="lab-b" text-anchor="middle" style="font-size:15px;font-family:var(--font-code);font-variant-ligatures:none">1</text>
+<text x="165" y="32" class="lab-accent" text-anchor="middle">16</text>
+<rect x="148" y="40" width="34" height="30" class="sk-ink fl-accent-soft"/>
+<text x="165" y="60" class="lab-b" text-anchor="middle" style="font-size:15px;font-family:var(--font-code);font-variant-ligatures:none">1</text>
+<text x="199" y="32" class="lab-muted" text-anchor="middle">8</text>
+<rect x="182" y="40" width="34" height="30" class="sk-ink fl-paper"/>
+<text x="199" y="60" class="lab-b" text-anchor="middle" style="font-size:15px;font-family:var(--font-code);font-variant-ligatures:none">0</text>
+<text x="233" y="32" class="lab-accent" text-anchor="middle">4</text>
+<rect x="216" y="40" width="34" height="30" class="sk-ink fl-accent-soft"/>
+<text x="233" y="60" class="lab-b" text-anchor="middle" style="font-size:15px;font-family:var(--font-code);font-variant-ligatures:none">1</text>
+<text x="267" y="32" class="lab-muted" text-anchor="middle">2</text>
+<rect x="250" y="40" width="34" height="30" class="sk-ink fl-paper"/>
+<text x="267" y="60" class="lab-b" text-anchor="middle" style="font-size:15px;font-family:var(--font-code);font-variant-ligatures:none">0</text>
+<text x="301" y="32" class="lab-accent" text-anchor="middle">1</text>
+<rect x="284" y="40" width="34" height="30" class="sk-ink fl-accent-soft"/>
+<text x="301" y="60" class="lab-b" text-anchor="middle" style="font-size:15px;font-family:var(--font-code);font-variant-ligatures:none">1</text>
+<text x="63" y="88" class="lab-muted" text-anchor="middle">poids fort</text>
+<text x="301" y="88" class="lab-muted" text-anchor="middle">poids faible</text>
+<text x="182" y="112" class="lab-b" text-anchor="middle">128 + 32 + 16 + 4 + 1 = 181</text>
+</svg>
+<figcaption>Un mot de 8 bits (un octet). Le bit de rang \(i\), compté de 0 à partir de la droite, a pour poids \(2^i\) : le mot 10110101 code l'entier naturel 181.</figcaption>
+</figure>
+
+  <p>Un <strong>mot de \(n\) bits</strong> est une suite de \(n\) bits ; lu comme l'écriture binaire d'un entier, il code un entier naturel. Les mots de 8 bits vont de 00000000 à 11111111.</p>
+
+  <div class="prop-box"><strong>Entiers naturels sur \(n\) bits.</strong> Un mot de \(n\) bits peut prendre \(2^n\) valeurs ; lu en base 2, il code exactement les entiers naturels de \(0\) à \(2^n - 1\). Le plus grand, 11…1, vaut
+  $$1 + 2 + 4 + \dots + 2^{n-1} = 2^n - 1.$$
+  Réciproquement, l'écriture binaire d'un entier \(n \ge 1\) compte \(\lfloor \log_2 n \rfloor + 1\) chiffres : il faut ce nombre de bits pour le ranger.</div>
+
+  <p>Chaque bit supplémentaire double le nombre de valeurs possibles. Les tailles usuelles :</p>
+  <div><table>
+<tr><th>\(n\)</th><th>taille</th><th>plus grand entier \(2^n - 1\)</th><th>usage typique</th></tr>
+<tr><td>8</td><td>1 octet</td><td>255</td><td>niveau de gris d’un pixel, caractère</td></tr>
+<tr><td>16</td><td>2 octets</td><td>65 535</td><td>échantillon sonore, mesure d’un capteur</td></tr>
+<tr><td>32</td><td>4 octets</td><td>4 294 967 295</td><td>compteur, adresse IPv4</td></tr>
+<tr><td>64</td><td>8 octets</td><td>18 446 744 073 709 551 615</td><td>entier usuel d’un processeur actuel</td></tr>
+</table></div>
+  <pre class="codeblock">&gt;&gt;&gt; 2 ** 8
+256
+&gt;&gt;&gt; 2 ** 8 - 1          <span class="cmt"># plus grand entier naturel sur 8 bits</span>
+255
+&gt;&gt;&gt; 2 ** 64 - 1         <span class="cmt"># plus grand entier naturel sur 64 bits</span>
+18446744073709551615</pre>
+
+  <div class="method-box"><strong>Exemple — combien de bits pour numéroter 1 000 objets ?</strong>
+    <ol>
+      <li>Il faut \(n\) tel que \(2^n \ge 1000\) valeurs distinctes (de 0 à 999).</li>
+      <li>\(2^9 = 512 \lt 1000 \le 1024 = 2^{10}\) : 9 bits ne suffisent pas, 10 bits suffisent.</li>
+      <li>Avec 10 bits, on dispose même de 1 024 numéros ; le plus grand, 1 023, s'écrit avec dix 1.</li>
+    </ol>
+    <p>La fonction suivante compte les chiffres binaires d'un entier en le divisant par 2 jusqu'à 0 ; elle donne le nombre de bits nécessaires pour le ranger.</p>
+    <pre class="codeblock"><span class="kw">def</span> nb_bits(n):
+    <span class="str">"""Nombre de chiffres de l'écriture binaire de n (entier &gt;= 1)."""</span>
+    <span class="kw">assert</span> n &gt;= 1
+    k = 0
+    <span class="kw">while</span> n &gt; 0:            <span class="cmt"># variant : n, entier &gt;= 0 qui décroît strictement</span>
+        n = n // 2          <span class="cmt"># on retire le chiffre de droite</span>
+        k = k + 1
+    <span class="kw">return</span> k</pre>
+    <pre class="codeblock">&gt;&gt;&gt; nb_bits(1000)       <span class="cmt"># 2**9 = 512 &lt;= 1000 &lt; 1024 = 2**10</span>
+10
+&gt;&gt;&gt; nb_bits(255), nb_bits(256)
+(8, 9)</pre>
+    <p>Le nombre de tours est le nombre de chiffres, \(\lfloor \log_2 n \rfloor + 1\) : le coût est logarithmique, \(O(\log n)\) (voir le chapitre « Spécification, correction et complexité », §6).</p>
+  </div>
+
+  <div class="notice"><strong>Pour lire les mots longs</strong> : on regroupe souvent les bits par quatre et l'on écrit chaque paquet par un chiffre <strong>hexadécimal</strong> (base 16 : 0 à 9 puis A à F). Ainsi 1011 0101 s'écrit B5. C'est une simple commodité d'écriture, non exigible.</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§2 · CHANGER DE BASE</div>
+  <h2>Du binaire au décimal et retour</h2>
+  <div class="intro">Passer d'une base à l'autre n'est pas un objectif du programme en soi, mais il faut savoir le faire sur de petits nombres pour lire un mot binaire, vérifier un calcul, ou écrire en Python les fonctions de conversion que les sujets demandent souvent : elles n'utilisent que <span class="code-inline">//</span> et <span class="code-inline">%</span>.</div>
+
+  <h3>Du binaire vers le décimal</h3>
+  <p>On additionne les poids des bits à 1 : \((10110101)_2 = 128 + 32 + 16 + 4 + 1 = 181\) (figure du §1). On peut aussi lire les chiffres de gauche à droite en <strong>doublant</strong> à chaque nouveau chiffre ce qui a déjà été lu, puis en ajoutant le chiffre : c'est le <strong>schéma de Horner</strong>, \(1 \to 2 \to 5 \to 11 \to 22 \to 45 \to 90 \to 181\) pour 10110101. Il évite de calculer les puissances de 2.</p>
+
+  <h3>Du décimal vers le binaire</h3>
+  <p>Le reste de la division de \(n\) par 2 est son bit de poids faible \(b_0\) (\(n\) est pair si et seulement si \(b_0 = 0\)), et le quotient \(n /\!/ 2\) a pour écriture binaire celle de \(n\) privée de son dernier chiffre. En recommençant avec le quotient, on obtient les bits du poids faible au poids fort : c'est la méthode des <strong>divisions successives</strong>.</p>
+
+  <div class="method-box"><strong>Exemple — écrire 77 en binaire</strong>
+    <div><table>
+<tr><th>\(n\)</th><th>quotient \(n /\!/ 2\)</th><th>reste \(n \bmod 2\)</th></tr>
+<tr><td>77</td><td>38</td><td><strong>1</strong></td></tr>
+<tr><td>38</td><td>19</td><td><strong>0</strong></td></tr>
+<tr><td>19</td><td>9</td><td><strong>1</strong></td></tr>
+<tr><td>9</td><td>4</td><td><strong>1</strong></td></tr>
+<tr><td>4</td><td>2</td><td><strong>0</strong></td></tr>
+<tr><td>2</td><td>1</td><td><strong>0</strong></td></tr>
+<tr><td>1</td><td>0</td><td><strong>1</strong></td></tr>
+</table></div>
+    <ol>
+      <li>On divise par 2 jusqu'à obtenir un quotient nul ; les restes sont, dans l'ordre, \(b_0, b_1, \dots\)</li>
+      <li>On lit donc les restes <strong>du dernier au premier</strong> (de bas en haut) : \(77 = (1001101)_2\).</li>
+      <li>Vérification : \(64 + 8 + 4 + 1 = 77\).</li>
+    </ol>
+  </div>
+
+  <h3>En Python</h3>
+  <p>La fonction <span class="code-inline">binaire</span> range les bits dans une liste, poids faible en tête : la case d'indice \(i\) contient \(b_i\), ce qui simplifie les calculs. La fonction <span class="code-inline">valeur</span> fait l'inverse.</p>
+  <pre class="codeblock"><span class="kw">def</span> binaire(n):
+    <span class="str">"""Liste des bits de l'entier n &gt;= 0, poids faible en tête :</span>
+<span class="str">    renvoie [b0, b1, …] avec n == b0 + 2*b1 + 4*b2 + … (liste vide si n == 0)."""</span>
+    bits = []
+    <span class="kw">while</span> n &gt; 0:               <span class="cmt"># variant : n</span>
+        bits.append(n % 2)     <span class="cmt"># le reste de la division par 2 est le bit de poids faible</span>
+        n = n // 2             <span class="cmt"># le quotient porte les bits suivants</span>
+    <span class="kw">return</span> bits</pre>
+  <pre class="codeblock"><span class="kw">def</span> valeur(bits):
+    <span class="str">"""Entier dont bits est la liste des chiffres binaires, poids faible en tête."""</span>
+    v = 0
+    p = 1                      <span class="cmt"># p == 2**i au début du tour i</span>
+    <span class="kw">for</span> i <span class="kw">in</span> range(len(bits)):
+        v = v + bits[i] * p
+        p = 2 * p
+    <span class="kw">return</span> v</pre>
+  <p><strong>Terminaison et correction</strong> (méthode du chapitre « Spécification, correction et complexité », §3 et §4). Dans <span class="code-inline">binaire</span>, \(n\) est un <strong>variant</strong> : entier positif, il est au moins divisé par 2 à chaque tour. Notons \(n_0\) la valeur de départ ; la propriété « \(n_0 = \) <span class="code-inline">valeur(bits)</span> \(+\, 2^{\ell} \times n\) », où \(\ell\) est la longueur de <span class="code-inline">bits</span>, est un <strong>invariant</strong> : vraie au départ (\(\ell = 0\)), conservée car \(n = 2\,(n /\!/ 2) + n \bmod 2\). À la sortie, \(n = 0\) et <span class="code-inline">valeur(bits)</span> \(= n_0\). Le nombre de tours est le nombre de chiffres binaires de \(n_0\) : coût \(O(\log n_0)\).</p>
+
+  <p>Pour afficher l'écriture binaire usuelle (poids fort à gauche), on construit une chaîne en ajoutant chaque nouveau chiffre <strong>à gauche</strong> ; la lecture inverse suit le schéma de Horner.</p>
+  <pre class="codeblock"><span class="kw">def</span> chaine_binaire(n):
+    <span class="str">"""Écriture binaire de l'entier n &gt;= 0 (chaîne), poids fort à gauche."""</span>
+    <span class="kw">if</span> n == 0:
+        <span class="kw">return</span> <span class="str">"0"</span>
+    s = <span class="str">""</span>
+    <span class="kw">while</span> n &gt; 0:
+        s = <span class="str">"01"</span>[n % 2] + s    <span class="cmt"># "01"[r] est le caractère du chiffre r ; ajouté à GAUCHE</span>
+        n = n // 2
+    <span class="kw">return</span> s</pre>
+  <pre class="codeblock"><span class="kw">def</span> valeur_chaine(s):
+    <span class="str">"""Entier écrit en binaire par la chaîne s, poids fort à gauche."""</span>
+    v = 0
+    <span class="kw">for</span> c <span class="kw">in</span> s:                <span class="cmt"># de gauche à droite</span>
+        v = 2 * v              <span class="cmt"># ce qui est déjà lu gagne un rang</span>
+        <span class="kw">if</span> c == <span class="str">"1"</span>:
+            v = v + 1
+    <span class="kw">return</span> v</pre>
+  <pre class="codeblock">&gt;&gt;&gt; binaire(77)
+[1, 0, 1, 1, 0, 0, 1]
+&gt;&gt;&gt; valeur([1, 0, 1, 1, 0, 0, 1])
+77
+&gt;&gt;&gt; chaine_binaire(77)
+<span class="str">'1001101'</span>
+&gt;&gt;&gt; valeur_chaine(<span class="str">"10110101"</span>)
+181
+&gt;&gt;&gt; bin(77), int(<span class="str">"1001101"</span>, 2)      <span class="cmt"># fonctions de Python, hors annexe</span>
+(<span class="str">'0b1001101'</span>, 77)</pre>
+  <div class="notice"><strong>Erreur classique</strong> : lire les restes des divisions dans l'ordre où on les obtient. Le premier reste est le bit de poids <em>faible</em>, celui qu'on écrit à droite. Avec 77, on écrirait 1011001, qui vaut 89. Dans le code, cela revient à écrire <span class="code-inline">s = s + "01"[n % 2]</span> au lieu d'ajouter le chiffre à gauche.</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§3 · ENTIERS DE TAILLE FIXE ET DÉPASSEMENT</div>
+  <h2>Quand le résultat ne tient plus dans le mot</h2>
+  <div class="intro">Le processeur additionne deux mots de \(n\) bits comme on pose une addition à la main, en base 2, avec des retenues. Mais le résultat doit tenir dans un mot de \(n\) bits : la retenue qui « sort » à gauche est perdue. C'est le <strong>dépassement de capacité</strong> (<em>overflow</em>).</div>
+
+  <h3>L'addition posée en binaire</h3>
+  <p>Les règles sont celles de la base 10, avec \(1 + 1 = (10)_2\) : on écrit 0 et on retient 1 ; \(1 + 1 + 1 = (11)_2\) : on écrit 1 et on retient 1.</p>
+  <div class="method-box"><strong>Exemple — 107 + 54 sur 8 bits</strong>
+    <pre class="codeblock">   │1 1 1 1 1 1        <span class="cmt">retenues</span>
+   │0 1 1 0 1 0 1 1   <span class="cmt">107</span>
++  │0 0 1 1 0 1 1 0   <span class="cmt">54</span>
+   ────────────────
+   │1 0 1 0 0 0 0 1   <span class="cmt">161</span></pre>
+    <ol>
+      <li>On additionne colonne par colonne, de droite à gauche (rang 0 d'abord), en reportant la retenue dans la colonne suivante.</li>
+      <li>Aucune retenue ne sort du rang 7 : le résultat \((10100001)_2 = 128 + 32 + 1 = 161\) est exact, car \(161 \le 255\).</li>
+    </ol>
+  </div>
+
+  <h3>Le dépassement : un calcul modulo 2<sup>n</sup></h3>
+  <div class="method-box"><strong>Exemple — 200 + 100 sur 8 bits</strong>
+    <pre class="codeblock">  1│1                  <span class="cmt">retenues</span>
+   │1 1 0 0 1 0 0 0   <span class="cmt">200</span>
++  │0 1 1 0 0 1 0 0   <span class="cmt">100</span>
+   ────────────────
+  1│0 0 1 0 1 1 0 0   <span class="cmt">44 = 300 - 256</span></pre>
+    <p>Le vrai résultat 300 demanderait 9 bits. La retenue sortante, à gauche du trait vertical, est perdue, et le mot obtenu vaut \((00101100)_2 = 44 = 300 - 256\). La machine ne signale rien : le programme continue avec une valeur fausse.</p>
+  </div>
+  <div class="prop-box"><strong>Arithmétique modulo \(2^n\).</strong> Sur des mots de \(n\) bits, la machine calcule la somme (et de même la différence et le produit) <strong>modulo \(2^n\)</strong> : elle obtient le reste de la division du vrai résultat par \(2^n\). Le résultat est exact si et seulement si le vrai résultat est compris entre \(0\) et \(2^n - 1\).</div>
+  <pre class="codeblock"><span class="kw">def</span> somme_mot(a, b, n):
+    <span class="str">"""Somme de deux entiers naturels codés sur n bits, telle que la machine</span>
+<span class="str">    la calcule : la retenue qui sortirait du mot est perdue."""</span>
+    <span class="kw">return</span> (a + b) % 2 ** n</pre>
+  <pre class="codeblock">&gt;&gt;&gt; somme_mot(107, 54, 8)        <span class="cmt"># 161 tient sur 8 bits</span>
+161
+&gt;&gt;&gt; somme_mot(200, 100, 8)       <span class="cmt"># 300 ne tient pas : 300 - 256</span>
+44
+&gt;&gt;&gt; somme_mot(2 ** 32 - 1, 1, 32)
+0</pre>
+  <p>La dernière ligne montre ce que fait un <strong>compteur</strong> de 32 bits arrivé à son maximum : il repasse à 0. Un compteur de millisecondes sur 32 bits non signés revient ainsi à 0 au bout de \(2^{32}\) ms, soit environ 49,7 jours ; certains systèmes ont dû être redémarrés régulièrement pour cette raison. De même, les systèmes qui comptent le temps en secondes depuis le 1ᵉʳ janvier 1970 dans un entier signé de 32 bits (§4) atteindront leur maximum, \(2^{31} - 1\), le 19 janvier 2038 à 3 h 14 min 7 s (temps universel).</p>
+  <div class="notice"><strong>Erreur classique</strong> : croire qu'une erreur de calcul s'accompagne toujours d'un message. Un dépassement sur des entiers de taille fixe est silencieux. En 1996, le premier vol de la fusée Ariane 5 a échoué parce qu'un programme de guidage convertissait une grandeur liée à la vitesse horizontale, un flottant, en entier signé de 16 bits : la valeur, plus grande que sur Ariane 4 pour laquelle le programme avait été écrit, ne tenait plus dans le mot.</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§4 · ENTIERS SIGNÉS : LE COMPLÉMENT À DEUX</div>
+  <h2>Coder les négatifs pour que l'addition marche toute seule</h2>
+  <div class="intro">Pour coder des entiers relatifs, l'idée naïve consiste à réserver un bit au signe et à coder la valeur absolue avec les autres. Elle a deux défauts : zéro a deux écritures (+0 et −0), et l'addition posée ne marche plus. Sur 4 bits, \(+3 = 0011\) et \(-3 = 1011\) ; l'addition posée donne \(1110\), qui se lirait \(-6\). Le <strong>complément à deux</strong> évite ces défauts : c'est le codage de tous les processeurs actuels.</div>
+
+  <div class="def-box">Sur \(n\) bits, le <strong>complément à deux</strong> code les entiers \(x\) tels que \(-2^{n-1} \le x \le 2^{n-1} - 1\) :
+    <ul>
+      <li>un entier \(x \ge 0\) est codé par l'écriture binaire de \(x\) (son bit de poids fort vaut 0) ;</li>
+      <li>un entier \(x \lt 0\) est codé par l'écriture binaire de l'entier naturel \(x + 2^n\) (son bit de poids fort vaut 1).</li>
+    </ul>
+  Dans les deux cas, le mot code le représentant de \(x\) modulo \(2^n\) compris entre \(0\) et \(2^n - 1\).</div>
+
+  <div class="prop-box"><strong>Valeur d'un mot en complément à deux.</strong> Le mot \(b_{n-1} b_{n-2} \dots b_0\) code l'entier
+  $$x = -b_{n-1}\, 2^{n-1} + \sum_{i=0}^{n-2} b_i\, 2^i :$$
+  le bit de poids fort a le poids <strong>négatif</strong> \(-2^{n-1}\), les autres gardent leur poids habituel. Le bit de poids fort donne donc le signe ; zéro a une seule écriture, 00…0 ; \(-1\) s'écrit 11…1 ; l'intervalle \([-2^{n-1}, 2^{n-1} - 1]\) n'est pas symétrique : \([-128, 127]\) sur 8 bits, \([-2^{31}, 2^{31} - 1]\) sur 32 bits.</div>
+
+  <div><table>
+<tr><th>entier \(x\)</th><th>mot de 8 bits</th><th>valeur du mot en entier naturel</th></tr>
+<tr><td>0</td><td><span class="code-inline">00000000</span></td><td>0</td></tr>
+<tr><td>1</td><td><span class="code-inline">00000001</span></td><td>1</td></tr>
+<tr><td>5</td><td><span class="code-inline">00000101</span></td><td>5</td></tr>
+<tr><td>127</td><td><span class="code-inline">01111111</span></td><td>127</td></tr>
+<tr><td>−1</td><td><span class="code-inline">11111111</span></td><td>255</td></tr>
+<tr><td>−5</td><td><span class="code-inline">11111011</span></td><td>251</td></tr>
+<tr><td>−127</td><td><span class="code-inline">10000001</span></td><td>129</td></tr>
+<tr><td>−128</td><td><span class="code-inline">10000000</span></td><td>128</td></tr>
+</table></div>
+
+  <div class="prop-box"><strong>Calcul pratique de l'opposé.</strong> Pour obtenir le code de \(-x\) à partir de celui de \(x\) (avec \(x \ne -2^{n-1}\)), on <strong>inverse tous les bits</strong> puis on <strong>ajoute 1</strong>. Exemple sur 8 bits : \(73 = 01001001\) ; inversé : \(10110110\) ; plus 1 : \(10110111\), code de \(-73\) (vérification : \(-128 + 32 + 16 + 4 + 2 + 1 = -73\)).</div>
+
+  <div class="reveal" onclick="this.classList.toggle('open')">
+    <span class="label">Démonstration</span>
+    <span class="prompt">Pourquoi la formule de la valeur, et pourquoi « inverser puis ajouter 1 »</span>
+    <div class="content">
+      <p><strong>Valeur.</strong> Si \(b_{n-1} = 0\), le mot code \(x = \sum_{i \le n-2} b_i 2^i\), qui est bien la formule. Si \(b_{n-1} = 1\), le mot lu en entier naturel vaut \(m = 2^{n-1} + \sum_{i \le n-2} b_i 2^i\) et code \(x = m - 2^n\), soit \(x = -2^{n-1} + \sum_{i \le n-2} b_i 2^i\) : c'est encore la formule.</p>
+      <p><strong>Opposé.</strong> Notons \(m\) l'entier naturel lu dans le mot de \(x\), et \(\bar m\) celui du mot inversé. Chaque bit à 1 dans l'un est à 0 dans l'autre, donc \(m + \bar m = 11\dots1 = 2^n - 1\), d'où \(\bar m + 1 = 2^n - m\). Or \(m \equiv x\) modulo \(2^n\), donc \(\bar m + 1 \equiv -x\) modulo \(2^n\) : c'est le code de \(-x\), à condition que \(-x\) soit représentable.</p>
+    </div>
+  </div>
+
+  <figure class="schema" style="max-width:380px">
+<svg viewBox="0 0 340 304" role="img" aria-label="Les 16 mots de 4 bits disposés sur un cercle, de 0000 en haut à 1111, dans le sens des aiguilles d'une montre. À l'intérieur, l'entier codé en complément à deux : 0 à 7 pour les mots qui commencent par 0, puis −8 à −1. Un trait rouge sépare 0111 (7) de 1000 (−8) ; un trait vert sépare 1111 (−1) de 0000 (0).">
+<circle cx="170" cy="152" r="100" class="sk-axis"/>
+<circle cx="170" cy="52" r="3" class="fl-ink"/>
+<text x="170" y="28.5" text-anchor="middle" style="font-family:var(--font-code);font-variant-ligatures:none">0000</text>
+<text x="170" y="78.5" class="lab-b" text-anchor="middle">0</text>
+<circle cx="208.3" cy="59.6" r="3" class="fl-ink"/>
+<text x="219" y="38.2" text-anchor="middle" style="font-family:var(--font-code);font-variant-ligatures:none">0001</text>
+<text x="199.8" y="84.4" class="lab-b" text-anchor="middle">1</text>
+<circle cx="240.7" cy="81.3" r="3" class="fl-ink"/>
+<text x="260.5" y="66" text-anchor="middle" style="font-family:var(--font-code);font-variant-ligatures:none">0010</text>
+<text x="225.2" y="101.3" class="lab-b" text-anchor="middle">2</text>
+<circle cx="262.4" cy="113.7" r="3" class="fl-ink"/>
+<text x="288.3" y="107.5" text-anchor="middle" style="font-family:var(--font-code);font-variant-ligatures:none">0011</text>
+<text x="242.1" y="126.7" class="lab-b" text-anchor="middle">3</text>
+<circle cx="270" cy="152" r="3" class="fl-ink"/>
+<text x="298" y="156.5" text-anchor="middle" style="font-family:var(--font-code);font-variant-ligatures:none">0100</text>
+<text x="248" y="156.5" class="lab-b" text-anchor="middle">4</text>
+<circle cx="262.4" cy="190.3" r="3" class="fl-ink"/>
+<text x="288.3" y="205.5" text-anchor="middle" style="font-family:var(--font-code);font-variant-ligatures:none">0101</text>
+<text x="242.1" y="186.3" class="lab-b" text-anchor="middle">5</text>
+<circle cx="240.7" cy="222.7" r="3" class="fl-ink"/>
+<text x="260.5" y="247" text-anchor="middle" style="font-family:var(--font-code);font-variant-ligatures:none">0110</text>
+<text x="225.2" y="211.7" class="lab-b" text-anchor="middle">6</text>
+<circle cx="208.3" cy="244.4" r="3" class="fl-ink"/>
+<text x="219" y="274.8" text-anchor="middle" style="font-family:var(--font-code);font-variant-ligatures:none">0111</text>
+<text x="199.8" y="228.6" class="lab-b" text-anchor="middle">7</text>
+<circle cx="170" cy="252" r="3" class="fl-ink"/>
+<text x="170" y="284.5" text-anchor="middle" style="font-family:var(--font-code);font-variant-ligatures:none">1000</text>
+<text x="170" y="234.5" class="lab-accent2 lab-b" text-anchor="middle">−8</text>
+<circle cx="131.7" cy="244.4" r="3" class="fl-ink"/>
+<text x="121" y="274.8" text-anchor="middle" style="font-family:var(--font-code);font-variant-ligatures:none">1001</text>
+<text x="140.2" y="228.6" class="lab-accent2 lab-b" text-anchor="middle">−7</text>
+<circle cx="99.3" cy="222.7" r="3" class="fl-ink"/>
+<text x="79.5" y="247" text-anchor="middle" style="font-family:var(--font-code);font-variant-ligatures:none">1010</text>
+<text x="114.8" y="211.7" class="lab-accent2 lab-b" text-anchor="middle">−6</text>
+<circle cx="77.6" cy="190.3" r="3" class="fl-ink"/>
+<text x="51.7" y="205.5" text-anchor="middle" style="font-family:var(--font-code);font-variant-ligatures:none">1011</text>
+<text x="97.9" y="186.3" class="lab-accent2 lab-b" text-anchor="middle">−5</text>
+<circle cx="70" cy="152" r="3" class="fl-ink"/>
+<text x="42" y="156.5" text-anchor="middle" style="font-family:var(--font-code);font-variant-ligatures:none">1100</text>
+<text x="92" y="156.5" class="lab-accent2 lab-b" text-anchor="middle">−4</text>
+<circle cx="77.6" cy="113.7" r="3" class="fl-ink"/>
+<text x="51.7" y="107.5" text-anchor="middle" style="font-family:var(--font-code);font-variant-ligatures:none">1101</text>
+<text x="97.9" y="126.7" class="lab-accent2 lab-b" text-anchor="middle">−3</text>
+<circle cx="99.3" cy="81.3" r="3" class="fl-ink"/>
+<text x="79.5" y="66" text-anchor="middle" style="font-family:var(--font-code);font-variant-ligatures:none">1110</text>
+<text x="114.8" y="101.3" class="lab-accent2 lab-b" text-anchor="middle">−2</text>
+<circle cx="131.7" cy="59.6" r="3" class="fl-ink"/>
+<text x="121" y="38.2" text-anchor="middle" style="font-family:var(--font-code);font-variant-ligatures:none">1111</text>
+<text x="140.2" y="84.4" class="lab-accent2 lab-b" text-anchor="middle">−1</text>
+<line x1="181.7" y1="210.8" x2="192" y2="262.8" class="sk-accent"/>
+<line x1="158.3" y1="93.2" x2="148" y2="41.2" class="sk-green"/>
+<text x="170" y="144" text-anchor="middle">+1 : un cran</text>
+<text x="170" y="161" text-anchor="middle">dans le sens</text>
+<text x="170" y="178" text-anchor="middle">des aiguilles</text>
+</svg>
+<figcaption>Les mots de 4 bits en complément à deux. Ajouter 1, c'est avancer d'un cran ; la machine calcule modulo \(2^4 = 16\). Passer de \(-1\) (1111) à 0 (0000) fait sortir une retenue, sans erreur (trait vert) ; passer de 7 (0111) à \(-8\) (1000) est un dépassement : le vrai résultat, 8, n'est pas représentable (trait rouge).</figcaption>
+</figure>
+
+  <h3>L'addition des entiers signés</h3>
+  <p>L'avantage décisif du complément à deux : on additionne les mots <strong>exactement comme des entiers naturels</strong>, en ignorant la retenue sortante. Comme chaque mot code son entier modulo \(2^n\), la somme des mots code la somme des entiers modulo \(2^n\) ; le résultat est donc juste dès que la vraie somme est représentable. Le processeur n'a besoin que d'un seul circuit d'addition, et la soustraction \(x - y\) se fait en ajoutant l'opposé de \(y\).</p>
+
+  <div class="method-box"><strong>Exemple — 45 + (−73) puis (−20) + (−30) sur 8 bits</strong>
+    <pre class="codeblock">   │  1 1 1 1 1 1      <span class="cmt">retenues</span>
+   │0 0 1 0 1 1 0 1   <span class="cmt">45</span>
++  │1 0 1 1 0 1 1 1   <span class="cmt">−73</span>
+   ────────────────
+   │1 1 1 0 0 1 0 0   <span class="cmt">−28</span></pre>
+    <ol>
+      <li>\(45 = 00101101\) ; \(-73 = 10110111\) (calculé plus haut).</li>
+      <li>L'addition posée donne \(11100100\) ; le bit de poids fort vaut 1 : résultat négatif, \(-128 + 64 + 32 + 4 = -28\). C'est bien \(45 - 73\).</li>
+    </ol>
+    <pre class="codeblock">  1│1 1                <span class="cmt">retenues</span>
+   │1 1 1 0 1 1 0 0   <span class="cmt">−20</span>
++  │1 1 1 0 0 0 1 0   <span class="cmt">−30</span>
+   ────────────────
+  1│1 1 0 0 1 1 1 0   <span class="cmt">−50</span></pre>
+    <ol start="3">
+      <li>\(-20\) et \(-30\) sont codés par \(256 - 20 = 236 = 11101100\) et \(256 - 30 = 226 = 11100010\).</li>
+      <li>Une retenue sort du rang 7 : on l'ignore. Le mot \(11001110\) vaut \(-128 + 64 + 8 + 4 + 2 = -50\) : le résultat est juste. Une retenue sortante n'est <strong>pas</strong> un dépassement en complément à deux.</li>
+    </ol>
+  </div>
+
+  <h3>Le dépassement en complément à deux</h3>
+  <pre class="codeblock">   │1 1                <span class="cmt">retenues</span>
+   │0 1 1 0 0 1 0 0   <span class="cmt">100</span>
++  │0 0 1 1 0 0 1 0   <span class="cmt">50</span>
+   ────────────────
+   │1 0 0 1 0 1 1 0   <span class="cmt">−106 (!)</span></pre>
+  <p>\(100 + 50 = 150\) dépasse 127 : le mot obtenu, \(10010110\), commence par 1 et se lit \(-128 + 16 + 4 + 2 = -106\). Additionner deux positifs a donné un négatif.</p>
+  <div class="prop-box"><strong>Détecter un dépassement.</strong> L'addition de deux entiers de <strong>signes contraires</strong> ne déborde jamais (le résultat est entre les deux). Il y a dépassement si et seulement si les deux opérandes ont le <strong>même signe</strong> et que le résultat a le signe contraire.</div>
+  <pre class="codeblock"><span class="kw">def</span> code_c2(x, n):
+    <span class="str">"""Entier naturel m, 0 &lt;= m &lt; 2**n, dont les n bits codent x en complément</span>
+<span class="str">    à deux. Précondition : -2**(n-1) &lt;= x &lt; 2**(n-1)."""</span>
+    <span class="kw">assert</span> -2 ** (n - 1) &lt;= x &lt; 2 ** (n - 1)
+    <span class="kw">if</span> x &gt;= 0:
+        <span class="kw">return</span> x
+    <span class="kw">return</span> x + 2 ** n</pre>
+  <pre class="codeblock"><span class="kw">def</span> valeur_c2(m, n):
+    <span class="str">"""Entier relatif codé en complément à deux par le mot de n bits</span>
+<span class="str">    dont la valeur en entier naturel est m (0 &lt;= m &lt; 2**n)."""</span>
+    <span class="kw">assert</span> 0 &lt;= m &lt; 2 ** n
+    <span class="kw">if</span> m &gt;= 2 ** (n - 1):      <span class="cmt"># bit de poids fort à 1 : nombre négatif</span>
+        <span class="kw">return</span> m - 2 ** n
+    <span class="kw">return</span> m</pre>
+  <pre class="codeblock"><span class="kw">def</span> mot(m, n):
+    <span class="str">"""Les n bits de l'entier naturel m (0 &lt;= m &lt; 2**n), poids fort à gauche."""</span>
+    s = <span class="str">""</span>
+    <span class="kw">for</span> i <span class="kw">in</span> range(n):
+        s = <span class="str">"01"</span>[m % 2] + s
+        m = m // 2
+    <span class="kw">return</span> s</pre>
+  <pre class="codeblock"><span class="kw">def</span> somme_c2(x, y, n):
+    <span class="str">"""Somme de x et y (relatifs codables sur n bits) calculée par la machine</span>
+<span class="str">    en complément à deux, et booléen indiquant un dépassement."""</span>
+    m = (code_c2(x, n) + code_c2(y, n)) % 2 ** n    <span class="cmt"># retenue sortante perdue</span>
+    s = valeur_c2(m, n)
+    <span class="kw">return</span> s, s != x + y</pre>
+  <pre class="codeblock">&gt;&gt;&gt; code_c2(-73, 8), mot(code_c2(-73, 8), 8)
+(183, <span class="str">'10110111'</span>)
+&gt;&gt;&gt; valeur_c2(0b11100100, 8)     <span class="cmt"># 0b… : entier écrit en binaire dans le code</span>
+-28
+&gt;&gt;&gt; somme_c2(45, -73, 8)
+(-28, <span class="kw">False</span>)
+&gt;&gt;&gt; somme_c2(-20, -30, 8)
+(-50, <span class="kw">False</span>)
+&gt;&gt;&gt; somme_c2(100, 50, 8)         <span class="cmt"># 150 &gt; 127 : dépassement</span>
+(-106, <span class="kw">True</span>)</pre>
+  <p>Les deux conditions de <span class="code-inline">code_c2</span> utilisent seulement des entiers positifs avec <span class="code-inline">%</span> : l'annexe du programme ne garantit le comportement de <span class="code-inline">%</span> et <span class="code-inline">//</span> qu'avec des opérandes positifs.</p>
+  <div class="notice"><strong>Erreurs classiques</strong> :
+    <ul>
+      <li>confondre retenue sortante et dépassement (exemple \(-20 + (-30)\) ci-dessus) ;</li>
+      <li>oublier que l'intervalle n'est pas symétrique : sur 8 bits, \(-(-128) = 128\) n'est pas représentable, et « inverser puis ajouter 1 » appliqué à 10000000 redonne 10000000 ;</li>
+      <li>lire un mot sans savoir s'il code un entier naturel ou un entier signé : 11111111 vaut 255 dans un cas, \(-1\) dans l'autre. Le mot ne porte pas son mode d'emploi, c'est le programme qui l'interprète.</li>
+    </ul>
+  </div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§5 · LES ENTIERS DE PYTHON</div>
+  <h2>Des entiers multi-précision : sans limite, mais pas sans coût</h2>
+  <div class="intro">Les entiers de Python (type <span class="code-inline">int</span>) ne sont pas des mots de taille fixe : Python utilise autant de mots machine qu'il en faut pour écrire chaque entier. Ce sont des entiers <strong>multi-précision</strong>. Ils ne débordent jamais ; leur seule limite est la mémoire disponible.</div>
+
+  <div class="def-box">Un entier <strong>multi-précision</strong> est représenté par une suite de longueur variable de mots machine, qui grandit avec le nombre. Les calculs sur les <span class="code-inline">int</span> de Python sont donc <strong>exacts</strong>, quelle que soit la taille des nombres. Le programme demande de les distinguer des entiers de taille fixe, sans détailler leur implémentation.</div>
+
+  <pre class="codeblock"><span class="kw">def</span> factorielle(n):
+    <span class="str">"""n! pour un entier n &gt;= 0."""</span>
+    p = 1
+    <span class="kw">for</span> k <span class="kw">in</span> range(2, n + 1):
+        p = p * k
+    <span class="kw">return</span> p</pre>
+  <pre class="codeblock">&gt;&gt;&gt; 2 ** 100
+1267650600228229401496703205376
+&gt;&gt;&gt; factorielle(25)
+15511210043330985984000000
+&gt;&gt;&gt; factorielle(20) &lt;= 2 ** 63 - 1 &lt; factorielle(21)
+<span class="kw">True</span>
+&gt;&gt;&gt; valeur_c2(factorielle(21) % 2 ** 64, 64)   <span class="cmt"># ce que contiendrait un entier de 64 bits</span>
+-4249290049419214848</pre>
+  <p>La dernière ligne montre ce qu'un langage à entiers de 64 bits (C, Java, ou un tableau <span class="code-inline">numpy</span>) obtiendrait pour \(21!\) : le reste modulo \(2^{64}\), lu en complément à deux (§4), est négatif. En Python, aucun problème :</p>
+
+  <div class="method-box"><strong>Exemple — la taille des factorielles</strong>
+    <div><table>
+<tr><th>\(n\)</th><th>chiffres décimaux de \(n!\)</th><th>bits de \(n!\)</th><th>tient sur 64 bits signés ?</th></tr>
+<tr><td>10</td><td>7</td><td>22</td><td>oui</td></tr>
+<tr><td>20</td><td>19</td><td>62</td><td>oui</td></tr>
+<tr><td>21</td><td>20</td><td>66</td><td>non</td></tr>
+<tr><td>100</td><td>158</td><td>525</td><td>non</td></tr>
+<tr><td>1000</td><td>2568</td><td>8 530</td><td>non</td></tr>
+</table></div>
+    <ol>
+      <li>\(20!\) tient encore sur 64 bits signés, \(21!\) non : le calcul de \(21!\) déborde dans un langage à entiers de 64 bits.</li>
+      <li>En Python, \(1000!\) s'écrit avec 2 568 chiffres décimaux et se calcule sans erreur.</li>
+      <li>Mais la taille des nombres manipulés croît pendant le calcul : la dernière multiplication porte sur un entier de plus de 8 000 bits.</li>
+    </ol>
+  </div>
+
+  <h3>Le coût des opérations sur les grands entiers</h3>
+  <p>Une opération sur des entiers de taille fixe coûte un temps constant. Sur des entiers multi-précision, le coût dépend de leur longueur : additionner deux entiers de \(k\) chiffres demande de l'ordre de \(k\) opérations sur les mots, et une multiplication davantage. Compter « une opération arithmétique = un coût constant », comme dans le chapitre « Spécification, correction et complexité », n'est justifié que si les nombres restent de taille bornée (par exemple inférieurs à \(2^{64}\)).</p>
+  <div class="prop-box"><strong>À retenir.</strong> Quand les entiers grandissent au cours du calcul (factorielles, puissances, suites qui explosent), la complexité d'un algorithme mesurée en nombre d'opérations arithmétiques <strong>sous-estime</strong> son vrai coût, qui est difficile à évaluer : il faut tenir compte de la taille des nombres. C'est ce qu'observe le chapitre « Recherche séquentielle, dictionnaires et dichotomie » pour l'exponentiation rapide : \(3^{1000}\) a 478 chiffres, et les dernières multiplications coûtent bien plus cher que les premières.</div>
+
+  <div class="notice"><strong>Attention aux bibliothèques</strong> : les tableaux de <span class="code-inline">numpy</span> (bibliothèque de calcul utilisée en physique et en sciences de l'ingénieur, hors annexe) contiennent des entiers de taille fixe, en général 64 bits. Leurs calculs débordent silencieusement :</div>
+  <pre class="codeblock">&gt;&gt;&gt; <span class="kw">import</span> numpy <span class="kw">as</span> np          <span class="cmt"># bibliothèque hors annexe</span>
+&gt;&gt;&gt; t = np.array([2 ** 62, 3])  <span class="cmt"># tableau d'entiers de 64 bits</span>
+&gt;&gt;&gt; t * 2
+array([-9223372036854775808,                    6])</pre>
+  <p>\(2^{62} \times 2 = 2^{63}\) dépasse \(2^{63} - 1\) : le résultat, calculé modulo \(2^{64}\) et lu en complément à deux, est \(-2^{63}\).</p>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§6 · RÉELS, DÉCIMAUX, FLOTTANTS</div>
+  <h2>Pourquoi 0,1 n'existe pas en machine</h2>
+  <div class="intro">Un mot de taille fixe ne peut contenir qu'un nombre fini de valeurs : l'immense majorité des réels n'y a pas de représentation exacte. C'est évident pour \(\sqrt 2\) ou \(\pi\), dont l'écriture décimale est infinie. C'est plus surprenant pour des nombres aussi simples que 0,1.</div>
+
+  <div class="def-box">
+    <ul>
+      <li>Un nombre <strong>décimal</strong> est un nombre de la forme \(\dfrac{a}{10^k}\), avec \(a\) entier relatif et \(k\) entier naturel : il a une écriture finie en base 10 (0,1 ; 3,14 ; 12,375).</li>
+      <li>Un nombre <strong>dyadique</strong> est un nombre de la forme \(\dfrac{a}{2^k}\) : il a une écriture finie en base 2. Par exemple \(0{,}375 = \dfrac{3}{8} = (0{,}011)_2\), car \(\dfrac14 + \dfrac18 = 0{,}375\).</li>
+      <li>Un <strong>flottant</strong> est un nombre représentable dans un format machine (§7) : il s'écrit en base 2 avec un nombre <strong>limité</strong> de chiffres significatifs. Tout flottant est donc dyadique.</li>
+    </ul>
+  </div>
+
+  <div class="prop-box"><strong>Ce qui n'est pas représentable.</strong> Un rationnel \(\dfrac pq\), écrit sous forme irréductible, a une écriture binaire finie si et seulement si \(q\) est une puissance de 2. Ainsi :
+    <ul>
+      <li>les irrationnels (\(\sqrt 2\), \(\pi\), \(e\)) et les rationnels comme \(\dfrac13\) ne sont représentables ni en base 10 ni en base 2 ;</li>
+      <li>tout dyadique est décimal (\(\dfrac{1}{2^k} = \dfrac{5^k}{10^k}\)), mais la réciproque est fausse : \(0{,}1 = \dfrac{1}{10}\) a pour dénominateur \(10 = 2 \times 5\), son écriture binaire est infinie ;</li>
+      <li>même un dyadique peut ne pas être un flottant, s'il a trop de chiffres significatifs (§7).</li>
+    </ul>
+  Un réel non représentable est remplacé par un flottant voisin : c'est l'<strong>erreur de représentation</strong>, présente avant même tout calcul.</div>
+
+  <h3>Écrire en base 2 un nombre entre 0 et 1</h3>
+  <p>Si \(x = (0{,}b_1 b_2 b_3 \dots)_2\), alors \(2x = (b_1{,}b_2 b_3 \dots)_2\) : la partie entière de \(2x\) est le premier chiffre \(b_1\), et la partie fractionnaire de \(2x\) a pour chiffres \(b_2 b_3 \dots\) On obtient donc les chiffres en doublant la partie fractionnaire à chaque étape.</p>
+  <div class="method-box"><strong>Exemple — 0,375 puis 0,1 en base 2</strong>
+    <div><table>
+<tr><th>étape</th><th>double de la partie fractionnaire</th><th>bit</th><th>reste</th></tr>
+<tr><td>1</td><td>\(2 \times 0{,}375 = 0{,}75\)</td><td><strong>0</strong></td><td>\(0{,}75\)</td></tr>
+<tr><td>2</td><td>\(2 \times 0{,}75 = 1{,}5\)</td><td><strong>1</strong></td><td>\(0{,}5\)</td></tr>
+<tr><td>3</td><td>\(2 \times 0{,}5 = 1\)</td><td><strong>1</strong></td><td>\(0\)</td></tr>
+</table></div>
+    <ol>
+      <li>Pour 0,375, le reste s'annule à la 3ᵉ étape : \(0{,}375 = (0{,}011)_2\), écriture finie.</li>
+    </ol>
+    <div><table>
+<tr><th>étape</th><th>double de la partie fractionnaire</th><th>bit</th><th>reste</th></tr>
+<tr><td>1</td><td>\(2 \times 0{,}1 = 0{,}2\)</td><td><strong>0</strong></td><td>\(0{,}2\)</td></tr>
+<tr><td>2</td><td>\(2 \times 0{,}2 = 0{,}4\)</td><td><strong>0</strong></td><td>\(0{,}4\)</td></tr>
+<tr><td>3</td><td>\(2 \times 0{,}4 = 0{,}8\)</td><td><strong>0</strong></td><td>\(0{,}8\)</td></tr>
+<tr><td>4</td><td>\(2 \times 0{,}8 = 1{,}6\)</td><td><strong>1</strong></td><td>\(0{,}6\)</td></tr>
+<tr><td>5</td><td>\(2 \times 0{,}6 = 1{,}2\)</td><td><strong>1</strong></td><td>\(0{,}2\)</td></tr>
+<tr><td>6</td><td>\(2 \times 0{,}2 = 0{,}4\)</td><td><strong>0</strong></td><td>\(0{,}4\)</td></tr>
+</table></div>
+    <ol start="2">
+      <li>Pour 0,1, le reste 0,2 de l'étape 1 revient à l'étape 5 : les chiffres se répètent ensuite indéfiniment. \(0{,}1 = (0{,}0\,0011\,0011\,0011\dots)_2\), écriture infinie et périodique.</li>
+    </ol>
+  </div>
+  <p>Pour éviter que le calcul lui-même soit faussé par les flottants, la fonction suivante représente la partie fractionnaire par le quotient exact <span class="code-inline">p / q</span> de deux entiers :</p>
+  <pre class="codeblock"><span class="kw">def</span> bits_fraction(p, q, k):
+    <span class="str">"""Les k premiers bits après la virgule de l'écriture binaire de p/q,</span>
+<span class="str">    pour des entiers 0 &lt;= p &lt; q (calcul exact : aucun flottant)."""</span>
+    bits = []
+    <span class="kw">for</span> i <span class="kw">in</span> range(k):
+        p = 2 * p              <span class="cmt"># partie fractionnaire p/q multipliée par 2</span>
+        bits.append(p // q)    <span class="cmt"># sa partie entière, 0 ou 1, est le bit suivant</span>
+        p = p % q              <span class="cmt"># il reste la partie fractionnaire p/q</span>
+    <span class="kw">return</span> bits</pre>
+  <pre class="codeblock">&gt;&gt;&gt; bits_fraction(3, 8, 6)       <span class="cmt"># 0,375 : écriture finie</span>
+[0, 1, 1, 0, 0, 0]
+&gt;&gt;&gt; bits_fraction(1, 10, 14)     <span class="cmt"># 0,1 : le motif 0011 se répète sans fin</span>
+[0, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0]</pre>
+
+  <h3>Ce que Python range vraiment pour 0.1</h3>
+  <p>Quand on écrit <span class="code-inline">0.1</span>, Python range le flottant le plus proche de \(\dfrac1{10}\). C'est un nombre dyadique, \(\dfrac{3\,602\,879\,701\,896\,397}{2^{55}}\), qui vaut exactement 0,1000000000000000055511151231257827021181583404541015625. Python affiche <span class="code-inline">0.1</span> parce qu'il affiche l'écriture décimale la plus courte qui désigne ce flottant.</p>
+  <pre class="codeblock">&gt;&gt;&gt; 0.1 == 3602879701896397 / 2 ** 55
+<span class="kw">True</span>
+&gt;&gt;&gt; <span class="kw">from</span> fractions <span class="kw">import</span> Fraction    <span class="cmt"># module hors annexe : valeur exacte d'un flottant</span>
+&gt;&gt;&gt; Fraction(0.1)
+Fraction(3602879701896397, 36028797018963968)</pre>
+  <div class="notice"><strong>Un exemple célèbre</strong> : pendant la guerre du Golfe (1991), une batterie de missiles Patriot comptait le temps en dixièmes de seconde et multipliait le nombre de tops par 0,1, rangé tronqué dans un registre de 24 bits : l'erreur valait environ \(9{,}5 \times 10^{-8}\) s par top. Après 100 heures de fonctionnement (3,6 millions de tops), l'horloge dérivait de 0,34 s, assez pour manquer un missile ennemi.</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§7 · FLOTTANTS : MANTISSE ET EXPOSANT</div>
+  <h2>L'écriture scientifique en base 2</h2>
+  <div class="intro">Pour représenter aussi bien la masse d'un électron que la distance de la Terre au Soleil, on ne fixe pas la position de la virgule : on range les chiffres significatifs et, à part, la puissance de 2 qui place la virgule. C'est l'écriture scientifique, en base 2 : la virgule « flotte », d'où le nom de <strong>nombres à virgule flottante</strong>, ou <strong>flottants</strong>.</div>
+
+  <div class="def-box">Tout réel \(x \ne 0\) s'écrit de façon unique
+  $$x = s \times m \times 2^e \quad\text{avec } s = \pm 1,\ 1 \le m \lt 2,\ e \in \mathbb{Z}.$$
+  \(s\) est le <strong>signe</strong>, \(m\) la <strong>mantisse</strong>, \(e\) l'<strong>exposant</strong>. En base 2, la mantisse s'écrit \(m = (1{,}b_1 b_2 b_3 \dots)_2\). Un <strong>format de flottants</strong> fixe le nombre \(p\) de bits de la mantisse (le 1 de tête compris) et l'intervalle des exposants : un flottant est un nombre \(\pm (1{,}b_1 \dots b_{p-1})_2 \times 2^e\) dont l'exposant est dans cet intervalle. Le mot machine contient le bit de signe, l'exposant et les \(p - 1\) bits \(b_1 \dots b_{p-1}\) : le 1 de tête, toujours présent, n'est pas stocké.</div>
+
+  <p><strong>Le cas de zéro.</strong> Zéro n'a pas d'écriture avec \(1 \le m \lt 2\) : un format de flottants le représente par un code particulier (tous les bits de l'exposant et de la mantisse à 0).</p>
+
+  <div class="method-box"><strong>Exemple — décomposer 13,25 et −6,5</strong>
+    <ol>
+      <li>Partie entière et partie fractionnaire en binaire : \(13 = (1101)_2\) et \(0{,}25 = (0{,}01)_2\), donc \(13{,}25 = (1101{,}01)_2\).</li>
+      <li>On déplace la virgule derrière le premier 1 : 3 rangs vers la gauche, ce qui divise par \(2^3\). Donc \(13{,}25 = (1{,}10101)_2 \times 2^3\).</li>
+      <li>Signe \(+\), mantisse \(m = (1{,}10101)_2 = 1 + \dfrac12 + \dfrac18 + \dfrac1{32} = 1{,}65625\), exposant \(e = 3\). Vérification : \(1{,}65625 \times 8 = 13{,}25\).</li>
+      <li>De même \(6{,}5 = (110{,}1)_2 = (1{,}101)_2 \times 2^2\) : \(-6{,}5\) a pour signe \(-\), mantisse \(1{,}625\), exposant 2.</li>
+      <li>Et \(0{,}1 = (0{,}000\,1100\,1100\dots)_2 = (1{,}1001\,1001\dots)_2 \times 2^{-4}\) : mantisse infinie, que le format coupe et arrondit à \(p\) bits.</li>
+    </ol>
+  </div>
+  <p>La fonction suivante calcule mantisse et exposant d'un flottant positif ; elle multiplie ou divise par 2, opérations exactes sur les flottants (elles ne changent que l'exposant).</p>
+  <pre class="codeblock"><span class="kw">def</span> decomposer(x):
+    <span class="str">"""Pour un flottant x &gt; 0, renvoie (m, e) avec x == m * 2**e,</span>
+<span class="str">    1 &lt;= m &lt; 2 et e entier : la mantisse et l'exposant de x."""</span>
+    <span class="kw">assert</span> x &gt; 0
+    m, e = x, 0
+    <span class="kw">while</span> m &gt;= 2:          <span class="cmt"># diviser ou multiplier un flottant par 2 est exact</span>
+        m = m / 2
+        e = e + 1
+    <span class="kw">while</span> m &lt; 1:
+        m = m * 2
+        e = e - 1
+    <span class="kw">return</span> m, e</pre>
+  <pre class="codeblock">&gt;&gt;&gt; decomposer(13.25)
+(1.65625, 3)
+&gt;&gt;&gt; decomposer(0.1)
+(1.6, -4)
+&gt;&gt;&gt; decomposer(2.0 ** 53)
+(1.0, 53)</pre>
+
+  <h3>Les flottants de Python</h3>
+  <p>Le type <span class="code-inline">float</span> de Python utilise des mots de 64 bits : 1 bit de signe, 11 bits d'exposant, 52 bits de mantisse (après le 1 de tête), soit \(p = 53\) bits significatifs. Les exposants vont de \(-1022\) à \(1023\). Ces valeurs sont données pour fixer les idées ; leur détail n'est pas à connaître.</p>
+  <div class="prop-box"><strong>Ordres de grandeur des <span class="code-inline">float</span>.</strong>
+    <ul>
+      <li>Plus grand flottant : environ \(1{,}8 \times 10^{308}\) ; plus petit flottant positif de cette forme : environ \(2{,}2 \times 10^{-308}\).</li>
+      <li>Précision : 53 bits significatifs, soit 15 à 16 chiffres décimaux significatifs.</li>
+      <li>Écart entre 1 et le flottant suivant : \(2^{-52} \approx 2{,}2 \times 10^{-16}\) (l'« epsilon machine »).</li>
+    </ul>
+  </div>
+
+  <figure class="schema" style="max-width:380px">
+<svg viewBox="0 0 340 128" role="img" aria-label="Les seize flottants positifs d'un format jouet placés sur une droite graduée de 0 à 7 : quatre entre 0,5 et 1, quatre entre 1 et 2, quatre entre 2 et 4, quatre entre 4 et 7. L'écart entre deux flottants voisins double à chaque puissance de 2 : 0,125, puis 0,25, 0,5 et 1. Le zéro est un cas à part, et aucun flottant ne se trouve entre 0 et 0,5.">
+<line x1="14" y1="70" x2="337.4" y2="70" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<circle cx="14" cy="70" r="4" class="sk-ink fl-paper"/>
+<line x1="35" y1="57" x2="35" y2="83" class="sk-accent2"/>
+<line x1="40.2" y1="61" x2="40.2" y2="79" class="sk-ink"/>
+<line x1="45.5" y1="61" x2="45.5" y2="79" class="sk-ink"/>
+<line x1="50.8" y1="61" x2="50.8" y2="79" class="sk-ink"/>
+<line x1="56" y1="57" x2="56" y2="83" class="sk-accent2"/>
+<line x1="66.5" y1="61" x2="66.5" y2="79" class="sk-ink"/>
+<line x1="77" y1="61" x2="77" y2="79" class="sk-ink"/>
+<line x1="87.5" y1="61" x2="87.5" y2="79" class="sk-ink"/>
+<line x1="98" y1="57" x2="98" y2="83" class="sk-accent2"/>
+<line x1="119" y1="61" x2="119" y2="79" class="sk-ink"/>
+<line x1="140" y1="61" x2="140" y2="79" class="sk-ink"/>
+<line x1="161" y1="61" x2="161" y2="79" class="sk-ink"/>
+<line x1="182" y1="57" x2="182" y2="83" class="sk-accent2"/>
+<line x1="224" y1="61" x2="224" y2="79" class="sk-ink"/>
+<line x1="266" y1="61" x2="266" y2="79" class="sk-ink"/>
+<line x1="308" y1="61" x2="308" y2="79" class="sk-ink"/>
+<text x="14" y="100" text-anchor="middle">0</text>
+<text x="35" y="100" text-anchor="middle">0,5</text>
+<text x="56" y="100" text-anchor="middle">1</text>
+<text x="98" y="100" text-anchor="middle">2</text>
+<text x="182" y="100" text-anchor="middle">4</text>
+<text x="308" y="100" text-anchor="middle">7</text>
+<path d="M56,48 L56,43 L98,43 L98,48" class="sk-dash"/>
+<text x="77" y="37" class="lab-muted" text-anchor="middle">0,25</text>
+<path d="M98,48 L98,43 L182,43 L182,48" class="sk-dash"/>
+<text x="140" y="37" class="lab-muted" text-anchor="middle">écart 0,5</text>
+<path d="M182,48 L182,43 L308,43 L308,48" class="sk-dash"/>
+<text x="245" y="37" class="lab-muted" text-anchor="middle">écart 1</text>
+<text x="14" y="118" class="lab-muted">codé à part</text>
+</svg>
+<figcaption>Format jouet : mantisse de 3 bits (\(m = 1{,}b_1b_2\) en binaire), exposant \(e\) de \(-1\) à 2. Ses 16 nombres positifs sont serrés près de 0 et espacés loin de 0 : l'écart double à chaque puissance de 2, mais l'écart <em>relatif</em> reste du même ordre. Zéro n'a pas la forme \(1{,}b_1b_2 \times 2^e\) : il est codé à part.</figcaption>
+</figure>
+
+  <div class="prop-box"><strong>Espacement des flottants.</strong> Entre \(2^e\) et \(2^{e+1}\), les flottants à \(p\) bits significatifs sont régulièrement espacés de \(2^{e - p + 1}\) : l'écart double à chaque puissance de 2. Pour les <span class="code-inline">float</span> (\(p = 53\)) : \(2^{-52} \approx 2{,}2 \times 10^{-16}\) près de 1, \(1{,}16 \times 10^{-10}\) près de \(10^6\), 2 près de \(10^{16}\). L'écart <em>relatif</em> entre deux flottants voisins est donc toujours compris entre \(2^{-53}\) et \(2^{-52}\).</div>
+  <p>Conséquence : au-delà de \(2^{53} \approx 9 \times 10^{15}\), les entiers ne sont plus tous des flottants.</p>
+  <pre class="codeblock">&gt;&gt;&gt; 1.0 + 2.0 ** -52 &gt; 1.0       <span class="cmt"># 2**-52 : écart entre 1 et le flottant suivant</span>
+<span class="kw">True</span>
+&gt;&gt;&gt; 1.0 + 2.0 ** -53 &gt; 1.0       <span class="cmt"># moitié de l'écart : arrondi à 1</span>
+<span class="kw">False</span>
+&gt;&gt;&gt; 2.0 ** 53 + 1 == 2.0 ** 53   <span class="cmt"># au-delà de 2**53, les entiers ne sont pas tous flottants</span>
+<span class="kw">True</span>
+&gt;&gt;&gt; 2 ** 53 + 1 == 2 ** 53       <span class="cmt"># les entiers de Python, eux, sont exacts</span>
+<span class="kw">False</span>
+&gt;&gt;&gt; float(10 ** 16 - 1)
+1e+16</pre>
+  <p>\(10^{16} - 1\) est un entier exact pour Python, mais converti en flottant il devient le flottant le plus proche, \(10^{16}\). Tout calcul qui passe par des flottants (une racine carrée avec <span class="code-inline">math.sqrt</span>, une division avec <span class="code-inline">/</span>) perd ainsi l'exactitude des grands entiers : le chapitre « Recherche séquentielle, dictionnaires et dichotomie » en donne un exemple avec la racine carrée entière.</p>
+  <div class="notice"><strong>Erreur classique</strong> : confondre précision et étendue. Un <span class="code-inline">float</span> peut valoir \(10^{300}\), bien plus qu'un entier de 64 bits, mais il ne porte toujours que 15 ou 16 chiffres significatifs : \(10^{300} + 1\) n'est pas un flottant différent de \(10^{300}\).</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§8 · LA PRÉCISION DES CALCULS EN FLOTTANTS</div>
+  <h2>Arrondis, absorption, cancellation</h2>
+  <div class="intro">Le résultat exact d'une opération sur deux flottants n'est en général pas un flottant : la machine l'<strong>arrondit</strong> au flottant le plus proche. Chaque opération introduit donc une petite erreur relative, de l'ordre de \(10^{-16}\) pour les <span class="code-inline">float</span>. Le plus souvent, ces erreurs restent invisibles ; mais certaines situations les accumulent ou les amplifient.</div>
+
+  <div class="prop-box"><strong>Erreur d'arrondi d'une opération.</strong> Pour une opération \(+\), \(-\), \(\times\) ou \(/\) sur deux flottants, le résultat calculé est le flottant le plus proche du résultat exact (en l'absence de dépassement). L'<strong>erreur relative</strong> commise vaut au plus la moitié de l'écart relatif entre deux flottants voisins : \(2^{-53} \approx 1{,}1 \times 10^{-16}\) pour les <span class="code-inline">float</span>.</div>
+
+  <h3>0,1 + 0,2</h3>
+  <pre class="codeblock">&gt;&gt;&gt; 0.1 + 0.2
+0.30000000000000004
+&gt;&gt;&gt; (0.1 + 0.2) + 0.3, 0.1 + (0.2 + 0.3)
+(0.6000000000000001, 0.6)</pre>
+  <div class="method-box"><strong>Exemple — d'où vient 0.30000000000000004 ?</strong>
+    <div><table>
+<tr><th>nombre</th><th>valeur exacte (début)</th></tr>
+<tr><td><span class="code-inline">0.1</span> stocké</td><td><span class="code-inline">0.10000000000000000555</span>…</td></tr>
+<tr><td><span class="code-inline">0.2</span> stocké</td><td><span class="code-inline">0.20000000000000001110</span>…</td></tr>
+<tr><td>somme exacte</td><td><span class="code-inline">0.30000000000000001665</span>…</td></tr>
+<tr><td><span class="code-inline">0.3</span> stocké</td><td><span class="code-inline">0.29999999999999998889</span>…</td></tr>
+<tr><td>flottant suivant</td><td><span class="code-inline">0.30000000000000004440</span>…</td></tr>
+</table></div>
+    <ol>
+      <li>Les flottants rangés pour 0,1 et 0,2 sont un peu plus grands que 0,1 et 0,2 (erreur de représentation, §6).</li>
+      <li>Leur somme exacte, 0,3000000000000000166…, n'est pas un flottant : elle tombe entre deux flottants voisins, celui qui représente 0,3 (0,2999999999999999888…) et le suivant (0,3000000000000000444…). Elle est exactement à mi-chemin, et la règle d'arrondi retient le second.</li>
+      <li>Le résultat est donc le flottant qui suit celui de 0,3 : Python l'affiche 0.30000000000000004, et le test <span class="code-inline">0.1 + 0.2 == 0.3</span> vaut <span class="code-inline">False</span>.</li>
+    </ol>
+  </div>
+  <p>La seconde ligne de la console montre que l'addition des flottants n'est <strong>pas associative</strong> : l'ordre des opérations change les arrondis, donc le résultat. Un compilateur ou un programmeur qui « réarrange » une formule change ses résultats numériques.</p>
+
+  <h3>Accumulation des erreurs</h3>
+  <p>Une boucle qui répète une opération répète aussi l'erreur d'arrondi :</p>
+  <pre class="codeblock">s = 0.0
+<span class="kw">for</span> k <span class="kw">in</span> range(10):
+    s = s + 0.1
+print(s)                         <span class="cmt"># 0.9999999999999999, et non 1.0</span></pre>
+  <p>Chaque ajout de <span class="code-inline">0.1</span> commet une erreur, et les dix erreurs ne se compensent pas. Sur un million d'opérations, l'erreur relative peut atteindre quelque \(10^{-10}\) : c'est en général sans importance pour une mesure physique, mais suffisant pour qu'un test d'égalité échoue.</p>
+
+  <h3>Absorption</h3>
+  <div class="def-box">Il y a <strong>absorption</strong> quand on ajoute à un flottant \(x\) un flottant \(y\) beaucoup plus petit, de valeur absolue inférieure à la moitié de l'écart entre \(x\) et son voisin : le résultat arrondi est \(x\) lui-même, \(y\) est « absorbé ». Avec les <span class="code-inline">float</span>, cela se produit dès que \(|y| \lt 10^{-16}\,|x|\) environ.</div>
+  <figure class="schema" style="max-width:380px">
+<svg viewBox="0 0 340 286" role="img" aria-label="Deux schémas de mantisses de 6 bits. En haut, absorption : la mantisse de y, décalée de 7 rangs pour aligner les exposants, tombe entièrement hors des 6 bits conservés, et x + y vaut x. En bas, cancellation : x = 101101 et y = 101100 ne diffèrent que par le dernier bit ; leur différence 000001 est renormalisée en 100000, dont les cinq derniers zéros ne portent aucune information.">
+<text x="6" y="18" class="lab-b">a) absorption</text>
+<text x="44" y="44" class="lab-it" text-anchor="end">x</text>
+<rect x="52" y="28" width="20" height="22" class="sk-ink fl-soft"/>
+<text x="62" y="44" text-anchor="middle" style="font-family:var(--font-code);font-variant-ligatures:none">1</text>
+<rect x="72" y="28" width="20" height="22" class="sk-ink fl-paper"/>
+<text x="82" y="44" text-anchor="middle" style="font-family:var(--font-code);font-variant-ligatures:none">0</text>
+<rect x="92" y="28" width="20" height="22" class="sk-ink fl-paper"/>
+<text x="102" y="44" text-anchor="middle" style="font-family:var(--font-code);font-variant-ligatures:none">1</text>
+<rect x="112" y="28" width="20" height="22" class="sk-ink fl-paper"/>
+<text x="122" y="44" text-anchor="middle" style="font-family:var(--font-code);font-variant-ligatures:none">1</text>
+<rect x="132" y="28" width="20" height="22" class="sk-ink fl-paper"/>
+<text x="142" y="44" text-anchor="middle" style="font-family:var(--font-code);font-variant-ligatures:none">0</text>
+<rect x="152" y="28" width="20" height="22" class="sk-ink fl-paper"/>
+<text x="162" y="44" text-anchor="middle" style="font-family:var(--font-code);font-variant-ligatures:none">1</text>
+<text x="44" y="72" class="lab-it" text-anchor="end">y</text>
+<rect x="192" y="56" width="20" height="22" class="sk-axis fl-muted-soft"/>
+<text x="202" y="72" text-anchor="middle" style="font-family:var(--font-code);font-variant-ligatures:none">1</text>
+<rect x="212" y="56" width="20" height="22" class="sk-axis fl-muted-soft"/>
+<text x="222" y="72" text-anchor="middle" style="font-family:var(--font-code);font-variant-ligatures:none">1</text>
+<rect x="232" y="56" width="20" height="22" class="sk-axis fl-muted-soft"/>
+<text x="242" y="72" text-anchor="middle" style="font-family:var(--font-code);font-variant-ligatures:none">0</text>
+<rect x="252" y="56" width="20" height="22" class="sk-axis fl-muted-soft"/>
+<text x="262" y="72" text-anchor="middle" style="font-family:var(--font-code);font-variant-ligatures:none">1</text>
+<rect x="272" y="56" width="20" height="22" class="sk-axis fl-muted-soft"/>
+<text x="282" y="72" text-anchor="middle" style="font-family:var(--font-code);font-variant-ligatures:none">0</text>
+<rect x="292" y="56" width="20" height="22" class="sk-axis fl-muted-soft"/>
+<text x="302" y="72" text-anchor="middle" style="font-family:var(--font-code);font-variant-ligatures:none">0</text>
+<text x="44" y="108" class="lab-it" text-anchor="end">x + y</text>
+<rect x="52" y="92" width="20" height="22" class="sk-ink fl-soft"/>
+<text x="62" y="108" text-anchor="middle" style="font-family:var(--font-code);font-variant-ligatures:none">1</text>
+<rect x="72" y="92" width="20" height="22" class="sk-ink fl-paper"/>
+<text x="82" y="108" text-anchor="middle" style="font-family:var(--font-code);font-variant-ligatures:none">0</text>
+<rect x="92" y="92" width="20" height="22" class="sk-ink fl-paper"/>
+<text x="102" y="108" text-anchor="middle" style="font-family:var(--font-code);font-variant-ligatures:none">1</text>
+<rect x="112" y="92" width="20" height="22" class="sk-ink fl-paper"/>
+<text x="122" y="108" text-anchor="middle" style="font-family:var(--font-code);font-variant-ligatures:none">1</text>
+<rect x="132" y="92" width="20" height="22" class="sk-ink fl-paper"/>
+<text x="142" y="108" text-anchor="middle" style="font-family:var(--font-code);font-variant-ligatures:none">0</text>
+<rect x="152" y="92" width="20" height="22" class="sk-ink fl-paper"/>
+<text x="162" y="108" text-anchor="middle" style="font-family:var(--font-code);font-variant-ligatures:none">1</text>
+<rect x="48" y="22" width="128" height="98" class="sk-dash"/>
+<text x="252" y="98" class="lab-muted" text-anchor="middle">hors des 6 bits</text>
+<text x="252" y="113" class="lab-muted" text-anchor="middle">gardés : perdus</text>
+<text x="6" y="150" class="lab-b">b) cancellation</text>
+<text x="44" y="176" class="lab-it" text-anchor="end">x</text>
+<rect x="52" y="160" width="20" height="22" class="sk-ink fl-paper"/>
+<text x="62" y="176" text-anchor="middle" style="font-family:var(--font-code);font-variant-ligatures:none">1</text>
+<rect x="72" y="160" width="20" height="22" class="sk-ink fl-paper"/>
+<text x="82" y="176" text-anchor="middle" style="font-family:var(--font-code);font-variant-ligatures:none">0</text>
+<rect x="92" y="160" width="20" height="22" class="sk-ink fl-paper"/>
+<text x="102" y="176" text-anchor="middle" style="font-family:var(--font-code);font-variant-ligatures:none">1</text>
+<rect x="112" y="160" width="20" height="22" class="sk-ink fl-paper"/>
+<text x="122" y="176" text-anchor="middle" style="font-family:var(--font-code);font-variant-ligatures:none">1</text>
+<rect x="132" y="160" width="20" height="22" class="sk-ink fl-paper"/>
+<text x="142" y="176" text-anchor="middle" style="font-family:var(--font-code);font-variant-ligatures:none">0</text>
+<rect x="152" y="160" width="20" height="22" class="sk-ink fl-paper"/>
+<text x="162" y="176" text-anchor="middle" style="font-family:var(--font-code);font-variant-ligatures:none">1</text>
+<text x="44" y="204" class="lab-it" text-anchor="end">y</text>
+<rect x="52" y="188" width="20" height="22" class="sk-ink fl-paper"/>
+<text x="62" y="204" text-anchor="middle" style="font-family:var(--font-code);font-variant-ligatures:none">1</text>
+<rect x="72" y="188" width="20" height="22" class="sk-ink fl-paper"/>
+<text x="82" y="204" text-anchor="middle" style="font-family:var(--font-code);font-variant-ligatures:none">0</text>
+<rect x="92" y="188" width="20" height="22" class="sk-ink fl-paper"/>
+<text x="102" y="204" text-anchor="middle" style="font-family:var(--font-code);font-variant-ligatures:none">1</text>
+<rect x="112" y="188" width="20" height="22" class="sk-ink fl-paper"/>
+<text x="122" y="204" text-anchor="middle" style="font-family:var(--font-code);font-variant-ligatures:none">1</text>
+<rect x="132" y="188" width="20" height="22" class="sk-ink fl-paper"/>
+<text x="142" y="204" text-anchor="middle" style="font-family:var(--font-code);font-variant-ligatures:none">0</text>
+<rect x="152" y="188" width="20" height="22" class="sk-ink fl-paper"/>
+<text x="162" y="204" text-anchor="middle" style="font-family:var(--font-code);font-variant-ligatures:none">0</text>
+<line x1="52" y1="216" x2="172" y2="216" class="sk-ink"/>
+<text x="44" y="238" class="lab-it" text-anchor="end">x − y</text>
+<rect x="52" y="222" width="20" height="22" class="sk-ink fl-paper"/>
+<text x="62" y="238" text-anchor="middle" style="font-family:var(--font-code);font-variant-ligatures:none">0</text>
+<rect x="72" y="222" width="20" height="22" class="sk-ink fl-paper"/>
+<text x="82" y="238" text-anchor="middle" style="font-family:var(--font-code);font-variant-ligatures:none">0</text>
+<rect x="92" y="222" width="20" height="22" class="sk-ink fl-paper"/>
+<text x="102" y="238" text-anchor="middle" style="font-family:var(--font-code);font-variant-ligatures:none">0</text>
+<rect x="112" y="222" width="20" height="22" class="sk-ink fl-paper"/>
+<text x="122" y="238" text-anchor="middle" style="font-family:var(--font-code);font-variant-ligatures:none">0</text>
+<rect x="132" y="222" width="20" height="22" class="sk-ink fl-paper"/>
+<text x="142" y="238" text-anchor="middle" style="font-family:var(--font-code);font-variant-ligatures:none">0</text>
+<rect x="152" y="222" width="20" height="22" class="sk-ink fl-paper"/>
+<text x="162" y="238" text-anchor="middle" style="font-family:var(--font-code);font-variant-ligatures:none">1</text>
+<line x1="178" y1="233" x2="202" y2="233" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<rect x="208" y="222" width="20" height="22" class="sk-ink fl-soft"/>
+<text x="218" y="238" text-anchor="middle" style="font-family:var(--font-code);font-variant-ligatures:none">1</text>
+<rect x="228" y="222" width="20" height="22" class="sk-amber fl-amber-soft"/>
+<text x="238" y="238" text-anchor="middle" style="font-family:var(--font-code);font-variant-ligatures:none">0</text>
+<rect x="248" y="222" width="20" height="22" class="sk-amber fl-amber-soft"/>
+<text x="258" y="238" text-anchor="middle" style="font-family:var(--font-code);font-variant-ligatures:none">0</text>
+<rect x="268" y="222" width="20" height="22" class="sk-amber fl-amber-soft"/>
+<text x="278" y="238" text-anchor="middle" style="font-family:var(--font-code);font-variant-ligatures:none">0</text>
+<rect x="288" y="222" width="20" height="22" class="sk-amber fl-amber-soft"/>
+<text x="298" y="238" text-anchor="middle" style="font-family:var(--font-code);font-variant-ligatures:none">0</text>
+<rect x="308" y="222" width="20" height="22" class="sk-amber fl-amber-soft"/>
+<text x="318" y="238" text-anchor="middle" style="font-family:var(--font-code);font-variant-ligatures:none">0</text>
+<text x="268" y="264" class="lab-muted" text-anchor="middle">zéros ajoutés :</text>
+<text x="268" y="279" class="lab-muted" text-anchor="middle">aucune information</text>
+</svg>
+<figcaption>Mantisses de 6 bits (case grisée : le 1 de tête). <strong>a)</strong> Pour additionner, on aligne les exposants : avec \(x = 1{,}01101_2 \times 2^4\) et \(y = 1{,}10100_2 \times 2^{-3}\), la mantisse de \(y\) recule de 7 rangs et sort des bits gardés : \(x + y\) est arrondi à \(x\). <strong>b)</strong> Deux nombres voisins se soustraient exactement, mais le résultat n'a plus qu'un bit significatif : si \(x\) et \(y\) portaient déjà une erreur d'arrondi, l'erreur relative du résultat devient énorme.</figcaption>
+</figure>
+  <div class="method-box"><strong>Exemple — l'ordre des additions compte</strong>
+    <pre class="codeblock">grand = 1e16
+s1 = grand
+<span class="kw">for</span> k <span class="kw">in</span> range(1000):
+    s1 = s1 + 1.0                <span class="cmt"># chaque ajout de 1.0 est absorbé</span>
+petits = 0.0
+<span class="kw">for</span> k <span class="kw">in</span> range(1000):
+    petits = petits + 1.0        <span class="cmt"># 1000.0, calculé exactement</span>
+s2 = grand + petits              <span class="cmt"># les petits ensemble d'abord</span>
+print(s1 - grand, s2 - grand)    <span class="cmt"># 0.0 1000.0</span></pre>
+    <ol>
+      <li>Près de \(10^{16}\), deux flottants voisins sont espacés de 2 : ajouter 1.0 à \(10^{16}\) donne un résultat exactement à mi-chemin, arrondi à \(10^{16}\). Les mille ajouts sont absorbés un par un.</li>
+      <li>En additionnant d'abord les petits nombres entre eux (exactement : 1000.0), puis le total au grand, on ne perd rien.</li>
+    </ol>
+    <p>Même phénomène, plus discret, sur la somme des \(\dfrac1{k^2}\) pour \(k\) de 1 à \(10^6\) : en commençant par les grands termes, les derniers termes (environ \(10^{-12}\)), ajoutés à une somme proche de 1,64, perdent une partie de leurs chiffres à chaque arrondi ; en commençant par les petits, chaque terme s'ajoute à une somme de même ordre de grandeur.</p>
+    <pre class="codeblock"><span class="kw">def</span> somme_grands_dabord(N):
+    <span class="str">"""Somme des 1/k**2 pour k = 1, …, N, du plus grand terme au plus petit."""</span>
+    s = 0.0
+    <span class="kw">for</span> k <span class="kw">in</span> range(1, N + 1):
+        s = s + 1 / k ** 2
+    <span class="kw">return</span> s
+
+<span class="kw">def</span> somme_petits_dabord(N):
+    <span class="str">"""Même somme, du plus petit terme au plus grand."""</span>
+    s = 0.0
+    <span class="kw">for</span> j <span class="kw">in</span> range(N):
+        k = N - j                <span class="cmt"># k prend les valeurs N, N - 1, …, 1</span>
+        s = s + 1 / k ** 2
+    <span class="kw">return</span> s</pre>
+    <div><table>
+<tr><th>ordre</th><th>résultat</th><th>écart à la valeur exacte</th></tr>
+<tr><td>grands termes d’abord</td><td><span class="code-inline">1.64493306684877</span></td><td>\(4{,}35 \times 10^{-14}\)</td></tr>
+<tr><td>petits termes d’abord</td><td><span class="code-inline">1.6449330668487263</span></td><td>\(2{,}22 \times 10^{-16}\)</td></tr>
+<tr><td>valeur exacte, arrondie</td><td><span class="code-inline">1.6449330668487265</span></td><td>—</td></tr>
+</table></div>
+  </div>
+
+  <h3>Cancellation</h3>
+  <div class="def-box">Il y a <strong>cancellation</strong> (ou élimination) quand on soustrait deux flottants très proches. La soustraction elle-même est exacte, mais les chiffres significatifs communs s'éliminent : il ne reste que les derniers chiffres, ceux qui portaient les erreurs d'arrondi des calculs précédents. L'erreur absolue ne change pas, mais l'erreur <strong>relative</strong> du résultat devient énorme.</div>
+  <pre class="codeblock">&gt;&gt;&gt; (1 + 1e-15) - 1              <span class="cmt"># 1e-15 attendu</span>
+1.1102230246251565e-15
+&gt;&gt;&gt; <span class="kw">from</span> math <span class="kw">import</span> cos, sin
+&gt;&gt;&gt; x = 1e-8
+&gt;&gt;&gt; (1 - cos(x)) / x ** 2        <span class="cmt"># devrait valoir presque 0,5</span>
+0.0
+&gt;&gt;&gt; 2 * sin(x / 2) ** 2 / x ** 2  <span class="cmt"># même quantité, écrite sans soustraction</span>
+0.5</pre>
+  <p>Sur la première ligne, \(1 + 10^{-15}\) est arrondi au flottant voisin ; la soustraction rend cet arrondi visible : 11 % d'erreur relative. Sur les suivantes, pour \(x = 10^{-8}\), \(\cos x\) vaut \(1 - 5 \times 10^{-17}\) environ, et le flottant le plus proche est exactement 1 : la différence \(1 - \cos x\) vaut 0, et le résultat est faux à 100 %.</p>
+  <div class="method-box"><strong>Exemple — supprimer une cancellation en transformant la formule</strong>
+    <ol>
+      <li>Mathématiquement, \(1 - \cos x = 2 \sin^2 \dfrac x2\), et \(\dfrac{1 - \cos x}{x^2} \to \dfrac12\) quand \(x \to 0\).</li>
+      <li>La seconde écriture ne soustrait pas de nombres voisins : elle reste précise pour \(x\) petit.</li>
+    </ol>
+    <div><table>
+<tr><th>\(x\)</th><th><span class="code-inline">(1 - cos(x)) / x ** 2</span></th><th><span class="code-inline">2 * sin(x / 2) ** 2 / x ** 2</span></th></tr>
+<tr><td>\(10^{-1}\)</td><td><span class="code-inline">0.49958347219741783</span></td><td><span class="code-inline">0.49958347219742333</span></td></tr>
+<tr><td>\(10^{-3}\)</td><td><span class="code-inline">0.49999995832550326</span></td><td><span class="code-inline">0.4999999583333347</span></td></tr>
+<tr><td>\(10^{-5}\)</td><td><span class="code-inline">0.5000000413701854</span></td><td><span class="code-inline">0.4999999999958333</span></td></tr>
+<tr><td>\(10^{-8}\)</td><td><span class="code-inline">0.0</span></td><td><span class="code-inline">0.5</span></td></tr>
+</table></div>
+    <p>La première formule perd déjà la moitié de ses chiffres pour \(x = 10^{-5}\) ; la seconde est juste à 16 chiffres près dans tous les cas.</p>
+  </div>
+  <div class="notice"><strong>Repérer les risques</strong> : une somme de termes d'ordres de grandeur très différents (absorption), une différence de deux nombres presque égaux (cancellation), une boucle qui répète des millions d'opérations (accumulation). Le chapitre « Méthodes numériques » montre leur effet sur les algorithmes de calcul approché : un pas trop petit dans une dérivée numérique fait exploser l'erreur.</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§9 · COMPARER DES FLOTTANTS, ÉCRIRE DES BOUCLES SÛRES</div>
+  <h2>Les bons réflexes</h2>
+  <div class="intro">Puisque presque tout résultat flottant est arrondi, deux calculs mathématiquement égaux donnent souvent deux flottants différents. On ne teste donc jamais l'égalité de deux flottants calculés : on teste s'ils sont <strong>proches</strong>, à une tolérance choisie selon le problème.</div>
+
+  <pre class="codeblock">&gt;&gt;&gt; 0.1 + 0.2 == 0.3
+<span class="kw">False</span>
+&gt;&gt;&gt; abs((0.1 + 0.2) - 0.3) &lt; 1e-9
+<span class="kw">True</span></pre>
+  <div class="prop-box"><strong>Comparer deux flottants.</strong>
+    <ul>
+      <li><strong>Tolérance absolue</strong> : <span class="code-inline">abs(x - y) &lt;= eps</span>. Elle convient quand on connaît l'ordre de grandeur des valeurs : par exemple <span class="code-inline">eps = 1e-9</span> pour des nombres de l'ordre de 1.</li>
+      <li><strong>Tolérance relative</strong> : <span class="code-inline">abs(x - y) &lt;= eps * abs(y)</span> (\(y\) non nul). Elle s'adapte à l'ordre de grandeur : <span class="code-inline">eps = 1e-12</span> accepte une douzaine de chiffres significatifs communs, que les valeurs soient de l'ordre de \(10^{-20}\) ou de \(10^{20}\).</li>
+      <li>Le seuil se choisit selon le calcul : il doit dépasser les erreurs d'arrondi accumulées (bien plus que \(10^{-16}\) après de nombreuses opérations) et rester plus petit que les écarts qu'on veut détecter.</li>
+    </ul>
+  </div>
+  <pre class="codeblock"><span class="kw">def</span> proche(x, y, tol):
+    <span class="str">"""Indique si x et y sont égaux à la précision relative tol près :</span>
+<span class="str">    leur écart est au plus tol fois chacune de leurs valeurs absolues."""</span>
+    ecart = abs(x - y)
+    <span class="kw">return</span> ecart &lt;= tol * abs(x) <span class="kw">and</span> ecart &lt;= tol * abs(y)</pre>
+  <div class="method-box"><strong>Exemple — une tolérance absolue fixe se trompe dans les deux sens</strong>
+    <pre class="codeblock">&gt;&gt;&gt; x, y = 1e10 * (0.1 + 0.2), 1e10 * 0.3
+&gt;&gt;&gt; x, y
+(3000000000.0000005, 3000000000.0)
+&gt;&gt;&gt; abs(x - y) &lt; 1e-9, proche(x, y, 1e-12)
+(<span class="kw">False</span>, <span class="kw">True</span>)
+&gt;&gt;&gt; abs(1e-20 - 2e-20) &lt; 1e-9, proche(1e-20, 2e-20, 1e-12)
+(<span class="kw">True</span>, <span class="kw">False</span>)</pre>
+    <ol>
+      <li>Pour des valeurs de l'ordre de \(3 \times 10^9\), l'écart entre deux flottants voisins vaut \(4{,}8 \times 10^{-7}\) : deux calculs égaux à un arrondi près diffèrent de bien plus que \(10^{-9}\). Le test absolu les déclare différents ; le test relatif, égaux.</li>
+      <li>Pour des valeurs de l'ordre de \(10^{-20}\), tout écart est inférieur à \(10^{-9}\) : le test absolu déclare égaux deux nombres dont l'un est le double de l'autre.</li>
+    </ol>
+  </div>
+  <p>Hors annexe, le module <span class="code-inline">math</span> fournit <span class="code-inline">math.isclose(x, y, rel_tol=…, abs_tol=…)</span>, qui combine les deux tolérances ; un énoncé qui l'utilise la rappelle.</p>
+
+  <h3>Des boucles pilotées par des entiers</h3>
+  <p>Une boucle dont la condition porte sur un flottant calculé par additions successives risque de faire un tour de trop, un tour de moins, ou de ne jamais s'arrêter :</p>
+  <pre class="codeblock">xs = []
+x = 0.0
+<span class="kw">while</span> x &lt;= 0.3:                  <span class="cmt"># on attend 0.0, 0.1, 0.2 et 0.3</span>
+    xs.append(x)
+    x = x + 0.1
+print(xs)                        <span class="cmt"># [0.0, 0.1, 0.2] : la valeur 0.3 manque</span></pre>
+  <p>Après trois ajouts, <span class="code-inline">x</span> vaut 0.30000000000000004, qui dépasse 0.3 : la dernière valeur manque. Le remède consiste à piloter la boucle par un compteur <strong>entier</strong> et à calculer chaque valeur à partir du compteur :</p>
+  <pre class="codeblock">n = 3
+xs = []
+<span class="kw">for</span> k <span class="kw">in</span> range(n + 1):           <span class="cmt"># n + 1 points, garantis par le compteur entier</span>
+    xs.append(k * 0.1)
+print(xs)                        <span class="cmt"># [0.0, 0.1, 0.2, 0.30000000000000004]</span></pre>
+  <div class="notice"><strong>Erreurs classiques</strong> :
+    <ul>
+      <li>écrire <span class="code-inline">while x != 0:</span> avec un flottant <span class="code-inline">x</span> qui décroît par pas de 0.1 : il passe de \(1{,}4 \times 10^{-16}\) environ à une valeur négative sans jamais valoir 0, et la boucle ne s'arrête pas (chapitre « Spécification, correction et complexité », §3 : un variant doit être entier) ;</li>
+      <li>tester un résultat flottant par <span class="code-inline">assert resultat == attendu</span> dans un jeu de tests : écrire <span class="code-inline">assert abs(resultat - attendu) &lt;= 1e-9</span>, avec une tolérance adaptée ;</li>
+      <li>calculer des montants d'argent en flottants : on travaille en centimes, avec des entiers, qui sont exacts (voir le rendu de monnaie dans le chapitre « Algorithmes gloutons »).</li>
+    </ul>
+  </div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">POUR ALLER PLUS LOIN · HORS PROGRAMME</div>
+  <h2>La norme des flottants et ses cas particuliers</h2>
+  <div class="intro">Rien de cette section n'est exigible : le programme exclut explicitement la norme IEEE-754, les nombres dénormalisés, les infinis, les NaN et la comparaison des modes d'arrondi.</div>
+  <ul>
+    <li><strong>La norme IEEE-754</strong> (1985, révisée en 2008 et 2019) fixe les formats utilisés par presque tous les processeurs. Le format « double précision » des <span class="code-inline">float</span> de Python range l'exposant avec un décalage de 1023 (l'exposant 0 est codé 01111111111) ; le format « simple précision » utilise 32 bits : 1 de signe, 8 d'exposant, 23 de mantisse, soit environ 7 chiffres significatifs.</li>
+    <li><strong>Les nombres dénormalisés</strong> prolongent les flottants entre 0 et \(2^{-1022}\) avec une mantisse commençant par 0, ce qui remplit en partie le « trou » autour de 0 visible sur la figure du §7.</li>
+    <li><strong>Les valeurs spéciales</strong> : des codes réservés représentent \(+\infty\), \(-\infty\) et « NaN » (<em>not a number</em>, résultat d'une opération indéfinie). Python, lui, lève souvent une erreur : <span class="code-inline">2.0 ** 1024</span> provoque une <span class="code-inline">OverflowError</span>.
+      <pre class="codeblock">&gt;&gt;&gt; 2.0 ** 1023
+8.98846567431158e+307
+&gt;&gt;&gt; 2.0 ** 1024
+Traceback (most recent call last):
+  ...
+OverflowError: (34, <span class="str">'Numerical result out of range'</span>)</pre></li>
+    <li><strong>Les modes d'arrondi</strong> : au plus proche (le mode par défaut, avec la règle « au pair » en cas d'égalité, celle qui a tranché pour 0,1 + 0,2 au §8), vers 0, vers \(+\infty\), vers \(-\infty\).</li>
+    <li><strong>Calculer mieux</strong> : <span class="code-inline">math.fsum</span> additionne une liste de flottants en compensant les erreurs d'arrondi ; le module <span class="code-inline">fractions</span> calcule exactement sur des rationnels ; le module <span class="code-inline">decimal</span> calcule en base 10, ce qui convient aux montants financiers.</li>
+    <li><strong>Multiplier de grands entiers</strong> : la multiplication posée de deux nombres de \(k\) chiffres coûte de l'ordre de \(k^2\) opérations ; Python utilise pour les très grands entiers l'algorithme de Karatsuba, en \(O(k^{\log_2 3}) \approx O(k^{1{,}585})\).</li>
+  </ul>
+</div>
+</template>
+<template class="pan-tpl" data-panneau="repn-meth">
+<div class="course-section">
+  <div class="sec-num">MÉTHODES · REPRÉSENTATION DES NOMBRES</div>
+  <h2>Les réflexes du chapitre</h2>
+  <div class="intro">Lire et écrire des mots binaires, coder des entiers signés, prévoir un dépassement, décomposer un flottant et se méfier de ses arrondis : les savoir-faire qui reviennent dans les questions de cours des épreuves et dans tout programme de calcul.</div>
+
+  <div class="method-box"><strong>Méthode 1 — Convertir un mot binaire en entier naturel</strong>
+    <ol>
+      <li>Écrire au-dessus de chaque bit son poids, de droite à gauche : \(2^0 = 1\), \(2^1 = 2\), \(2^2 = 4\)…</li>
+      <li>Additionner les poids des bits qui valent 1.</li>
+      <li>Variante sans puissances (schéma de Horner) : lire de gauche à droite en partant de 0 ; à chaque chiffre, doubler ce qu'on a et ajouter le chiffre.</li>
+    </ol>
+    <p><em>Exemple éclair :</em> \((1100101)_2 = 64 + 32 + 4 + 1 = 101\). Par Horner : \(1, 3, 6, 12, 25, 50, 101\).</p>
+  </div>
+
+  <div class="method-box"><strong>Méthode 2 — Écrire un entier naturel en binaire</strong>
+    <ol>
+      <li>Diviser le nombre par 2 et noter le reste (0 ou 1).</li>
+      <li>Recommencer avec le quotient jusqu'à obtenir un quotient nul.</li>
+      <li>Lire les restes <strong>de bas en haut</strong> : le premier reste obtenu est le bit de poids faible, écrit à droite.</li>
+      <li>Vérifier en reconvertissant (méthode 1).</li>
+    </ol>
+    <p><em>Exemple éclair :</em> 44 → restes 0, 0, 1, 1, 0, 1 → \(44 = (101100)_2\) ; contrôle : \(32 + 8 + 4 = 44\).</p>
+    <p><em>En Python</em>, le même schéma marche dans toute base \(b \ge 2\) : le chiffre des unités est <span class="code-inline">n % b</span>, et <span class="code-inline">n // b</span> retire ce chiffre.</p>
+    <pre class="codeblock"><span class="kw">def</span> chiffres(n, b):
+    <span class="str">"""Chiffres de l'entier n &gt;= 0 en base b &gt;= 2, poids faible en tête."""</span>
+    res = []
+    <span class="kw">while</span> n &gt; 0:               <span class="cmt"># variant : n</span>
+        res.append(n % b)      <span class="cmt"># chiffre des unités en base b</span>
+        n = n // b             <span class="cmt"># on « décale » d'un rang vers la droite</span>
+    <span class="kw">return</span> res
+
+<span class="kw">def</span> valeur_base(ch, b):
+    <span class="str">"""Réciproque : entier dont ch est la liste des chiffres en base b</span>
+<span class="str">    (poids faible en tête), par le schéma de Horner."""</span>
+    v = 0
+    <span class="kw">for</span> i <span class="kw">in</span> range(len(ch)):
+        v = b * v + ch[len(ch) - 1 - i]     <span class="cmt"># du poids fort au poids faible</span>
+    <span class="kw">return</span> v</pre>
+    <pre class="codeblock">&gt;&gt;&gt; chiffres(2026, 2)
+[0, 1, 0, 1, 0, 1, 1, 1, 1, 1, 1]
+&gt;&gt;&gt; chiffres(2026, 16)           <span class="cmt"># 2026 = 7*256 + 14*16 + 10</span>
+[10, 14, 7]
+&gt;&gt;&gt; valeur_base([10, 14, 7], 16)
+2026</pre>
+  </div>
+
+  <div class="method-box"><strong>Méthode 3 — Déterminer ce que contient un mot de n bits</strong>
+    <ol>
+      <li>Nombre de valeurs : \(2^n\).</li>
+      <li>Entiers naturels : de \(0\) à \(2^n - 1\).</li>
+      <li>Entiers signés en complément à deux : de \(-2^{n-1}\) à \(2^{n-1} - 1\).</li>
+      <li>Inversement, pour ranger \(N\) valeurs distinctes, il faut le plus petit \(n\) tel que \(2^n \ge N\).</li>
+    </ol>
+    <p><em>Exemple éclair :</em> sur 16 bits, entiers naturels de 0 à 65 535, entiers signés de −32 768 à 32 767. Pour numéroter 5 000 élèves : \(2^{12} = 4096 \lt 5000 \le 8192 = 2^{13}\), donc 13 bits.</p>
+  </div>
+
+  <div class="method-box"><strong>Méthode 4 — Coder un entier relatif en complément à deux sur n bits</strong>
+    <ol>
+      <li>Vérifier que \(-2^{n-1} \le x \le 2^{n-1} - 1\), sinon \(x\) n'est pas représentable.</li>
+      <li>Si \(x \ge 0\) : écrire \(x\) en binaire sur \(n\) bits (compléter par des 0 à gauche).</li>
+      <li>Si \(x \lt 0\) : écrire \(|x|\) sur \(n\) bits, <strong>inverser tous les bits, puis ajouter 1</strong> ; ou bien écrire directement l'entier naturel \(2^n + x\) en binaire.</li>
+      <li>Contrôler : le bit de poids fort doit valoir 1 exactement pour un négatif.</li>
+    </ol>
+    <p><em>Exemple éclair :</em> \(-37\) sur 8 bits : \(37 = 00100101\), inversé \(11011010\), plus 1 : \(11011011\). Directement : \(256 - 37 = 219 = (11011011)_2\).</p>
+  </div>
+
+  <div class="method-box"><strong>Méthode 5 — Décoder un mot en complément à deux</strong>
+    <ol>
+      <li>Regarder le bit de poids fort : 0, le nombre est positif et se lit comme un entier naturel.</li>
+      <li>S'il vaut 1, le nombre est négatif : sa valeur est \(-2^{n-1}\) plus la somme des poids des autres bits à 1.</li>
+      <li>Variante : lire le mot comme un entier naturel \(m\), puis retrancher \(2^n\).</li>
+    </ol>
+    <p><em>Exemple éclair :</em> \(11010110\) sur 8 bits : \(-128 + 64 + 16 + 4 + 2 = -42\) ; ou \(214 - 256 = -42\).</p>
+  </div>
+
+  <div class="method-box"><strong>Méthode 6 — Additionner sur n bits et détecter un dépassement</strong>
+    <ol>
+      <li>Poser l'addition en binaire, de droite à gauche, avec les retenues (\(1 + 1 = 10\), \(1 + 1 + 1 = 11\)).</li>
+      <li>Ne garder que les \(n\) bits de droite : la retenue sortante éventuelle est perdue.</li>
+      <li>Entiers naturels : il y a dépassement si et seulement si une retenue sort ; le résultat vaut alors la vraie somme moins \(2^n\).</li>
+      <li>Entiers signés : il y a dépassement si et seulement si les deux opérandes ont le même signe et le résultat le signe contraire ; une retenue sortante seule n'est pas un dépassement.</li>
+    </ol>
+    <p><em>Exemple éclair :</em> sur 8 bits signés, \(90 + 60\) : \(01011010 + 00111100 = 10010110\), qui se lit \(-106\). Deux positifs, un résultat négatif : dépassement (150 n'est pas représentable).</p>
+  </div>
+  <div class="notice"><strong>Piège</strong> : en entiers naturels, une retenue sortante <em>est</em> un dépassement ; en complément à deux, ce n'est pas le critère. \(-1 + (-1)\) sur 8 bits : \(11111111 + 11111111 = 1\,11111110\) ; on ignore la retenue, et \(11111110\) vaut bien \(-2\).</div>
+
+  <div class="method-box"><strong>Méthode 7 — Décomposer un réel en signe, mantisse et exposant</strong>
+    <ol>
+      <li>Écrire la partie entière en binaire (méthode 2), puis la partie fractionnaire en la doublant de façon répétée : chaque partie entière obtenue (0 ou 1) est le chiffre suivant.</li>
+      <li>Déplacer la virgule derrière le premier 1 : de \(k\) rangs vers la gauche, l'exposant vaut \(k\) ; de \(k\) rangs vers la droite, il vaut \(-k\).</li>
+      <li>La mantisse \(m = (1{,}b_1 b_2 \dots)_2\) est entre 1 et 2 ; vérifier que \(m \times 2^e\) redonne le nombre.</li>
+      <li>Si la partie fractionnaire ne s'arrête pas (dénominateur qui n'est pas une puissance de 2), le nombre n'est pas représentable exactement : il sera arrondi.</li>
+    </ol>
+    <p><em>Exemple éclair :</em> \(5{,}75 = (101{,}11)_2 = (1{,}0111)_2 \times 2^2\) : mantisse \(1{,}4375\), exposant 2 ; contrôle \(1{,}4375 \times 4 = 5{,}75\).</p>
+  </div>
+
+  <div class="method-box"><strong>Méthode 8 — Repérer et limiter les erreurs d'arrondi</strong>
+    <ol>
+      <li>Chercher les <strong>soustractions de nombres presque égaux</strong> (cancellation) : transformer la formule (expression conjuguée, formule trigonométrique, produit des racines) pour supprimer la différence.</li>
+      <li>Chercher les <strong>sommes de termes d'ordres de grandeur très différents</strong> (absorption) : additionner d'abord les petits termes entre eux.</li>
+      <li>Chercher les <strong>boucles qui accumulent</strong> une même opération : recalculer chaque valeur à partir d'un compteur entier (<span class="code-inline">x = a + k * h</span>) plutôt que <span class="code-inline">x = x + h</span>.</li>
+      <li>Garder des <strong>entiers</strong> quand c'est possible (centimes, numéros, compteurs) : les calculs sur les <span class="code-inline">int</span> de Python sont exacts.</li>
+    </ol>
+    <p><em>Exemple éclair :</em> \(\sqrt{x + 1} - \sqrt x\) pour \(x = 10^{16}\) donne 0 en flottants ; l'écriture équivalente \(\dfrac{1}{\sqrt{x + 1} + \sqrt x}\) donne \(5 \times 10^{-9}\), la bonne valeur.</p>
+  </div>
+
+  <div class="method-box"><strong>Méthode 9 — Comparer des flottants et piloter une boucle</strong>
+    <ol>
+      <li>Ne jamais écrire <span class="code-inline">x == y</span> entre deux flottants calculés.</li>
+      <li>Choisir une tolérance : absolue (<span class="code-inline">abs(x - y) &lt;= eps</span>) si l'on connaît l'ordre de grandeur des valeurs, relative (<span class="code-inline">abs(x - y) &lt;= eps * abs(y)</span>) sinon.</li>
+      <li>Fixer le seuil entre les erreurs d'arrondi attendues (au moins quelques \(10^{-16}\) en relatif, davantage après de nombreuses opérations) et les écarts qu'on veut détecter.</li>
+      <li>Piloter les boucles par un compteur entier ; ne jamais faire dépendre l'arrêt d'une boucle d'une égalité entre flottants.</li>
+    </ol>
+    <p><em>Exemple éclair :</em> pour parcourir \([0, 1]\) avec un pas de 0,1 :</p>
+    <pre class="codeblock">n = 10
+h = 1 / n
+<span class="kw">for</span> k <span class="kw">in</span> range(n + 1):
+    x = k * h                    <span class="cmt"># et non x = x + h : pas d'erreur cumulée</span></pre>
+    <p>La boucle fait exactement 11 tours, et le dernier <span class="code-inline">x</span> vaut 1.0 ; avec <span class="code-inline">x = x + h</span>, la dernière valeur serait 0.9999999999999999.</p>
+  </div>
+
+  <div class="notice"><strong>Pièges classiques</strong> :
+    <ul>
+      <li>lire les restes des divisions successives dans le mauvais sens (c'est de bas en haut) ;</li>
+      <li>oublier que \(n\) bits codent \(2^n\) valeurs, de 0 à \(2^n - 1\), et non jusqu'à \(2^n\) ;</li>
+      <li>croire que l'intervalle du complément à deux est symétrique : sur 8 bits, \(-128\) est représentable mais pas \(+128\) ;</li>
+      <li>croire qu'un entier Python peut déborder, ou au contraire qu'un tableau <span class="code-inline">numpy</span> ne le peut pas ;</li>
+      <li>tester l'égalité <span class="code-inline">==</span> entre flottants : utiliser une tolérance.</li>
+    </ul>
+  </div>
+</div>
+</template>
+<template class="pan-tpl" data-panneau="repn-exos">
+<div class="exo-wrapper">
+
+<div class="exo">
+  <span class="num">EXO 01</span><span class="diff">★ ☆ ☆</span>
+  <h3>Binaire vers décimal</h3>
+  <div class="statement">Les nombres écrits avec des 0 et des 1 sont ici des écritures binaires.</div>
+  <div class="q"><strong>Q1.</strong> Convertir <span class="code-inline">101101</span> (binaire) en décimal.</div>
+  <div class="q"><strong>Q2.</strong> Convertir 11111111 et 100000000. Retrouver le premier résultat sans additionner huit puissances de 2.</div>
+  <div class="q"><strong>Q3.</strong> Combien de bits faut-il au minimum pour écrire 45 ? Pour écrire 256 ?</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> \(1\cdot32 + 0\cdot16 + 1\cdot8 + 1\cdot4 + 0\cdot2 + 1\cdot1\) \(= 32 + 8 + 4 + 1 = 45\).</p>
+    <p><strong>Q2.</strong> \((100000000)_2 = 2^8 = 256\) : un 1 suivi de huit 0. Et \((11111111)_2 = 2^8 - 1 = 255\), car en ajoutant 1 à 11111111 toutes les retenues se propagent et l'on obtient 100000000 ; sinon, \(1 + 2 + \dots + 128 = 255\).</p>
+    <p><strong>Q3.</strong> 45 s'écrit 101101 : 6 bits (\(2^5 = 32 \le 45 \lt 64 = 2^6\)). 256 s'écrit avec 9 bits ; 8 bits ne codent que les entiers de 0 à 255.</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 02</span><span class="diff">★ ☆ ☆</span>
+  <h3>Décimal vers binaire</h3>
+  <div class="statement">On utilise la méthode des divisions successives par 2.</div>
+  <div class="q"><strong>Q1.</strong> Convertir 26 en binaire par divisions successives.</div>
+  <div class="q"><strong>Q2.</strong> En déduire, sans nouveau calcul, l'écriture binaire de 52 et celle de 13. Quelle opération sur l'écriture binaire correspond à <span class="code-inline">n * 2</span> ? à <span class="code-inline">n // 2</span> ?</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong></p>
+    <div><table>
+<tr><th>\(n\)</th><th>quotient</th><th>reste</th></tr>
+<tr><td>26</td><td>13</td><td><strong>0</strong></td></tr>
+<tr><td>13</td><td>6</td><td><strong>1</strong></td></tr>
+<tr><td>6</td><td>3</td><td><strong>0</strong></td></tr>
+<tr><td>3</td><td>1</td><td><strong>1</strong></td></tr>
+<tr><td>1</td><td>0</td><td><strong>1</strong></td></tr>
+</table></div>
+    <p>On lit les restes de bas en haut : \(26 = (11010)_2\). Vérification : \(16 + 8 + 2 = 26\).</p>
+    <p><strong>Q2.</strong> Multiplier par 2 décale tous les bits d'un rang vers la gauche (chaque poids \(2^i\) devient \(2^{i+1}\)) : on ajoute un 0 à droite, \(52 = (110100)_2\). Le quotient par 2 supprime le dernier bit (c'est le reste de la division par 2) : \(13 = (1101)_2\). C'est exactement ce que font les divisions successives : le quotient de chaque ligne est le nombre de la ligne suivante.</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 03</span><span class="diff">★ ☆ ☆</span>
+  <h3>Mots de taille fixe et compteurs</h3>
+  <div class="statement">Un microcontrôleur range ses entiers dans des mots de 16 ou de 32 bits.</div>
+  <div class="q"><strong>Q1.</strong> Quel est le plus grand entier naturel représentable sur 16 bits ? Quel intervalle d'entiers signés en complément à deux ?</div>
+  <div class="q"><strong>Q2.</strong> Combien de bits faut-il pour donner un numéro distinct à chacun d'un million de capteurs ?</div>
+  <div class="q"><strong>Q3.</strong> Un compteur de 32 bits non signé est augmenté de 1 à chaque milliseconde depuis la mise sous tension. Au bout de combien de jours revient-il à 0 ? Que contient-il au bout de 50 jours exactement ?</div>
+  <div class="q"><strong>Q4.</strong> De nombreux systèmes comptent le temps en secondes écoulées depuis le 1ᵉʳ janvier 1970 dans un entier signé de 32 bits. Pendant combien d'années environ ce compteur fonctionne-t-il ?</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> \(2^{16} - 1 = 65\,535\). En complément à deux : de \(-2^{15} = -32\,768\) à \(2^{15} - 1 = 32\,767\).</p>
+    <p><strong>Q2.</strong> Il faut \(2^n \ge 10^6\) : \(2^{19} = 524\,288\) ne suffit pas, \(2^{20} = 1\,048\,576\) suffit. Il faut 20 bits.</p>
+    <p><strong>Q3.</strong> Le compteur prend \(2^{32}\) valeurs ; il revient à 0 après \(2^{32}\) ms, soit \(\dfrac{4\,294\,967\,296}{1000 \times 86\,400} \approx 49{,}7\) jours. Au bout de 50 jours, la machine calcule modulo \(2^{32}\) :</p>
+    <pre class="codeblock">duree = 50 * 24 * 3600 * 1000     <span class="cmt"># 50 jours, en millisecondes</span>
+print(duree % 2 ** 32)            <span class="cmt"># 25032704 : valeur du compteur de 32 bits</span></pre>
+    <p>soit 25 032 704 ms, environ 6 h 57 min : un programme qui mesure une durée par différence de deux lectures du compteur se trompe s'il ne tient pas compte du retour à 0.</p>
+    <p><strong>Q4.</strong> Le maximum est \(2^{31} - 1 \approx 2{,}15 \times 10^9\) s, soit environ \(\dfrac{2{,}15 \times 10^9}{365{,}25 \times 86\,400} \approx 68\) ans : le compteur atteint son maximum en janvier 2038 (le 19, à 3 h 14 min 7 s, temps universel). La seconde suivante, il deviendrait \(-2^{31}\), ce qui correspond à décembre 1901.</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 04</span><span class="diff">★ ★ ☆</span>
+  <h3>Complément à deux sur 8 bits</h3>
+  <div class="statement">Les entiers sont codés sur 8 bits en complément à deux.</div>
+  <div class="q"><strong>Q1.</strong> Coder 127, −1, −100 et −128.</div>
+  <div class="q"><strong>Q2.</strong> Décoder 10000001, 11111110, 01111111 et 10011100.</div>
+  <div class="q"><strong>Q3.</strong> Poser l'addition \(58 + (-91)\) en binaire et vérifier le résultat.</div>
+  <div class="q"><strong>Q4.</strong> Poser l'addition \((-100) + (-100)\). Que contient le mot résultat ? Expliquer.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> \(127 = 01111111\) (le plus grand positif). \(-1\) : \(256 - 1 = 255 = 11111111\). \(-100\) : \(100 = 01100100\), inversé \(10011011\), plus 1 : \(10011100\) ; contrôle \(-128 + 16 + 8 + 4 = -100\). \(-128\) : \(256 - 128 = 128 = 10000000\).</p>
+    <p><strong>Q2.</strong> \(10000001 = -128 + 1 = -127\) ; \(11111110 = 254 - 256 = -2\) ; \(01111111 = 127\) (bit de poids fort nul) ; \(10011100 = -100\) (question 1).</p>
+    <p><strong>Q3.</strong> \(58 = 00111010\) ; \(91 = 01011011\), donc \(-91 = 10100100 + 1 = 10100101\).</p>
+    <pre class="codeblock">   │  1                <span class="cmt">retenues</span>
+   │0 0 1 1 1 0 1 0   <span class="cmt">58</span>
++  │1 0 1 0 0 1 0 1   <span class="cmt">−91</span>
+   ────────────────
+   │1 1 0 1 1 1 1 1   <span class="cmt">−33</span></pre>
+    <p>Résultat \(11011111\), négatif : \(-128 + 64 + 16 + 8 + 4 + 2 + 1 = -33\), qui vaut bien \(58 - 91\). Deux opérandes de signes contraires : pas de dépassement possible.</p>
+    <p><strong>Q4.</strong></p>
+    <pre class="codeblock">  1│    1 1 1          <span class="cmt">retenues</span>
+   │1 0 0 1 1 1 0 0   <span class="cmt">−100</span>
++  │1 0 0 1 1 1 0 0   <span class="cmt">−100</span>
+   ────────────────
+  1│0 0 1 1 1 0 0 0   <span class="cmt">56 (!)</span></pre>
+    <p>On ignore la retenue sortante : le mot \(00111000\) vaut \(+56\). Le vrai résultat, \(-200\), est hors de \([-128, 127]\) : il y a dépassement, signalé par la règle des signes (deux négatifs, un résultat positif). La machine a calculé \(-200 + 256 = 56\), c'est-à-dire la somme modulo \(2^8\).</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 05</span><span class="diff">★ ★ ☆</span>
+  <h3>Programmer l'opposé en complément à deux</h3>
+  <div class="statement">Un mot de \(n\) bits est représenté par la liste de ses bits, <strong>poids faible en tête</strong> : la case d'indice \(i\) contient le bit de poids \(2^i\). Ainsi le mot 00000101 (5 sur 8 bits) est la liste <span class="code-inline">[1, 0, 1, 0, 0, 0, 0, 0]</span>.</div>
+  <div class="q"><strong>Q1.</strong> Écrire une fonction <span class="code-inline">bits_n(m, n)</span> qui renvoie la liste des \(n\) bits de l'entier naturel \(m\), \(0 \le m \lt 2^n\).</div>
+  <div class="q"><strong>Q2.</strong> Écrire <span class="code-inline">inverser(bits)</span>, qui renvoie une nouvelle liste où chaque bit est remplacé par son complément, et <span class="code-inline">plus_un(bits)</span>, qui renvoie le mot augmenté de 1 sur le même nombre de bits (la retenue qui sortirait du mot est perdue). Les fonctions ne modifient pas leur argument.</div>
+  <div class="q"><strong>Q3.</strong> En déduire <span class="code-inline">oppose(bits)</span>, qui renvoie le code en complément à deux de \(-x\) quand <span class="code-inline">bits</span> code \(x\). Justifier la méthode.</div>
+  <div class="q"><strong>Q4.</strong> Que renvoie <span class="code-inline">oppose(bits_n(128, 8))</span> ? Interpréter. Quelle est la complexité de <span class="code-inline">oppose</span> ?</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> On extrait \(n\) restes successifs, même si \(m\) devient nul (les bits de poids fort valent alors 0) :</p>
+    <pre class="codeblock"><span class="kw">def</span> bits_n(m, n):
+    <span class="str">"""Les n bits de l'entier naturel m (0 &lt;= m &lt; 2**n), poids faible en tête."""</span>
+    res = []
+    <span class="kw">for</span> i <span class="kw">in</span> range(n):
+        res.append(m % 2)
+        m = m // 2
+    <span class="kw">return</span> res</pre>
+    <p><strong>Q2.</strong></p>
+    <pre class="codeblock"><span class="kw">def</span> inverser(bits):
+    <span class="str">"""Nouvelle liste : chaque bit de bits remplacé par son complément."""</span>
+    res = []
+    <span class="kw">for</span> b <span class="kw">in</span> bits:
+        res.append(1 - b)
+    <span class="kw">return</span> res</pre>
+    <pre class="codeblock"><span class="kw">def</span> plus_un(bits):
+    <span class="str">"""Nouvelle liste : le mot bits (poids faible en tête) augmenté de 1 sur</span>
+<span class="str">    le même nombre de bits ; la retenue qui sortirait du mot est perdue."""</span>
+    res = []
+    retenue = 1                  <span class="cmt"># le 1 qu'on ajoute, au rang 0</span>
+    <span class="kw">for</span> b <span class="kw">in</span> bits:
+        s = b + retenue          <span class="cmt"># 0, 1 ou 2</span>
+        res.append(s % 2)
+        retenue = s // 2
+    <span class="kw">return</span> res</pre>
+    <p>Dans <span class="code-inline">plus_un</span>, on pose l'addition du mot et de 00…01 : la retenue initiale vaut 1, puis à chaque rang la somme \(b + r\) vaut 0, 1 ou 2, on écrit son reste par 2 et on retient son quotient. La boucle fait \(n\) tours : la dernière retenue n'est écrite nulle part, elle est perdue comme dans la machine.</p>
+    <p><strong>Q3.</strong></p>
+    <pre class="codeblock"><span class="kw">def</span> oppose(bits):
+    <span class="str">"""Si bits code x en complément à deux, renvoie le code de -x</span>
+<span class="str">    (pour x différent de -2**(n-1), n = len(bits))."""</span>
+    <span class="kw">return</span> plus_un(inverser(bits))</pre>
+    <p>Si \(m\) est l'entier naturel lu dans le mot et \(\bar m\) celui du mot inversé, \(m + \bar m = 2^n - 1\) (tous les bits à 1), donc \(\bar m + 1 = 2^n - m\), qui est congru à \(-x\) modulo \(2^n\) : c'est le code de \(-x\) (cours, §4).</p>
+    <pre class="codeblock">&gt;&gt;&gt; cinq = bits_n(5, 8)
+&gt;&gt;&gt; cinq
+[1, 0, 1, 0, 0, 0, 0, 0]
+&gt;&gt;&gt; oppose(cinq)                 <span class="cmt"># 11111011 lu de droite à gauche</span>
+[1, 1, 0, 1, 1, 1, 1, 1]
+&gt;&gt;&gt; oppose(bits_n(128, 8))       <span class="cmt"># le code de -128 est son propre opposé</span>
+[0, 0, 0, 0, 0, 0, 0, 1]</pre>
+    <p><strong>Q4.</strong> Le mot 10000000 code \(-128\) ; son opposé, \(+128\), n'est pas représentable sur 8 bits, et le calcul redonne 10000000 : c'est le seul mot non nul égal à son propre opposé (avec 00000000). Chaque fonction parcourt une fois la liste : <span class="code-inline">oppose</span> est en \(O(n)\), linéaire en le nombre de bits.</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 06</span><span class="diff">★ ★ ☆</span>
+  <h3>Égalité de flottants</h3>
+  <div class="statement">Un élève écrit <span class="code-inline">if 0.1 + 0.2 == 0.3:</span> et s'étonne que le bloc ne s'exécute pas.</div>
+  <div class="q"><strong>Q1.</strong> Expliquer. <strong>Q2.</strong> Corriger le test.</div>
+  <div class="q"><strong>Q3.</strong> Le même élève compare ensuite deux calculs d'une énergie, en joules : <span class="code-inline">E1 = 1e9 + 0.1 + 0.2</span> et <span class="code-inline">E2 = 1e9 + 0.3</span>, avec le test <span class="code-inline">abs(E1 - E2) &lt; 1e-9</span>. Le test vaut <span class="code-inline">False</span>. Pourquoi ? Proposer un test adapté.</div>
+  <div class="q"><strong>Q4.</strong> Avec le test absolu de Q2, que conclurait-on en comparant deux charges électriques \(1{,}6 \times 10^{-19}\) C et \(3{,}2 \times 10^{-19}\) C ?</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> <span class="code-inline">0.1</span>, <span class="code-inline">0.2</span> et <span class="code-inline">0.3</span> ne sont pas représentables exactement en binaire : Python range les flottants les plus proches. La somme des deux premiers, arrondie, vaut <span class="code-inline">0.30000000000000004</span>, qui n'est pas le flottant rangé pour <span class="code-inline">0.3</span>.</p>
+    <p><strong>Q2.</strong> On compare à une tolérance, adaptée à des nombres de l'ordre de 1 :</p>
+    <pre class="codeblock"><span class="kw">if</span> abs((0.1 + 0.2) - 0.3) &lt; 1e-9:
+    print(<span class="str">"égaux à 1e-9 près"</span>)</pre>
+    <p><strong>Q3.</strong></p>
+    <pre class="codeblock">E1 = 1e9 + 0.1 + 0.2             <span class="cmt"># 1000000000.3000001</span>
+E2 = 1e9 + 0.3                   <span class="cmt"># 1000000000.3</span>
+print(E1 - E2)                   <span class="cmt"># 1.1920928955078125e-07</span></pre>
+    <p>Près de \(10^9\), deux flottants voisins sont espacés de \(2^{-23} \approx 1{,}2 \times 10^{-7}\) : les deux calculs, égaux à un arrondi près, diffèrent d'un écart de flottants, bien plus grand que \(10^{-9}\). La tolérance doit être <strong>relative</strong> : <span class="code-inline">abs(E1 - E2) &lt;= 1e-12 * abs(E2)</span> vaut <span class="code-inline">True</span> (l'écart relatif vaut \(1{,}2 \times 10^{-16}\)).</p>
+    <p><strong>Q4.</strong> L'écart, \(1{,}6 \times 10^{-19}\), est inférieur à \(10^{-9}\) : le test absolu déclarerait égales deux charges dont l'une est le double de l'autre. Une tolérance absolue n'a de sens que rapportée à l'ordre de grandeur des valeurs comparées ; ici encore, il faut un test relatif.</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 07</span><span class="diff">★ ★ ☆</span>
+  <h3>Mantisse, exposant et format jouet</h3>
+  <div class="statement">On écrit tout réel non nul sous la forme \(x = s \times m \times 2^e\), avec \(s = \pm 1\), \(1 \le m \lt 2\) et \(e\) entier.</div>
+  <div class="q"><strong>Q1.</strong> Donner le signe, la mantisse (en binaire et en décimal) et l'exposant de 22,75 et de −0,3125.</div>
+  <div class="q"><strong>Q2.</strong> Donner les premiers chiffres binaires de la mantisse de 0,2, et son exposant. 0,2 est-il un flottant ?</div>
+  <div class="q"><strong>Q3.</strong> Un format jouet garde 4 bits de mantisse (\(m = (1{,}b_1 b_2 b_3)_2\)) et des exposants de \(-1\) à 2. Combien de nombres positifs représente-t-il ? Quels sont le plus petit et le plus grand ? Quel est l'écart entre deux nombres voisins dans \([2, 4[\) ? dans \([4, 8[\) ?</div>
+  <div class="q"><strong>Q4.</strong> Dans ce format, par quels nombres sont arrondis 2,6 et 5,3 ? Que vaut l'addition \(4 + 0{,}2\) ? Majorer l'erreur relative d'arrondi.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> \(22 = (10110)_2\) et \(0{,}75 = (0{,}11)_2\), donc \(22{,}75 = (10110{,}11)_2\), soit \(22{,}75 = (1{,}011011)_2 \times 2^4\) : signe \(+\), exposant 4 et mantisse</p>
+    <div class="formula">$$m = (1{,}011011)_2 = 1 + \frac14 + \frac18 + \frac1{32} + \frac1{64} = 1{,}421875 ;$$</div>
+    <p>contrôle : \(1{,}421875 \times 16 = 22{,}75\). Ensuite \(0{,}3125 = \dfrac{5}{16} = (0{,}0101)_2 = (1{,}01)_2 \times 2^{-2}\) : signe \(-\), mantisse \(1{,}25\), exposant \(-2\).</p>
+    <p><strong>Q2.</strong> En doublant : \(0{,}4 \to 0\), \(0{,}8 \to 0\), \(1{,}6 \to 1\), \(1{,}2 \to 1\), \(0{,}4 \to 0\)… donc \(0{,}2 = (0{,}001\,1001\,1001\dots)_2\), soit \(0{,}2 = (1{,}1001\,1001\dots)_2 \times 2^{-3}\) : exposant \(-3\), mantisse infinie et périodique (environ 1,6). 0,2 n'est pas un flottant (son dénominateur 5 n'est pas une puissance de 2) : Python range un voisin.</p>
+    <p><strong>Q3.</strong> 8 mantisses (3 bits libres) pour chacun des 4 exposants : 32 nombres positifs, de \(1 \times 2^{-1} = 0{,}5\) à \((1{,}111)_2 \times 2^2 = 1{,}875 \times 4 = 7{,}5\). Entre \(2^e\) et \(2^{e+1}\), l'écart vaut \(2^{e-3}\) : 0,25 dans \([2, 4[\), 0,5 dans \([4, 8[\).</p>
+    <div><table>
+<tr><th>exposant \(e\)</th><th>intervalle</th><th>les 8 flottants</th><th>écart</th></tr>
+<tr><td>\(-1\)</td><td>\([0{,}5 ;\ 1[\)</td><td>0,5 ; 0,5625 ; 0,625 ; 0,6875 ; 0,75 ; 0,8125 ; 0,875 ; 0,9375</td><td>0,0625</td></tr>
+<tr><td>\(0\)</td><td>\([1 ;\ 2[\)</td><td>1 ; 1,125 ; 1,25 ; 1,375 ; 1,5 ; 1,625 ; 1,75 ; 1,875</td><td>0,125</td></tr>
+<tr><td>\(1\)</td><td>\([2 ;\ 4[\)</td><td>2 ; 2,25 ; 2,5 ; 2,75 ; 3 ; 3,25 ; 3,5 ; 3,75</td><td>0,25</td></tr>
+<tr><td>\(2\)</td><td>\([4 ;\ 8[\)</td><td>4 ; 4,5 ; 5 ; 5,5 ; 6 ; 6,5 ; 7 ; 7,5</td><td>0,5</td></tr>
+</table></div>
+    <pre class="codeblock"><span class="kw">def</span> flottants_jouet(p, emin, emax):
+    <span class="str">"""Liste croissante des nombres positifs 1,b1…b(p-1) × 2**e d'un format jouet :</span>
+<span class="str">    mantisse de p bits (le 1 de tête compris), exposant e de emin à emax."""</span>
+    res = []
+    <span class="kw">for</span> e <span class="kw">in</span> range(emin, emax + 1):
+        <span class="kw">for</span> j <span class="kw">in</span> range(2 ** (p - 1)):          <span class="cmt"># j : les p - 1 bits après la virgule</span>
+            res.append((1 + j / 2 ** (p - 1)) * 2.0 ** e)
+    <span class="kw">return</span> res</pre>
+    <pre class="codeblock">&gt;&gt;&gt; t = flottants_jouet(4, -1, 2)
+&gt;&gt;&gt; len(t), t[0], t[len(t) - 1]
+(32, 0.5, 7.5)
+&gt;&gt;&gt; t[16:24]                     <span class="cmt"># les flottants de [2, 4)</span>
+[2.0, 2.25, 2.5, 2.75, 3.0, 3.25, 3.5, 3.75]</pre>
+    <p><strong>Q4.</strong> 2,6 est entre 2,5 et 2,75, plus près de 2,5 (écart 0,1 contre 0,15) : arrondi à 2,5. 5,3 est entre 5 et 5,5, plus près de 5,5 (0,2 contre 0,3) : arrondi à 5,5. Le résultat exact \(4{,}2\) est entre 4 et 4,5, plus près de 4 : \(4 + 0{,}2\) vaut 4 dans ce format, 0,2 est absorbé. L'erreur d'arrondi vaut au plus la moitié de l'écart \(2^{e-3}\), et le nombre vaut au moins \(2^e\) : l'erreur relative est au plus \(2^{-4} = 6{,}25\) %. Pour les <span class="code-inline">float</span> de Python, le même raisonnement avec 53 bits donne \(2^{-53}\).</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 08</span><span class="diff">★ ★ ★</span>
+  <h3>Pertes de précision : horloge, équation du second degré, racines</h3>
+  <div class="statement">Trois calculs en flottants, mathématiquement justes, donnent des résultats décevants. On importe <span class="code-inline">sqrt</span> du module <span class="code-inline">math</span> (racine carrée).</div>
+  <p class="exo-part">Partie A — Une horloge</p>
+  <div class="q"><strong>A1.</strong> Un programme avance une horloge par <span class="code-inline">t = t + 0.1</span> à chaque top de 0,1 s. Au bout de 10 heures (360 000 tops), il obtient <span class="code-inline">t = 35999.99999975663</span> au lieu de 36 000. Expliquer, et proposer une écriture qui donne <span class="code-inline">36000.0</span>.</div>
+  <p class="exo-part">Partie B — Équation du second degré</p>
+  <div class="q"><strong>B1.</strong> On résout \(x^2 + 10^8 x + 1 = 0\) par les formules usuelles. Le programme ci-dessous affiche pour <span class="code-inline">x1</span> une valeur fausse de 25 %. Laquelle des deux formules pose problème, et pourquoi ?</div>
+  <pre class="codeblock"><span class="kw">from</span> math <span class="kw">import</span> sqrt
+a, b, c = 1.0, 1e8, 1.0
+d = sqrt(b * b - 4 * a * c)
+x1 = (-b + d) / (2 * a)          <span class="cmt"># -7.450580596923828e-09 : 25 % d'erreur</span>
+x2 = (-b - d) / (2 * a)          <span class="cmt"># -100000000.0 : correct</span></pre>
+  <div class="q"><strong>B2.</strong> Utiliser la relation \(x_1 x_2 = \dfrac ca\) pour calculer \(x_1\) précisément.</div>
+  <p class="exo-part">Partie C — Différence de racines</p>
+  <div class="q"><strong>C1.</strong> Pour \(x = 10^{16}\), <span class="code-inline">sqrt(x + 1) - sqrt(x)</span> vaut <span class="code-inline">0.0</span>. Expliquer, puis proposer une écriture qui donne la bonne valeur, environ \(5 \times 10^{-9}\).</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>A1.</strong> 0,1 n'est pas un flottant : chaque ajout part d'un 0,1 approché, et le résultat de chaque addition est encore arrondi (près de 36 000, deux flottants voisins sont espacés de \(7{,}3 \times 10^{-12}\)). Ces 360 000 erreurs s'accumulent : \(2{,}4 \times 10^{-7}\) s d'écart. Il suffit de compter les tops avec un entier <span class="code-inline">k</span> et de calculer <span class="code-inline">t = k * 0.1</span> : une seule multiplication, un seul arrondi.</p>
+    <pre class="codeblock">t = 0.0
+<span class="kw">for</span> k <span class="kw">in</span> range(360000):          <span class="cmt"># 10 heures de tops de 0,1 s</span>
+    t = t + 0.1
+print(t)                         <span class="cmt"># 35999.99999975663</span>
+print(360000 * 0.1)              <span class="cmt"># 36000.0 : une seule multiplication, un seul arrondi</span></pre>
+    <p>C'est la même cause que la dérive de l'horloge des missiles Patriot (cours, §6), aggravée là par un registre de 24 bits seulement.</p>
+    <p><strong>B1.</strong> \(\Delta = b^2 - 4ac\) est très proche de \(b^2\), donc \(\sqrt\Delta\) est très proche de \(b = 10^8\) : \(-b + \sqrt\Delta\) soustrait deux nombres presque égaux (cancellation). La différence exacte vaut environ \(2 \times 10^{-8}\) ; or près de \(10^8\) les flottants sont espacés de \(1{,}5 \times 10^{-8}\) : l'arrondi de \(\sqrt\Delta\) est du même ordre que la différence cherchée, qui n'a donc presque aucun chiffre juste. La formule de \(x_2\), qui additionne deux nombres de même signe, est précise.</p>
+    <p><strong>B2.</strong></p>
+    <pre class="codeblock">x2 = (-b - d) / (2 * a)          <span class="cmt"># pas de soustraction de nombres voisins</span>
+x1 = c / (a * x2)                <span class="cmt"># produit des racines : x1 * x2 == c / a</span>
+print(x1)                        <span class="cmt"># -1e-08</span></pre>
+    <p>La racine de plus grande valeur absolue se calcule sans cancellation, et l'autre s'en déduit par une division, qui ne perd pas de précision relative. (La valeur exacte est \(x_1 = -1{,}000\,000\,000\,000\,000\,1 \times 10^{-8}\) environ.)</p>
+    <p><strong>C1.</strong> Près de \(10^{16}\), les flottants sont espacés de 2 : \(10^{16} + 1\) est arrondi à \(10^{16}\) (absorption), et la différence des racines est nulle. On multiplie par l'expression conjuguée :</p>
+    <div class="formula">$$\sqrt{x+1} - \sqrt x = \frac{(x + 1) - x}{\sqrt{x+1} + \sqrt x} = \frac{1}{\sqrt{x+1} + \sqrt x},$$</div>
+    <p>écriture qui ne contient plus de soustraction.</p>
+    <pre class="codeblock"><span class="kw">from</span> math <span class="kw">import</span> sqrt
+x = 1e16
+print(sqrt(x + 1) - sqrt(x))         <span class="cmt"># 0.0</span>
+print(1 / (sqrt(x + 1) + sqrt(x)))   <span class="cmt"># 5e-09</span></pre>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 09</span><span class="diff">★ ★ ★</span>
+  <h3>Entiers de 64 bits et entiers de Python</h3>
+  <div class="statement">On veut comparer le calcul des factorielles en Python et dans un langage où les entiers sont des mots de 64 bits en complément à deux (la somme et le produit y sont calculés modulo \(2^{64}\), puis lus en complément à deux). On dispose des fonctions <span class="code-inline">factorielle(n)</span>, <span class="code-inline">code_c2(x, n)</span> et <span class="code-inline">valeur_c2(m, n)</span> du cours (§4, §5).</div>
+  <div class="q"><strong>Q1.</strong> Écrire une fonction <span class="code-inline">plus_grand_n()</span> qui renvoie le plus grand entier \(n\) tel que \(n!\) tienne dans un entier signé de 64 bits. Donner un invariant de sa boucle.</div>
+  <div class="q"><strong>Q2.</strong> Écrire <span class="code-inline">produit64(a, b)</span>, qui renvoie le produit de deux entiers tel que le calcule la machine sur 64 bits, en n'appliquant <span class="code-inline">%</span> qu'à des entiers positifs, puis <span class="code-inline">factorielle64(n)</span>.</div>
+  <div class="q"><strong>Q3.</strong> Comparer <span class="code-inline">factorielle64(n)</span> et <span class="code-inline">factorielle(n)</span> pour \(n\) de 19 à 25. Un programme qui calculerait \(25!\) sur 64 bits pourrait-il détecter son erreur en regardant le signe du résultat ?</div>
+  <div class="q"><strong>Q4.</strong> \(1000!\) a 2 568 chiffres décimaux. Le calcul de <span class="code-inline">factorielle(1000)</span> fait 999 multiplications : peut-on dire que son coût est linéaire ?</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> On fait grandir \(n\) tant que \((n+1)!\) reste représentable, en gardant \(f = n!\) (invariant) pour ne pas recalculer la factorielle à chaque tour. Les calculs se font en entiers de Python, exacts.</p>
+    <pre class="codeblock"><span class="kw">def</span> plus_grand_n():
+    <span class="str">"""Plus grand n tel que n! tienne dans un entier signé de 64 bits."""</span>
+    n, f = 0, 1                  <span class="cmt"># invariant : f == n!</span>
+    <span class="kw">while</span> f * (n + 1) &lt;= 2 ** 63 - 1:
+        n = n + 1
+        f = f * n
+    <span class="kw">return</span> n</pre>
+    <p>Le test calcule \((n + 1)! = f \times (n + 1)\) sans modifier \(f\) ; la boucle s'arrête quand ce produit dépasse \(2^{63} - 1\) (terminaison : \((n + 1)!\) croît strictement avec \(n\), donc l'entier \(2^{63} - 1 - (n + 1)!\), positif ou nul à chaque test réussi, décroît strictement : c'est un variant). Elle renvoie 20 : \(20! \approx 2{,}4 \times 10^{18}\) tient, \(21! \approx 5{,}1 \times 10^{19}\) non.</p>
+    <p><strong>Q2.</strong> <span class="code-inline">code_c2</span> donne pour chaque facteur l'entier naturel du mot de 64 bits, qui lui est congru modulo \(2^{64}\) ; le produit de ces deux entiers naturels est congru au vrai produit, et son reste modulo \(2^{64}\) est le mot calculé par la machine, qu'on relit en complément à deux.</p>
+    <pre class="codeblock"><span class="kw">def</span> produit64(a, b):
+    <span class="str">"""Produit de a et b (relatifs codables sur 64 bits) tel que le calcule</span>
+<span class="str">    une machine sur des entiers signés de 64 bits."""</span>
+    m = (code_c2(a, 64) * code_c2(b, 64)) % 2 ** 64    <span class="cmt"># entiers naturels</span>
+    <span class="kw">return</span> valeur_c2(m, 64)</pre>
+    <pre class="codeblock"><span class="kw">def</span> factorielle64(n):
+    <span class="str">"""n! calculée avec des entiers signés de 64 bits."""</span>
+    p = 1
+    <span class="kw">for</span> k <span class="kw">in</span> range(2, n + 1):
+        p = produit64(p, k)
+    <span class="kw">return</span> p</pre>
+    <p><strong>Q3.</strong></p>
+    <div><table>
+<tr><th>\(n\)</th><th>\(n!\) (Python)</th><th>résultat sur 64 bits signés</th><th>juste ?</th></tr>
+<tr><td>19</td><td>121 645 100 408 832 000</td><td>121 645 100 408 832 000</td><td>oui</td></tr>
+<tr><td>20</td><td>2 432 902 008 176 640 000</td><td>2 432 902 008 176 640 000</td><td>oui</td></tr>
+<tr><td>21</td><td>51 090 942 171 709 440 000</td><td>−4 249 290 049 419 214 848</td><td>non</td></tr>
+<tr><td>22</td><td>1 124 000 727 777 607 680 000</td><td>−1 250 660 718 674 968 576</td><td>non</td></tr>
+<tr><td>23</td><td>25 852 016 738 884 976 640 000</td><td>8 128 291 617 894 825 984</td><td>non</td></tr>
+<tr><td>24</td><td>620 448 401 733 239 439 360 000</td><td>−7 835 185 981 329 244 160</td><td>non</td></tr>
+<tr><td>25</td><td>15 511 210 043 330 985 984 000 000</td><td>7 034 535 277 573 963 776</td><td>non</td></tr>
+</table></div>
+    <pre class="codeblock">&gt;&gt;&gt; plus_grand_n()
+20
+&gt;&gt;&gt; factorielle64(20) == factorielle(20)
+<span class="kw">True</span>
+&gt;&gt;&gt; factorielle64(21)
+-4249290049419214848
+&gt;&gt;&gt; factorielle64(25)
+7034535277573963776</pre>
+    <p>Jusqu'à 20, les résultats coïncident ; à partir de 21, le résultat sur 64 bits est faux. Il est négatif pour 21, 22 et 24, ce qui alerte ; mais pour 23 et 25 il est positif, et rien ne signale l'erreur. Le signe ne permet donc pas de détecter un dépassement après plusieurs opérations : il faut le prévenir (ici en sachant que \(n \le 20\)) ou travailler avec des entiers multi-précision.</p>
+    <p><strong>Q4.</strong> Non. Le nombre de multiplications est linéaire, mais chacune ne coûte pas un temps constant : la \(k\)-ième multiplie \((k-1)!\), qui a de plus en plus de chiffres (plus de 8 000 bits à la fin), par un petit entier, pour un coût proportionnel à la longueur de \((k-1)!\). Le coût total croît nettement plus vite que \(n\) : c'est la difficulté signalée par le programme pour évaluer la complexité des opérations sur les entiers multi-précision.</p>
+  </div>
+</div>
+
+<div class="exo concours">
+  <span class="num">CONCOURS PT</span><span class="diff">★ ★ ★</span>
+  <h3>Les mesures d'un accéléromètre : entiers signés, débordement et flottants</h3>
+  <div class="exo-source">Exercice <strong>original</strong> au format des épreuves PT (thème <em>représentation des entiers signés, arithmétique machine, précision des flottants</em>).</div>
+  <div class="statement">Un drone est équipé d'un accéléromètre. Celui-ci mesure une accélération comprise entre \(-2g\) et \(2g\) (\(g = 9{,}81\ \text{m·s}^{-2}\)) et la transmet sous la forme d'un entier signé de 16 bits en complément à deux : la valeur \(v \in [-2^{15}, 2^{15} - 1]\) correspond à l'accélération \(a = v \times \dfrac{2g}{2^{15}}\). Les parties A et B étudient d'abord des mots de 8 bits. On rappelle que <span class="code-inline">abs(x)</span> renvoie la valeur absolue de <span class="code-inline">x</span>.</div>
+
+  <p class="exo-part">Partie A — Coder et décoder</p>
+  <div class="q"><strong>A1.</strong> Donner l'intervalle des entiers représentables sur 8 bits en complément à 2, puis coder \(-5\) (méthode : inverser les bits de \(+5\), ajouter \(1\)).</div>
+  <div class="q"><strong>A2.</strong> Décoder l'octet <span class="code-inline">11110011</span> interprété en complément à 2.</div>
+
+  <p class="exo-part">Partie B — Arithmétique et débordement</p>
+  <div class="q"><strong>B1.</strong> Calculer <span class="code-inline">100 + 50</span> sur 8 bits signés. Interpréter le résultat machine et expliquer le phénomène de <strong>débordement</strong> (overflow).</div>
+  <div class="q"><strong>B2.</strong> Donner la formule générale de la valeur d'un mot \(b_{n-1}b_{n-2}\dots b_0\) codé en complément à 2 sur \(n\) bits.</div>
+
+  <p class="exo-part">Partie C — Décoder les mesures</p>
+  <div class="q"><strong>C1.</strong> Chaque mesure arrive en deux octets : <span class="code-inline">hi</span>, l'octet de poids fort, et <span class="code-inline">lo</span>, l'octet de poids faible (entiers de 0 à 255). Écrire une fonction <span class="code-inline">mot16(hi: int, lo: int) -&gt; int</span> qui renvoie la valeur du mot de 16 bits lu comme un entier naturel.</div>
+  <div class="q"><strong>C2.</strong> Écrire <span class="code-inline">valeur16(m: int) -&gt; int</span>, qui renvoie l'entier signé codé par le mot de valeur naturelle <span class="code-inline">m</span>, puis <span class="code-inline">acceleration(hi: int, lo: int) -&gt; float</span>. Que renvoie <span class="code-inline">acceleration(240, 0)</span> ?</div>
+  <div class="q"><strong>C3.</strong> Pour calculer une moyenne, le programme embarqué additionne les valeurs \(v\) dans un registre signé de 16 bits. Que contient ce registre après l'addition de quatre mesures égales à 10 000 ? Combien de bits faut-il au minimum à un registre qui doit additionner sans dépassement 1 000 mesures quelconques ?</div>
+
+  <p class="exo-part">Partie D — Passage aux flottants</p>
+  <div class="q"><strong>D1.</strong> Une mesure est prise toutes les 10 ms. Le programme date les mesures en calculant <span class="code-inline">t = t + 0.01</span> à chaque mesure. Au bout d'une heure, il trouve <span class="code-inline">t - 3600</span> égal à \(3{,}2 \times 10^{-8}\). D'où vient cet écart ? Comment l'éviter ?</div>
+  <div class="q"><strong>D2.</strong> Écrire une fonction <span class="code-inline">immobile(acc: list, seuil: float) -&gt; bool</span> qui indique si toutes les accélérations de la liste sont, en valeur absolue, au plus égales à <span class="code-inline">seuil</span>. Pourquoi ne teste-t-on pas <span class="code-inline">a == 0.0</span> ? Quelle est la complexité de la fonction dans le pire cas ?</div>
+  <div class="q"><strong>D3.</strong> Pour calculer la moyenne des accélérations d'une liste de mots, on propose d'additionner d'abord les entiers <span class="code-inline">valeur16(m)</span>, puis de multiplier une seule fois le résultat par \(\dfrac{2g}{2^{15}}\). Écrire la fonction <span class="code-inline">moyenne_acc(mots: list) -&gt; float</span> correspondante et expliquer pourquoi ce choix est préférable, en Python, à l'addition des accélérations flottantes.</div>
+
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>A1.</strong> Sur 8 bits : \([-2^{7},\ 2^{7}-1] = [-128,\ 127]\). Coder \(-5\) : \(+5 = \) <span class="code-inline">00000101</span> ; on inverse → <span class="code-inline">11111010</span> ; on ajoute 1 → <span class="code-inline">11111011</span>. (Vérif : \(-128 + 64+32+16+8+2+1\) \(= -128+123 = -5\) ✓.)</p>
+    <p><strong>A2.</strong> <span class="code-inline">11110011</span> : le bit de poids fort vaut 1 → nombre <strong>négatif</strong>. Valeur \(= -128 + (64+32+16+2+1)\) \(= -128 + 115 = -13\). (Méthode équivalente : inverser → <span class="code-inline">00001100</span>, \(+1\) → <span class="code-inline">00001101</span> \(= 13\), donc \(-13\).)</p>
+    <p><strong>B1.</strong> \(100 = \) <span class="code-inline">01100100</span>, \(50 = \) <span class="code-inline">00110010</span> ; la somme binaire est <span class="code-inline">10010110</span>. Interprétée en complément à 2, son bit de signe vaut 1 : valeur \(= -128 + 22 = -106\). Le vrai résultat \(150\) dépasse le maximum \(127\) : il y a <strong>débordement</strong>. Signe révélateur : additionner deux positifs a donné un négatif — l'addition « déborde » dans le bit de signe.</p>
+    <p><strong>B2.</strong> $$\text{valeur} = -b_{n-1}\,2^{\,n-1} + \sum_{i=0}^{n-2} b_i\,2^{\,i}$$ Seul le bit de poids fort porte un <strong>poids négatif</strong>, les autres gardent leur poids habituel.</p>
+    <p><strong>C1.</strong> L'octet de poids fort porte les bits de rang 8 à 15 : il compte \(2^8 = 256\) fois.</p>
+    <pre class="codeblock"><span class="kw">def</span> mot16(hi, lo):
+    <span class="str">"""Valeur naturelle du mot de 16 bits formé des octets hi (poids fort)</span>
+<span class="str">    et lo (poids faible), 0 &lt;= hi, lo &lt;= 255."""</span>
+    <span class="kw">return</span> 256 * hi + lo</pre>
+    <p><strong>C2.</strong> Un mot de valeur naturelle \(m \ge 2^{15}\) a son bit de poids fort à 1 et code \(m - 2^{16}\).</p>
+    <pre class="codeblock"><span class="kw">def</span> valeur16(m):
+    <span class="str">"""Entier relatif codé en complément à deux par le mot de 16 bits m."""</span>
+    <span class="kw">if</span> m &gt;= 2 ** 15:
+        <span class="kw">return</span> m - 2 ** 16
+    <span class="kw">return</span> m</pre>
+    <pre class="codeblock">G = 9.81
+
+<span class="kw">def</span> acceleration(hi, lo):
+    <span class="str">"""Accélération en m/s² codée par les octets hi et lo (pleine échelle ±2g)."""</span>
+    <span class="kw">return</span> valeur16(mot16(hi, lo)) * 2 * G / 2 ** 15</pre>
+    <pre class="codeblock">&gt;&gt;&gt; mot16(240, 0), valeur16(mot16(240, 0))
+(61440, -4096)
+&gt;&gt;&gt; acceleration(240, 0)
+-2.4525</pre>
+    <p>\(240 = (11110000)_2\) : le mot est \(11110000\,00000000\), de valeur naturelle 61 440, qui code \(61\,440 - 65\,536 = -4\,096\), soit \(a = -4096 \times \dfrac{19{,}62}{32\,768} = -2{,}4525\ \text{m·s}^{-2}\) (un huitième de \(-2g\)).</p>
+    <p><strong>C3.</strong> La vraie somme, 40 000, dépasse \(2^{15} - 1 = 32\,767\) : le registre contient \(40\,000 - 65\,536 = -25\,536\). La moyenne calculée serait négative, alors que toutes les mesures sont positives.</p>
+    <pre class="codeblock"><span class="kw">def</span> somme16(v):
+    <span class="str">"""Somme des entiers de v telle que la calcule un registre signé de 16 bits."""</span>
+    s = 0
+    <span class="kw">for</span> x <span class="kw">in</span> v:
+        s = valeur16((s + x + 2 ** 16) % 2 ** 16)   <span class="cmt"># + 2**16 : opérande positif pour %</span>
+    <span class="kw">return</span> s</pre>
+    <p>La somme de 1 000 valeurs de \([-2^{15}, 2^{15} - 1]\) est comprise entre \(-1000 \times 2^{15} = -32\,768\,000\) et \(32\,767\,000\). Un registre de \(n\) bits convient si \(-2^{n-1} \le -32\,768\,000\) et \(32\,767\,000 \le 2^{n-1} - 1\) : \(2^{24} = 16\,777\,216\) ne suffit pas, \(2^{25} = 33\,554\,432\) suffit, donc \(n - 1 \ge 25\) : 26 bits au minimum. En pratique, on prend un registre de 32 bits.</p>
+    <p><strong>D1.</strong> 0,01 n'est pas représentable exactement, et chaque addition est arrondie : les 360 000 erreurs d'arrondi s'accumulent.</p>
+    <pre class="codeblock">t = 0.0
+<span class="kw">for</span> k <span class="kw">in</span> range(360000):          <span class="cmt"># une heure de pas de 0,01 s</span>
+    t = t + 0.01
+print(t - 3600)                  <span class="cmt"># 3.2159277907339856e-08</span></pre>
+    <p>On compte les mesures avec un entier <span class="code-inline">k</span> (exact, sans limite en Python) et l'on calcule <span class="code-inline">t = k * 0.01</span> : un seul arrondi, une erreur relative de l'ordre de \(10^{-16}\).</p>
+    <p><strong>D2.</strong></p>
+    <pre class="codeblock"><span class="kw">def</span> immobile(acc, seuil):
+    <span class="str">"""Indique si toutes les accélérations de la liste acc sont,</span>
+<span class="str">    en valeur absolue, inférieures ou égales à seuil."""</span>
+    <span class="kw">for</span> a <span class="kw">in</span> acc:
+        <span class="kw">if</span> abs(a) &gt; seuil:
+            <span class="kw">return</span> <span class="kw">False</span>
+    <span class="kw">return</span> <span class="kw">True</span></pre>
+    <p>Les mesures sont bruitées et les accélérations sont des flottants calculés : un drone immobile ne donne pas exactement 0.0, et un test d'égalité échouerait presque toujours. On compare à un seuil choisi d'après le bruit du capteur (par exemple quelques pas de quantification, \(\dfrac{2g}{2^{15}} \approx 6 \times 10^{-4}\ \text{m·s}^{-2}\)). Dans le pire cas (drone immobile), la boucle parcourt toute la liste : complexité \(O(N)\) pour \(N\) mesures.</p>
+    <p><strong>D3.</strong></p>
+    <pre class="codeblock"><span class="kw">def</span> moyenne_acc(mots):
+    <span class="str">"""Moyenne des accélérations (m/s²) codées par la liste de mots de 16 bits."""</span>
+    s = 0
+    <span class="kw">for</span> m <span class="kw">in</span> mots:
+        s = s + valeur16(m)      <span class="cmt"># somme d'entiers : exacte, sans dépassement en Python</span>
+    <span class="kw">return</span> s / len(mots) * 2 * 9.81 / 2 ** 15</pre>
+    <p>Les valeurs \(v\) sont des entiers : en Python, leur somme est exacte et ne déborde jamais (entiers multi-précision). On ne commet ensuite que deux arrondis (une division, une multiplication). En additionnant les accélérations flottantes, chaque addition est arrondie et les erreurs s'accumulent. Le coût est le même, \(O(N)\). Sur le microcontrôleur, en revanche, il faudrait un accumulateur assez large (question C3).</p>
+  </div>
+</div>
+
+</div>
+</template>

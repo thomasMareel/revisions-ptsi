@@ -75,22 +75,27 @@ affichage) par `__racinePanneau` ou dans le DOM :
 | Usage | Aujourd'hui | Après |
 |---|---|---|
 | Recherche (sections, définitions/propriétés, méthodes, formules, exercices) | `buildIndex` parcourt les 184 chapitres | **`chapitres/recherche.json`**, chargé à l'ouverture de la recherche ; chaque résultat porte un repère (`panneau`, nature, rang) résolu après le chargement du chapitre ; cartes et chapitres restent calculés dans la page |
-| Bouton Formulaire masqué (`__aFormulaire`) | lecture des sections | manifeste (`f`) |
-| Effectifs de l'intercalaire et des onglets (sections, méthodes, exercices) | `querySelectorAll` | manifeste (`s`, `m`, `e`) |
+| Bouton Formulaire masqué (`__aFormulaire`), effectifs de l'intercalaire et des onglets | chapitre affiché | inchangé (chapitre affiché, donc chargé ; rien n'est mémorisé pour un chapitre pas encore chargé) |
 | Cible « Voir dans le cours · §n » d'une carte (`flashCible`) | Cours du chapitre | inchangé (chapitre affiché, donc chargé) |
 | Formulaire, impression, rail, assistant | chapitre affiché | inchangé |
 
-- **Manifeste** `window.__CHAPITRES = { rlc:{ v:'…', f:1, s:9, m:10, e:12 }, … }` : bloc généré en tête de page
-  (≈ 10 Ko, entre deux marqueurs), lu par le script du `<head>`, le chargement, l'intercalaire.
-- L'extraction de l'index de recherche est réécrite en Python (stdlib) **à l'identique** de `buildIndex` ; un test
-  compare, sur des chapitres chargés dans la page, les entrées de `recherche.json` à celles que calcule l'ancien
-  code (gardé dans le test).
-- `validate.py` refuse un manifeste ou un index périmé ; `tools/chapitres.py` est idempotent.
+- **Manifeste** `window.__CHAPITRES = { recherche:'…', v:{ rlc:'…', … } }` (empreintes de `recherche.json` et de
+  chaque fichier de chapitre) : bloc généré dans le script du `<head>` (≈ 4 Ko, entre deux marqueurs).
+- **Extraction par Chromium** (décision du 2026-11-27, au lieu d'une réécriture en Python) : `tools/chapitres.js`
+  analyse chaque fichier avec l'analyseur HTML du navigateur et lui applique `tools/extraction-chapitres.js`,
+  l'ancien `buildIndex` déplacé tel quel : les entrées sont celles d'avant, à l'identique. Il faut Playwright
+  (comme pour les tests) ; `validate.py` (Python) ne fait que comparer les empreintes.
+- `recherche.json` pèse ≈ 11 Mo (2,9 Mo compressé), dont 4,3 Mo de texte intégral des exercices : c'est ce que
+  la recherche gardait déjà en mémoire. Il n'est chargé qu'à l'ouverture de la recherche (et en arrière-plan
+  pour le hors-ligne) ; en attendant, la recherche porte sur les chapitres et les cartes, puis la requête est
+  rejouée. Réduire les blancs ne gagnait que 2 %.
+- `validate.py` refuse un manifeste ou un index périmé ; `tools/chapitres.js` est idempotent (≈ 7 s).
 
 ## 5. Outils et tests
 
-- `tools/chapitres.py` : `extraire` (une fois : déplace le contenu replié de `index.html` vers `chapitres/`),
-  puis par défaut régénère manifeste et index ; `--verifier` n'écrit rien. Remplace `tools/replier_panneaux.py`.
+- `node tools/chapitres.js` régénère manifeste et index ; `--verifier` n'écrit rien. La migration (déplacer le
+  contenu d'`index.html` vers `chapitres/`, octet pour octet) est faite une fois par un script du scratchpad,
+  non versionné. `tools/replier_panneaux.py` disparaît.
 - `validate.py` : IDs uniques sur `index.html` **et** tous les chapitres, « < » collé et `\[ … \]` cherchés dans
   les chapitres, aucun `<script>`, `<style>`, `</template>` parasite dans un chapitre, panneaux vides dans
   `index.html`, un fichier par chapitre listant Cours, Méthodes ou Exercices, données dérivées à jour.
@@ -106,12 +111,12 @@ affichage) par `__racinePanneau` ou dans le DOM :
 
 Chaque lot laisse le site fonctionnel, testé, commité et poussé sur la branche de travail.
 
-1. **Chargement asynchrone, encore en un seul fichier** : `__chargerChapitre` (résolue tout de suite tant que le
+1. **Chargement asynchrone, encore en un seul fichier** (fait le 2026-11-27) : `__chargerChapitre` (résolue tout de suite tant que le
    contenu est dans `index.html`, avec un délai artificiel réglable pour les tests), clic différé, `navigateTo`
    qui attend, repère de chargement. Batterie verte avec et sans délai artificiel.
-2. **Données dérivées** : `tools/chapitres.py` (manifeste, `recherche.json`), recherche, intercalaire et
-   `__aFormulaire` branchés dessus ; test d'équivalence de la recherche ; `validate.py`.
-3. **Externalisation** : contenu déplacé dans `chapitres/` (RLC compris), chargement par `fetch`, préchargement du
+2. et 3. (**fusionnés** le 2026-11-27 : l'empreinte des données dérivées se calcule bien plus simplement sur des
+   fichiers séparés) **Données dérivées et externalisation** : `tools/chapitres.js`, recherche branchée sur
+   `recherche.json` (test : un résultat de chaque nature ouvre et met en évidence le bon élément) ; : contenu déplacé dans `chapitres/` (RLC compris), chargement par `fetch`, préchargement du
    `<head>`, service worker (cache `ptsi-chapitres`, préchargement en arrière-plan, nettoyage), messages d'échec,
    tests `site` et `pwa`, mesures avant / après. Batterie complète, **publication** (point de retour
    `sauvegarde-avant-decoupage`), avec la documentation à jour (`CLAUDE.md`, `docs/interface.md`,
@@ -129,4 +134,6 @@ Chaque lot laisse le site fonctionnel, testé, commité et poussé sur la branch
 
 ## 8. Suivi
 
-- 2026-11-27 : plan écrit.
+- 2026-11-27 : plan écrit. Lot 1 fait : `navigateTo` ne rend plus l'onglet par défaut d'un chapitre quand il en
+  vise un autre (le Cours de RLC était composé pour rien à chaque lien vers ses exercices ou ses cartes) ;
+  `window.__navigationEnCours()` attendu par les tests au démarrage ; suites vertes avec `--delai-chapitres=300`.

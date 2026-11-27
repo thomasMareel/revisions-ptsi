@@ -1,0 +1,957 @@
+<!-- Chapitre « SLCI : modélisation et transformée de Laplace » (slci) : contenu des onglets Cours, Méthodes et Exercices, chargé à l'ouverture du chapitre.
+     On l'édite ici, puis : node tools/chapitres.js (docs/chargement-chapitres.md). -->
+<template class="pan-tpl" data-panneau="slci-cours">
+<!-- ============ SLCI : MODÉLISATION ET LAPLACE — COURS ============ -->
+<div class="course-section">
+  <div class="sec-num">AU PROGRAMME · PTSI</div>
+  <h2>Ce que le programme officiel demande</h2>
+  <div class="intro">Ce chapitre ouvre l'automatique du semestre S1 (compétence B2 « Modéliser ») : décrire un système linéaire par une équation différentielle, puis par une <strong>fonction de transfert</strong>, grâce à la transformée de Laplace. Tout le groupe Automatique en dépend : <a href="#schblocs/cours">« Schéma-blocs et systèmes asservis »</a> assemble les fonctions de transfert ; <a href="#sys1/cours">« Systèmes du 1er ordre »</a>, <a href="#sys2/cours">« Systèmes du 2e ordre »</a> et <a href="#bode/cours">« Réponse fréquentielle et diagrammes de Bode »</a> étudient les modèles de référence du §5 ; <a href="#stabilite/cours">« Stabilité des systèmes asservis »</a> et <a href="#precision/cours">« Performances : précision et rapidité »</a> reposent sur les pôles (§4) et sur le théorème de la valeur finale (§2, §7).</div>
+  <div class="reveal" onclick="this.classList.toggle('open')">
+    <span class="label">Programme officiel</span>
+    <span class="prompt">Les capacités exigibles, dans l'ordre du chapitre</span>
+    <div class="content">
+      <ul>
+        <li><strong>Établir un modèle de connaissance par des fonctions de transfert</strong> (B2, S1) : systèmes linéaires continus et invariants, causalité (§1) ; modélisation par équations différentielles (§1, §6) ; transformées de Laplace (§2) ; fonction de transfert, forme canonique, gain, ordre, classe, pôles et zéros (§3).</li>
+        <li><strong>Modéliser le signal d'entrée</strong> (B2, S1) : impulsion, échelon, rampe, signaux périodiques (§2, §7).</li>
+        <li><strong>Établir un modèle de comportement</strong> (B2, S2) : premier ordre, deuxième ordre, dérivateur, intégrateur, gain et retard, allure de leurs réponses (§5) ; paramètres caractéristiques et identification sur une réponse : chapitres du 1er et du 2e ordre.</li>
+        <li><strong>Déterminer la réponse temporelle</strong> (C2, S1) : allures et expressions des réponses des systèmes d'ordre 1 et 2 (§5, puis chapitres du 1er et du 2e ordre) ; simulation numérique en Python (§8, lien avec l'informatique).</li>
+        <li><strong>Déterminer les performances d'un système</strong> (C2, S2), premiers outils : théorème de la valeur finale (§2, §7), position des pôles dans le plan complexe (§4) ; la suite dans « Stabilité » et « Performances ».</li>
+        <li><strong>Identifier les grandeurs physiques d'effort et de flux</strong> (D1, S2) : §6.</li>
+      </ul>
+      <p>Le programme précise que les théorèmes de la valeur initiale, de la valeur finale et du retard sont <strong>donnés sans démonstration</strong>, et que <strong>la résolution des équations différentielles et la transformée de Laplace inverse ne sont pas au programme</strong> : la décomposition en éléments simples du §4 est un outil de compréhension, non exigible ; ce que l'on doit savoir tirer de \(S(p)\) sans revenir au temps est au §7. Relèvent de la 2ᵉ année (S3-S4), et sont signalés sur place : la linéarisation autour d'un point de fonctionnement, les non-linéarités comme limites de validité d'un modèle (§1), les pôles dominants et la réduction de l'ordre d'un modèle (§4).</p>
+    </div>
+  </div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§1 · LES SYSTÈMES LINÉAIRES CONTINUS ET INVARIANTS</div>
+  <h2>Ce que l'on modélise</h2>
+  <div class="intro">Un système automatique transforme une grandeur d'<strong>entrée</strong> \(e(t)\) (consigne, tension de commande, couple, débit…) en grandeur de <strong>sortie</strong> \(s(t)\) (position, vitesse, température, niveau…). Pour prévoir ses performances avant de le construire, ou pour régler sa commande, on cherche un <strong>modèle</strong> : une relation mathématique entre \(e\) et \(s\). Toute l'automatique de première année se place dans un cadre précis, celui des SLCI, où cette relation est une équation différentielle linéaire à coefficients constants.</div>
+
+  <div class="def-box">
+    Un système est :
+    <ul>
+      <li><strong>continu</strong> si ses grandeurs sont définies à chaque instant (par opposition aux systèmes échantillonnés, étudiés en deuxième année avec les systèmes numériques) ;</li>
+      <li><strong>invariant</strong> si ses caractéristiques ne changent pas au cours du temps : la même entrée appliquée plus tard donne la même sortie, décalée d'autant ;</li>
+      <li><strong>linéaire</strong> s'il vérifie le <strong>principe de superposition</strong> : si \(e_1\) donne \(s_1\) et \(e_2\) donne \(s_2\), alors \(\lambda e_1 + \mu e_2\) donne \(\lambda s_1 + \mu s_2\).</li>
+    </ul>
+    Un système linéaire, continu et invariant (<strong>SLCI</strong>) est régi par une équation différentielle de la forme
+    <div class="formula" data-nom="Équation d'un SLCI">$$a_n\frac{d^n s}{dt^n} + \cdots + a_1\frac{ds}{dt} + a_0\,s = b_m\frac{d^m e}{dt^m} + \cdots + b_1\frac{de}{dt} + b_0\,e,$$</div>
+    à coefficients \(a_i\), \(b_j\) réels et constants, avec \(m \leq n\) pour un système physique. L'entier \(n\) est l'<strong>ordre</strong> du système.
+  </div>
+  <div class="prop-box">
+    <strong>Ce que la linéarité permet.</strong> Doubler l'entrée double la sortie : la <em>forme</em> d'une réponse ne dépend pas de l'amplitude de l'entrée, et la réponse à une somme d'entrées (une consigne et une perturbation, par exemple) est la somme des réponses à chacune. C'est ce qui rend les calculs des chapitres suivants possibles.
+  </div>
+
+  <h3>Causalité</h3>
+  <div class="def-box">
+    Un système est <strong>causal</strong> si sa sortie à l'instant \(t\) ne dépend que des valeurs de l'entrée aux instants antérieurs ou égaux à \(t\) : l'effet ne précède jamais la cause. Tout système physique est causal. Pour l'équation d'un SLCI, cela impose \(m \leq n\) : l'entrée n'est jamais dérivée plus de fois que la sortie.
+  </div>
+  <p>Pourquoi \(m \leq n\) ? Avec \(s = \dfrac{de}{dt}\) (\(m = 1\), \(n = 0\)), un échelon d'entrée donnerait une sortie infinie à l'instant du saut. Aucun système réel ne réagit ainsi : une grandeur qui stocke de l'énergie (tension d'un condensateur, vitesse d'une masse, température d'une paroi) ne varie que continûment. Le dérivateur pur du §5 n'est qu'une idéalisation, valable sur une plage de pulsations limitée.</p>
+  <div class="method-box">
+    <strong>Exemple — reconnaître un SLCI</strong>
+    <ol>
+      <li>\(0{,}2\,s'(t) + s(t) = 3\,e(t)\) : termes linéaires, coefficients constants, \(m = 0 \leq n = 1\) : SLCI causal du premier ordre.</li>
+      <li>\(s(t) = e(t)^2\) : l'entrée 1 donne 1, l'entrée 2 donne 4 et non 2 : <strong>non linéaire</strong>.</li>
+      <li>\(s'(t) + (1 + 0{,}1\,t)\,s(t) = e(t)\) : linéaire, mais un coefficient dépend du temps : <strong>non invariant</strong> (le même essai refait une heure plus tard ne donne pas la même réponse).</li>
+      <li>\(s'(t) + 2\,s(t) = e(t + 0{,}5)\) : la sortie à l'instant \(t\) dépend de l'entrée une demi-seconde plus tard : <strong>non causal</strong>, donc irréalisable.</li>
+      <li>\(s(t) = e(t - 0{,}5)\) : linéaire, invariant et causal. Ce <strong>retard pur</strong> est un SLCI au sens large, bien qu'il ne s'écrive pas comme une équation différentielle d'ordre fini (§5).</li>
+    </ol>
+  </div>
+
+  <div class="notice"><strong>Hors programme en PTSI (vu en 2ᵉ année)</strong> : les deux sous-parties qui suivent. L'étude des non-linéarités comme limites de validité d'un modèle (S4) et la linéarisation autour d'un point de fonctionnement (S3) sont au programme de PT ; en PTSI, un sujet fournit directement le modèle linéaire. Il est utile de savoir dès maintenant d'où il vient.</div>
+  <h3>Les non-linéarités usuelles</h3>
+  <p>Aucun système réel n'est parfaitement linéaire. Les écarts les plus fréquents sont la <strong>saturation</strong> (tension maximale d'un amplificateur, couple maximal d'un moteur), le <strong>seuil</strong> ou zone morte (un frottement sec impose une commande minimale avant tout mouvement) et l'<strong>hystérésis</strong> (jeu dans un engrenage, thermostat à deux seuils). Le modèle SLCI reste pertinent tant que le système travaille loin de ces zones ; on vérifie ensuite par simulation que la commande ne sature pas.</p>
+  <figure class="schema">
+<svg viewBox="0 0 370 160" role="img" aria-label="Trois non-linéarités usuelles : saturation, seuil et hystérésis">
+<line x1="28" y1="72" x2="132" y2="72" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<line x1="74" y1="118" x2="74" y2="14" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<text x="134" y="76" class="lab-muted lab-it">e</text>
+<text x="70" y="12" class="lab-muted lab-it" text-anchor="end">s</text>
+<polyline points="28,99.6 51,99.6 97,44.4 120,44.4" class="sk-accent"/>
+<text x="74" y="148" class="lab-b" text-anchor="middle">Saturation</text>
+<line x1="146" y1="72" x2="250" y2="72" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<line x1="192" y1="118" x2="192" y2="14" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<text x="252" y="76" class="lab-muted lab-it">e</text>
+<text x="188" y="12" class="lab-muted lab-it" text-anchor="end">s</text>
+<polyline points="146,101.9 175.9,72 208.1,72 238,42.1" class="sk-accent"/>
+<text x="192" y="148" class="lab-b" text-anchor="middle">Seuil (zone morte)</text>
+<line x1="264" y1="72" x2="368" y2="72" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<line x1="310" y1="118" x2="310" y2="14" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<text x="370" y="76" class="lab-muted lab-it">e</text>
+<text x="306" y="12" class="lab-muted lab-it" text-anchor="end">s</text>
+<polyline points="264,97.3 321.5,97.3 321.5,46.7 356,46.7" class="sk-accent"/>
+<polyline points="356,46.7 298.5,46.7 298.5,97.3 264,97.3" class="sk-accent2"/>
+<text x="310" y="148" class="lab-b" text-anchor="middle">Hystérésis</text>
+</svg>
+<figcaption>Non-linéarités courantes : la <strong>saturation</strong> plafonne la sortie, le <strong>seuil</strong> l'annule pour une petite entrée, l'<strong>hystérésis</strong> donne deux chemins différents à la montée et à la descente.</figcaption>
+</figure>
+
+  <h3>Linéariser autour d'un point de fonctionnement</h3>
+  <p>Quand la physique donne une équation non linéaire, on étudie les <strong>petites variations</strong> autour d'un état d'équilibre : on remplace la fonction non linéaire par sa tangente en ce point.</p>
+  <div class="method-box">
+    <strong>Exemple — un réservoir qui se vide</strong>
+    <p>Un réservoir de section \(S\) reçoit un débit \(q_e(t)\) et se vide par un orifice de fond, avec un débit \(q_s = k\sqrt{h}\) (loi de Torricelli). Le bilan de volume s'écrit \(S\,\dfrac{dh}{dt} = q_e - k\sqrt{h}\) : il n'est pas linéaire à cause de \(\sqrt{h}\).</p>
+    <ol>
+      <li>Point de fonctionnement : à l'équilibre, \(h = h_0\) et \(q_{e0} = k\sqrt{h_0}\).</li>
+      <li>Petites variations : \(h = h_0 + \Delta h\), \(q_e = q_{e0} + \Delta q\), et la tangente donne \(\sqrt{h} \approx \sqrt{h_0} + \dfrac{\Delta h}{2\sqrt{h_0}}\).</li>
+      <li>Modèle linéarisé : \(S\,\dfrac{d\Delta h}{dt} + \dfrac{k}{2\sqrt{h_0}}\,\Delta h = \Delta q\), soit \(\tau\,\dfrac{d\Delta h}{dt} + \Delta h = K\,\Delta q\) avec \(\tau = \dfrac{2S\sqrt{h_0}}{k}\) et \(K = \dfrac{2\sqrt{h_0}}{k}\).</li>
+      <li>Lecture : pour les variations, le réservoir est un SLCI du premier ordre, mais ses paramètres dépendent du point choisi. Plus le réservoir est rempli, plus il réagit lentement.</li>
+      <li>Application : \(S = 2{,}0\ \text{m}^2\), \(k = 0{,}050\ \text{m}^{5/2}\cdot\text{s}^{-1}\) et \(h_0 = 0{,}64\ \text{m}\) donnent \(\sqrt{h_0} = 0{,}80\), \(q_{e0} = 0{,}040\ \text{m}^3/\text{s}\), \(\tau = 64\ \text{s}\) et \(K = 32\ \text{s}\cdot\text{m}^{-2}\) : un excès de débit de 1 L/s finit par élever le niveau de \(32 \times 10^{-3} = 3{,}2\) cm.</li>
+    </ol>
+  </div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§2 · LA TRANSFORMÉE DE LAPLACE</div>
+  <h2>Remplacer les dérivées par des produits</h2>
+  <div class="intro">Résoudre à la main une équation différentielle d'ordre trois avec un second membre quelconque est long et peu parlant. La transformée de Laplace remplace chaque dérivation par une multiplication par une variable \(p\) : l'équation différentielle devient une équation <strong>algébrique</strong>, que l'on manipule comme une fraction. On revient au temps à la fin grâce à une table ou, le plus souvent, on lit directement sur la transformée ce que l'on cherche (§7).</div>
+
+  <div class="def-box">
+    Une fonction \(f\) est <strong>causale</strong> si \(f(t) = 0\) pour \(t \lt 0\) : on observe le système à partir d'un instant initial pris comme origine. Sa <strong>transformée de Laplace</strong> est la fonction de la variable complexe \(p\)
+    <div class="formula" data-nom="Transformée de Laplace">$$F(p) = \mathcal{L}\big[f(t)\big] = \int_0^{+\infty} f(t)\,e^{-pt}\,dt.$$</div>
+    On note \(f(t) \longleftrightarrow F(p)\) ; par convention, minuscules pour les fonctions du temps, majuscules pour leurs transformées. L'exposant \(pt\) est sans dimension : \(p\) s'exprime en \(\text{s}^{-1}\), si bien que \(\tau p\) ou \(p/\omega_0\) sont sans dimension.
+  </div>
+  <div class="prop-box">
+    <strong>Propriétés</strong> (\(f\) causale, \(F = \mathcal{L}[f]\)) :
+    <ul>
+      <li><strong>Linéarité</strong> : \(\mathcal{L}[\lambda f + \mu g] = \lambda F + \mu G\).</li>
+      <li><strong>Dérivation</strong> : \(\mathcal{L}[f'] = p\,F(p) - f(0^+)\). Sous <strong>conditions initiales nulles</strong> (conditions de Heaviside : \(f\) et ses dérivées successives nulles en \(0^+\)), dériver revient à multiplier par \(p\) :</li>
+    </ul>
+    <div class="formula" data-nom="Dérivation (conditions de Heaviside)">$$\mathcal{L}\big[f^{(n)}\big] = p^n\,F(p).$$</div>
+    <ul>
+      <li><strong>Intégration</strong> : \(\mathcal{L}\Big[\displaystyle\int_0^t f(u)\,du\Big] = \dfrac{F(p)}{p}\).</li>
+      <li><strong>Retard</strong> : décaler \(f\) de \(T \gt 0\) multiplie sa transformée par \(e^{-Tp}\) : \(\mathcal{L}\big[f(t - T)\big] = e^{-Tp}\,F(p)\).</li>
+      <li><strong>Amortissement</strong> : \(\mathcal{L}\big[e^{-at} f(t)\big] = F(p + a)\).</li>
+    </ul>
+  </div>
+
+  <h3>Table des transformées usuelles</h3>
+  <div style="overflow-x:auto"><table>
+    <tr><th>Fonction causale \(f(t)\), pour \(t \geq 0\)</th><th>Transformée \(F(p)\)</th></tr>
+    <tr><td>impulsion de Dirac \(\delta(t)\)</td><td>\(1\)</td></tr>
+    <tr><td>échelon unité \(u(t)\)</td><td>\(\dfrac{1}{p}\)</td></tr>
+    <tr><td>rampe unité \(t\)</td><td>\(\dfrac{1}{p^2}\)</td></tr>
+    <tr><td>\(t^n\)</td><td>\(\dfrac{n!}{p^{n+1}}\)</td></tr>
+    <tr><td>\(e^{-at}\)</td><td>\(\dfrac{1}{p + a}\)</td></tr>
+    <tr><td>\(t\,e^{-at}\)</td><td>\(\dfrac{1}{(p + a)^2}\)</td></tr>
+    <tr><td>\(\sin(\omega t)\)</td><td>\(\dfrac{\omega}{p^2 + \omega^2}\)</td></tr>
+    <tr><td>\(\cos(\omega t)\)</td><td>\(\dfrac{p}{p^2 + \omega^2}\)</td></tr>
+    <tr><td>\(e^{-at}\sin(\omega t)\)</td><td>\(\dfrac{\omega}{(p + a)^2 + \omega^2}\)</td></tr>
+    <tr><td>\(e^{-at}\cos(\omega t)\)</td><td>\(\dfrac{p + a}{(p + a)^2 + \omega^2}\)</td></tr>
+  </table></div>
+  <div class="reveal" onclick="this.classList.toggle('open')">
+    <span class="label">Démonstration</span>
+    <span class="prompt">Retrouver deux lignes de la table à partir de la définition.</span>
+    <div class="content"><p>Pour \(f(t) = e^{-at}\) et \(\operatorname{Re}(p) \gt -a\) :</p>
+<div class="formula">$$F(p) = \int_0^{+\infty} e^{-(p+a)t}\,dt = \Big[\frac{-e^{-(p+a)t}}{p+a}\Big]_0^{+\infty} = \frac{1}{p + a}.$$</div>
+<p>Avec \(a = 0\), on obtient l'échelon : \(\mathcal{L}[u] = 1/p\). La rampe \(t\) est l'intégrale de l'échelon, donc sa transformée est \(\dfrac{1}{p}\cdot\dfrac{1}{p} = \dfrac{1}{p^2}\) par la propriété d'intégration ; de même \(t\,e^{-at}\) se déduit de \(t\) par la propriété d'amortissement.</p></div>
+  </div>
+
+  <h3>Théorèmes des valeurs initiale et finale</h3>
+  <div class="prop-box">
+    Ils donnent le début et la fin d'une réponse <strong>sans revenir au temps</strong> :
+    <div class="formula" data-nom="Valeur initiale">$$\lim_{t \to 0^+} f(t) = \lim_{p \to +\infty} p\,F(p),$$</div>
+    <div class="formula" data-nom="Valeur finale">$$\lim_{t \to +\infty} f(t) = \lim_{p \to 0} p\,F(p).$$</div>
+  </div>
+  <div class="notice">Le théorème de la valeur finale suppose que \(f(t)\) a une limite finie, c'est-à-dire que tous les pôles de \(p\,F(p)\) sont à partie réelle strictement négative. Avec \(F(p) = \dfrac{1}{p - 1}\), le calcul aveugle donne \(\lim p\,F(p) = 0\), alors que \(f(t) = e^{t}\) diverge. On vérifie donc toujours la stabilité <em>avant</em> d'appliquer le théorème.</div>
+  <div class="method-box">
+    <strong>Exemple — début et fin d'un signal, lus sur sa transformée</strong>
+    <p>\(F(p) = \dfrac{3p + 2}{p\,(p + 4)}\).</p>
+    <ol>
+      <li>Valeur initiale : \(f(0^+) = \lim\limits_{p \to +\infty} \dfrac{3p + 2}{p + 4} = 3\).</li>
+      <li>Les pôles de \(p\,F(p) = \dfrac{3p + 2}{p + 4}\) se réduisent à \(-4\), à partie réelle négative : la limite finale existe, et \(f(+\infty) = \lim\limits_{p \to 0} \dfrac{3p + 2}{p + 4} = \dfrac{2}{4} = 0{,}5\).</li>
+      <li>Contrôle (avec la table, voir §4) : \(f(t) = 0{,}5 + 2{,}5\,e^{-4t}\) vaut bien 3 en \(0\) et tend vers 0,5.</li>
+    </ol>
+  </div>
+
+  <h3>Les signaux tests</h3>
+  <p>Pour comparer des systèmes, on leur applique des entrées normalisées. L'<strong>échelon</strong> \(e(t) = E_0\,u(t)\), de transformée \(E_0/p\), modélise une mise en marche ou une consigne constante. La <strong>rampe</strong> \(e(t) = a\,t\), de transformée \(a/p^2\), modélise une consigne de vitesse : c'est le test de poursuite. L'<strong>impulsion</strong>, de transformée 1, modélise un choc bref. L'entrée <strong>sinusoïdale</strong> sert à la réponse fréquentielle (chapitre « Réponse fréquentielle et diagrammes de Bode »).</p>
+  <figure class="schema">
+<svg viewBox="0 0 370 158" role="img" aria-label="Les trois signaux tests : impulsion, échelon et rampe">
+<line x1="24" y1="116" x2="128" y2="116" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<line x1="36" y1="116" x2="36" y2="14" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<text x="130" y="120" class="lab-muted lab-it">t</text>
+<line x1="52" y1="116" x2="52" y2="35" class="sk-accent" marker-end="url(#sk-arrow-accent)"/>
+<polyline points="24,116 52,116" class="sk-accent"/>
+<polyline points="52,116 116,116" class="sk-accent"/>
+<text x="70" y="146" class="lab-b" text-anchor="middle">Impulsion δ(t)</text>
+<line x1="142" y1="116" x2="246" y2="116" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<line x1="154" y1="116" x2="154" y2="14" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<text x="248" y="120" class="lab-muted lab-it">t</text>
+<polyline points="142,116 154,116 154,56 234,56" class="sk-accent"/>
+<text x="150" y="60" class="lab-muted" text-anchor="end">E₀</text>
+<text x="188" y="146" class="lab-b" text-anchor="middle">Échelon E₀·u(t)</text>
+<line x1="260" y1="116" x2="364" y2="116" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<line x1="272" y1="116" x2="272" y2="14" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<text x="366" y="120" class="lab-muted lab-it">t</text>
+<polyline points="260,116 272,116 348,37.2" class="sk-accent"/>
+<text x="306" y="146" class="lab-b" text-anchor="middle">Rampe a·t·u(t)</text>
+</svg>
+<figcaption>Signaux tests : impulsion (choc bref, transformée 1), échelon (consigne constante, \(E_0/p\)), rampe (consigne de vitesse, \(a/p^2\)).</figcaption>
+</figure>
+  <p>Un <strong>signal périodique</strong> quelconque est une somme de sinusoïdes (sa série de Fourier, chapitre de physique <a href="#signaux/cours">« Signaux périodiques et spectres »</a>) : par linéarité, connaître la réponse d'un SLCI à chaque sinusoïde suffit (§7).</p>
+  <div class="method-box">
+    <strong>Exemple — une consigne en rampe saturée</strong>
+    <p>La consigne d'une tension de commande monte de 4 V/s pendant \(T = 0{,}5\ \text{s}\), puis reste à 2 V.</p>
+    <ol>
+      <li>On l'écrit comme une somme de signaux tests décalés : \(e(t) = 4\,t\,u(t) - 4\,(t - 0{,}5)\,u(t - 0{,}5)\). À partir de \(0{,}5\) s, la seconde rampe compense exactement la première.</li>
+      <li>Linéarité et théorème du retard : \(E(p) = \dfrac{4}{p^2} - \dfrac{4\,e^{-0{,}5p}}{p^2} = \dfrac{4\,\big(1 - e^{-0{,}5p}\big)}{p^2}\).</li>
+      <li>Contrôle par la valeur finale : quand \(p \to 0\), \(1 - e^{-0{,}5p} \approx 0{,}5\,p\), donc \(\lim\limits_{p \to 0} p\,E(p) = 4 \times 0{,}5 = 2\) V, la valeur du palier.</li>
+    </ol>
+  </div>
+  <div class="notice"><strong>Erreur classique</strong> : écrire \(e(t) = 4\,t\,u(t) - 4\,t\,u(t - 0{,}5)\). Ce signal tombe à 0 après \(0{,}5\) s ; c'est la rampe <strong>décalée</strong> \(4\,(t - 0{,}5)\) qu'il faut retrancher pour que le théorème du retard s'applique.</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§3 · LA FONCTION DE TRANSFERT</div>
+  <h2>Un système résumé par une fraction</h2>
+  <div class="def-box">
+    Sous conditions de Heaviside, la transformée de l'équation du §1 s'écrit \((a_n p^n + \cdots + a_1 p + a_0)\,S(p) = (b_m p^m + \cdots + b_1 p + b_0)\,E(p)\). La <strong>fonction de transfert</strong> (ou transmittance) du système est
+    <div class="formula" data-nom="Fonction de transfert">$$H(p) = \frac{S(p)}{E(p)} = \frac{N(p)}{D(p)} = \frac{b_m p^m + \cdots + b_1 p + b_0}{a_n p^n + \cdots + a_1 p + a_0}.$$</div>
+    Elle ne dépend que du système, pas de l'entrée : quelle que soit l'entrée, \(S(p) = H(p)\,E(p)\).
+  </div>
+  <div class="prop-box">
+    <strong>Forme canonique et vocabulaire.</strong> On factorise le terme de plus bas degré du numérateur et du dénominateur, de façon que les polynômes restants commencent par 1 :
+    <div class="formula" data-nom="Forme canonique d'une FT">$$H(p) = \frac{K}{p^{\alpha}}\cdot\frac{1 + b_1 p + \cdots + b_m p^m}{1 + a_1 p + \cdots + a_{n-\alpha}\,p^{n-\alpha}}.$$</div>
+    <ul>
+      <li>les <strong>pôles</strong> sont les racines du dénominateur, les <strong>zéros</strong> celles du numérateur (après simplification) ;</li>
+      <li>l'<strong>ordre</strong> \(n\) est le degré du dénominateur ;</li>
+      <li>la <strong>classe</strong> \(\alpha\) est le nombre de pôles nuls, c'est-à-dire d'intégrateurs \(1/p\) ;</li>
+      <li>\(K\) est le <strong>gain</strong> ; pour un système de classe 0, c'est le <strong>gain statique</strong> \(H(0)\), rapport sortie / entrée en régime permanent, avec l'unité de \(s\) divisée par celle de \(e\).</li>
+    </ul>
+  </div>
+  <div class="method-box">
+    <strong>Exemple — de l'équation à la fonction de transfert</strong>
+    <p>Un système est régi par \(2\,s''(t) + 3\,s'(t) + s(t) = 4\,e(t)\).</p>
+    <ol>
+      <li>Transformée sous conditions initiales nulles : \((2p^2 + 3p + 1)\,S(p) = 4\,E(p)\).</li>
+      <li>\(H(p) = \dfrac{4}{1 + 3p + 2p^2}\) est déjà sous forme canonique (terme constant égal à 1).</li>
+      <li>Lecture : gain statique \(K = 4\), classe 0, ordre 2 ; comme \(1 + 3p + 2p^2 = (1 + p)(1 + 2p)\), les pôles sont \(-1\) et \(-\tfrac12\), et il n'y a pas de zéro.</li>
+    </ol>
+    <p>Autre exemple : \(H(p) = \dfrac{6p + 12}{p^3 + 4p^2} = \dfrac{12\,(1 + 0{,}5p)}{4p^2\,(1 + 0{,}25p)} = \dfrac{3}{p^2}\cdot\dfrac{1 + 0{,}5p}{1 + 0{,}25p}\) : gain 3, classe 2, ordre 3, un zéro en \(-2\), un pôle double en 0 et un pôle en \(-4\).</p>
+  </div>
+  <div class="notice">Toujours mettre sous forme canonique avant de lire le gain : dans \(H(p) = \dfrac{10}{p + 5}\), le gain statique vaut 2 et non 10, car \(H(p) = \dfrac{2}{1 + 0{,}2p}\).</div>
+  <h3>La réponse impulsionnelle</h3>
+  <p>Puisque \(\mathcal{L}[\delta] = 1\), la réponse à une impulsion a pour transformée \(H(p)\) elle-même : la fonction de transfert est la transformée de la <strong>réponse impulsionnelle</strong> \(h(t)\). Connaître l'une, c'est connaître l'autre, et donc connaître la réponse du système à n'importe quelle entrée. Par exemple, \(H(p) = \dfrac{2}{1 + 0{,}5p} = \dfrac{4}{p + 2}\) a pour réponse impulsionnelle \(h(t) = 4\,e^{-2t}\) (table) : un choc bref d'aire unité fait monter la sortie d'un coup à 4, puis la laisse redescendre avec la constante de temps \(0{,}5\) s.</p>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§4 · REVENIR AU TEMPS</div>
+  <h2>Décomposer, puis lire la table</h2>
+  <div class="intro">\(S(p) = H(p)\,E(p)\) est une fraction rationnelle. Pour retrouver \(s(t)\), on la décompose en somme d'éléments simples dont l'original figure dans la table. Le coefficient associé à un pôle simple \(p_i\) s'obtient en multipliant \(S(p)\) par \((p - p_i)\), puis en remplaçant \(p\) par \(p_i\).</div>
+  <div class="notice"><strong>Hors programme (pour aller plus loin)</strong> : le programme exclut la transformée de Laplace inverse et la résolution des équations différentielles. Aucun sujet ne demande donc de décomposer \(S(p)\) : il fournit l'expression temporelle, ou demande ce que l'on tire de \(S(p)\) sans revenir au temps (§7). Les trois exemples ci-dessous montrent d'où viennent les réponses-types des chapitres suivants. Est au programme, en revanche, le lien entre la position des pôles et l'allure de la réponse (encadré, exemple et figure de fin de section), base de l'étude de la stabilité.</div>
+  <div class="method-box">
+    <strong>Exemple 1 — un premier ordre soumis à un échelon</strong>
+    <p>\(H(p) = \dfrac{2}{1 + 0{,}5p}\) et \(e(t)\) est un échelon unité.</p>
+    <ol>
+      <li>\(S(p) = \dfrac{2}{p\,(1 + 0{,}5p)} = \dfrac{4}{p\,(p + 2)}\) : on rend les dénominateurs unitaires pour décomposer.</li>
+      <li>\(\dfrac{4}{p\,(p + 2)} = \dfrac{A}{p} + \dfrac{B}{p + 2}\) avec \(A = \Big[\dfrac{4}{p + 2}\Big]_{p = 0} = 2\) et \(B = \Big[\dfrac{4}{p}\Big]_{p = -2} = -2\).</li>
+      <li>Table : \(s(t) = 2 - 2\,e^{-2t} = 2\,(1 - e^{-2t})\) pour \(t \geq 0\).</li>
+      <li>Contrôles : \(\lim_{p \to +\infty} p\,S(p) = 0 = s(0)\) et \(\lim_{p \to 0} p\,S(p) = 2 = s(\infty)\).</li>
+    </ol>
+  </div>
+  <div class="method-box">
+    <strong>Exemple 2 — trois pôles réels</strong>
+    <p>\(S(p) = \dfrac{6}{p\,(p + 1)(p + 3)} = \dfrac{A}{p} + \dfrac{B}{p + 1} + \dfrac{C}{p + 3}\).</p>
+    <ol>
+      <li>\(A = \dfrac{6}{1 \times 3} = 2\), \(B = \dfrac{6}{(-1)\times 2} = -3\), \(C = \dfrac{6}{(-3)\times(-2)} = 1\).</li>
+      <li>\(s(t) = 2 - 3\,e^{-t} + e^{-3t}\), et \(s(0) = 2 - 3 + 1 = 0\) comme attendu.</li>
+      <li>Le terme \(e^{-3t}\) s'éteint trois fois plus vite que \(e^{-t}\) : au bout de quelques secondes, seul compte le pôle \(-1\), le plus proche de l'axe imaginaire. C'est le <strong>pôle dominant</strong> (notion reprise en 2ᵉ année : réduction de l'ordre d'un modèle).</li>
+    </ol>
+  </div>
+  <div class="method-box">
+    <strong>Exemple 3 — une paire de pôles complexes</strong>
+    <p>\(S(p) = \dfrac{5}{p\,(p^2 + 2p + 5)}\). Le trinôme a pour racines \(-1 \pm 2j\) : on garde l'élément de deuxième espèce entier.</p>
+    <ol>
+      <li>\(S(p) = \dfrac{A}{p} + \dfrac{Bp + C}{p^2 + 2p + 5}\) avec \(A = \dfrac{5}{5} = 1\). En réduisant au même dénominateur : \(5 = (p^2 + 2p + 5) + (Bp + C)\,p\), d'où \(B = -1\) et \(C = -2\).</li>
+      <li>On fait apparaître \((p + 1)^2 + 4\) : \(\dfrac{p + 2}{(p + 1)^2 + 4} = \dfrac{p + 1}{(p + 1)^2 + 4} + \dfrac12\cdot\dfrac{2}{(p + 1)^2 + 4}\).</li>
+      <li>Table : \(s(t) = 1 - e^{-t}\Big(\cos 2t + \dfrac12\sin 2t\Big)\) : une oscillation de pulsation 2 rad/s, amortie par \(e^{-t}\), autour de la valeur finale 1.</li>
+    </ol>
+  </div>
+  <div class="prop-box">
+    <strong>Les pôles décident de l'allure.</strong> Chaque pôle \(p_i\) fait apparaître dans la réponse un terme en \(e^{p_i t}\) :
+    <ul>
+      <li>pôle réel négatif \(-a\) : terme \(e^{-at}\), qui s'éteint, à 5 % près, au bout de \(3/a\) ;</li>
+      <li>paire complexe \(-a \pm j\omega\) : oscillation de pulsation \(\omega\) amortie par \(e^{-at}\) ;</li>
+      <li>pôle à partie réelle positive : terme divergent, le système est <strong>instable</strong> ;</li>
+      <li>pôle nul : terme constant (en \(t\) s'il est double) ; paire imaginaire pure \(\pm j\omega\) : oscillation entretenue.</li>
+    </ul>
+    Plus un pôle est loin à gauche, plus son terme disparaît vite : l'allure à long terme est fixée par le ou les pôles dominants.
+  </div>
+  <figure class="schema">
+<svg viewBox="0 0 470 200" role="img" aria-label="Position des pôles dans le plan complexe et allure de la réponse associée">
+<line x1="30" y1="95" x2="192" y2="95" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<line x1="130" y1="160" x2="130" y2="18" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<text x="194" y="99" class="lab-muted lab-it">Re</text>
+<text x="126" y="16" class="lab-muted lab-it" text-anchor="end">Im</text>
+<rect x="30" y="30" width="100" height="130" class="fl-green-soft"/>
+<text x="80" y="150.9" class="lab-green" text-anchor="middle">zone stable</text>
+<path d="M57.2,91 L65.2,99 M57.2,99 L65.2,91" class="sk-ink"/>
+<text x="69.2" y="89" class="lab-b">A</text>
+<path d="M94.8,50.4 L102.8,58.4 M94.8,58.4 L102.8,50.4" class="sk-ink"/>
+<text x="106.8" y="48.4" class="lab-b">B</text>
+<path d="M94.8,131.6 L102.8,139.6 M94.8,139.6 L102.8,131.6" class="sk-ink"/>
+<path d="M157.2,91 L165.2,99 M157.2,99 L165.2,91" class="sk-ink"/>
+<text x="169.2" y="89" class="lab-b">C</text>
+<path d="M126,38.2 L134,46.2 M126,46.2 L134,38.2" class="sk-ink"/>
+<text x="138" y="36.2" class="lab-b">D</text>
+<path d="M126,143.8 L134,151.8 M126,151.8 L134,143.8" class="sk-ink"/>
+<line x1="222" y1="37" x2="346" y2="37" class="sk-axis"/>
+<polyline points="222,22.7 222.8,23.3 223.5,23.9 224.3,24.4 225,24.9 225.8,25.4 226.5,25.9 227.3,26.3 228,26.8 228.8,27.2 229.5,27.6 230.3,28 231.1,28.3 231.8,28.7 232.6,29 233.3,29.3 234.1,29.6 234.8,29.9 235.6,30.2 236.3,30.5 237.1,30.8 237.8,31 238.6,31.3 239.4,31.5 240.1,31.7 240.9,31.9 241.6,32.1 242.4,32.3 243.1,32.5 243.9,32.7 244.6,32.9 245.4,33.1 246.2,33.2 246.9,33.4 247.7,33.5 248.4,33.7 249.2,33.8 249.9,33.9 250.7,34 251.4,34.2 252.2,34.3 252.9,34.4 253.7,34.5 254.5,34.6 255.2,34.7 256,34.8 256.7,34.9 257.5,35 258.2,35.1 259,35.1 259.7,35.2 260.5,35.3 261.2,35.4 262,35.4 262.8,35.5 263.5,35.5 264.3,35.6 265,35.7 265.8,35.7 266.5,35.8 267.3,35.8 268,35.9 268.8,35.9 269.5,36 270.3,36 271.1,36 271.8,36.1 272.6,36.1 273.3,36.2 274.1,36.2 274.8,36.2 275.6,36.3 276.3,36.3 277.1,36.3 277.8,36.3 278.6,36.4 279.4,36.4 280.1,36.4 280.9,36.4 281.6,36.5 282.4,36.5 283.1,36.5 283.9,36.5 284.6,36.5 285.4,36.6 286.2,36.6 286.9,36.6 287.7,36.6 288.4,36.6 289.2,36.6 289.9,36.7 290.7,36.7 291.4,36.7 292.2,36.7 292.9,36.7 293.7,36.7 294.5,36.7 295.2,36.7 296,36.8 296.7,36.8 297.5,36.8 298.2,36.8 299,36.8 299.7,36.8 300.5,36.8 301.2,36.8 302,36.8 302.8,36.8 303.5,36.8 304.3,36.8 305,36.9 305.8,36.9 306.5,36.9 307.3,36.9 308,36.9 308.8,36.9 309.5,36.9 310.3,36.9 311.1,36.9 311.8,36.9 312.6,36.9 313.3,36.9 314.1,36.9 314.8,36.9 315.6,36.9 316.3,36.9 317.1,36.9 317.8,36.9 318.6,36.9 319.4,36.9 320.1,36.9 320.9,36.9 321.6,36.9 322.4,36.9 323.1,36.9 323.9,36.9 324.6,36.9 325.4,37 326.2,37 326.9,37 327.7,37 328.4,37 329.2,37 329.9,37 330.7,37 331.4,37 332.2,37 332.9,37 333.7,37 334.5,37 335.2,37 336,37 336.7,37 337.5,37 338.2,37 339,37 339.7,37 340.5,37 341.2,37 342,37" class="sk-accent"/>
+<text x="212" y="41" class="lab-b" text-anchor="end">A</text>
+<text x="222" y="64" class="lab-muted">pôle réel négatif : s’éteint</text>
+<line x1="222" y1="81" x2="346" y2="81" class="sk-axis"/>
+<polyline points="222,66.7 222.8,67 223.5,67.5 224.3,68.2 225,69 225.8,69.9 226.5,71 227.3,72.1 228,73.3 228.8,74.6 229.5,75.9 230.3,77.2 231.1,78.5 231.8,79.9 232.6,81.2 233.3,82.4 234.1,83.6 234.8,84.7 235.6,85.7 236.3,86.7 237.1,87.5 237.8,88.2 238.6,88.8 239.4,89.3 240.1,89.7 240.9,89.9 241.6,90 242.4,90 243.1,89.9 243.9,89.6 244.6,89.3 245.4,88.9 246.2,88.4 246.9,87.8 247.7,87.1 248.4,86.4 249.2,85.6 249.9,84.8 250.7,84 251.4,83.2 252.2,82.3 252.9,81.5 253.7,80.7 254.5,79.9 255.2,79.2 256,78.5 256.7,77.9 257.5,77.3 258.2,76.8 259,76.4 259.7,76 260.5,75.8 261.2,75.6 262,75.4 262.8,75.4 263.5,75.4 264.3,75.5 265,75.7 265.8,75.9 266.5,76.2 267.3,76.5 268,76.9 268.8,77.3 269.5,77.8 270.3,78.2 271.1,78.7 271.8,79.3 272.6,79.8 273.3,80.3 274.1,80.8 274.8,81.3 275.6,81.8 276.3,82.2 277.1,82.6 277.8,83 278.6,83.4 279.4,83.7 280.1,83.9 280.9,84.1 281.6,84.3 282.4,84.4 283.1,84.5 283.9,84.5 284.6,84.5 285.4,84.4 286.2,84.3 286.9,84.2 287.7,84 288.4,83.8 289.2,83.5 289.9,83.2 290.7,82.9 291.4,82.6 292.2,82.3 292.9,82 293.7,81.7 294.5,81.4 295.2,81 296,80.7 296.7,80.4 297.5,80.2 298.2,79.9 299,79.7 299.7,79.5 300.5,79.3 301.2,79.1 302,79 302.8,78.9 303.5,78.8 304.3,78.8 305,78.8 305.8,78.8 306.5,78.9 307.3,79 308,79.1 308.8,79.2 309.5,79.3 310.3,79.5 311.1,79.6 311.8,79.8 312.6,80 313.3,80.2 314.1,80.4 314.8,80.6 315.6,80.8 316.3,81 317.1,81.2 317.8,81.4 318.6,81.6 319.4,81.7 320.1,81.9 320.9,82 321.6,82.1 322.4,82.2 323.1,82.3 323.9,82.3 324.6,82.4 325.4,82.4 326.2,82.4 326.9,82.3 327.7,82.3 328.4,82.3 329.2,82.2 329.9,82.1 330.7,82 331.4,81.9 332.2,81.8 332.9,81.7 333.7,81.6 334.5,81.5 335.2,81.3 336,81.2 336.7,81.1 337.5,81 338.2,80.8 339,80.7 339.7,80.6 340.5,80.5 341.2,80.4 342,80.4" class="sk-accent"/>
+<text x="212" y="85" class="lab-b" text-anchor="end">B</text>
+<text x="222" y="108" class="lab-muted">complexes, Re &lt; 0 : oscille et s’éteint</text>
+<line x1="222" y1="125" x2="346" y2="125" class="sk-axis"/>
+<polyline points="222,124.3 222.8,124.3 223.5,124.3 224.3,124.2 225,124.2 225.8,124.2 226.5,124.2 227.3,124.2 228,124.2 228.8,124.2 229.5,124.1 230.3,124.1 231.1,124.1 231.8,124.1 232.6,124.1 233.3,124.1 234.1,124 234.8,124 235.6,124 236.3,124 237.1,124 237.8,123.9 238.6,123.9 239.4,123.9 240.1,123.9 240.9,123.9 241.6,123.8 242.4,123.8 243.1,123.8 243.9,123.8 244.6,123.7 245.4,123.7 246.2,123.7 246.9,123.7 247.7,123.6 248.4,123.6 249.2,123.6 249.9,123.6 250.7,123.5 251.4,123.5 252.2,123.5 252.9,123.5 253.7,123.4 254.5,123.4 255.2,123.4 256,123.3 256.7,123.3 257.5,123.3 258.2,123.2 259,123.2 259.7,123.2 260.5,123.1 261.2,123.1 262,123.1 262.8,123 263.5,123 264.3,123 265,122.9 265.8,122.9 266.5,122.8 267.3,122.8 268,122.8 268.8,122.7 269.5,122.7 270.3,122.6 271.1,122.6 271.8,122.5 272.6,122.5 273.3,122.4 274.1,122.4 274.8,122.3 275.6,122.3 276.3,122.2 277.1,122.2 277.8,122.1 278.6,122.1 279.4,122 280.1,122 280.9,121.9 281.6,121.8 282.4,121.8 283.1,121.7 283.9,121.7 284.6,121.6 285.4,121.5 286.2,121.5 286.9,121.4 287.7,121.3 288.4,121.3 289.2,121.2 289.9,121.1 290.7,121 291.4,121 292.2,120.9 292.9,120.8 293.7,120.7 294.5,120.6 295.2,120.6 296,120.5 296.7,120.4 297.5,120.3 298.2,120.2 299,120.1 299.7,120 300.5,119.9 301.2,119.8 302,119.7 302.8,119.6 303.5,119.5 304.3,119.4 305,119.3 305.8,119.2 306.5,119.1 307.3,119 308,118.9 308.8,118.8 309.5,118.7 310.3,118.5 311.1,118.4 311.8,118.3 312.6,118.2 313.3,118 314.1,117.9 314.8,117.8 315.6,117.6 316.3,117.5 317.1,117.3 317.8,117.2 318.6,117 319.4,116.9 320.1,116.7 320.9,116.6 321.6,116.4 322.4,116.3 323.1,116.1 323.9,115.9 324.6,115.7 325.4,115.6 326.2,115.4 326.9,115.2 327.7,115 328.4,114.8 329.2,114.6 329.9,114.4 330.7,114.2 331.4,114 332.2,113.8 332.9,113.6 333.7,113.4 334.5,113.2 335.2,112.9 336,112.7 336.7,112.5 337.5,112.2 338.2,112 339,111.8 339.7,111.5 340.5,111.2 341.2,111 342,110.7" class="sk-accent"/>
+<text x="212" y="129" class="lab-b" text-anchor="end">C</text>
+<text x="222" y="152" class="lab-muted">Re &gt; 0 : diverge</text>
+<line x1="222" y1="169" x2="346" y2="169" class="sk-axis"/>
+<polyline points="222,154.7 222.8,154.8 223.5,155.1 224.3,155.5 225,156.2 225.8,156.9 226.5,157.9 227.3,159 228,160.2 228.8,161.5 229.5,162.9 230.3,164.4 231.1,166 231.8,167.6 232.6,169.2 233.3,170.8 234.1,172.4 234.8,173.9 235.6,175.4 236.3,176.8 237.1,178.1 237.8,179.3 238.6,180.4 239.4,181.3 240.1,182 240.9,182.6 241.6,183 242.4,183.2 243.1,183.3 243.9,183.1 244.6,182.8 245.4,182.3 246.2,181.7 246.9,180.8 247.7,179.9 248.4,178.7 249.2,177.5 249.9,176.1 250.7,174.7 251.4,173.2 252.2,171.6 252.9,170 253.7,168.4 254.5,166.8 255.2,165.2 256,163.7 256.7,162.2 257.5,160.8 258.2,159.6 259,158.4 259.7,157.4 260.5,156.5 261.2,155.8 262,155.3 262.8,154.9 263.5,154.7 264.3,154.7 265,154.9 265.8,155.3 266.5,155.8 267.3,156.5 268,157.4 268.8,158.4 269.5,159.6 270.3,160.8 271.1,162.2 271.8,163.7 272.6,165.2 273.3,166.8 274.1,168.4 274.8,170 275.6,171.6 276.3,173.2 277.1,174.7 277.8,176.1 278.6,177.5 279.4,178.7 280.1,179.9 280.9,180.8 281.6,181.7 282.4,182.3 283.1,182.8 283.9,183.1 284.6,183.3 285.4,183.2 286.2,183 286.9,182.6 287.7,182 288.4,181.3 289.2,180.4 289.9,179.3 290.7,178.1 291.4,176.8 292.2,175.4 292.9,174 293.7,172.4 294.5,170.8 295.2,169.2 296,167.6 296.7,166 297.5,164.4 298.2,162.9 299,161.5 299.7,160.2 300.5,159 301.2,157.9 302,156.9 302.8,156.2 303.5,155.5 304.3,155.1 305,154.8 305.8,154.7 306.5,154.8 307.3,155.1 308,155.5 308.8,156.2 309.5,156.9 310.3,157.9 311.1,159 311.8,160.2 312.6,161.5 313.3,162.9 314.1,164.4 314.8,166 315.6,167.6 316.3,169.2 317.1,170.8 317.8,172.4 318.6,173.9 319.4,175.4 320.1,176.8 320.9,178.1 321.6,179.3 322.4,180.4 323.1,181.3 323.9,182 324.6,182.6 325.4,183 326.2,183.2 326.9,183.3 327.7,183.1 328.4,182.8 329.2,182.3 329.9,181.7 330.7,180.8 331.4,179.9 332.2,178.7 332.9,177.5 333.7,176.1 334.5,174.7 335.2,173.2 336,171.6 336.7,170 337.5,168.4 338.2,166.8 339,165.2 339.7,163.7 340.5,162.2 341.2,160.8 342,159.6" class="sk-accent"/>
+<text x="212" y="173" class="lab-b" text-anchor="end">D</text>
+<text x="222" y="196" class="lab-muted">imaginaires purs : oscillation entretenue</text>
+</svg>
+<figcaption>Chaque pôle impose un terme de la réponse : à gauche de l'axe imaginaire, il s'éteint ; à droite, il diverge ; sur l'axe, il laisse une oscillation entretenue.</figcaption>
+</figure>
+  <div class="method-box">
+    <strong>Exemple — prévoir l'allure par les seuls pôles</strong>
+    <ol>
+      <li>\(H_1(p) = \dfrac{10}{p^2 + 0{,}4\,p + 4}\) : pôles \(-0{,}2 \pm 1{,}99\,j\). Stable ; oscillation de pulsation 1,99 rad/s (pseudo-période \(2\pi/1{,}99 \approx 3{,}2\) s), amortie par \(e^{-0{,}2t}\), qui s'éteint à 5 % près en \(3/0{,}2 = 15\) s : on voit près de cinq oscillations.</li>
+      <li>\(H_2(p) = \dfrac{3}{(p - 0{,}5)(p + 2)}\) : le pôle \(+0{,}5\) donne un terme en \(e^{0{,}5t}\), qui double toutes les \(\ln 2/0{,}5 \approx 1{,}4\) s : instable, quelle que soit l'entrée.</li>
+    </ol>
+  </div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§5 · LES MODÈLES DE RÉFÉRENCE</div>
+  <h2>Six briques pour tout décrire</h2>
+  <div class="intro">En factorisant numérateur et dénominateur, toute fonction de transfert de SLCI devient un produit de quelques briques élémentaires. Les connaître par cœur, avec leur réponse à un échelon \(E_0\), suffit à lire la plupart des modèles. Les chapitres suivants les étudient une à une.</div>
+  <div style="overflow-x:auto"><table>
+    <tr><th>Modèle</th><th>Équation</th><th>Fonction de transfert</th><th>Réponse à un échelon \(E_0\)</th><th>Exemples</th></tr>
+    <tr><td><strong>Gain pur</strong></td><td>\(s = K\,e\)</td><td>\(K\)</td><td>saut immédiat à \(K E_0\)</td><td>capteur, réducteur, amplificateur idéal</td></tr>
+    <tr><td><strong>Intégrateur</strong></td><td>\(\dfrac{ds}{dt} = K\,e\)</td><td>\(\dfrac{K}{p}\)</td><td>rampe de pente \(K E_0\)</td><td>position d'un axe commandé en vitesse, réservoir sans fuite</td></tr>
+    <tr><td><strong>Dérivateur</strong></td><td>\(s = K\,\dfrac{de}{dt}\)</td><td>\(K\,p\)</td><td>impulsion (irréalisable seul)</td><td>génératrice tachymétrique sur un signal de position</td></tr>
+    <tr><td><strong>Premier ordre</strong></td><td>\(\tau\,\dfrac{ds}{dt} + s = K\,e\)</td><td>\(\dfrac{K}{1 + \tau p}\)</td><td>exponentielle vers \(K E_0\)</td><td>circuit RC, four, moteur à courant continu simplifié</td></tr>
+    <tr><td><strong>Deuxième ordre</strong></td><td>\(\dfrac{1}{\omega_0^2}\dfrac{d^2s}{dt^2} + \dfrac{2\xi}{\omega_0}\dfrac{ds}{dt} + s = K\,e\)</td><td>\(\dfrac{K}{1 + \frac{2\xi}{\omega_0}p + \frac{p^2}{\omega_0^2}}\)</td><td>oscillante ou non selon \(\xi\)</td><td>masse-ressort-amortisseur, circuit RLC</td></tr>
+    <tr><td><strong>Retard pur</strong></td><td>\(s(t) = e(t - T)\)</td><td>\(e^{-Tp}\)</td><td>échelon décalé de \(T\)</td><td>convoyeur, canalisation, réseau de communication</td></tr>
+  </table></div>
+  <figure class="schema">
+<svg viewBox="0 0 462 252" role="img" aria-label="Réponses à un échelon des six modèles de référence : gain pur, intégrateur, dérivateur, premier ordre, deuxième ordre peu amorti et retard pur">
+<line x1="24" y1="94" x2="152" y2="94" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<line x1="34.5" y1="94" x2="34.5" y2="12" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<text x="154" y="98" class="lab-muted lab-it">t</text>
+<polyline points="24,94 34.5,94 34.5,63.2 140,63.2" class="sk-dash"/>
+<polyline points="24,94 34.5,94" class="sk-accent"/>
+<polyline points="34.5,40.8 140,40.8" class="sk-accent"/>
+<line x1="34.5" y1="94" x2="34.5" y2="40.8" class="sk-accent" style="opacity:.35"/>
+<text x="82" y="122" class="lab-b" text-anchor="middle">Gain pur K</text>
+<line x1="174" y1="94" x2="302" y2="94" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<line x1="184.5" y1="94" x2="184.5" y2="12" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<text x="304" y="98" class="lab-muted lab-it">t</text>
+<polyline points="174,94 184.5,94 184.5,63.2 290,63.2" class="sk-dash"/>
+<polyline points="174,94 174.3,94 174.6,94 174.9,94 175.2,94 175.5,94 175.7,94 176,94 176.3,94 176.6,94 176.9,94 177.2,94 177.5,94 177.8,94 178.1,94 178.4,94 178.7,94 178.9,94 179.2,94 179.5,94 179.8,94 180.1,94 180.4,94 180.7,94 181,94 181.3,94 181.6,94 181.8,94 182.1,94 182.4,94 182.7,94 183,94 183.3,94 183.6,94 183.9,94 184.2,94 184.5,94 184.8,93.9 185,93.7 185.3,93.5 185.6,93.3 185.9,93.1 186.2,92.9 186.5,92.8 186.8,92.6 187.1,92.4 187.4,92.2 187.7,92 188,91.8 188.2,91.6 188.5,91.5 188.8,91.3 189.1,91.1 189.4,90.9 189.7,90.7 190,90.5 190.3,90.3 190.6,90.2 190.9,90 191.2,89.8 191.4,89.6 191.7,89.4 192,89.2 192.3,89 192.6,88.9 192.9,88.7 193.2,88.5 193.5,88.3 193.8,88.1 194.1,87.9 194.4,87.8 194.6,87.6 194.9,87.4 195.2,87.2 195.5,87 195.8,86.8 196.1,86.6 196.4,86.5 196.7,86.3 197,86.1 197.3,85.9 197.5,85.7 197.8,85.5 198.1,85.3 198.4,85.2 198.7,85 199,84.8 199.3,84.6 199.6,84.4 199.9,84.2 200.2,84 200.5,83.9 200.7,83.7 201,83.5 201.3,83.3 201.6,83.1 201.9,82.9 202.2,82.7 202.5,82.6 202.8,82.4 203.1,82.2 203.4,82 203.7,81.8 203.9,81.6 204.2,81.5 204.5,81.3 204.8,81.1 205.1,80.9 205.4,80.7 205.7,80.5 206,80.3 206.3,80.2 206.6,80 206.9,79.8 207.1,79.6 207.4,79.4 207.7,79.2 208,79 208.3,78.9 208.6,78.7 208.9,78.5 209.2,78.3 209.5,78.1 209.8,77.9 210.1,77.7 210.3,77.6 210.6,77.4 210.9,77.2 211.2,77 211.5,76.8 211.8,76.6 212.1,76.5 212.4,76.3 212.7,76.1 213,75.9 213.2,75.7 213.5,75.5 213.8,75.3 214.1,75.2 214.4,75 214.7,74.8 215,74.6 215.3,74.4 215.6,74.2 215.9,74 216.2,73.9 216.4,73.7 216.7,73.5 217,73.3 217.3,73.1 217.6,72.9 217.9,72.7 218.2,72.6 218.5,72.4 218.8,72.2 219.1,72 219.4,71.8 219.6,71.6 219.9,71.4 220.2,71.3 220.5,71.1 220.8,70.9 221.1,70.7 221.4,70.5 221.7,70.3 222,70.2 222.3,70 222.6,69.8 222.8,69.6 223.1,69.4 223.4,69.2 223.7,69 224,68.9 224.3,68.7 224.6,68.5 224.9,68.3 225.2,68.1 225.5,67.9 225.7,67.7 226,67.6 226.3,67.4 226.6,67.2 226.9,67 227.2,66.8 227.5,66.6 227.8,66.4 228.1,66.3 228.4,66.1 228.7,65.9 228.9,65.7 229.2,65.5 229.5,65.3 229.8,65.1 230.1,65 230.4,64.8 230.7,64.6 231,64.4 231.3,64.2 231.6,64 231.9,63.9 232.1,63.7 232.4,63.5 232.7,63.3 233,63.1 233.3,62.9 233.6,62.7 233.9,62.6 234.2,62.4 234.5,62.2 234.8,62 235.1,61.8 235.3,61.6 235.6,61.4 235.9,61.3 236.2,61.1 236.5,60.9 236.8,60.7 237.1,60.5 237.4,60.3 237.7,60.1 238,60 238.3,59.8 238.5,59.6 238.8,59.4 239.1,59.2 239.4,59 239.7,58.9 240,58.7 240.3,58.5 240.6,58.3 240.9,58.1 241.2,57.9 241.4,57.7 241.7,57.6 242,57.4 242.3,57.2 242.6,57 242.9,56.8 243.2,56.6 243.5,56.4 243.8,56.3 244.1,56.1 244.4,55.9 244.6,55.7 244.9,55.5 245.2,55.3 245.5,55.1 245.8,55 246.1,54.8 246.4,54.6 246.7,54.4 247,54.2 247.3,54 247.6,53.8 247.8,53.7 248.1,53.5 248.4,53.3 248.7,53.1 249,52.9 249.3,52.7 249.6,52.6 249.9,52.4 250.2,52.2 250.5,52 250.8,51.8 251,51.6 251.3,51.4 251.6,51.3 251.9,51.1 252.2,50.9 252.5,50.7 252.8,50.5 253.1,50.3 253.4,50.1 253.7,50 253.9,49.8 254.2,49.6 254.5,49.4 254.8,49.2 255.1,49 255.4,48.8 255.7,48.7 256,48.5 256.3,48.3 256.6,48.1 256.9,47.9 257.1,47.7 257.4,47.5 257.7,47.4 258,47.2 258.3,47 258.6,46.8 258.9,46.6 259.2,46.4 259.5,46.3 259.8,46.1 260.1,45.9 260.3,45.7 260.6,45.5 260.9,45.3 261.2,45.1 261.5,45 261.8,44.8 262.1,44.6 262.4,44.4 262.7,44.2 263,44 263.3,43.8 263.5,43.7 263.8,43.5 264.1,43.3 264.4,43.1 264.7,42.9 265,42.7 265.3,42.5 265.6,42.4 265.9,42.2 266.2,42 266.5,41.8 266.7,41.6 267,41.4 267.3,41.3 267.6,41.1 267.9,40.9 268.2,40.7 268.5,40.5 268.8,40.3 269.1,40.1 269.4,40 269.6,39.8 269.9,39.6 270.2,39.4 270.5,39.2 270.8,39 271.1,38.8 271.4,38.7 271.7,38.5 272,38.3 272.3,38.1 272.6,37.9 272.8,37.7 273.1,37.5 273.4,37.4 273.7,37.2 274,37 274.3,36.8 274.6,36.6 274.9,36.4 275.2,36.2 275.5,36.1 275.8,35.9 276,35.7 276.3,35.5 276.6,35.3 276.9,35.1 277.2,35 277.5,34.8 277.8,34.6 278.1,34.4 278.4,34.2 278.7,34 279,33.8 279.2,33.7 279.5,33.5 279.8,33.3 280.1,33.1 280.4,32.9 280.7,32.7 281,32.5 281.3,32.4 281.6,32.2 281.9,32 282.2,31.8 282.4,31.6 282.7,31.4 283,31.2 283.3,31.1 283.6,30.9 283.9,30.7 284.2,30.5 284.5,30.3 284.8,30.1 285.1,29.9 285.3,29.8 285.6,29.6 285.9,29.4 286.2,29.2 286.5,29 286.8,28.8 287.1,28.7 287.4,28.5 287.7,28.3 288,28.1 288.3,27.9 288.5,27.7 288.8,27.5 289.1,27.4 289.4,27.2 289.7,27 290,26.8" class="sk-accent"/>
+<text x="232" y="122" class="lab-b" text-anchor="middle">Intégrateur K/p</text>
+<line x1="324" y1="94" x2="452" y2="94" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<line x1="334.5" y1="94" x2="334.5" y2="12" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<text x="454" y="98" class="lab-muted lab-it">t</text>
+<polyline points="324,94 334.5,94 334.5,63.2 440,63.2" class="sk-dash"/>
+<line x1="334.5" y1="94" x2="334.5" y2="29.6" class="sk-accent" marker-end="url(#sk-arrow-accent)"/>
+<polyline points="335.9,94 440,94" class="sk-accent"/>
+<text x="382" y="122" class="lab-b" text-anchor="middle">Dérivateur Kp</text>
+<line x1="24" y1="212" x2="152" y2="212" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<line x1="34.5" y1="212" x2="34.5" y2="130" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<text x="154" y="216" class="lab-muted lab-it">t</text>
+<polyline points="24,212 34.5,212 34.5,181.2 140,181.2" class="sk-dash"/>
+<polyline points="24,212 24.3,212 24.6,212 24.9,212 25.2,212 25.5,212 25.7,212 26,212 26.3,212 26.6,212 26.9,212 27.2,212 27.5,212 27.8,212 28.1,212 28.4,212 28.7,212 28.9,212 29.2,212 29.5,212 29.8,212 30.1,212 30.4,212 30.7,212 31,212 31.3,212 31.6,212 31.8,212 32.1,212 32.4,212 32.7,212 33,212 33.3,212 33.6,212 33.9,212 34.2,212 34.5,212 34.8,211.3 35,210.3 35.3,209.4 35.6,208.5 35.9,207.6 36.2,206.7 36.5,205.8 36.8,205 37.1,204.1 37.4,203.3 37.7,202.5 38,201.7 38.2,200.9 38.5,200.1 38.8,199.4 39.1,198.6 39.4,197.9 39.7,197.2 40,196.5 40.3,195.8 40.6,195.1 40.9,194.5 41.2,193.8 41.4,193.2 41.7,192.6 42,192 42.3,191.4 42.6,190.8 42.9,190.2 43.2,189.6 43.5,189 43.8,188.5 44.1,188 44.4,187.4 44.6,186.9 44.9,186.4 45.2,185.9 45.5,185.4 45.8,184.9 46.1,184.4 46.4,184 46.7,183.5 47,183.1 47.3,182.6 47.5,182.2 47.8,181.8 48.1,181.3 48.4,180.9 48.7,180.5 49,180.1 49.3,179.7 49.6,179.4 49.9,179 50.2,178.6 50.5,178.3 50.7,177.9 51,177.6 51.3,177.2 51.6,176.9 51.9,176.5 52.2,176.2 52.5,175.9 52.8,175.6 53.1,175.3 53.4,175 53.7,174.7 53.9,174.4 54.2,174.1 54.5,173.8 54.8,173.6 55.1,173.3 55.4,173 55.7,172.8 56,172.5 56.3,172.3 56.6,172 56.9,171.8 57.1,171.5 57.4,171.3 57.7,171.1 58,170.9 58.3,170.6 58.6,170.4 58.9,170.2 59.2,170 59.5,169.8 59.8,169.6 60.1,169.4 60.3,169.2 60.6,169 60.9,168.8 61.2,168.7 61.5,168.5 61.8,168.3 62.1,168.1 62.4,168 62.7,167.8 63,167.6 63.2,167.5 63.5,167.3 63.8,167.2 64.1,167 64.4,166.9 64.7,166.7 65,166.6 65.3,166.4 65.6,166.3 65.9,166.1 66.2,166 66.4,165.9 66.7,165.8 67,165.6 67.3,165.5 67.6,165.4 67.9,165.3 68.2,165.1 68.5,165 68.8,164.9 69.1,164.8 69.4,164.7 69.6,164.6 69.9,164.5 70.2,164.4 70.5,164.3 70.8,164.2 71.1,164.1 71.4,164 71.7,163.9 72,163.8 72.3,163.7 72.6,163.6 72.8,163.5 73.1,163.4 73.4,163.4 73.7,163.3 74,163.2 74.3,163.1 74.6,163 74.9,163 75.2,162.9 75.5,162.8 75.7,162.7 76,162.7 76.3,162.6 76.6,162.5 76.9,162.5 77.2,162.4 77.5,162.3 77.8,162.3 78.1,162.2 78.4,162.1 78.7,162.1 78.9,162 79.2,162 79.5,161.9 79.8,161.8 80.1,161.8 80.4,161.7 80.7,161.7 81,161.6 81.3,161.6 81.6,161.5 81.9,161.5 82.1,161.4 82.4,161.4 82.7,161.3 83,161.3 83.3,161.2 83.6,161.2 83.9,161.2 84.2,161.1 84.5,161.1 84.8,161 85.1,161 85.3,160.9 85.6,160.9 85.9,160.9 86.2,160.8 86.5,160.8 86.8,160.8 87.1,160.7 87.4,160.7 87.7,160.7 88,160.6 88.3,160.6 88.5,160.6 88.8,160.5 89.1,160.5 89.4,160.5 89.7,160.4 90,160.4 90.3,160.4 90.6,160.3 90.9,160.3 91.2,160.3 91.4,160.3 91.7,160.2 92,160.2 92.3,160.2 92.6,160.2 92.9,160.1 93.2,160.1 93.5,160.1 93.8,160.1 94.1,160 94.4,160 94.6,160 94.9,160 95.2,159.9 95.5,159.9 95.8,159.9 96.1,159.9 96.4,159.9 96.7,159.8 97,159.8 97.3,159.8 97.6,159.8 97.8,159.8 98.1,159.8 98.4,159.7 98.7,159.7 99,159.7 99.3,159.7 99.6,159.7 99.9,159.7 100.2,159.6 100.5,159.6 100.8,159.6 101,159.6 101.3,159.6 101.6,159.6 101.9,159.6 102.2,159.5 102.5,159.5 102.8,159.5 103.1,159.5 103.4,159.5 103.7,159.5 103.9,159.5 104.2,159.4 104.5,159.4 104.8,159.4 105.1,159.4 105.4,159.4 105.7,159.4 106,159.4 106.3,159.4 106.6,159.4 106.9,159.4 107.1,159.3 107.4,159.3 107.7,159.3 108,159.3 108.3,159.3 108.6,159.3 108.9,159.3 109.2,159.3 109.5,159.3 109.8,159.3 110.1,159.2 110.3,159.2 110.6,159.2 110.9,159.2 111.2,159.2 111.5,159.2 111.8,159.2 112.1,159.2 112.4,159.2 112.7,159.2 113,159.2 113.3,159.2 113.5,159.2 113.8,159.2 114.1,159.1 114.4,159.1 114.7,159.1 115,159.1 115.3,159.1 115.6,159.1 115.9,159.1 116.2,159.1 116.5,159.1 116.7,159.1 117,159.1 117.3,159.1 117.6,159.1 117.9,159.1 118.2,159.1 118.5,159.1 118.8,159.1 119.1,159.1 119.4,159 119.6,159 119.9,159 120.2,159 120.5,159 120.8,159 121.1,159 121.4,159 121.7,159 122,159 122.3,159 122.6,159 122.8,159 123.1,159 123.4,159 123.7,159 124,159 124.3,159 124.6,159 124.9,159 125.2,159 125.5,159 125.8,159 126,159 126.3,159 126.6,159 126.9,159 127.2,159 127.5,158.9 127.8,158.9 128.1,158.9 128.4,158.9 128.7,158.9 129,158.9 129.2,158.9 129.5,158.9 129.8,158.9 130.1,158.9 130.4,158.9 130.7,158.9 131,158.9 131.3,158.9 131.6,158.9 131.9,158.9 132.2,158.9 132.4,158.9 132.7,158.9 133,158.9 133.3,158.9 133.6,158.9 133.9,158.9 134.2,158.9 134.5,158.9 134.8,158.9 135.1,158.9 135.3,158.9 135.6,158.9 135.9,158.9 136.2,158.9 136.5,158.9 136.8,158.9 137.1,158.9 137.4,158.9 137.7,158.9 138,158.9 138.3,158.9 138.5,158.9 138.8,158.9 139.1,158.9 139.4,158.9 139.7,158.9 140,158.9" class="sk-accent"/>
+<text x="82" y="240" class="lab-b" text-anchor="middle">Premier ordre</text>
+<line x1="174" y1="212" x2="302" y2="212" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<line x1="184.5" y1="212" x2="184.5" y2="130" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<text x="304" y="216" class="lab-muted lab-it">t</text>
+<polyline points="174,212 184.5,212 184.5,181.2 290,181.2" class="sk-dash"/>
+<polyline points="174,212 174.3,212 174.6,212 174.9,212 175.2,212 175.5,212 175.7,212 176,212 176.3,212 176.6,212 176.9,212 177.2,212 177.5,212 177.8,212 178.1,212 178.4,212 178.7,212 178.9,212 179.2,212 179.5,212 179.8,212 180.1,212 180.4,212 180.7,212 181,212 181.3,212 181.6,212 181.8,212 182.1,212 182.4,212 182.7,212 183,212 183.3,212 183.6,212 183.9,212 184.2,212 184.5,212 184.8,212 185,211.9 185.3,211.8 185.6,211.7 185.9,211.5 186.2,211.2 186.5,210.9 186.8,210.6 187.1,210.2 187.4,209.8 187.7,209.4 188,208.9 188.2,208.4 188.5,207.8 188.8,207.3 189.1,206.6 189.4,206 189.7,205.3 190,204.6 190.3,203.9 190.6,203.1 190.9,202.3 191.2,201.5 191.4,200.7 191.7,199.9 192,199 192.3,198.1 192.6,197.2 192.9,196.3 193.2,195.4 193.5,194.4 193.8,193.5 194.1,192.5 194.4,191.6 194.6,190.6 194.9,189.6 195.2,188.6 195.5,187.6 195.8,186.6 196.1,185.6 196.4,184.6 196.7,183.7 197,182.7 197.3,181.7 197.5,180.7 197.8,179.7 198.1,178.7 198.4,177.8 198.7,176.8 199,175.8 199.3,174.9 199.6,174 199.9,173 200.2,172.1 200.5,171.2 200.7,170.3 201,169.5 201.3,168.6 201.6,167.8 201.9,167 202.2,166.1 202.5,165.4 202.8,164.6 203.1,163.8 203.4,163.1 203.7,162.4 203.9,161.7 204.2,161 204.5,160.3 204.8,159.7 205.1,159.1 205.4,158.5 205.7,157.9 206,157.3 206.3,156.8 206.6,156.3 206.9,155.8 207.1,155.3 207.4,154.9 207.7,154.5 208,154.1 208.3,153.7 208.6,153.3 208.9,153 209.2,152.7 209.5,152.4 209.8,152.1 210.1,151.9 210.3,151.7 210.6,151.5 210.9,151.3 211.2,151.1 211.5,151 211.8,150.8 212.1,150.7 212.4,150.7 212.7,150.6 213,150.6 213.2,150.5 213.5,150.5 213.8,150.5 214.1,150.6 214.4,150.6 214.7,150.7 215,150.8 215.3,150.9 215.6,151 215.9,151.1 216.2,151.2 216.4,151.4 216.7,151.6 217,151.8 217.3,152 217.6,152.2 217.9,152.4 218.2,152.6 218.5,152.9 218.8,153.1 219.1,153.4 219.4,153.7 219.6,154 219.9,154.3 220.2,154.6 220.5,154.9 220.8,155.2 221.1,155.5 221.4,155.8 221.7,156.2 222,156.5 222.3,156.9 222.6,157.2 222.8,157.6 223.1,157.9 223.4,158.3 223.7,158.7 224,159 224.3,159.4 224.6,159.8 224.9,160.1 225.2,160.5 225.5,160.9 225.7,161.2 226,161.6 226.3,162 226.6,162.3 226.9,162.7 227.2,163.1 227.5,163.4 227.8,163.8 228.1,164.1 228.4,164.5 228.7,164.8 228.9,165.2 229.2,165.5 229.5,165.8 229.8,166.2 230.1,166.5 230.4,166.8 230.7,167.1 231,167.4 231.3,167.7 231.6,168 231.9,168.3 232.1,168.6 232.4,168.9 232.7,169.1 233,169.4 233.3,169.6 233.6,169.9 233.9,170.1 234.2,170.3 234.5,170.5 234.8,170.8 235.1,171 235.3,171.2 235.6,171.3 235.9,171.5 236.2,171.7 236.5,171.9 236.8,172 237.1,172.2 237.4,172.3 237.7,172.4 238,172.5 238.3,172.7 238.5,172.8 238.8,172.9 239.1,172.9 239.4,173 239.7,173.1 240,173.2 240.3,173.2 240.6,173.3 240.9,173.3 241.2,173.3 241.4,173.4 241.7,173.4 242,173.4 242.3,173.4 242.6,173.4 242.9,173.4 243.2,173.4 243.5,173.4 243.8,173.3 244.1,173.3 244.4,173.3 244.6,173.2 244.9,173.2 245.2,173.1 245.5,173.1 245.8,173 246.1,172.9 246.4,172.8 246.7,172.8 247,172.7 247.3,172.6 247.6,172.5 247.8,172.4 248.1,172.3 248.4,172.2 248.7,172.1 249,172 249.3,171.9 249.6,171.7 249.9,171.6 250.2,171.5 250.5,171.4 250.8,171.2 251,171.1 251.3,171 251.6,170.9 251.9,170.7 252.2,170.6 252.5,170.5 252.8,170.3 253.1,170.2 253.4,170 253.7,169.9 253.9,169.8 254.2,169.6 254.5,169.5 254.8,169.4 255.1,169.2 255.4,169.1 255.7,168.9 256,168.8 256.3,168.7 256.6,168.5 256.9,168.4 257.1,168.3 257.4,168.1 257.7,168 258,167.9 258.3,167.8 258.6,167.6 258.9,167.5 259.2,167.4 259.5,167.3 259.8,167.2 260.1,167.1 260.3,167 260.6,166.8 260.9,166.7 261.2,166.6 261.5,166.5 261.8,166.4 262.1,166.3 262.4,166.3 262.7,166.2 263,166.1 263.3,166 263.5,165.9 263.8,165.8 264.1,165.8 264.4,165.7 264.7,165.6 265,165.6 265.3,165.5 265.6,165.4 265.9,165.4 266.2,165.3 266.5,165.3 266.7,165.2 267,165.2 267.3,165.2 267.6,165.1 267.9,165.1 268.2,165 268.5,165 268.8,165 269.1,165 269.4,165 269.6,164.9 269.9,164.9 270.2,164.9 270.5,164.9 270.8,164.9 271.1,164.9 271.4,164.9 271.7,164.9 272,164.9 272.3,164.9 272.6,164.9 272.8,164.9 273.1,164.9 273.4,164.9 273.7,165 274,165 274.3,165 274.6,165 274.9,165.1 275.2,165.1 275.5,165.1 275.8,165.1 276,165.2 276.3,165.2 276.6,165.2 276.9,165.3 277.2,165.3 277.5,165.4 277.8,165.4 278.1,165.4 278.4,165.5 278.7,165.5 279,165.6 279.2,165.6 279.5,165.7 279.8,165.7 280.1,165.8 280.4,165.8 280.7,165.9 281,165.9 281.3,166 281.6,166 281.9,166.1 282.2,166.1 282.4,166.2 282.7,166.2 283,166.3 283.3,166.3 283.6,166.4 283.9,166.4 284.2,166.5 284.5,166.5 284.8,166.6 285.1,166.6 285.3,166.7 285.6,166.7 285.9,166.8 286.2,166.8 286.5,166.9 286.8,166.9 287.1,167 287.4,167 287.7,167.1 288,167.1 288.3,167.1 288.5,167.2 288.8,167.2 289.1,167.3 289.4,167.3 289.7,167.3 290,167.4" class="sk-accent"/>
+<text x="232" y="240" class="lab-b" text-anchor="middle">Deuxième ordre (ξ = 0,3)</text>
+<line x1="324" y1="212" x2="452" y2="212" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<line x1="334.5" y1="212" x2="334.5" y2="130" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<text x="454" y="216" class="lab-muted lab-it">t</text>
+<polyline points="324,212 334.5,212 334.5,181.2 440,181.2" class="sk-dash"/>
+<polyline points="324,212 366.2,212" class="sk-accent"/>
+<polyline points="366.2,181.2 440,181.2" class="sk-accent"/>
+<line x1="366.2" y1="212" x2="366.2" y2="181.2" class="sk-accent" style="opacity:.35"/>
+<line x1="335.9" y1="199.7" x2="364.9" y2="199.7" class="sk-ink" marker-start="url(#sk-arrow-ink)" marker-end="url(#sk-arrow-ink)"/>
+<text x="350.4" y="194.7" class="lab-it" text-anchor="middle">T</text>
+<text x="382" y="240" class="lab-b" text-anchor="middle">Retard pur</text>
+</svg>
+<figcaption>Réponse (en trait plein) de chaque brique à un échelon d'entrée (en pointillé) : saut immédiat du gain pur, rampe de l'intégrateur, impulsion du dérivateur, exponentielle du premier ordre, oscillation amortie d'un deuxième ordre peu amorti, échelon décalé du retard pur.</figcaption>
+</figure>
+  <div class="method-box">
+    <strong>Exemple — reconnaître les briques d'une fonction de transfert</strong>
+    <p>\(H(p) = \dfrac{20\,e^{-0{,}1p}}{p\,(1 + 0{,}5p)}\) (position d'un axe commandé en vitesse à travers une liaison qui introduit un temps mort).</p>
+    <ol>
+      <li>Quatre briques en produit : un gain 20 (en \(\text{s}^{-1}\) fois l'unité de \(s\) sur celle de \(e\)), un intégrateur \(\dfrac1p\), un premier ordre de constante de temps \(\tau = 0{,}5\) s et un retard pur \(T = 0{,}1\) s. Ordre 2 (le retard n'ajoute pas d'ordre), classe 1.</li>
+      <li>Réponse à un échelon \(E_0\) : rien pendant 0,1 s (retard), puis un départ à tangente horizontale (le premier ordre arrondit la rampe de l'intégrateur), puis une rampe de pente \(20\,E_0\) par seconde, sans valeur finale.</li>
+      <li>En régime établi, la sortie suit la droite \(20\,E_0\,(t - 0{,}1 - 0{,}5)\) : la rampe a pris le retard \(T\) et le retard de traînage \(\tau\) du premier ordre (chapitre « Systèmes du 1er ordre », §3). À \(t = 2{,}6\) s, \(s \approx 40\,E_0\) (calcul exact : \(40{,}07\,E_0\)).</li>
+    </ol>
+  </div>
+  <div class="notice">Le retard pur n'est pas une fraction rationnelle : il ne se décompose pas en pôles et zéros. Il ne modifie pas le gain d'un signal mais le déphase de plus en plus quand la pulsation augmente, ce qui menace la stabilité d'une boucle (chapitre « Stabilité des systèmes asservis »).</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§6 · ÉTABLIR UN MODÈLE DE CONNAISSANCE</div>
+  <h2>Des lois de la physique à la fonction de transfert</h2>
+  <div class="intro">Un <strong>modèle de connaissance</strong> s'écrit à partir des lois physiques des constituants (loi des mailles, principe fondamental de la dynamique, bilan de matière ou d'énergie) : ses paramètres ont un sens physique (résistance, masse, raideur). Un <strong>modèle de comportement</strong>, au contraire, est choisi pour reproduire une réponse mesurée, et ses paramètres sont lus sur un essai (chapitres du 1er et du 2e ordre, sections « Identifier »). Les sujets combinent les deux : on écrit le modèle de connaissance, puis on le confronte aux mesures.</div>
+  <div class="method-box">
+    <strong>Méthode — écrire le modèle de connaissance</strong>
+    <ol>
+      <li>Choisir l'entrée et la sortie, orienter les grandeurs et repérer les positions à partir de l'équilibre.</li>
+      <li>Écrire une loi par constituant et les lois d'association (maille, nœud, principe fondamental de la dynamique, bilan).</li>
+      <li>Passer en Laplace sous conditions de Heaviside, puis éliminer les grandeurs internes pour ne garder que \(E(p)\) et \(S(p)\).</li>
+      <li>Mettre \(H(p)\) sous forme canonique, exprimer \(K\), \(\tau\) ou \(\omega_0\) et \(\xi\) en fonction des paramètres physiques, et contrôler leurs unités.</li>
+    </ol>
+  </div>
+
+  <h3>Les mêmes équations dans tous les domaines</h3>
+  <p>Chaque domaine physique a une grandeur d'<strong>effort</strong> et une grandeur de <strong>flux</strong>, dont le produit est une puissance, et trois comportements élémentaires : dissiper l'énergie, la stocker sous forme « potentielle », la stocker sous forme « cinétique ». Le tableau permet de transposer un modèle d'un domaine à l'autre ; le formalisme effort-flux est développé en 2ᵉ année (<a href="#multiphy/cours">« Modélisation multiphysique »</a>).</p>
+  <div style="overflow-x:auto"><table>
+    <tr><th>Domaine</th><th>Effort</th><th>Flux</th><th>Dissipation</th><th>Stockage « potentiel »</th><th>Stockage « cinétique »</th></tr>
+    <tr><td>Électrique</td><td>tension \(u\) (V)</td><td>courant \(i\) (A)</td><td>résistance : \(u = R\,i\)</td><td>condensateur : \(i = C\,\dfrac{du}{dt}\)</td><td>bobine : \(u = L\,\dfrac{di}{dt}\)</td></tr>
+    <tr><td>Translation</td><td>force \(F\) (N)</td><td>vitesse \(v\) (m/s)</td><td>amortisseur : \(F = c\,v\)</td><td>ressort : \(F = k\,x\)</td><td>masse : \(F = m\,\dfrac{dv}{dt}\)</td></tr>
+    <tr><td>Rotation</td><td>couple \(C\) (N·m)</td><td>vitesse angulaire \(\omega\) (rad/s)</td><td>frottement visqueux : \(C = f\,\omega\)</td><td>ressort de torsion : \(C = k_\theta\,\theta\)</td><td>inertie : \(C = J\,\dfrac{d\omega}{dt}\)</td></tr>
+    <tr><td>Hydraulique</td><td>pression \(P\) (Pa)</td><td>débit volumique \(q\) (m³/s)</td><td>perte de charge linéaire : \(P = R_h\,q\)</td><td>réservoir : \(q = S\,\dfrac{dh}{dt}\), avec \(P = \rho g h\)</td><td>inertie du fluide (souvent négligée)</td></tr>
+    <tr><td>Thermique</td><td>température \(\theta\) (K)</td><td>flux thermique \(\Phi\) (W)</td><td>paroi : \(\Phi = \dfrac{\Delta\theta}{R_{th}}\)</td><td>capacité : \(\Phi = C\,\dfrac{d\theta}{dt}\)</td><td>aucun</td></tr>
+  </table></div>
+  <div class="notice">En thermique, le produit \(\theta\,\Phi\) n'est pas une puissance (\(\Phi\) en est déjà une) : le couple (température, flux thermique) est un « pseudo-couple » effort-flux, commode mais sans la propriété de puissance.</div>
+
+  <div class="method-box">
+    <strong>Exemple — le circuit RLC série (domaine électrique)</strong>
+    <p>Entrée : tension \(e(t)\) du générateur ; sortie : tension \(u_C(t)\) du condensateur ; \(R = 100\ \Omega\), \(L = 0{,}10\ \text{H}\), \(C = 10\ \mu\text{F}\).</p>
+    <ol>
+      <li>Lois : maille \(e = R\,i + L\,\dfrac{di}{dt} + u_C\) ; condensateur \(i = C\,\dfrac{du_C}{dt}\).</li>
+      <li>Élimination du courant : \(LC\,u_C'' + RC\,u_C' + u_C = e\).</li>
+      <li>Laplace : \(H(p) = \dfrac{U_C(p)}{E(p)} = \dfrac{1}{1 + RC\,p + LC\,p^2}\), forme canonique d'un deuxième ordre.</li>
+      <li>Identification : \(K = 1\), \(\dfrac{1}{\omega_0^2} = LC\) et \(\dfrac{2\xi}{\omega_0} = RC\), soit \(\omega_0 = \dfrac{1}{\sqrt{LC}} = 1{,}0\times 10^{3}\ \text{rad/s}\) et \(\xi = \dfrac{R}{2}\sqrt{\dfrac{C}{L}} = 0{,}50\).</li>
+    </ol>
+    <p>En physique, on décrit le même circuit par son facteur de qualité \(Q = \dfrac{1}{2\xi} = 1\) (chapitre <a href="#oscill/cours">« Oscillateurs harmoniques »</a>).</p>
+  </div>
+
+  <div class="method-box">
+    <strong>Exemple — la suspension d'un quart de véhicule (translation)</strong>
+    <p>Masse suspendue \(m = 250\ \text{kg}\), ressort \(k = 2{,}5\times 10^{4}\ \text{N/m}\), amortisseur \(c = 2{,}0\times 10^{3}\ \text{N·s/m}\). Entrée : force verticale supplémentaire \(F(t)\) (une charge posée) ; sortie : enfoncement \(x(t)\), compté vers le bas à partir de la position d'équilibre sous le poids.</p>
+    <ol>
+      <li>Principe fondamental de la dynamique, projeté sur la verticale : \(m\,x'' = F - k\,x - c\,x'\). Le poids et la tension initiale du ressort se compensent à l'équilibre : ils disparaissent, et le système est bien au repos à \(t = 0\).</li>
+      <li>Laplace : \((m\,p^2 + c\,p + k)\,X(p) = F(p)\), soit \(H(p) = \dfrac{X(p)}{F(p)} = \dfrac{1/k}{1 + \dfrac{c}{k}\,p + \dfrac{m}{k}\,p^2}\).</li>
+      <li>Identification : \(K = \dfrac1k = 4{,}0\times 10^{-5}\ \text{m/N}\), \(\omega_0 = \sqrt{\dfrac{k}{m}} = 10\ \text{rad/s}\), \(\xi = \dfrac{c}{2\sqrt{km}} = 0{,}40\).</li>
+      <li>Lecture : une charge de 1 000 N (un passager d'environ 100 kg) enfonce finalement la caisse de \(K \times 1000 = 4{,}0\) cm, après un dépassement d'environ 25 % (formule du dépassement, chapitre « Systèmes du 2e ordre »).</li>
+    </ol>
+  </div>
+  <div class="method-box">
+    <strong>Exemple — un rotor freiné par frottement visqueux (rotation)</strong>
+    <p>Inertie \(J = 0{,}020\ \text{kg·m}^2\), frottement visqueux \(f = 4{,}0\times 10^{-3}\ \text{N·m·s/rad}\), entrée : couple moteur \(C_m\) ; sortie : vitesse \(\omega\).</p>
+    <ol>
+      <li>Théorème du moment dynamique autour de l'axe : \(J\,\omega' = C_m - f\,\omega\).</li>
+      <li>\(H(p) = \dfrac{\Omega(p)}{C_m(p)} = \dfrac{1/f}{1 + \dfrac{J}{f}\,p}\) : premier ordre, \(K = \dfrac1f = 250\ \text{rad·s}^{-1}/(\text{N·m})\), \(\tau = \dfrac{J}{f} = 5{,}0\ \text{s}\).</li>
+      <li>Un couple de 0,10 N·m mène le rotor à \(0{,}10 \times 250 = 25\ \text{rad/s}\) (240 tr/min), atteint à 5 % près en \(3\tau = 15\) s.</li>
+    </ol>
+  </div>
+  <div class="notice"><strong>Erreurs classiques</strong> : se tromper de signe sur une force de rappel ou de frottement (elles s'opposent au déplacement ou à la vitesse) ; repérer une position ailleurs qu'à l'équilibre (un terme constant subsiste, le système n'est pas au repos à \(t = 0\)) ; écrire \(H(p)\) avant d'avoir éliminé toutes les grandeurs internes. Contrôle systématique : tous les termes d'une équation ont la même unité, \(K\) a l'unité de la sortie divisée par celle de l'entrée, \(\tau\) est en secondes et \(\omega_0\) en rad/s.</div>
+  <div class="prop-box">
+    <strong>Ordres de grandeur des constantes de temps.</strong> Circuit électronique : de la microseconde à la milliseconde ; moteur électrique de petite puissance : 10 ms à 1 s ; suspension automobile : \(\omega_0 \approx 6\) à \(12\ \text{rad/s}\) (1 à 2 Hz) ; réservoir, échangeur : la minute ; four, pièce d'habitation : de quelques minutes à quelques heures.
+  </div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§7 · EXPLOITER UNE FONCTION DE TRANSFERT SANS REVENIR AU TEMPS</div>
+  <h2>Ce qu'un sujet demande vraiment</h2>
+  <div class="intro">La transformée inverse n'étant pas au programme, les questions de modélisation portent sur ce que l'on tire directement de \(H(p)\) et de \(S(p) = H(p)\,E(p)\) : la stabilité, la fin de la réponse, son début, et sa réponse à une sinusoïde. Ces quatre lectures se font en quelques lignes.</div>
+  <div class="prop-box">
+    <strong>Quatre lectures directes</strong> (\(H\) d'ordre \(n\), à \(m\) zéros, \(m \leq n\)) :
+    <ul>
+      <li><strong>Stabilité</strong> : tous les pôles de \(H\) à partie réelle strictement négative (§4).</li>
+      <li><strong>Valeur finale</strong> : si les pôles de \(p\,S(p)\) sont tous à partie réelle strictement négative, \(s(+\infty) = \lim\limits_{p \to 0} p\,S(p)\). Pour un échelon \(E_0\) appliqué à un système stable de classe 0 : \(s(+\infty) = H(0)\,E_0 = K\,E_0\). Pour une classe \(\alpha \geq 1\), la sortie ne converge pas.</li>
+      <li><strong>Valeur initiale</strong> : \(s(0^+) = \lim\limits_{p \to +\infty} p\,S(p)\). Pour un échelon, elle est nulle dès que \(m \lt n\).</li>
+      <li><strong>Pente à l'origine</strong> : si \(s(0^+) = 0\), la transformée de \(s'\) est \(p\,S(p)\), d'où la formule ci-dessous. Pour un échelon, la tangente à l'origine est oblique si \(n - m = 1\), horizontale si \(n - m \geq 2\).</li>
+    </ul>
+    <div class="formula" data-nom="Pente à l'origine">$$s'(0^+) = \lim_{p \to +\infty} p^2\,S(p)\qquad\text{lorsque } s(0^+) = 0.$$</div>
+  </div>
+  <div class="method-box">
+    <strong>Exemple — lire une réponse indicielle sur \(S(p)\)</strong>
+    <p>\(H(p) = \dfrac{6\,(1 + 0{,}2p)}{(1 + p)(1 + 0{,}5p)}\), échelon \(E_0 = 2\) : \(S(p) = \dfrac{12\,(1 + 0{,}2p)}{p\,(1 + p)(1 + 0{,}5p)}\).</p>
+    <ol>
+      <li>Pôles de \(H\) : \(-1\) et \(-2\). Le système est stable ; classe 0, donc \(s(+\infty) = H(0)\,E_0 = 6 \times 2 = 12\).</li>
+      <li>\(n - m = 2 - 1 = 1\) : \(s(0^+) = \lim\limits_{p \to +\infty} \dfrac{12\,(1 + 0{,}2p)}{(1 + p)(1 + 0{,}5p)} = 0\) (degré 1 sur degré 2).</li>
+      <li>\(s'(0^+) = \lim\limits_{p \to +\infty} p^2\,S(p)\) : pour \(p\) grand, \(p^2 S(p) = \dfrac{12\,p\,(1 + 0{,}2p)}{(1 + p)(1 + 0{,}5p)}\) se comporte comme \(\dfrac{12 \times 0{,}2\,p^2}{0{,}5\,p^2}\), d'où \(s'(0^+) = 4{,}8\) par seconde : la tangente à l'origine est oblique.</li>
+      <li>Sans le zéro, avec \(H(p) = \dfrac{6}{(1 + p)(1 + 0{,}5p)}\), la même limite vaudrait 0 : c'est le zéro qui donne ce départ franc.</li>
+    </ol>
+  </div>
+  <figure class="schema">
+<svg viewBox="0 0 440 222" role="img" aria-label="Réponse à un échelon de hauteur 2 du système de fonction de transfert 6(1 + 0,2p) sur (1 + p)(1 + 0,5p) : valeur initiale nulle, pente initiale 4,8, valeur finale 12">
+<line x1="46" y1="192" x2="418" y2="192" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<line x1="46" y1="192" x2="46" y2="10" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<text x="420" y="196" class="lab-muted lab-it">t (s)</text>
+<text x="42" y="8" class="lab-muted lab-it" text-anchor="end">s(t)</text>
+<line x1="106" y1="192" x2="106" y2="196" class="sk-axis"/>
+<text x="106" y="209" class="lab-muted" text-anchor="middle">1</text>
+<line x1="166" y1="192" x2="166" y2="196" class="sk-axis"/>
+<text x="166" y="209" class="lab-muted" text-anchor="middle">2</text>
+<line x1="226" y1="192" x2="226" y2="196" class="sk-axis"/>
+<text x="226" y="209" class="lab-muted" text-anchor="middle">3</text>
+<line x1="286" y1="192" x2="286" y2="196" class="sk-axis"/>
+<text x="286" y="209" class="lab-muted" text-anchor="middle">4</text>
+<line x1="346" y1="192" x2="346" y2="196" class="sk-axis"/>
+<text x="346" y="209" class="lab-muted" text-anchor="middle">5</text>
+<line x1="42" y1="143.4" x2="46" y2="143.4" class="sk-axis"/>
+<text x="39" y="147.4" class="lab-muted" text-anchor="end">4</text>
+<line x1="42" y1="94.9" x2="46" y2="94.9" class="sk-axis"/>
+<text x="39" y="98.9" class="lab-muted" text-anchor="end">8</text>
+<line x1="42" y1="46.3" x2="46" y2="46.3" class="sk-axis"/>
+<text x="39" y="50.3" class="lab-muted" text-anchor="end">12</text>
+<rect x="46" y="39" width="360" height="14.6" class="fl-green-soft"/>
+<line x1="46" y1="46.3" x2="406" y2="46.3" class="sk-dash"/>
+<text x="403" y="34" class="lab-green" text-anchor="end">s(∞) = lim pS(p) = 12</text>
+<line x1="46" y1="192" x2="196" y2="46.3" class="sk-accent2"/>
+<text x="53.2" y="59.6" class="lab-accent2">pente s′(0⁺) = 4,8</text>
+<text x="53.2" y="74.6" class="lab-accent2">= lim p²S(p)</text>
+<polyline points="46,192 46.6,191.4 47.2,190.8 47.8,190.2 48.4,189.6 49,188.9 49.6,188.3 50.2,187.7 50.8,187 51.4,186.3 52,185.7 52.6,185 53.2,184.3 53.8,183.6 54.4,182.9 55,182.2 55.6,181.5 56.2,180.7 56.8,180 57.4,179.3 58,178.5 58.6,177.8 59.2,177.1 59.8,176.3 60.4,175.6 61,174.8 61.6,174 62.2,173.3 62.8,172.5 63.4,171.7 64,171 64.6,170.2 65.2,169.4 65.8,168.7 66.4,167.9 67,167.1 67.6,166.3 68.2,165.6 68.8,164.8 69.4,164 70,163.2 70.6,162.5 71.2,161.7 71.8,160.9 72.4,160.1 73,159.3 73.6,158.6 74.2,157.8 74.8,157 75.4,156.2 76.1,155.5 76.7,154.7 77.3,153.9 77.9,153.2 78.5,152.4 79.1,151.6 79.7,150.9 80.3,150.1 80.9,149.3 81.5,148.6 82.1,147.8 82.7,147.1 83.3,146.3 83.9,145.6 84.5,144.8 85.1,144.1 85.7,143.3 86.3,142.6 86.9,141.9 87.5,141.1 88.1,140.4 88.7,139.7 89.3,139 89.9,138.2 90.5,137.5 91.1,136.8 91.7,136.1 92.3,135.4 92.9,134.7 93.5,134 94.1,133.3 94.7,132.6 95.3,131.9 95.9,131.2 96.5,130.5 97.1,129.9 97.7,129.2 98.3,128.5 98.9,127.8 99.5,127.2 100.1,126.5 100.7,125.9 101.3,125.2 101.9,124.6 102.5,123.9 103.1,123.3 103.7,122.6 104.3,122 104.9,121.4 105.5,120.7 106.1,120.1 106.7,119.5 107.3,118.9 107.9,118.3 108.5,117.7 109.1,117.1 109.7,116.5 110.3,115.9 110.9,115.3 111.5,114.7 112.1,114.1 112.7,113.5 113.3,112.9 113.9,112.4 114.5,111.8 115.1,111.2 115.7,110.7 116.3,110.1 116.9,109.6 117.5,109 118.1,108.5 118.7,107.9 119.3,107.4 119.9,106.9 120.5,106.3 121.1,105.8 121.7,105.3 122.3,104.8 122.9,104.2 123.5,103.7 124.1,103.2 124.7,102.7 125.3,102.2 125.9,101.7 126.5,101.2 127.1,100.7 127.7,100.3 128.3,99.8 128.9,99.3 129.5,98.8 130.1,98.4 130.7,97.9 131.3,97.4 131.9,97 132.5,96.5 133.1,96.1 133.7,95.6 134.3,95.2 134.9,94.7 135.5,94.3 136.2,93.8 136.8,93.4 137.4,93 138,92.6 138.6,92.1 139.2,91.7 139.8,91.3 140.4,90.9 141,90.5 141.6,90.1 142.2,89.7 142.8,89.3 143.4,88.9 144,88.5 144.6,88.1 145.2,87.7 145.8,87.3 146.4,87 147,86.6 147.6,86.2 148.2,85.9 148.8,85.5 149.4,85.1 150,84.8 150.6,84.4 151.2,84.1 151.8,83.7 152.4,83.4 153,83 153.6,82.7 154.2,82.3 154.8,82 155.4,81.7 156,81.3 156.6,81 157.2,80.7 157.8,80.4 158.4,80 159,79.7 159.6,79.4 160.2,79.1 160.8,78.8 161.4,78.5 162,78.2 162.6,77.9 163.2,77.6 163.8,77.3 164.4,77 165,76.7 165.6,76.4 166.2,76.1 166.8,75.9 167.4,75.6 168,75.3 168.6,75 169.2,74.8 169.8,74.5 170.4,74.2 171,74 171.6,73.7 172.2,73.4 172.8,73.2 173.4,72.9 174,72.7 174.6,72.4 175.2,72.2 175.8,71.9 176.4,71.7 177,71.4 177.6,71.2 178.2,71 178.8,70.7 179.4,70.5 180,70.3 180.6,70 181.2,69.8 181.8,69.6 182.4,69.4 183,69.1 183.6,68.9 184.2,68.7 184.8,68.5 185.4,68.3 186,68.1 186.6,67.9 187.2,67.6 187.8,67.4 188.4,67.2 189,67 189.6,66.8 190.2,66.6 190.8,66.4 191.4,66.2 192,66.1 192.6,65.9 193.2,65.7 193.8,65.5 194.4,65.3 195,65.1 195.6,64.9 196.3,64.8 196.9,64.6 197.5,64.4 198.1,64.2 198.7,64.1 199.3,63.9 199.9,63.7 200.5,63.5 201.1,63.4 201.7,63.2 202.3,63 202.9,62.9 203.5,62.7 204.1,62.6 204.7,62.4 205.3,62.3 205.9,62.1 206.5,61.9 207.1,61.8 207.7,61.6 208.3,61.5 208.9,61.3 209.5,61.2 210.1,61.1 210.7,60.9 211.3,60.8 211.9,60.6 212.5,60.5 213.1,60.3 213.7,60.2 214.3,60.1 214.9,59.9 215.5,59.8 216.1,59.7 216.7,59.5 217.3,59.4 217.9,59.3 218.5,59.2 219.1,59 219.7,58.9 220.3,58.8 220.9,58.7 221.5,58.5 222.1,58.4 222.7,58.3 223.3,58.2 223.9,58.1 224.5,58 225.1,57.8 225.7,57.7 226.3,57.6 226.9,57.5 227.5,57.4 228.1,57.3 228.7,57.2 229.3,57.1 229.9,57 230.5,56.9 231.1,56.8 231.7,56.7 232.3,56.6 232.9,56.5 233.5,56.4 234.1,56.3 234.7,56.2 235.3,56.1 235.9,56 236.5,55.9 237.1,55.8 237.7,55.7 238.3,55.6 238.9,55.5 239.5,55.4 240.1,55.3 240.7,55.2 241.3,55.1 241.9,55.1 242.5,55 243.1,54.9 243.7,54.8 244.3,54.7 244.9,54.6 245.5,54.6 246.1,54.5 246.7,54.4 247.3,54.3 247.9,54.2 248.5,54.2 249.1,54.1 249.7,54 250.3,53.9 250.9,53.9 251.5,53.8 252.1,53.7 252.7,53.6 253.3,53.6 253.9,53.5 254.5,53.4 255.1,53.3 255.7,53.3 256.4,53.2 257,53.1 257.6,53.1 258.2,53 258.8,52.9 259.4,52.9 260,52.8 260.6,52.7 261.2,52.7 261.8,52.6 262.4,52.6 263,52.5 263.6,52.4 264.2,52.4 264.8,52.3 265.4,52.3 266,52.2 266.6,52.1 267.2,52.1 267.8,52 268.4,52 269,51.9 269.6,51.8 270.2,51.8 270.8,51.7 271.4,51.7 272,51.6 272.6,51.6 273.2,51.5 273.8,51.5 274.4,51.4 275,51.4 275.6,51.3 276.2,51.3 276.8,51.2 277.4,51.2 278,51.1 278.6,51.1 279.2,51 279.8,51 280.4,50.9 281,50.9 281.6,50.8 282.2,50.8 282.8,50.8 283.4,50.7 284,50.7 284.6,50.6 285.2,50.6 285.8,50.5 286.4,50.5 287,50.5 287.6,50.4 288.2,50.4 288.8,50.3 289.4,50.3 290,50.3 290.6,50.2 291.2,50.2 291.8,50.1 292.4,50.1 293,50.1 293.6,50 294.2,50 294.8,50 295.4,49.9 296,49.9 296.6,49.8 297.2,49.8 297.8,49.8 298.4,49.7 299,49.7 299.6,49.7 300.2,49.6 300.8,49.6 301.4,49.6 302,49.5 302.6,49.5 303.2,49.5 303.8,49.4 304.4,49.4 305,49.4 305.6,49.3 306.2,49.3 306.8,49.3 307.4,49.3 308,49.2 308.6,49.2 309.2,49.2 309.8,49.1 310.4,49.1 311,49.1 311.6,49.1 312.2,49 312.8,49 313.4,49 314,48.9 314.6,48.9 315.2,48.9 315.8,48.9 316.5,48.8 317.1,48.8 317.7,48.8 318.3,48.8 318.9,48.7 319.5,48.7 320.1,48.7 320.7,48.7 321.3,48.6 321.9,48.6 322.5,48.6 323.1,48.6 323.7,48.6 324.3,48.5 324.9,48.5 325.5,48.5 326.1,48.5 326.7,48.4 327.3,48.4 327.9,48.4 328.5,48.4 329.1,48.4 329.7,48.3 330.3,48.3 330.9,48.3 331.5,48.3 332.1,48.3 332.7,48.2 333.3,48.2 333.9,48.2 334.5,48.2 335.1,48.2 335.7,48.1 336.3,48.1 336.9,48.1 337.5,48.1 338.1,48.1 338.7,48.1 339.3,48 339.9,48 340.5,48 341.1,48 341.7,48 342.3,48 342.9,47.9 343.5,47.9 344.1,47.9 344.7,47.9 345.3,47.9 345.9,47.9 346.5,47.8 347.1,47.8 347.7,47.8 348.3,47.8 348.9,47.8 349.5,47.8 350.1,47.7 350.7,47.7 351.3,47.7 351.9,47.7 352.5,47.7 353.1,47.7 353.7,47.7 354.3,47.7 354.9,47.6 355.5,47.6 356.1,47.6 356.7,47.6 357.3,47.6 357.9,47.6 358.5,47.6 359.1,47.5 359.7,47.5 360.3,47.5 360.9,47.5 361.5,47.5 362.1,47.5 362.7,47.5 363.3,47.5 363.9,47.4 364.5,47.4 365.1,47.4 365.7,47.4 366.3,47.4 366.9,47.4 367.5,47.4 368.1,47.4 368.7,47.4 369.3,47.3 369.9,47.3 370.5,47.3 371.1,47.3 371.7,47.3 372.3,47.3 372.9,47.3 373.5,47.3 374.1,47.3 374.7,47.3 375.3,47.2 375.9,47.2 376.6,47.2 377.2,47.2 377.8,47.2 378.4,47.2 379,47.2 379.6,47.2 380.2,47.2 380.8,47.2 381.4,47.2 382,47.1 382.6,47.1 383.2,47.1 383.8,47.1 384.4,47.1 385,47.1 385.6,47.1 386.2,47.1 386.8,47.1 387.4,47.1 388,47.1 388.6,47.1 389.2,47 389.8,47 390.4,47 391,47 391.6,47 392.2,47 392.8,47 393.4,47 394,47 394.6,47 395.2,47 395.8,47 396.4,47 397,47 397.6,46.9 398.2,46.9 398.8,46.9 399.4,46.9 400,46.9 400.6,46.9 401.2,46.9 401.8,46.9 402.4,46.9 403,46.9 403.6,46.9 404.2,46.9 404.8,46.9 405.4,46.9 406,46.9" class="sk-accent"/>
+<line x1="253.2" y1="192" x2="253.2" y2="53.6" class="sk-dash"/>
+<text x="258.2" y="165.3" class="lab-muted">temps de réponse à 5 % ≈ 3,45 s</text>
+<circle cx="46" cy="192" r="3" class="fl-ink"/>
+</svg>
+<figcaption>Réponse à un échelon \(E_0 = 2\) de \(H(p) = \dfrac{6\,(1 + 0{,}2p)}{(1 + p)(1 + 0{,}5p)}\). Les trois informations notées sur la figure se lisent sur \(S(p)\) sans revenir au temps : départ de zéro (valeur initiale nulle), pente à l'origine (droite en bleu) et valeur finale (bande verte de ± 5 %). La courbe elle-même est tracée à partir de l'expression exacte.</figcaption>
+</figure>
+  <h3>Réponse à une entrée sinusoïdale</h3>
+  <div class="prop-box">
+    <strong>Régime sinusoïdal permanent.</strong> Pour un SLCI stable soumis à \(e(t) = E_m \sin(\omega t)\), la sortie tend, une fois le régime transitoire éteint, vers une sinusoïde de même pulsation :
+    <div class="formula" data-nom="Régime sinusoïdal permanent">$$s(t) = \big|H(j\omega)\big|\,E_m\,\sin\!\big(\omega t + \arg H(j\omega)\big).$$</div>
+    Il suffit de remplacer \(p\) par \(j\omega\) : le module donne l'amplification, l'argument le déphasage. C'est le point de départ du chapitre <a href="#bode/cours">« Réponse fréquentielle et diagrammes de Bode »</a>.
+  </div>
+  <div class="method-box">
+    <strong>Exemple — un premier ordre excité à sa pulsation de cassure</strong>
+    <p>\(H(p) = \dfrac{4}{1 + 0{,}5p}\) et \(e(t) = 3\sin(2t)\).</p>
+    <ol>
+      <li>\(H(2j) = \dfrac{4}{1 + j}\) : module \(\dfrac{4}{\sqrt 2} \approx 2{,}83\), argument \(-\arctan 1 = -45°\).</li>
+      <li>Une fois le transitoire éteint (environ \(3\tau = 1{,}5\) s) : \(s(t) \approx 8{,}5\,\sin\!\big(2t - \tfrac{\pi}{4}\big)\).</li>
+    </ol>
+  </div>
+  <div class="notice"><strong>Erreurs classiques</strong> : calculer \(\lim S(p)\) au lieu de \(\lim p\,S(p)\) ; appliquer le théorème de la valeur finale à un système instable, ou de classe \(\alpha \geq 1\) soumis à un échelon (sa sortie diverge) ; utiliser \(\lim p^2 S(p)\) pour la pente alors que \(s(0^+) \neq 0\) (il faut alors \(\lim p\,\big(p\,S(p) - s(0^+)\big)\), puisque \(\mathcal{L}[s'] = p\,S(p) - s(0^+)\)) ; parler de régime sinusoïdal permanent pour un système instable.</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§8 · SIMULER UN SLCI EN PYTHON</div>
+  <h2>La réponse calculée pas à pas</h2>
+  <div class="intro">Quand l'entrée est quelconque (profil de consigne, perturbation enregistrée) ou le modèle trop gros pour une lecture directe, on calcule la réponse numériquement, sur l'équation différentielle elle-même. C'est ce que font les logiciels de simulation utilisés en TP ; en Python, la méthode d'Euler du chapitre <a href="#pynum/cours">« Méthodes numériques »</a> suffit : on y reprend la fonction <code>euler</code> de son §6.</div>
+  <div class="method-box">
+    <strong>Exemple — simuler la rampe saturée du §2 à travers un premier ordre</strong>
+    <p>Premier ordre \(K = 2\), \(\tau = 0{,}5\ \text{s}\) : \(\tau\,s' + s = K\,e\), soit \(s' = \dfrac{K\,e(t) - s}{\tau}\), avec \(s(0) = 0\).</p>
+    <pre class="codeblock"><span class="kw">def</span> euler(F, t0, y0, h, n):
+    <span class="str">"""Méthode d'Euler pour y' = F(t, y), y(t0) = y0 : renvoie les listes</span>
+<span class="str">    des instants t_k = t0 + k*h et des approximations y_k de y(t_k), k = 0, …, n."""</span>
+    ts, ys = [t0], [y0]
+    y = y0
+    <span class="kw">for</span> k <span class="kw">in</span> range(n):
+        y = y + h * F(t0 + k * h, y)      <span class="cmt"># pente au point (t_k, y_k)</span>
+        ts.append(t0 + (k + 1) * h)
+        ys.append(y)
+    <span class="kw">return</span> ts, ys
+
+K, tau = 2.0, 0.5           <span class="cmt"># premier ordre K / (1 + tau p)</span>
+
+<span class="kw">def</span> e(t):                    <span class="cmt"># rampe saturée, palier 2 V</span>
+    <span class="kw">return</span> 4 * t <span class="kw">if</span> t &lt; 0.5 <span class="kw">else</span> 2.0
+
+<span class="kw">def</span> F(t, s):                 <span class="cmt"># tau s' + s = K e</span>
+    <span class="kw">return</span> (K * e(t) - s) / tau</pre>
+    <pre class="codeblock">&gt;&gt;&gt; ts, ss = euler(F, 0, 0.0, 0.05, 40)  <span class="cmt"># jusqu'à t = 2 s</span>
+&gt;&gt;&gt; round(ss[20], 3), round(ss[40], 3)   <span class="cmt"># s(1), s(2)</span>
+(3.092, 3.89)</pre>
+    <ol>
+      <li>La solution exacte vaut \(s(1) = 3{,}070\) et \(s(2) = 3{,}874\) : avec \(h = \tau/10\), l'écart est inférieur à 1 %.</li>
+      <li>Avec \(h = 0{,}01\) s, on obtient \(s(1) \approx 3{,}074\) et \(s(2) \approx 3{,}877\) : l'erreur de la méthode d'Euler est proportionnelle au pas.</li>
+      <li>La valeur finale, \(K \times 2 = 4\), est confirmée par le théorème du §2.</li>
+    </ol>
+  </div>
+  <figure class="schema">
+<svg viewBox="0 0 440 222" role="img" aria-label="Réponse d'un premier ordre K = 2, tau = 0,5 s à une rampe saturée : solution exacte et méthode d'Euler avec deux pas">
+<line x1="46" y1="192" x2="418" y2="192" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<line x1="46" y1="192" x2="46" y2="10" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<text x="420" y="196" class="lab-muted lab-it">t (s)</text>
+<line x1="106" y1="192" x2="106" y2="196" class="sk-axis"/>
+<text x="106" y="209" class="lab-muted" text-anchor="middle">0,5</text>
+<line x1="166" y1="192" x2="166" y2="196" class="sk-axis"/>
+<text x="166" y="209" class="lab-muted" text-anchor="middle">1</text>
+<line x1="226" y1="192" x2="226" y2="196" class="sk-axis"/>
+<text x="226" y="209" class="lab-muted" text-anchor="middle">1,5</text>
+<line x1="286" y1="192" x2="286" y2="196" class="sk-axis"/>
+<text x="286" y="209" class="lab-muted" text-anchor="middle">2</text>
+<line x1="346" y1="192" x2="346" y2="196" class="sk-axis"/>
+<text x="346" y="209" class="lab-muted" text-anchor="middle">2,5</text>
+<line x1="42" y1="155" x2="46" y2="155" class="sk-axis"/>
+<text x="39" y="159" class="lab-muted" text-anchor="end">1</text>
+<line x1="42" y1="118.1" x2="46" y2="118.1" class="sk-axis"/>
+<text x="39" y="122.1" class="lab-muted" text-anchor="end">2</text>
+<line x1="42" y1="81.1" x2="46" y2="81.1" class="sk-axis"/>
+<text x="39" y="85.1" class="lab-muted" text-anchor="end">3</text>
+<line x1="42" y1="44.2" x2="46" y2="44.2" class="sk-axis"/>
+<text x="39" y="48.2" class="lab-muted" text-anchor="end">4</text>
+<polyline points="46,192 46.6,190.5 47.2,189 47.8,187.6 48.4,186.1 49,184.6 49.6,183.1 50.2,181.7 50.8,180.2 51.4,178.7 52,177.2 52.6,175.7 53.2,174.3 53.8,172.8 54.4,171.3 55,169.8 55.6,168.3 56.2,166.9 56.8,165.4 57.4,163.9 58,162.4 58.6,161 59.2,159.5 59.8,158 60.4,156.5 61,155 61.6,153.6 62.2,152.1 62.8,150.6 63.4,149.1 64,147.7 64.6,146.2 65.2,144.7 65.8,143.2 66.4,141.7 67,140.3 67.6,138.8 68.2,137.3 68.8,135.8 69.4,134.3 70,132.9 70.6,131.4 71.2,129.9 71.8,128.4 72.4,127 73,125.5 73.6,124 74.2,122.5 74.8,121 75.4,119.6 76,118.1 76.6,116.6 77.2,115.1 77.8,113.7 78.4,112.2 79,110.7 79.6,109.2 80.2,107.7 80.8,106.3 81.4,104.8 82,103.3 82.6,101.8 83.2,100.3 83.8,98.9 84.4,97.4 85,95.9 85.6,94.4 86.2,93 86.8,91.5 87.4,90 88,88.5 88.6,87 89.2,85.6 89.8,84.1 90.4,82.6 91,81.1 91.6,79.7 92.2,78.2 92.8,76.7 93.4,75.2 94,73.7 94.6,72.3 95.2,70.8 95.8,69.3 96.4,67.8 97,66.3 97.6,64.9 98.2,63.4 98.8,61.9 99.4,60.4 100,59 100.6,57.5 101.2,56 101.8,54.5 102.4,53 103,51.6 103.6,50.1 104.2,48.6 104.8,47.1 105.4,45.7 106,44.2 106.6,44.2 107.2,44.2 107.8,44.2 108.4,44.2 109,44.2 109.6,44.2 110.2,44.2 110.8,44.2 111.4,44.2 112,44.2 112.6,44.2 113.2,44.2 113.8,44.2 114.4,44.2 115,44.2 115.6,44.2 116.2,44.2 116.8,44.2 117.4,44.2 118,44.2 118.6,44.2 119.2,44.2 119.8,44.2 120.4,44.2 121,44.2 121.6,44.2 122.2,44.2 122.8,44.2 123.4,44.2 124,44.2 124.6,44.2 125.2,44.2 125.8,44.2 126.4,44.2 127,44.2 127.6,44.2 128.2,44.2 128.8,44.2 129.4,44.2 130,44.2 130.6,44.2 131.2,44.2 131.8,44.2 132.4,44.2 133,44.2 133.6,44.2 134.2,44.2 134.8,44.2 135.4,44.2 136,44.2 136.6,44.2 137.2,44.2 137.8,44.2 138.4,44.2 139,44.2 139.6,44.2 140.2,44.2 140.8,44.2 141.4,44.2 142,44.2 142.6,44.2 143.2,44.2 143.8,44.2 144.4,44.2 145,44.2 145.6,44.2 146.2,44.2 146.8,44.2 147.4,44.2 148,44.2 148.6,44.2 149.2,44.2 149.8,44.2 150.4,44.2 151,44.2 151.6,44.2 152.2,44.2 152.8,44.2 153.4,44.2 154,44.2 154.6,44.2 155.2,44.2 155.8,44.2 156.4,44.2 157,44.2 157.6,44.2 158.2,44.2 158.8,44.2 159.4,44.2 160,44.2 160.6,44.2 161.2,44.2 161.8,44.2 162.4,44.2 163,44.2 163.6,44.2 164.2,44.2 164.8,44.2 165.4,44.2 166,44.2 166.6,44.2 167.2,44.2 167.8,44.2 168.4,44.2 169,44.2 169.6,44.2 170.2,44.2 170.8,44.2 171.4,44.2 172,44.2 172.6,44.2 173.2,44.2 173.8,44.2 174.4,44.2 175,44.2 175.6,44.2 176.2,44.2 176.8,44.2 177.4,44.2 178,44.2 178.6,44.2 179.2,44.2 179.8,44.2 180.4,44.2 181,44.2 181.6,44.2 182.2,44.2 182.8,44.2 183.4,44.2 184,44.2 184.6,44.2 185.2,44.2 185.8,44.2 186.4,44.2 187,44.2 187.6,44.2 188.2,44.2 188.8,44.2 189.4,44.2 190,44.2 190.6,44.2 191.2,44.2 191.8,44.2 192.4,44.2 193,44.2 193.6,44.2 194.2,44.2 194.8,44.2 195.4,44.2 196,44.2 196.6,44.2 197.2,44.2 197.8,44.2 198.4,44.2 199,44.2 199.6,44.2 200.2,44.2 200.8,44.2 201.4,44.2 202,44.2 202.6,44.2 203.2,44.2 203.8,44.2 204.4,44.2 205,44.2 205.6,44.2 206.2,44.2 206.8,44.2 207.4,44.2 208,44.2 208.6,44.2 209.2,44.2 209.8,44.2 210.4,44.2 211,44.2 211.6,44.2 212.2,44.2 212.8,44.2 213.4,44.2 214,44.2 214.6,44.2 215.2,44.2 215.8,44.2 216.4,44.2 217,44.2 217.6,44.2 218.2,44.2 218.8,44.2 219.4,44.2 220,44.2 220.6,44.2 221.2,44.2 221.8,44.2 222.4,44.2 223,44.2 223.6,44.2 224.2,44.2 224.8,44.2 225.4,44.2 226,44.2 226.6,44.2 227.2,44.2 227.8,44.2 228.4,44.2 229,44.2 229.6,44.2 230.2,44.2 230.8,44.2 231.4,44.2 232,44.2 232.6,44.2 233.2,44.2 233.8,44.2 234.4,44.2 235,44.2 235.6,44.2 236.2,44.2 236.8,44.2 237.4,44.2 238,44.2 238.6,44.2 239.2,44.2 239.8,44.2 240.4,44.2 241,44.2 241.6,44.2 242.2,44.2 242.8,44.2 243.4,44.2 244,44.2 244.6,44.2 245.2,44.2 245.8,44.2 246.4,44.2 247,44.2 247.6,44.2 248.2,44.2 248.8,44.2 249.4,44.2 250,44.2 250.6,44.2 251.2,44.2 251.8,44.2 252.4,44.2 253,44.2 253.6,44.2 254.2,44.2 254.8,44.2 255.4,44.2 256,44.2 256.6,44.2 257.2,44.2 257.8,44.2 258.4,44.2 259,44.2 259.6,44.2 260.2,44.2 260.8,44.2 261.4,44.2 262,44.2 262.6,44.2 263.2,44.2 263.8,44.2 264.4,44.2 265,44.2 265.6,44.2 266.2,44.2 266.8,44.2 267.4,44.2 268,44.2 268.6,44.2 269.2,44.2 269.8,44.2 270.4,44.2 271,44.2 271.6,44.2 272.2,44.2 272.8,44.2 273.4,44.2 274,44.2 274.6,44.2 275.2,44.2 275.8,44.2 276.4,44.2 277,44.2 277.6,44.2 278.2,44.2 278.8,44.2 279.4,44.2 280,44.2 280.6,44.2 281.2,44.2 281.8,44.2 282.4,44.2 283,44.2 283.6,44.2 284.2,44.2 284.8,44.2 285.4,44.2 286,44.2 286.6,44.2 287.2,44.2 287.8,44.2 288.4,44.2 289,44.2 289.6,44.2 290.2,44.2 290.8,44.2 291.4,44.2 292,44.2 292.6,44.2 293.2,44.2 293.8,44.2 294.4,44.2 295,44.2 295.6,44.2 296.2,44.2 296.8,44.2 297.4,44.2 298,44.2 298.6,44.2 299.2,44.2 299.8,44.2 300.4,44.2 301,44.2 301.6,44.2 302.2,44.2 302.8,44.2 303.4,44.2 304,44.2 304.6,44.2 305.2,44.2 305.8,44.2 306.4,44.2 307,44.2 307.6,44.2 308.2,44.2 308.8,44.2 309.4,44.2 310,44.2 310.6,44.2 311.2,44.2 311.8,44.2 312.4,44.2 313,44.2 313.6,44.2 314.2,44.2 314.8,44.2 315.4,44.2 316,44.2 316.6,44.2 317.2,44.2 317.8,44.2 318.4,44.2 319,44.2 319.6,44.2 320.2,44.2 320.8,44.2 321.4,44.2 322,44.2 322.6,44.2 323.2,44.2 323.8,44.2 324.4,44.2 325,44.2 325.6,44.2 326.2,44.2 326.8,44.2 327.4,44.2 328,44.2 328.6,44.2 329.2,44.2 329.8,44.2 330.4,44.2 331,44.2 331.6,44.2 332.2,44.2 332.8,44.2 333.4,44.2 334,44.2 334.6,44.2 335.2,44.2 335.8,44.2 336.4,44.2 337,44.2 337.6,44.2 338.2,44.2 338.8,44.2 339.4,44.2 340,44.2 340.6,44.2 341.2,44.2 341.8,44.2 342.4,44.2 343,44.2 343.6,44.2 344.2,44.2 344.8,44.2 345.4,44.2 346,44.2 346.6,44.2 347.2,44.2 347.8,44.2 348.4,44.2 349,44.2 349.6,44.2 350.2,44.2 350.8,44.2 351.4,44.2 352,44.2 352.6,44.2 353.2,44.2 353.8,44.2 354.4,44.2 355,44.2 355.6,44.2 356.2,44.2 356.8,44.2 357.4,44.2 358,44.2 358.6,44.2 359.2,44.2 359.8,44.2 360.4,44.2 361,44.2 361.6,44.2 362.2,44.2 362.8,44.2 363.4,44.2 364,44.2 364.6,44.2 365.2,44.2 365.8,44.2 366.4,44.2 367,44.2 367.6,44.2 368.2,44.2 368.8,44.2 369.4,44.2 370,44.2 370.6,44.2 371.2,44.2 371.8,44.2 372.4,44.2 373,44.2 373.6,44.2 374.2,44.2 374.8,44.2 375.4,44.2 376,44.2 376.6,44.2 377.2,44.2 377.8,44.2 378.4,44.2 379,44.2 379.6,44.2 380.2,44.2 380.8,44.2 381.4,44.2 382,44.2 382.6,44.2 383.2,44.2 383.8,44.2 384.4,44.2 385,44.2 385.6,44.2 386.2,44.2 386.8,44.2 387.4,44.2 388,44.2 388.6,44.2 389.2,44.2 389.8,44.2 390.4,44.2 391,44.2 391.6,44.2 392.2,44.2 392.8,44.2 393.4,44.2 394,44.2 394.6,44.2 395.2,44.2 395.8,44.2 396.4,44.2 397,44.2 397.6,44.2 398.2,44.2 398.8,44.2 399.4,44.2 400,44.2 400.6,44.2 401.2,44.2 401.8,44.2 402.4,44.2 403,44.2 403.6,44.2 404.2,44.2 404.8,44.2 405.4,44.2 406,44.2" class="sk-dash"/>
+<text x="120.4" y="34.9" class="lab-muted">K·e(t)</text>
+<polyline points="46,192 46.6,192 47.2,192 47.8,191.9 48.4,191.9 49,191.8 49.6,191.7 50.2,191.6 50.8,191.5 51.4,191.4 52,191.3 52.6,191.1 53.2,191 53.8,190.8 54.4,190.6 55,190.4 55.6,190.2 56.2,190 56.8,189.7 57.4,189.5 58,189.2 58.6,189 59.2,188.7 59.8,188.4 60.4,188.1 61,187.7 61.6,187.4 62.2,187.1 62.8,186.7 63.4,186.3 64,186 64.6,185.6 65.2,185.2 65.8,184.8 66.4,184.3 67,183.9 67.6,183.5 68.2,183 68.8,182.6 69.4,182.1 70,181.6 70.6,181.1 71.2,180.6 71.8,180.1 72.4,179.6 73,179 73.6,178.5 74.2,178 74.8,177.4 75.4,176.8 76,176.3 76.6,175.7 77.2,175.1 77.8,174.5 78.4,173.9 79,173.2 79.6,172.6 80.2,172 80.8,171.3 81.4,170.7 82,170 82.6,169.3 83.2,168.7 83.8,168 84.4,167.3 85,166.6 85.6,165.9 86.2,165.1 86.8,164.4 87.4,163.7 88,162.9 88.6,162.2 89.2,161.4 89.8,160.7 90.4,159.9 91,159.1 91.6,158.3 92.2,157.6 92.8,156.8 93.4,156 94,155.1 94.6,154.3 95.2,153.5 95.8,152.7 96.4,151.8 97,151 97.6,150.1 98.2,149.3 98.8,148.4 99.4,147.6 100,146.7 100.6,145.8 101.2,144.9 101.8,144 102.4,143.1 103,142.2 103.6,141.3 104.2,140.4 104.8,139.5 105.4,138.5 106,137.6 106.6,136.7 107.2,135.8 107.8,134.9 108.4,134 109,133.1 109.6,132.2 110.2,131.3 110.8,130.4 111.4,129.6 112,128.7 112.6,127.9 113.2,127.1 113.8,126.2 114.4,125.4 115,124.6 115.6,123.8 116.2,123 116.8,122.2 117.4,121.4 118,120.7 118.6,119.9 119.2,119.2 119.8,118.4 120.4,117.7 121,116.9 121.6,116.2 122.2,115.5 122.8,114.8 123.4,114.1 124,113.4 124.6,112.7 125.2,112 125.8,111.4 126.4,110.7 127,110 127.6,109.4 128.2,108.7 128.8,108.1 129.4,107.4 130,106.8 130.6,106.2 131.2,105.6 131.8,105 132.4,104.4 133,103.8 133.6,103.2 134.2,102.6 134.8,102 135.4,101.4 136,100.9 136.6,100.3 137.2,99.7 137.8,99.2 138.4,98.6 139,98.1 139.6,97.5 140.2,97 140.8,96.5 141.4,96 142,95.5 142.6,94.9 143.2,94.4 143.8,93.9 144.4,93.4 145,93 145.6,92.5 146.2,92 146.8,91.5 147.4,91 148,90.6 148.6,90.1 149.2,89.7 149.8,89.2 150.4,88.8 151,88.3 151.6,87.9 152.2,87.4 152.8,87 153.4,86.6 154,86.2 154.6,85.7 155.2,85.3 155.8,84.9 156.4,84.5 157,84.1 157.6,83.7 158.2,83.3 158.8,82.9 159.4,82.5 160,82.2 160.6,81.8 161.2,81.4 161.8,81 162.4,80.7 163,80.3 163.6,80 164.2,79.6 164.8,79.2 165.4,78.9 166,78.6 166.6,78.2 167.2,77.9 167.8,77.5 168.4,77.2 169,76.9 169.6,76.5 170.2,76.2 170.8,75.9 171.4,75.6 172,75.3 172.6,75 173.2,74.7 173.8,74.4 174.4,74.1 175,73.8 175.6,73.5 176.2,73.2 176.8,72.9 177.4,72.6 178,72.3 178.6,72 179.2,71.8 179.8,71.5 180.4,71.2 181,70.9 181.6,70.7 182.2,70.4 182.8,70.2 183.4,69.9 184,69.6 184.6,69.4 185.2,69.1 185.8,68.9 186.4,68.6 187,68.4 187.6,68.2 188.2,67.9 188.8,67.7 189.4,67.4 190,67.2 190.6,67 191.2,66.8 191.8,66.5 192.4,66.3 193,66.1 193.6,65.9 194.2,65.7 194.8,65.4 195.4,65.2 196,65 196.6,64.8 197.2,64.6 197.8,64.4 198.4,64.2 199,64 199.6,63.8 200.2,63.6 200.8,63.4 201.4,63.2 202,63 202.6,62.9 203.2,62.7 203.8,62.5 204.4,62.3 205,62.1 205.6,61.9 206.2,61.8 206.8,61.6 207.4,61.4 208,61.2 208.6,61.1 209.2,60.9 209.8,60.7 210.4,60.6 211,60.4 211.6,60.3 212.2,60.1 212.8,59.9 213.4,59.8 214,59.6 214.6,59.5 215.2,59.3 215.8,59.2 216.4,59 217,58.9 217.6,58.7 218.2,58.6 218.8,58.4 219.4,58.3 220,58.2 220.6,58 221.2,57.9 221.8,57.7 222.4,57.6 223,57.5 223.6,57.3 224.2,57.2 224.8,57.1 225.4,56.9 226,56.8 226.6,56.7 227.2,56.6 227.8,56.4 228.4,56.3 229,56.2 229.6,56.1 230.2,56 230.8,55.8 231.4,55.7 232,55.6 232.6,55.5 233.2,55.4 233.8,55.3 234.4,55.2 235,55.1 235.6,55 236.2,54.8 236.8,54.7 237.4,54.6 238,54.5 238.6,54.4 239.2,54.3 239.8,54.2 240.4,54.1 241,54 241.6,53.9 242.2,53.8 242.8,53.7 243.4,53.6 244,53.5 244.6,53.4 245.2,53.4 245.8,53.3 246.4,53.2 247,53.1 247.6,53 248.2,52.9 248.8,52.8 249.4,52.7 250,52.7 250.6,52.6 251.2,52.5 251.8,52.4 252.4,52.3 253,52.2 253.6,52.2 254.2,52.1 254.8,52 255.4,51.9 256,51.8 256.6,51.8 257.2,51.7 257.8,51.6 258.4,51.5 259,51.5 259.6,51.4 260.2,51.3 260.8,51.3 261.4,51.2 262,51.1 262.6,51 263.2,51 263.8,50.9 264.4,50.8 265,50.8 265.6,50.7 266.2,50.6 266.8,50.6 267.4,50.5 268,50.5 268.6,50.4 269.2,50.3 269.8,50.3 270.4,50.2 271,50.1 271.6,50.1 272.2,50 272.8,50 273.4,49.9 274,49.9 274.6,49.8 275.2,49.7 275.8,49.7 276.4,49.6 277,49.6 277.6,49.5 278.2,49.5 278.8,49.4 279.4,49.4 280,49.3 280.6,49.3 281.2,49.2 281.8,49.2 282.4,49.1 283,49.1 283.6,49 284.2,49 284.8,48.9 285.4,48.9 286,48.8 286.6,48.8 287.2,48.7 287.8,48.7 288.4,48.6 289,48.6 289.6,48.6 290.2,48.5 290.8,48.5 291.4,48.4 292,48.4 292.6,48.3 293.2,48.3 293.8,48.3 294.4,48.2 295,48.2 295.6,48.1 296.2,48.1 296.8,48.1 297.4,48 298,48 298.6,47.9 299.2,47.9 299.8,47.9 300.4,47.8 301,47.8 301.6,47.8 302.2,47.7 302.8,47.7 303.4,47.7 304,47.6 304.6,47.6 305.2,47.6 305.8,47.5 306.4,47.5 307,47.5 307.6,47.4 308.2,47.4 308.8,47.4 309.4,47.3 310,47.3 310.6,47.3 311.2,47.2 311.8,47.2 312.4,47.2 313,47.1 313.6,47.1 314.2,47.1 314.8,47.1 315.4,47 316,47 316.6,47 317.2,46.9 317.8,46.9 318.4,46.9 319,46.9 319.6,46.8 320.2,46.8 320.8,46.8 321.4,46.8 322,46.7 322.6,46.7 323.2,46.7 323.8,46.7 324.4,46.6 325,46.6 325.6,46.6 326.2,46.6 326.8,46.5 327.4,46.5 328,46.5 328.6,46.5 329.2,46.4 329.8,46.4 330.4,46.4 331,46.4 331.6,46.3 332.2,46.3 332.8,46.3 333.4,46.3 334,46.3 334.6,46.2 335.2,46.2 335.8,46.2 336.4,46.2 337,46.2 337.6,46.1 338.2,46.1 338.8,46.1 339.4,46.1 340,46.1 340.6,46 341.2,46 341.8,46 342.4,46 343,46 343.6,46 344.2,45.9 344.8,45.9 345.4,45.9 346,45.9 346.6,45.9 347.2,45.9 347.8,45.8 348.4,45.8 349,45.8 349.6,45.8 350.2,45.8 350.8,45.8 351.4,45.7 352,45.7 352.6,45.7 353.2,45.7 353.8,45.7 354.4,45.7 355,45.6 355.6,45.6 356.2,45.6 356.8,45.6 357.4,45.6 358,45.6 358.6,45.6 359.2,45.5 359.8,45.5 360.4,45.5 361,45.5 361.6,45.5 362.2,45.5 362.8,45.5 363.4,45.5 364,45.4 364.6,45.4 365.2,45.4 365.8,45.4 366.4,45.4 367,45.4 367.6,45.4 368.2,45.4 368.8,45.3 369.4,45.3 370,45.3 370.6,45.3 371.2,45.3 371.8,45.3 372.4,45.3 373,45.3 373.6,45.3 374.2,45.2 374.8,45.2 375.4,45.2 376,45.2 376.6,45.2 377.2,45.2 377.8,45.2 378.4,45.2 379,45.2 379.6,45.2 380.2,45.1 380.8,45.1 381.4,45.1 382,45.1 382.6,45.1 383.2,45.1 383.8,45.1 384.4,45.1 385,45.1 385.6,45.1 386.2,45 386.8,45 387.4,45 388,45 388.6,45 389.2,45 389.8,45 390.4,45 391,45 391.6,45 392.2,45 392.8,45 393.4,45 394,44.9 394.6,44.9 395.2,44.9 395.8,44.9 396.4,44.9 397,44.9 397.6,44.9 398.2,44.9 398.8,44.9 399.4,44.9 400,44.9 400.6,44.9 401.2,44.9 401.8,44.8 402.4,44.8 403,44.8 403.6,44.8 404.2,44.8 404.8,44.8 405.4,44.8 406,44.8" class="sk-accent"/>
+<text x="400" y="60.8" class="lab-accent" text-anchor="end">exacte</text>
+<polyline points="46,192 76,192 106,155 136,99.6 166,71.9 196,58 226,51.1 256,47.6 286,45.9 316,45 346,44.6 376,44.4 406,44.3" class="sk-amber"/>
+<circle cx="46" cy="192" r="3" class="fl-amber"/>
+<circle cx="76" cy="192" r="3" class="fl-amber"/>
+<circle cx="106" cy="155" r="3" class="fl-amber"/>
+<circle cx="136" cy="99.6" r="3" class="fl-amber"/>
+<circle cx="166" cy="71.9" r="3" class="fl-amber"/>
+<circle cx="196" cy="58" r="3" class="fl-amber"/>
+<circle cx="226" cy="51.1" r="3" class="fl-amber"/>
+<circle cx="256" cy="47.6" r="3" class="fl-amber"/>
+<circle cx="286" cy="45.9" r="3" class="fl-amber"/>
+<circle cx="316" cy="45" r="3" class="fl-amber"/>
+<circle cx="346" cy="44.6" r="3" class="fl-amber"/>
+<circle cx="376" cy="44.4" r="3" class="fl-amber"/>
+<circle cx="406" cy="44.3" r="3" class="fl-amber"/>
+<text x="148" y="147.7" class="lab-amber">Euler, h = 0,25 s</text>
+<polyline points="46,192 52,192 58,190.5 64,187.7 70,183.7 76,178.6 82,172.6 88,165.6 94,157.9 100,149.5 106,140.5 112,130.8 118,122.2 124,114.4 130,107.3 136,101 142,95.3 148,90.2 154,85.6 160,81.5 166,77.7 172,74.4 178,71.4 184,68.6 190,66.2 196,64 202,62 208,60.2 214,58.6 220,57.2 226,55.9 232,54.7 238,53.7 244,52.7 250,51.9 256,51.1 262,50.4 268,49.8 274,49.2 280,48.7 286,48.3 292,47.8 298,47.5 304,47.1 310,46.9 316,46.6 322,46.3 328,46.1 334,45.9 340,45.8 346,45.6 352,45.5 358,45.3 364,45.2 370,45.1 376,45 382,44.9 388,44.9 394,44.8 400,44.7 406,44.7" class="sk-accent2"/>
+<text x="240.4" y="105.2" class="lab-accent2">Euler, h = 0,05 s</text>
+</svg>
+<figcaption>Premier ordre \(K = 2\), \(\tau = 0{,}5\ \text{s}\) soumis à la rampe saturée du §2. Avec un pas \(h = 0{,}05\ \text{s}\) (un dixième de \(\tau\)), la méthode d'Euler colle à la solution exacte ; avec \(h = 0{,}25\ \text{s}\) (la moitié de \(\tau\)), elle prend d'abord du retard (pente calculée au début du pas), puis de l'avance, avant de rejoindre la valeur finale 4.</figcaption>
+</figure>
+  <p>Pour un deuxième ordre, on suit le couple \((s, s')\), état du système, avec la fonction <code>euler_ordre2</code> de « Méthodes numériques » (§7). Sur la suspension du §6 soumise à un échelon de 1 000 N, un pas \(h = 0{,}001\) s donne un enfoncement maximal de 0,0503 m, proche de la valeur exacte 0,0502 m ; avec \(h = 0{,}01\) s, Euler surestime ce maximum de 4 % (0,0521 m), et au-delà de \(h = 0{,}08\) s les oscillations calculées divergent.</p>
+  <div class="prop-box">
+    <strong>Choisir le pas.</strong> Prendre \(h\) petit devant la plus petite constante de temps du modèle (de l'ordre de \(\tau/10\), ou de \(1/(10\,\omega_0)\) pour un deuxième ordre), puis vérifier en divisant \(h\) par deux que le résultat ne change plus à la précision voulue. La méthode d'Euler, explicite, amortit trop peu les oscillations : elle exige un pas plus fin pour un système peu amorti. En TP et en physique, on utilise aussi la fonction <code>odeint</code> de <code>scipy.integrate</code>, dont la spécification est fournie.
+  </div>
+  <p>Simuler sert aussi à <strong>valider</strong> un modèle : on compare la réponse calculée à un relevé expérimental, sur un autre essai que celui qui a servi à l'identifier. Cette démarche est détaillée au §8 de <a href="#sys1/cours">« Systèmes du 1er ordre »</a> et au §8 de <a href="#sys2/cours">« Systèmes du 2e ordre »</a>.</p>
+</div>
+</template>
+<template class="pan-tpl" data-panneau="slci-meth">
+<div class="course-section">
+  <div class="sec-num">MÉTHODES · MODÉLISATION ET LAPLACE</div>
+  <h2>Les réflexes du chapitre</h2>
+  <div class="intro">Dix savoir-faire qui reviennent dans toutes les questions de modélisation : écrire le modèle, passer en Laplace, lire la fonction de transfert, puis en tirer la réponse sans revenir au temps. Les méthodes 3 et 5 vont au-delà du programme de PTSI (signalé dans leur titre).</div>
+  <div class="method-box"><strong>Méthode 1 — Passer d'une équation différentielle à la fonction de transfert</strong>
+    <ol>
+      <li>Se placer sous conditions de Heaviside (système au repos à \(t = 0\)) : chaque dérivée \(\dfrac{d^k}{dt^k}\) devient \(p^k\).</li>
+      <li>Regrouper les termes en \(S(p)\) d'un côté, en \(E(p)\) de l'autre, puis isoler \(H(p) = S(p)/E(p)\).</li>
+      <li>Chemin inverse : à partir de \(H(p)\,E(p) = S(p)\), chasser les dénominateurs puis remplacer \(p^k\) par \(\dfrac{d^k}{dt^k}\).</li>
+      <li>Contrôle : le degré du dénominateur est l'ordre de dérivation le plus élevé de la sortie, et celui du numérateur ne le dépasse pas (causalité).</li>
+    </ol>
+    <p><em>Exemple éclair :</em> \(0{,}5\,s'' + 2\,s' + 4\,s = 8\,e\) donne \(H(p) = \dfrac{8}{4 + 2p + 0{,}5p^2} = \dfrac{2}{1 + 0{,}5p + p^2/8}\) : \(K = 2\), \(\omega_0 = \sqrt 8 \approx 2{,}83\ \text{rad/s}\), \(\dfrac{2\xi}{\omega_0} = 0{,}5\) d'où \(\xi \approx 0{,}71\).</p>
+  </div>
+  <div class="method-box"><strong>Méthode 2 — Lire une fonction de transfert</strong>
+    <ol>
+      <li>Factoriser les puissances de \(p\) au dénominateur : leur nombre est la classe \(\alpha\).</li>
+      <li>Diviser numérateur et dénominateur par leurs termes constants pour faire apparaître des polynômes qui commencent par 1 : le facteur restant est le gain \(K\).</li>
+      <li>Ordre = degré du dénominateur ; pôles et zéros = racines du dénominateur et du numérateur, après simplification des facteurs communs.</li>
+      <li>Vérifier l'unité du gain : unité de la sortie divisée par celle de l'entrée (et par seconde de plus pour chaque intégrateur).</li>
+    </ol>
+    <p><em>Exemple éclair :</em> \(H(p) = \dfrac{4p + 8}{p^3 + 5p^2 + 4p} = \dfrac{4\,(p + 2)}{p\,(p + 1)(p + 4)} = \dfrac{2}{p}\cdot\dfrac{1 + 0{,}5p}{(1 + p)(1 + 0{,}25p)}\) : gain 2, classe 1, ordre 3, un zéro \(-2\), pôles \(0\), \(-1\) et \(-4\).</p>
+  </div>
+  <div class="method-box"><strong>Méthode 3 — Calculer une réponse temporelle par décomposition (hors programme, pour aller plus loin)</strong>
+    <ol>
+      <li>Écrire \(S(p) = H(p)\,E(p)\) avec la transformée de l'entrée (\(E_0/p\) pour un échelon, \(a/p^2\) pour une rampe).</li>
+      <li>Rendre unitaires les facteurs du dénominateur (\(1 + \tau p = \tau\,(p + 1/\tau)\)), puis décomposer en éléments simples : coefficient d'un pôle simple \(p_i\) = valeur de \((p - p_i)\,S(p)\) en \(p = p_i\).</li>
+      <li>Pour une paire de pôles complexes, garder \(\dfrac{Bp + C}{(p + a)^2 + \omega^2}\) et le découper en un terme en \(p + a\) et un terme en \(\omega\).</li>
+      <li>Lire l'original de chaque élément dans la table, puis contrôler \(s(0^+)\) et \(s(+\infty)\) par les théorèmes des valeurs initiale et finale.</li>
+    </ol>
+    <p><em>Exemple éclair :</em> \(S(p) = \dfrac{3}{p\,(1 + 2p)} = \dfrac{1{,}5}{p\,(p + 0{,}5)} = \dfrac{3}{p} - \dfrac{3}{p + 0{,}5}\), donc \(s(t) = 3\,\big(1 - e^{-t/2}\big)\). Le programme ne demande pas ce calcul : un sujet fournit l'expression temporelle (§4 du cours).</p>
+  </div>
+  <div class="method-box"><strong>Méthode 4 — Prévoir le début et la fin d'une réponse sans revenir au temps</strong>
+    <ol>
+      <li>Vérifier que les pôles de \(p\,S(p)\) sont tous à partie réelle strictement négative (sinon la limite finale n'existe pas).</li>
+      <li>Valeur finale : \(\lim\limits_{p \to 0} p\,S(p)\) ; pour un échelon \(E_0\) appliqué à un système stable de classe 0, on trouve \(H(0)\,E_0\).</li>
+      <li>Valeur initiale : \(\lim\limits_{p \to +\infty} p\,S(p)\) ; pour un échelon, elle est nulle dès que le degré du numérateur est inférieur à celui du dénominateur.</li>
+      <li>Pente à l'origine, si \(s(0^+) = 0\) : \(s'(0^+) = \lim\limits_{p \to +\infty} p^2\,S(p)\). Elle est non nulle pour un échelon si et seulement si les degrés diffèrent de 1.</li>
+    </ol>
+    <p><em>Exemple éclair :</em> \(H(p) = \dfrac{2\,(1 + 4p)}{(1 + p)(1 + 2p)}\), échelon \(E_0 = 3\) : pôles \(-1\) et \(-0{,}5\), \(s(+\infty) = 6\), \(s(0^+) = 0\), \(s'(0^+) = \dfrac{2 \times 4 \times 3}{1 \times 2} = 12\) par seconde.</p>
+  </div>
+  <div class="method-box"><strong>Méthode 5 — Linéariser autour d'un point de fonctionnement (vu en 2ᵉ année)</strong>
+    <ol>
+      <li>Déterminer l'équilibre (dérivées nulles) : valeurs \(e_0\), \(s_0\).</li>
+      <li>Poser \(e = e_0 + \Delta e\), \(s = s_0 + \Delta s\) et remplacer chaque fonction non linéaire par sa tangente : \(g(s) \approx g(s_0) + g'(s_0)\,\Delta s\).</li>
+      <li>Simplifier les termes d'équilibre : il reste une équation linéaire en \(\Delta e\), \(\Delta s\), valable pour de petites variations.</li>
+    </ol>
+    <p><em>Exemple éclair :</em> une vanne débite \(q = k\sqrt{P}\) sous la différence de pression \(P\), avec \(k = 2{,}0\ \text{L·s}^{-1}\text{·bar}^{-1/2}\). Autour de \(P_0 = 4{,}0\) bar : \(q_0 = 4{,}0\ \text{L/s}\) et \(\Delta q \approx \dfrac{k}{2\sqrt{P_0}}\,\Delta P = 0{,}50\,\Delta P\) (L/s par bar).</p>
+  </div>
+  <div class="method-box"><strong>Méthode 6 — Reconnaître un modèle sur une réponse indicielle</strong>
+    <ol>
+      <li>Saut instantané : gain pur. Sortie qui croît sans limite à vitesse constante : intégrateur (classe 1).</li>
+      <li>Palier atteint avec une tangente de pente non nulle à l'origine : premier ordre. Tangente horizontale à l'origine : ordre 2 au moins ; dépassement et oscillations : deuxième ordre peu amorti.</li>
+      <li>Réponse qui ne commence qu'au bout d'un temps \(T\) : retard pur en série.</li>
+    </ol>
+    <p><em>Exemple éclair :</em> une sortie nulle pendant 0,2 s, qui part ensuite avec une tangente oblique, atteint 63 % de sa valeur finale 0,8 en \(t = 1{,}0\) s et ne dépasse jamais : premier ordre retardé, \(H(p) = \dfrac{0{,}8\,e^{-0{,}2p}}{1 + 0{,}8p}\) pour un échelon unité (\(\tau = 1{,}0 - 0{,}2 = 0{,}8\) s).</p>
+  </div>
+  <div class="method-box"><strong>Méthode 7 — Établir le modèle de connaissance d'un système physique</strong>
+    <ol>
+      <li>Choisir l'entrée et la sortie ; orienter ; repérer les positions à partir de l'équilibre.</li>
+      <li>Écrire une loi par constituant (résistance, ressort, inertie, paroi…) et les lois d'association (maille, PFD, bilan).</li>
+      <li>Passer en Laplace et éliminer les grandeurs internes.</li>
+      <li>Identifier \(K\), \(\tau\) ou \(\omega_0\), \(\xi\) sur la forme canonique et vérifier leurs unités.</li>
+    </ol>
+    <p><em>Exemple éclair :</em> rotor d'inertie \(J = 0{,}050\ \text{kg·m}^2\) freiné par \(f = 0{,}010\ \text{N·m·s/rad}\) : \(J\,\omega' + f\,\omega = C\) donne \(\dfrac{\Omega}{C} = \dfrac{1/f}{1 + (J/f)\,p}\), soit \(K = 100\ \text{rad·s}^{-1}/(\text{N·m})\) et \(\tau = 5{,}0\ \text{s}\).</p>
+  </div>
+  <div class="method-box"><strong>Méthode 8 — Calculer le régime sinusoïdal permanent</strong>
+    <ol>
+      <li>Vérifier que le système est stable (sinon il n'y a pas de régime permanent).</li>
+      <li>Remplacer \(p\) par \(j\omega\) et calculer le module \(|H(j\omega)|\) (produit et quotient des modules des facteurs) et l'argument (somme et différence des arguments).</li>
+      <li>Écrire \(s(t) = |H(j\omega)|\,E_m\sin\big(\omega t + \arg H(j\omega)\big)\).</li>
+    </ol>
+    <p><em>Exemple éclair :</em> \(H(p) = \dfrac{10}{1 + 0{,}2p}\). À \(\omega = 5\ \text{rad/s}\) : \(|H| = \dfrac{10}{\sqrt 2} \approx 7{,}1\), argument \(-45°\). À \(\omega = 50\ \text{rad/s}\) : \(|H| = \dfrac{10}{\sqrt{101}} \approx 1{,}0\), argument \(-\arctan 10 \approx -84°\).</p>
+  </div>
+  <div class="method-box"><strong>Méthode 9 — Écrire la transformée d'une entrée composée</strong>
+    <ol>
+      <li>Décomposer le signal en somme d'échelons et de rampes, chacun <strong>décalé</strong> à son instant de départ : \(f(t - T)\,u(t - T)\).</li>
+      <li>Appliquer la linéarité et le théorème du retard : chaque terme décalé de \(T\) est multiplié par \(e^{-Tp}\).</li>
+      <li>Contrôler la valeur initiale et la valeur finale du signal par les théorèmes.</li>
+    </ol>
+    <p><em>Exemple éclair :</em> \(+5\) V de 0 à 2 s, \(-5\) V de 2 à 4 s, puis 0 : \(e(t) = 5\,u(t) - 10\,u(t - 2) + 5\,u(t - 4)\), donc \(E(p) = \dfrac{5\,\big(1 - 2\,e^{-2p} + e^{-4p}\big)}{p}\), et \(\lim\limits_{p \to 0} p\,E(p) = 5\,(1 - 2 + 1) = 0\).</p>
+  </div>
+  <div class="method-box"><strong>Méthode 10 — Simuler un SLCI par la méthode d'Euler</strong>
+    <ol>
+      <li>Écrire l'équation sous la forme \(s' = F(t, s)\) ; pour un deuxième ordre, suivre le couple \((s, s')\).</li>
+      <li>Choisir un pas \(h\) de l'ordre du dixième de la plus petite constante de temps (ou de \(1/\omega_0\)).</li>
+      <li>Itérer \(s_{k+1} = s_k + h\,F(t_k, s_k)\) (fonction <code>euler</code> du chapitre « Méthodes numériques »), puis recommencer avec \(h/2\) : le résultat ne doit plus bouger.</li>
+      <li>Contrôler la valeur finale par le théorème de la valeur finale.</li>
+    </ol>
+    <p><em>Exemple éclair :</em> \(0{,}5\,s' + s = 2\) (échelon), \(s(0) = 0\), \(h = 0{,}1\) s : \(s_1 = 0 + 0{,}1 \times \dfrac{2 - 0}{0{,}5} = 0{,}40\), \(s_2 = 0{,}4 + 0{,}1 \times \dfrac{2 - 0{,}4}{0{,}5} = 0{,}72\), contre \(s(0{,}2) = 2\,(1 - e^{-0{,}4}) \approx 0{,}66\) : 9 % d'écart, il faut un pas plus fin.</p>
+  </div>
+  <div class="notice"><strong>Pièges classiques</strong> : oublier que \(\mathcal{L}[f'] = p\,F - f(0^+)\) quand le système n'est pas au repos ; appliquer le théorème de la valeur finale à un système instable ou oscillant ; lire un gain sur une fraction qui n'est pas sous forme canonique ; confondre l'ordre (degré du dénominateur) et la classe (nombre de pôles nuls) ; retrancher une rampe non décalée dans un signal composé ; repérer une position ailleurs qu'à l'équilibre dans un modèle de connaissance.</div>
+</div>
+</template>
+<template class="pan-tpl" data-panneau="slci-exos">
+<div class="exo-wrapper">
+<div class="exo">
+  <span class="num">EXO 01</span><span class="diff">★ ☆ ☆</span>
+  <h3>Transformées usuelles</h3>
+  <div class="statement">Calculer les transformées de Laplace des fonctions causales suivantes, définies pour \(t \geq 0\) (le temps est en secondes).</div>
+  <div class="q"><strong>Q1.</strong> \(e_1(t) = 3\), \(e_2(t) = 2t\) et \(e_3(t) = 5\,e^{-2t}\).</div>
+  <div class="q"><strong>Q2.</strong> \(f(t) = 4\,\big(1 - e^{-t/\tau}\big)\) avec \(\tau = 0{,}5\ \text{s}\) ; mettre le résultat sous la forme d'une seule fraction.</div>
+  <div class="q"><strong>Q3.</strong> \(g(t)\), échelon unité retardé de 2 s, et \(k(t) = \sin(3t)\).</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> Par la table et la linéarité : \(E_1(p) = \dfrac{3}{p}\), \(E_2(p) = \dfrac{2}{p^2}\), \(E_3(p) = \dfrac{5}{p + 2}\).</p>
+    <p><strong>Q2.</strong> \(1/\tau = 2\ \text{s}^{-1}\), donc</p>
+    <div class="formula">$$F(p) = \dfrac{4}{p} - \dfrac{4}{p + 2} = \dfrac{8}{p\,(p + 2)} = \dfrac{4}{p\,(1 + 0{,}5p)}.$$</div>
+    <p>On reconnaît la réponse d'un premier ordre \(\dfrac{4}{1 + 0{,}5p}\) à un échelon unité.</p>
+    <p><strong>Q3.</strong> Théorème du retard : \(G(p) = \dfrac{e^{-2p}}{p}\). Table : \(K(p) = \dfrac{3}{p^2 + 9}\).</p>
+  </div>
+</div>
+<div class="exo">
+  <span class="num">EXO 02</span><span class="diff">★ ☆ ☆</span>
+  <h3>De l'équation différentielle à la fonction de transfert</h3>
+  <div class="statement">Le système (a) est régi par \(0{,}5\,s''(t) + 3\,s'(t) = 6\,e(t) + 2\,e'(t)\). Le système (b) a pour fonction de transfert \(H_b(p) = \dfrac{4}{(1 + 0{,}1p)^2}\).</div>
+  <div class="q"><strong>Q1.</strong> Établir la fonction de transfert \(H_a(p)\) du système (a) sous forme canonique.</div>
+  <div class="q"><strong>Q2.</strong> Donner son gain, sa classe, son ordre, ses pôles et ses zéros.</div>
+  <div class="q"><strong>Q3.</strong> Écrire l'équation différentielle du système (b).</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> Sous conditions initiales nulles : \((0{,}5p^2 + 3p)\,S(p) = (6 + 2p)\,E(p)\), donc</p>
+    <div class="formula">$$H_a(p) = \dfrac{6 + 2p}{3p + 0{,}5p^2} = \dfrac{6\,(1 + p/3)}{3p\,(1 + p/6)} = \dfrac{2}{p}\cdot\dfrac{1 + p/3}{1 + p/6}.$$</div>
+    <p><strong>Q2.</strong> Gain \(K = 2\) (en \(\text{s}^{-1}\) fois l'unité de \(s\) sur celle de \(e\), à cause de l'intégrateur), classe 1, ordre 2, pôles \(0\) et \(-6\), un zéro en \(-3\).</p>
+    <p><strong>Q3.</strong> \((1 + 0{,}1p)^2 = 1 + 0{,}2p + 0{,}01p^2\), donc \((1 + 0{,}2p + 0{,}01p^2)\,S(p) = 4\,E(p)\), soit \(0{,}01\,s''(t) + 0{,}2\,s'(t) + s(t) = 4\,e(t)\).</p>
+  </div>
+</div>
+<div class="exo">
+  <span class="num">EXO 03</span><span class="diff">★ ★ ☆</span>
+  <h3>Réponse indicielle par décomposition en éléments simples (hors programme, pour aller plus loin)</h3>
+  <div class="statement">Un système a pour fonction de transfert \(H(p) = \dfrac{10}{(1 + p)(1 + 0{,}2p)}\). Il est soumis à un échelon d'amplitude \(E_0 = 2\).</div>
+  <div class="q"><strong>Q1.</strong> Écrire \(S(p)\), puis le décomposer en éléments simples.</div>
+  <div class="q"><strong>Q2.</strong> En déduire \(s(t)\) ; contrôler \(s(0)\) et \(s(\infty)\).</div>
+  <div class="q"><strong>Q3.</strong> Déterminer la pente de la réponse à l'origine par le théorème de la valeur initiale.</div>
+  <div class="q"><strong>Q4.</strong> Estimer le temps au bout duquel la sortie reste à moins de 5 % de sa valeur finale.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong></p>
+    <div class="formula">$$S(p) = \dfrac{20}{p\,(1 + p)(1 + 0{,}2p)} = \dfrac{100}{p\,(p + 1)(p + 5)} = \dfrac{A}{p} + \dfrac{B}{p + 1} + \dfrac{C}{p + 5},$$</div>
+    <p>avec \(A = \dfrac{100}{5} = 20\), \(B = \dfrac{100}{(-1)\times 4} = -25\), \(C = \dfrac{100}{(-5)\times(-4)} = 5\).</p>
+    <p><strong>Q2.</strong> \(s(t) = 20 - 25\,e^{-t} + 5\,e^{-5t}\). On a bien \(s(0) = 20 - 25 + 5 = 0\) et \(s(\infty) = 20 = H(0)\,E_0\).</p>
+    <p><strong>Q3.</strong> Comme \(s(0^+) = 0\), la transformée de \(s'\) est \(p\,S(p)\), et</p>
+    <div class="formula">$$s'(0^+) = \lim_{p \to +\infty} p^2\,S(p) = \lim_{p \to +\infty} \dfrac{100\,p}{(p + 1)(p + 5)} = 0.$$</div>
+    <p>Tangente horizontale à l'origine, signature d'un système d'ordre 2 au moins. Directement : \(s'(t) = 25\,e^{-t} - 25\,e^{-5t}\) s'annule bien en 0.</p>
+    <p><strong>Q4.</strong> Le terme \(5\,e^{-5t}\) disparaît vite : le pôle dominant est \(-1\). Il faut \(25\,e^{-t} \leq 0{,}05 \times 20 = 1\), soit \(t \geq \ln 25 \approx 3{,}2\ \text{s}\) ; à cet instant \(5\,e^{-16}\) est négligeable, l'estimation est donc excellente.</p>
+  </div>
+</div>
+<div class="exo">
+  <span class="num">EXO 04</span><span class="diff">★ ★ ☆</span>
+  <h3>Une paire de pôles complexes (décomposition : hors programme, pour aller plus loin)</h3>
+  <div class="statement">La sortie d'un système vaut, en Laplace, \(S(p) = \dfrac{10}{p\,(p^2 + 2p + 10)}\).</div>
+  <div class="q"><strong>Q1.</strong> Déterminer les pôles de \(S(p)\).</div>
+  <div class="q"><strong>Q2.</strong> Décomposer \(S(p)\) sous la forme \(\dfrac{A}{p} + \dfrac{Bp + C}{p^2 + 2p + 10}\).</div>
+  <div class="q"><strong>Q3.</strong> En déduire \(s(t)\).</div>
+  <div class="q"><strong>Q4.</strong> Donner la valeur finale et la pseudo-période des oscillations.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> \(0\), et les racines de \(p^2 + 2p + 10\) : discriminant \(4 - 40 = -36\), d'où \(-1 \pm 3j\).</p>
+    <p><strong>Q2.</strong> \(A = \dfrac{10}{10} = 1\). En réduisant au même dénominateur : \(10 = (p^2 + 2p + 10) + (Bp + C)\,p\), donc \(1 + B = 0\) et \(2 + C = 0\) : \(B = -1\), \(C = -2\).</p>
+    <p><strong>Q3.</strong> \(p^2 + 2p + 10 = (p + 1)^2 + 9\) et</p>
+    <div class="formula">$$\dfrac{p + 2}{(p + 1)^2 + 9} = \dfrac{p + 1}{(p + 1)^2 + 9} + \dfrac13\cdot\dfrac{3}{(p + 1)^2 + 9}.$$</div>
+    <p>La table donne \(s(t) = 1 - e^{-t}\Big(\cos 3t + \dfrac13\sin 3t\Big)\), et \(s(0) = 0\).</p>
+    <p><strong>Q4.</strong> Valeur finale 1 (les pôles de \(p\,S(p)\) sont \(-1 \pm 3j\), à partie réelle négative). Pseudo-période \(\dfrac{2\pi}{3} \approx 2{,}1\ \text{s}\).</p>
+  </div>
+</div>
+<div class="exo">
+  <span class="num">EXO 05</span><span class="diff">★ ★ ☆</span>
+  <h3>Théorème de la valeur finale : usages et pièges</h3>
+  <div class="statement">Pour chacune des transformées suivantes, dire si \(s(t)\) admet une limite finie quand \(t \to +\infty\) et, si oui, la donner. Comparer avec le résultat d'une application « aveugle » du théorème.</div>
+  <div class="q"><strong>Q1.</strong> \(S_1(p) = \dfrac{3}{p\,(1 + 2p)}\) et \(S_2(p) = \dfrac{4}{p^2\,(1 + p)}\).</div>
+  <div class="q"><strong>Q2.</strong> \(S_3(p) = \dfrac{2}{p\,(p - 1)}\).</div>
+  <div class="q"><strong>Q3.</strong> \(S_4(p) = \dfrac{5}{p\,(p^2 + 4)}\).</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> \(p\,S_1(p) = \dfrac{3}{1 + 2p}\) a un seul pôle, \(-0{,}5\) : la limite existe et vaut 3. \(p\,S_2(p) = \dfrac{4}{p\,(1 + p)}\) garde un pôle nul : pas de limite finie. En effet \(S_2 = \dfrac{4}{p^2} - \dfrac{4}{p} + \dfrac{4}{p + 1}\), donc \(s_2(t) = 4t - 4 + 4\,e^{-t} \to +\infty\) (un intégrateur soumis à un échelon).</p>
+    <p><strong>Q2.</strong> \(p\,S_3(p) = \dfrac{2}{p - 1}\) a un pôle positif : \(s_3(t) = -2 + 2\,e^{t}\) diverge. Le calcul aveugle donnerait \(-2\) : résultat faux.</p>
+    <p><strong>Q3.</strong> \(p\,S_4(p) = \dfrac{5}{p^2 + 4}\) a deux pôles imaginaires purs \(\pm 2j\) : \(S_4 = \dfrac{5/4}{p} - \dfrac54\cdot\dfrac{p}{p^2 + 4}\), donc \(s_4(t) = \dfrac54\,(1 - \cos 2t)\), qui oscille sans fin. Le calcul aveugle donnerait \(5/4\), qui n'est que la valeur moyenne.</p>
+  </div>
+</div>
+<div class="exo">
+  <span class="num">EXO 06</span><span class="diff">★ ★ ★</span>
+  <h3>Linéarisation d'un réservoir (vue en 2ᵉ année)</h3>
+  <div class="statement">Un réservoir de section \(S = 0{,}50\ \text{m}^2\) reçoit un débit \(q_e(t)\) et se vide par un orifice : \(q_s = k\sqrt{h}\) avec \(k = 0{,}020\ \text{m}^{5/2}\cdot\text{s}^{-1}\). Le bilan s'écrit \(S\,\dfrac{dh}{dt} = q_e - k\sqrt{h}\). On travaille autour du niveau \(h_0 = 1{,}0\ \text{m}\).</div>
+  <div class="q"><strong>Q1.</strong> Quel débit \(q_{e0}\) maintient le niveau \(h_0\) ?</div>
+  <div class="q"><strong>Q2.</strong> Linéariser le modèle et donner la fonction de transfert \(\Delta H(p)/\Delta Q(p)\) : valeurs numériques de \(K\) et \(\tau\).</div>
+  <div class="q"><strong>Q3.</strong> On augmente le débit de \(\Delta q = 2{,}0\times 10^{-3}\ \text{m}^3/\text{s}\). Variation finale de niveau prévue par le modèle linéaire ? Temps de réponse à 5 % ? Comparer au nouvel équilibre exact.</div>
+  <div class="q"><strong>Q4.</strong> Même question pour \(\Delta q = 0{,}020\ \text{m}^3/\text{s}\). Conclure.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> À l'équilibre \(q_{e0} = k\sqrt{h_0} = 0{,}020\ \text{m}^3/\text{s}\).</p>
+    <p><strong>Q2.</strong> \(\sqrt{h} \approx \sqrt{h_0} + \dfrac{\Delta h}{2\sqrt{h_0}}\) donne \(S\,\dfrac{d\Delta h}{dt} + \dfrac{k}{2\sqrt{h_0}}\,\Delta h = \Delta q\), soit \(\dfrac{\Delta H(p)}{\Delta Q(p)} = \dfrac{K}{1 + \tau p}\) avec \(K = \dfrac{2\sqrt{h_0}}{k} = 100\ \text{s}\cdot\text{m}^{-2}\) et \(\tau = \dfrac{2S\sqrt{h_0}}{k} = 50\ \text{s}\).</p>
+    <p><strong>Q3.</strong> \(\Delta h_\infty = K\,\Delta q = 0{,}20\ \text{m}\), atteint à 5 % près en \(3\tau = 150\ \text{s}\). Exact : \(\sqrt{h} = \dfrac{0{,}022}{0{,}020} = 1{,}1\), donc \(h = 1{,}21\ \text{m}\) et \(\Delta h = 0{,}21\ \text{m}\). L'erreur du modèle linéaire est de 5 % : il est très bon.</p>
+    <p><strong>Q4.</strong> Modèle linéaire : \(\Delta h = 2{,}0\ \text{m}\), donc \(h = 3{,}0\ \text{m}\). Exact : \(\sqrt{h} = 2\), \(h = 4{,}0\ \text{m}\) : l'erreur atteint 33 %. Le modèle linéarisé ne vaut que pour de <strong>petites variations</strong> autour du point de fonctionnement.</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 07</span><span class="diff">★ ☆ ☆</span>
+  <h3>SLCI ou pas ?</h3>
+  <div class="statement">Pour chacun des systèmes suivants (entrée \(e\), sortie \(s\), temps en secondes), dire s'il est linéaire, invariant et causal, en justifiant, puis conclure : est-ce un SLCI ?</div>
+  <div class="q"><strong>Q1.</strong> (a) \(0{,}5\,s'(t) + s(t) = 2\,e(t)\) ; (b) \(s(t) = 3\,e(t) + 1\).</div>
+  <div class="q"><strong>Q2.</strong> (c) \(s'(t) + 2\,s(t) = e(t + 0{,}1)\) ; (d) \(s'(t) + (1 + 0{,}1\,t)\,s(t) = e(t)\).</div>
+  <div class="q"><strong>Q3.</strong> (e) \(s(t) = e(t - 2)\) ; (f) \(s(t)\,s'(t) = e(t)\).</div>
+  <div class="q"><strong>Q4.</strong> Pour (a), donner la fonction de transfert, son gain et sa constante de temps. Pour (b), montrer que les variations \(\Delta e = e\) et \(\Delta s = s - 1\) sont reliées par un SLCI.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> (a) Chaque terme est linéaire, les coefficients sont constants, et l'entrée n'est pas dérivée (\(m = 0 \leq n = 1\)) : linéaire, invariant, causal, donc SLCI du premier ordre. (b) Superposition en défaut : \(e_1 = 1\) donne 4, \(e_2 = 2\) donne 7, mais \(e_1 + e_2 = 3\) donne 10 et non \(4 + 7 = 11\). Le système est invariant et causal, mais <strong>affine</strong>, pas linéaire : ce n'est pas un SLCI (une entrée nulle ne donne pas une sortie nulle).</p>
+    <p><strong>Q2.</strong> (c) Linéaire et invariant, mais \(s(t)\) dépend de \(e(t + 0{,}1)\), valeur future de l'entrée : <strong>non causal</strong>, donc physiquement irréalisable. (d) Linéaire et causal, mais le coefficient \(1 + 0{,}1\,t\) change avec le temps : <strong>non invariant</strong>. Ni l'un ni l'autre n'est un SLCI.</p>
+    <p><strong>Q3.</strong> (e) Retard pur : linéaire (le retard d'une somme est la somme des retards), invariant, causal (on lit le passé) : SLCI au sens large, de fonction de transfert \(e^{-2p}\). (f) Si \(s\) répond à \(e\), alors \(\sqrt2\,s\) vérifie \(\sqrt2\,s \cdot \sqrt2\,s' = 2\,e\) : doubler l'entrée multiplie la sortie par \(\sqrt2\) et non par 2 : <strong>non linéaire</strong>.</p>
+    <p><strong>Q4.</strong> (a) \(H(p) = \dfrac{2}{1 + 0{,}5p}\) : \(K = 2\), \(\tau = 0{,}5\ \text{s}\). (b) \(\Delta s = s - 1 = 3\,e = 3\,\Delta e\) : pour les variations, c'est un gain pur de 3, un SLCI. C'est l'idée de la linéarisation autour d'un point de fonctionnement (vue en 2ᵉ année) : on étudie les écarts à un état de référence.</p>
+  </div>
+</div>
+<div class="exo">
+  <span class="num">EXO 08</span><span class="diff">★ ★ ☆</span>
+  <h3>Modèle de connaissance d'un siège suspendu</h3>
+  <div class="statement">Le siège d'un engin de chantier (masse avec le conducteur \(m = 80\ \text{kg}\)) est relié au plancher de la cabine par un ressort de raideur \(k = 3{,}2\times 10^{4}\ \text{N/m}\) et un amortisseur de coefficient \(c = 1{,}6\times 10^{3}\ \text{N·s/m}\), montés en parallèle. Entrée : déplacement vertical du plancher \(z(t)\) ; sortie : déplacement vertical du siège \(x(t)\) ; les deux sont comptés vers le haut à partir de la position d'équilibre, et le système est au repos à \(t = 0\). Le ressort exerce sur le siège la force \(-k\,(x - z)\), l'amortisseur \(-c\,(x' - z')\).</div>
+  <div class="q"><strong>Q1.</strong> Écrire le principe fondamental de la dynamique pour le siège et en déduire l'équation différentielle qui lie \(x\) et \(z\).</div>
+  <div class="q"><strong>Q2.</strong> Établir \(H(p) = X(p)/Z(p)\) sous forme canonique. Donner son gain, son ordre, sa classe, ses pôles et ses zéros.</div>
+  <div class="q"><strong>Q3.</strong> Identifier \(\omega_0\) et \(\xi\) (valeurs numériques).</div>
+  <div class="q"><strong>Q4.</strong> Le plancher monte brusquement de 5 cm (échelon). Sans calculer \(x(t)\), donner \(x(0^+)\), la vitesse initiale \(x'(0^+)\) et \(x(+\infty)\).</div>
+  <div class="q"><strong>Q5.</strong> Le plancher vibre selon \(z(t) = Z_m\sin(\omega t)\) avec \(\omega = 20\ \text{rad/s}\). Calculer le rapport des amplitudes \(X_m/Z_m\) en régime permanent et commenter.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> Le poids est compensé à l'équilibre (positions comptées depuis l'équilibre), d'où \(m\,x'' = -k\,(x - z) - c\,(x' - z')\), soit \(m\,x'' + c\,x' + k\,x = c\,z' + k\,z\). Le second membre contient la dérivée de l'entrée : la fonction de transfert aura un zéro.</p>
+    <p><strong>Q2.</strong> Sous conditions de Heaviside : \((m\,p^2 + c\,p + k)\,X = (c\,p + k)\,Z\), donc</p>
+    <div class="formula">$$H(p) = \frac{1 + \dfrac{c}{k}\,p}{1 + \dfrac{c}{k}\,p + \dfrac{m}{k}\,p^2} = \frac{1 + 0{,}05\,p}{1 + 0{,}05\,p + 0{,}0025\,p^2}.$$</div>
+    <p>Gain \(K = 1\) (sans unité : le siège finit par suivre le plancher), ordre 2, classe 0. Zéro : \(-k/c = -20\ \text{s}^{-1}\). Pôles : racines de \(p^2 + 20\,p + 400 = 0\), soit \(-10 \pm 10\sqrt3\,j \approx -10 \pm 17{,}3\,j\).</p>
+    <p><strong>Q3.</strong> \(\dfrac{1}{\omega_0^2} = \dfrac{m}{k}\) donne \(\omega_0 = \sqrt{k/m} = 20\ \text{rad/s}\) ; \(\dfrac{2\xi}{\omega_0} = \dfrac{c}{k}\) donne \(\xi = \dfrac{c}{2\sqrt{km}} = \dfrac{1600}{2 \times 1600} = 0{,}50\).</p>
+    <p><strong>Q4.</strong> \(X(p) = H(p)\,\dfrac{Z_0}{p}\) avec \(Z_0 = 0{,}05\ \text{m}\). Valeur initiale : \(x(0^+) = \lim\limits_{p \to +\infty} H(p)\,Z_0 = 0\) (degré 1 sur degré 2). Pente : \(x'(0^+) = \lim\limits_{p \to +\infty} p\,H(p)\,Z_0\), qui vaut \(\dfrac{c/k}{m/k}\,Z_0 = \dfrac{c}{m}\,Z_0\), soit \(20 \times 0{,}05 = 1{,}0\ \text{m/s}\) : l'amortisseur transmet immédiatement le choc sous forme de vitesse. Valeur finale (pôles à partie réelle négative) : \(x(+\infty) = H(0)\,Z_0 = 5\ \text{cm}\). Le calcul exact (non demandé) donne un maximum de 6,5 cm : 30 % de dépassement, plus que les 16 % d'un deuxième ordre sans zéro de même \(\xi\), à cause du zéro.</p>
+    <p><strong>Q5.</strong> \(\omega = \omega_0\) : \(H(j\omega_0) = \dfrac{1 + j\,(c/k)\,\omega_0}{1 + j\,2\xi - 1} = \dfrac{1 + j}{j} = 1 - j\), car \((c/k)\,\omega_0 = 0{,}05 \times 20 = 1\) et \(2\xi = 1\). Donc \(X_m/Z_m = \sqrt2 \approx 1{,}41\) : à cette pulsation, le siège vibre 41 % plus fort que le plancher. La suspension n'atténue les vibrations qu'au-delà de \(\omega = \sqrt2\,\omega_0 \approx 28\ \text{rad/s}\) (4,5 Hz) : à 40 rad/s, le rapport tombe à 0,62.</p>
+  </div>
+</div>
+<div class="exo">
+  <span class="num">EXO 09</span><span class="diff">★ ★ ☆</span>
+  <h3>Consignes composées et valeurs finales</h3>
+  <div class="statement">Le temps est en secondes. On rappelle (chapitre « Systèmes du 1er ordre ») qu'en réponse à une rampe de pente \(a\), la sortie d'un premier ordre \(\dfrac{K}{1 + \tau p}\) rejoint la droite \(K\,a\,(t - \tau)\).</div>
+  <div class="q"><strong>Q1.</strong> Une électrovanne reçoit une tension de commande en créneau : 3 V de \(t = 0\) à \(t = 2\) s, puis 0. Écrire \(e(t)\) à l'aide d'échelons, puis \(E(p)\). Vérifier \(e(0^+)\) et \(e(+\infty)\) par les théorèmes.</div>
+  <div class="q"><strong>Q2.</strong> La consigne de vitesse d'un convoyeur passe linéairement de 0 à 1,5 m/s en 3 s, puis reste constante. Écrire \(v_c(t)\), puis \(V_c(p)\).</div>
+  <div class="q"><strong>Q3.</strong> Cette consigne est appliquée à un premier ordre de gain \(K = 0{,}8\) et de constante de temps \(\tau = 0{,}4\ \text{s}\). Donner la valeur finale et la pente initiale de la sortie.</div>
+  <div class="q"><strong>Q4.</strong> Estimer la sortie à \(t = 3\) s, puis à \(t = 3 + 3\tau = 4{,}2\) s.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> \(e(t) = 3\,u(t) - 3\,u(t - 2)\), donc \(E(p) = \dfrac{3\,\big(1 - e^{-2p}\big)}{p}\). Valeur initiale : \(\lim\limits_{p \to +\infty} 3\,(1 - e^{-2p}) = 3\) V ; valeur finale : \(\lim\limits_{p \to 0} 3\,(1 - e^{-2p}) = 0\). Les deux théorèmes retrouvent le créneau.</p>
+    <p><strong>Q2.</strong> Pente \(a = 0{,}5\ \text{m/s}^2\) : \(v_c(t) = 0{,}5\,t\,u(t) - 0{,}5\,(t - 3)\,u(t - 3)\), d'où \(V_c(p) = \dfrac{0{,}5\,\big(1 - e^{-3p}\big)}{p^2}\). On retranche la rampe décalée \(0{,}5\,(t - 3)\), et non \(0{,}5\,t\).</p>
+    <p><strong>Q3.</strong> \(S(p) = \dfrac{0{,}8}{1 + 0{,}4p}\cdot\dfrac{0{,}5\,(1 - e^{-3p})}{p^2}\). Quand \(p \to 0\), \(1 - e^{-3p} \approx 3p\) : \(p\,S(p) \to 0{,}8 \times 0{,}5 \times 3 = 1{,}2\ \text{m/s}\) (le seul pôle restant de \(p\,S\) est \(-2{,}5\)). C'est bien \(K\) fois le palier de 1,5 m/s. Pente initiale : \(\lim\limits_{p \to +\infty} p^2\,S(p) = \lim \dfrac{0{,}4\,(1 - e^{-3p})}{1 + 0{,}4p} = 0\) : la sortie part à tangente horizontale, puisque la consigne elle-même part de 0 sans saut.</p>
+    <p><strong>Q4.</strong> À \(t = 3\) s, le régime de poursuite de la rampe est établi (\(3\ \text{s} \gg 3\tau\)) : \(s \approx K\,a\,(t - \tau)\), soit \(0{,}8 \times 0{,}5 \times 2{,}6 = 1{,}04\ \text{m/s}\). Ensuite, l'entrée est constante : la sortie rejoint 1,2 m/s avec la constante de temps \(\tau\), et à \(t = 4{,}2\) s, \(s \approx 1{,}2 - (1{,}2 - 1{,}04)\,e^{-3} \approx 1{,}19\ \text{m/s}\). Le calcul exact donne 1,040 et 1,192.</p>
+  </div>
+</div>
+<div class="exo">
+  <span class="num">EXO 10</span><span class="diff">★ ★ ☆</span>
+  <h3>Lire une fonction de transfert sans revenir au temps</h3>
+  <div class="statement">Un système a pour fonction de transfert \(H(p) = \dfrac{5\,(1 + 2p)}{(1 + 0{,}5p)(1 + 4p)}\) (temps en secondes). On lui applique un échelon unité.</div>
+  <div class="q"><strong>Q1.</strong> Donner ses pôles, son zéro, son gain statique ; est-il stable ?</div>
+  <div class="q"><strong>Q2.</strong> Calculer \(s(0^+)\), \(s'(0^+)\) et \(s(+\infty)\). Comparer la pente initiale à celle du premier ordre \(\dfrac{5}{1 + 4p}\).</div>
+  <div class="q"><strong>Q3.</strong> Quelle est la réponse permanente à \(e(t) = \sin t\) ?</div>
+  <div class="q"><strong>Q4.</strong> On donne la réponse indicielle exacte \(s(t) = 5 - \dfrac{15}{7}\,e^{-2t} - \dfrac{20}{7}\,e^{-t/4}\). Retrouver les résultats de Q2 et estimer le temps de réponse à 5 %.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> Zéro \(-0{,}5\) ; pôles \(-2\) et \(-0{,}25\), tous deux négatifs : stable. Gain statique \(H(0) = 5\).</p>
+    <p><strong>Q2.</strong> \(S(p) = H(p)/p\). \(s(0^+) = \lim\limits_{p \to +\infty} H(p) = 0\) (degré 1 sur degré 2). Pente : \(s'(0^+) = \lim\limits_{p \to +\infty} p\,H(p) = \dfrac{5 \times 2}{0{,}5 \times 4} = 5\) par seconde. Valeur finale : \(s(+\infty) = H(0) = 5\). Le premier ordre \(\dfrac{5}{1 + 4p}\) part avec la pente \(K/\tau = 1{,}25\) par seconde : le zéro multiplie la pente initiale par 4, il « anticipe ».</p>
+    <p><strong>Q3.</strong> \(H(j) = \dfrac{5\,(1 + 2j)}{(1 + 0{,}5j)(1 + 4j)}\) : module \(\dfrac{5\sqrt5}{\sqrt{1{,}25}\,\sqrt{17}} \approx 2{,}43\) ; argument \(\arctan 2 - \arctan 0{,}5 - \arctan 4\), soit \(63{,}4° - 26{,}6° - 76{,}0° = -39{,}1°\) (\(-0{,}68\) rad). En régime permanent, \(s(t) \approx 2{,}43\,\sin(t - 0{,}68)\).</p>
+    <p><strong>Q4.</strong> \(s(0) = 5 - \dfrac{15}{7} - \dfrac{20}{7} = 0\) ; \(s'(t) = \dfrac{30}{7}\,e^{-2t} + \dfrac{5}{7}\,e^{-t/4}\), donc \(s'(0) = \dfrac{35}{7} = 5\) ; \(s \to 5\). Le terme \(e^{-2t}\) s'éteint vite : le temps de réponse est fixé par \(\dfrac{20}{7}\,e^{-t/4} \leq 0{,}05 \times 5\), soit \(t \geq 4\ln\dfrac{80}{7} \approx 9{,}7\ \text{s}\) (la réponse ne dépasse pas sa valeur finale).</p>
+  </div>
+</div>
+<div class="exo">
+  <span class="num">EXO 11</span><span class="diff">★ ★ ★</span>
+  <h3>Simuler une suspension par la méthode d'Euler</h3>
+  <div class="statement">On reprend le quart de véhicule du cours (§6) : \(m\,x'' + c\,x' + k\,x = F(t)\), avec \(m = 250\ \text{kg}\), \(k = 2{,}5\times 10^{4}\ \text{N/m}\), \(c = 2{,}0\times 10^{3}\ \text{N·s/m}\), au repos à \(t = 0\), et \(F = 1\,000\ \text{N}\) à partir de \(t = 0\). On pose \(v = x'\).</div>
+  <div class="q"><strong>Q1.</strong> Écrire le système d'ordre 1 vérifié par \((x, v)\), puis le schéma d'Euler de pas \(h\).</div>
+  <div class="q"><strong>Q2.</strong> Avec \(h = 0{,}01\) s, calculer à la main \((x_1, v_1)\) et \((x_2, v_2)\).</div>
+  <div class="q"><strong>Q3.</strong> Sans simulation, donner la valeur finale de \(x\) et la valeur maximale attendue (dépassement d'un deuxième ordre sans zéro : \(D_1 = e^{-\pi\xi/\sqrt{1 - \xi^2}}\)).</div>
+  <div class="q"><strong>Q4.</strong> La fonction <code>euler_ordre2</code> du chapitre « Méthodes numériques » donne un maximum de 0,0521 m pour \(h = 0{,}01\) s et de 0,0503 m pour \(h = 0{,}001\) s. Commenter.</div>
+  <div class="q"><strong>Q5.</strong> On admet qu'à chaque pas, Euler multiplie un mode \(e^{\lambda t}\) de la réponse (\(\lambda\) pôle du système) par \(1 + h\lambda\), au lieu de \(e^{h\lambda}\). Calculer les pôles, puis \(|1 + h\lambda|\) pour \(h = 0{,}01\) s et \(h = 0{,}1\) s. En déduire le pas au-delà duquel la simulation diverge.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> \(x' = v\) et \(v' = \dfrac{F - c\,v - k\,x}{m}\). Euler : \(x_{k+1} = x_k + h\,v_k\) et \(v_{k+1} = v_k + h\,\dfrac{F - c\,v_k - k\,x_k}{m}\), les deux calculés avec les valeurs du pas \(k\).</p>
+    <p><strong>Q2.</strong> \(x_1 = 0 + 0{,}01 \times 0 = 0\) ; \(v_1 = 0 + 0{,}01 \times \dfrac{1000}{250} = 0{,}040\ \text{m/s}\). Puis \(x_2 = 0 + 0{,}01 \times 0{,}040 = 4{,}0\times 10^{-4}\ \text{m}\) et</p>
+    <div class="formula">$$v_2 = 0{,}040 + 0{,}01 \times \dfrac{1000 - 2000 \times 0{,}040}{250} = 0{,}0768\ \text{m/s}.$$</div>
+    <p>La valeur exacte \(x(0{,}02) \approx 7{,}6\times 10^{-4}\) m montre qu'Euler prend du retard au démarrage : la vitesse utilisée au premier pas est celle du départ, nulle.</p>
+    <p><strong>Q3.</strong> Valeur finale \(x_\infty = F/k = 4{,}0\) cm (cours, §6) ; \(\xi = 0{,}40\) donne \(D_1 = e^{-\pi \times 0{,}4/\sqrt{0{,}84}} \approx 0{,}254\), d'où un maximum d'environ \(4{,}0 \times 1{,}254 \approx 5{,}02\) cm, atteint à \(t = \dfrac{\pi}{\omega_0\sqrt{1 - \xi^2}} \approx 0{,}34\) s.</p>
+    <p><strong>Q4.</strong> Avec \(h = 0{,}01\) s, Euler surestime le maximum de 4 % (5,21 cm) : il amortit trop peu les oscillations. Avec \(h = 0{,}001\) s, l'écart tombe à 0,4 % : l'erreur est à peu près proportionnelle au pas. On choisit \(h\) petit devant \(1/\omega_0 = 0{,}1\) s, et l'on vérifie qu'en divisant \(h\) par deux le résultat ne bouge plus.</p>
+    <p><strong>Q5.</strong> Les pôles sont les racines de \(250\,p^2 + 2000\,p + 25000 = 0\) : \(\lambda = -4 \pm 9{,}17\,j\) (\(|\lambda| = \omega_0 = 10\)). \(|1 + h\lambda|^2 = (1 - 4h)^2 + (9{,}17\,h)^2\), soit \(1 - 8h + 100\,h^2\). Pour \(h = 0{,}01\) s : \(|1 + h\lambda| \approx 0{,}964\), contre \(e^{-4h} \approx 0{,}961\) pour la solution exacte : le mode décroît, mais un peu moins vite (amortissement sous-estimé). Pour \(h = 0{,}1\) s : \(|1 + h\lambda| \approx 1{,}10 \gt 1\), les oscillations calculées grandissent sans fin. La limite est \(1 - 8h + 100\,h^2 \lt 1\), soit \(h \lt 0{,}08\) s.</p>
+  </div>
+</div>
+<div class="exo concours">
+  <span class="num">CONCOURS PT</span><span class="diff">★ ★ ★</span>
+  <h3>Température d'une enceinte mesurée avec retard</h3>
+  <div class="exo-source">
+    Exercice <strong>original</strong> au format des épreuves de Sciences industrielles PT (thème <em>modélisation des SLCI</em>). Pour t'entraîner sur les sujets réellement tombés :
+    <a href="https://www.banquept.fr/rubrique38.html" target="_blank" rel="noopener">annales officielles de la Banque PT</a>.
+  </div>
+  <div class="statement">
+    Une enceinte de capacité thermique \(C = 2{,}0\times 10^{4}\ \text{J}\cdot\text{K}^{-1}\) est chauffée par une résistance de puissance \(P(t)\). Elle perd de la chaleur vers l'extérieur à travers une paroi de résistance thermique \(R_{th} = 5{,}0\times 10^{-2}\ \text{K}\cdot\text{W}^{-1}\). On note \(\theta(t)\) l'écart de température entre l'enceinte et l'extérieur, nul à \(t = 0\). Le bilan d'énergie s'écrit \(C\,\dfrac{d\theta}{dt} = P(t) - \dfrac{\theta(t)}{R_{th}}\).
+  </div>
+  <p class="exo-part">Partie A — Modèle de l'enceinte</p>
+  <div class="q"><strong>A1.</strong> Établir la fonction de transfert \(H(p) = \Theta(p)/P(p)\) sous forme canonique ; donner son gain et sa constante de temps, avec leurs unités.</div>
+  <div class="q"><strong>A2.</strong> La puissance passe de 0 à 400 W à \(t = 0\). Calculer l'écart de température final et le temps de réponse à 5 %.</div>
+  <p class="exo-part">Partie B — Une mesure retardée</p>
+  <div class="q"><strong>B1.</strong> La sonde est placée dans une gaine de reprise d'air : la mesure \(\theta_m(t)\) reproduit \(\theta(t)\) avec un retard de transport \(T = 30\ \text{s}\). Écrire \(\Theta_m(p)/P(p)\).</div>
+  <div class="q"><strong>B2.</strong> Donner \(\theta_m(t)\) pour l'échelon de A2 et l'instant où la mesure atteint 95 % de sa valeur finale.</div>
+  <div class="q"><strong>B3.</strong> Ce retard ne modifie ni le gain ni la valeur finale. Expliquer pourquoi il peut pourtant gêner une régulation en boucle fermée.</div>
+  <p class="exo-part">Partie C — Une puissance modulée</p>
+  <div class="q"><strong>C1.</strong> Le régime établi, la puissance est modulée : \(P(t) = 400 + 200\sin(\omega t)\) (en W), de période 1 h. Montrer qu'en régime permanent \(\theta(t) = 20 + \theta_1\sin(\omega t + \varphi)\) et calculer \(\theta_1\) et \(\varphi\).</div>
+  <div class="q"><strong>C2.</strong> Quel décalage temporel sépare un maximum de puissance du maximum de température qui le suit ? Et du maximum de la mesure \(\theta_m\) ? Le retard de la sonde change-t-il l'amplitude mesurée ?</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>A1.</strong> Sous conditions initiales nulles : \(Cp\,\Theta = P - \Theta/R_{th}\), donc \(H(p) = \dfrac{R_{th}}{1 + R_{th}C\,p}\) : gain \(K = R_{th} = 0{,}050\ \text{K}\cdot\text{W}^{-1}\), constante de temps \(\tau = R_{th}C = 1{,}0\times 10^{3}\ \text{s}\).</p>
+    <p><strong>A2.</strong> \(\theta_\infty = K\,P_0 = 0{,}050 \times 400 = 20\ \text{K}\), atteint à 5 % près au bout de \(3\tau = 3{,}0\times 10^{3}\ \text{s}\), soit 50 min.</p>
+    <p><strong>B1.</strong> Théorème du retard : \(\dfrac{\Theta_m(p)}{P(p)} = e^{-Tp}\,H(p) = \dfrac{0{,}050\,e^{-30p}}{1 + 1000\,p}\).</p>
+    <p><strong>B2.</strong> \(\theta_m(t) = 0\) pour \(t \lt 30\ \text{s}\), puis \(\theta_m(t) = 20\,\big(1 - e^{-(t - 30)/1000}\big)\) : 95 % sont atteints à \(t = 3030\ \text{s}\).</p>
+    <p><strong>B3.</strong> Une régulation compare la mesure à la consigne pour doser la puissance. Avec le retard, elle découvre l'effet de son action 30 s trop tard : si elle est réglée vivement, elle continue de chauffer alors que l'enceinte a déjà dépassé la consigne, d'où des dépassements puis des oscillations. En fréquentiel, le retard ajoute un déphasage \(-\omega T\) qui croît sans limite et ronge la marge de phase (chapitre « Stabilité des systèmes asservis »).</p>
+    <p><strong>C1.</strong> Le système est linéaire : la réponse à \(P(t)\) est la somme des réponses à la partie constante (400 W donnent \(K \times 400 = 20\) K, A2) et à la partie sinusoïdale. Pour celle-ci, \(\omega = \dfrac{2\pi}{3600} \approx 1{,}75\times 10^{-3}\ \text{rad/s}\), \(\tau\omega \approx 1{,}75\), et \(H(j\omega) = \dfrac{R_{th}}{1 + j\tau\omega}\) : \(|H| = \dfrac{0{,}050}{\sqrt{1 + 1{,}75^2}} \approx 0{,}0249\ \text{K/W}\), d'où \(\theta_1 \approx 200 \times 0{,}0249 \approx 5{,}0\ \text{K}\), et \(\varphi = -\arctan(\tau\omega) \approx -60°\) (\(-1{,}05\) rad).</p>
+    <p><strong>C2.</strong> Le déphasage de \(-1{,}05\) rad correspond à un décalage \(\dfrac{1{,}05}{\omega} \approx 600\ \text{s}\), soit 10 min. La mesure ajoute son retard de 30 s : environ 630 s. Le retard pur a pour module \(|e^{-j\omega T}| = 1\) : il ne change pas l'amplitude mesurée (5,0 K), seulement la phase, de \(-\omega T \approx -3°\).</p>
+  </div>
+</div>
+
+</div>
+</template>

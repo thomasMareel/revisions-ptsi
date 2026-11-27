@@ -1,0 +1,1639 @@
+<!-- Chapitre « Mesures et incertitudes » (incertitudes) : contenu des onglets Cours, Méthodes et Exercices, chargé à l'ouverture du chapitre.
+     On l'édite ici, puis : node tools/chapitres.js (docs/chargement-chapitres.md). -->
+<template class="pan-tpl" data-panneau="inc-cours">
+<div class="course-section">
+  <div class="sec-num">AU PROGRAMME · PTSI</div>
+  <h2>Ce que le programme officiel demande</h2>
+  <div class="intro">Ce chapitre suit la partie « Mesures et incertitudes » de la formation expérimentale du programme de PTSI. Elle ne relève d'aucun thème : elle sert dans chaque séance de travaux pratiques, dans les questions d'exploitation de mesures des épreuves écrites et, plus encore, à l'oral de TP, où l'on vous demandera toujours « avec quelle incertitude ? » et « est-ce compatible ? ». Le programme de PT reprend mot pour mot la même liste : ses notions couvrent les deux années, et leur pleine maîtrise est un objectif de fin de 2ᵉ année. Le chapitre « Variables aléatoires » (mathématiques) fournit l'outil probabiliste, le chapitre « Méthodes numériques » (informatique) les bases de Python.</div>
+  <div class="reveal" onclick="this.classList.toggle('open')">
+    <span class="label">Programme officiel</span>
+    <span class="prompt">Les notions et capacités exigibles, dans l'ordre du chapitre</span>
+    <div class="content">
+      <ul>
+        <li><strong>Variabilité de la mesure d'une grandeur physique, incertitude, incertitude-type</strong> : identifier les incertitudes liées à l'opérateur, à l'environnement, aux instruments ou à la méthode de mesure (§1).</li>
+        <li><strong>Évaluation de type A</strong> : procéder à l'évaluation d'une incertitude-type par une approche statistique (§2).</li>
+        <li><strong>Évaluation de type B</strong> : procéder à l'évaluation d'une incertitude-type par une autre approche que statistique (§3).</li>
+        <li><strong>Loi normale</strong> : associer un intervalle de confiance à l'écart-type dans l'hypothèse d'une distribution suivant la loi normale (§4).</li>
+        <li><strong>Incertitudes-types composées</strong> : évaluer l'incertitude-type d'une grandeur qui s'exprime à l'aide d'une somme, d'une différence, d'un produit ou d'un quotient d'autres grandeurs dont les incertitudes-types sont connues ; comparer entre elles les différentes contributions (§5).</li>
+        <li><strong>Capacité numérique</strong> : simuler, à l'aide d'un langage de programmation, un processus aléatoire qui caractérise la variabilité de la valeur d'une grandeur composée (§6).</li>
+        <li><strong>Écriture du résultat d'une mesure</strong> avec un nombre adapté de chiffres significatifs (§7).</li>
+        <li><strong>Écart normalisé</strong> : comparer deux valeurs dont les incertitudes-types sont connues ; analyser les causes d'une éventuelle incompatibilité entre le résultat d'une mesure et le résultat attendu par une modélisation (§8).</li>
+        <li><strong>Régression linéaire</strong> : obtenir les paramètres d'un modèle avec un logiciel ; valider le modèle par une analyse graphique avec barres d'incertitude ou par l'analyse des écarts normalisés, sans s'en remettre au seul coefficient R² (§9).</li>
+        <li><strong>Capacité numérique</strong> : simuler, par la méthode de Monte-Carlo, la variation des valeurs expérimentales de l'une des grandeurs pour évaluer l'incertitude sur les paramètres du modèle (§10).</li>
+        <li><strong>Outils numériques</strong> (annexe du programme) : tirages avec les fonctions de numpy (<code>random.normal</code>, <code>random.uniform</code>), histogramme avec <code>hist</code> de matplotlib, moyenne et écart-type d'un ensemble de tirages, régression avec <code>polyfit</code> (§2, §6, §9, §10). Les spécifications de ces fonctions sont fournies par les énoncés.</li>
+        <li><strong>Pratique expérimentale</strong> : ordres de grandeur des incertitudes des instruments usuels, et les gestes qui les réduisent (§11).</li>
+      </ul>
+      <p>Hors programme (regroupé en fin de chapitre) : la formule générale de propagation par les dérivées partielles et les corrélations, le facteur de Student, les formules des moindres carrés et la régression pondérée.</p>
+    </div>
+  </div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§1 · VARIABILITÉ DE LA MESURE</div>
+  <h2>Mesurer, c'est estimer une valeur</h2>
+  <div class="intro">Recommencez une mesure, même soigneusement, et vous obtiendrez presque toujours une valeur un peu différente. Ce n'est pas un échec : c'est la nature de toute mesure. Le chapitre donne le vocabulaire et les outils pour décrire cette variabilité par un nombre, l'incertitude-type, puis pour s'en servir : composer, écrire, comparer, valider un modèle.</div>
+  <div class="def-box">
+    <strong>Mesurande, valeur mesurée.</strong> Le <em>mesurande</em> est la grandeur particulière que l'on veut mesurer, définie assez précisément pour que la question ait un sens : « la période des oscillations de faible amplitude de ce pendule, à la température de la salle » et non « la période ». La <em>valeur mesurée</em> \(x\) est le nombre (avec son unité) que fournit le mesurage. La valeur exacte du mesurande, parfois appelée valeur vraie, n'est jamais connue.
+  </div>
+  <h3>D'où vient la variabilité ?</h3>
+  <p>Le programme demande d'identifier quatre familles de sources, qu'il faut savoir citer avec un exemple précis pour chaque protocole :</p>
+  <ul>
+    <li><strong>L'opérateur</strong> : temps de réaction au déclenchement d'un chronomètre (de l'ordre de 0,1 s), appréciation de la netteté d'une image sur un écran, lecture d'un ménisque ou d'une aiguille avec un défaut de parallaxe, repérage d'un virage de couleur.</li>
+    <li><strong>L'environnement</strong> : température de la salle (la célérité du son, une résistance, un volume de verrerie en dépendent), courants d'air sur une balance, vibrations, lumière parasite sur un capteur, parasites du secteur à 50 Hz.</li>
+    <li><strong>Les instruments</strong> : graduation d'une règle, résolution d'un affichage numérique, tolérance donnée par le constructeur (multimètre, verrerie jaugée), étalonnage, dérive.</li>
+    <li><strong>La méthode</strong> : modèle simplifié (pendule simple pour un pendule réel, amplitude non infiniment petite), perturbation apportée par l'appareil (résistance d'entrée d'un voltmètre, résistance d'un ampèremètre), choix de la grandeur effectivement lue (période sur une oscillation ou sur vingt).</li>
+  </ul>
+  <figure class="schema">
+<svg viewBox="0 0 500 250" role="img" aria-label="Quatre séries de douze mesures d'une même grandeur, plus ou moins dispersées, centrées ou non sur la valeur du mesurande">
+<line x1="315" y1="212.5" x2="315" y2="20" class="sk-dash"/>
+<text x="315" y="14" class="lab-muted" text-anchor="middle">valeur du mesurande</text>
+<line x1="155.2" y1="45" x2="474.8" y2="45" class="sk-axis"/>
+<circle cx="316.9" cy="45" r="4" class="fl-accent2" style="opacity:.75"/>
+<circle cx="322.7" cy="45" r="4" class="fl-accent2" style="opacity:.75"/>
+<circle cx="311.6" cy="45" r="4" class="fl-accent2" style="opacity:.75"/>
+<circle cx="299.6" cy="45" r="4" class="fl-accent2" style="opacity:.75"/>
+<circle cx="308.1" cy="45" r="4" class="fl-accent2" style="opacity:.75"/>
+<circle cx="297.6" cy="45" r="4" class="fl-accent2" style="opacity:.75"/>
+<circle cx="318.1" cy="45" r="4" class="fl-accent2" style="opacity:.75"/>
+<circle cx="343" cy="45" r="4" class="fl-accent2" style="opacity:.75"/>
+<circle cx="307.3" cy="45" r="4" class="fl-accent2" style="opacity:.75"/>
+<circle cx="304.8" cy="45" r="4" class="fl-accent2" style="opacity:.75"/>
+<circle cx="326.4" cy="45" r="4" class="fl-accent2" style="opacity:.75"/>
+<circle cx="323.9" cy="45" r="4" class="fl-accent2" style="opacity:.75"/>
+<line x1="315" y1="32" x2="315" y2="58" class="sk-accent" style="stroke-width:2.6"/>
+<text x="140" y="49" text-anchor="end">peu dispersé, centré</text>
+<line x1="155.2" y1="95" x2="474.8" y2="95" class="sk-axis"/>
+<circle cx="409.3" cy="95" r="4" class="fl-accent2" style="opacity:.75"/>
+<circle cx="393.8" cy="95" r="4" class="fl-accent2" style="opacity:.75"/>
+<circle cx="407.3" cy="95" r="4" class="fl-accent2" style="opacity:.75"/>
+<circle cx="418.2" cy="95" r="4" class="fl-accent2" style="opacity:.75"/>
+<circle cx="387.6" cy="95" r="4" class="fl-accent2" style="opacity:.75"/>
+<circle cx="400.9" cy="95" r="4" class="fl-accent2" style="opacity:.75"/>
+<circle cx="379.3" cy="95" r="4" class="fl-accent2" style="opacity:.75"/>
+<circle cx="388.4" cy="95" r="4" class="fl-accent2" style="opacity:.75"/>
+<circle cx="380.2" cy="95" r="4" class="fl-accent2" style="opacity:.75"/>
+<circle cx="404.2" cy="95" r="4" class="fl-accent2" style="opacity:.75"/>
+<circle cx="388.8" cy="95" r="4" class="fl-accent2" style="opacity:.75"/>
+<circle cx="411.8" cy="95" r="4" class="fl-accent2" style="opacity:.75"/>
+<line x1="397.5" y1="82" x2="397.5" y2="108" class="sk-accent" style="stroke-width:2.6"/>
+<text x="140" y="99" text-anchor="end">peu dispersé, décalé</text>
+<line x1="155.2" y1="145" x2="474.8" y2="145" class="sk-axis"/>
+<circle cx="351" cy="145" r="4" class="fl-accent2" style="opacity:.75"/>
+<circle cx="333.4" cy="145" r="4" class="fl-accent2" style="opacity:.75"/>
+<circle cx="214.3" cy="145" r="4" class="fl-accent2" style="opacity:.75"/>
+<circle cx="315.4" cy="145" r="4" class="fl-accent2" style="opacity:.75"/>
+<circle cx="340.5" cy="145" r="4" class="fl-accent2" style="opacity:.75"/>
+<circle cx="348.7" cy="145" r="4" class="fl-accent2" style="opacity:.75"/>
+<circle cx="264.7" cy="145" r="4" class="fl-accent2" style="opacity:.75"/>
+<circle cx="318.5" cy="145" r="4" class="fl-accent2" style="opacity:.75"/>
+<circle cx="292.9" cy="145" r="4" class="fl-accent2" style="opacity:.75"/>
+<circle cx="301.6" cy="145" r="4" class="fl-accent2" style="opacity:.75"/>
+<circle cx="397.2" cy="145" r="4" class="fl-accent2" style="opacity:.75"/>
+<circle cx="301.7" cy="145" r="4" class="fl-accent2" style="opacity:.75"/>
+<line x1="315" y1="132" x2="315" y2="158" class="sk-accent" style="stroke-width:2.6"/>
+<text x="140" y="149" text-anchor="end">dispersé, centré</text>
+<line x1="155.2" y1="195" x2="474.8" y2="195" class="sk-axis"/>
+<circle cx="395.8" cy="195" r="4" class="fl-accent2" style="opacity:.75"/>
+<circle cx="446.8" cy="195" r="4" class="fl-accent2" style="opacity:.75"/>
+<circle cx="365.2" cy="195" r="4" class="fl-accent2" style="opacity:.75"/>
+<circle cx="391.4" cy="195" r="4" class="fl-accent2" style="opacity:.75"/>
+<circle cx="403.8" cy="195" r="4" class="fl-accent2" style="opacity:.75"/>
+<circle cx="401.2" cy="195" r="4" class="fl-accent2" style="opacity:.75"/>
+<circle cx="329.5" cy="195" r="4" class="fl-accent2" style="opacity:.75"/>
+<circle cx="401.9" cy="195" r="4" class="fl-accent2" style="opacity:.75"/>
+<circle cx="473.2" cy="195" r="4" class="fl-accent2" style="opacity:.75"/>
+<circle cx="311.5" cy="195" r="4" class="fl-accent2" style="opacity:.75"/>
+<circle cx="445.4" cy="195" r="4" class="fl-accent2" style="opacity:.75"/>
+<circle cx="404.3" cy="195" r="4" class="fl-accent2" style="opacity:.75"/>
+<line x1="397.5" y1="182" x2="397.5" y2="208" class="sk-accent" style="stroke-width:2.6"/>
+<text x="140" y="199" text-anchor="end">dispersé et décalé</text>
+<text x="397.5" y="238" class="lab-muted" text-anchor="middle">décalage systématique</text>
+<line x1="317.6" y1="224" x2="394.9" y2="224" class="sk-ink" style="stroke-width:1" marker-end="url(#sk-arrow-ink)"/>
+</svg>
+<figcaption>Quatre séries de douze mesures simulées (points) et leur moyenne (trait vertical). La <em>dispersion</em> traduit la variabilité aléatoire : elle se voit, se mesure (écart-type) et diminue sur la moyenne. Le <em>décalage</em> d'une erreur systématique ne se voit pas sur une série : toutes les mesures sont décalées ensemble, et seule une autre méthode ou un étalon le révèle.</figcaption>
+</figure>
+  <div class="def-box">
+    <strong>Erreur de mesure.</strong> C'est la différence \(x-x_{\text{vrai}}\) entre la valeur mesurée et la valeur du mesurande. Elle est inconnue, puisque \(x_{\text{vrai}}\) l'est. On y distingue deux composantes : une composante <em>aléatoire</em>, qui change d'une mesure à l'autre (elle crée la dispersion et se réduit en moyennant), et une composante <em>systématique</em>, identique pour toutes les mesures faites de la même façon (zéro d'une balance mal réglé, étalonnage faux, résistance de l'appareil) : elle ne se voit pas sur une série et ne diminue pas en répétant ; on la corrige quand on la connaît, sinon on la révèle en changeant de méthode ou en mesurant un étalon.
+  </div>
+  <div class="def-box">
+    <strong>Incertitude-type.</strong> L'incertitude-type \(u(x)\) est un nombre positif, de même unité que \(x\), qui caractérise la dispersion des valeurs que l'on peut raisonnablement attribuer au mesurande compte tenu de la mesure : c'est un <em>écart-type</em>. L'incertitude-type relative est \(u(x)/|x|\), sans dimension, souvent en pourcentage. Le résultat complet d'une mesure comporte trois éléments : une valeur, une incertitude-type et une unité.
+  </div>
+  <div class="method-box">
+    <strong>Exemple — chronométrer une chute à la main</strong>
+    <p>On lâche une bille d'une hauteur \(h=1{,}000\ \text{m}\) (règle graduée au millimètre) et on chronomètre sa chute à la main pour en déduire \(g=2h/t^2\).</p>
+    <ol>
+      <li>Ordre de grandeur de la durée : \(t=\sqrt{2h/g}=\sqrt{2\times1{,}000/9{,}81}\approx0{,}45\ \text{s}\).</li>
+      <li>Source « opérateur » : on déclenche et on arrête le chronomètre à la main. D'un essai à l'autre, la durée affichée varie d'environ 0,05 à 0,1 s, soit 10 à 20 % de \(t\), donc 20 à 40 % sur \(g\), qui contient \(t^2\).</li>
+      <li>Source « instrument » : la règle donne \(h\) à environ 1 mm près, soit 0,1 %. La résolution du chronomètre (0,01 s) est sans importance devant le temps de réaction.</li>
+      <li>Conclusion : la variabilité vient presque entièrement de l'opérateur. Répéter les mesures aiderait un peu, changer de méthode beaucoup plus : avec une fourche optique, une carte d'acquisition ou une vidéo, \(t\) est connu à la milliseconde près, soit 0,2 %.</li>
+    </ol>
+  </div>
+  <div class="notice"><strong>Erreur classique</strong> : confondre erreur et incertitude. Une incertitude n'est pas une faute que l'on aurait commise : c'est une estimation, toujours positive, de la dispersion attendue. Une erreur, elle, a un signe et reste inconnue. Autre confusion : croire qu'en répétant cent fois la même mesure on fera disparaître une erreur systématique. Cent mesures faites avec un ohmmètre mal étalonné donnent cent valeurs fausses de la même façon.</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§2 · ÉVALUATION DE TYPE A</div>
+  <h2>Une série de mesures : moyenne et écart-type</h2>
+  <div class="intro">Quand on peut répéter la mesure dans les mêmes conditions et que les valeurs se dispersent, la statistique fournit directement l'incertitude-type : c'est l'évaluation de type A. Elle suppose des mesures indépendantes, c'est-à-dire refaites en entier à chaque fois.</div>
+  <div class="def-box">
+    <strong>Moyenne et écart-type expérimental.</strong> Pour \(N\) mesures indépendantes \(x_1,\dots,x_N\) d'une même grandeur :
+    <div class="formula" data-nom="Moyenne d'une série">$$\bar x=\frac{1}{N}\sum_{i=1}^{N}x_i$$</div>
+    <div class="formula" data-nom="Écart-type d'une série">$$s_x=\sqrt{\frac{1}{N-1}\sum_{i=1}^{N}\left(x_i-\bar x\right)^2}$$</div>
+    L'écart-type expérimental \(s_x\) mesure la dispersion d'une mesure isolée : c'est l'incertitude-type d'<em>une</em> mesure faite avec ce protocole, \(u(x_i)=s_x\).
+  </div>
+  <div class="prop-box">
+    <strong>Incertitude-type de la moyenne.</strong> Le résultat retenu est la moyenne \(\bar x\), moins dispersée qu'une mesure isolée. Son incertitude-type (évaluation de type A) est
+    <div class="formula" data-nom="Type A : u de la moyenne">$$u(\bar x)=\frac{s_x}{\sqrt N}$$</div>
+  </div>
+  <div class="reveal" onclick="this.classList.toggle('open')">
+    <span class="label">Pour comprendre</span>
+    <span class="prompt">D'où viennent le \(\sqrt N\) et le \(N-1\) ?</span>
+    <div class="content">
+      <p>Modélisons chaque mesure par une variable aléatoire \(X_i\) de variance \(\sigma^2\), les \(X_i\) étant indépendantes. La variance d'une somme de variables indépendantes est la somme des variances (chapitre « Variables aléatoires ») et \(V(\lambda X)=\lambda^2V(X)\), donc</p>
+      <div class="formula">$$V\!\left(\bar X\right)=V\!\left(\frac{1}{N}\sum_{i=1}^{N}X_i\right)=\frac{1}{N^2}\times N\sigma^2=\frac{\sigma^2}{N},$$</div>
+      <p>d'où un écart-type \(\sigma/\sqrt N\) pour la moyenne : c'est le \(\sqrt N\). On ne connaît pas \(\sigma\) ; on l'estime par \(s_x\). Le diviseur \(N-1\) plutôt que \(N\) vient de ce que les écarts sont pris à \(\bar x\), calculée sur les mêmes données : ils sont en moyenne un peu plus petits que les écarts à la vraie moyenne, et diviser par \(N-1\) compense exactement ce biais sur \(s_x^2\). La différence est minime dès quelques dizaines de mesures.</p>
+    </div>
+  </div>
+  <figure class="schema">
+<svg viewBox="0 0 520 238" role="img" aria-label="Histogramme de quarante chronométrages de dix périodes, avec la moyenne et la bande plus ou moins un écart-type">
+<rect x="178.5" y="30" width="121.9" height="170" class="fl-accent-soft"/>
+<rect x="119.4" y="149" width="28.6" height="51" class="fl-accent2-soft"/>
+<polyline points="119.4,200 119.4,149 148,149 148,200" class="sk-accent2" style="stroke-width:1"/>
+<rect x="148" y="149" width="28.6" height="51" class="fl-accent2-soft"/>
+<polyline points="148,200 148,149 176.6,149 176.6,200" class="sk-accent2" style="stroke-width:1"/>
+<rect x="176.6" y="81" width="28.6" height="119" class="fl-accent2-soft"/>
+<polyline points="176.6,200 176.6,81 205.1,81 205.1,200" class="sk-accent2" style="stroke-width:1"/>
+<rect x="205.1" y="115" width="28.6" height="85" class="fl-accent2-soft"/>
+<polyline points="205.1,200 205.1,115 233.7,115 233.7,200" class="sk-accent2" style="stroke-width:1"/>
+<rect x="233.7" y="81" width="28.6" height="119" class="fl-accent2-soft"/>
+<polyline points="233.7,200 233.7,81 262.3,81 262.3,200" class="sk-accent2" style="stroke-width:1"/>
+<rect x="262.3" y="81" width="28.6" height="119" class="fl-accent2-soft"/>
+<polyline points="262.3,200 262.3,81 290.9,81 290.9,200" class="sk-accent2" style="stroke-width:1"/>
+<rect x="290.9" y="149" width="28.6" height="51" class="fl-accent2-soft"/>
+<polyline points="290.9,200 290.9,149 319.4,149 319.4,200" class="sk-accent2" style="stroke-width:1"/>
+<rect x="319.4" y="132" width="28.6" height="68" class="fl-accent2-soft"/>
+<polyline points="319.4,200 319.4,132 348,132 348,200" class="sk-accent2" style="stroke-width:1"/>
+<rect x="348" y="183" width="28.6" height="17" class="fl-accent2-soft"/>
+<polyline points="348,200 348,183 376.6,183 376.6,200" class="sk-accent2" style="stroke-width:1"/>
+<polyline points="48,199.1 50,199 52,198.9 54,198.8 56,198.6 58.1,198.5 60.1,198.3 62.1,198.2 64.1,198 66.1,197.8 68.1,197.6 70.1,197.3 72.1,197.1 74.1,196.8 76.1,196.5 78.2,196.2 80.2,195.8 82.2,195.4 84.2,195 86.2,194.6 88.2,194.1 90.2,193.6 92.2,193.1 94.2,192.5 96.2,191.9 98.3,191.3 100.3,190.6 102.3,189.9 104.3,189.1 106.3,188.3 108.3,187.4 110.3,186.5 112.3,185.5 114.3,184.5 116.3,183.4 118.4,182.3 120.4,181.1 122.4,179.9 124.4,178.6 126.4,177.2 128.4,175.8 130.4,174.3 132.4,172.8 134.4,171.2 136.4,169.5 138.5,167.8 140.5,166 142.5,164.1 144.5,162.2 146.5,160.2 148.5,158.2 150.5,156.1 152.5,154 154.5,151.8 156.5,149.6 158.6,147.3 160.6,144.9 162.6,142.6 164.6,140.2 166.6,137.7 168.6,135.3 170.6,132.8 172.6,130.3 174.6,127.7 176.6,125.2 178.7,122.6 180.7,120.1 182.7,117.6 184.7,115 186.7,112.5 188.7,110.1 190.7,107.6 192.7,105.2 194.7,102.8 196.7,100.5 198.8,98.2 200.8,96 202.8,93.9 204.8,91.8 206.8,89.8 208.8,87.9 210.8,86.1 212.8,84.4 214.8,82.8 216.8,81.3 218.9,79.9 220.9,78.6 222.9,77.5 224.9,76.4 226.9,75.5 228.9,74.7 230.9,74.1 232.9,73.6 234.9,73.2 236.9,73 239,72.9 241,72.9 243,73.1 245,73.4 247,73.8 249,74.4 251,75.1 253,76 255,76.9 257,78 259.1,79.3 261.1,80.6 263.1,82.1 265.1,83.6 267.1,85.3 269.1,87.1 271.1,88.9 273.1,90.9 275.1,92.9 277.1,95 279.2,97.2 281.2,99.4 283.2,101.7 285.2,104.1 287.2,106.5 289.2,108.9 291.2,111.4 293.2,113.9 295.2,116.4 297.2,118.9 299.3,121.4 301.3,124 303.3,126.5 305.3,129.1 307.3,131.6 309.3,134.1 311.3,136.6 313.3,139 315.3,141.4 317.3,143.8 319.4,146.2 321.4,148.5 323.4,150.7 325.4,153 327.4,155.1 329.4,157.2 331.4,159.3 333.4,161.3 335.4,163.2 337.4,165.1 339.5,166.9 341.5,168.7 343.5,170.4 345.5,172 347.5,173.6 349.5,175.1 351.5,176.6 353.5,177.9 355.5,179.3 357.5,180.5 359.6,181.8 361.6,182.9 363.6,184 365.6,185.1 367.6,186.1 369.6,187 371.6,187.9 373.6,188.7 375.6,189.5 377.6,190.3 379.7,191 381.7,191.6 383.7,192.3 385.7,192.9 387.7,193.4 389.7,193.9 391.7,194.4 393.7,194.8 395.7,195.3 397.7,195.6 399.8,196 401.8,196.3 403.8,196.6 405.8,196.9 407.8,197.2 409.8,197.4 411.8,197.7 413.8,197.9 415.8,198.1 417.8,198.2 419.9,198.4 421.9,198.6 423.9,198.7 425.9,198.8 427.9,198.9 429.9,199 431.9,199.1 433.9,199.2 435.9,199.3 437.9,199.4 440,199.4 442,199.5 444,199.5 446,199.6 448,199.6" class="sk-accent"/>
+<line x1="239.4" y1="200" x2="239.4" y2="30" class="sk-ink"/>
+<line x1="48" y1="200" x2="460" y2="200" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<line x1="48" y1="200" x2="48" y2="18" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<text x="462" y="204" class="lab-muted lab-it">10T (s)</text>
+<text x="44" y="16" class="lab-muted lab-it" text-anchor="end">effectif</text>
+<line x1="105.1" y1="200" x2="105.1" y2="204" class="sk-axis"/>
+<text x="105.1" y="217" class="lab-muted" text-anchor="middle">15,3</text>
+<line x1="162.3" y1="200" x2="162.3" y2="204" class="sk-axis"/>
+<text x="162.3" y="217" class="lab-muted" text-anchor="middle">15,4</text>
+<line x1="219.4" y1="200" x2="219.4" y2="204" class="sk-axis"/>
+<text x="219.4" y="217" class="lab-muted" text-anchor="middle">15,5</text>
+<line x1="276.6" y1="200" x2="276.6" y2="204" class="sk-axis"/>
+<text x="276.6" y="217" class="lab-muted" text-anchor="middle">15,6</text>
+<line x1="333.7" y1="200" x2="333.7" y2="204" class="sk-axis"/>
+<text x="333.7" y="217" class="lab-muted" text-anchor="middle">15,7</text>
+<line x1="390.9" y1="200" x2="390.9" y2="204" class="sk-axis"/>
+<text x="390.9" y="217" class="lab-muted" text-anchor="middle">15,8</text>
+<line x1="44" y1="166" x2="48" y2="166" class="sk-axis"/>
+<text x="41" y="170" class="lab-muted" text-anchor="end">2</text>
+<line x1="44" y1="132" x2="48" y2="132" class="sk-axis"/>
+<text x="41" y="136" class="lab-muted" text-anchor="end">4</text>
+<line x1="44" y1="98" x2="48" y2="98" class="sk-axis"/>
+<text x="41" y="102" class="lab-muted" text-anchor="end">6</text>
+<line x1="44" y1="64" x2="48" y2="64" class="sk-axis"/>
+<text x="41" y="68" class="lab-muted" text-anchor="end">8</text>
+<text x="239.4" y="22" class="lab-b" text-anchor="middle">moyenne 15,535 s</text>
+<line x1="178.5" y1="47" x2="300.4" y2="47" class="sk-accent" style="stroke-width:1.4" marker-end="url(#sk-arrow-accent)"/>
+<line x1="300.4" y1="47" x2="178.5" y2="47" class="sk-accent" style="stroke-width:1.4" marker-end="url(#sk-arrow-accent)"/>
+<text x="306.4" y="51" class="lab-accent">± s</text>
+</svg>
+<figcaption>Quarante chronométrages de dix périodes d'un même pendule (données simulées, classes de 0,05 s). Moyenne 15,535 s, écart-type expérimental s = 0,107 s : la bande teintée (moyenne ± s) contient 27 mesures sur 40, environ les deux tiers. La courbe est la loi normale de même moyenne et de même écart-type. Une mesure isolée a pour incertitude-type s ; la moyenne des 40, s/√40 = 0,017 s.</figcaption>
+</figure>
+  <div class="method-box">
+    <strong>Exemple — période d'un pendule au chronomètre</strong>
+    <p>Pour mesurer la période \(T\) d'un pendule, on chronomètre dix oscillations, huit fois de suite, en relâchant le pendule à chaque essai. Durées \(10T\) obtenues (en s) : 15,62 ; 15,41 ; 15,55 ; 15,48 ; 15,70 ; 15,52 ; 15,39 ; 15,61.</p>
+    <ol>
+      <li>Moyenne : la somme vaut 124,28 s, donc \(\overline{10T}=124{,}28/8=15{,}535\ \text{s}\).</li>
+      <li>Écart-type expérimental : la somme des carrés des écarts à la moyenne vaut \(0{,}0802\ \text{s}^2\), d'où \(s=\sqrt{0{,}0802/7}=0{,}107\ \text{s}\). C'est la dispersion d'un chronométrage isolé, due surtout au temps de réaction.</li>
+      <li>Incertitude-type de la moyenne : \(u=0{,}107/\sqrt8=0{,}038\ \text{s}\) sur \(10T\).</li>
+      <li>Période : on divise par 10 (nombre exact), valeur et incertitude : \(T=1{,}5535\ \text{s}\) et \(u(T)=0{,}0038\ \text{s}\), soit 0,24 %.</li>
+    </ol>
+    <p>Le même calcul avec numpy (la fonction <code>np.std</code> divise par \(N\) par défaut : l'option <code>ddof=1</code> la fait diviser par \(N-1\)) :</p>
+    <pre class="codeblock"><span class="kw">import</span> numpy <span class="kw">as</span> np
+
+<span class="cmt"># huit chronométrages de dix périodes, en secondes</span>
+dixT = np.array([15.62, 15.41, 15.55, 15.48,
+                 15.70, 15.52, 15.39, 15.61])
+N = len(dixT)
+
+moyenne = np.mean(dixT)
+<span class="cmt"># écart-type expérimental (diviseur N - 1)</span>
+s = np.std(dixT, ddof=1)
+<span class="cmt"># incertitude-type de la moyenne</span>
+u_moy = s / np.sqrt(N)
+
+print(N, moyenne, s, u_moy)   <span class="cmt"># 8  15.535  0.107  0.0378</span>
+T, uT = moyenne / 10, u_moy / 10
+print(T, uT)                  <span class="cmt"># 1.5535  0.00378</span></pre>
+  </div>
+  <div class="notice"><strong>Erreurs classiques</strong> : (1) prendre \(s_x\) au lieu de \(s_x/\sqrt N\) comme incertitude de la moyenne, ou l'inverse pour une mesure isolée ; (2) oublier <code>ddof=1</code> ; (3) appeler « série de mesures » dix lectures du même affichage sans rien refaire : elles ne sont pas indépendantes et leur dispersion nulle ne dit rien. Retenez aussi que \(s_x\) ne diminue pas quand \(N\) augmente (c'est une propriété du protocole) ; seule \(u(\bar x)\) diminue, et lentement : pour la diviser par 10, il faut 100 fois plus de mesures.</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§3 · ÉVALUATION DE TYPE B</div>
+  <h2>Une seule mesure : utiliser ce que l'on sait de l'instrument</h2>
+  <div class="intro">Souvent, on ne fait qu'une mesure, ou toutes les lectures répétées donnent le même affichage. L'incertitude-type s'évalue alors autrement, à partir de la graduation, de la résolution, de la notice du constructeur ou d'une estimation raisonnée de l'opérateur : c'est l'évaluation de type B.</div>
+  <div class="prop-box">
+    <strong>Valeur comprise dans un intervalle.</strong> Si l'on sait seulement que la valeur est comprise entre \(x-a\) et \(x+a\), sans position privilégiée à l'intérieur, on la modélise par une loi uniforme sur cet intervalle de demi-largeur \(a\). L'incertitude-type est l'écart-type de cette loi :
+    <div class="formula" data-nom="Type B : loi uniforme">$$u(x)=\frac{a}{\sqrt3}\approx0{,}58\,a$$</div>
+  </div>
+  <div class="reveal" onclick="this.classList.toggle('open')">
+    <span class="label">Démonstration</span>
+    <span class="prompt">L'écart-type d'une loi uniforme de demi-largeur \(a\) vaut \(a/\sqrt3\)</span>
+    <div class="content">
+      <p>Centrons la loi en 0 : sa densité vaut \(1/(2a)\) sur \([-a\,;a]\) et sa moyenne est nulle. Sa variance est donc</p>
+      <div class="formula">$$\sigma^2=\int_{-a}^{a}t^2\,\frac{\mathrm{d}t}{2a}=\frac{1}{2a}\times\frac{2a^3}{3}=\frac{a^2}{3},$$</div>
+      <p>et \(\sigma=a/\sqrt3\). Pour un intervalle de largeur totale \(\Delta=2a\), cela donne \(\Delta/\sqrt{12}\).</p>
+    </div>
+  </div>
+  <figure class="schema">
+<svg viewBox="0 0 520 222" role="img" aria-label="Densité de la loi uniforme sur l'intervalle de demi-largeur a, et loi normale de même écart-type a sur racine de 3">
+<rect x="122.5" y="108" width="275" height="80" class="fl-accent2-soft"/>
+<polyline points="40,188 122.5,188 122.5,108 397.5,108 397.5,188 480,188" class="sk-accent2"/>
+<polyline points="40,185.6 41.5,185.5 42.9,185.4 44.4,185.2 45.9,185.1 47.4,184.9 48.8,184.8 50.3,184.6 51.8,184.5 53.2,184.3 54.7,184.1 56.2,183.9 57.7,183.7 59.1,183.5 60.6,183.3 62.1,183.1 63.5,182.8 65,182.6 66.5,182.3 68,182.1 69.4,181.8 70.9,181.5 72.4,181.2 73.8,180.9 75.3,180.6 76.8,180.3 78.3,180 79.7,179.6 81.2,179.2 82.7,178.9 84.1,178.5 85.6,178.1 87.1,177.7 88.6,177.3 90,176.8 91.5,176.4 93,175.9 94.4,175.4 95.9,174.9 97.4,174.4 98.9,173.9 100.3,173.4 101.8,172.8 103.3,172.3 104.7,171.7 106.2,171.1 107.7,170.4 109.2,169.8 110.6,169.2 112.1,168.5 113.6,167.8 115.1,167.1 116.5,166.4 118,165.7 119.5,164.9 120.9,164.2 122.4,163.4 123.9,162.6 125.4,161.8 126.8,160.9 128.3,160.1 129.8,159.2 131.2,158.3 132.7,157.4 134.2,156.5 135.7,155.6 137.1,154.6 138.6,153.7 140.1,152.7 141.5,151.7 143,150.7 144.5,149.6 146,148.6 147.4,147.6 148.9,146.5 150.4,145.4 151.8,144.3 153.3,143.2 154.8,142.1 156.3,140.9 157.7,139.8 159.2,138.6 160.7,137.5 162.1,136.3 163.6,135.1 165.1,133.9 166.6,132.7 168,131.5 169.5,130.3 171,129.1 172.4,127.8 173.9,126.6 175.4,125.4 176.9,124.1 178.3,122.9 179.8,121.6 181.3,120.4 182.7,119.1 184.2,117.9 185.7,116.7 187.2,115.4 188.6,114.2 190.1,113 191.6,111.7 193,110.5 194.5,109.3 196,108.1 197.5,106.9 198.9,105.8 200.4,104.6 201.9,103.4 203.3,102.3 204.8,101.2 206.3,100.1 207.8,99 209.2,97.9 210.7,96.8 212.2,95.8 213.6,94.8 215.1,93.8 216.6,92.8 218.1,91.8 219.5,90.9 221,90 222.5,89.1 223.9,88.3 225.4,87.4 226.9,86.7 228.4,85.9 229.8,85.1 231.3,84.4 232.8,83.8 234.2,83.1 235.7,82.5 237.2,81.9 238.7,81.4 240.1,80.9 241.6,80.4 243.1,79.9 244.5,79.5 246,79.1 247.5,78.8 249,78.5 250.4,78.2 251.9,78 253.4,77.8 254.8,77.7 256.3,77.6 257.8,77.5 259.3,77.4 260.7,77.4 262.2,77.5 263.7,77.6 265.2,77.7 266.6,77.8 268.1,78 269.6,78.2 271,78.5 272.5,78.8 274,79.1 275.5,79.5 276.9,79.9 278.4,80.4 279.9,80.9 281.3,81.4 282.8,81.9 284.3,82.5 285.8,83.1 287.2,83.8 288.7,84.4 290.2,85.1 291.6,85.9 293.1,86.7 294.6,87.4 296.1,88.3 297.5,89.1 299,90 300.5,90.9 301.9,91.8 303.4,92.8 304.9,93.8 306.4,94.8 307.8,95.8 309.3,96.8 310.8,97.9 312.2,99 313.7,100.1 315.2,101.2 316.7,102.3 318.1,103.4 319.6,104.6 321.1,105.8 322.5,106.9 324,108.1 325.5,109.3 327,110.5 328.4,111.7 329.9,113 331.4,114.2 332.8,115.4 334.3,116.7 335.8,117.9 337.3,119.1 338.7,120.4 340.2,121.6 341.7,122.9 343.1,124.1 344.6,125.4 346.1,126.6 347.6,127.8 349,129.1 350.5,130.3 352,131.5 353.4,132.7 354.9,133.9 356.4,135.1 357.9,136.3 359.3,137.5 360.8,138.6 362.3,139.8 363.7,140.9 365.2,142.1 366.7,143.2 368.2,144.3 369.6,145.4 371.1,146.5 372.6,147.6 374,148.6 375.5,149.6 377,150.7 378.5,151.7 379.9,152.7 381.4,153.7 382.9,154.6 384.3,155.6 385.8,156.5 387.3,157.4 388.8,158.3 390.2,159.2 391.7,160.1 393.2,160.9 394.6,161.8 396.1,162.6 397.6,163.4 399.1,164.2 400.5,164.9 402,165.7 403.5,166.4 404.9,167.1 406.4,167.8 407.9,168.5 409.4,169.2 410.8,169.8 412.3,170.4 413.8,171.1 415.3,171.7 416.7,172.3 418.2,172.8 419.7,173.4 421.1,173.9 422.6,174.4 424.1,174.9 425.6,175.4 427,175.9 428.5,176.4 430,176.8 431.4,177.3 432.9,177.7 434.4,178.1 435.9,178.5 437.3,178.9 438.8,179.2 440.3,179.6 441.7,180 443.2,180.3 444.7,180.6 446.2,180.9 447.6,181.2 449.1,181.5 450.6,181.8 452,182.1 453.5,182.3 455,182.6 456.5,182.8 457.9,183.1 459.4,183.3 460.9,183.5 462.3,183.7 463.8,183.9 465.3,184.1 466.8,184.3 468.2,184.5 469.7,184.6 471.2,184.8 472.6,184.9 474.1,185.1 475.6,185.2 477.1,185.4 478.5,185.5 480,185.6" class="sk-accent"/>
+<line x1="180.6" y1="188" x2="180.6" y2="50.4" class="sk-dash"/>
+<line x1="339.4" y1="188" x2="339.4" y2="50.4" class="sk-dash"/>
+<line x1="40" y1="188" x2="492" y2="188" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<line x1="122.5" y1="188" x2="122.5" y2="192" class="sk-axis"/>
+<text x="122.5" y="206" class="lab-it" text-anchor="middle">x − a</text>
+<line x1="180.6" y1="188" x2="180.6" y2="192" class="sk-axis"/>
+<text x="180.6" y="206" class="lab-it" text-anchor="middle">x − u</text>
+<line x1="260" y1="188" x2="260" y2="192" class="sk-axis"/>
+<text x="260" y="206" class="lab-it" text-anchor="middle">x</text>
+<line x1="339.4" y1="188" x2="339.4" y2="192" class="sk-axis"/>
+<text x="339.4" y="206" class="lab-it" text-anchor="middle">x + u</text>
+<line x1="397.5" y1="188" x2="397.5" y2="192" class="sk-axis"/>
+<text x="397.5" y="206" class="lab-it" text-anchor="middle">x + a</text>
+<text x="403" y="103.2" class="lab-accent2">loi uniforme</text>
+<text x="350.8" y="63.2" class="lab-accent">loi normale</text>
+<text x="350.8" y="78.2" class="lab-accent">de même écart-type</text>
+<line x1="260" y1="40.8" x2="339.4" y2="40.8" class="sk-ink" style="stroke-width:1" marker-start="url(#sk-arrow-ink)" marker-end="url(#sk-arrow-ink)"/>
+<line x1="260" y1="50.4" x2="260" y2="34.4" class="sk-dash"/>
+<text x="252" y="44.8" class="lab-b" text-anchor="end">u = a/√3 ≈ 0,58 a</text>
+</svg>
+<figcaption>Quand on sait seulement que la valeur est dans [x − a ; x + a], sans position privilégiée, on la modélise par une loi uniforme (rectangle). Son écart-type, a/√3 ≈ 0,58 a, est l'incertitude-type de type B. La loi normale de même écart-type (courbe) concentre davantage les valeurs près du centre.</figcaption>
+</figure>
+  <h3>Les cas usuels</h3>
+  <ul>
+    <li><strong>Lecture sur une graduation de pas \(\Delta\)</strong> (règle, burette, thermomètre à liquide) : on lit le trait le plus proche, donc \(a=\Delta/2\) et \(u=\Delta/(2\sqrt3)\approx0{,}29\,\Delta\). Une longueur obtenue par deux lectures (début et fin) combine deux incertitudes de ce type (§5).</li>
+    <li><strong>Affichage numérique sans notice</strong> : si le dernier chiffre affiché vaut \(q\) (résolution), la valeur est connue à \(q/2\) près, \(u=q/(2\sqrt3)\). C'est un minimum, presque toujours dépassé par la tolérance du constructeur.</li>
+    <li><strong>Notice du constructeur</strong> : une précision annoncée « \(\pm(p\ \%\) de la lecture \(+\,n\) digits) » donne la demi-largeur \(a=p\ \%\times|x|+n\,q\), puis \(u=a/\sqrt3\). Un digit vaut une unité du dernier chiffre affiché sur le calibre utilisé.</li>
+    <li><strong>Verrerie jaugée</strong> : une pipette de 20 mL de classe A est garantie à \(\pm0{,}03\ \text{mL}\), d'où \(u=0{,}03/\sqrt3=0{,}017\ \text{mL}\).</li>
+    <li><strong>Estimation de l'opérateur</strong> : l'image d'un objet par une lentille paraît nette quand l'écran est placé n'importe où entre \(x_{\min}\) et \(x_{\max}\) ; on prend le milieu, \(a=(x_{\max}-x_{\min})/2\) et \(u=a/\sqrt3\). Même démarche pour la plage où un signal semble en phase, où une couleur semble virer.</li>
+  </ul>
+  <div class="method-box">
+    <strong>Exemple — un voltmètre et une image</strong>
+    <ol>
+      <li>Un voltmètre affiche \(U=4{,}872\ \text{V}\) sur le calibre 20 V (dernier chiffre : 1 mV). Sa notice annonce \(\pm(0{,}5\ \%\) de la lecture \(+\,2\) digits). Demi-largeur : \(a=0{,}005\times4{,}872+2\times0{,}001=0{,}0264\ \text{V}\) ; incertitude-type \(u(U)=0{,}0264/\sqrt3=0{,}015\ \text{V}\), soit 0,31 %.</li>
+      <li>Comparaison : la résolution seule donnerait \(0{,}001/(2\sqrt3)=0{,}0003\ \text{V}\), cinquante fois moins. Ne retenir que le dernier chiffre affiché sous-estime gravement l'incertitude.</li>
+      <li>Sur un banc d'optique gradué au millimètre, l'image d'une lentille paraît nette de 88,6 cm à 91,4 cm. On note \(x_{A'}=90{,}0\ \text{cm}\), \(a=1{,}4\ \text{cm}\), \(u(x_{A'})=1{,}4/\sqrt3=0{,}81\ \text{cm}\). La graduation du banc (\(u=0{,}03\ \text{cm}\)) est ici sans importance : c'est la latitude de mise au point, une source « opérateur », qui domine.</li>
+    </ol>
+  </div>
+  <div class="notice"><strong>Erreur classique</strong> : prendre la demi-largeur \(a\) (« à 1,4 cm près », « ± 0,03 mL ») pour l'incertitude-type. Ce que l'on lit sur une notice ou ce que l'on estime est une borne ; l'incertitude-type est un écart-type, \(a/\sqrt3\). Inversement, quand une série de mesures se disperse plus que ce que prévoit l'évaluation de type B, c'est l'évaluation de type A qu'il faut retenir : la dispersion observée prime sur la notice.</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§4 · LOI NORMALE ET INTERVALLE DE CONFIANCE</div>
+  <h2>Que signifie « à une incertitude-type près » ?</h2>
+  <div class="intro">Une incertitude-type est un écart-type. Pour la traduire en « chances » de contenir la valeur du mesurande, il faut une loi de probabilité ; le programme demande de le faire dans le cas de la loi normale, qui décrit bien la plupart des résultats de mesure.</div>
+  <p>Pourquoi la loi normale ? Quand une valeur mesurée résulte de nombreuses petites causes de variation indépendantes (tremblement de la main, fluctuations de température, lecture…), leur somme suit approximativement une loi normale, quelle que soit la loi de chacune : c'est le théorème central limite, admis ici. C'est aussi le cas de la moyenne d'un grand nombre de mesures, et de la plupart des grandeurs composées de plusieurs contributions comparables.</p>
+  <div class="prop-box">
+    <strong>Intervalles de confiance d'une loi normale.</strong> Si la distribution des valeurs attribuables au mesurande est normale, de moyenne \(x\) et d'écart-type \(u(x)\) :
+    <ul>
+      <li>l'intervalle \([x-u\,;\,x+u]\) contient la valeur du mesurande avec une probabilité d'environ 68 % ;</li>
+      <li>l'intervalle \([x-2u\,;\,x+2u]\), avec une probabilité d'environ 95 % ;</li>
+      <li>l'intervalle \([x-3u\,;\,x+3u]\), avec une probabilité de 99,7 %.</li>
+    </ul>
+    Le produit \(k\,u(x)\) est appelé <em>incertitude élargie</em>, de facteur d'élargissement \(k\) ; avec \(k=2\), le niveau de confiance vaut environ 95 %.
+  </div>
+  <figure class="schema">
+<svg viewBox="0 0 520 238" role="img" aria-label="Loi normale : proportions des valeurs dans les intervalles de demi-largeur u, 2u et 3u autour de la moyenne">
+<polygon points="68.3,208 68.3,206.4 70.7,206.2 73.2,206 75.6,205.8 78,205.5 80.4,205.3 82.8,205 85.2,204.6 87.6,204.3 90,203.9 92.4,203.4 94.9,203 97.3,202.4 99.7,201.9 102.1,201.3 104.5,200.6 106.9,199.9 109.3,199.2 111.7,198.4 114.1,197.5 116.6,196.5 119,195.5 121.4,194.5 123.8,193.3 126.2,192.1 128.6,190.8 131,189.4 133.4,188 135.8,186.4 138.2,184.8 140.7,183.1 143.1,181.3 145.5,179.4 147.9,177.4 150.3,175.4 152.7,173.2 155.1,171 157.5,168.6 159.9,166.2 162.4,163.7 164.8,161.1 167.2,158.4 169.6,155.7 172,152.8 174.4,149.9 176.8,146.9 179.2,143.9 181.6,140.8 184.1,137.7 186.5,134.5 188.9,131.3 191.3,128.1 193.7,124.8 196.1,121.6 198.5,118.3 200.9,115.1 203.3,111.8 205.8,108.6 208.2,105.5 210.6,102.4 213,99.3 215.4,96.3 217.8,93.4 220.2,90.6 222.6,87.9 225,85.3 227.5,82.9 229.9,80.5 232.3,78.3 234.7,76.3 237.1,74.4 239.5,72.7 241.9,71.1 244.3,69.7 246.7,68.6 249.2,67.6 251.6,66.8 254,66.2 256.4,65.7 258.8,65.5 261.2,65.5 263.6,65.7 266,66.2 268.4,66.8 270.8,67.6 273.3,68.6 275.7,69.7 278.1,71.1 280.5,72.7 282.9,74.4 285.3,76.3 287.7,78.3 290.1,80.5 292.5,82.9 295,85.3 297.4,87.9 299.8,90.6 302.2,93.4 304.6,96.3 307,99.3 309.4,102.4 311.8,105.5 314.2,108.6 316.7,111.8 319.1,115.1 321.5,118.3 323.9,121.6 326.3,124.8 328.7,128.1 331.1,131.3 333.5,134.5 335.9,137.7 338.4,140.8 340.8,143.9 343.2,146.9 345.6,149.9 348,152.8 350.4,155.7 352.8,158.4 355.2,161.1 357.6,163.7 360.1,166.2 362.5,168.6 364.9,171 367.3,173.2 369.7,175.4 372.1,177.4 374.5,179.4 376.9,181.3 379.3,183.1 381.8,184.8 384.2,186.4 386.6,188 389,189.4 391.4,190.8 393.8,192.1 396.2,193.3 398.6,194.5 401,195.5 403.4,196.5 405.9,197.5 408.3,198.4 410.7,199.2 413.1,199.9 415.5,200.6 417.9,201.3 420.3,201.9 422.7,202.4 425.1,203 427.6,203.4 430,203.9 432.4,204.3 434.8,204.6 437.2,205 439.6,205.3 442,205.5 444.4,205.8 446.8,206 449.3,206.2 451.7,206.4 451.7,208" class="fl-accent-soft"/>
+<polygon points="132.2,208 132.2,188.7 133.8,187.7 135.4,186.7 137,185.6 138.7,184.5 140.3,183.4 141.9,182.2 143.5,181 145.1,179.7 146.7,178.4 148.3,177.1 149.9,175.7 151.5,174.3 153.1,172.8 154.7,171.3 156.3,169.8 157.9,168.2 159.5,166.6 161.2,165 162.8,163.3 164.4,161.5 166,159.8 167.6,158 169.2,156.1 170.8,154.2 172.4,152.3 174,150.4 175.6,148.4 177.2,146.4 178.8,144.4 180.4,142.4 182,140.3 183.7,138.2 185.3,136.1 186.9,134 188.5,131.9 190.1,129.7 191.7,127.6 193.3,125.4 194.9,123.2 196.5,121 198.1,118.9 199.7,116.7 201.3,114.5 202.9,112.4 204.5,110.2 206.2,108.1 207.8,106 209.4,103.9 211,101.9 212.6,99.8 214.2,97.8 215.8,95.8 217.4,93.9 219,92 220.6,90.2 222.2,88.4 223.8,86.6 225.4,84.9 227.1,83.3 228.7,81.7 230.3,80.1 231.9,78.7 233.5,77.3 235.1,76 236.7,74.7 238.3,73.5 239.9,72.4 241.5,71.4 243.1,70.4 244.7,69.5 246.3,68.7 247.9,68 249.6,67.4 251.2,66.9 252.8,66.4 254.4,66.1 256,65.8 257.6,65.6 259.2,65.5 260.8,65.5 262.4,65.6 264,65.8 265.6,66.1 267.2,66.4 268.8,66.9 270.4,67.4 272.1,68 273.7,68.7 275.3,69.5 276.9,70.4 278.5,71.4 280.1,72.4 281.7,73.5 283.3,74.7 284.9,76 286.5,77.3 288.1,78.7 289.7,80.1 291.3,81.7 292.9,83.3 294.6,84.9 296.2,86.6 297.8,88.4 299.4,90.2 301,92 302.6,93.9 304.2,95.8 305.8,97.8 307.4,99.8 309,101.9 310.6,103.9 312.2,106 313.8,108.1 315.5,110.2 317.1,112.4 318.7,114.5 320.3,116.7 321.9,118.9 323.5,121 325.1,123.2 326.7,125.4 328.3,127.6 329.9,129.7 331.5,131.9 333.1,134 334.7,136.1 336.3,138.2 338,140.3 339.6,142.4 341.2,144.4 342.8,146.4 344.4,148.4 346,150.4 347.6,152.3 349.2,154.2 350.8,156.1 352.4,158 354,159.8 355.6,161.5 357.2,163.3 358.8,165 360.5,166.6 362.1,168.2 363.7,169.8 365.3,171.3 366.9,172.8 368.5,174.3 370.1,175.7 371.7,177.1 373.3,178.4 374.9,179.7 376.5,181 378.1,182.2 379.7,183.4 381.3,184.5 383,185.6 384.6,186.7 386.2,187.7 387.8,188.7 387.8,208" class="fl-accent-soft"/>
+<polygon points="196.1,208 196.1,121.6 196.9,120.5 197.7,119.4 198.5,118.3 199.3,117.2 200.1,116.2 200.9,115.1 201.7,114 202.5,112.9 203.3,111.8 204.1,110.8 205,109.7 205.8,108.6 206.6,107.6 207.4,106.5 208.2,105.5 209,104.4 209.8,103.4 210.6,102.4 211.4,101.3 212.2,100.3 213,99.3 213.8,98.3 214.6,97.3 215.4,96.3 216.2,95.4 217,94.4 217.8,93.4 218.6,92.5 219.4,91.6 220.2,90.6 221,89.7 221.8,88.8 222.6,87.9 223.4,87 224.2,86.2 225,85.3 225.8,84.5 226.6,83.7 227.5,82.9 228.3,82.1 229.1,81.3 229.9,80.5 230.7,79.8 231.5,79 232.3,78.3 233.1,77.6 233.9,76.9 234.7,76.3 235.5,75.6 236.3,75 237.1,74.4 237.9,73.8 238.7,73.2 239.5,72.7 240.3,72.1 241.1,71.6 241.9,71.1 242.7,70.6 243.5,70.2 244.3,69.7 245.1,69.3 245.9,68.9 246.7,68.6 247.5,68.2 248.3,67.9 249.2,67.6 250,67.3 250.8,67 251.6,66.8 252.4,66.5 253.2,66.3 254,66.2 254.8,66 255.6,65.9 256.4,65.7 257.2,65.7 258,65.6 258.8,65.5 259.6,65.5 260.4,65.5 261.2,65.5 262,65.6 262.8,65.7 263.6,65.7 264.4,65.9 265.2,66 266,66.2 266.8,66.3 267.6,66.5 268.4,66.8 269.2,67 270,67.3 270.8,67.6 271.7,67.9 272.5,68.2 273.3,68.6 274.1,68.9 274.9,69.3 275.7,69.7 276.5,70.2 277.3,70.6 278.1,71.1 278.9,71.6 279.7,72.1 280.5,72.7 281.3,73.2 282.1,73.8 282.9,74.4 283.7,75 284.5,75.6 285.3,76.3 286.1,76.9 286.9,77.6 287.7,78.3 288.5,79 289.3,79.8 290.1,80.5 290.9,81.3 291.7,82.1 292.5,82.9 293.4,83.7 294.2,84.5 295,85.3 295.8,86.2 296.6,87 297.4,87.9 298.2,88.8 299,89.7 299.8,90.6 300.6,91.6 301.4,92.5 302.2,93.4 303,94.4 303.8,95.4 304.6,96.3 305.4,97.3 306.2,98.3 307,99.3 307.8,100.3 308.6,101.3 309.4,102.4 310.2,103.4 311,104.4 311.8,105.5 312.6,106.5 313.4,107.6 314.2,108.6 315,109.7 315.9,110.8 316.7,111.8 317.5,112.9 318.3,114 319.1,115.1 319.9,116.2 320.7,117.2 321.5,118.3 322.3,119.4 323.1,120.5 323.9,121.6 323.9,208" class="fl-accent-soft"/>
+<polyline points="30,207.8 31.5,207.8 33.1,207.7 34.6,207.7 36.2,207.7 37.7,207.7 39.2,207.6 40.8,207.6 42.3,207.6 43.8,207.5 45.4,207.5 46.9,207.5 48.5,207.4 50,207.4 51.5,207.3 53.1,207.2 54.6,207.2 56.2,207.1 57.7,207.1 59.2,207 60.8,206.9 62.3,206.8 63.8,206.7 65.4,206.6 66.9,206.5 68.5,206.4 70,206.3 71.5,206.2 73.1,206 74.6,205.9 76.2,205.7 77.7,205.6 79.2,205.4 80.8,205.2 82.3,205 83.8,204.8 85.4,204.6 86.9,204.4 88.5,204.1 90,203.9 91.5,203.6 93.1,203.3 94.6,203 96.2,202.7 97.7,202.3 99.2,202 100.8,201.6 102.3,201.2 103.8,200.8 105.4,200.4 106.9,199.9 108.5,199.4 110,198.9 111.5,198.4 113.1,197.9 114.6,197.3 116.2,196.7 117.7,196.1 119.2,195.4 120.8,194.7 122.3,194 123.8,193.3 125.4,192.5 126.9,191.7 128.5,190.9 130,190 131.5,189.1 133.1,188.2 134.6,187.2 136.2,186.2 137.7,185.2 139.2,184.1 140.8,183 142.3,181.9 143.8,180.7 145.4,179.5 146.9,178.2 148.5,177 150,175.6 151.5,174.3 153.1,172.9 154.6,171.4 156.2,170 157.7,168.5 159.2,166.9 160.8,165.4 162.3,163.7 163.8,162.1 165.4,160.4 166.9,158.7 168.5,157 170,155.2 171.5,153.4 173.1,151.5 174.6,149.7 176.2,147.8 177.7,145.9 179.2,143.9 180.8,142 182.3,140 183.8,138 185.4,136 186.9,133.9 188.5,131.9 190,129.8 191.5,127.8 193.1,125.7 194.6,123.6 196.2,121.5 197.7,119.4 199.2,117.4 200.8,115.3 202.3,113.2 203.8,111.2 205.4,109.1 206.9,107.1 208.5,105.1 210,103.1 211.5,101.1 213.1,99.2 214.6,97.3 216.2,95.4 217.7,93.6 219.2,91.8 220.8,90 222.3,88.3 223.8,86.6 225.4,85 226.9,83.4 228.5,81.9 230,80.4 231.5,79 233.1,77.6 234.6,76.3 236.2,75.1 237.7,73.9 239.2,72.9 240.8,71.8 242.3,70.9 243.8,70 245.4,69.2 246.9,68.5 248.5,67.8 250,67.3 251.5,66.8 253.1,66.4 254.6,66 256.2,65.8 257.7,65.6 259.2,65.5 260.8,65.5 262.3,65.6 263.8,65.8 265.4,66 266.9,66.4 268.5,66.8 270,67.3 271.5,67.8 273.1,68.5 274.6,69.2 276.2,70 277.7,70.9 279.2,71.8 280.8,72.9 282.3,73.9 283.8,75.1 285.4,76.3 286.9,77.6 288.5,79 290,80.4 291.5,81.9 293.1,83.4 294.6,85 296.2,86.6 297.7,88.3 299.2,90 300.8,91.8 302.3,93.6 303.8,95.4 305.4,97.3 306.9,99.2 308.5,101.1 310,103.1 311.5,105.1 313.1,107.1 314.6,109.1 316.2,111.2 317.7,113.2 319.2,115.3 320.8,117.4 322.3,119.4 323.8,121.5 325.4,123.6 326.9,125.7 328.5,127.8 330,129.8 331.5,131.9 333.1,133.9 334.6,136 336.2,138 337.7,140 339.2,142 340.8,143.9 342.3,145.9 343.8,147.8 345.4,149.7 346.9,151.5 348.5,153.4 350,155.2 351.5,157 353.1,158.7 354.6,160.4 356.2,162.1 357.7,163.7 359.2,165.4 360.8,166.9 362.3,168.5 363.8,170 365.4,171.4 366.9,172.9 368.5,174.3 370,175.6 371.5,177 373.1,178.2 374.6,179.5 376.2,180.7 377.7,181.9 379.2,183 380.8,184.1 382.3,185.2 383.8,186.2 385.4,187.2 386.9,188.2 388.5,189.1 390,190 391.5,190.9 393.1,191.7 394.6,192.5 396.2,193.3 397.7,194 399.2,194.7 400.8,195.4 402.3,196.1 403.8,196.7 405.4,197.3 406.9,197.9 408.5,198.4 410,198.9 411.5,199.4 413.1,199.9 414.6,200.4 416.2,200.8 417.7,201.2 419.2,201.6 420.8,202 422.3,202.3 423.8,202.7 425.4,203 426.9,203.3 428.5,203.6 430,203.9 431.5,204.1 433.1,204.4 434.6,204.6 436.2,204.8 437.7,205 439.2,205.2 440.8,205.4 442.3,205.6 443.8,205.7 445.4,205.9 446.9,206 448.5,206.2 450,206.3 451.5,206.4 453.1,206.5 454.6,206.6 456.2,206.7 457.7,206.8 459.2,206.9 460.8,207 462.3,207.1 463.8,207.1 465.4,207.2 466.9,207.2 468.5,207.3 470,207.4 471.5,207.4 473.1,207.5 474.6,207.5 476.2,207.5 477.7,207.6 479.2,207.6 480.8,207.6 482.3,207.7 483.8,207.7 485.4,207.7 486.9,207.7 488.5,207.8 490,207.8" class="sk-accent"/>
+<line x1="30" y1="208" x2="502" y2="208" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<line x1="68.3" y1="208" x2="68.3" y2="212" class="sk-axis"/>
+<text x="68.3" y="226" class="lab-it" text-anchor="middle">x − 3u</text>
+<line x1="132.2" y1="208" x2="132.2" y2="212" class="sk-axis"/>
+<text x="132.2" y="226" class="lab-it" text-anchor="middle">x − 2u</text>
+<line x1="196.1" y1="208" x2="196.1" y2="212" class="sk-axis"/>
+<text x="196.1" y="226" class="lab-it" text-anchor="middle">x − u</text>
+<line x1="260" y1="208" x2="260" y2="212" class="sk-axis"/>
+<text x="260" y="226" class="lab-it" text-anchor="middle">x</text>
+<line x1="323.9" y1="208" x2="323.9" y2="212" class="sk-axis"/>
+<text x="323.9" y="226" class="lab-it" text-anchor="middle">x + u</text>
+<line x1="387.8" y1="208" x2="387.8" y2="212" class="sk-axis"/>
+<text x="387.8" y="226" class="lab-it" text-anchor="middle">x + 2u</text>
+<line x1="451.7" y1="208" x2="451.7" y2="212" class="sk-axis"/>
+<text x="451.7" y="226" class="lab-it" text-anchor="middle">x + 3u</text>
+<line x1="196.1" y1="111.6" x2="323.9" y2="111.6" class="sk-ink" style="stroke-width:1"/>
+<line x1="196.1" y1="107.6" x2="196.1" y2="115.6" class="sk-ink" style="stroke-width:1"/>
+<line x1="323.9" y1="107.6" x2="323.9" y2="115.6" class="sk-ink" style="stroke-width:1"/>
+<rect x="233" y="102.6" width="54" height="17" class="fl-paper"/>
+<text x="260" y="116.1" class="lab-b" text-anchor="middle">68 %</text>
+<line x1="132.2" y1="38" x2="387.8" y2="38" class="sk-ink" style="stroke-width:1"/>
+<line x1="132.2" y1="34" x2="132.2" y2="42" class="sk-ink" style="stroke-width:1"/>
+<line x1="387.8" y1="34" x2="387.8" y2="42" class="sk-ink" style="stroke-width:1"/>
+<rect x="233" y="29" width="54" height="17" class="fl-paper"/>
+<text x="260" y="42.5" class="lab-b" text-anchor="middle">95 %</text>
+<line x1="68.3" y1="18" x2="451.7" y2="18" class="sk-ink" style="stroke-width:1"/>
+<line x1="68.3" y1="14" x2="68.3" y2="22" class="sk-ink" style="stroke-width:1"/>
+<line x1="451.7" y1="14" x2="451.7" y2="22" class="sk-ink" style="stroke-width:1"/>
+<rect x="233" y="9" width="54" height="17" class="fl-paper"/>
+<text x="260" y="22.5" class="lab-b" text-anchor="middle">99,7 %</text>
+</svg>
+<figcaption>Loi normale de moyenne x et d'écart-type u. L'intervalle [x − u ; x + u] contient 68,3 % des valeurs, [x − 2u ; x + 2u] en contient 95,4 % (on retient 95 %) et [x − 3u ; x + 3u], 99,7 %. Ce sont les niveaux de confiance associés à ces intervalles quand la distribution est normale.</figcaption>
+</figure>
+  <div class="method-box">
+    <strong>Exemple — intervalles pour la période du pendule</strong>
+    <ol>
+      <li>Au §2, \(T=1{,}5535\ \text{s}\) et \(u(T)=0{,}0038\ \text{s}\). La moyenne de huit mesures de même loi est presque normale.</li>
+      <li>Intervalle à 68 % : \([1{,}5497\,;\,1{,}5573]\ \text{s}\) ; à 95 % : \(T\pm2u=[1{,}5459\,;\,1{,}5611]\ \text{s}\).</li>
+      <li>Lecture : si l'on refaisait toute l'expérience un grand nombre de fois, environ 95 % des intervalles \([\,T-2u\,;\,T+2u\,]\) ainsi construits contiendraient la période du pendule.</li>
+      <li>Pour une loi <em>uniforme</em> au contraire, l'intervalle \(\pm u\) ne contient que \(1/\sqrt3\approx58\ \%\) des valeurs, et l'intervalle \(\pm2u=\pm1{,}15\,a\) les contient toutes. Les pourcentages 68 % et 95 % ne valent que pour la loi normale.</li>
+    </ol>
+  </div>
+  <div class="notice"><strong>Erreur classique</strong> : croire que la valeur du mesurande est « forcément » dans \([x-u\,;\,x+u]\). Environ une mesure correcte sur trois tombe à plus d'une incertitude-type de la valeur du mesurande, une sur vingt à plus de deux. Quand on écrit un résultat sous la forme \(x\pm\dots\), il faut préciser s'il s'agit de \(u\) ou de \(2u\).</div>
+  <div class="notice"><strong>Remarque</strong> : avec très peu de mesures (moins d'une dizaine), \(s_x\) est lui-même mal connu et l'intervalle \(\bar x\pm2u\) contient un peu moins de 95 % des cas ; on le corrige par le facteur de Student, hors programme (fin de chapitre).</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§5 · INCERTITUDES-TYPES COMPOSÉES</div>
+  <h2>Combiner les incertitudes des grandeurs mesurées</h2>
+  <div class="intro">On mesure rarement directement la grandeur qui intéresse : une résistance se déduit d'une tension et d'une intensité, une distance focale de trois positions, \(g\) d'une longueur et d'une période. Si les grandeurs mesurées sont indépendantes, leurs incertitudes-types se combinent selon deux règles simples, qui couvrent la somme, la différence, le produit et le quotient.</div>
+  <div class="prop-box">
+    <strong>Somme et différence : les incertitudes absolues s'ajoutent en quadrature.</strong> Si \(y=x_1+x_2\) ou \(y=x_1-x_2\), avec \(x_1\) et \(x_2\) indépendantes,
+    <div class="formula" data-nom="Somme ou différence">$$u(y)=\sqrt{u(x_1)^2+u(x_2)^2}$$</div>
+    Plus généralement, pour \(y=\lambda_1x_1+\lambda_2x_2\) (coefficients exacts), \(u(y)=\sqrt{\lambda_1^2u(x_1)^2+\lambda_2^2u(x_2)^2}\) ; en particulier \(u(\lambda x)=|\lambda|\,u(x)\).
+  </div>
+  <div class="prop-box">
+    <strong>Produit et quotient : les incertitudes relatives s'ajoutent en quadrature.</strong> Si \(y=x_1x_2\) ou \(y=x_1/x_2\) (éventuellement multiplié par une constante exacte), avec \(x_1\) et \(x_2\) indépendantes,
+    <div class="formula" data-nom="Produit ou quotient">$$\frac{u(y)}{|y|}=\sqrt{\left(\frac{u(x_1)}{x_1}\right)^2+\left(\frac{u(x_2)}{x_2}\right)^2}$$</div>
+  </div>
+  <div class="reveal" onclick="this.classList.toggle('open')">
+    <span class="label">Pour comprendre</span>
+    <span class="prompt">Pourquoi une somme quadratique, et pourquoi des incertitudes relatives pour un produit ?</span>
+    <div class="content">
+      <p><strong>Somme.</strong> Les incertitudes-types sont des écarts-types, et ce sont les <em>variances</em> de variables indépendantes qui s'ajoutent : \(V(X_1\pm X_2)=V(X_1)+V(X_2)\). D'où la racine de la somme des carrés. Intuitivement, deux écarts indépendants ont peu de chances d'être tous deux maximaux et de même sens : ils se compensent en partie, et la somme quadratique est plus petite que la somme simple.</p>
+      <p><strong>Produit.</strong> Écrivons \(x_1=\bar x_1(1+\varepsilon_1)\) et \(x_2=\bar x_2(1+\varepsilon_2)\) avec de petits écarts relatifs. Au premier ordre, \(x_1x_2=\bar x_1\bar x_2(1+\varepsilon_1+\varepsilon_2)\) et \(x_1/x_2=(\bar x_1/\bar x_2)(1+\varepsilon_1-\varepsilon_2)\) : l'écart relatif du résultat est la somme ou la différence des écarts relatifs, d'où la règle précédente appliquée aux incertitudes relatives.</p>
+    </div>
+  </div>
+  <h3>Comparer les contributions</h3>
+  <p>Chaque terme sous la racine est la <em>contribution</em> d'une source. Comme on ajoute des carrés, la plus grande domine vite : une contribution trois fois plus petite que la principale ne change le total que d'environ 5 % (\(\sqrt{1+1/9}\approx1{,}05\)). On présente souvent ces contributions dans un tableau, le <em>bilan d'incertitude</em> : il dit quelle mesure améliorer, et lesquelles ne valent pas l'effort.</p>
+  <div class="method-box">
+    <strong>Exemple — résistance par la loi d'Ohm</strong>
+    <p>Un voltmètre donne \(U=4{,}872\ \text{V}\) avec \(u(U)=0{,}015\ \text{V}\) (§3). Un ampèremètre affiche \(I=10{,}35\ \text{mA}\) sur un calibre où le dernier chiffre vaut 0,01 mA, de précision \(\pm(1\ \%+3\) digits).</p>
+    <ol>
+      <li>Type B pour \(I\) : \(a=0{,}01\times10{,}35+3\times0{,}01=0{,}1335\ \text{mA}\), \(u(I)=0{,}1335/\sqrt3=0{,}077\ \text{mA}\).</li>
+      <li>Incertitudes relatives : \(u(U)/U=0{,}31\ \%\) et \(u(I)/I=0{,}74\ \%\).</li>
+      <li>Quotient \(R=U/I=470{,}7\ \Omega\) : \(u(R)/R=\sqrt{0{,}31^2+0{,}74^2}\ \%=0{,}81\ \%\), d'où \(u(R)=3{,}8\ \Omega\).</li>
+      <li>Bilan : la contribution de l'ampèremètre domine ; avec un voltmètre parfait, on aurait encore 0,74 %. C'est l'ampèremètre qu'il faut changer (ou mesurer \(I\) par la tension aux bornes d'une résistance étalon).</li>
+    </ol>
+  </div>
+  <div class="method-box">
+    <strong>Exemple — une distance par différence de deux positions</strong>
+    <p>Sur le banc d'optique du §3, la lentille est repérée en \(x_O=30{,}0\ \text{cm}\) à 2 mm près (\(u(x_O)=0{,}2/\sqrt3=0{,}12\ \text{cm}\)) et l'image en \(x_{A'}=90{,}0\ \text{cm}\) avec \(u(x_{A'})=0{,}81\ \text{cm}\).</p>
+    <ol>
+      <li>Distance lentille-image : \(\overline{OA'}=x_{A'}-x_O=60{,}0\ \text{cm}\).</li>
+      <li>Différence : \(u(\overline{OA'})=\sqrt{0{,}12^2+0{,}81^2}=0{,}82\ \text{cm}\).</li>
+      <li>La position de la lentille ne change presque rien (0,81 devient 0,82) : seule la latitude de mise au point compte.</li>
+    </ol>
+  </div>
+  <h3>Et pour une puissance ?</h3>
+  <p>Le programme se limite à la somme, à la différence, au produit et au quotient. Une puissance apparaît pourtant souvent (\(T^2\), \(d^2\), \(r^3\)) ; l'énoncé fournit alors la règle, ou l'on simule (§6). Elle se déduit du même raisonnement au premier ordre : \((1+\varepsilon)^n\approx1+n\varepsilon\), donc</p>
+  <div class="formula" data-nom="Puissance">$$y=x^n\quad\Longrightarrow\quad\frac{u(y)}{|y|}=|n|\,\frac{u(x)}{|x|}$$</div>
+  <p>et, pour \(y=K\,x_1^{\alpha}x_2^{\beta}\) avec des grandeurs indépendantes (\(K\) exacte),</p>
+  <div class="formula">$$\frac{u(y)}{|y|}=\sqrt{\alpha^2\left(\frac{u(x_1)}{x_1}\right)^2+\beta^2\left(\frac{u(x_2)}{x_2}\right)^2}$$</div>
+  <div class="method-box">
+    <strong>Exemple — \(g\) avec un pendule simple</strong>
+    <p>Avec \(L=0{,}600\ \text{m}\), \(u(L)=0{,}002\ \text{m}\) (centre de la masse repéré à 3,5 mm près) et la période du §2 (\(T=1{,}5535\ \text{s}\), \(u(T)=0{,}0038\ \text{s}\)), la loi \(T=2\pi\sqrt{L/g}\) donne \(g=4\pi^2L/T^2\).</p>
+    <ol>
+      <li>Valeur : \(g=4\pi^2\times0{,}600/1{,}5535^2=9{,}815\ \text{m·s}^{-2}\).</li>
+      <li>Contributions relatives : \(u(L)/L=0{,}33\ \%\) ; \(2\,u(T)/T=0{,}49\ \%\) (le carré double l'incertitude relative de \(T\)).</li>
+      <li>Total : \(u(g)/g=\sqrt{0{,}33^2+0{,}49^2}\ \%=0{,}59\ \%\), \(u(g)=0{,}058\ \text{m·s}^{-2}\).</li>
+      <li>Les deux contributions sont comparables : améliorer une seule des deux mesures ne suffira pas.</li>
+    </ol>
+  </div>
+  <div class="notice"><strong>Erreurs classiques</strong> : (1) ajouter les incertitudes au lieu de leurs carrés (on surestime le résultat) ; (2) combiner des incertitudes absolues pour un produit, ce qui n'a même pas de sens quand les unités diffèrent ; (3) traiter \(T^2\) comme le produit de deux grandeurs indépendantes \(T\times T\), ce qui donne \(\sqrt2\,u(T)/T\) au lieu de \(2\,u(T)/T\) : les deux facteurs varient ensemble ; (4) appliquer ces règles à des grandeurs qui ne sont pas indépendantes, par exemple deux distances mesurées à partir de la même position de lentille (§6 traite ce cas).</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§6 · SIMULATION DE MONTE-CARLO</div>
+  <h2>Simuler la variabilité d'une grandeur composée</h2>
+  <div class="intro">Quand la formule est compliquée, quand une même mesure intervient à plusieurs endroits, ou simplement pour vérifier un calcul, on simule l'expérience : on tire au hasard un très grand nombre de jeux de valeurs plausibles des grandeurs mesurées, on calcule la grandeur composée pour chacun, et l'on regarde comment ses valeurs se dispersent. C'est la méthode de Monte-Carlo, capacité numérique du programme.</div>
+  <div class="method-box">
+    <strong>Méthode — simulation de Monte-Carlo d'une grandeur composée</strong>
+    <ol>
+      <li>Pour chaque grandeur mesurée \(x_j\), choisir une loi qui décrit sa variabilité : loi normale de moyenne \(x_j\) et d'écart-type \(u(x_j)\) (type A, ou type B donné comme incertitude-type) ; loi uniforme sur \([x_j-a_j\,;\,x_j+a_j]\) (type B donné par une demi-largeur).</li>
+      <li>Tirer \(N\) valeurs de chaque grandeur (\(N\) de l'ordre de \(10^4\) à \(10^5\)), indépendamment les unes des autres.</li>
+      <li>Calculer la grandeur composée \(y\) pour chacun des \(N\) jeux de valeurs (avec numpy, en une seule ligne sur des tableaux).</li>
+      <li>Prendre la moyenne des \(N\) valeurs de \(y\) comme résultat et leur écart-type comme incertitude-type \(u(y)\) ; tracer l'histogramme pour voir la forme de la distribution.</li>
+    </ol>
+  </div>
+  <div class="def-box">
+    <strong>Les fonctions utiles</strong> (leurs spécifications sont rappelées par les énoncés ; <code>import numpy as np</code> et <code>import matplotlib.pyplot as plt</code>) :
+    <ul>
+      <li><code>np.random.normal(m, s, N)</code> : tableau de \(N\) tirages d'une loi normale de moyenne <code>m</code> et d'écart-type <code>s</code> ; <code>m</code> et <code>s</code> peuvent être des tableaux (un tirage par case) si l'on omet <code>N</code>.</li>
+      <li><code>np.random.uniform(a, b, N)</code> : \(N\) tirages d'une loi uniforme sur \([a\,;b]\).</li>
+      <li><code>np.mean(x)</code> et <code>np.std(x, ddof=1)</code> : moyenne et écart-type expérimental d'un tableau.</li>
+      <li><code>plt.hist(x, bins=60)</code> : histogramme des valeurs de <code>x</code> en 60 classes.</li>
+    </ul>
+  </div>
+  <div class="method-box">
+    <strong>Exemple — distance focale d'une lentille par la relation de conjugaison</strong>
+    <p>Sur le banc d'optique, l'objet est en \(x_A=0{,}0\ \text{cm}\) (à 1 mm près), la lentille en \(x_O=30{,}0\ \text{cm}\) (à 2 mm près) et l'image nette entre 88,6 et 91,4 cm. Avec \(\overline{OA}=x_A-x_O\) et \(\overline{OA'}=x_{A'}-x_O\), la relation de Descartes \(\dfrac{1}{\overline{OA'}}-\dfrac{1}{\overline{OA}}=\dfrac{1}{f'}\) donne \(f'=\dfrac{\overline{OA}\cdot\overline{OA'}}{\overline{OA}-\overline{OA'}}\).</p>
+    <ol>
+      <li>Valeurs centrales : \(\overline{OA}=-30{,}0\ \text{cm}\), \(\overline{OA'}=60{,}0\ \text{cm}\), \(f'=\dfrac{(-30{,}0)\times60{,}0}{-90{,}0}=20{,}0\ \text{cm}\).</li>
+      <li>La position \(x_O\) intervient à la fois dans \(\overline{OA}\) et dans \(\overline{OA'}\) : ces deux distances ne sont pas indépendantes, et les règles du §5 ne s'appliquent pas directement. La simulation tire \(x_O\) une seule fois par jeu, et la corrélation est prise en compte sans y penser.</li>
+      <li>Programme :</li>
+    </ol>
+    <pre class="codeblock"><span class="kw">import</span> numpy <span class="kw">as</span> np
+<span class="kw">import</span> matplotlib.pyplot <span class="kw">as</span> plt
+
+N = 100000                <span class="cmt"># nombre de tirages simulés</span>
+
+<span class="cmt"># positions sur le banc (cm), uniformes sur [x - a, x + a]</span>
+xA = np.random.uniform(0.0 - 0.1, 0.0 + 0.1, N)     <span class="cmt"># objet</span>
+xO = np.random.uniform(30.0 - 0.2, 30.0 + 0.2, N)   <span class="cmt"># lentille</span>
+<span class="cmt"># image nette de 88,6 cm à 91,4 cm</span>
+xAp = np.random.uniform(90.0 - 1.4, 90.0 + 1.4, N)
+
+OA, OAp = xA - xO, xAp - xO
+<span class="cmt"># conjugaison de Descartes : 1/OA' - 1/OA = 1/f'</span>
+f = OA * OAp / (OA - OAp)
+
+print(np.mean(f), np.std(f, ddof=1))   <span class="cmt"># environ 20.00  0.10</span>
+
+plt.hist(f, bins=60)
+plt.xlabel(<span class="str">"f' (cm)"</span>)
+plt.ylabel(<span class="str">"nombre de tirages"</span>)
+plt.show()</pre>
+    <ol start="4">
+      <li>Résultat : \(f'=20{,}00\ \text{cm}\) et \(u(f')=0{,}10\ \text{cm}\), soit 0,5 % (d'une exécution à l'autre, le troisième chiffre de l'écart-type bouge à peine : \(10^5\) tirages suffisent largement).</li>
+      <li>Contributions : en relançant le programme avec une seule source d'incertitude à la fois (les deux autres demi-largeurs mises à 0), on trouve 0,090 cm pour l'image, 0,038 cm pour la lentille et 0,026 cm pour l'objet. L'image domine, mais beaucoup moins que ne le suggérait son incertitude de 0,81 cm : dans cette configuration, \(f'\) dépend peu de \(x_{A'}\) (une variation de 1 cm de \(\overline{OA'}\) ne change \(f'\) que de 1/9 cm).</li>
+    </ol>
+  </div>
+  <figure class="schema">
+<svg viewBox="0 0 520 238" role="img" aria-label="Histogramme de cent mille valeurs simulées de la distance focale, centré sur 20,00 cm">
+<rect x="208.7" y="30" width="87.5" height="170" class="fl-accent-soft"/>
+<rect x="133.8" y="199.7" width="10.8" height="0.3" class="fl-accent2-soft"/>
+<polyline points="133.8,200 133.8,199.7 144.7,199.7 144.7,200" class="sk-accent2" style="stroke-width:1"/>
+<rect x="144.7" y="194.2" width="10.8" height="5.8" class="fl-accent2-soft"/>
+<polyline points="144.7,200 144.7,194.2 155.5,194.2 155.5,200" class="sk-accent2" style="stroke-width:1"/>
+<rect x="155.5" y="179.1" width="10.8" height="20.9" class="fl-accent2-soft"/>
+<polyline points="155.5,200 155.5,179.1 166.3,179.1 166.3,200" class="sk-accent2" style="stroke-width:1"/>
+<rect x="166.3" y="158.8" width="10.8" height="41.2" class="fl-accent2-soft"/>
+<polyline points="166.3,200 166.3,158.8 177.2,158.8 177.2,200" class="sk-accent2" style="stroke-width:1"/>
+<rect x="177.2" y="129.9" width="10.8" height="70.1" class="fl-accent2-soft"/>
+<polyline points="177.2,200 177.2,129.9 188,129.9 188,200" class="sk-accent2" style="stroke-width:1"/>
+<rect x="188" y="98.6" width="10.8" height="101.4" class="fl-accent2-soft"/>
+<polyline points="188,200 188,98.6 198.8,98.6 198.8,200" class="sk-accent2" style="stroke-width:1"/>
+<rect x="198.8" y="74" width="10.8" height="126" class="fl-accent2-soft"/>
+<polyline points="198.8,200 198.8,74 209.7,74 209.7,200" class="sk-accent2" style="stroke-width:1"/>
+<rect x="209.7" y="58.2" width="10.8" height="141.8" class="fl-accent2-soft"/>
+<polyline points="209.7,200 209.7,58.2 220.5,58.2 220.5,200" class="sk-accent2" style="stroke-width:1"/>
+<rect x="220.5" y="50.2" width="10.8" height="149.8" class="fl-accent2-soft"/>
+<polyline points="220.5,200 220.5,50.2 231.3,50.2 231.3,200" class="sk-accent2" style="stroke-width:1"/>
+<rect x="231.3" y="45.6" width="10.8" height="154.4" class="fl-accent2-soft"/>
+<polyline points="231.3,200 231.3,45.6 242.2,45.6 242.2,200" class="sk-accent2" style="stroke-width:1"/>
+<rect x="242.2" y="45.1" width="10.8" height="154.9" class="fl-accent2-soft"/>
+<polyline points="242.2,200 242.2,45.1 253,45.1 253,200" class="sk-accent2" style="stroke-width:1"/>
+<rect x="253" y="42.6" width="10.8" height="157.4" class="fl-accent2-soft"/>
+<polyline points="253,200 253,42.6 263.8,42.6 263.8,200" class="sk-accent2" style="stroke-width:1"/>
+<rect x="263.8" y="48.4" width="10.8" height="151.6" class="fl-accent2-soft"/>
+<polyline points="263.8,200 263.8,48.4 274.7,48.4 274.7,200" class="sk-accent2" style="stroke-width:1"/>
+<rect x="274.7" y="49.6" width="10.8" height="150.4" class="fl-accent2-soft"/>
+<polyline points="274.7,200 274.7,49.6 285.5,49.6 285.5,200" class="sk-accent2" style="stroke-width:1"/>
+<rect x="285.5" y="57.8" width="10.8" height="142.2" class="fl-accent2-soft"/>
+<polyline points="285.5,200 285.5,57.8 296.3,57.8 296.3,200" class="sk-accent2" style="stroke-width:1"/>
+<rect x="296.3" y="77.6" width="10.8" height="122.4" class="fl-accent2-soft"/>
+<polyline points="296.3,200 296.3,77.6 307.2,77.6 307.2,200" class="sk-accent2" style="stroke-width:1"/>
+<rect x="307.2" y="104.4" width="10.8" height="95.6" class="fl-accent2-soft"/>
+<polyline points="307.2,200 307.2,104.4 318,104.4 318,200" class="sk-accent2" style="stroke-width:1"/>
+<rect x="318" y="133.9" width="10.8" height="66.1" class="fl-accent2-soft"/>
+<polyline points="318,200 318,133.9 328.8,133.9 328.8,200" class="sk-accent2" style="stroke-width:1"/>
+<rect x="328.8" y="159.2" width="10.8" height="40.8" class="fl-accent2-soft"/>
+<polyline points="328.8,200 328.8,159.2 339.7,159.2 339.7,200" class="sk-accent2" style="stroke-width:1"/>
+<rect x="339.7" y="180.9" width="10.8" height="19.1" class="fl-accent2-soft"/>
+<polyline points="339.7,200 339.7,180.9 350.5,180.9 350.5,200" class="sk-accent2" style="stroke-width:1"/>
+<rect x="350.5" y="194.4" width="10.8" height="5.6" class="fl-accent2-soft"/>
+<polyline points="350.5,200 350.5,194.4 361.3,194.4 361.3,200" class="sk-accent2" style="stroke-width:1"/>
+<rect x="361.3" y="199.7" width="10.8" height="0.3" class="fl-accent2-soft"/>
+<polyline points="361.3,200 361.3,199.7 372.2,199.7 372.2,200" class="sk-accent2" style="stroke-width:1"/>
+<line x1="252.5" y1="200" x2="252.5" y2="30" class="sk-ink"/>
+<line x1="58" y1="200" x2="460" y2="200" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<line x1="58" y1="200" x2="58" y2="18" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<text x="462" y="204" class="lab-muted lab-it">f' (cm)</text>
+<text x="54" y="16" class="lab-muted lab-it" text-anchor="end">tirages</text>
+<line x1="79.7" y1="200" x2="79.7" y2="204" class="sk-axis"/>
+<text x="79.7" y="217" class="lab-muted" text-anchor="middle">19,6</text>
+<line x1="166.3" y1="200" x2="166.3" y2="204" class="sk-axis"/>
+<text x="166.3" y="217" class="lab-muted" text-anchor="middle">19,8</text>
+<line x1="253" y1="200" x2="253" y2="204" class="sk-axis"/>
+<text x="253" y="217" class="lab-muted" text-anchor="middle">20,0</text>
+<line x1="339.7" y1="200" x2="339.7" y2="204" class="sk-axis"/>
+<text x="339.7" y="217" class="lab-muted" text-anchor="middle">20,2</text>
+<line x1="426.3" y1="200" x2="426.3" y2="204" class="sk-axis"/>
+<text x="426.3" y="217" class="lab-muted" text-anchor="middle">20,4</text>
+<line x1="54" y1="180.8" x2="58" y2="180.8" class="sk-axis"/>
+<text x="51" y="184.8" class="lab-muted" text-anchor="end">1000</text>
+<line x1="54" y1="161.6" x2="58" y2="161.6" class="sk-axis"/>
+<text x="51" y="165.6" class="lab-muted" text-anchor="end">2000</text>
+<line x1="54" y1="142.5" x2="58" y2="142.5" class="sk-axis"/>
+<text x="51" y="146.5" class="lab-muted" text-anchor="end">3000</text>
+<line x1="54" y1="123.3" x2="58" y2="123.3" class="sk-axis"/>
+<text x="51" y="127.3" class="lab-muted" text-anchor="end">4000</text>
+<text x="252.5" y="22" class="lab-b" text-anchor="middle">moyenne 20,00 cm</text>
+<text x="366.2" y="86.7" class="lab-accent">écart-type</text>
+<text x="366.2" y="101.7" class="lab-accent">0,10 cm</text>
+</svg>
+<figcaption>Simulation de Monte-Carlo de la focométrie par la relation de conjugaison (100 000 tirages, classes de 0,025 cm). Chaque tirage choisit des positions plausibles de l'objet, de la lentille et de l'image, puis calcule f'. La moyenne des tirages (20,00 cm) est le résultat, leur écart-type (0,10 cm) l'incertitude-type (bande teintée). La forme aplatie, presque un trapèze, vient de la contribution dominante, celle de la position de l'image, tirée selon une loi uniforme.</figcaption>
+</figure>
+  <div class="notice"><strong>Erreurs classiques</strong> : (1) tirer deux fois la même grandeur (une valeur de \(x_O\) pour \(\overline{OA}\), une autre pour \(\overline{OA'}\)) : on fabrique une indépendance qui n'existe pas ; (2) prendre comme incertitude-type la demi-largeur de l'histogramme, ou l'écart entre le plus petit et le plus grand tirage, au lieu de l'écart-type ; (3) utiliser une loi normale d'écart-type \(a\) pour une grandeur connue à \(\pm a\) près : son écart-type doit être \(a/\sqrt3\), ou bien on tire une loi uniforme de demi-largeur \(a\).</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§7 · ÉCRIRE LE RÉSULTAT D'UNE MESURE</div>
+  <h2>Valeur, incertitude-type, unité : le bon nombre de chiffres</h2>
+  <div class="intro">Un résultat écrit avec dix chiffres laisse croire à une précision qu'il n'a pas ; arrondi trop tôt, il perd de l'information. Les chiffres significatifs d'un résultat sont dictés par son incertitude-type.</div>
+  <div class="prop-box">
+    <strong>Règles d'écriture.</strong>
+    <ol>
+      <li>Garder tous les chiffres pendant les calculs ; n'arrondir qu'à la fin.</li>
+      <li>Arrondir l'incertitude-type à un ou deux chiffres significatifs (deux sont préférables quand le premier est 1 ou 2 : arrondir 0,14 à 0,1 la change de près de 30 %).</li>
+      <li>Arrondir la valeur à la même position décimale que le dernier chiffre conservé de l'incertitude-type.</li>
+      <li>Écrire l'unité, utiliser une puissance de dix commune si besoin, et préciser la nature de l'incertitude : « \(g=9{,}81\ \text{m·s}^{-2}\) ; \(u(g)=0{,}06\ \text{m·s}^{-2}\) », ou « \(g=(9{,}81\pm0{,}06)\ \text{m·s}^{-2}\), incertitude-type ». L'incertitude relative (0,6 %) se donne souvent en plus.</li>
+    </ol>
+  </div>
+  <div class="method-box">
+    <strong>Exemple — mettre en forme des résultats bruts</strong>
+    <ol>
+      <li>\(g=9{,}8150\ \text{m·s}^{-2}\) et \(u(g)=0{,}0579\ \text{m·s}^{-2}\) → \(u(g)=0{,}06\ \text{m·s}^{-2}\) et \(g=9{,}81\ \text{m·s}^{-2}\) ; ou, avec deux chiffres, \(g=9{,}815\ \text{m·s}^{-2}\), \(u(g)=0{,}058\ \text{m·s}^{-2}\).</li>
+      <li>\(R=470{,}72\ \Omega\), \(u(R)=3{,}80\ \Omega\) → \(R=470{,}7\ \Omega\), \(u(R)=3{,}8\ \Omega\).</li>
+      <li>\(c=0{,}0123456\ \text{mol·L}^{-1}\), \(u(c)=0{,}000278\ \text{mol·L}^{-1}\) → \(c=(1{,}235\pm0{,}028)\times10^{-2}\ \text{mol·L}^{-1}\) (incertitude-type), soit 2,3 %.</li>
+      <li>\(f=1\,523{,}7\ \text{Hz}\), \(u(f)=12{,}3\ \text{Hz}\) → \(f=1\,524\ \text{Hz}\), \(u(f)=12\ \text{Hz}\) ; écrire « 1 520 Hz » serait ambigu (le zéro est-il significatif ?), \(f=1{,}524\times10^{3}\ \text{Hz}\) ne l'est pas.</li>
+    </ol>
+  </div>
+  <div class="notice"><strong>Erreurs classiques</strong> : (1) « \(\lambda=632{,}8\pm0{,}03\ \text{nm}\) » : la valeur et l'incertitude ne s'arrêtent pas à la même décimale ; (2) une incertitude à quatre chiffres significatifs (« \(u=0{,}05793\) ») : l'incertitude-type est elle-même connue à 10 ou 20 % près, ses derniers chiffres n'ont aucun sens ; (3) « \(u=0\) » parce que l'affichage ne varie pas : une incertitude n'est jamais nulle (§3) ; (4) arrondir \(T\) à 1,55 s avant de calculer \(T^2\), ce qui décale \(g\) de 0,5 %, autant que son incertitude.</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§8 · COMPARER DEUX VALEURS : L'ÉCART NORMALISÉ</div>
+  <h2>Un critère quantitatif de compatibilité</h2>
+  <div class="intro">« Ma valeur est proche de la valeur attendue » ne veut rien dire tant qu'on ne compare pas l'écart aux incertitudes. L'écart normalisé fait cette comparaison en un nombre ; c'est l'outil du programme pour juger un résultat avec esprit critique.</div>
+  <div class="def-box">
+    <strong>Écart normalisé.</strong> Pour deux valeurs \(x_1\) et \(x_2\) d'une même grandeur, d'incertitudes-types \(u(x_1)\) et \(u(x_2)\), obtenues indépendamment :
+    <div class="formula" data-nom="Écart normalisé">$$E_N=\frac{|x_1-x_2|}{\sqrt{u(x_1)^2+u(x_2)^2}}$$</div>
+    Pour une valeur de référence dont l'incertitude est négligeable, \(E_N=|x-x_{\text{ref}}|/u(x)\). On rencontre aussi le nom anglais « z-score ».
+  </div>
+  <div class="prop-box">
+    <strong>Critère usuel.</strong> Si les deux valeurs portent sur la même grandeur et si les incertitudes sont bien évaluées, la différence \(x_1-x_2\) a pour incertitude-type \(\sqrt{u(x_1)^2+u(x_2)^2}\) (somme, §5) : un écart supérieur à deux fois cette quantité n'arrive que dans environ 5 % des cas. On convient donc que les deux valeurs sont <strong>compatibles si \(E_N\leqslant2\)</strong>, et qu'un écart \(E_N>2\) signale une incompatibilité dont il faut chercher la cause. Le seuil 2 est une convention ; certains énoncés en fixent un autre.
+  </div>
+  <figure class="schema">
+<svg viewBox="0 0 520 232" role="img" aria-label="Quatre mesures de la célérité du son avec leurs barres d'incertitude, comparées à la valeur de référence à 25 degrés">
+<line x1="257.8" y1="204" x2="257.8" y2="34" class="sk-green"/>
+<text x="257.8" y="26" class="lab-green" text-anchor="middle">référence à 25 °C : 346,1</text>
+<line x1="162.4" y1="204" x2="162.4" y2="34" class="sk-dash"/>
+<line x1="92" y1="204" x2="464" y2="204" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<line x1="124.7" y1="204" x2="124.7" y2="208" class="sk-axis"/>
+<text x="124.7" y="221" class="lab-muted" text-anchor="middle">338</text>
+<line x1="190.2" y1="204" x2="190.2" y2="208" class="sk-axis"/>
+<text x="190.2" y="221" class="lab-muted" text-anchor="middle">342</text>
+<line x1="255.6" y1="204" x2="255.6" y2="208" class="sk-axis"/>
+<text x="255.6" y="221" class="lab-muted" text-anchor="middle">346</text>
+<line x1="321.1" y1="204" x2="321.1" y2="208" class="sk-axis"/>
+<text x="321.1" y="221" class="lab-muted" text-anchor="middle">350</text>
+<line x1="386.5" y1="204" x2="386.5" y2="208" class="sk-axis"/>
+<text x="386.5" y="221" class="lab-muted" text-anchor="middle">354</text>
+<text x="466" y="208" class="lab-muted lab-it">c (m/s)</text>
+<text x="158.4" y="45.7" class="lab-muted" text-anchor="end">340 (15 °C)</text>
+<line x1="190.2" y1="64.9" x2="288.4" y2="64.9" class="sk-accent2" style="stroke-width:1.2"/>
+<line x1="214.7" y1="64.9" x2="263.8" y2="64.9" class="sk-accent2" style="stroke-width:4.5"/>
+<line x1="190.2" y1="59.9" x2="190.2" y2="69.9" class="sk-accent2" style="stroke-width:1.2"/>
+<line x1="288.4" y1="59.9" x2="288.4" y2="69.9" class="sk-accent2" style="stroke-width:1.2"/>
+<circle cx="239.3" cy="64.9" r="4.5" class="fl-ink"/>
+<text x="84" y="68.9" text-anchor="end">binôme 1</text>
+<text x="298.2" y="68.9" class="lab-muted">E<tspan dy="4" font-size="12">N</tspan><tspan dy="-4"> = 0,8</tspan></text>
+<line x1="239.3" y1="101.6" x2="370.2" y2="101.6" class="sk-accent2" style="stroke-width:1.2"/>
+<line x1="272" y1="101.6" x2="337.5" y2="101.6" class="sk-accent2" style="stroke-width:4.5"/>
+<line x1="239.3" y1="96.6" x2="239.3" y2="106.6" class="sk-accent2" style="stroke-width:1.2"/>
+<line x1="370.2" y1="96.6" x2="370.2" y2="106.6" class="sk-accent2" style="stroke-width:1.2"/>
+<circle cx="304.7" cy="101.6" r="4.5" class="fl-ink"/>
+<text x="84" y="105.6" text-anchor="end">binôme 2</text>
+<text x="380" y="105.6" class="lab-muted">E<tspan dy="4" font-size="12">N</tspan><tspan dy="-4"> = 1,4</tspan></text>
+<line x1="296.5" y1="138.3" x2="427.5" y2="138.3" class="sk-accent2" style="stroke-width:1.2"/>
+<line x1="329.3" y1="138.3" x2="394.7" y2="138.3" class="sk-accent2" style="stroke-width:4.5"/>
+<line x1="296.5" y1="133.3" x2="296.5" y2="143.3" class="sk-accent2" style="stroke-width:1.2"/>
+<line x1="427.5" y1="133.3" x2="427.5" y2="143.3" class="sk-accent2" style="stroke-width:1.2"/>
+<circle cx="362" cy="138.3" r="4.5" class="fl-ink"/>
+<text x="84" y="142.3" text-anchor="end">binôme 3</text>
+<text x="437.3" y="142.3" class="lab-muted">E<tspan dy="4" font-size="12">N</tspan><tspan dy="-4"> = 3,2</tspan></text>
+<line x1="124.7" y1="175" x2="177.1" y2="175" class="sk-accent2" style="stroke-width:1.2"/>
+<line x1="137.8" y1="175" x2="164" y2="175" class="sk-accent2" style="stroke-width:4.5"/>
+<line x1="124.7" y1="170" x2="124.7" y2="180" class="sk-accent2" style="stroke-width:1.2"/>
+<line x1="177.1" y1="170" x2="177.1" y2="180" class="sk-accent2" style="stroke-width:1.2"/>
+<circle cx="150.9" cy="175" r="4.5" class="fl-ink"/>
+<text x="84" y="179" text-anchor="end">binôme 4</text>
+<text x="186.9" y="179" class="lab-muted">E<tspan dy="4" font-size="12">N</tspan><tspan dy="-4"> = 8,2</tspan></text>
+</svg>
+<figcaption>Quatre binômes mesurent la célérité du son dans une salle à 25 °C. Trait épais : valeur ± u ; trait fin : valeur ± 2u. Les binômes 1 et 2 sont compatibles avec la référence à 25 °C (écart normalisé inférieur à 2), le binôme 3 ne l'est pas. Le binôme 4 est très incompatible avec la bonne référence, mais compatible avec la valeur usuelle à 15 °C (tirets) : une sonde de température mal lue, ou une salle plus froide qu'annoncé ?</figcaption>
+</figure>
+  <div class="method-box">
+    <strong>Exemple — célérité du son</strong>
+    <p>Un binôme mesure \(c=345{,}0\ \text{m·s}^{-1}\) avec \(u(c)=1{,}5\ \text{m·s}^{-1}\), dans une salle à 25 °C. La célérité du son dans l'air sec vaut \(c(\theta)=331{,}3\sqrt{1+\theta/273{,}15}\ \text{m·s}^{-1}\) (\(\theta\) en °C), soit 346,1 m/s à 25 °C.</p>
+    <ol>
+      <li>Incertitude de la référence négligeable : \(E_N=|345{,}0-346{,}1|/1{,}5=0{,}7\leqslant2\) : compatible.</li>
+      <li>Un autre binôme trouve \(352{,}5\pm2{,}0\ \text{m·s}^{-1}\) (incertitude-type) : \(E_N=6{,}4/2{,}0=3{,}2\gt2\) : incompatible ; une cause est à chercher (erreur sur la distance, sur le nombre de longueurs d'onde comptées, sur la fréquence).</li>
+      <li>Si le premier binôme avait comparé sa valeur à « 340 m/s », la valeur à 15 °C, il aurait trouvé \(E_N=3{,}3\) et conclu à tort à une incompatibilité : la référence doit correspondre aux conditions de l'expérience.</li>
+    </ol>
+  </div>
+  <h3>Analyser une incompatibilité</h3>
+  <p>Un écart normalisé supérieur à 2 n'est pas une note : c'est une information. Le programme demande d'en analyser les causes, à passer en revue dans cet ordre, en estimant chaque fois l'ordre de grandeur de l'effet :</p>
+  <ol>
+    <li><strong>Une faute</strong> : calcul, unité, conversion, nombre de périodes ou de franges mal compté.</li>
+    <li><strong>Une incertitude sous-évaluée</strong> : source oubliée dans le bilan (seulement le type A du chronométrage, et pas la longueur ; seulement la résolution, et pas la notice).</li>
+    <li><strong>Une erreur systématique</strong> : zéro ou étalonnage d'un appareil, résistance d'entrée d'un voltmètre, d'un ampèremètre, temps de réaction toujours dans le même sens.</li>
+    <li><strong>Un modèle inadapté</strong> : le modèle qui relie la mesure à la grandeur cherchée néglige un effet qui n'est pas négligeable à la précision atteinte (amplitude d'un pendule, frottements, résistance des fils, non-linéarité d'un capteur).</li>
+    <li><strong>Une référence inadaptée</strong> : valeur tabulée pour d'autres conditions (température, pression, concentration, longueur d'onde).</li>
+  </ol>
+  <p>Inversement, des écarts normalisés tous très inférieurs à 1 sur de nombreuses mesures indiquent des incertitudes surestimées.</p>
+  <div class="notice"><strong>Erreur classique</strong> : conclure « la mesure est juste » parce que l'écart relatif est petit (« seulement 1 % d'écart »). Un écart de 1 % est énorme si l'incertitude est de 0,1 %, et insignifiant si elle est de 5 %. Autre erreur : élargir après coup les incertitudes pour « rendre » la mesure compatible.</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§9 · RÉGRESSION LINÉAIRE</div>
+  <h2>Ajuster un modèle affine et le valider</h2>
+  <div class="intro">Pour tester une loi physique et mesurer ses paramètres, on fait varier une grandeur \(x\), on mesure \(y\), et l'on cherche si les points \((x_i,y_i)\) s'alignent sur une droite \(y=ax+b\). Le logiciel donne toujours une droite ; la vraie question est de savoir si le modèle est compatible avec les mesures et leurs incertitudes.</div>
+  <h3>Se ramener à une droite</h3>
+  <p>Beaucoup de lois deviennent affines après un changement de variables bien choisi : \(T^2=\dfrac{4\pi^2}{g}\,L\) pour le pendule simple (on porte \(T^2\) en fonction de \(L\)) ; \(\dfrac{1}{\overline{OA'}}=\dfrac{1}{\overline{OA}}+\dfrac{1}{f'}\) en focométrie ; \(A=k\,c\) (loi de Beer-Lambert) ; \(U=E-rI\) pour un générateur ; \(\ln\left(c/c_0\right)=-kt\) pour une cinétique d'ordre 1. Les paramètres physiques se lisent alors sur la pente \(a\) et l'ordonnée à l'origine \(b\).</p>
+  <h3>Obtenir les paramètres</h3>
+  <p>La régression linéaire (méthode des moindres carrés) choisit \(a\) et \(b\) qui rendent minimale la somme des carrés des écarts verticaux \(\sum_i\left(y_i-ax_i-b\right)^2\). En Python, <code>a, b = np.polyfit(x, y, 1)</code> renvoie la pente et l'ordonnée à l'origine (le 1 est le degré du polynôme ajusté).</p>
+  <h3>Valider le modèle</h3>
+  <div class="def-box">
+    <strong>Résidus et écarts normalisés.</strong> Le résidu du point \(i\) est \(r_i=y_i-(ax_i+b)\). Son écart normalisé est
+    <div class="formula" data-nom="Écart d'un point à la droite">$$z_i=\frac{y_i-(ax_i+b)}{u(y_i)}$$</div>
+    Si \(x_i\) a aussi une incertitude, on remplace \(u(y_i)\) par \(\sqrt{u(y_i)^2+a^2u(x_i)^2}\) : une erreur \(u(x_i)\) sur l'abscisse déplace le point, vu de la droite, de \(a\,u(x_i)\) verticalement.
+  </div>
+  <div class="prop-box">
+    <strong>Procédure de validation.</strong> Le modèle affine est compatible avec les mesures si :
+    <ul>
+      <li>graphiquement, la droite passe par la quasi-totalité des barres d'incertitude \(\pm2u(y_i)\) (environ 95 %) — tracer les résidus avec leurs barres, autour de zéro, rend ce test bien plus lisible que le graphe lui-même ;</li>
+      <li>ou, de façon équivalente, presque tous les écarts normalisés vérifient \(|z_i|\leqslant2\) ;</li>
+      <li>et les résidus se répartissent au hasard de part et d'autre de zéro, sans structure (pas d'arche, pas de tendance) : une structure trahit un modèle inadapté, même si les écarts restent petits.</li>
+    </ul>
+    Le coefficient de détermination \(R^2\) n'est <strong>pas</strong> un critère de validation : il peut valoir 0,99 pour un modèle faux.
+  </div>
+  <div class="method-box">
+    <strong>Exemple — mesurer \(g\) avec un pendule de longueur variable</strong>
+    <p>Pour huit longueurs \(L\) de 0,30 à 1,00 m, on chronomètre vingt périodes, avec \(u(20T)=0{,}10\ \text{s}\), donc \(u(T)=0{,}005\ \text{s}\). Mesures de \(20T\) (en s) : 21,90 ; 25,24 ; 28,34 ; 31,12 ; 33,68 ; 35,90 ; 38,00 ; 40,04.</p>
+    <ol>
+      <li>Modèle : \(T^2=aL+b\) avec \(a=4\pi^2/g\) et \(b=0\) attendu. Incertitude sur l'ordonnée (puissance, §5) : \(u(T^2)=2T\,u(T)\), de 0,011 à 0,020 s².</li>
+      <li>Régression : \(a=4{,}025\ \text{s}^2\cdot\text{m}^{-1}\), \(b=-0{,}004\ \text{s}^2\).</li>
+      <li>Validation : les écarts normalisés valent −0,40 ; −1,05 ; −0,03 ; 0,66 ; 1,34 ; 0,35 ; −0,43 ; −0,63 : tous dans \([-2\,;2]\), de signes mêlés. Le modèle est validé.</li>
+      <li>Paramètre physique : \(g=4\pi^2/a=9{,}81\ \text{m·s}^{-2}\). Son incertitude se déduit de celle de \(a\), obtenue au §10.</li>
+    </ol>
+    <pre class="codeblock"><span class="kw">import</span> numpy <span class="kw">as</span> np
+<span class="kw">import</span> matplotlib.pyplot <span class="kw">as</span> plt
+
+L = np.array([0.30, 0.40, 0.50, 0.60,
+              0.70, 0.80, 0.90, 1.00])          <span class="cmt"># m</span>
+vingtT = np.array([21.90, 25.24, 28.34, 31.12,
+                   33.68, 35.90, 38.00, 40.04])  <span class="cmt"># s</span>
+T = vingtT / 20
+uT = 0.10 / 20          <span class="cmt"># u(20T) = 0,10 s</span>
+
+y = T**2                <span class="cmt"># grandeur portée en ordonnée</span>
+uy = 2 * T * uT         <span class="cmt"># u(T²) = 2T u(T)</span>
+a, b = np.polyfit(L, y, 1)          <span class="cmt"># y = a L + b</span>
+print(a, b)                         <span class="cmt"># 4.025  -0.004</span>
+
+<span class="cmt"># écarts normalisés des points à la droite</span>
+z = (y - (a * L + b)) / uy
+print(np.round(z, 2))   <span class="cmt"># tous entre -2 et 2, signes mêlés</span>
+
+<span class="cmt"># points, barres d'incertitude (± 2u) et droite</span>
+plt.errorbar(L, y, yerr=2 * uy, fmt=<span class="str">'o'</span>)
+plt.plot(L, a * L + b)
+plt.xlabel(<span class="str">"L (m)"</span>)
+plt.ylabel(<span class="str">"T² (s²)"</span>)
+plt.show()</pre>
+  </div>
+  <figure class="schema">
+<svg viewBox="0 0 520 372" role="img" aria-label="Carré de la période en fonction de la longueur : points de mesure, droite ajustée et résidus avec leurs barres d'incertitude">
+<line x1="60" y1="148.5" x2="450.9" y2="38.4" class="sk-accent"/>
+<line x1="105.5" y1="136.2" x2="105.5" y2="135.5" class="sk-ink" style="stroke-width:1.2"/>
+<circle cx="105.5" cy="135.8" r="3.6" class="fl-ink"/>
+<line x1="150.9" y1="123.7" x2="150.9" y2="122.9" class="sk-ink" style="stroke-width:1.2"/>
+<circle cx="150.9" cy="123.3" r="3.6" class="fl-ink"/>
+<line x1="196.4" y1="110.6" x2="196.4" y2="109.7" class="sk-ink" style="stroke-width:1.2"/>
+<circle cx="196.4" cy="110.1" r="3.6" class="fl-ink"/>
+<line x1="241.8" y1="97.5" x2="241.8" y2="96.5" class="sk-ink" style="stroke-width:1.2"/>
+<circle cx="241.8" cy="97" r="3.6" class="fl-ink"/>
+<line x1="287.3" y1="84.3" x2="287.3" y2="83.2" class="sk-ink" style="stroke-width:1.2"/>
+<circle cx="287.3" cy="83.8" r="3.6" class="fl-ink"/>
+<line x1="332.7" y1="72.1" x2="332.7" y2="70.9" class="sk-ink" style="stroke-width:1.2"/>
+<circle cx="332.7" cy="71.5" r="3.6" class="fl-ink"/>
+<line x1="378.2" y1="59.7" x2="378.2" y2="58.5" class="sk-ink" style="stroke-width:1.2"/>
+<circle cx="378.2" cy="59.1" r="3.6" class="fl-ink"/>
+<line x1="423.6" y1="47.1" x2="423.6" y2="45.8" class="sk-ink" style="stroke-width:1.2"/>
+<circle cx="423.6" cy="46.5" r="3.6" class="fl-ink"/>
+<line x1="60" y1="174" x2="472" y2="174" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<line x1="60" y1="174" x2="60" y2="22" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<text x="474" y="178" class="lab-muted lab-it">L (m)</text>
+<text x="56" y="20" class="lab-muted lab-it" text-anchor="end">T² (s²)</text>
+<line x1="105.5" y1="174" x2="105.5" y2="178" class="sk-axis"/>
+<text x="105.5" y="191" class="lab-muted" text-anchor="middle">0,3</text>
+<line x1="196.4" y1="174" x2="196.4" y2="178" class="sk-axis"/>
+<text x="196.4" y="191" class="lab-muted" text-anchor="middle">0,5</text>
+<line x1="287.3" y1="174" x2="287.3" y2="178" class="sk-axis"/>
+<text x="287.3" y="191" class="lab-muted" text-anchor="middle">0,7</text>
+<line x1="378.2" y1="174" x2="378.2" y2="178" class="sk-axis"/>
+<text x="378.2" y="191" class="lab-muted" text-anchor="middle">0,9</text>
+<line x1="56" y1="142.2" x2="60" y2="142.2" class="sk-axis"/>
+<text x="53" y="146.2" class="lab-muted" text-anchor="end">1</text>
+<line x1="56" y1="110.4" x2="60" y2="110.4" class="sk-axis"/>
+<text x="53" y="114.4" class="lab-muted" text-anchor="end">2</text>
+<line x1="56" y1="78.5" x2="60" y2="78.5" class="sk-axis"/>
+<text x="53" y="82.5" class="lab-muted" text-anchor="end">3</text>
+<line x1="56" y1="46.7" x2="60" y2="46.7" class="sk-axis"/>
+<text x="53" y="50.7" class="lab-muted" text-anchor="end">4</text>
+<text x="250.9" y="61" class="lab-accent lab-it" text-anchor="middle">T² = a L + b</text>
+<text x="60" y="220" class="lab-muted">résidus T² − (a L + b) et barres ± 2u(T²), en s²</text>
+<rect x="60" y="232" width="400" height="110" class="sk-axis" style="fill:none"/>
+<line x1="60" y1="287" x2="460" y2="287" class="sk-accent"/>
+<line x1="105.5" y1="309.3" x2="105.5" y2="272.2" class="sk-ink" style="stroke-width:1.2"/>
+<line x1="101.5" y1="309.3" x2="109.5" y2="309.3" class="sk-ink" style="stroke-width:1.2"/>
+<line x1="101.5" y1="272.2" x2="109.5" y2="272.2" class="sk-ink" style="stroke-width:1.2"/>
+<circle cx="105.5" cy="290.8" r="3.6" class="fl-ink"/>
+<line x1="150.9" y1="319.6" x2="150.9" y2="276.9" class="sk-ink" style="stroke-width:1.2"/>
+<line x1="146.9" y1="319.6" x2="154.9" y2="319.6" class="sk-ink" style="stroke-width:1.2"/>
+<line x1="146.9" y1="276.9" x2="154.9" y2="276.9" class="sk-ink" style="stroke-width:1.2"/>
+<circle cx="150.9" cy="298.2" r="3.6" class="fl-ink"/>
+<line x1="196.4" y1="311.4" x2="196.4" y2="263.4" class="sk-ink" style="stroke-width:1.2"/>
+<line x1="192.4" y1="311.4" x2="200.4" y2="311.4" class="sk-ink" style="stroke-width:1.2"/>
+<line x1="192.4" y1="263.4" x2="200.4" y2="263.4" class="sk-ink" style="stroke-width:1.2"/>
+<circle cx="196.4" cy="287.4" r="3.6" class="fl-ink"/>
+<line x1="241.8" y1="304.6" x2="241.8" y2="252" class="sk-ink" style="stroke-width:1.2"/>
+<line x1="237.8" y1="304.6" x2="245.8" y2="304.6" class="sk-ink" style="stroke-width:1.2"/>
+<line x1="237.8" y1="252" x2="245.8" y2="252" class="sk-ink" style="stroke-width:1.2"/>
+<circle cx="241.8" cy="278.3" r="3.6" class="fl-ink"/>
+<line x1="287.3" y1="296.4" x2="287.3" y2="239.4" class="sk-ink" style="stroke-width:1.2"/>
+<line x1="283.3" y1="296.4" x2="291.3" y2="296.4" class="sk-ink" style="stroke-width:1.2"/>
+<line x1="283.3" y1="239.4" x2="291.3" y2="239.4" class="sk-ink" style="stroke-width:1.2"/>
+<circle cx="287.3" cy="267.9" r="3.6" class="fl-ink"/>
+<line x1="332.7" y1="312.1" x2="332.7" y2="251.3" class="sk-ink" style="stroke-width:1.2"/>
+<line x1="328.7" y1="312.1" x2="336.7" y2="312.1" class="sk-ink" style="stroke-width:1.2"/>
+<line x1="328.7" y1="251.3" x2="336.7" y2="251.3" class="sk-ink" style="stroke-width:1.2"/>
+<circle cx="332.7" cy="281.7" r="3.6" class="fl-ink"/>
+<line x1="378.2" y1="326.1" x2="378.2" y2="261.8" class="sk-ink" style="stroke-width:1.2"/>
+<line x1="374.2" y1="326.1" x2="382.2" y2="326.1" class="sk-ink" style="stroke-width:1.2"/>
+<line x1="374.2" y1="261.8" x2="382.2" y2="261.8" class="sk-ink" style="stroke-width:1.2"/>
+<circle cx="378.2" cy="294" r="3.6" class="fl-ink"/>
+<line x1="423.6" y1="331.6" x2="423.6" y2="263.9" class="sk-ink" style="stroke-width:1.2"/>
+<line x1="419.6" y1="331.6" x2="427.6" y2="331.6" class="sk-ink" style="stroke-width:1.2"/>
+<line x1="419.6" y1="263.9" x2="427.6" y2="263.9" class="sk-ink" style="stroke-width:1.2"/>
+<circle cx="423.6" cy="297.7" r="3.6" class="fl-ink"/>
+<line x1="56" y1="337.8" x2="60" y2="337.8" class="sk-axis"/>
+<text x="53" y="341.8" class="lab-muted" text-anchor="end">−0,06</text>
+<line x1="56" y1="312.4" x2="60" y2="312.4" class="sk-axis"/>
+<text x="53" y="316.4" class="lab-muted" text-anchor="end">−0,03</text>
+<line x1="56" y1="287" x2="60" y2="287" class="sk-axis"/>
+<text x="53" y="291" class="lab-muted" text-anchor="end">0,00</text>
+<line x1="56" y1="261.6" x2="60" y2="261.6" class="sk-axis"/>
+<text x="53" y="265.6" class="lab-muted" text-anchor="end">0,03</text>
+<line x1="56" y1="236.2" x2="60" y2="236.2" class="sk-axis"/>
+<text x="53" y="240.2" class="lab-muted" text-anchor="end">0,06</text>
+<line x1="105.5" y1="342" x2="105.5" y2="346" class="sk-axis"/>
+<text x="105.5" y="359" class="lab-muted" text-anchor="middle">0,3</text>
+<line x1="196.4" y1="342" x2="196.4" y2="346" class="sk-axis"/>
+<text x="196.4" y="359" class="lab-muted" text-anchor="middle">0,5</text>
+<line x1="287.3" y1="342" x2="287.3" y2="346" class="sk-axis"/>
+<text x="287.3" y="359" class="lab-muted" text-anchor="middle">0,7</text>
+<line x1="378.2" y1="342" x2="378.2" y2="346" class="sk-axis"/>
+<text x="378.2" y="359" class="lab-muted" text-anchor="middle">0,9</text>
+</svg>
+<figcaption>En haut : T² en fonction de L pour huit longueurs, et la droite ajustée (a = 4,025 s²/m, b = −0,004 s²). À cette échelle, les barres d'incertitude sont à peine visibles. En bas, les résidus (écart vertical de chaque point à la droite) avec des barres ± 2u(T²), soit environ 95 % de confiance : toutes coupent l'axe zéro, et les résidus changent de signe sans motif. Le modèle affine est validé.</figcaption>
+</figure>
+  <figure class="schema">
+<svg viewBox="0 0 520 372" role="img" aria-label="Période en fonction de la longueur ajustée par une droite : coefficient R² proche de un mais écarts normalisés structurés">
+<line x1="60" y1="162.1" x2="450.9" y2="43" class="sk-accent"/>
+<circle cx="105.5" cy="153" r="3.6" class="fl-ink"/>
+<circle cx="150.9" cy="135" r="3.6" class="fl-ink"/>
+<circle cx="196.4" cy="118.3" r="3.6" class="fl-ink"/>
+<circle cx="241.8" cy="103.4" r="3.6" class="fl-ink"/>
+<circle cx="287.3" cy="89.6" r="3.6" class="fl-ink"/>
+<circle cx="332.7" cy="77.6" r="3.6" class="fl-ink"/>
+<circle cx="378.2" cy="66.3" r="3.6" class="fl-ink"/>
+<circle cx="423.6" cy="55.3" r="3.6" class="fl-ink"/>
+<line x1="60" y1="174" x2="472" y2="174" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<line x1="60" y1="174" x2="60" y2="22" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<text x="474" y="178" class="lab-muted lab-it">L (m)</text>
+<text x="56" y="20" class="lab-muted lab-it" text-anchor="end">T (s)</text>
+<line x1="105.5" y1="174" x2="105.5" y2="178" class="sk-axis"/>
+<text x="105.5" y="191" class="lab-muted" text-anchor="middle">0,3</text>
+<line x1="196.4" y1="174" x2="196.4" y2="178" class="sk-axis"/>
+<text x="196.4" y="191" class="lab-muted" text-anchor="middle">0,5</text>
+<line x1="287.3" y1="174" x2="287.3" y2="178" class="sk-axis"/>
+<text x="287.3" y="191" class="lab-muted" text-anchor="middle">0,7</text>
+<line x1="378.2" y1="174" x2="378.2" y2="178" class="sk-axis"/>
+<text x="378.2" y="191" class="lab-muted" text-anchor="middle">0,9</text>
+<line x1="56" y1="163.2" x2="60" y2="163.2" class="sk-axis"/>
+<text x="53" y="167.2" class="lab-muted" text-anchor="end">1,0</text>
+<line x1="56" y1="120.2" x2="60" y2="120.2" class="sk-axis"/>
+<text x="53" y="124.2" class="lab-muted" text-anchor="end">1,4</text>
+<line x1="56" y1="77.1" x2="60" y2="77.1" class="sk-axis"/>
+<text x="53" y="81.1" class="lab-muted" text-anchor="end">1,8</text>
+<line x1="56" y1="34" x2="60" y2="34" class="sk-axis"/>
+<text x="53" y="38" class="lab-muted" text-anchor="end">2,2</text>
+<text x="105.5" y="55.5" class="lab-accent">droite ajustée sur T : R² = 0,991</text>
+<text x="60" y="220" class="lab-muted">écarts normalisés (T − (a L + b)) / u(T)</text>
+<rect x="60" y="232" width="400" height="110" class="sk-axis" style="fill:none"/>
+<rect x="60" y="276" width="400" height="22" class="fl-green-soft"/>
+<line x1="60" y1="287" x2="460" y2="287" class="sk-dash"/>
+<circle cx="105.5" cy="335.2" r="3.8" class="fl-accent"/>
+<circle cx="150.9" cy="293" r="3.8" class="fl-accent"/>
+<circle cx="196.4" cy="263.9" r="3.8" class="fl-accent"/>
+<circle cx="241.8" cy="252.4" r="3.8" class="fl-accent"/>
+<circle cx="287.3" cy="253.1" r="3.8" class="fl-accent"/>
+<circle cx="332.7" cy="272.4" r="3.8" class="fl-accent"/>
+<circle cx="378.2" cy="298.4" r="3.8" class="fl-accent"/>
+<circle cx="423.6" cy="327.6" r="3.8" class="fl-accent"/>
+<line x1="56" y1="331" x2="60" y2="331" class="sk-axis"/>
+<text x="53" y="335" class="lab-muted" text-anchor="end">−8</text>
+<line x1="56" y1="309" x2="60" y2="309" class="sk-axis"/>
+<text x="53" y="313" class="lab-muted" text-anchor="end">−4</text>
+<line x1="56" y1="287" x2="60" y2="287" class="sk-axis"/>
+<text x="53" y="291" class="lab-muted" text-anchor="end">0</text>
+<line x1="56" y1="265" x2="60" y2="265" class="sk-axis"/>
+<text x="53" y="269" class="lab-muted" text-anchor="end">4</text>
+<line x1="56" y1="243" x2="60" y2="243" class="sk-axis"/>
+<text x="53" y="247" class="lab-muted" text-anchor="end">8</text>
+<line x1="105.5" y1="342" x2="105.5" y2="346" class="sk-axis"/>
+<text x="105.5" y="359" class="lab-muted" text-anchor="middle">0,3</text>
+<line x1="196.4" y1="342" x2="196.4" y2="346" class="sk-axis"/>
+<text x="196.4" y="359" class="lab-muted" text-anchor="middle">0,5</text>
+<line x1="287.3" y1="342" x2="287.3" y2="346" class="sk-axis"/>
+<text x="287.3" y="359" class="lab-muted" text-anchor="middle">0,7</text>
+<line x1="378.2" y1="342" x2="378.2" y2="346" class="sk-axis"/>
+<text x="378.2" y="359" class="lab-muted" text-anchor="middle">0,9</text>
+<text x="457.7" y="272" class="lab-green" text-anchor="end">zone ± 2</text>
+</svg>
+<figcaption>Les mêmes mesures, mais en traçant T (et non T²) en fonction de L. La droite semble convenir et R² = 0,991. Les écarts normalisés (en bas) disent le contraire : ils valent jusqu'à 9 en valeur absolue, sept sur huit sortent de la zone ± 2 et dessinent une arche (négatifs aux bords, positifs au milieu). Le modèle T affine en L est rejeté ; T² affine en L ne l'est pas.</figcaption>
+</figure>
+  <div class="notice"><strong>Le piège du R²</strong> : traçons les mêmes mesures en portant \(T\) (et non \(T^2\)) en fonction de \(L\), et ajustons une droite. On obtient \(R^2=0{,}991\), un nombre qui semble excellent. Pourtant les écarts normalisés vont de −8,8 à +6,3 et dessinent une arche : la relation entre \(T\) et \(L\) n'est pas affine (\(T\) varie comme \(\sqrt L\)). Un \(R^2\) proche de 1 dit seulement que \(y\) croît avec \(x\) de façon régulière ; il ne tient aucun compte des incertitudes. Seuls les résidus confrontés aux incertitudes valident ou rejettent un modèle.</div>
+  <div class="notice"><strong>Erreur classique</strong> : retirer un point « qui ne va pas » pour améliorer l'ajustement. Un point aberrant se refait, ou se garde en le signalant ; on ne l'écarte que si l'on a identifié une cause (faute de lecture, montage modifié). Restreindre le domaine d'étude, en revanche, est légitime quand le modèle n'est valable que sur une partie (saturation d'un capteur, grande amplitude) : il faut alors le dire.</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§10 · INCERTITUDE SUR LES PARAMÈTRES PAR MONTE-CARLO</div>
+  <h2>Faire varier les mesures pour faire varier la droite</h2>
+  <div class="intro">La régression donne \(a\) et \(b\), mais pas leurs incertitudes-types. Le programme demande de les obtenir par simulation : on fabrique un grand nombre de jeux de mesures plausibles, on ajuste une droite sur chacun, et la dispersion des pentes et des ordonnées à l'origine obtenues donne \(u(a)\) et \(u(b)\).</div>
+  <div class="method-box">
+    <strong>Méthode — incertitude sur les paramètres d'une régression par Monte-Carlo</strong>
+    <ol>
+      <li>Repérer la grandeur dont la variabilité domine (souvent celle portée en ordonnée) et l'incertitude-type de chaque point.</li>
+      <li>Répéter \(N_{\text{sim}}\) fois (quelques milliers suffisent) : tirer un nouveau jeu de valeurs, chaque point selon une loi normale centrée sur la valeur mesurée et d'écart-type son incertitude-type ; ajuster une droite avec <code>polyfit</code> ; ranger la pente et l'ordonnée à l'origine.</li>
+      <li>L'écart-type des pentes est \(u(a)\), celui des ordonnées à l'origine \(u(b)\). Un paramètre physique calculé à partir de \(a\) ou \(b\) se calcule pour chaque tirage : son écart-type est son incertitude-type.</li>
+    </ol>
+  </div>
+  <pre class="codeblock"><span class="kw">import</span> numpy <span class="kw">as</span> np
+
+L = np.array([0.30, 0.40, 0.50, 0.60,
+              0.70, 0.80, 0.90, 1.00])
+T = np.array([21.90, 25.24, 28.34, 31.12,
+              33.68, 35.90, 38.00, 40.04]) / 20
+uT = 0.005
+
+Nsim = 10000
+pentes = np.zeros(Nsim)
+ordos = np.zeros(Nsim)
+<span class="kw">for</span> k <span class="kw">in</span> range(Nsim):
+    <span class="cmt"># un nouveau jeu de périodes plausibles</span>
+    Tsim = np.random.normal(T, uT)
+    pentes[k], ordos[k] = np.polyfit(L, Tsim**2, 1)
+
+a, ua = np.mean(pentes), np.std(pentes, ddof=1)
+b, ub = np.mean(ordos), np.std(ordos, ddof=1)
+print(a, ua, b, ub)   <span class="cmt"># environ 4.025  0.025  -0.004  0.015</span>
+
+g = 4 * np.pi**2 / pentes      <span class="cmt"># une valeur de g par tirage</span>
+print(np.mean(g), np.std(g, ddof=1))   <span class="cmt"># environ 9.81  0.06</span></pre>
+  <div class="method-box">
+    <strong>Exemple — fin de l'étude du pendule</strong>
+    <ol>
+      <li>Le programme ci-dessus donne \(a=4{,}025\ \text{s}^2\cdot\text{m}^{-1}\) et \(u(a)=0{,}025\ \text{s}^2\cdot\text{m}^{-1}\) (0,6 %), \(b=-0{,}004\ \text{s}^2\) et \(u(b)=0{,}015\ \text{s}^2\).</li>
+      <li>Ordonnée à l'origine : \(|b|/u(b)=0{,}3\leqslant2\) : \(b\) est compatible avec 0, comme le prévoit le modèle du pendule simple.</li>
+      <li>Accélération de la pesanteur : la simulation calcule \(g=4\pi^2/a\) pour chaque tirage et donne \(g=9{,}81\ \text{m·s}^{-2}\) avec \(u(g)=0{,}06\ \text{m·s}^{-2}\) (0,6 %, comme \(a\) : quotient d'une constante par \(a\)).</li>
+      <li>Comparaison à la valeur locale \(g_{\text{ref}}=9{,}81\ \text{m·s}^{-2}\) : \(E_N\approx0\). Faire varier aussi les longueurs (\(u(L)=1\ \text{mm}\)) ne change \(u(g)\) que de 0,061 à 0,062 m·s⁻² : la variabilité des périodes domine, et le programme permet de ne simuler qu'elle.</li>
+    </ol>
+  </div>
+  <figure class="schema">
+<svg viewBox="0 0 520 238" role="img" aria-label="Histogramme de dix mille valeurs de g obtenues par simulation de Monte-Carlo de la régression">
+<rect x="202.6" y="30" width="89.3" height="170" class="fl-accent-soft"/>
+<rect x="72.6" y="199.9" width="14.6" height="0.1" class="fl-accent2-soft"/>
+<polyline points="72.6,200 72.6,199.9 87.2,199.9 87.2,200" class="sk-accent2" style="stroke-width:1"/>
+<rect x="87.2" y="199.8" width="14.6" height="0.2" class="fl-accent2-soft"/>
+<polyline points="87.2,200 87.2,199.8 101.8,199.8 101.8,200" class="sk-accent2" style="stroke-width:1"/>
+<rect x="101.8" y="199.1" width="14.6" height="0.9" class="fl-accent2-soft"/>
+<polyline points="101.8,200 101.8,199.1 116.5,199.1 116.5,200" class="sk-accent2" style="stroke-width:1"/>
+<rect x="116.5" y="196.2" width="14.6" height="3.8" class="fl-accent2-soft"/>
+<polyline points="116.5,200 116.5,196.2 131.1,196.2 131.1,200" class="sk-accent2" style="stroke-width:1"/>
+<rect x="131.1" y="194" width="14.6" height="6" class="fl-accent2-soft"/>
+<polyline points="131.1,200 131.1,194 145.7,194 145.7,200" class="sk-accent2" style="stroke-width:1"/>
+<rect x="145.7" y="182.5" width="14.6" height="17.5" class="fl-accent2-soft"/>
+<polyline points="145.7,200 145.7,182.5 160.3,182.5 160.3,200" class="sk-accent2" style="stroke-width:1"/>
+<rect x="160.3" y="166.7" width="14.6" height="33.3" class="fl-accent2-soft"/>
+<polyline points="160.3,200 160.3,166.7 174.9,166.7 174.9,200" class="sk-accent2" style="stroke-width:1"/>
+<rect x="174.9" y="142.5" width="14.6" height="57.5" class="fl-accent2-soft"/>
+<polyline points="174.9,200 174.9,142.5 189.5,142.5 189.5,200" class="sk-accent2" style="stroke-width:1"/>
+<rect x="189.5" y="115.2" width="14.6" height="84.8" class="fl-accent2-soft"/>
+<polyline points="189.5,200 189.5,115.2 204.2,115.2 204.2,200" class="sk-accent2" style="stroke-width:1"/>
+<rect x="204.2" y="80.9" width="14.6" height="119.1" class="fl-accent2-soft"/>
+<polyline points="204.2,200 204.2,80.9 218.8,80.9 218.8,200" class="sk-accent2" style="stroke-width:1"/>
+<rect x="218.8" y="53.9" width="14.6" height="146.1" class="fl-accent2-soft"/>
+<polyline points="218.8,200 218.8,53.9 233.4,53.9 233.4,200" class="sk-accent2" style="stroke-width:1"/>
+<rect x="233.4" y="45.7" width="14.6" height="154.3" class="fl-accent2-soft"/>
+<polyline points="233.4,200 233.4,45.7 248,45.7 248,200" class="sk-accent2" style="stroke-width:1"/>
+<rect x="248" y="45.5" width="14.6" height="154.5" class="fl-accent2-soft"/>
+<polyline points="248,200 248,45.5 262.6,45.5 262.6,200" class="sk-accent2" style="stroke-width:1"/>
+<rect x="262.6" y="60.5" width="14.6" height="139.5" class="fl-accent2-soft"/>
+<polyline points="262.6,200 262.6,60.5 277.2,60.5 277.2,200" class="sk-accent2" style="stroke-width:1"/>
+<rect x="277.2" y="90.6" width="14.6" height="109.4" class="fl-accent2-soft"/>
+<polyline points="277.2,200 277.2,90.6 291.8,90.6 291.8,200" class="sk-accent2" style="stroke-width:1"/>
+<rect x="291.8" y="120.2" width="14.6" height="79.8" class="fl-accent2-soft"/>
+<polyline points="291.8,200 291.8,120.2 306.5,120.2 306.5,200" class="sk-accent2" style="stroke-width:1"/>
+<rect x="306.5" y="151.5" width="14.6" height="48.5" class="fl-accent2-soft"/>
+<polyline points="306.5,200 306.5,151.5 321.1,151.5 321.1,200" class="sk-accent2" style="stroke-width:1"/>
+<rect x="321.1" y="167.3" width="14.6" height="32.7" class="fl-accent2-soft"/>
+<polyline points="321.1,200 321.1,167.3 335.7,167.3 335.7,200" class="sk-accent2" style="stroke-width:1"/>
+<rect x="335.7" y="182.4" width="14.6" height="17.6" class="fl-accent2-soft"/>
+<polyline points="335.7,200 335.7,182.4 350.3,182.4 350.3,200" class="sk-accent2" style="stroke-width:1"/>
+<rect x="350.3" y="190.6" width="14.6" height="9.4" class="fl-accent2-soft"/>
+<polyline points="350.3,200 350.3,190.6 364.9,190.6 364.9,200" class="sk-accent2" style="stroke-width:1"/>
+<rect x="364.9" y="196.2" width="14.6" height="3.8" class="fl-accent2-soft"/>
+<polyline points="364.9,200 364.9,196.2 379.5,196.2 379.5,200" class="sk-accent2" style="stroke-width:1"/>
+<rect x="379.5" y="198.8" width="14.6" height="1.2" class="fl-accent2-soft"/>
+<polyline points="379.5,200 379.5,198.8 394.2,198.8 394.2,200" class="sk-accent2" style="stroke-width:1"/>
+<rect x="394.2" y="199.5" width="14.6" height="0.5" class="fl-accent2-soft"/>
+<polyline points="394.2,200 394.2,199.5 408.8,199.5 408.8,200" class="sk-accent2" style="stroke-width:1"/>
+<rect x="408.8" y="199.9" width="14.6" height="0.1" class="fl-accent2-soft"/>
+<polyline points="408.8,200 408.8,199.9 423.4,199.9 423.4,200" class="sk-accent2" style="stroke-width:1"/>
+<line x1="247.3" y1="200" x2="247.3" y2="30" class="sk-ink"/>
+<line x1="58" y1="200" x2="450" y2="200" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<line x1="58" y1="200" x2="58" y2="18" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<text x="452" y="204" class="lab-muted lab-it">g (m/s²)</text>
+<text x="54" y="16" class="lab-muted lab-it" text-anchor="end">tirages</text>
+<line x1="94.5" y1="200" x2="94.5" y2="204" class="sk-axis"/>
+<text x="94.5" y="217" class="lab-muted" text-anchor="middle">9,60</text>
+<line x1="167.6" y1="200" x2="167.6" y2="204" class="sk-axis"/>
+<text x="167.6" y="217" class="lab-muted" text-anchor="middle">9,70</text>
+<line x1="240.7" y1="200" x2="240.7" y2="204" class="sk-axis"/>
+<text x="240.7" y="217" class="lab-muted" text-anchor="middle">9,80</text>
+<line x1="313.8" y1="200" x2="313.8" y2="204" class="sk-axis"/>
+<text x="313.8" y="217" class="lab-muted" text-anchor="middle">9,90</text>
+<line x1="386.8" y1="200" x2="386.8" y2="204" class="sk-axis"/>
+<text x="386.8" y="217" class="lab-muted" text-anchor="middle">10,00</text>
+<line x1="54" y1="151.2" x2="58" y2="151.2" class="sk-axis"/>
+<text x="51" y="155.2" class="lab-muted" text-anchor="end">400</text>
+<line x1="54" y1="102.3" x2="58" y2="102.3" class="sk-axis"/>
+<text x="51" y="106.3" class="lab-muted" text-anchor="end">800</text>
+<line x1="54" y1="53.5" x2="58" y2="53.5" class="sk-axis"/>
+<text x="51" y="57.5" class="lab-muted" text-anchor="end">1200</text>
+<text x="247.3" y="22" class="lab-b" text-anchor="middle">moyenne 9,81 m/s²</text>
+<text x="345.5" y="88.7" class="lab-accent">écart-type</text>
+<text x="345.5" y="103.7" class="lab-accent">0,06 m/s²</text>
+</svg>
+<figcaption>Simulation de Monte-Carlo de la régression (10 000 jeux de périodes simulés, chacun tiré autour des mesures avec u(T) = 0,005 s). Chaque jeu donne une pente a, donc une valeur g = 4π²/a. Moyenne 9,81 m/s², écart-type 0,06 m/s² : c'est l'incertitude-type sur g.</figcaption>
+</figure>
+  <div class="notice"><strong>Erreur classique</strong> : estimer l'incertitude sur la pente en traçant « à la main » les deux droites extrêmes qui passent encore par les barres. Cette méthode des « pentes extrêmes » donne un ordre de grandeur, souvent pessimiste : elle suppose les points décalés au pire, et tous en même temps. La simulation, elle, tire chaque point indépendamment.</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§11 · ORDRES DE GRANDEUR ET BONNES PRATIQUES</div>
+  <h2>Au laboratoire : ce qui limite vraiment la précision</h2>
+  <div class="intro">Connaître les incertitudes typiques des instruments permet de concevoir un protocole, de repérer d'avance la contribution dominante, et de juger un résultat à l'oral sans calculatrice.</div>
+  <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;margin:.6rem 0">
+    <tr><th style="text-align:left">Instrument ou situation</th><th style="text-align:left">Ordre de grandeur de l'incertitude-type</th></tr>
+    <tr><td>Règle graduée au mm, une lecture</td><td>0,3 mm (\(1/\sqrt{12}\) mm) ; pour une longueur, deux lectures : 0,4 mm</td></tr>
+    <tr><td>Pied à coulisse au 1/50 mm ; palmer au 1/100 mm</td><td>0,006 mm ; 0,003 mm (hors écrasement de l'objet)</td></tr>
+    <tr><td>Banc d'optique : latitude de mise au point</td><td>quelques mm à 1 cm : domine presque toujours la graduation</td></tr>
+    <tr><td>Chronomètre à la main</td><td>0,1 s par chronométrage (temps de réaction), quelle que soit la durée</td></tr>
+    <tr><td>Fourche optique, carte d'acquisition, oscilloscope</td><td>de la microseconde à la milliseconde ; base de temps à 0,01 % près</td></tr>
+    <tr><td>Multimètre de TP</td><td>0,1 % à 1 % en continu (selon la notice), davantage en alternatif</td></tr>
+    <tr><td>Oscilloscope, mesure d'une tension</td><td>2 à 3 % de la pleine échelle</td></tr>
+    <tr><td>Pipette jaugée 20 mL classe A ; burette 25 mL classe A</td><td>0,017 mL ; 0,017 mL de tolérance, plus la lecture et la goutte à l'équivalence</td></tr>
+    <tr><td>Balance de laboratoire</td><td>0,01 g ou 0,001 g selon le modèle</td></tr>
+    <tr><td>Thermomètre électronique de TP</td><td>0,1 à 0,5 °C</td></tr>
+  </table></div>
+  <h3>Bonnes pratiques</h3>
+  <ul>
+    <li><strong>Mesurer une grande grandeur plutôt qu'une petite</strong> : chronométrer 20 périodes plutôt qu'une, compter 10 longueurs d'onde plutôt qu'une, mesurer l'épaisseur de 100 feuilles. L'incertitude de lecture reste la même, et elle est divisée par le nombre d'objets.</li>
+    <li><strong>Faire le bilan d'incertitude avant de répéter</strong> : améliorer une contribution qui n'est pas la principale ne sert à rien (§5).</li>
+    <li><strong>Refaire vraiment les mesures</strong> pour une évaluation de type A : relâcher le pendule, refaire la mise au point, reprendre la lecture depuis le début.</li>
+    <li><strong>Noter les valeurs brutes</strong> avec leur unité, leurs conditions (calibre, température) et ce qui limite la lecture ; tracer les points au fur et à mesure pour repérer tout de suite une valeur aberrante.</li>
+    <li><strong>Penser à la méthode</strong> : appareil qui perturbe le montage, effet négligé par le modèle, référence prise dans d'autres conditions (§8).</li>
+  </ul>
+  <div class="method-box">
+    <strong>Exemple — combien de périodes chronométrer ?</strong>
+    <p>On veut la période d'un pendule (\(T\approx2\ \text{s}\)) à 0,1 % près avec un chronomètre manuel (0,1 s par chronométrage).</p>
+    <ol>
+      <li>En chronométrant \(n\) périodes une fois : \(u(T)=0{,}1/n\ \text{s}\). Il faut \(0{,}1/n\leqslant0{,}001\times2\), soit \(n\geqslant50\) périodes, à condition que l'amortissement le permette.</li>
+      <li>En chronométrant une seule période 50 fois : \(u(T)=0{,}1/\sqrt{50}=0{,}014\ \text{s}\), soit 0,7 % : sept fois moins bien (\(\sqrt{50}\approx7\)) pour le même nombre de déclenchements.</li>
+      <li>Conclusion : allonger la durée mesurée est bien plus efficace que répéter une mesure courte, parce que l'incertitude de déclenchement ne dépend pas de la durée.</li>
+    </ol>
+  </div>
+  <div class="notice"><strong>Erreur classique</strong> : croire que l'appareil le plus précis donne le meilleur résultat. Mesurer au palmer l'épaisseur d'une seule feuille de papier (0,10 mm à 0,003 mm près) semble précis, mais l'écrasement de la feuille et sa variabilité d'un point à l'autre dominent ; mesurer à la règle une rame de 500 feuilles donne souvent mieux. Le bon protocole est celui qui réduit la contribution dominante.</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">POUR ALLER PLUS LOIN · HORS PROGRAMME</div>
+  <h2>Propagation générale, Student, moindres carrés</h2>
+  <div class="intro">Ces compléments ne sont pas exigibles en PTSI ni en PT. Ils expliquent d'où viennent les règles du chapitre et ce que calculent les logiciels.</div>
+  <h3>Formule générale de propagation</h3>
+  <p>Si \(y=f(x_1,\dots,x_n)\) avec des grandeurs indépendantes et des incertitudes petites, un développement au premier ordre donne</p>
+  <div class="formula">$$u(y)^2=\sum_{j=1}^{n}\left(\frac{\partial f}{\partial x_j}\right)^2u(x_j)^2$$</div>
+  <p>Les règles de la somme, du produit et de la puissance en sont des cas particuliers. Pour la focométrie du §6, avec \(f'\) écrit en fonction de \(x_A\), \(x_O\) et \(x_{A'}\), les dérivées valent \(-4/9\), \(1/3\) et \(1/9\) ; multipliées par les incertitudes-types (0,058 ; 0,115 ; 0,81 cm), elles redonnent 0,026, 0,038 et 0,090 cm, et \(u(f')=0{,}10\ \text{cm}\), comme la simulation. Si les grandeurs sont corrélées, des termes de covariance s'ajoutent ; la simulation de Monte-Carlo les inclut d'elle-même, d'où son intérêt.</p>
+  <h3>Petit nombre de mesures : le facteur de Student</h3>
+  <p>Avec \(N\) mesures, l'intervalle à 95 % autour d'une moyenne est \(\bar x\pm t\,s_x/\sqrt N\), où le coefficient \(t\) de Student dépend de \(N\) : environ 2,4 pour \(N=8\), 2,1 pour \(N=20\), 2,0 pour \(N\) grand. Avec les huit mesures du §2, l'intervalle à 95 % est donc \(\pm2{,}4\,u\) plutôt que \(\pm2u\).</p>
+  <h3>Formules des moindres carrés</h3>
+  <p>La droite des moindres carrés a pour pente et ordonnée à l'origine</p>
+  <div class="formula">$$a=\frac{\sum_i\left(x_i-\bar x\right)\left(y_i-\bar y\right)}{\sum_i\left(x_i-\bar x\right)^2},\qquad b=\bar y-a\,\bar x$$</div>
+  <p>Quand les points n'ont pas tous la même incertitude, une régression <em>pondérée</em> (poids \(1/u(y_i)^2\)) est plus juste, et la somme \(\chi^2=\sum_iz_i^2\), comparée au nombre de points, résume la qualité de l'ajustement. Pour le pendule du §9, \(\chi^2\approx4{,}2\) pour huit points et deux paramètres : un très bon accord.</p>
+</div>
+</template>
+<template class="pan-tpl" data-panneau="inc-meth">
+<div class="course-section">
+  <div class="sec-num">MÉTHODES · MESURES ET INCERTITUDES</div>
+  <h2>Les réflexes du chapitre</h2>
+  <div class="intro">Ces méthodes couvrent les capacités exigibles de la partie « Mesures et incertitudes » du programme : repérer les sources d'incertitude d'un protocole, évaluer une incertitude-type de type A ou B, lui associer un intervalle de confiance, composer des incertitudes et repérer la contribution dominante, simuler une grandeur composée, écrire un résultat, comparer deux valeurs par l'écart normalisé, valider une régression linéaire et estimer l'incertitude sur ses paramètres. Elles servent à chaque compte rendu de TP et à l'oral.</div>
+
+  <div class="method-box"><strong>Méthode 1 — Identifier les sources d'incertitude d'un protocole</strong>
+    <ol>
+      <li><span class="step">Définir le mesurande.</span> Écrire précisément la grandeur cherchée et les conditions (amplitude, température, calibre).</li>
+      <li><span class="step">Passer en revue les quatre familles.</span> Opérateur (réaction, netteté, parallaxe, repérage), environnement (température, vibrations, lumière), instruments (graduation, notice, résolution), méthode (modèle simplifié, perturbation par l'appareil).</li>
+      <li><span class="step">Chiffrer chaque source.</span> Une incertitude-type par source, même grossière (§2, §3 du cours).</li>
+      <li><span class="step">Repérer la contribution dominante.</span> C'est elle qui fixe l'incertitude finale et qu'il faut réduire en premier ; une source trois fois plus faible que la principale est négligeable.</li>
+    </ol>
+    <p><em>Exemple éclair :</em> position d'une image sur un banc d'optique. Latitude de netteté \(\pm3\ \text{mm}\) (opérateur) : \(u=1{,}7\ \text{mm}\) ; centre de la lentille dans sa monture à \(\pm2\ \text{mm}\) (méthode) : \(u=1{,}2\ \text{mm}\) ; graduation au millimètre (instrument) : \(u=0{,}3\ \text{mm}\). Total \(\sqrt{1{,}7^2+1{,}2^2+0{,}3^2}=2{,}1\ \text{mm}\) : la graduation ne compte pas, la netteté domine.</p>
+  </div>
+  <div class="notice"><strong>Piège</strong> : citer « l'erreur humaine » sans plus de précision. À l'oral, on attend une source précise (temps de réaction au déclenchement, appréciation de la netteté) et son ordre de grandeur.</div>
+
+  <div class="method-box"><strong>Méthode 2 — Évaluer une incertitude-type de type A</strong>
+    <ol>
+      <li><span class="step">Vérifier l'indépendance.</span> Chaque mesure doit être refaite en entier (relâcher, remettre au point, redéclencher).</li>
+      <li><span class="step">Calculer la moyenne.</span> \(\bar x=\frac1N\sum x_i\).</li>
+      <li><span class="step">Calculer l'écart-type expérimental.</span> \(s_x=\sqrt{\frac{1}{N-1}\sum(x_i-\bar x)^2}\) ; avec numpy, <code>np.std(x, ddof=1)</code>.</li>
+      <li><span class="step">Choisir la bonne incertitude.</span> Pour le résultat \(\bar x\) : \(u(\bar x)=s_x/\sqrt N\). Pour une mesure isolée faite avec le même protocole : \(u=s_x\).</li>
+    </ol>
+    <p><em>Exemple éclair :</em> cinq durées de chute mesurées à la fourche optique : 451,2 ; 452,0 ; 450,7 ; 451,6 ; 451,9 ms. Moyenne 451,48 ms, \(s=0{,}54\ \text{ms}\), \(u(\bar t)=0{,}54/\sqrt5=0{,}24\ \text{ms}\) : \(\bar t=451{,}48\ \text{ms}\), \(u=0{,}24\ \text{ms}\).</p>
+  </div>
+
+  <div class="method-box"><strong>Méthode 3 — Évaluer une incertitude-type de type B</strong>
+    <ol>
+      <li><span class="step">Trouver la demi-largeur \(a\).</span> Graduation de pas \(\Delta\) lue au trait le plus proche : \(a=\Delta/2\) ; notice « \(\pm(p\ \%+n\) digits) » : \(a=p\ \%\times|x|+n\times\)(valeur d'un digit) ; tolérance de verrerie « \(\pm t\) » : \(a=t\) ; plage de netteté ou de réglage \([x_{\min}\,;x_{\max}]\) : \(a=(x_{\max}-x_{\min})/2\).</li>
+      <li><span class="step">Diviser par \(\sqrt3\).</span> \(u=a/\sqrt3\) (loi uniforme sur l'intervalle).</li>
+      <li><span class="step">Additionner les causes indépendantes.</span> Deux lectures, une tolérance et une goutte se combinent en quadrature (méthode 5).</li>
+    </ol>
+    <p><em>Exemple éclair :</em> un thermomètre gradué tous les 0,5 °C donne \(u=0{,}25/\sqrt3=0{,}14\ \text{°C}\). Un ohmmètre affiche 1,002 kΩ (dernier chiffre : 1 Ω), précision \(\pm(0{,}8\ \%+3\) digits) : \(a=0{,}008\times1\,002+3=11\ \Omega\), \(u=6{,}4\ \Omega\).</p>
+  </div>
+  <div class="notice"><strong>Piège</strong> : oublier la division par \(\sqrt3\), ou se contenter de la résolution de l'affichage alors que la notice donne une tolérance bien plus large.</div>
+
+  <div class="method-box"><strong>Méthode 4 — Associer un intervalle de confiance à une incertitude-type</strong>
+    <ol>
+      <li><span class="step">Justifier la loi normale.</span> Moyenne de plusieurs mesures, ou grandeur composée de plusieurs contributions comparables.</li>
+      <li><span class="step">Choisir le niveau.</span> \([x-u\,;x+u]\) : environ 68 % ; \([x-2u\,;x+2u]\) : environ 95 % ; \([x-3u\,;x+3u]\) : 99,7 %.</li>
+      <li><span class="step">Rédiger.</span> « La valeur du mesurande est dans [… ; …] avec un niveau de confiance d'environ 95 % », en précisant qu'on a pris \(k=2\).</li>
+    </ol>
+    <p><em>Exemple éclair :</em> \(m=2{,}357\ \text{g}\), \(u(m)=0{,}004\ \text{g}\) : intervalle à 95 % \([2{,}349\,;2{,}365]\ \text{g}\).</p>
+  </div>
+
+  <div class="method-box"><strong>Méthode 5 — Composer des incertitudes et comparer les contributions</strong>
+    <ol>
+      <li><span class="step">Écrire la grandeur cherchée.</span> En fonction des grandeurs mesurées, vérifier qu'elles sont indépendantes.</li>
+      <li><span class="step">Somme ou différence.</span> \(u(y)=\sqrt{u(x_1)^2+u(x_2)^2}\) (incertitudes absolues).</li>
+      <li><span class="step">Produit ou quotient.</span> \(u(y)/|y|=\sqrt{(u(x_1)/x_1)^2+(u(x_2)/x_2)^2}\) (incertitudes relatives) ; pour une puissance \(x^n\) donnée par l'énoncé, \(|n|\,u(x)/|x|\).</li>
+      <li><span class="step">Bilan.</span> Écrire chaque contribution, repérer la plus grande, et dire laquelle améliorer.</li>
+    </ol>
+    <p><em>Exemple éclair :</em> masse volumique d'un cylindre métallique, \(\rho=m/V\). Balance : \(m=25{,}34\ \text{g}\), \(u(m)=0{,}006\ \text{g}\) (0,02 %). Éprouvette graduée tous les 0,1 mL, volume par différence de deux lectures : \(V=9{,}40\ \text{mL}\), \(u(V)=\sqrt2\times0{,}05/\sqrt3=0{,}041\ \text{mL}\) (0,43 %). \(\rho=2{,}696\ \text{g·mL}^{-1}\), \(u(\rho)/\rho=0{,}43\ \%\), \(u(\rho)=0{,}012\ \text{g·mL}^{-1}\) : le volume fait tout, une meilleure balance ne servirait à rien.</p>
+  </div>
+  <div class="notice"><strong>Piège</strong> : appliquer la règle du produit à \(x\times x\) (on trouve \(\sqrt2\) au lieu de 2), ou à deux grandeurs qui partagent une même mesure : simuler plutôt (méthode 6).</div>
+
+  <div class="method-box"><strong>Méthode 6 — Simuler une grandeur composée par la méthode de Monte-Carlo</strong>
+    <ol>
+      <li><span class="step">Une loi par grandeur mesurée.</span> <code>np.random.normal(x, u, N)</code> pour une incertitude-type, <code>np.random.uniform(x - a, x + a, N)</code> pour une demi-largeur.</li>
+      <li><span class="step">Calculer \(y\) sur les tableaux.</span> Une seule ligne de numpy ; chaque grandeur n'est tirée qu'une fois, même si elle intervient plusieurs fois dans la formule.</li>
+      <li><span class="step">Résultat.</span> <code>np.mean(y)</code> et <code>np.std(y, ddof=1)</code> ; <code>plt.hist(y, bins=60)</code> pour voir la distribution.</li>
+      <li><span class="step">Contributions.</span> Relancer avec une seule source à la fois pour faire le bilan.</li>
+    </ol>
+    <p><em>Exemple éclair :</em> indice d'un verre par la loi de Descartes, \(n=\sin i/\sin r\), avec \(i=40{,}0°\) et \(r=25{,}0°\) lus chacun à \(\pm0{,}5°\) près. Valeur \(n=1{,}521\) ; la simulation (tirages uniformes, angles convertis en radians avec <code>np.radians</code>) donne \(u(n)=0{,}019\), soit 1,2 %.</p>
+  </div>
+
+  <div class="method-box"><strong>Méthode 7 — Écrire le résultat d'une mesure</strong>
+    <ol>
+      <li><span class="step">Calculer sans arrondir.</span> Garder tous les chiffres jusqu'au bout.</li>
+      <li><span class="step">Arrondir l'incertitude-type.</span> À un ou deux chiffres significatifs (deux si elle commence par 1 ou 2).</li>
+      <li><span class="step">Arrondir la valeur au même rang.</span> Puis écrire l'unité et la nature de l'incertitude.</li>
+    </ol>
+    <p><em>Exemple éclair :</em> \(P=1{,}23456\ \text{W}\) et \(u(P)=0{,}0368\ \text{W}\) → \(P=1{,}235\ \text{W}\), \(u(P)=0{,}037\ \text{W}\) (ou \(1{,}23\) et \(0{,}04\ \text{W}\)) ; incertitude relative 3 %.</p>
+  </div>
+
+  <div class="method-box"><strong>Méthode 8 — Comparer deux valeurs et analyser une incompatibilité</strong>
+    <ol>
+      <li><span class="step">Calculer l'écart normalisé.</span> \(E_N=|x_1-x_2|/\sqrt{u(x_1)^2+u(x_2)^2}\) (si la référence est tabulée sans incertitude : \(|x-x_{\text{ref}}|/u(x)\)).</li>
+      <li><span class="step">Conclure.</span> \(E_N\leqslant2\) : compatibles ; \(E_N\gt2\) : incompatibles.</li>
+      <li><span class="step">En cas d'incompatibilité, chercher la cause.</span> Dans l'ordre : faute de calcul ou d'unité ; source d'incertitude oubliée ; erreur systématique (étalonnage, appareil qui perturbe) ; modèle inadapté ; référence prise dans d'autres conditions. Estimer chaque fois l'ordre de grandeur de l'effet et vérifier qu'il explique l'écart.</li>
+    </ol>
+    <p><em>Exemple éclair :</em> une capacité mesurée par la constante de temps d'un circuit RC alimenté par un générateur, avec \(R=1{,}20\ \text{k}\Omega\), donne \(C=\tau/R=102{,}0\ \text{nF}\) (\(u=1{,}3\ \text{nF}\)) ; par la fréquence de résonance d'un circuit RLC, \(98{,}2\ \text{nF}\) (\(u=1{,}1\ \text{nF}\)). \(E_N=3{,}8/1{,}7=2{,}2\gt2\) : incompatibles. Piste : la résistance de sortie du générateur, 50 Ω, s'ajoute à \(R\) dans la constante de temps, \(\tau=(R+50\ \Omega)\,C\) ; l'oublier surestime \(C\) de \(50/1\,200=4{,}2\ \%\), ce qui explique l'écart de 3,9 %. Corrigée, la première valeur devient 97,9 nF, et \(E_N=0{,}2\).</p>
+  </div>
+  <div class="notice"><strong>Piège</strong> : comparer l'écart relatif (« 4 % d'écart, c'est peu ») au lieu de le comparer aux incertitudes.</div>
+
+  <div class="method-box"><strong>Méthode 9 — Valider une régression linéaire</strong>
+    <ol>
+      <li><span class="step">Linéariser.</span> Choisir \(x\) et \(y\) pour que le modèle s'écrive \(y=ax+b\) ; calculer \(u(y_i)\) (et \(u(x_i)\)).</li>
+      <li><span class="step">Ajuster.</span> <code>a, b = np.polyfit(x, y, 1)</code>.</li>
+      <li><span class="step">Tracer.</span> Points avec barres \(\pm2u(y_i)\) et droite, ou mieux les résidus \(y_i-(ax_i+b)\) avec leurs barres, autour de zéro.</li>
+      <li><span class="step">Calculer les écarts normalisés.</span> \(z_i=\dfrac{y_i-(ax_i+b)}{u(y_i)}\), ou \(\dfrac{y_i-(ax_i+b)}{\sqrt{u(y_i)^2+a^2u(x_i)^2}}\) si \(x_i\) est incertain.</li>
+      <li><span class="step">Conclure.</span> Modèle validé si presque tous les \(|z_i|\leqslant2\) et si leurs signes alternent sans structure ; sinon, rejeté (ou valable sur un domaine restreint). Ne jamais conclure sur \(R^2\).</li>
+    </ol>
+    <p><em>Exemple éclair :</em> allongement \(\Delta\ell\) d'un ressort en fonction de la force \(F=mg\), six masses de 50 à 300 g, \(u(\Delta\ell)=0{,}6\ \text{mm}\). Écarts normalisés : 0,07 ; 0,48 ; 0,05 ; −1,55 ; 0,69 ; 0,26. Tous inférieurs à 2 en valeur absolue, sans motif : la loi de Hooke est validée.</p>
+  </div>
+  <div class="notice"><strong>Piège</strong> : des écarts normalisés tous petits mais qui dessinent une arche (négatifs aux bords, positifs au milieu) révèlent tout de même un modèle inadapté ; et un \(R^2=0{,}999\) ne prouve rien.</div>
+
+  <div class="method-box"><strong>Méthode 10 — Évaluer l'incertitude sur les paramètres d'une régression par Monte-Carlo</strong>
+    <ol>
+      <li><span class="step">Préparer.</span> Tableaux <code>x</code>, <code>y</code> et incertitudes <code>uy</code> (et <code>ux</code> si besoin).</li>
+      <li><span class="step">Boucler.</span> Pour <code>k</code> de 0 à <code>Nsim</code> − 1 : <code>ysim = np.random.normal(y, uy)</code>, puis <code>a[k], b[k] = np.polyfit(x, ysim, 1)</code>.</li>
+      <li><span class="step">Conclure.</span> \(u(a)\) et \(u(b)\) sont les écarts-types des tableaux <code>a</code> et <code>b</code> ; une grandeur physique \(G=f(a,b)\) se calcule pour chaque tirage, son écart-type est \(u(G)\).</li>
+      <li><span class="step">Exploiter.</span> Comparer \(b\) à la valeur attendue (souvent 0) et \(G\) à une référence par l'écart normalisé.</li>
+    </ol>
+    <p><em>Exemple éclair :</em> pour le ressort de la méthode 9 (\(\Delta\ell=aF+b\), raideur \(k=1/a\)), 10 000 tirages donnent \(k=24{,}83\ \text{N·m}^{-1}\) avec \(u(k)=0{,}18\ \text{N·m}^{-1}\), et \(b=0{,}2\ \text{mm}\) avec \(u(b)=0{,}56\ \text{mm}\) : \(b\) est compatible avec 0, comme le prévoit la loi de Hooke.</p>
+  </div>
+</div>
+</template>
+<template class="pan-tpl" data-panneau="inc-exos">
+<div class="exo-wrapper">
+
+<div class="exo">
+  <span class="num">EXO 01</span><span class="diff">★ ☆ ☆</span>
+  <h3>Période d'un oscillateur au chronomètre</h3>
+  <div class="statement">Une masse \(m=250{,}0\ \text{g}\), pesée sur une balance garantie à \(\pm0{,}5\ \text{g}\), est suspendue à un ressort. On chronomètre dix périodes d'oscillation, six fois de suite en relançant l'oscillateur à chaque essai : \(10T\) = 8,46 ; 8,52 ; 8,38 ; 8,60 ; 8,49 ; 8,43 s. On rappelle la période d'un oscillateur masse-ressort, \(T=2\pi\sqrt{m/k}\), et l'on admet que l'incertitude relative de \(T^2\) vaut le double de celle de \(T\).</div>
+  <div class="q"><strong>Q1.</strong> Calculer la moyenne, l'écart-type expérimental et l'incertitude-type de la moyenne des six durées. En déduire \(T\) et \(u(T)\).</div>
+  <div class="q"><strong>Q2.</strong> Un camarade n'a fait qu'un seul chronométrage, 8,46 s, avec le même protocole. Quelle incertitude-type sur \(T\) doit-il annoncer ?</div>
+  <div class="q"><strong>Q3.</strong> Donner un intervalle contenant la période avec un niveau de confiance d'environ 95 %. Quelle hypothèse fait-on ?</div>
+  <div class="q"><strong>Q4.</strong> Calculer la raideur \(k\) et son incertitude-type. Quelle mesure limite la précision ?</div>
+  <div class="q"><strong>Q5.</strong> Combien de chronométrages de dix périodes faudrait-il pour diviser \(u(T)\) par 2 ? Pour atteindre une incertitude relative de 0,1 % sur \(T\), vaut-il mieux multiplier les chronométrages ou allonger chacun d'eux ?</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> Somme : 50,88 s, moyenne \(\overline{10T}=8{,}480\ \text{s}\). Écarts à la moyenne : −0,02 ; 0,04 ; −0,10 ; 0,12 ; 0,01 ; −0,05 s, de carrés de somme \(0{,}0290\ \text{s}^2\), d'où \(s=\sqrt{0{,}0290/5}=0{,}076\ \text{s}\) et \(u=s/\sqrt6=0{,}031\ \text{s}\). On divise par 10 (nombre exact) : \(T=0{,}8480\ \text{s}\) et \(u(T)=0{,}0031\ \text{s}\), soit 0,37 %.</p>
+    <p><strong>Q2.</strong> Pour une mesure isolée faite avec ce protocole, l'incertitude-type est l'écart-type expérimental de la série, \(s=0{,}076\ \text{s}\) sur \(10T\) : \(T=0{,}846\ \text{s}\), \(u(T)=0{,}0076\ \text{s}\) (0,9 %). Une seule mesure ne permet pas d'évaluer la dispersion : il utilise celle établie par la série.</p>
+    <p><strong>Q3.</strong> En supposant la distribution de la moyenne normale (raisonnable : la dispersion vient de nombreuses petites causes, temps de réaction surtout), \(T\pm2u(T)=[0{,}8418\,;0{,}8542]\ \text{s}\) à environ 95 %.</p>
+    <p><strong>Q4.</strong> La raideur vaut</p><div class="formula">$$k=\frac{4\pi^2m}{T^2}=\frac{4\pi^2\times0{,}2500}{0{,}8480^2}=13{,}72\ \text{N·m}^{-1}.$$</div><p>Contributions relatives : la masse, \(u(m)=0{,}5/\sqrt3=0{,}29\ \text{g}\), soit 0,12 % ; la période, \(2\times0{,}37\ \%=0{,}73\ \%\). Total : \(u(k)/k=\sqrt{0{,}12^2+0{,}73^2}\ \%=0{,}74\ \%\), \(u(k)=0{,}10\ \text{N·m}^{-1}\). Le chronométrage domine : la masse pourrait être connue dix fois moins bien sans changer le résultat.</p>
+    <p><strong>Q5.</strong> \(u\) varie comme \(1/\sqrt N\) : il faut quatre fois plus de chronométrages, 24. Pour 0,1 % (\(u(T)=0{,}00085\ \text{s}\), donc \(0{,}0085\ \text{s}\) sur \(10T\)), il en faudrait \((0{,}076/0{,}0085)^2\approx81\). En revanche, la dispersion d'un chronométrage (le temps de réaction) ne dépend pas de la durée mesurée : en chronométrant \(n\) périodes, \(u(T)=s/(n\sqrt N)\). Avec six essais, il suffit de \(n=0{,}076/(0{,}00085\times\sqrt6)\approx37\) périodes, soit quarante en pratique. Allonger la durée est beaucoup plus efficace que répéter.</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 02</span><span class="diff">★ ☆ ☆</span>
+  <h3>Incertitudes de type B en salle de TP</h3>
+  <div class="statement">Évaluer l'incertitude-type de chacune des mesures suivantes, faites une seule fois, et son incertitude relative quand elle a un sens.</div>
+  <div class="q"><strong>Q1.</strong> La longueur d'une tige, mesurée avec une règle graduée au millimètre : début de la tige sur le trait 0, fin lue sur le trait 152 mm.</div>
+  <div class="q"><strong>Q2.</strong> Le volume délivré par une pipette jaugée de 20 mL de classe A, de tolérance \(\pm0{,}03\ \text{mL}\) ; la température lue sur un thermomètre électronique qui affiche 23,4 °C et dont la notice annonce \(\pm0{,}3\ \text{°C}\).</div>
+  <div class="q"><strong>Q3.</strong> Une tension de 12,48 V lue sur le calibre 20 V d'un voltmètre (dernier chiffre : 0,01 V) de précision \(\pm(0{,}8\ \%\) de la lecture \(+\,3\) digits).</div>
+  <div class="q"><strong>Q4.</strong> La position de l'écran sur un banc d'optique : l'image paraît nette de 41,2 cm à 43,0 cm.</div>
+  <div class="q"><strong>Q5.</strong> Un élève chronomètre une chute de 0,45 s avec un chronomètre au centième et annonce \(u(t)=0{,}01/\sqrt{12}=0{,}003\ \text{s}\). Qu'en penser ?</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> Chaque lecture se fait au trait le plus proche : demi-largeur 0,5 mm, \(u=0{,}5/\sqrt3=0{,}29\ \text{mm}\). La longueur est la différence de deux lectures indépendantes : \(u(L)=\sqrt2\times0{,}29=0{,}41\ \text{mm}\), soit 0,27 % de 152 mm. (Si l'on aligne soigneusement le début sur le trait 0, on peut juger cette première lecture meilleure ; garder les deux est prudent.)</p>
+    <p><strong>Q2.</strong> Pipette : \(u(V)=0{,}03/\sqrt3=0{,}017\ \text{mL}\), soit 0,09 %. Thermomètre : \(u(\theta)=0{,}3/\sqrt3=0{,}17\ \text{°C}\) ; une incertitude relative sur une température en degrés Celsius n'a pas de sens (le zéro de l'échelle est arbitraire), on ne la calcule pas.</p>
+    <p><strong>Q3.</strong> \(a=0{,}008\times12{,}48+3\times0{,}01=0{,}130\ \text{V}\), \(u(U)=0{,}130/\sqrt3=0{,}075\ \text{V}\), soit 0,60 %.</p>
+    <p><strong>Q4.</strong> Milieu : \(x=42{,}1\ \text{cm}\) ; demi-largeur \(a=0{,}9\ \text{cm}\) ; \(u(x)=0{,}9/\sqrt3=0{,}52\ \text{cm}\). Une position n'a pas d'incertitude relative (son origine est arbitraire) : on raisonnera sur les distances qui en découlent.</p>
+    <p><strong>Q5.</strong> Ce calcul ne tient compte que de la résolution de l'affichage. La vraie limite est le temps de réaction au départ et à l'arrivée, de l'ordre de 0,1 s, qui varie d'un essai à l'autre de quelques centièmes à un dixième de seconde : l'incertitude est de l'ordre de 0,05 à 0,1 s, vingt fois plus. Elle s'évalue par une série de mesures (type A), pas par la résolution.</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 03</span><span class="diff">★ ☆ ☆</span>
+  <h3>Écrire correctement un résultat</h3>
+  <div class="statement">Les incertitudes citées sont des incertitudes-types.</div>
+  <div class="q"><strong>Q1.</strong> Écrire correctement les résultats bruts suivants : \(\lambda=532{,}147\ \text{nm}\) avec \(u=2{,}64\ \text{nm}\) ; \(v=0{,}0034582\ \text{m·s}^{-1}\) avec \(u=0{,}000127\ \text{m·s}^{-1}\) ; \(E=1\,234\,567\ \text{J}\) avec \(u=4\,321\ \text{J}\) ; \(T=2{,}0049\ \text{s}\) avec \(u=0{,}0213\ \text{s}\).</div>
+  <div class="q"><strong>Q2.</strong> Repérer ce qui ne va pas dans chacune de ces écritures, et proposer une correction : (a) « \(m=12{,}3456\pm0{,}1\ \text{g}\) » ; (b) « \(c=3\times10^{8}\pm4\times10^{6}\ \text{m·s}^{-1}\) » ; (c) « \(R=47\ \Omega\), incertitude-type 5 % » pour une résistance marquée 47 Ω à 5 % près.</div>
+  <div class="q"><strong>Q3.</strong> Pourquoi ne faut-il pas arrondir une grandeur intermédiaire, par exemple une période avant de l'élever au carré ?</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> On arrondit l'incertitude à deux chiffres significatifs (elle commence par 1, 2 ou 4 ici ; un seul chiffre serait aussi acceptable pour 4,3), puis la valeur au même rang :</p>
+    <ul>
+      <li>\(\lambda=532{,}1\ \text{nm}\), \(u(\lambda)=2{,}6\ \text{nm}\) (0,5 %) ;</li>
+      <li>\(v=(3{,}46\pm0{,}13)\times10^{-3}\ \text{m·s}^{-1}\), incertitude-type (3,7 %) ;</li>
+      <li>\(E=(1{,}2346\pm0{,}0043)\times10^{6}\ \text{J}\), incertitude-type (0,35 %) ;</li>
+      <li>\(T=2{,}005\ \text{s}\), \(u(T)=0{,}021\ \text{s}\) (1,1 %).</li>
+    </ul>
+    <p><strong>Q2.</strong> (a) La valeur a trois décimales de trop : avec \(u=0{,}1\ \text{g}\), on écrit \(m=12{,}3\ \text{g}\), \(u(m)=0{,}1\ \text{g}\). (b) La valeur n'a pas assez de chiffres : une incertitude de \(0{,}04\times10^{8}\) impose deux décimales, \(c=(3{,}00\pm0{,}04)\times10^{8}\ \text{m·s}^{-1}\) si la mesure a bien donné 3,00. (c) « 5 % près » est la tolérance du fabricant, une demi-largeur et non une incertitude-type : \(u(R)=0{,}05\times47/\sqrt3=1{,}4\ \Omega\) (2,9 %), d'où \(R=47{,}0\ \Omega\), \(u(R)=1{,}4\ \Omega\).</p>
+    <p><strong>Q3.</strong> Chaque arrondi ajoute une erreur, et une fonction non linéaire peut l'amplifier. Arrondir \(T=1{,}5535\ \text{s}\) à 1,55 s change \(T^2\) de 0,45 %, presque autant que l'incertitude-type relative visée sur \(g\) (0,6 %) : on dégrade le résultat pour rien. On garde tous les chiffres jusqu'au résultat final.</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 04</span><span class="diff">★ ★ ☆</span>
+  <h3>Résistance par la loi d'Ohm : bilan et choix du montage</h3>
+  <div class="statement">Pour mesurer une résistance marquée « 470 Ω, 5 % », on mesure la tension à ses bornes et l'intensité qui la traverse. Voltmètre : \(U=6{,}215\ \text{V}\) (dernier chiffre : 1 mV), précision \(\pm(0{,}5\ \%+2\) digits), résistance d'entrée \(10\ \text{M}\Omega\). Ampèremètre : \(I=13{,}22\ \text{mA}\) (dernier chiffre : 0,01 mA), précision \(\pm(1{,}2\ \%+3\) digits), résistance interne de l'ordre de 10 Ω sur ce calibre.</div>
+  <div class="q"><strong>Q1.</strong> Évaluer \(u(U)\) et \(u(I)\).</div>
+  <div class="q"><strong>Q2.</strong> Calculer \(R\) et \(u(R)\). Quelle contribution domine ?</div>
+  <div class="q"><strong>Q3.</strong> Un ohmmètre affiche \(468{,}2\ \Omega\) (dernier chiffre : 0,1 Ω, précision \(\pm(0{,}8\ \%+2\) digits)). Les deux mesures sont-elles compatibles ? Sont-elles compatibles avec l'indication du fabricant ?</div>
+  <div class="q"><strong>Q4.</strong> Le voltmètre peut être branché directement aux bornes de \(R\) (l'ampèremètre mesure alors aussi le courant qui traverse le voltmètre), ou aux bornes de l'ensemble formé par \(R\) et l'ampèremètre. Estimer l'erreur systématique de chaque montage et dire lequel choisir.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> \(a_U=0{,}005\times6{,}215+0{,}002=0{,}0331\ \text{V}\), \(u(U)=0{,}019\ \text{V}\) (0,31 %). \(a_I=0{,}012\times13{,}22+0{,}03=0{,}189\ \text{mA}\), \(u(I)=0{,}109\ \text{mA}\) (0,82 %).</p>
+    <p><strong>Q2.</strong> \(R=U/I=470{,}1\ \Omega\). Quotient : \(u(R)/R=\sqrt{0{,}31^2+0{,}82^2}\ \%=0{,}88\ \%\), \(u(R)=4{,}1\ \Omega\). L'ampèremètre domine nettement ; changer de voltmètre ne servirait à rien.</p>
+    <p><strong>Q3.</strong> Ohmmètre : \(a=0{,}008\times468{,}2+0{,}2=3{,}95\ \Omega\), \(u=2{,}3\ \Omega\). Puis</p><div class="formula">$$E_N=\frac{|470{,}1-468{,}2|}{\sqrt{4{,}1^2+2{,}3^2}}=\frac{1{,}9}{4{,}7}=0{,}4\ :$$</div><p>les deux mesures sont compatibles. Fabricant : la tolérance de 5 % donne \(u=0{,}05\times470/\sqrt3=13{,}6\ \Omega\) ; l'écart à 470 Ω est minuscule devant elle (\(E_N\approx0{,}01\)). Les mesures sont bien plus précises que l'indication du fabricant.</p>
+    <p><strong>Q4.</strong> Voltmètre aux bornes de \(R\) : il dérive \(U/R_V=6{,}2\ \text{V}/10\ \text{M}\Omega=0{,}62\ \mu\text{A}\), soit \(5\times10^{-5}\) du courant mesuré : erreur systématique négligeable. Voltmètre aux bornes de \(R\) et de l'ampèremètre : il mesure en plus \(R_AI\approx10\times0{,}0132=0{,}13\ \text{V}\), et l'on trouve \(R+R_A\) au lieu de \(R\), une erreur de 2,1 %, plus de deux fois \(u(R)\) : le montage fausserait le résultat. Pour une résistance de quelques centaines d'ohms, on branche le voltmètre directement aux bornes de \(R\). C'est un exemple d'incertitude liée à la méthode.</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 05</span><span class="diff">★ ★ ☆</span>
+  <h3>Titrage acido-basique : bilan d'incertitude</h3>
+  <div class="statement">On titre \(V_A=20{,}00\ \text{mL}\) d'une solution d'acide chlorhydrique (pipette jaugée de classe A, \(\pm0{,}03\ \text{mL}\)) par une solution de soude de concentration \(C_B=0{,}1000\ \text{mol·L}^{-1}\), d'incertitude-type \(u(C_B)=0{,}0005\ \text{mol·L}^{-1}\) (indiquée par le préparateur). La burette de 25 mL, de classe A (\(\pm0{,}03\ \text{mL}\)), est graduée tous les 0,05 mL ; un indicateur coloré vire après \(V_E=12{,}35\ \text{mL}\), et l'équivalence est repérée à une goutte près (une goutte : 0,05 mL). À l'équivalence, \(C_AV_A=C_BV_E\).</div>
+  <div class="q"><strong>Q1.</strong> Le volume \(V_E\) résulte de deux lectures (zéro et volume final). Évaluer les trois contributions à \(u(V_E)\) (lectures, tolérance, goutte) et \(u(V_E)\).</div>
+  <div class="q"><strong>Q2.</strong> Calculer \(C_A\) et \(u(C_A)\). Présenter le bilan d'incertitude et dire quelle grandeur il faudrait connaître mieux.</div>
+  <div class="q"><strong>Q3.</strong> Le préparateur annonce \(C_A=0{,}0620\ \text{mol·L}^{-1}\) avec une incertitude-type de \(0{,}0003\ \text{mol·L}^{-1}\). Conclure.</div>
+  <div class="q"><strong>Q4.</strong> Deux autres titrages donnent 12,30 et 12,40 mL. Évaluer l'incertitude-type de type A sur la moyenne des trois volumes, la comparer à l'évaluation de type B de Q1 et expliquer pourquoi la tolérance de la burette doit encore être ajoutée.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> Chaque lecture au trait le plus proche : demi-largeur 0,025 mL, \(u=0{,}025/\sqrt3=0{,}0144\ \text{mL}\), deux fois. Tolérance : \(0{,}03/\sqrt3=0{,}0173\ \text{mL}\). Goutte : l'équivalence est entre deux volumes distants d'une goutte, demi-largeur 0,025 mL, \(u=0{,}0144\ \text{mL}\). Total :</p><div class="formula">$$u(V_E)=\sqrt{2\times0{,}0144^2+0{,}0173^2+0{,}0144^2}=0{,}030\ \text{mL},$$</div><p>soit 0,25 %.</p>
+    <p><strong>Q2.</strong> La concentration vaut</p><div class="formula">$$C_A=\frac{C_BV_E}{V_A}=\frac{0{,}1000\times12{,}35}{20{,}00}=0{,}06175\ \text{mol·L}^{-1}.$$</div><p>Produit et quotient : contributions relatives \(C_B\) : 0,50 % ; \(V_E\) : 0,25 % ; \(V_A\) : \(0{,}0173/20{,}00=0{,}09\ \%\). Total \(\sqrt{0{,}50^2+0{,}25^2+0{,}09^2}\ \%=0{,}56\ \%\), \(u(C_A)=0{,}00035\ \text{mol·L}^{-1}\). Résultat : \(C_A=0{,}06175\ \text{mol·L}^{-1}\), \(u(C_A)=0{,}00035\ \text{mol·L}^{-1}\). La concentration de la soude domine : il faudrait l'étalonner (par exemple par un titrage d'une masse pesée d'un acide solide) ; sans elle, l'incertitude tomberait à 0,26 %.</p>
+    <p><strong>Q3.</strong></p><div class="formula">$$E_N=\frac{|0{,}06175-0{,}0620|}{\sqrt{0{,}00035^2+0{,}0003^2}}=\frac{0{,}00025}{0{,}00046}=0{,}5\ :$$</div><p>les deux valeurs sont compatibles.</p>
+    <p><strong>Q4.</strong> Moyenne 12,35 mL, \(s=0{,}05\ \text{mL}\), \(u_A=0{,}05/\sqrt3=0{,}029\ \text{mL}\) : du même ordre que les lectures et la goutte réunies (0,025 mL), ce qui confirme l'évaluation de type B de ces sources variables. Mais la tolérance de la burette est une erreur systématique : la même burette, avec le même défaut de graduation, sert aux trois titrages, et la moyenne ne la réduit pas. On l'ajoute donc :</p><div class="formula">$$u(\overline{V_E})=\sqrt{0{,}029^2+0{,}0173^2}=0{,}034\ \text{mL}.$$</div>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 06</span><span class="diff">★ ★ ☆</span>
+  <h3>Célérité des ultrasons : la bonne référence</h3>
+  <div class="statement">Un émetteur d'ultrasons est alimenté à \(f=40{,}00\ \text{kHz}\) (incertitude négligeable). On déplace un récepteur sur une règle graduée et l'on repère, à l'oscilloscope, deux positions où les signaux émis et reçus sont en phase, séparées de dix longueurs d'onde : \(x_1=102{,}0\ \text{mm}\) et \(x_2=188{,}4\ \text{mm}\), chacune repérée à \(\pm0{,}5\ \text{mm}\) près. La salle est à \(\theta=22\ \text{°C}\), lue à 1 °C près (incertitude-type 1 °C). Dans l'air, avec \(\theta\) en °C :<div class="formula">$$c(\theta)=331{,}3\sqrt{1+\frac{\theta}{273{,}15}}\ \text{m·s}^{-1}.$$</div></div>
+  <div class="q"><strong>Q1.</strong> Calculer \(\lambda\) et \(u(\lambda)\).</div>
+  <div class="q"><strong>Q2.</strong> En déduire \(c\) et \(u(c)\).</div>
+  <div class="q"><strong>Q3.</strong> Calculer \(c(22\ \text{°C})\) et l'incertitude-type que lui transmet celle de \(\theta\). Les deux valeurs sont-elles compatibles ?</div>
+  <div class="q"><strong>Q4.</strong> Un élève compare sa valeur à « 340 m/s ». Que trouve-t-il, et quelle est son erreur ?</div>
+  <div class="q"><strong>Q5.</strong> Comment diviser \(u(c)\) par deux sans changer de matériel ?</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> \(u(x)=0{,}5/\sqrt3=0{,}29\ \text{mm}\) pour chaque position. \(d=x_2-x_1=86{,}4\ \text{mm}\), \(u(d)=\sqrt2\times0{,}29=0{,}41\ \text{mm}\). \(\lambda=d/10=8{,}64\ \text{mm}\) et \(u(\lambda)=0{,}041\ \text{mm}\) (0,47 %) : le facteur 10 est exact, il divise valeur et incertitude.</p>
+    <p><strong>Q2.</strong> \(c=\lambda f\), soit</p><div class="formula">$$c=8{,}64\times10^{-3}\times40{,}00\times10^{3}=345{,}6\ \text{m·s}^{-1},$$</div><p>et \(u(c)/c=u(\lambda)/\lambda\), d'où \(u(c)=1{,}6\ \text{m·s}^{-1}\).</p>
+    <p><strong>Q3.</strong> \(c(22\ \text{°C})=344{,}4\ \text{m·s}^{-1}\). Une variation de 1 °C change \(c\) de</p><div class="formula">$$\frac{\mathrm dc}{\mathrm d\theta}=\frac{331{,}3}{2\times273{,}15\sqrt{1+\theta/273{,}15}}=0{,}58\ \text{m·s}^{-1}\ \text{par degré},$$</div><p>d'où \(u(c_{\text{ref}})=0{,}58\ \text{m·s}^{-1}\). Puis</p><div class="formula">$$E_N=\frac{|345{,}6-344{,}4|}{\sqrt{1{,}6^2+0{,}58^2}}=\frac{1{,}2}{1{,}7}=0{,}7\leqslant2\ :$$</div><p>les deux valeurs sont compatibles.</p>
+    <p><strong>Q4.</strong> \(E_N=|345{,}6-340|/1{,}6=3{,}4\) : il conclut à tort à une incompatibilité. 340 m/s est la célérité vers 15 °C ; la référence doit correspondre aux conditions de l'expérience (« référence inadaptée »).</p>
+    <p><strong>Q5.</strong> Repérer deux positions séparées de vingt longueurs d'onde (172,8 mm) : l'incertitude sur la distance ne change pas, et \(u(\lambda)=0{,}41/20=0{,}020\ \text{mm}\), d'où \(u(c)=0{,}8\ \text{m·s}^{-1}\). Il faut alors connaître la température à mieux qu'un degré pour que la comparaison reste utile.</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 07</span><span class="diff">★ ★ ☆</span>
+  <h3>Méthode de Bessel et simulation de Monte-Carlo</h3>
+  <div class="statement">Un objet et un écran sont fixés sur un banc d'optique en \(x_A=0{,}0\ \text{cm}\) et \(x_E=100{,}0\ \text{cm}\), chacun à \(\pm1\ \text{mm}\) près. Entre les deux, deux positions de la lentille donnent une image nette : \(x_{O1}=27{,}6\ \text{cm}\) et \(x_{O2}=72{,}4\ \text{cm}\), chacune à \(\pm0{,}8\ \text{cm}\) près (latitude de mise au point). Avec \(D=x_E-x_A\) et \(d=x_{O2}-x_{O1}\), la distance focale vaut \(f'=\dfrac{D^2-d^2}{4D}\) (méthode de Bessel).
+    <br>On dispose de <code>np.random.uniform(a, b, N)</code>, qui renvoie un tableau de \(N\) tirages uniformes sur \([a\,;b]\), de <code>np.mean(x)</code> et de <code>np.std(x, ddof=1)</code> ; les opérations sur des tableaux numpy se font case par case.</div>
+  <div class="q"><strong>Q1.</strong> Calculer \(f'\).</div>
+  <div class="q"><strong>Q2.</strong> Pourquoi les règles du produit et du quotient ne s'appliquent-elles pas directement à cette formule ?</div>
+  <div class="q"><strong>Q3.</strong> Écrire un programme qui simule \(10^5\) mesures et affiche la moyenne et l'écart-type des valeurs de \(f'\). On obtient \(u(f')\approx0{,}15\ \text{cm}\) : écrire le résultat.</div>
+  <div class="q"><strong>Q4.</strong> En relançant le programme avec \(x_A\) et \(x_E\) exacts, on obtient 0,146 cm ; avec \(x_{O1}\) et \(x_{O2}\) exacts, 0,025 cm. Conclure.</div>
+  <div class="q"><strong>Q5.</strong> La même lentille, étudiée par la relation de conjugaison, a donné \(f'=20{,}00\ \text{cm}\), \(u=0{,}10\ \text{cm}\). Les résultats sont-ils compatibles ?</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> \(D=100{,}0\ \text{cm}\), \(d=44{,}8\ \text{cm}\), \(f'=(10\,000-2\,007{,}0)/400=19{,}98\ \text{cm}\).</p>
+    <p><strong>Q2.</strong> \(D\) apparaît au numérateur et au dénominateur, et le numérateur est une différence de carrés : \(f'\) n'est ni un produit ni un quotient de grandeurs indépendantes. On pourrait dériver (hors programme) ; la simulation est plus simple et plus sûre.</p>
+    <p><strong>Q3.</strong> Chaque position est tirée selon une loi uniforme de demi-largeur donnée, une seule fois par jeu :</p>
+    <pre class="codeblock"><span class="kw">import</span> numpy <span class="kw">as</span> np
+
+N = 100000
+<span class="cmt"># positions sur le banc (cm), uniformes sur [x - a, x + a]</span>
+xA = np.random.uniform(0.0 - 0.1, 0.0 + 0.1, N)       <span class="cmt"># objet</span>
+xE = np.random.uniform(100.0 - 0.1, 100.0 + 0.1, N)   <span class="cmt"># écran</span>
+<span class="cmt"># les deux positions de la lentille donnant une image nette</span>
+xO1 = np.random.uniform(27.6 - 0.8, 27.6 + 0.8, N)
+xO2 = np.random.uniform(72.4 - 0.8, 72.4 + 0.8, N)
+
+D = xE - xA
+d = xO2 - xO1
+f = (D**2 - d**2) / (4 * D)      <span class="cmt"># formule de Bessel</span>
+
+print(np.mean(f), np.std(f, ddof=1))   <span class="cmt"># environ 19.98  0.15</span></pre>
+    <p>Résultat : \(f'=19{,}98\ \text{cm}\), \(u(f')=0{,}15\ \text{cm}\) (0,7 %).</p>
+    <p><strong>Q4.</strong> L'incertitude vient presque entièrement des positions de la lentille (0,146 cm contre 0,025 cm ; \(\sqrt{0{,}146^2+0{,}025^2}=0{,}148\)). Mesurer plus soigneusement \(D\) ne sert à rien ; il faut réduire la latitude de mise au point (objet plus lumineux et bien contrasté, écran dépoli, faire la mise au point plusieurs fois en venant des deux côtés et moyenner).</p>
+    <p><strong>Q5.</strong> L'écart normalisé vaut \(0{,}02/\sqrt{0{,}15^2+0{,}10^2}=0{,}1\) : très compatibles.</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 08</span><span class="diff">★ ★ ☆</span>
+  <h3>Une valeur de g trop faible : chercher la cause</h3>
+  <div class="statement">Un groupe mesure \(g\) avec un pendule simple : longueur \(L=0{,}5000\ \text{m}\) (\(u(L)=0{,}0010\ \text{m}\)), mesurée du point d'attache au centre de la boule de rayon \(r=1{,}5\ \text{cm}\) ; période mesurée à la fourche optique sur vingt oscillations, \(T=1{,}4246\ \text{s}\) (\(u(T)=0{,}0015\ \text{s}\)). Le pendule a été lâché avec une amplitude de 15°. On utilise \(T=2\pi\sqrt{L/g}\) et la valeur locale \(g_{\text{ref}}=9{,}81\ \text{m·s}^{-2}\), d'incertitude négligeable.</div>
+  <div class="q"><strong>Q1.</strong> Calculer \(g\) et \(u(g)\) (l'incertitude relative de \(T^2\) est le double de celle de \(T\)).</div>
+  <div class="q"><strong>Q2.</strong> Comparer à \(g_{\text{ref}}\).</div>
+  <div class="q"><strong>Q3.</strong> Trois causes sont proposées. Estimer l'effet de chacune sur \(g\) et dire si elle peut expliquer l'écart : (a) la longueur aurait été mesurée jusqu'au haut de la boule ; (b) la boule n'est pas ponctuelle : pour un pendule pesant, \(T=2\pi\sqrt{\dfrac{L^2+\frac25r^2}{gL}}\) ; (c) l'amplitude n'est pas petite : pour une amplitude \(\theta_0\) (en radians), \(T\approx T_0\left(1+\theta_0^2/16\right)\) (formule de Borda, admise), où \(T_0\) est la période des petites oscillations.</div>
+  <div class="q"><strong>Q4.</strong> Corriger le résultat et conclure. Quel conseil donner pour la suite ?</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong></p><div class="formula">$$g=\frac{4\pi^2L}{T^2}=\frac{4\pi^2\times0{,}5000}{1{,}4246^2}=9{,}726\ \text{m·s}^{-2}.$$</div><p>Contributions : \(u(L)/L=0{,}20\ \%\), \(2u(T)/T=0{,}21\ \%\) ; \(u(g)/g=0{,}29\ \%\), \(u(g)=0{,}028\ \text{m·s}^{-2}\).</p>
+    <p><strong>Q2.</strong> \(E_N=|9{,}726-9{,}81|/0{,}028=3{,}0\gt2\) : incompatible. Une cause est à chercher.</p>
+    <p><strong>Q3.</strong> (a) Si \(L\) était mesurée jusqu'au haut de la boule, la vraie longueur serait \(0{,}515\ \text{m}\) et \(g\) serait sous-estimé de 3 % : on trouverait \(9{,}81\times0{,}500/0{,}515=9{,}52\ \text{m·s}^{-2}\), pas 9,73. Ce n'est pas la cause (et l'énoncé dit que \(L\) va au centre). (b) Le terme \(\frac25r^2\) allonge la période d'un facteur \(1+\frac15(r/L)^2\), et change \(g\) d'environ \(\frac25(r/L)^2=0{,}04\ \%\) : bon sens, mais plus de vingt fois trop faible pour expliquer 0,86 %. (c) \(\theta_0=15°=0{,}262\ \text{rad}\), \(\theta_0^2/16=0{,}43\ \%\) : la période mesurée est 0,43 % plus longue que \(T_0\), donc \(g\) calculé avec la formule des petites oscillations est trop faible de \((1{,}0043)^2-1=0{,}86\ \%\). C'est exactement l'écart observé (\(9{,}81/9{,}726=1{,}0086\)).</p>
+    <p><strong>Q4.</strong> \(g_{\text{corr}}=9{,}726\times1{,}0086=9{,}810\ \text{m·s}^{-2}\), \(E_N\approx0\) : compatible. L'incompatibilité venait du modèle (oscillations supposées de faible amplitude), pas de la mesure, qui était soignée. Conseil : lâcher le pendule à moins de 5° (l'effet tombe à 0,1 %, en dessous de l'incertitude) ou corriger systématiquement ; et vérifier l'effet de l'amplitude en mesurant \(T\) pour deux amplitudes.</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 09</span><span class="diff">★ ★ ☆</span>
+  <h3>Choisir son protocole</h3>
+  <div class="statement">On veut l'épaisseur \(e\) d'une feuille de papier, puis la période d'un pendule.</div>
+  <div class="q"><strong>Q1.</strong> Avec un palmer au centième de millimètre, cinq mesures en divers points d'une feuille donnent 0,10 ; 0,11 ; 0,10 ; 0,09 ; 0,11 mm. Écrire le résultat.</div>
+  <div class="q"><strong>Q2.</strong> Une rame de 500 feuilles mesure 51,0 mm à la règle graduée au millimètre (deux lectures) ; selon qu'on la serre plus ou moins, son épaisseur varie de \(\pm1\ \text{mm}\). En déduire \(e\) et \(u(e)\). Quel protocole est le meilleur, et pourquoi ?</div>
+  <div class="q"><strong>Q3.</strong> Un pendule a une période voisine de 1,6 s ; un chronométrage à la main a une incertitude-type de 0,1 s. Comparer, pour le même nombre de déclenchements, deux stratégies : chronométrer vingt fois une période, ou une fois vingt périodes.</div>
+  <div class="q"><strong>Q4.</strong> Combien de périodes faudrait-il chronométrer d'un coup pour connaître \(T\) à 0,05 % près ? Quel instrument choisir plutôt ?</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> Moyenne 0,102 mm, \(s=0{,}0084\ \text{mm}\), \(u=s/\sqrt5=0{,}0037\ \text{mm}\) : \(e=0{,}102\ \text{mm}\), \(u(e)=0{,}004\ \text{mm}\) (3,7 %). La dispersion (épaisseur variable, écrasement par le palmer) est bien plus grande que la résolution de l'instrument.</p>
+    <p><strong>Q2.</strong> Lectures : \(\sqrt2\times0{,}5/\sqrt3=0{,}41\ \text{mm}\) ; serrage : \(1/\sqrt3=0{,}58\ \text{mm}\) ; total \(\sqrt{0{,}41^2+0{,}58^2}=0{,}71\ \text{mm}\) sur l'épaisseur de la rame. \(e=51{,}0/500=0{,}1020\ \text{mm}\), \(u(e)=0{,}71/500=0{,}0014\ \text{mm}\) (1,4 %). La règle est cent fois moins fine que le palmer, mais l'incertitude est divisée par 500 : le protocole de la rame est presque trois fois meilleur. Il donne l'épaisseur moyenne, ce qui est d'ailleurs le mesurande pertinent.</p>
+    <p><strong>Q3.</strong> Vingt fois une période : \(u(T)=0{,}1/\sqrt{20}=0{,}022\ \text{s}\) (1,4 %). Une fois vingt périodes : \(u(T)=0{,}1/20=0{,}005\ \text{s}\) (0,3 %). La seconde est 4,5 fois meilleure (\(\sqrt{20}\)) : l'incertitude de déclenchement ne dépend pas de la durée, autant la partager entre le plus de périodes possible.</p>
+    <p><strong>Q4.</strong> Il faut \(0{,}1/n\leqslant0{,}0005\times1{,}6\), soit \(n\geqslant125\) périodes, plus de trois minutes : l'amplitude diminue beaucoup, et le risque de mal compter les périodes devient la vraie source d'erreur. Mieux vaut une fourche optique reliée à un chronomètre électronique ou à une carte d'acquisition, qui donne la période à la milliseconde près sur une seule oscillation.</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 10</span><span class="diff">★ ★ ★</span>
+  <h3>Loi de Beer-Lambert : jusqu'où le modèle est-il valable ?</h3>
+  <div class="statement">On mesure au spectrophotomètre l'absorbance \(A\) de solutions de permanganate de potassium de concentrations \(c\) connues (cuve de longueur \(\ell=1{,}00\ \text{cm}\)). La notice donne \(u(A)=0{,}004\) ; l'incertitude sur les concentrations est négligeable. La loi de Beer-Lambert prévoit \(A=\varepsilon\ell c\).
+    <div style="overflow-x:auto"><table style="border-collapse:collapse;margin:.5rem 0">
+      <tr><th>\(c\) (mmol/L)</th><td>0,10</td><td>0,20</td><td>0,30</td><td>0,40</td><td>0,50</td><td>0,60</td><td>0,70</td><td>0,80</td></tr>
+      <tr><th>\(A\)</th><td>0,225</td><td>0,452</td><td>0,685</td><td>0,915</td><td>1,142</td><td>1,360</td><td>1,574</td><td>1,781</td></tr>
+    </table></div></div>
+  <div class="q"><strong>Q1.</strong> Un logiciel ajuste une droite \(A=ac+b\) sur les huit points : \(a=2{,}233\ \text{L·mmol}^{-1}\), \(b=0{,}012\), \(R^2=0{,}9996\). Un élève conclut que la loi est vérifiée. Les écarts normalisés valent −2,58 ; −1,65 ; 0,79 ; 2,47 ; 3,40 ; 2,09 ; −0,23 ; −4,29. Qu'en penser ?</div>
+  <div class="q"><strong>Q2.</strong> Proposer une explication physique, sachant qu'une absorbance de 1,8 correspond à une lumière transmise de 1,6 % seulement.</div>
+  <div class="q"><strong>Q3.</strong> On ne garde que les cinq premières solutions : \(a=2{,}297\ \text{L·mmol}^{-1}\), \(b=-0{,}0053\), et les écarts normalisés valent 0,15 ; −0,53 ; 0,30 ; 0,37 ; −0,30. Conclure.</div>
+  <div class="q"><strong>Q4.</strong> Une simulation de Monte-Carlo (10 000 jeux d'absorbances tirées selon une loi normale autour des cinq mesures, d'écart-type 0,004) donne \(u(a)=0{,}013\ \text{L·mmol}^{-1}\) et \(u(b)=0{,}004\). L'ordonnée à l'origine est-elle compatible avec la loi de Beer-Lambert ? En déduire le coefficient d'absorption molaire \(\varepsilon\) avec son incertitude-type.</div>
+  <div class="q"><strong>Q5.</strong> Une solution inconnue a une absorbance de 0,862. La même simulation, qui tire aussi cette absorbance, donne pour sa concentration un écart-type de 0,0019 mmol/L. Écrire le résultat. Que faire pour une solution d'absorbance 1,52 ?</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> Le \(R^2\) ne prouve rien. Cinq écarts normalisés sur huit dépassent 2 en valeur absolue, et surtout ils dessinent une arche : négatifs aux extrémités, positifs au milieu. Les points se placent sur une courbe concave, pas sur une droite : sur tout le domaine, le modèle affine est rejeté.</p>
+    <figure class="schema">
+<svg viewBox="0 0 520 226" role="img" aria-label="Écarts normalisés de la régression de l'absorbance : structurés sur les huit points, aléatoires sur les cinq premiers">
+<rect x="60" y="30" width="400" height="150" class="sk-axis" style="fill:none"/>
+<rect x="60" y="75" width="400" height="60" class="fl-green-soft"/>
+<line x1="60" y1="105" x2="460" y2="105" class="sk-dash"/>
+<circle cx="84.7" cy="143.8" r="4" class="fl-accent"/>
+<circle cx="134.1" cy="129.7" r="4" class="fl-accent"/>
+<circle cx="183.5" cy="93.2" r="4" class="fl-accent"/>
+<circle cx="232.8" cy="67.9" r="4" class="fl-accent"/>
+<circle cx="282.2" cy="53.9" r="4" class="fl-accent"/>
+<circle cx="331.6" cy="73.7" r="4" class="fl-accent"/>
+<circle cx="381" cy="108.4" r="4" class="fl-accent"/>
+<circle cx="430.4" cy="169.4" r="4" class="fl-accent"/>
+<rect x="90.1" y="99.2" width="7.2" height="7.2" class="fl-ink"/>
+<rect x="139.5" y="109.3" width="7.2" height="7.2" class="fl-ink"/>
+<rect x="188.9" y="96.9" width="7.2" height="7.2" class="fl-ink"/>
+<rect x="238.2" y="95.8" width="7.2" height="7.2" class="fl-ink"/>
+<rect x="287.6" y="105.9" width="7.2" height="7.2" class="fl-ink"/>
+<line x1="56" y1="165" x2="60" y2="165" class="sk-axis"/>
+<text x="53" y="169" class="lab-muted" text-anchor="end">−4</text>
+<line x1="56" y1="135" x2="60" y2="135" class="sk-axis"/>
+<text x="53" y="139" class="lab-muted" text-anchor="end">−2</text>
+<line x1="56" y1="105" x2="60" y2="105" class="sk-axis"/>
+<text x="53" y="109" class="lab-muted" text-anchor="end">0</text>
+<line x1="56" y1="75" x2="60" y2="75" class="sk-axis"/>
+<text x="53" y="79" class="lab-muted" text-anchor="end">2</text>
+<line x1="56" y1="45" x2="60" y2="45" class="sk-axis"/>
+<text x="53" y="49" class="lab-muted" text-anchor="end">4</text>
+<line x1="84.7" y1="180" x2="84.7" y2="184" class="sk-axis"/>
+<text x="84.7" y="197" class="lab-muted" text-anchor="middle">0,1</text>
+<line x1="134.1" y1="180" x2="134.1" y2="184" class="sk-axis"/>
+<text x="134.1" y="197" class="lab-muted" text-anchor="middle">0,2</text>
+<line x1="183.5" y1="180" x2="183.5" y2="184" class="sk-axis"/>
+<text x="183.5" y="197" class="lab-muted" text-anchor="middle">0,3</text>
+<line x1="232.8" y1="180" x2="232.8" y2="184" class="sk-axis"/>
+<text x="232.8" y="197" class="lab-muted" text-anchor="middle">0,4</text>
+<line x1="282.2" y1="180" x2="282.2" y2="184" class="sk-axis"/>
+<text x="282.2" y="197" class="lab-muted" text-anchor="middle">0,5</text>
+<line x1="331.6" y1="180" x2="331.6" y2="184" class="sk-axis"/>
+<text x="331.6" y="197" class="lab-muted" text-anchor="middle">0,6</text>
+<line x1="381" y1="180" x2="381" y2="184" class="sk-axis"/>
+<text x="381" y="197" class="lab-muted" text-anchor="middle">0,7</text>
+<line x1="430.4" y1="180" x2="430.4" y2="184" class="sk-axis"/>
+<text x="430.4" y="197" class="lab-muted" text-anchor="middle">0,8</text>
+<text x="260" y="214" class="lab-muted lab-it" text-anchor="middle">c (mmol/L)</text>
+<circle cx="70" cy="18" r="4" class="fl-accent"/>
+<text x="80" y="22">droite sur les 8 points</text>
+<rect x="274" y="14.4" width="7.2" height="7.2" class="fl-ink"/>
+<text x="288" y="22">droite sur c ≤ 0,50</text>
+</svg>
+<figcaption>Écarts normalisés (A − (a c + b))/u(A). Ronds : droite ajustée sur les huit solutions ; les écarts dessinent une arche et cinq sortent de la zone ± 2 (bande verte). Carrés (décalés vers la droite pour la lisibilité) : droite ajustée sur les cinq solutions les moins concentrées ; écarts petits et de signes mêlés.</figcaption>
+</figure>
+    <p><strong>Q2.</strong> Aux fortes absorbances, l'appareil mesure une très petite intensité transmise ; la moindre lumière parasite (lumière diffusée, qui atteint le détecteur sans traverser la solution) ou la largeur de la bande spectrale deviennent alors importantes, et l'absorbance mesurée reste inférieure à \(\varepsilon\ell c\) : la courbe s'infléchit. C'est une limite de l'instrument, qui borne le domaine de validité du modèle.</p>
+    <p><strong>Q3.</strong> Sur les cinq solutions les moins concentrées (\(A\lt1{,}2\)), les écarts normalisés sont tous petits et de signes mêlés : le modèle affine est validé sur ce domaine. On restreint l'étude, et on le dit.</p>
+    <p><strong>Q4.</strong> \(|b|/u(b)=1{,}3\leqslant2\) : \(b\) est compatible avec 0, comme le prévoit \(A=\varepsilon\ell c\). Puis, \(\ell\) étant exacte, \(\varepsilon=a/\ell\) et \(u(\varepsilon)=u(a)/\ell\) :</p><div class="formula">$$\varepsilon=(2{,}297\pm0{,}013)\ \text{L·mmol}^{-1}\text{·cm}^{-1}=(2{,}297\pm0{,}013)\times10^{3}\ \text{L·mol}^{-1}\text{·cm}^{-1}$$</div><p>(incertitude-type).</p>
+    <p><strong>Q5.</strong></p><div class="formula">$$c=\frac{0{,}862-b}{a}=\frac{0{,}862+0{,}0053}{2{,}297}=0{,}3776\ \text{mmol/L},$$</div><p>avec \(u(c)=0{,}0019\ \text{mmol/L}\) (0,5 %). L'absorbance 1,52 est hors du domaine validé : on dilue exactement la solution (par exemple d'un facteur 2 avec une pipette et une fiole jaugées), on mesure, puis on multiplie par le facteur de dilution, dont l'incertitude s'ajoute au bilan.</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 11</span><span class="diff">★ ★ ★</span>
+  <h3>Caractéristique d'une pile : régression et Monte-Carlo</h3>
+  <div class="statement">On relève la tension \(U\) aux bornes d'une pile en fonction de l'intensité \(I\) qu'elle débite dans une résistance variable. Ampèremètre : précision \(\pm(1\ \%+3\) digits), dernier chiffre 1 mA. Voltmètre : précision \(\pm(0{,}3\ \%+2\) digits), dernier chiffre 1 mV. On modélise la pile par un générateur de tension \(E\) en série avec une résistance \(r\).
+    <div style="overflow-x:auto"><table style="border-collapse:collapse;margin:.5rem 0">
+      <tr><th>\(I\) (mA)</th><td>51</td><td>102</td><td>151</td><td>196</td><td>253</td><td>302</td><td>348</td><td>402</td></tr>
+      <tr><th>\(U\) (V)</th><td>4,433</td><td>4,343</td><td>4,250</td><td>4,165</td><td>4,064</td><td>3,979</td><td>3,886</td><td>3,805</td></tr>
+    </table></div>
+    Programme utilisé (<code>np.random.normal(m, s)</code> renvoie, pour des tableaux <code>m</code> et <code>s</code>, un tableau de tirages normaux de moyennes <code>m</code> et d'écarts-types <code>s</code>) :
+    <pre class="codeblock"><span class="kw">import</span> numpy <span class="kw">as</span> np
+
+I = np.array([51, 102, 151, 196,
+              253, 302, 348, 402]) * 1e-3          <span class="cmt"># A</span>
+U = np.array([4.433, 4.343, 4.250, 4.165,
+              4.064, 3.979, 3.886, 3.805])         <span class="cmt"># V</span>
+<span class="cmt"># notices : ±(1 % + 3 digits) et ±(0,3 % + 2 digits)</span>
+uI = (0.01 * I + 0.003) / np.sqrt(3)
+uU = (0.003 * U + 0.002) / np.sqrt(3)
+
+pente, ordo = np.polyfit(I, U, 1)   <span class="cmt"># U = pente I + ordo</span>
+E, r = ordo, -pente
+uz = np.sqrt(uU**2 + (pente * uI)**2)
+z = (U - (pente * I + ordo)) / uz
+print(E, r, np.round(z, 2))
+
+Nsim = 10000
+Es, rs = np.zeros(Nsim), np.zeros(Nsim)
+<span class="kw">for</span> k <span class="kw">in</span> range(Nsim):
+    Isim = np.random.normal(I, uI)
+    Usim = np.random.normal(U, uU)
+    p, o = np.polyfit(Isim, Usim, 1)
+    Es[k], rs[k] = o, -p
+<span class="cmt"># incertitudes-types u(E) et u(r)</span>
+print(np.std(Es, ddof=1), np.std(rs, ddof=1))</pre>
+    Il affiche \(E=4{,}5238\), \(r=1{,}8091\), les écarts normalisés 0,15 ; 0,39 ; −0,06 ; −0,43 ; −0,21 ; 0,15 ; −0,79 ; 0,79, puis 0,0077 et 0,031.</div>
+  <div class="q"><strong>Q1.</strong> Justifier le choix de porter \(U\) en fonction de \(I\) et l'expression de <code>uz</code>.</div>
+  <div class="q"><strong>Q2.</strong> Calculer à la main \(u(I)\) et \(u(U)\) pour le premier point.</div>
+  <div class="q"><strong>Q3.</strong> Le modèle est-il validé ? Écrire les résultats pour \(E\) et \(r\).</div>
+  <div class="q"><strong>Q4.</strong> En ne faisant varier que \(U\), la simulation donne \(u(r)=0{,}026\ \Omega\) ; en ne faisant varier que \(I\), \(u(r)=0{,}018\ \Omega\). Commenter.</div>
+  <div class="q"><strong>Q5.</strong> Avant les mesures, le voltmètre branché seul aux bornes de la pile affichait \(U_0=4{,}526\ \text{V}\). Comparer à \(E\).</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> Le modèle \(U=E-rI\) est affine en \(I\) : la pente vaut \(-r\) et l'ordonnée à l'origine \(E\). Les deux grandeurs sont incertaines ; une erreur \(u(I)\) sur l'abscisse déplace le point, vu de la droite, de \(|{\text{pente}}|\,u(I)\) verticalement, d'où \(u_z=\sqrt{u(U)^2+r^2u(I)^2}\) au dénominateur de l'écart normalisé.</p>
+    <p><strong>Q2.</strong> \(u(I)=(0{,}01\times51+3)/\sqrt3=2{,}0\ \text{mA}\) ; \(u(U)=0{,}0154/\sqrt3=0{,}0088\ \text{V}\). La contribution de \(I\) vue sur \(U\) vaut \(r\,u(I)=1{,}81\times0{,}0020=0{,}0037\ \text{V}\), près de la moitié de \(u(U)\) : on ne peut pas la négliger.</p>
+    <p><strong>Q3.</strong> Tous les écarts normalisés sont inférieurs à 1 en valeur absolue, de signes alternés : le modèle est validé. \(E=4{,}524\ \text{V}\), \(u(E)=0{,}008\ \text{V}\) ; \(r=1{,}81\ \Omega\), \(u(r)=0{,}03\ \Omega\).</p>
+    <p><strong>Q4.</strong> Les deux sources contribuent : \(\sqrt{0{,}026^2+0{,}018^2}=0{,}032\ \Omega\), conforme à la simulation complète. Ne faire varier que \(U\) (ce que le programme autorise au minimum) sous-estimerait \(u(r)\) d'environ 15 % : ici, simuler les deux grandeurs est justifié.</p>
+    <p><strong>Q5.</strong> \(u(U_0)=0{,}0156/\sqrt3=0{,}009\ \text{V}\), puis \(E_N=0{,}002/\sqrt{0{,}009^2+0{,}008^2}=0{,}2\) : compatibles. La tension à vide est bien la force électromotrice, puisque le voltmètre (10 MΩ) ne débite presque aucun courant.</p>
+  </div>
+</div>
+
+<div class="exo concours">
+  <span class="num">CONCOURS PT</span><span class="diff">★ ★ ★</span>
+  <h3>Étalonner une sonde de platine</h3>
+  <div class="exo-source">
+    Exercice <strong>original</strong> au format des épreuves PT (thème <em>mesures et incertitudes : type A, erreur systématique, régression linéaire, résidus, Monte-Carlo, écart normalisé</em>). Pour t'entraîner sur les sujets réellement tombés :
+    <a href="https://www.banquept.fr/rubrique38.html" target="_blank" rel="noopener">annales officielles de la Banque PT</a>.
+  </div>
+  <div class="statement">
+    Une sonde « Pt100 » est un fil de platine dont la résistance vaut environ 100 Ω à 0 °C et croît avec la température. On l'étalonne dans un bain thermostaté dont la température \(\theta\) est lue sur un thermomètre de référence (incertitude négligeable). On modélise d'abord la sonde par \(R=R_0(1+\alpha\theta)\), soit \(R=a\theta+b\) avec \(b=R_0\) et \(a=R_0\alpha\).
+    <div style="overflow-x:auto"><table style="border-collapse:collapse;margin:.5rem 0">
+      <tr><th>\(\theta\) (°C)</th><td>0</td><td>10</td><td>20</td><td>30</td><td>40</td><td>50</td></tr>
+      <tr><th>\(R\) (Ω)</th><td>100,007</td><td>103,919</td><td>107,800</td><td>111,647</td><td>115,559</td><td>119,406</td></tr>
+      <tr><th>\(\theta\) (°C)</th><td>60</td><td>70</td><td>80</td><td>90</td><td>100</td><td></td></tr>
+      <tr><th>\(R\) (Ω)</th><td>123,231</td><td>127,087</td><td>130,904</td><td>134,713</td><td>138,506</td><td></td></tr>
+    </table></div>
+  </div>
+
+  <p class="exo-part">Partie A — Mesurer une résistance</p>
+  <div class="q"><strong>A1.</strong> Chaque valeur de \(R\) est la moyenne de dix lectures indépendantes, dont l'écart-type expérimental vaut 0,063 Ω. Justifier \(u(R)=0{,}020\ \Omega\).</div>
+  <div class="q"><strong>A2.</strong> La sensibilité de la sonde vaut environ \(0{,}39\ \Omega\cdot\text{°C}^{-1}\). À quelle incertitude sur la température correspond \(u(R)\) ?</div>
+  <div class="q"><strong>A3.</strong> Les deux fils qui relient la sonde à l'ohmmètre ont une résistance totale d'environ 0,2 Ω. Quelle erreur commettrait-on en mesurant la résistance « à deux fils » ? De quel type d'erreur s'agit-il ? Expliquer pourquoi un montage « à quatre fils » (deux fils amènent le courant, deux autres, qui ne sont parcourus par aucun courant, mesurent la tension aux bornes de la sonde) la supprime.</div>
+
+  <p class="exo-part">Partie B — Le modèle affine de 0 à 100 °C</p>
+  <div class="q"><strong>B1.</strong> L'ajustement sur les onze points donne \(a=0{,}38503\ \Omega\cdot\text{°C}^{-1}\), \(b=100{,}092\ \Omega\) et \(R^2=0{,}99998\). Les résidus \(R_i-(a\theta_i+b)\) valent, en mΩ : −85 ; −23 ; 7 ; 4 ; 66 ; 62 ; 37 ; 43 ; 9 ; −32 ; −89. Calculer les écarts normalisés et conclure.</div>
+  <div class="q"><strong>B2.</strong> Avec un ohmmètre ordinaire, on aurait \(u(R)=0{,}15\ \Omega\), et des résidus du même ordre. Quelle aurait été la conclusion ? Que faut-il en retenir ?</div>
+  <div class="q"><strong>B3.</strong> On sait que \(R=R_0(1+A\theta+B\theta^2)\), avec \(|B|\ll A\). Quel est le signe de \(B\) ?</div>
+
+  <p class="exo-part">Partie C — Étalonnage entre 0 et 50 °C</p>
+  <div class="q"><strong>C1.</strong> Sur les six points de 0 à 50 °C, l'ajustement donne \(a=0{,}387891\ \Omega\cdot\text{°C}^{-1}\) et \(b=100{,}0257\ \Omega\), et les écarts normalisés −0,94 ; 0,72 ; 0,82 ; −0,77 ; 0,88 ; −0,71. Conclure.</div>
+  <div class="q"><strong>C2.</strong> On exécute le programme suivant. Expliquer le rôle de chaque bloc.</div>
+  <pre class="codeblock"><span class="kw">import</span> numpy <span class="kw">as</span> np
+
+theta = np.array([0, 10, 20, 30, 40, 50])        <span class="cmt"># °C</span>
+R = np.array([100.007, 103.919, 107.800,
+              111.647, 115.559, 119.406])        <span class="cmt"># Ω</span>
+uR = 0.020                                       <span class="cmt"># Ω</span>
+
+Nsim = 10000
+a, b = np.zeros(Nsim), np.zeros(Nsim)
+<span class="kw">for</span> k <span class="kw">in</span> range(Nsim):
+    Rsim = np.random.normal(R, uR)
+    a[k], b[k] = np.polyfit(theta, Rsim, 1)
+
+alpha = a / b             <span class="cmt"># R0 = b et R0 * alpha = a</span>
+print(np.mean(alpha), np.std(alpha, ddof=1))
+
+<span class="cmt"># sonde plongée dans le bain inconnu</span>
+Rx = np.random.normal(114.382, uR, Nsim)
+thx = (Rx - b) / a        <span class="cmt"># un couple (a, b) par tirage</span>
+print(np.mean(thx), np.std(thx, ddof=1))</pre>
+  <div class="q"><strong>C3.</strong> La première ligne affichée est \(3{,}8779\times10^{-3}\) et \(5{,}3\times10^{-6}\) (en \(\text{°C}^{-1}\)). Écrire le résultat pour \(\alpha\). Le fabricant annonce \(\alpha=3{,}851\times10^{-3}\ \text{°C}^{-1}\), défini par
+    <div class="formula">$$\alpha=\frac{R(100\ \text{°C})-R(0\ \text{°C})}{100\,R(0\ \text{°C})}.$$</div>
+    Calculer l'écart normalisé et expliquer l'écart sans mettre en cause les mesures.</div>
+
+  <p class="exo-part">Partie D — Mesurer une température</p>
+  <div class="q"><strong>D1.</strong> Plongée dans un bain inconnu, la sonde indique \(R=114{,}382\ \Omega\) (\(u(R)=0{,}020\ \Omega\)). La seconde ligne affichée par le programme est 37,011 et 0,058. Écrire le résultat. Comparer \(u(\theta)\) à l'incertitude qui viendrait de la seule mesure de \(R\), et commenter.</div>
+  <div class="q"><strong>D2.</strong> Un thermomètre médical électronique placé dans le bain indique 37,1 °C, avec une incertitude-type de 0,1 °C. Conclure.</div>
+  <div class="q"><strong>D3.</strong> Quelle température aurait-on trouvée avec l'ajustement de 0 à 100 °C (partie B) ? Commenter.</div>
+
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>A1.</strong> Évaluation de type A sur dix mesures indépendantes : \(u=s/\sqrt{10}=0{,}063/3{,}16=0{,}020\ \Omega\).</p>
+    <p><strong>A2.</strong> \(u(\theta)=u(R)\big/\dfrac{\mathrm dR}{\mathrm d\theta}=\dfrac{0{,}020}{0{,}39}=0{,}05\ \text{°C}\).</p>
+    <p><strong>A3.</strong> À deux fils, l'ohmmètre mesure la sonde et ses fils : \(R\) est surestimée de 0,2 Ω, ce qui fait lire une température trop haute de \(0{,}2/0{,}39\approx0{,}5\ \text{°C}\), dix fois \(u(\theta)\). C'est une erreur systématique (même décalage à chaque mesure, invisible sur une série) liée à la méthode. À quatre fils, la tension est prise directement aux bornes de la sonde par des fils qui ne transportent pas de courant : la chute de tension dans les fils d'amenée n'est pas mesurée.</p>
+    <p><strong>B1.</strong> On divise par 20 mΩ : −4,2 ; −1,2 ; 0,4 ; 0,2 ; 3,3 ; 3,1 ; 1,9 ; 2,1 ; 0,5 ; −1,6 ; −4,5. Cinq écarts sur onze dépassent 2 en valeur absolue, et ils dessinent une arche (négatifs aux extrémités, positifs au milieu) : à cette précision, le modèle affine est rejeté sur 0-100 °C, malgré un \(R^2\) de 0,99998.</p>
+    <figure class="schema">
+<svg viewBox="0 0 520 226" role="img" aria-label="Écarts normalisés de l'ajustement affine de la résistance de la sonde entre 0 et 100 degrés, pour deux incertitudes-types">
+<rect x="60" y="34" width="400" height="150" class="sk-axis" style="fill:none"/>
+<rect x="60" y="84" width="400" height="50" class="fl-green-soft"/>
+<line x1="60" y1="109" x2="460" y2="109" class="sk-dash"/>
+<circle cx="78.2" cy="162.1" r="4" class="fl-accent"/>
+<rect x="74.8" y="112.7" width="6.8" height="6.8" class="fl-ink"/>
+<circle cx="114.5" cy="123.5" r="4" class="fl-accent"/>
+<rect x="111.1" y="107.5" width="6.8" height="6.8" class="fl-ink"/>
+<circle cx="150.9" cy="104.4" r="4" class="fl-accent"/>
+<rect x="147.5" y="105" width="6.8" height="6.8" class="fl-ink"/>
+<circle cx="187.3" cy="106.4" r="4" class="fl-accent"/>
+<rect x="183.9" y="105.3" width="6.8" height="6.8" class="fl-ink"/>
+<circle cx="223.6" cy="67.9" r="4" class="fl-accent"/>
+<rect x="220.2" y="100.1" width="6.8" height="6.8" class="fl-ink"/>
+<circle cx="260" cy="70" r="4" class="fl-accent"/>
+<rect x="256.6" y="100.4" width="6.8" height="6.8" class="fl-ink"/>
+<circle cx="296.4" cy="85.8" r="4" class="fl-accent"/>
+<rect x="293" y="102.5" width="6.8" height="6.8" class="fl-ink"/>
+<circle cx="332.7" cy="82.2" r="4" class="fl-accent"/>
+<rect x="329.3" y="102" width="6.8" height="6.8" class="fl-ink"/>
+<circle cx="369.1" cy="103.1" r="4" class="fl-accent"/>
+<rect x="365.7" y="104.8" width="6.8" height="6.8" class="fl-ink"/>
+<circle cx="405.5" cy="128.9" r="4" class="fl-accent"/>
+<rect x="402.1" y="108.3" width="6.8" height="6.8" class="fl-ink"/>
+<circle cx="441.8" cy="164.7" r="4" class="fl-accent"/>
+<rect x="438.4" y="113" width="6.8" height="6.8" class="fl-ink"/>
+<line x1="56" y1="159" x2="60" y2="159" class="sk-axis"/>
+<text x="53" y="163" class="lab-muted" text-anchor="end">−4</text>
+<line x1="56" y1="134" x2="60" y2="134" class="sk-axis"/>
+<text x="53" y="138" class="lab-muted" text-anchor="end">−2</text>
+<line x1="56" y1="109" x2="60" y2="109" class="sk-axis"/>
+<text x="53" y="113" class="lab-muted" text-anchor="end">0</text>
+<line x1="56" y1="84" x2="60" y2="84" class="sk-axis"/>
+<text x="53" y="88" class="lab-muted" text-anchor="end">2</text>
+<line x1="56" y1="59" x2="60" y2="59" class="sk-axis"/>
+<text x="53" y="63" class="lab-muted" text-anchor="end">4</text>
+<line x1="78.2" y1="184" x2="78.2" y2="188" class="sk-axis"/>
+<text x="78.2" y="201" class="lab-muted" text-anchor="middle">0</text>
+<line x1="150.9" y1="184" x2="150.9" y2="188" class="sk-axis"/>
+<text x="150.9" y="201" class="lab-muted" text-anchor="middle">20</text>
+<line x1="223.6" y1="184" x2="223.6" y2="188" class="sk-axis"/>
+<text x="223.6" y="201" class="lab-muted" text-anchor="middle">40</text>
+<line x1="296.4" y1="184" x2="296.4" y2="188" class="sk-axis"/>
+<text x="296.4" y="201" class="lab-muted" text-anchor="middle">60</text>
+<line x1="369.1" y1="184" x2="369.1" y2="188" class="sk-axis"/>
+<text x="369.1" y="201" class="lab-muted" text-anchor="middle">80</text>
+<line x1="441.8" y1="184" x2="441.8" y2="188" class="sk-axis"/>
+<text x="441.8" y="201" class="lab-muted" text-anchor="middle">100</text>
+<text x="260" y="218" class="lab-muted lab-it" text-anchor="middle">θ (°C)</text>
+<circle cx="70" cy="18" r="4" class="fl-accent"/>
+<text x="80" y="22">avec u(R) = 0,020 Ω</text>
+<rect x="274" y="14.6" width="6.8" height="6.8" class="fl-ink"/>
+<text x="288" y="22">avec u(R) = 0,15 Ω</text>
+</svg>
+<figcaption>Écarts normalisés de la droite ajustée sur les onze points. Ronds : avec u(R) = 0,020 Ω, les écarts dessinent une arche et cinq sortent de la zone ± 2 : à cette précision, le modèle affine est rejeté. Carrés : les mêmes résidus divisés par u(R) = 0,15 Ω (ohmmètre ordinaire) restent dans ± 0,6 : à cette précision, rien ne permet de rejeter le modèle.</figcaption>
+</figure>
+    <p><strong>B2.</strong> Divisés par 150 mΩ, les mêmes résidus restent entre −0,6 et 0,4 : rien ne permettrait de rejeter le modèle affine. Un modèle n'est pas « vrai » ou « faux » dans l'absolu : il est validé ou rejeté <em>à une précision donnée</em>. Plus la mesure est précise, plus elle révèle les défauts des modèles.</p>
+    <p><strong>B3.</strong> La courbe réelle passe au-dessus de la droite au milieu et en dessous aux extrémités : elle est concave, \(\mathrm d^2R/\mathrm d\theta^2=2R_0B\lt0\), donc \(B\lt0\).</p>
+    <p><strong>C1.</strong> Écarts normalisés tous inférieurs à 1 en valeur absolue, de signes alternés : sur 0-50 °C, le modèle affine est validé à la précision de 0,020 Ω.</p>
+    <p><strong>C2.</strong> Les trois premières lignes entrent les mesures et leur incertitude-type. La boucle fabrique 10 000 jeux de résistances plausibles (chaque point tiré selon une loi normale centrée sur la mesure, d'écart-type 0,020 Ω) et ajuste une droite sur chacun : on obtient 10 000 couples \((a,b)\). <code>alpha = a / b</code> calcule \(\alpha=a/R_0\) pour chaque couple ; sa moyenne et son écart-type sont le résultat et l'incertitude-type. Enfin, on tire 10 000 valeurs plausibles de la résistance mesurée dans le bain inconnu et l'on calcule, avec chaque couple \((a,b)\), la température correspondante : l'incertitude sur \(\theta\) inclut ainsi celle de l'étalonnage, en tenant compte du lien entre \(a\) et \(b\).</p>
+    <p><strong>C3.</strong> \(\alpha=3{,}8779\times10^{-3}\ \text{°C}^{-1}\), \(u(\alpha)=0{,}0053\times10^{-3}\ \text{°C}^{-1}\). \(E_N=(3{,}8779-3{,}851)/0{,}0053=5\) : incompatibles. Mais les deux nombres ne mesurent pas la même chose : le fabricant définit \(\alpha\) par la pente moyenne entre 0 et 100 °C, tandis que l'étalonnage donne la pente moyenne entre 0 et 50 °C. La courbe étant concave (B3), sa pente diminue quand \(\theta\) augmente : la pente sur 0-50 °C est plus grande que la pente sur 0-100 °C. L'incompatibilité vient de la définition du mesurande, pas d'une erreur de mesure.</p>
+    <p><strong>D1.</strong></p><div class="formula">$$\theta=\frac{114{,}382-100{,}0257}{0{,}387891}=37{,}01\ \text{°C},\qquad u(\theta)=0{,}06\ \text{°C}.$$</div><p> La seule mesure de \(R\) donnerait \(0{,}020/0{,}3879=0{,}052\ \text{°C}\) : l'étalonnage n'ajoute presque rien (\(\sqrt{0{,}058^2-0{,}052^2}\approx0{,}03\ \text{°C}\)), parce qu'on mesure dans le domaine étalonné, près de son centre.</p>
+    <p><strong>D2.</strong> \(E_N=0{,}09/\sqrt{0{,}058^2+0{,}1^2}=0{,}8\) : compatibles. Le thermomètre médical, moins précis, est confirmé.</p>
+    <p><strong>D3.</strong> On trouverait \(\theta=37{,}11\ \text{°C}\) (calcul avec \(a=0{,}38503\) et \(b=100{,}092\)) : 0,10 °C de plus, soit près de deux fois \(u(\theta)\). Utiliser un modèle rejeté (partie B) introduit une erreur systématique du même ordre que l'incertitude, que rien dans le calcul ne signale : c'est pourquoi on valide toujours un modèle par les résidus avant de s'en servir.</p>
+  </div>
+</div>
+
+</div>
+</template>

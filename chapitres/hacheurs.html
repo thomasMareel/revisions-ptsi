@@ -1,0 +1,1027 @@
+<!-- Chapitre « Les hacheurs » (hacheurs) : contenu des onglets Cours, Méthodes et Exercices, chargé à l'ouverture du chapitre.
+     On l'édite ici, puis : node tools/chapitres.js (docs/chargement-chapitres.md). -->
+<template class="pan-tpl" data-panneau="hach-cours">
+
+<div class="course-section">
+  <div class="sec-num">AU PROGRAMME · PTSI</div>
+  <h2>Ce que le programme officiel demande</h2>
+  <div class="intro">Le hacheur est le convertisseur statique continu-continu : placé entre une source de tension fixe (batterie, bus continu) et un actionneur, le plus souvent une machine à courant continu, il assure la fonction <strong>moduler</strong> de la chaîne de puissance. <a href="#cvs/cours">« Convertisseurs statiques »</a> donne les outils (sources, interrupteurs parfaits, cellule de commutation, démarche de synthèse) ; ce chapitre les applique en détail : fonctionnement, chronogrammes, réversibilité, commande, association avec la machine de <a href="#mcc/cours">« Machine à courant continu »</a>.</div>
+  <div class="reveal" onclick="this.classList.toggle('open')">
+    <span class="label">Programme officiel</span>
+    <span class="prompt">Les capacités du programme, dans l'ordre du chapitre</span>
+    <div class="content">
+      <ul>
+        <li><strong>Identifier et décrire les chaînes fonctionnelles</strong> : fonction moduler (A3, S1) ; intérêt du découpage face à une résistance série (§1).</li>
+        <li><strong>Modéliser les convertisseurs statiques d'énergie</strong> (B2, S2) : modèles des interrupteurs parfaits, cellule élémentaire de commutation, nature des grandeurs d'entrée et de sortie, appliqués au hacheur série (§2), au hacheur réversible en courant (§3) et au pont en H (§4) ; outils généraux dans « Convertisseurs statiques », §4 à §7.</li>
+        <li><strong>Réversibilité</strong> des convertisseurs et des sources ; quadrants de fonctionnement (B2, S2) (§3, §4, §7).</li>
+        <li><strong>Synthèse des convertisseurs</strong>, limitée pour le continu-continu au hacheur : étude structurelle à une ou deux cellules de commutation (§2 à §4 ; démarche générale dans « Convertisseurs statiques », §7).</li>
+        <li><strong>Commande</strong> par le rapport cyclique ; modulation de largeur d'impulsion (MLI) et modèle du hacheur par un gain dans un schéma-blocs (B2, S1) (§1, §6).</li>
+        <li>Association du hacheur et de la machine à courant continu : réglage de la vitesse, freinage, inversion du sens de rotation (§7, et « Machine à courant continu », §8).</li>
+        <li>Bilan de puissance et rendement, en ordres de grandeur (§8 ; « Convertisseurs statiques », §11).</li>
+      </ul>
+      <p><strong>Vu en avance (2ᵉ année)</strong> : l'ondulation des grandeurs électriques en régime permanent dans les convertisseurs et les composants de filtrage relèvent du semestre S3, le choix des composants de la chaîne de puissance du semestre S4. Le §5 en donne l'essentiel (ondulation du courant, choix de l'inductance), indispensable pour comprendre un chronogramme ; il sera repris dans « Régimes alternatifs, redresseurs et onduleurs » et « Chaînes fonctionnelles ». La physique des semi-conducteurs n'est pas au programme : seuls comptent les modèles d'interrupteurs.</p>
+      <p>Hors programme (fin de chapitre) : le hacheur parallèle (élévateur) utilisé seul, la conduction discontinue, le filtrage de la tension de sortie, la commutation douce.</p>
+      <p>Notations (celles de « Convertisseurs statiques » et de la 2ᵉ année) : \(E\) tension de la source continue (notée \(U_e\) dans les premières cartes de ce chapitre), \(u\) tension appliquée à la charge (\(U_s\) dans ces cartes), \(i\) courant de la charge, \(i_e\) courant fourni par la source ; \(E_m\) f.é.m. de la machine à courant continu (notée \(E\) dans « Machine à courant continu », où la source est notée \(U_0\)) ; \(\alpha\) rapport cyclique ; \(T = 1/f\) période et fréquence de découpage ; \(\langle x\rangle\) valeur moyenne. Quadrants : plan \((u, i)\) du convertisseur, \(u\) en abscisse, comme dans « Convertisseurs statiques » §3 ; plan \((C_{em}, \Omega)\) pour la machine (§7).</p>
+    </div>
+  </div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§1 · PRINCIPES GÉNÉRAUX</div>
+  <h2>Le hacheur : signal MLI et tension moyenne</h2>
+  <div class="intro">Un hacheur transforme une tension continue fixe \(E\) en une tension \(u\) en créneaux, entre deux valeurs (0 et \(E\), ou \(-E\) et \(E\)). À haute fréquence, la charge inductive ne « voit » que la valeur moyenne de ce créneau, réglée par le rapport cyclique \(\alpha\). C'est bien plus efficace qu'une résistance qui dissiperait la tension en trop.</div>
+
+  <h3>Pourquoi pas une résistance série ou un pont diviseur ?</h3>
+  <p>La solution naïve pour faire varier la tension d'un moteur est de lui ajouter une résistance série (ou un pont diviseur). Mais toute la tension en trop est alors dissipée par effet Joule : le rendement vaut au mieux \(\langle u\rangle/E\), et il est nul quand le moteur est bloqué. Un hacheur, lui, n'utilise que des interrupteurs : fermés, ils n'ont pas de tension à leurs bornes ; ouverts, aucun courant ne les traverse ; dans les deux cas, ils ne dissipent rien (idéalement). Rendement réel : plus de 95 %.</p>
+  <div class="method-box">
+    <strong>Exemple — alimenter une charge de 12 V, 5 A à partir d'une batterie de 48 V</strong>
+    <ol>
+      <li>Avec une résistance série : elle doit faire chuter 36 V sous 5 A, soit \(R_s = 36/5 = 7{,}2\ \Omega\), et dissipe \(36 \times 5 = 180\ \text{W}\) pour 60 W utiles : rendement \(60/240 = 25\ \%\).</li>
+      <li>Avec un hacheur : \(\alpha = 12/48 = 0{,}25\) ; la batterie ne fournit que \(\alpha \times 5 = 1{,}25\ \text{A}\) en moyenne (§2), soit 60 W (un peu plus en réalité, §8). Le hacheur « transforme » 48 V, 1,25 A en 12 V, 5 A, comme un transformateur continu.</li>
+    </ol>
+  </div>
+
+  <h3>Le signal MLI (PWM)</h3>
+  <div class="def-box">
+    Le hacheur produit une tension de sortie en créneaux, appelée <strong>signal MLI</strong> (modulation de largeur d'impulsion ; en anglais PWM, <em>pulse width modulation</em>), caractérisée par :
+    <ul style="margin-top:0.4rem">
+      <li>\(T\) : période de découpage (ou de hachage) ;</li>
+      <li>\(f = 1/T\) : fréquence de découpage, de quelques kHz à quelques centaines de kHz ;</li>
+      <li>\(\alpha = t_{on}/T\) : rapport cyclique, avec \(0 \leq \alpha \leq 1\) ;</li>
+      <li>\(t_{on} = \alpha T\) : durée pendant laquelle la source alimente la charge (phase active) ;</li>
+      <li>\((1-\alpha)T\) : durée de roue libre.</li>
+    </ul>
+    Si \(\alpha = 1\), la tension de sortie est continue et égale à \(E\).
+  </div>
+
+  <h3>Tension moyenne de sortie</h3>
+  <p>La fréquence de découpage est choisie assez grande pour que le courant d'une charge inductive varie peu pendant une période (§5) : la charge se comporte alors comme si elle était alimentée par une tension continue égale à la valeur moyenne :</p>
+  <div class="formula" data-nom="Tension moyenne d'un hacheur série">$$\langle u \rangle = \frac{1}{T}\int_0^T u\,\mathrm{d}t = \alpha\,E$$</div>
+<figure class="schema">
+<svg viewBox="0 0 360 208" role="img" aria-label="Tension de sortie d'un hacheur : créneau entre 0 et E, à E pendant la durée alpha T de chaque période T ; sa valeur moyenne alpha E est tracée en pointillés">
+<line x1="40" y1="136" x2="342" y2="136" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<line x1="40" y1="136" x2="40" y2="14" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<polyline points="40,136 40,48 69,48 69,136 136.7,136 136.7,48 165.7,48 165.7,136 233.3,136 233.3,48 262.3,48 262.3,136 330,136" class="sk-accent"/>
+<line x1="40" y1="109.6" x2="330" y2="109.6" class="sk-accent2" style="stroke-dasharray:6 4"/>
+<text x="247.8" y="103.6" class="lab-accent2" text-anchor="middle">⟨u⟩ = αE</text>
+<text x="34" y="53" class="lab-it" text-anchor="end">E</text>
+<text x="34" y="141" class="lab-muted" text-anchor="end">0</text>
+<text x="48" y="20" class="lab-muted lab-it">u</text>
+<text x="344" y="141" class="lab-muted lab-it">t</text>
+<line x1="136.7" y1="152" x2="165.7" y2="152" class="sk-ink" style="stroke-width:1" marker-start="url(#sk-arrow-ink)" marker-end="url(#sk-arrow-ink)"/>
+<text x="171.7" y="157" class="lab-muted">t<tspan dy="4" font-size="12">on</tspan> = αT</text>
+<line x1="136.7" y1="174" x2="233.3" y2="174" class="sk-ink" style="stroke-width:1" marker-start="url(#sk-arrow-ink)" marker-end="url(#sk-arrow-ink)"/>
+<text x="185" y="192" class="lab-muted" text-anchor="middle">T = 1/f</text>
+<line x1="136.7" y1="136" x2="136.7" y2="178" class="sk-axis" style="stroke-dasharray:2 3"/>
+<line x1="233.3" y1="136" x2="233.3" y2="178" class="sk-axis" style="stroke-dasharray:2 3"/>
+</svg>
+<figcaption>Tension de sortie d'un hacheur série (\(\alpha = 0{,}3\)) : \(u = E\) pendant \(t_{on} = \alpha T\), \(u = 0\) ensuite. Sa valeur moyenne vaut \(\langle u\rangle = \alpha E\), quelle que soit la fréquence de découpage \(f = 1/T\).</figcaption>
+</figure>
+  <div class="prop-box">
+    <strong>Propriétés clés.</strong>
+    <ul>
+      <li>La tension moyenne \(\langle u \rangle\) ne dépend <em>pas</em> de la fréquence de découpage ; la fréquence fixe seulement l'ondulation du courant (§5).</li>
+      <li>Elle se mesure avec un voltmètre en position DC ; un voltmètre RMS en position AC+DC lit la valeur efficace \(E\sqrt\alpha\) (« Convertisseurs statiques », §6).</li>
+      <li>\(\alpha = 0\) → moteur à l'arrêt ; \(\alpha = 1\) → vitesse maximale ; entre les deux, réglage continu de la vitesse.</li>
+    </ul>
+  </div>
+  <div class="notice"><strong>Ordres de grandeur</strong> : pour un moteur, on découpe de 10 à 20 kHz (au-delà de 16 kHz environ, le sifflement du bobinage n'est plus audible) ; transistors MOS jusqu'à quelques centaines de kHz pour les petites tensions, IGBT de quelques kHz à une vingtaine de kHz pour les fortes puissances. Les alimentations à découpage d'ordinateur travaillent à plusieurs centaines de kHz.</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§2 · HACHEUR SÉRIE — 1 QUADRANT</div>
+  <h2>Le hacheur série : fonctionnement et réalisation</h2>
+  <div class="intro">Le hacheur série (ou abaisseur) est la topologie la plus simple. Il relie une source de tension \(E > 0\) non réversible à une source de courant non réversible (\(i > 0\) : l'induit d'un moteur, avec son inductance). C'est une cellule de commutation : un interrupteur commandé en haut, une diode en bas. Il ne permet le fonctionnement que dans un quadrant : \(u \geq 0\), \(i \geq 0\).</div>
+<figure class="schema">
+<svg viewBox="0 0 420 214" role="img" aria-label="Hacheur série alimentant l'induit d'un moteur : source de tension E, transistor T entre la borne plus et le point M, diode D de roue libre entre la borne moins et M, induit (inductance L, résistance R, force électromotrice Em) entre M et la borne moins ; courant d'entrée ie, courant de charge i, courant de diode iD, tension u aux bornes de la diode et de l'induit">
+<circle cx="60" cy="120" r="15" class="sk-ink fl-paper"/><line x1="60" y1="105" x2="60" y2="135" class="sk-ink"/><line x1="33" y1="135" x2="33" y2="105" class="sk-accent2" marker-end="url(#sk-arrow-accent2)"/><text x="27" y="125" class="lab-accent2 lab-it" text-anchor="end">E</text>
+<polyline points="60,105 60,40 120,40" class="sk-ink"/>
+<polyline points="60,135 60,200 320,200" class="sk-ink"/>
+<rect x="120" y="28" width="40" height="24" rx="3" class="sk-ink fl-paper"/>
+<line x1="126" y1="47" x2="154" y2="33" class="sk-ink" style="stroke-width:1.2"/>
+<text x="140" y="22" text-anchor="middle"><tspan class="lab-it">T</tspan> (K1)</text>
+<polyline points="160,40 320,40" class="sk-ink"/>
+<circle cx="220" cy="40" r="2.8" class="fl-ink"/>
+<text x="220" y="31" class="lab-b" text-anchor="middle">M</text>
+<circle cx="220" cy="200" r="2.8" class="fl-ink"/>
+<polyline points="220,40 220,108" class="sk-ink"/>
+<path d="M211,125.4 L229,125.4 L220,114.6 Z" class="sk-ink fl-paper"/><line x1="211" y1="114.6" x2="229" y2="114.6" class="sk-ink"/>
+<text x="204" y="125" text-anchor="end"><tspan class="lab-it">D</tspan> (K2)</text>
+<polyline points="220,132 220,200" class="sk-ink"/>
+<polyline points="320,40 320,60" class="sk-ink"/>
+<polyline points="320,60 320,68" class="sk-ink"/>
+<path d="M320,68 a6,6 0 0 1 0,12 a6,6 0 0 1 0,12 a6,6 0 0 1 0,12" class="sk-ink"/>
+<text x="332" y="90" class="lab-it">L</text>
+<polyline points="320,104 320,114" class="sk-ink"/>
+<rect x="314" y="114" width="12" height="26" class="sk-ink fl-paper"/>
+<text x="332" y="132" class="lab-it">R</text>
+<polyline points="320,140 320,150" class="sk-ink"/>
+<circle cx="320" cy="164" r="14" class="sk-ink fl-paper"/>
+<line x1="320" y1="150" x2="320" y2="178" class="sk-ink"/>
+<line x1="344" y1="176" x2="344" y2="152" class="sk-accent2" marker-end="url(#sk-arrow-accent2)"/>
+<text x="350" y="169" class="lab-accent2 lab-it">E<tspan dy="4" font-size="12">m</tspan></text>
+<polyline points="320,178 320,200" class="sk-ink"/>
+<line x1="78" y1="40" x2="106" y2="40" class="sk-accent" marker-end="url(#sk-arrow-accent)"/>
+<text x="88" y="30" class="lab-accent lab-it" text-anchor="middle">i<tspan dy="4" font-size="12">e</tspan></text>
+<line x1="250" y1="40" x2="280" y2="40" class="sk-accent" marker-end="url(#sk-arrow-accent)"/>
+<text x="265" y="32" class="lab-accent lab-it" text-anchor="middle">i</text>
+<line x1="236" y1="160" x2="236" y2="140" class="sk-accent" marker-end="url(#sk-arrow-accent)"/>
+<text x="244" y="156" class="lab-accent lab-it">i<tspan dy="4" font-size="12">D</tspan></text>
+<line x1="262" y1="194" x2="262" y2="48" class="sk-accent2" marker-end="url(#sk-arrow-accent2)"/>
+<text x="270" y="175" class="lab-accent2 lab-it">u</text>
+<text x="345" y="58" class="lab-muted">induit</text>
+</svg>
+<figcaption>Hacheur série : une cellule de commutation (« Convertisseurs statiques », §6), le transistor \(T\) (interrupteur K1) en haut, la diode de roue libre \(D\) (K2) en bas. La tension \(u\) appliquée à l'induit vaut \(E\) quand \(T\) conduit, 0 quand \(D\) conduit.</figcaption>
+</figure>
+  <h3>Les deux phases</h3>
+  <p>Le circuit comporte deux interrupteurs complémentaires, K1 (le transistor \(T\)) et K2 (la diode \(D\)), et une charge inductive : l'induit, modélisé par \(L\), \(R\) et la f.é.m. \(E_m\). La loi des mailles sur la charge s'écrit toujours \(u = L\,\dfrac{\mathrm{d}i}{\mathrm{d}t} + R\,i + E_m\).</p>
+  <div class="def-box">
+    <strong>Phase active</strong> (\(0 \lt t \lt \alpha T\)) — \(T\) fermé, \(D\) bloquée :
+    <ul style="margin-top:0.3rem">
+      <li>\(u = E\) : la source alimente l'induit, \(i_e = i\) ;</li>
+      <li>\(L\,\dfrac{\mathrm{d}i}{\mathrm{d}t} = E - Ri - E_m \gt 0\) : le courant croît, l'inductance stocke de l'énergie ;</li>
+      <li>la diode supporte la tension inverse \(-E\).</li>
+    </ul>
+  </div>
+  <div class="def-box">
+    <strong>Phase de roue libre</strong> (\(\alpha T \lt t \lt T\)) — \(T\) ouvert, \(D\) passante :
+    <ul style="margin-top:0.3rem">
+      <li>\(u = 0\) : la source ne débite plus, \(i_e = 0\) ;</li>
+      <li>\(L\,\dfrac{\mathrm{d}i}{\mathrm{d}t} = -Ri - E_m \lt 0\) : le courant décroît, mais continue de circuler par la diode ; l'inductance restitue son énergie à la charge ;</li>
+      <li>le transistor supporte la tension \(E\).</li>
+    </ul>
+  </div>
+  <div class="notice">
+    Sans la diode, ouvrir le transistor reviendrait à ouvrir une source de courant (l'inductance) : \(L\,\mathrm{d}i/\mathrm{d}t\) deviendrait énorme, une surtension détruirait le transistor. La diode de roue libre est indispensable (règles d'association des sources, « Convertisseurs statiques », §6).
+  </div>
+
+  <h3>Réalisation technologique</h3>
+  <div class="prop-box">
+    <strong>K1 ↔ transistor MOS ou IGBT</strong> : il conduit \(i > 0\) et bloque une tension positive ; commutations commandées.<br>
+    <strong>K2 ↔ diode de roue libre</strong> : elle conduit \(i > 0\) et bloque une tension négative ; commutations spontanées.<br>
+    La règle des signes de « Convertisseurs statiques » (§5) le justifie : le transistor impose le rythme, la diode suit.
+  </div>
+
+  <h3>Relations en valeurs moyennes</h3>
+  <p>En régime périodique, le courant reprend la même valeur au bout d'une période : la tension moyenne aux bornes de l'inductance est nulle, \(\langle L\,\mathrm{d}i/\mathrm{d}t\rangle = \dfrac{L}{T}\,[i(T) - i(0)] = 0\). D'où :</p>
+  <div class="formula" data-nom="Hacheur série et MCC en valeurs moyennes">$$\alpha\,E = R\,\langle i\rangle + E_m$$</div>
+  <p>Le transistor (et la source) portent le courant pendant \(\alpha T\), la diode pendant \((1-\alpha)T\). Si l'ondulation est faible devant \(\langle i\rangle\) :</p>
+  <div class="formula" data-nom="Courants moyens du hacheur série">$$\langle i_e\rangle = \langle i_T\rangle \approx \alpha\,\langle i\rangle \qquad \langle i_D\rangle \approx (1-\alpha)\,\langle i\rangle$$</div>
+  <p>et la puissance se conserve (interrupteurs parfaits) :</p>
+  <div class="formula">$$E\,\langle i_e\rangle = \langle u\rangle\,\langle i\rangle$$</div>
+<figure class="schema">
+<svg viewBox="0 0 400 388" role="img" aria-label="Chronogrammes calculés du hacheur série sur deux périodes : tension u en créneaux entre 0 et 24 volts ; courant i en dents de scie entre 2,4 et 3,6 ampères ; courant du transistor égal à i pendant la première moitié de chaque période et nul ensuite ; courant de la diode nul puis égal à i">
+<line x1="121" y1="22" x2="121" y2="84" class="sk-axis" style="opacity:.35"/>
+<line x1="196" y1="22" x2="196" y2="84" class="sk-axis" style="opacity:.35"/>
+<line x1="271" y1="22" x2="271" y2="84" class="sk-axis" style="opacity:.35"/>
+<line x1="46" y1="84" x2="358" y2="84" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<line x1="46" y1="84" x2="46" y2="10" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<line x1="42" y1="59.2" x2="46" y2="59.2" class="sk-axis"/>
+<text x="39" y="63.2" class="lab-muted" text-anchor="end">12</text>
+<line x1="42" y1="34.4" x2="46" y2="34.4" class="sk-axis"/>
+<text x="39" y="38.4" class="lab-muted" text-anchor="end">24</text>
+<text x="54" y="18" class="lab-muted lab-it">u (V)</text>
+<polyline points="46,34.4 54.3,34.4 62.7,34.4 71,34.4 79.3,34.4 87.7,34.4 96,34.4 104.3,34.4 112.7,34.4 121,34.4 121,84 129.3,84 137.7,84 146,84 154.3,84 162.7,84 171,84 179.3,84 187.7,84 196,84 196,34.4 204.3,34.4 212.7,34.4 221,34.4 229.3,34.4 237.7,34.4 246,34.4 254.3,34.4 262.7,34.4 271,34.4 271,84 279.3,84 287.7,84 296,84 304.3,84 312.7,84 321,84 329.3,84 337.7,84 346,84" class="sk-accent2"/>
+<line x1="46" y1="59.2" x2="346" y2="59.2" class="sk-dash"/>
+<text x="350" y="63.2" class="lab-muted">⟨u⟩</text>
+<line x1="121" y1="106" x2="121" y2="168" class="sk-axis" style="opacity:.35"/>
+<line x1="196" y1="106" x2="196" y2="168" class="sk-axis" style="opacity:.35"/>
+<line x1="271" y1="106" x2="271" y2="168" class="sk-axis" style="opacity:.35"/>
+<line x1="46" y1="168" x2="358" y2="168" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<line x1="46" y1="168" x2="46" y2="94" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<line x1="42" y1="140.4" x2="46" y2="140.4" class="sk-axis"/>
+<text x="39" y="144.4" class="lab-muted" text-anchor="end">2</text>
+<line x1="42" y1="112.9" x2="46" y2="112.9" class="sk-axis"/>
+<text x="39" y="116.9" class="lab-muted" text-anchor="end">4</text>
+<text x="54" y="102" class="lab-muted lab-it">i (A)</text>
+<polyline points="46,134.9 54.3,133 62.7,131.1 71,129.2 79.3,127.4 87.7,125.5 96,123.7 104.3,121.9 112.7,120.2 121,118.4 121,118.4 129.3,120.3 137.7,122.2 146,124.1 154.3,126 162.7,127.8 171,129.6 179.3,131.4 187.7,133.2 196,134.9 196,134.9 204.3,133 212.7,131.1 221,129.2 229.3,127.4 237.7,125.5 246,123.7 254.3,121.9 262.7,120.2 271,118.4 271,118.4 279.3,120.3 287.7,122.2 296,124.1 304.3,126 312.7,127.8 321,129.6 329.3,131.4 337.7,133.2 346,134.9" class="sk-accent"/>
+<line x1="46" y1="126.7" x2="346" y2="126.7" class="sk-dash"/>
+<text x="350" y="130.7" class="lab-muted">⟨i⟩</text>
+<line x1="121" y1="190" x2="121" y2="252" class="sk-axis" style="opacity:.35"/>
+<line x1="196" y1="190" x2="196" y2="252" class="sk-axis" style="opacity:.35"/>
+<line x1="271" y1="190" x2="271" y2="252" class="sk-axis" style="opacity:.35"/>
+<line x1="46" y1="252" x2="358" y2="252" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<line x1="46" y1="252" x2="46" y2="178" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<line x1="42" y1="224.4" x2="46" y2="224.4" class="sk-axis"/>
+<text x="39" y="228.4" class="lab-muted" text-anchor="end">2</text>
+<line x1="42" y1="196.9" x2="46" y2="196.9" class="sk-axis"/>
+<text x="39" y="200.9" class="lab-muted" text-anchor="end">4</text>
+<text x="54" y="186" class="lab-muted lab-it">i<tspan dy="4" font-size="12">T</tspan> (A)</text>
+<polyline points="46,218.9 54.3,217 62.7,215.1 71,213.2 79.3,211.4 87.7,209.5 96,207.7 104.3,205.9 112.7,204.2 121,202.4 121,252 129.3,252 137.7,252 146,252 154.3,252 162.7,252 171,252 179.3,252 187.7,252 196,252 196,218.9 204.3,217 212.7,215.1 221,213.2 229.3,211.4 237.7,209.5 246,207.7 254.3,205.9 262.7,204.2 271,202.4 271,252 279.3,252 287.7,252 296,252 304.3,252 312.7,252 321,252 329.3,252 337.7,252 346,252" class="sk-accent"/>
+<line x1="121" y1="274" x2="121" y2="336" class="sk-axis" style="opacity:.35"/>
+<line x1="196" y1="274" x2="196" y2="336" class="sk-axis" style="opacity:.35"/>
+<line x1="271" y1="274" x2="271" y2="336" class="sk-axis" style="opacity:.35"/>
+<line x1="46" y1="336" x2="358" y2="336" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<line x1="46" y1="336" x2="46" y2="262" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<line x1="42" y1="308.4" x2="46" y2="308.4" class="sk-axis"/>
+<text x="39" y="312.4" class="lab-muted" text-anchor="end">2</text>
+<line x1="42" y1="280.9" x2="46" y2="280.9" class="sk-axis"/>
+<text x="39" y="284.9" class="lab-muted" text-anchor="end">4</text>
+<text x="54" y="270" class="lab-muted lab-it">i<tspan dy="4" font-size="12">D</tspan> (A)</text>
+<polyline points="46,336 54.3,336 62.7,336 71,336 79.3,336 87.7,336 96,336 104.3,336 112.7,336 121,336 121,286.4 129.3,288.3 137.7,290.2 146,292.1 154.3,294 162.7,295.8 171,297.6 179.3,299.4 187.7,301.2 196,302.9 196,336 204.3,336 212.7,336 221,336 229.3,336 237.7,336 246,336 254.3,336 262.7,336 271,336 271,286.4 279.3,288.3 287.7,290.2 296,292.1 304.3,294 312.7,295.8 321,297.6 329.3,299.4 337.7,301.2 346,302.9" class="sk-green"/>
+<text x="121" y="353" class="lab-muted" text-anchor="middle">0,1</text>
+<text x="196" y="353" class="lab-muted" text-anchor="middle">0,2</text>
+<text x="271" y="353" class="lab-muted" text-anchor="middle">0,3</text>
+<text x="346" y="353" class="lab-muted" text-anchor="middle">0,4</text>
+<text x="358" y="370" class="lab-muted lab-it" text-anchor="end">t (ms)</text>
+</svg>
+<figcaption>Régime périodique calculé exactement (\(E = 24\ \text{V}\), \(\alpha = 0{,}5\), \(f = 5\ \text{kHz}\), \(R = 1\ \Omega\), \(L = 1\ \text{mH}\), \(E_m = 9\ \text{V}\)). Le courant \(i\) croît quand \(u = E\), décroît quand \(u = 0\), et ondule de 2,4 à 3,6 A autour de \(\langle i\rangle = 3\ \text{A}\). Le transistor porte \(i\) pendant \(\alpha T\), la diode pendant \((1-\alpha)T\) : la source ne fournit du courant que pendant \(\alpha T\).</figcaption>
+</figure>
+  <div class="method-box">
+    <strong>Exemple — hacheur série et moteur (figure)</strong>
+    <p>\(E = 24\ \text{V}\), \(\alpha = 0{,}5\), \(f = 5\ \text{kHz}\) ; induit : \(R = 1\ \Omega\), \(L = 1\ \text{mH}\), f.é.m. \(E_m = 9\ \text{V}\) à la vitesse considérée.</p>
+    <ol>
+      <li>\(\langle u\rangle = 0{,}5 \times 24 = 12\ \text{V}\) ; \(\langle i\rangle = (12 - 9)/1 = 3\ \text{A}\).</li>
+      <li>Pente du courant en phase active : \((24 - 3 - 9)/10^{-3} = 12\,000\ \text{A/s}\), pendant \(\alpha T = 100\ \mu\text{s}\) : le courant monte de 1,2 A ; en roue libre, il redescend d'autant. Le calcul exact donne \(i\) entre 2,40 et 3,60 A.</li>
+      <li>Courants moyens : \(\langle i_T\rangle = \langle i_e\rangle = 1{,}5\ \text{A}\), \(\langle i_D\rangle = 1{,}5\ \text{A}\). Puissance : \(E\langle i_e\rangle = 36\ \text{W} = \langle u\rangle\langle i\rangle\), dont \(E_m\langle i\rangle = 27\ \text{W}\) convertis par la machine et 9 W de pertes Joule.</li>
+    </ol>
+  </div>
+
+  <h3>Limitation : 1 seul quadrant</h3>
+  <p>Avec le hacheur série, ni la tension moyenne ni le courant ne peuvent s'inverser : le point \((u, i)\) reste dans le quadrant 1. La machine ne peut fonctionner qu'en <strong>moteur en marche avant</strong> (quadrant 1 du plan \((C_{em}, \Omega)\) aussi) : pas de marche arrière, pas de freinage électrique avec récupération. Si la charge entraîne la machine plus vite, la f.é.m. augmente ; le courant, qui ne peut pas devenir négatif, diminue jusqu'à s'annuler une partie de la période (conduction discontinue, §5), puis tout le temps quand \(E_m\) atteint \(E\) : la machine n'oppose alors plus aucun couple de freinage.</p>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§3 · HACHEUR 2 QUADRANTS — RÉVERSIBLE EN COURANT</div>
+  <h2>Hacheur 2 quadrants : moteur ET génératrice dans un sens</h2>
+  <div class="intro">Pour faire fonctionner une machine en moteur et en génératrice dans le même sens de rotation (freinage avec récupération), on utilise un hacheur réversible en courant : la tension moyenne reste positive, le courant peut s'inverser. C'est la même cellule que le hacheur série, avec des interrupteurs à trois segments.</div>
+
+  <h3>Les 2 quadrants concernés</h3>
+  <div class="def-box">
+    Dans le plan \((u, i)\) du convertisseur :<br>
+    <strong>Quadrant 1</strong> (\(u > 0\), \(i > 0\)) : la machine reçoit de l'énergie, elle fonctionne en <strong>moteur</strong> (\(\Omega > 0\), \(C_{em} > 0\)).<br>
+    <strong>Quadrant 4</strong> (\(u > 0\), \(i \lt 0\)) : la machine renvoie de l'énergie, elle fonctionne en <strong>génératrice</strong> (\(\Omega > 0\), \(C_{em} \lt 0\) : frein avec récupération).<br>
+    Dans le plan \((C_{em}, \Omega)\) de « Machine à courant continu », ces deux régimes sont les quadrants 1 et 2.
+  </div>
+  <p>La machine tourne toujours dans le même sens (\(\Omega > 0\), donc \(E_m > 0\)), mais le couple peut s'inverser : le courant change de signe, la tension moyenne non.</p>
+<figure class="schema">
+<svg viewBox="0 0 400 294" role="img" aria-label="Hacheur réversible en courant : une cellule de deux interrupteurs, chacun formé d'un transistor et d'une diode en antiparallèle, T1 et D1 en haut, T2 et D2 en bas, point milieu A relié à l'induit dont l'autre borne est à la borne moins de la source E">
+<circle cx="46" cy="155" r="15" class="sk-ink fl-paper"/><line x1="46" y1="140" x2="46" y2="170" class="sk-ink"/><line x1="19" y1="170" x2="19" y2="140" class="sk-accent2" marker-end="url(#sk-arrow-accent2)"/><text x="13" y="160" class="lab-accent2 lab-it" text-anchor="end">E</text>
+<polyline points="46,140 46,30 150,30" class="sk-ink"/>
+<polyline points="46,170 46,280 300,280" class="sk-ink"/>
+<polyline points="150,30 150,80.5" class="sk-ink"/>
+<rect x="137" y="80.5" width="26" height="24" rx="3" class="sk-ink fl-paper"/><line x1="142" y1="99.5" x2="158" y2="85.5" class="sk-ink" style="stroke-width:1.2"/><text x="132" y="97.5" class="lab-it" text-anchor="end">T<tspan dy="4" font-size="12">1</tspan></text>
+<polyline points="150,104.5 150,155" class="sk-ink"/>
+<polyline points="150,70.5 176,70.5 176,83.5" class="sk-ink"/>
+<path d="M167,97.9 L185,97.9 L176,87.1 Z" class="sk-ink fl-paper"/><line x1="167" y1="87.1" x2="185" y2="87.1" class="sk-ink"/><text x="190" y="97.5" class="lab-it">D<tspan dy="4" font-size="12">1</tspan></text>
+<polyline points="176,101.5 176,114.5 150,114.5" class="sk-ink"/>
+<polyline points="150,155 150,205.5" class="sk-ink"/>
+<rect x="137" y="205.5" width="26" height="24" rx="3" class="sk-ink fl-paper"/><line x1="142" y1="224.5" x2="158" y2="210.5" class="sk-ink" style="stroke-width:1.2"/><text x="132" y="222.5" class="lab-it" text-anchor="end">T<tspan dy="4" font-size="12">2</tspan></text>
+<polyline points="150,229.5 150,280" class="sk-ink"/>
+<polyline points="150,195.5 176,195.5 176,208.5" class="sk-ink"/>
+<path d="M167,222.9 L185,222.9 L176,212.1 Z" class="sk-ink fl-paper"/><line x1="167" y1="212.1" x2="185" y2="212.1" class="sk-ink"/><text x="190" y="222.5" class="lab-it">D<tspan dy="4" font-size="12">2</tspan></text>
+<polyline points="176,226.5 176,239.5 150,239.5" class="sk-ink"/>
+<circle cx="150" cy="155" r="2.8" class="fl-ink"/>
+<text x="140" y="159" class="lab-b" text-anchor="end">A</text>
+<polyline points="150,155 300,155 300,161" class="sk-ink"/>
+<polyline points="300,161 300,169" class="sk-ink"/>
+<path d="M300,169.0 a6,6 0 0 1 0,12 a6,6 0 0 1 0,12 a6,6 0 0 1 0,12" class="sk-ink"/>
+<text x="312" y="191" class="lab-it">L</text>
+<polyline points="300,205 300,215" class="sk-ink"/>
+<rect x="294" y="215.0" width="12" height="26" class="sk-ink fl-paper"/>
+<text x="312" y="233" class="lab-it">R</text>
+<polyline points="300,241 300,251" class="sk-ink"/>
+<circle cx="300" cy="265.0" r="14" class="sk-ink fl-paper"/>
+<line x1="300" y1="251.0" x2="300" y2="279.0" class="sk-ink"/>
+<line x1="324" y1="277" x2="324" y2="253" class="sk-accent2" marker-end="url(#sk-arrow-accent2)"/>
+<text x="330" y="270" class="lab-accent2 lab-it">E<tspan dy="4" font-size="12">m</tspan></text>
+<polyline points="300,279 300,280" class="sk-ink"/>
+<line x1="220" y1="155" x2="250" y2="155" class="sk-accent" marker-end="url(#sk-arrow-accent)"/>
+<text x="235" y="147" class="lab-accent lab-it" text-anchor="middle">i</text>
+<line x1="262" y1="274" x2="262" y2="165" class="sk-accent2" marker-end="url(#sk-arrow-accent2)"/>
+<text x="256" y="266" class="lab-accent2 lab-it" text-anchor="end">u</text>
+</svg>
+<figcaption>Hacheur réversible en courant : la même cellule que le hacheur série, mais chaque interrupteur est un transistor avec sa diode antiparallèle (trois segments). \(u \in \{0, E\}\) reste positive ; le courant \(i\) peut prendre les deux signes.</figcaption>
+</figure>
+  <h3>Réalisation : interrupteurs réversibles en courant</h3>
+  <p>Chaque interrupteur est un transistor avec une diode en antiparallèle : il conduit un courant des deux signes et bloque une tension positive (trois segments). La cellule comporte \(T_1\), \(D_1\) en haut et \(T_2\), \(D_2\) en bas. Ce n'est pas le signe de la commande mais celui du courant qui décide lequel, du transistor ou de sa diode, conduit.</p>
+  <div class="prop-box">
+    <strong>Fonctionnement moteur (quadrant 1) — \(i > 0\) :</strong> \(T_1\) et \(D_2\) travaillent, comme dans un hacheur série : \(T_1\) passant, \(u = E\) ; \(D_2\) passante, \(u = 0\). \(T_2\) et \(D_1\) ne conduisent pas.
+  </div>
+  <div class="prop-box">
+    <strong>Fonctionnement génératrice (quadrant 4) — \(i \lt 0\) :</strong> \(T_2\) et \(D_1\) travaillent.
+    <ul style="margin-top:0.3rem">
+      <li>\(T_2\) passant : \(u = 0\) ; la f.é.m. \(E_m\) fait croître \(|i|\) à travers \(T_2\), l'inductance stocke de l'énergie prise à la machine ;</li>
+      <li>\(T_2\) bloqué : le courant ne peut pas s'interrompre, il passe par \(D_1\) : \(u = E\), et il entre dans la source par sa borne + : <strong>c'est pendant cette phase que l'énergie est renvoyée à la source</strong>.</li>
+    </ul>
+    Vu de la machine, \(T_2\) et \(D_1\) forment un hacheur élévateur : il fait passer l'énergie d'une f.é.m. \(E_m \lt E\) vers la source de tension plus élevée \(E\).
+  </div>
+  <h3>Commande complémentaire : une réversibilité naturelle</h3>
+  <p>En pratique, on commande \(T_1\) pendant \(\alpha T\) et \(T_2\) pendant le reste de la période (en ménageant un temps mort). Alors \(u = E\) pendant \(\alpha T\) et \(u = 0\) ensuite, <em>quel que soit le signe du courant</em> : \(\langle u\rangle = \alpha E\) dans tous les cas, et</p>
+  <div class="formula">$$\langle i\rangle = \frac{\alpha E - E_m}{R}$$</div>
+  <p>est positif (moteur) si \(\alpha E \gt E_m\), négatif (frein) si \(\alpha E \lt E_m\). Pour freiner, il suffit de baisser \(\alpha\) : le convertisseur passe seul d'un quadrant à l'autre, sans changer de commande.</p>
+<figure class="schema">
+<svg viewBox="0 0 380 268" role="img" aria-label="Chronogrammes calculés du hacheur réversible en courant en freinage : tension u en créneaux entre 0 et 24 volts, courant i négatif entre moins 4,1 et moins 3,0 ampères ; la diode D1 conduit pendant que u vaut E, le transistor T2 ensuite">
+<line x1="121" y1="22" x2="121" y2="84" class="sk-axis" style="opacity:.35"/>
+<line x1="196" y1="22" x2="196" y2="84" class="sk-axis" style="opacity:.35"/>
+<line x1="271" y1="22" x2="271" y2="84" class="sk-axis" style="opacity:.35"/>
+<line x1="121" y1="120" x2="121" y2="216" class="sk-axis" style="opacity:.35"/>
+<line x1="196" y1="120" x2="196" y2="216" class="sk-axis" style="opacity:.35"/>
+<line x1="271" y1="120" x2="271" y2="216" class="sk-axis" style="opacity:.35"/>
+<line x1="46" y1="84" x2="358" y2="84" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<line x1="46" y1="84" x2="46" y2="10" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<text x="54" y="18" class="lab-muted lab-it">u (V)</text>
+<text x="39" y="63.2" class="lab-muted" text-anchor="end">12</text>
+<text x="39" y="38.4" class="lab-muted" text-anchor="end">24</text>
+<polyline points="46,34.4 51.8,34.4 57.7,34.4 63.5,34.4 69.3,34.4 75.2,34.4 81,34.4 86.8,34.4 92.7,34.4 98.5,34.4 98.5,84 109.3,84 120.2,84 131,84 141.8,84 152.7,84 163.5,84 174.3,84 185.2,84 196,84 196,34.4 201.8,34.4 207.7,34.4 213.5,34.4 219.3,34.4 225.2,34.4 231,34.4 236.8,34.4 242.7,34.4 248.5,34.4 248.5,84 259.3,84 270.2,84 281,84 291.8,84 302.7,84 313.5,84 324.3,84 335.2,84 346,84" class="sk-accent2"/>
+<line x1="46" y1="120" x2="358" y2="120" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<line x1="46" y1="216" x2="46" y2="110" class="sk-axis"/>
+<text x="54" y="136" class="lab-muted lab-it">i (A)</text>
+<line x1="42" y1="158.4" x2="46" y2="158.4" class="sk-axis"/>
+<text x="39" y="162.4" class="lab-muted" text-anchor="end">−2</text>
+<line x1="42" y1="196.8" x2="46" y2="196.8" class="sk-axis"/>
+<text x="39" y="200.8" class="lab-muted" text-anchor="end">−4</text>
+<polyline points="46,199.5 51.8,197.1 57.7,194.7 63.5,192.3 69.3,190 75.2,187.7 81,185.4 86.8,183.1 92.7,180.8 98.5,178.5 98.5,178.5 109.3,181 120.2,183.4 131,185.8 141.8,188.2 152.7,190.5 163.5,192.8 174.3,195.1 185.2,197.3 196,199.5 196,199.5 201.8,197.1 207.7,194.7 213.5,192.3 219.3,190 225.2,187.7 231,185.4 236.8,183.1 242.7,180.8 248.5,178.5 248.5,178.5 259.3,181 270.2,183.4 281,185.8 291.8,188.2 302.7,190.5 313.5,192.8 324.3,195.1 335.2,197.3 346,199.5" class="sk-accent"/>
+<text x="72.2" y="211.2" class="lab-green lab-b" text-anchor="middle">D<tspan dy="4" font-size="12">1</tspan></text>
+<text x="147.2" y="211.2" class="lab-b" text-anchor="middle">T<tspan dy="4" font-size="12">2</tspan></text>
+<text x="222.2" y="211.2" class="lab-green lab-b" text-anchor="middle">D<tspan dy="4" font-size="12">1</tspan></text>
+<text x="297.2" y="211.2" class="lab-b" text-anchor="middle">T<tspan dy="4" font-size="12">2</tspan></text>
+<text x="121" y="233" class="lab-muted" text-anchor="middle">0,1</text>
+<text x="196" y="233" class="lab-muted" text-anchor="middle">0,2</text>
+<text x="271" y="233" class="lab-muted" text-anchor="middle">0,3</text>
+<text x="346" y="233" class="lab-muted" text-anchor="middle">0,4</text>
+<text x="358" y="250" class="lab-muted lab-it" text-anchor="end">t (ms)</text>
+</svg>
+<figcaption>Freinage avec récupération (\(E = 24\ \text{V}\), \(\alpha = 0{,}35\), \(f = 5\ \text{kHz}\), \(R = 1\ \Omega\), \(L = 1\ \text{mH}\), \(E_m = 12\ \text{V}\)) : \(\langle u\rangle = 8{,}4\ \text{V} \lt E_m\), donc \(\langle i\rangle = -3{,}6\ \text{A}\). Quand \(T_2\) conduit (\(u = 0\)), la f.é.m. fait croître \(|i|\) et l'inductance stocke de l'énergie ; quand \(T_2\) s'ouvre, le courant passe par \(D_1\) (\(u = E\)) et entre dans la source par sa borne + : c'est pendant cette phase que l'énergie est renvoyée.</figcaption>
+</figure>
+  <div class="method-box">
+    <strong>Exemple — freinage avec récupération</strong>
+    <p>Batterie \(E = 48\ \text{V}\) ; machine : \(R = 0{,}5\ \Omega\), \(E_m = 30\ \text{V}\) à la vitesse considérée. On veut un courant de freinage \(\langle i\rangle = -8\ \text{A}\).</p>
+    <ol>
+      <li>Tension moyenne : \(\langle u\rangle = E_m + R\langle i\rangle = 30 - 4 = 26\ \text{V}\), d'où \(\alpha = 26/48 = 0{,}54\).</li>
+      <li>Puissance convertie par la machine (fournie par la charge et l'inertie) : \(-E_m\langle i\rangle = 240\ \text{W}\) ; pertes Joule \(R\langle i\rangle^2 = 32\ \text{W}\) ; puissance reçue par la batterie : \(-\langle u\rangle\langle i\rangle = 208\ \text{W}\).</li>
+      <li>La batterie doit accepter ce courant de charge. Une source non réversible (redresseur à diodes, par exemple) imposerait une résistance de freinage qui dissipe ces 208 W.</li>
+    </ol>
+  </div>
+  <div class="notice"><strong>Erreur classique</strong> : croire que l'énergie revient à la source quand le transistor du bas conduit. Pendant cette phase, \(u = 0\) : la source est isolée et l'énergie s'accumule dans l'inductance ; c'est quand \(T_2\) s'ouvre que le courant, forcé à passer par \(D_1\), entre dans la source.</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§4 · HACHEUR 4 QUADRANTS — PONT EN H</div>
+  <h2>Hacheur 4 quadrants : les deux sens et les deux modes</h2>
+  <div class="intro">Pour faire fonctionner une machine dans les deux sens de rotation, en moteur et en génératrice, il faut une tension moyenne et un courant des deux signes : hacheur 4 quadrants, ou pont en H, réversible en courant et en tension. C'est la structure la plus complète, celle des axes de robots, des véhicules et de nombreux variateurs.</div>
+
+  <h3>Structure du pont en H</h3>
+  <p>Deux cellules de commutation (deux <strong>bras</strong>), chacune de deux interrupteurs à trois segments : \(T_1\)/\(D_1\) et \(T_2\)/\(D_2\) pour le bras A, \(T_3\)/\(D_3\) et \(T_4\)/\(D_4\) pour le bras B. La charge est branchée entre les points milieux : \(u = v_A - v_B\).</p>
+<figure class="schema">
+<svg viewBox="0 0 420 236" role="img" aria-label="Hacheur en pont en H : deux bras de deux interrupteurs, transistors T1 et T2 avec leurs diodes D1 et D2 pour le bras A, T3 et T4 avec D3 et D4 pour le bras B, la charge inductive avec sa force électromotrice entre les points milieux A et B ; tension u égale à vA moins vB">
+<circle cx="46" cy="125" r="15" class="sk-ink fl-paper"/><line x1="46" y1="110" x2="46" y2="140" class="sk-ink"/><line x1="19" y1="140" x2="19" y2="110" class="sk-accent2" marker-end="url(#sk-arrow-accent2)"/><text x="13" y="130" class="lab-accent2 lab-it" text-anchor="end">E</text>
+<polyline points="46,110 46,30 330,30" class="sk-ink"/>
+<polyline points="46,140 46,220 330,220" class="sk-ink"/>
+<polyline points="130,30 130,65.5" class="sk-ink"/>
+<rect x="117" y="65.5" width="26" height="24" rx="3" class="sk-ink fl-paper"/><line x1="122" y1="84.5" x2="138" y2="70.5" class="sk-ink" style="stroke-width:1.2"/><text x="112" y="82.5" class="lab-it" text-anchor="end">T<tspan dy="4" font-size="12">1</tspan></text>
+<polyline points="130,89.5 130,125" class="sk-ink"/>
+<polyline points="130,55.5 156,55.5 156,68.5" class="sk-ink"/>
+<path d="M147,82.9 L165,82.9 L156,72.1 Z" class="sk-ink fl-paper"/><line x1="147" y1="72.1" x2="165" y2="72.1" class="sk-ink"/><text x="170" y="82.5" class="lab-it">D<tspan dy="4" font-size="12">1</tspan></text>
+<polyline points="156,86.5 156,99.5 130,99.5" class="sk-ink"/>
+<polyline points="130,125 130,160.5" class="sk-ink"/>
+<rect x="117" y="160.5" width="26" height="24" rx="3" class="sk-ink fl-paper"/><line x1="122" y1="179.5" x2="138" y2="165.5" class="sk-ink" style="stroke-width:1.2"/><text x="112" y="177.5" class="lab-it" text-anchor="end">T<tspan dy="4" font-size="12">2</tspan></text>
+<polyline points="130,184.5 130,220" class="sk-ink"/>
+<polyline points="130,150.5 156,150.5 156,163.5" class="sk-ink"/>
+<path d="M147,177.9 L165,177.9 L156,167.1 Z" class="sk-ink fl-paper"/><line x1="147" y1="167.1" x2="165" y2="167.1" class="sk-ink"/><text x="170" y="177.5" class="lab-it">D<tspan dy="4" font-size="12">2</tspan></text>
+<polyline points="156,181.5 156,194.5 130,194.5" class="sk-ink"/>
+<circle cx="130" cy="125" r="2.8" class="fl-ink"/>
+<polyline points="330,30 330,65.5" class="sk-ink"/>
+<rect x="317" y="65.5" width="26" height="24" rx="3" class="sk-ink fl-paper"/><line x1="322" y1="84.5" x2="338" y2="70.5" class="sk-ink" style="stroke-width:1.2"/><text x="312" y="82.5" class="lab-it" text-anchor="end">T<tspan dy="4" font-size="12">3</tspan></text>
+<polyline points="330,89.5 330,125" class="sk-ink"/>
+<polyline points="330,55.5 356,55.5 356,68.5" class="sk-ink"/>
+<path d="M347,82.9 L365,82.9 L356,72.1 Z" class="sk-ink fl-paper"/><line x1="347" y1="72.1" x2="365" y2="72.1" class="sk-ink"/><text x="370" y="82.5" class="lab-it">D<tspan dy="4" font-size="12">3</tspan></text>
+<polyline points="356,86.5 356,99.5 330,99.5" class="sk-ink"/>
+<polyline points="330,125 330,160.5" class="sk-ink"/>
+<rect x="317" y="160.5" width="26" height="24" rx="3" class="sk-ink fl-paper"/><line x1="322" y1="179.5" x2="338" y2="165.5" class="sk-ink" style="stroke-width:1.2"/><text x="312" y="177.5" class="lab-it" text-anchor="end">T<tspan dy="4" font-size="12">4</tspan></text>
+<polyline points="330,184.5 330,220" class="sk-ink"/>
+<polyline points="330,150.5 356,150.5 356,163.5" class="sk-ink"/>
+<path d="M347,177.9 L365,177.9 L356,167.1 Z" class="sk-ink fl-paper"/><line x1="347" y1="167.1" x2="365" y2="167.1" class="sk-ink"/><text x="370" y="177.5" class="lab-it">D<tspan dy="4" font-size="12">4</tspan></text>
+<polyline points="356,181.5 356,194.5 330,194.5" class="sk-ink"/>
+<circle cx="330" cy="125" r="2.8" class="fl-ink"/>
+<text x="122" y="119" class="lab-b" text-anchor="end">A</text>
+<text x="338" y="119" class="lab-b">B</text>
+<polyline points="130,125 196,125" class="sk-ink"/>
+<path d="M196,125.0 a6,6 0 0 1 12,0 a6,6 0 0 1 12,0 a6,6 0 0 1 12,0" class="sk-ink"/>
+<polyline points="232,125 240,125" class="sk-ink"/>
+<rect x="240" y="119.0" width="24" height="12" class="sk-ink fl-paper"/>
+<polyline points="264,125 272,125" class="sk-ink"/>
+<circle cx="286" cy="125.0" r="13" class="sk-ink fl-paper"/>
+<line x1="273" y1="125.0" x2="299" y2="125.0" class="sk-ink"/>
+<polyline points="299,125 330,125" class="sk-ink"/>
+<text x="214" y="113" class="lab-it" text-anchor="middle">L</text>
+<text x="252" y="113" class="lab-it" text-anchor="middle">R</text>
+<text x="286" y="107" class="lab-it" text-anchor="middle">E<tspan dy="4" font-size="12">m</tspan></text>
+<line x1="160" y1="125" x2="186" y2="125" class="sk-accent" marker-end="url(#sk-arrow-accent)"/>
+<text x="173" y="117" class="lab-accent lab-it" text-anchor="middle">i</text>
+<line x1="312" y1="159" x2="176" y2="159" class="sk-accent2" marker-end="url(#sk-arrow-accent2)"/>
+<text x="244" y="177" class="lab-accent2" text-anchor="middle">u = v<tspan dy="4" font-size="12">A</tspan><tspan dy="-4"> </tspan> − v<tspan dy="4" font-size="12">B</tspan></text>
+</svg>
+<figcaption>Pont en H : deux cellules de commutation (bras A et B), quatre interrupteurs à trois segments. \(T_1\), \(T_3\) en haut, \(T_2\), \(T_4\) en bas ; dans « Convertisseurs statiques » (§7), les mêmes interrupteurs s'appellent \(K_1\), \(K_1'\) (bras A) et \(K_2\), \(K_2'\) (bras B). Deux interrupteurs d'un même bras ne sont jamais fermés ensemble.</figcaption>
+</figure>
+  <ul>
+    <li>\(T_1\) fermé et \(T_4\) fermé : \(u = +E\) ; \(T_2\) et \(T_3\) fermés : \(u = -E\) ;</li>
+    <li>\(T_1\) et \(T_3\) fermés (ou \(T_2\) et \(T_4\)) : les deux bornes de la charge sont au même potentiel, \(u = 0\) (roue libre) ;</li>
+    <li>jamais \(T_1\) et \(T_2\) ensemble (ni \(T_3\) et \(T_4\)) : ce serait court-circuiter la source.</li>
+  </ul>
+
+  <h3>Commande bipolaire (ou continue)</h3>
+  <p>On commande la diagonale \(T_1\), \(T_4\) pendant \(\alpha T\), puis la diagonale \(T_2\), \(T_3\) pendant le reste de la période. Selon le signe du courant, ce sont les transistors ou leurs diodes qui conduisent, mais la tension vaut \(+E\) puis \(-E\) dans tous les cas :</p>
+  <div class="formula" data-nom="Pont en H, commande bipolaire">$$\langle u\rangle = \alpha E - (1-\alpha)E = (2\alpha - 1)\,E$$</div>
+<figure class="schema">
+<svg viewBox="0 0 360 196" role="img" aria-label="Commande bipolaire du pont en H : tension u égale à plus E pendant alpha T, moins E pendant le reste de la période ; sa valeur moyenne 2 alpha moins 1 fois E est tracée en pointillés">
+<line x1="40" y1="94" x2="342" y2="94" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<line x1="40" y1="164" x2="40" y2="14" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<polyline points="40,94 40,38 107.7,38 107.7,150 136.7,150 136.7,38 204.3,38 204.3,150 233.3,150 233.3,38 301,38 301,150 330,150" class="sk-accent"/>
+<line x1="40" y1="71.6" x2="330" y2="71.6" class="sk-accent2" style="stroke-dasharray:6 4"/>
+<text x="330" y="16" class="lab-accent2" text-anchor="end">- - ⟨u⟩ = (2α − 1)E</text>
+<text x="34" y="43" class="lab-it" text-anchor="end">E</text>
+<text x="34" y="155" class="lab-it" text-anchor="end">−E</text>
+<text x="48" y="18" class="lab-muted lab-it">u</text>
+<text x="344" y="99" class="lab-muted lab-it">t</text>
+<text x="73.8" y="27" class="lab-muted" text-anchor="middle">T<tspan dy="4" font-size="12">1</tspan><tspan dy="-4">, </tspan>T<tspan dy="4" font-size="12">4</tspan></text>
+<text x="122.2" y="167" class="lab-muted" text-anchor="middle">T<tspan dy="4" font-size="12">2</tspan><tspan dy="-4">, </tspan>T<tspan dy="4" font-size="12">3</tspan></text>
+</svg>
+<figcaption>Commande bipolaire (\(\alpha = 0{,}7\)) : la diagonale \(T_1, T_4\) est commandée pendant \(\alpha T\) (\(u = +E\)), la diagonale \(T_2, T_3\) pendant le reste (\(u = -E\)), que le courant passe par les transistors ou par leurs diodes. \(\langle u\rangle = (2\alpha - 1)E\) varie continûment de \(-E\) à \(+E\).</figcaption>
+</figure>
+  <p>\(\alpha = 1/2\) donne \(\langle u\rangle = 0\) ; \(\alpha > 1/2\), marche avant ; \(\alpha \lt 1/2\), marche arrière. La tension moyenne et le courant changent de signe sans aucun changement de commande : les quatre quadrants sont parcourus continûment, ce qui convient aux asservissements rapides. Contrepartie : la tension saute de \(2E\) à chaque commutation, d'où une ondulation de courant deux fois plus grande qu'en commande unipolaire (§5).</p>
+
+  <h3>Commande séquentielle (ou unipolaire)</h3>
+  <p>On ne fait travailler qu'un bras à la fois : un interrupteur d'<strong>aiguillage</strong>, fermé en permanence, fixe le signe de \(u\) ; un interrupteur de <strong>hachage</strong>, commuté à la fréquence \(f\), règle la valeur moyenne. La tension vaut \(\pm E\) pendant une fraction de la période, 0 pendant le reste : le pont fonctionne comme un hacheur série (ou élévateur), et \(|\langle u\rangle| = \alpha E\), \(\alpha\) étant la fraction de période où \(u \neq 0\).</p>
+  <div style="overflow-x:auto"><table>
+    <tr><th>Quadrant du plan \((u, i)\)</th><th>Régime de la machine</th><th>Aiguillage</th><th>Hachage</th><th>Phase \(u \neq 0\)</th><th>Phase \(u = 0\)</th></tr>
+    <tr><td>Q1 : \(u > 0\), \(i > 0\)</td><td>moteur, marche avant</td><td>\(T_1\)</td><td>\(T_4\)</td><td>\(T_1 + T_4\) : \(u = E\)</td><td>\(T_1 + D_3\)</td></tr>
+    <tr><td>Q2 : \(u \lt 0\), \(i > 0\)</td><td>frein, marche arrière</td><td>\(T_3\)</td><td>\(T_1\)</td><td>\(D_2 + D_3\) : \(u = -E\)</td><td>\(T_1 + D_3\)</td></tr>
+    <tr><td>Q3 : \(u \lt 0\), \(i \lt 0\)</td><td>moteur, marche arrière</td><td>\(T_3\)</td><td>\(T_2\)</td><td>\(T_2 + T_3\) : \(u = -E\)</td><td>\(T_3 + D_1\)</td></tr>
+    <tr><td>Q4 : \(u > 0\), \(i \lt 0\)</td><td>frein, marche avant</td><td>\(T_1\)</td><td>\(T_3\)</td><td>\(D_1 + D_4\) : \(u = E\)</td><td>\(T_3 + D_1\)</td></tr>
+  </table></div>
+  <p>Dans les quadrants de freinage (Q2, Q4), ce sont deux diodes qui conduisent pendant la phase \(u \neq 0\) : le courant entre dans la source par sa borne +, l'énergie est renvoyée. L'aiguillage y est fermé sans conduire, prêt à reprendre le courant s'il change de signe.</p>
+  <div class="def-box">
+    <strong>Avantages de la commande séquentielle</strong> : chaque phase se ramène à un hacheur série ou élévateur, ondulation plus faible.<br>
+    <strong>Inconvénient</strong> : pour changer de quadrant, il faut changer d'aiguillage, donc détecter le signe du courant ou de la tension voulue : la commande est plus lente et moins simple autour de \(\langle u\rangle = 0\).
+  </div>
+  <div class="method-box">
+    <strong>Exemple — marche arrière sous 20 V avec une batterie de 48 V</strong>
+    <ol>
+      <li>Commande bipolaire : \((2\alpha - 1) \times 48 = -20\) donne \(\alpha = \dfrac{1 - 20/48}{2} = 0{,}29\) (la diagonale \(T_1\), \(T_4\) n'est commandée que 29 % du temps).</li>
+      <li>Commande séquentielle : aiguillage \(T_3\), hachage \(T_2\) (si la machine est motrice, \(i \lt 0\)) ; \(u = -48\ \text{V}\) pendant la fraction \(20/48 = 0{,}42\) de la période, 0 ensuite.</li>
+    </ol>
+  </div>
+  <div class="notice"><strong>Variante à deux quadrants</strong> : si le courant garde toujours le même signe mais que la tension doit s'inverser (treuil qui lève puis retient une charge), deux transistors (\(T_1\), \(T_4\)) et deux diodes (\(D_2\), \(D_3\)) en diagonale suffisent : c'est le pont asymétrique, réversible en tension (« Convertisseurs statiques », §7, exemple du monte-charge).</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§5 · ONDULATION DU COURANT ET CHOIX DE L'INDUCTANCE</div>
+  <h2>Combien le courant ondule-t-il ?</h2>
+  <div class="intro">Le découpage fait onduler le courant autour de sa valeur moyenne. Une ondulation trop forte fait vibrer le couple, échauffe la machine et peut annuler le courant ; on la limite par la fréquence de découpage et par l'inductance. (Vu en avance : l'ondulation dans les convertisseurs est au programme du semestre S3.)</div>
+  <div class="prop-box">
+    <strong>Ondulation du courant d'un hacheur série</strong> (crête à crête). Si la période est petite devant la constante de temps \(L/R\) de la charge, le courant varie presque linéairement dans chaque phase et
+    <div class="formula" data-nom="Ondulation du courant d'un hacheur série">$$\Delta i = i_{max} - i_{min} \approx \frac{\alpha\,(1 - \alpha)\,E}{L\,f}$$</div>
+    Elle est maximale pour \(\alpha = 1/2\) : \(\Delta i_{max} = \dfrac{E}{4Lf}\). En commande bipolaire d'un pont en H, la tension saute de \(2E\) : \(\Delta i \approx \dfrac{2\alpha(1-\alpha)\,E}{Lf}\), maximale et égale à \(\dfrac{E}{2Lf}\) pour \(\alpha = 1/2\).
+  </div>
+  <div class="reveal" onclick="this.classList.toggle('open')">
+    <span class="label">Démonstration</span>
+    <span class="prompt">Variation du courant pendant la phase active</span>
+    <div class="content">
+      <p>Pendant \(\alpha T\), \(L\,\dfrac{\mathrm{d}i}{\mathrm{d}t} = E - Ri - E_m\). Si l'ondulation est petite, \(Ri \approx R\langle i\rangle\) et, d'après la relation en valeurs moyennes, \(R\langle i\rangle + E_m = \alpha E\). La pente vaut donc \(\dfrac{E - \alpha E}{L}\), constante, et pendant \(\alpha T = \alpha/f\) le courant augmente de \(\Delta i = \dfrac{(1 - \alpha)E}{L}\cdot\dfrac{\alpha}{f}\). Pendant la roue libre, la pente vaut \(-\alpha E/L\) pendant \((1-\alpha)/f\) : le courant redescend exactement d'autant, ce qui confirme le régime périodique. En commande bipolaire, la phase active fait passer \(u\) de \((2\alpha - 1)E\) en moyenne à \(E\) : la pente est \(\dfrac{2(1-\alpha)E}{L}\), d'où le facteur 2.</p>
+    </div>
+  </div>
+<figure class="schema">
+<svg viewBox="0 0 380 206" role="img" aria-label="Ondulation réduite du courant d'un hacheur série en fonction du rapport cyclique : parabole nulle en 0 et en 1, maximale et égale à un quart pour alpha égal à un demi">
+<line x1="112" y1="24" x2="112" y2="174" class="sk-axis" style="opacity:.35"/>
+<line x1="168" y1="24" x2="168" y2="174" class="sk-axis" style="opacity:.35"/>
+<line x1="224" y1="24" x2="224" y2="174" class="sk-axis" style="opacity:.35"/>
+<line x1="280" y1="24" x2="280" y2="174" class="sk-axis" style="opacity:.35"/>
+<line x1="56" y1="124" x2="336" y2="124" class="sk-axis" style="opacity:.35"/>
+<line x1="56" y1="74" x2="336" y2="74" class="sk-axis" style="opacity:.35"/>
+<line x1="56" y1="174" x2="348" y2="174" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<line x1="56" y1="174" x2="56" y2="12" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<polyline points="56,174 57.4,171.5 58.8,169.1 60.2,166.6 61.6,164.2 63,161.8 64.4,159.4 65.8,157.1 67.2,154.8 68.6,152.5 70,150.2 71.4,148 72.8,145.8 74.2,143.6 75.6,141.4 77,139.3 78.4,137.2 79.8,135.1 81.2,133.1 82.6,131 84,129 85.4,127 86.8,125 88.2,123.1 89.6,121.2 91,119.3 92.4,117.4 93.8,115.6 95.2,113.8 96.6,112 98,110.2 99.4,108.5 100.8,106.8 102.2,105.1 103.6,103.4 105,101.8 106.4,100.2 107.8,98.6 109.2,97 110.6,95.5 112,94 113.4,92.5 114.8,91 116.2,89.6 117.6,88.2 119,86.8 120.4,85.4 121.8,84.1 123.2,82.8 124.6,81.5 126,80.2 127.4,79 128.8,77.8 130.2,76.6 131.6,75.4 133,74.3 134.4,73.2 135.8,72.1 137.2,71.1 138.6,70 140,69 141.4,68 142.8,67.1 144.2,66.1 145.6,65.2 147,64.3 148.4,63.5 149.8,62.6 151.2,61.8 152.6,61 154,60.2 155.4,59.5 156.8,58.8 158.2,58.1 159.6,57.5 161,56.8 162.4,56.2 163.8,55.6 165.2,55 166.6,54.5 168,54 169.4,53.5 170.8,53 172.2,52.6 173.6,52.2 175,51.8 176.4,51.4 177.8,51.1 179.2,50.8 180.6,50.5 182,50.2 183.4,50 184.8,49.8 186.2,49.6 187.6,49.4 189,49.3 190.4,49.2 191.8,49.1 193.2,49 194.6,49 196,49 197.4,49 198.8,49 200.2,49.1 201.6,49.2 203,49.3 204.4,49.4 205.8,49.6 207.2,49.8 208.6,50 210,50.2 211.4,50.5 212.8,50.8 214.2,51.1 215.6,51.5 217,51.8 218.4,52.2 219.8,52.6 221.2,53 222.6,53.5 224,54 225.4,54.5 226.8,55 228.2,55.6 229.6,56.2 231,56.8 232.4,57.5 233.8,58.1 235.2,58.8 236.6,59.5 238,60.2 239.4,61 240.8,61.8 242.2,62.6 243.6,63.5 245,64.3 246.4,65.2 247.8,66.1 249.2,67.1 250.6,68 252,69 253.4,70 254.8,71 256.2,72.1 257.6,73.2 259,74.3 260.4,75.4 261.8,76.6 263.2,77.8 264.6,79 266,80.2 267.4,81.5 268.8,82.8 270.2,84.1 271.6,85.5 273,86.8 274.4,88.2 275.8,89.6 277.2,91 278.6,92.5 280,94 281.4,95.5 282.8,97.1 284.2,98.6 285.6,100.2 287,101.8 288.4,103.5 289.8,105.1 291.2,106.8 292.6,108.5 294,110.2 295.4,112 296.8,113.8 298.2,115.6 299.6,117.4 301,119.3 302.4,121.2 303.8,123.1 305.2,125.1 306.6,127 308,129 309.4,131 310.8,133.1 312.2,135.1 313.6,137.2 315,139.3 316.4,141.5 317.8,143.6 319.2,145.8 320.6,148 322,150.3 323.4,152.5 324.8,154.8 326.2,157.1 327.6,159.4 329,161.8 330.4,164.2 331.8,166.6 333.2,169 334.6,171.5 336,174" class="sk-accent"/>
+<line x1="196" y1="174" x2="196" y2="49" class="sk-dash"/>
+<circle cx="196" cy="49" r="3.2" class="fl-accent"/>
+<text x="196" y="40" class="lab-accent" text-anchor="middle">maximum 1/4 en α = 1/2</text>
+<text x="112" y="191" class="lab-muted" text-anchor="middle">0,2</text>
+<text x="168" y="191" class="lab-muted" text-anchor="middle">0,4</text>
+<text x="224" y="191" class="lab-muted" text-anchor="middle">0,6</text>
+<text x="280" y="191" class="lab-muted" text-anchor="middle">0,8</text>
+<text x="336" y="191" class="lab-muted" text-anchor="middle">1,0</text>
+<text x="49" y="128" class="lab-muted" text-anchor="end">0,1</text>
+<text x="49" y="78" class="lab-muted" text-anchor="end">0,2</text>
+<text x="350" y="179" class="lab-muted lab-it">α</text>
+<text x="64" y="18" class="lab-muted lab-it">Δi · L f / E</text>
+</svg>
+<figcaption>Ondulation crête à crête du courant d'un hacheur série, réduite par \(E/(Lf)\) : \(\Delta i\,\dfrac{Lf}{E} = \alpha(1-\alpha)\). Elle est nulle pour \(\alpha = 0\) et \(\alpha = 1\) (tension continue) et maximale à mi-course : c'est le cas le plus défavorable, celui qui sert à choisir \(L\).</figcaption>
+</figure>
+  <div class="method-box">
+    <strong>Exemple — choisir l'inductance de lissage</strong>
+    <p>Hacheur série, \(E = 48\ \text{V}\), \(f = 10\ \text{kHz}\). On veut \(\Delta i \leq 1\ \text{A}\) quel que soit \(\alpha\). L'induit a une inductance de 0,5 mH.</p>
+    <ol>
+      <li>Cas le plus défavorable, \(\alpha = 1/2\) : \(\dfrac{E}{4Lf} \leq 1\) impose \(L \geq \dfrac{48}{4 \times 10^4 \times 1} = 1{,}2\ \text{mH}\).</li>
+      <li>L'induit n'en fournit que 0,5 mH : on ajoute en série une inductance de lissage d'au moins 0,7 mH, ou l'on double la fréquence de découpage (\(L \geq 0{,}6\ \text{mH}\) suffirait alors, presque l'inductance de l'induit).</li>
+      <li>Contrôle de l'hypothèse : il faut \(T = 100\ \mu\text{s}\) petit devant \(L/R\) ; avec \(R = 0{,}5\ \Omega\) et \(L = 1{,}2\ \text{mH}\), \(L/R = 2{,}4\ \text{ms}\), 24 fois plus. (Règle pratique souvent citée : \(f \gt 10\,R/L\).)</li>
+    </ol>
+  </div>
+  <div class="notice"><strong>Conduction discontinue</strong> : avec un hacheur série, si \(\langle i\rangle \lt \Delta i/2\), le courant s'annule avant la fin de la période ; la diode se bloque, la tension \(u\) prend la valeur \(E_m\) et la relation \(\langle u\rangle = \alpha E\) n'est plus vraie (hors programme). C'est le cas à vide, pour un moteur peu chargé. Le hacheur réversible en courant à commande complémentaire n'a pas ce défaut : le courant change simplement de signe.</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§6 · COMMANDE PAR MODULATION DE LARGEUR D'IMPULSION</div>
+  <h2>Du signal de commande au rapport cyclique</h2>
+  <div class="intro">La chaîne d'information calcule la tension voulue (par un correcteur, par exemple) sous la forme d'une tension de commande \(v_c\) ou d'un nombre ; le circuit de commande en fait des impulsions de largeur proportionnelle. Le hacheur devient alors, en valeur moyenne, un simple <strong>gain</strong> dans le schéma-blocs.</div>
+  <div class="def-box">
+    <strong>Modulation de largeur d'impulsion (MLI).</strong> Un comparateur compare \(v_c\) à une <strong>porteuse</strong> en dents de scie, de fréquence \(f\) et d'amplitude \(V_p\) : le transistor est commandé tant que \(v_c\) dépasse la porteuse. Pour \(0 \leq v_c \leq V_p\) :
+    <div class="formula" data-nom="MLI : rapport cyclique">$$\alpha = \frac{v_c}{V_p} \qquad\Longrightarrow\qquad \langle u\rangle = \frac{E}{V_p}\,v_c$$</div>
+  </div>
+<figure class="schema">
+<svg viewBox="0 0 360 222" role="img" aria-label="Génération de la commande par modulation de largeur d'impulsion : une porteuse en dents de scie d'amplitude Vp est comparée à la tension de commande vc qui croît lentement ; le transistor est commandé tant que vc dépasse la porteuse, d'où des impulsions de plus en plus larges">
+<line x1="46" y1="122" x2="348" y2="122" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<line x1="46" y1="122" x2="46" y2="10" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<line x1="46" y1="122" x2="142.7" y2="35" class="sk-ink"/>
+<line x1="142.7" y1="35" x2="142.7" y2="122" class="sk-axis"/>
+<line x1="142.7" y1="122" x2="239.3" y2="35" class="sk-ink"/>
+<line x1="239.3" y1="35" x2="239.3" y2="122" class="sk-axis"/>
+<line x1="239.3" y1="122" x2="336" y2="35" class="sk-ink"/>
+<line x1="336" y1="35" x2="336" y2="122" class="sk-axis"/>
+<polyline points="46,91.6 336,65.5" class="sk-accent2"/>
+<text x="40" y="40" class="lab-it" text-anchor="end">V<tspan dy="4" font-size="12">p</tspan></text>
+<text x="340" y="69.5" class="lab-accent2 lab-it">v<tspan dy="4" font-size="12">c</tspan></text>
+<text x="94.3" y="20" class="lab-muted" text-anchor="middle">porteuse</text>
+<line x1="46" y1="200" x2="348" y2="200" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<line x1="46" y1="200" x2="46" y2="148" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<polyline points="46,166.7 83.6,166.7 83.6,200 142.7,200 142.7,166.7 191,166.7 191,200 239.3,200 239.3,166.7 298.5,166.7 298.5,200 336,200 336,166.7 336,166.7" class="sk-accent"/>
+<text x="40" y="171.7" class="lab-muted" text-anchor="end">1</text>
+<text x="40" y="205" class="lab-muted" text-anchor="end">0</text>
+<text x="54" y="154" class="lab-muted">commande de T</text>
+<text x="350" y="205" class="lab-muted lab-it">t</text>
+</svg>
+<figcaption>Commande par modulation de largeur d'impulsion (MLI) : le transistor est fermé tant que la tension de commande \(v_c\) dépasse la porteuse en dents de scie (amplitude \(V_p\), fréquence \(f\)). Le rapport cyclique vaut \(\alpha = v_c/V_p\) : ici \(v_c\) croît lentement et les impulsions s'élargissent.</figcaption>
+</figure>
+  <div class="prop-box">
+    <strong>Modèle moyen du hacheur.</strong> Si la fréquence de découpage est grande devant les fréquences utiles (période petite devant \(\tau_e\) et \(\tau_m\) du moteur), le hacheur se modélise par un gain \(G = E/V_p\) entre la tension de commande et la tension moyenne : \(\langle U\rangle(p) = G\,V_c(p)\) (« Schéma-blocs », « Machine à courant continu » §8). En commande bipolaire avec une porteuse triangulaire symétrique entre \(-V_p\) et \(V_p\), \(\alpha = \dfrac{1}{2}\left(1 + \dfrac{v_c}{V_p}\right)\) et \(\langle u\rangle = \dfrac{E}{V_p}\,v_c\) : le même gain, mais \(v_c\) peut être négative.
+  </div>
+  <div class="method-box">
+    <strong>Exemple — commande analogique et commande numérique</strong>
+    <ol>
+      <li>Porteuse de 0 à 5 V, \(E = 24\ \text{V}\), \(v_c = 3{,}2\ \text{V}\) : \(\alpha = 3{,}2/5 = 0{,}64\) et \(\langle u\rangle = 15{,}4\ \text{V}\). Gain du hacheur : \(G = 24/5 = 4{,}8\).</li>
+      <li>Avec un microcontrôleur, la porteuse est un compteur : horloge 16 MHz, MLI à 20 kHz, soit \(16\times10^6/(20\times10^3) = 800\) pas par période. Le rapport cyclique se règle par pas de 1/800, la tension moyenne par pas de \(24/800 = 30\ \text{mV}\).</li>
+    </ol>
+  </div>
+  <div class="notice"><strong>Erreur classique</strong> : oublier les temps morts. Dans une cellule à deux transistors, les deux commandes sont complémentaires mais décalées de quelques centaines de nanosecondes à quelques microsecondes, pour ne jamais court-circuiter la source (« Convertisseurs statiques », §6) ; pendant ce temps, ce sont les diodes qui conduisent.</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§7 · ASSOCIATION AVEC UNE MACHINE À COURANT CONTINU</div>
+  <h2>Régler la vitesse, freiner, inverser le sens</h2>
+  <div class="intro">Le hacheur et la machine forment l'ensemble modulateur + convertisseur de la chaîne de puissance. Le modèle moyen relie directement le rapport cyclique au point de fonctionnement, et les deux plans de quadrants se correspondent.</div>
+  <div class="prop-box">
+    <strong>Modèle moyen de l'ensemble.</strong> Avec \(E_m = K\Omega\) et \(C_{em} = K\langle i\rangle\) (« Machine à courant continu », §3) :
+    <div class="formula" data-nom="Hacheur et MCC : modèle moyen">$$\langle u\rangle = K\,\Omega + R\,\langle i\rangle$$</div>
+    avec \(\langle u\rangle = \alpha E\) (hacheur série ou réversible en courant) ou \(\langle u\rangle = (2\alpha - 1)E\) (pont en H, commande bipolaire).
+    Le signe de \(\langle u\rangle\) est (à \(R\langle i\rangle\) près) celui de la vitesse, le signe de \(\langle i\rangle\) celui du couple : le plan \((u, i)\) du convertisseur est le plan \((\Omega, C_{em})\) de la machine, axes échangés.
+  </div>
+<figure class="schema">
+<svg viewBox="0 0 440 200" role="img" aria-label="Les quatre phases d'un cycle placées dans deux plans : dans le plan tension-courant du convertisseur, a en quadrant 1, b en quadrant 4, c en quadrant 3, d en quadrant 2 ; dans le plan couple-vitesse de la machine, a en quadrant 1, b en quadrant 2, c en quadrant 3, d en quadrant 4 ; quadrants où la charge reçoit de l'énergie teintés">
+<rect x="111" y="34" width="85" height="75" class="fl-accent-soft"/>
+<rect x="26" y="109" width="85" height="75" class="fl-accent-soft"/>
+<line x1="26" y1="109" x2="208" y2="109" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<line x1="111" y1="184" x2="111" y2="22" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<text x="208" y="102" class="lab-muted lab-it" text-anchor="end">u</text>
+<text x="117" y="30" class="lab-muted lab-it">i</text>
+<text x="111" y="16" class="lab-muted lab-b" text-anchor="middle">plan (u, i) du convertisseur</text>
+<text x="174.8" y="47.4" class="lab-muted" text-anchor="middle">Q1</text>
+<text x="47.2" y="47.4" class="lab-muted" text-anchor="middle">Q2</text>
+<text x="47.2" y="178.6" class="lab-muted" text-anchor="middle">Q3</text>
+<text x="174.8" y="178.6" class="lab-muted" text-anchor="middle">Q4</text>
+<circle cx="180.1" cy="52.8" r="3.4" class="fl-accent"/>
+<text x="188.1" y="68.8" class="lab-accent lab-b">a</text>
+<circle cx="148.2" cy="165.2" r="3.4" class="fl-accent"/>
+<text x="156.2" y="159.2" class="lab-accent lab-b">b</text>
+<circle cx="41.9" cy="165.2" r="3.4" class="fl-accent"/>
+<text x="33.9" y="159.2" class="lab-accent lab-b" text-anchor="end">c</text>
+<circle cx="73.8" cy="52.8" r="3.4" class="fl-accent"/>
+<text x="65.8" y="68.8" class="lab-accent lab-b" text-anchor="end">d</text>
+<rect x="331" y="34" width="85" height="75" class="fl-accent-soft"/>
+<rect x="246" y="109" width="85" height="75" class="fl-accent-soft"/>
+<line x1="246" y1="109" x2="428" y2="109" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<line x1="331" y1="184" x2="331" y2="22" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<text x="428" y="102" class="lab-muted lab-it" text-anchor="end">C<tspan dy="4" font-size="12">em</tspan></text>
+<text x="337" y="30" class="lab-muted lab-it">Ω</text>
+<text x="331" y="16" class="lab-muted lab-b" text-anchor="middle">plan (C<tspan dy="4" font-size="12">em</tspan><tspan dy="-4"></tspan>, Ω) de la machine</text>
+<text x="394.8" y="46.7" class="lab-muted" text-anchor="middle">Q1</text>
+<text x="267.2" y="46.7" class="lab-muted" text-anchor="middle">Q2</text>
+<text x="267.2" y="179.3" class="lab-muted" text-anchor="middle">Q3</text>
+<text x="394.8" y="179.3" class="lab-muted" text-anchor="middle">Q4</text>
+<circle cx="394.8" cy="51.3" r="3.4" class="fl-accent"/>
+<text x="402.8" y="67.3" class="lab-accent lab-b">a</text>
+<circle cx="267.2" cy="51.3" r="3.4" class="fl-accent"/>
+<text x="259.2" y="67.3" class="lab-accent lab-b" text-anchor="end">b</text>
+<circle cx="267.2" cy="166.7" r="3.4" class="fl-accent"/>
+<text x="259.2" y="160.7" class="lab-accent lab-b" text-anchor="end">c</text>
+<circle cx="394.8" cy="166.7" r="3.4" class="fl-accent"/>
+<text x="402.8" y="160.7" class="lab-accent lab-b">d</text>
+</svg>
+<figcaption>Un même cycle dans les deux plans (exemple du §7). a : moteur en marche avant ; b : freinage en marche avant ; c : moteur en marche arrière ; d : freinage en marche arrière. Les axes étant échangés, les freinages b et d n'ont pas le même numéro de quadrant dans les deux plans ; les quadrants teintés (la machine reçoit de l'énergie) se correspondent.</figcaption>
+</figure>
+  <div style="overflow-x:auto"><table>
+    <tr><th>Régime de la machine</th><th>Plan \((C_{em}, \Omega)\)</th><th>Plan \((u, i)\)</th><th>Hacheur minimal</th></tr>
+    <tr><td>moteur, marche avant</td><td>Q1</td><td>Q1</td><td>série</td></tr>
+    <tr><td>frein, marche avant (récupération)</td><td>Q2</td><td>Q4</td><td>réversible en courant</td></tr>
+    <tr><td>moteur, marche arrière</td><td>Q3</td><td>Q3</td><td>pont en H</td></tr>
+    <tr><td>frein, marche arrière (charge retenue)</td><td>Q4</td><td>Q2</td><td>réversible en tension (pont asymétrique)</td></tr>
+  </table></div>
+  <div class="method-box">
+    <strong>Exemple — un cycle d'axe de robot (figure)</strong>
+    <p>Machine : \(K = 0{,}1\ \text{V·s/rad}\), \(R = 1\ \Omega\) ; pont en H sous \(E = 48\ \text{V}\), commande bipolaire. Quatre phases à \(|\Omega| = 200\ \text{rad/s}\) et \(|\langle i\rangle| = 6\ \text{A}\) (couple de 0,6 N·m) :</p>
+    <ol>
+      <li>a, accélération en marche avant : \(\langle u\rangle = 20 + 6 = 26\ \text{V}\), \(\alpha = \frac12(1 + 26/48) = 0{,}77\) ; la source fournit 156 W.</li>
+      <li>b, freinage en marche avant (\(\langle i\rangle = -6\ \text{A}\)) : \(\langle u\rangle = 20 - 6 = 14\ \text{V}\), \(\alpha = 0{,}65\) ; la source reçoit 84 W.</li>
+      <li>c, accélération en marche arrière : \(\langle u\rangle = -26\ \text{V}\), \(\alpha = 0{,}23\) ; la source fournit 156 W.</li>
+      <li>d, freinage en marche arrière : \(\langle u\rangle = -14\ \text{V}\), \(\alpha = 0{,}35\) ; la source reçoit 84 W.</li>
+    </ol>
+    <p>Le seul réglage de \(\alpha\) fait passer d'une phase à l'autre ; la source (batterie, ou bus continu avec résistance de freinage) doit être réversible en courant pour accepter b et d.</p>
+  </div>
+  <div class="notice"><strong>Limite du freinage par récupération</strong> : en freinage, \(\langle u\rangle = K\Omega + R\langle i\rangle\) diminue avec la vitesse. Avec un hacheur réversible en courant (\(\langle u\rangle \geq 0\)), le courant de freinage ne peut plus être maintenu en dessous de \(\Omega = R|\langle i\rangle|/K\) : la fin de l'arrêt demande un frein mécanique, ou un pont en H qui applique une tension négative (l'énergie vient alors de la source).</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§8 · BILAN DE PUISSANCE ET RENDEMENT</div>
+  <h2>Où passent les pertes d'un hacheur</h2>
+  <div class="intro">Avec des interrupteurs parfaits, le hacheur transmet toute la puissance. Les composants réels ont une petite tension à l'état passant et mettent un peu de temps à commuter : deux sources de pertes, qu'il faut évacuer par un dissipateur et qui fixent le rendement (« Convertisseurs statiques », §11).</div>
+  <div class="prop-box">
+    <strong>Hacheur parfait.</strong> \(P_e = E\,\langle i_e\rangle = \langle u\,i\rangle = P_s\) ; si le courant est bien lissé, \(\langle u\,i\rangle \approx \langle u\rangle\langle i\rangle\).<br>
+    <strong>Pertes par conduction</strong> : transistor MOS de résistance \(R_{DS}\) à l'état passant, \(\approx R_{DS}\,\langle i\rangle^2\,\alpha\) ; diode de tension de seuil \(V_F\), \(\approx V_F\,\langle i\rangle\,(1-\alpha)\). Indépendantes de \(f\).<br>
+    <strong>Pertes par commutation</strong> : à chaque fermeture et ouverture, le transistor traverse un instant la zone où \(v\,i > 0\) (« Convertisseurs statiques », §5) et dissipe une énergie \(W_{on} + W_{off}\) : \(P_{com} = (W_{on} + W_{off})\,f\), proportionnelles à \(f\).
+  </div>
+  <div class="method-box">
+    <strong>Exemple — rendement d'un hacheur de 500 W</strong>
+    <p>\(E = 48\ \text{V}\), \(\langle u\rangle = 36\ \text{V}\), \(\langle i\rangle = 14\ \text{A}\) bien lissé ; transistor MOS \(R_{DS} = 10\ \text{m}\Omega\), énergie de commutation 50 µJ par période ; diode \(V_F = 0{,}8\ \text{V}\) ; \(f = 20\ \text{kHz}\).</p>
+    <ol>
+      <li>\(\alpha = 36/48 = 0{,}75\) ; puissance fournie à la charge : \(36 \times 14 = 504\ \text{W}\).</li>
+      <li>Conduction : transistor \(0{,}010 \times 14^2 \times 0{,}75 = 1{,}5\ \text{W}\) ; diode \(0{,}8 \times 14 \times 0{,}25 = 2{,}8\ \text{W}\). Commutation : \(50\times10^{-6} \times 2\times10^4 = 1{,}0\ \text{W}\).</li>
+      <li>Pertes totales 5,3 W : \(\eta = 504/509{,}3 = 0{,}99\). À 100 kHz, les pertes de commutation passeraient à 5 W et le rendement à 0,98, mais l'ondulation serait divisée par 5 : la fréquence est un compromis.</li>
+    </ol>
+  </div>
+  <div class="notice"><strong>Ordres de grandeur</strong> : rendement de 95 à 99 % pour un hacheur de quelques centaines de watts à quelques kilowatts. Même 1 % de 10 kW, soit 100 W, doit être évacué : radiateur, parfois ventilation. Pour réduire les pertes de la diode, on la remplace souvent par un second transistor MOS commandé en même temps qu'elle conduirait (redressement synchrone) : c'est exactement le hacheur réversible en courant à commande complémentaire du §3.</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">POUR ALLER PLUS LOIN · HORS PROGRAMME</div>
+  <h2>Autres hacheurs et compléments</h2>
+  <div class="intro">Le programme limite la synthèse des convertisseurs continu-continu aux structures ci-dessus, alimentant une charge inductive. Quelques compléments de culture technique.</div>
+  <h3>Hacheur parallèle (élévateur)</h3>
+  <p>En échangeant les rôles des sources (une source de courant, par exemple une batterie avec une inductance en série, alimente une source de tension, un condensateur avec sa charge), la même cellule élève la tension : \(V_s = \dfrac{E}{1 - \alpha}\) en régime périodique. On le rencontre dans les alimentations à découpage et les véhicules électriques, pour remonter la tension d'une batterie vers un bus continu (exercice 06). Le freinage avec récupération du §3 en est un cas particulier, la machine jouant le rôle de la source de courant.</p>
+  <h3>Conduction discontinue, filtrage, commutation douce</h3>
+  <p>En conduction discontinue (§5), la tension moyenne dépend de la charge et plus seulement de \(\alpha\). Pour alimenter une charge qui exige une tension continue lisse (électronique), on ajoute un filtre \(LC\) en sortie : c'est l'alimentation à découpage, dont l'ondulation de tension se calcule en 2ᵉ année. Enfin, des montages à commutation douce font commuter les transistors à tension ou à courant nul, pour réduire les pertes de commutation et monter en fréquence.</p>
+</div>
+
+</template>
+<template class="pan-tpl" data-panneau="hach-meth">
+
+<div class="course-section">
+  <div class="sec-num">MÉTHODES · HACHEURS</div>
+  <h2>Analyser et dimensionner un circuit de hacheur</h2>
+  <div class="intro">Ces méthodes servent à lire un montage de hacheur (qui conduit, quand, avec quels signes), à calculer ses grandeurs moyennes et son ondulation, à choisir la structure adaptée aux quadrants demandés et à le piloter. Notations du cours : source \(E\), tension de sortie \(u\), courant de charge \(i\), f.é.m. de la machine \(E_m\), rapport cyclique \(\alpha\), fréquence de découpage \(f = 1/T\).</div>
+
+  <div class="method-box">
+    <strong>Méthode 1 — Calculer la tension moyenne et les courants moyens</strong>
+    <ol style="margin-top:0.4rem">
+      <li><span class="step">Étape 1.</span> Identifier \(E\), \(\alpha\) et la structure : hacheur série ou réversible en courant, \(\langle u\rangle = \alpha E\) ; pont en H en commande bipolaire, \(\langle u\rangle = (2\alpha - 1)E\).</li>
+      <li><span class="step">Étape 2.</span> Vérifier que la période est petite devant la constante de temps \(L/R\) de la charge (en pratique \(f \gt 10\,R/L\)) : le courant est alors presque constant sur une période.</li>
+      <li><span class="step">Étape 3.</span> Courant moyen, la tension moyenne aux bornes de \(L\) étant nulle en régime périodique : charge \(R\)-\(L\), \(\langle i\rangle = \langle u\rangle/R\) ; machine à courant continu, \(\langle i\rangle = (\langle u\rangle - E_m)/R\).</li>
+      <li><span class="step">Étape 4.</span> Courant moyen fourni par la source (hacheur série) : \(\langle i_e\rangle \approx \alpha\langle i\rangle\) ; contrôle par la puissance : \(E\langle i_e\rangle = \langle u\rangle\langle i\rangle\).</li>
+    </ol>
+    <p><em>Exemple éclair :</em> \(E = 60\ \text{V}\), \(\alpha = 0{,}4\), charge \(R = 2\ \Omega\) en série avec une forte inductance : \(\langle u\rangle = 24\ \text{V}\), \(\langle i\rangle = 12\ \text{A}\), \(\langle i_e\rangle = 4{,}8\ \text{A}\) ; \(60 \times 4{,}8 = 24 \times 12 = 288\ \text{W}\).</p>
+  </div>
+
+  <div class="method-box">
+    <strong>Méthode 2 — Analyser les phases d'un hacheur série</strong>
+    <ol style="margin-top:0.4rem">
+      <li><span class="step">Phase active (K1 = transistor fermé, K2 = diode bloquée) :</span> \(u = E\). Équation : \(E = L\,\dfrac{\mathrm{d}i}{\mathrm{d}t} + R\,i + E_m\). Courant croissant, \(i_e = i\).</li>
+      <li><span class="step">Phase de roue libre (transistor ouvert, diode passante) :</span> \(u = 0\). Équation : \(0 = L\,\dfrac{\mathrm{d}i}{\mathrm{d}t} + R\,i + E_m\). Courant décroissant, \(i_e = 0\), \(i_D = i\).</li>
+      <li><span class="step">Régime périodique :</span> le courant oscille entre \(i_{min}\) et \(i_{max}\) autour de \(\langle i\rangle\) ; ce qu'il gagne pendant \(\alpha T\), il le perd pendant \((1-\alpha)T\).</li>
+      <li><span class="step">Vérifier :</span> \(i_{min} \geq 0\) ; sinon le courant s'annule (conduction discontinue, hors programme) et les formules changent.</li>
+    </ol>
+    <p><em>Exemple éclair :</em> \(E = 24\ \text{V}\), \(E_m = 15\ \text{V}\), \(R = 0{,}5\ \Omega\), \(L = 2\ \text{mH}\), \(\langle i\rangle = 4\ \text{A}\) : \(\alpha = (15 + 2)/24 = 0{,}71\). Pentes : \((24 - 2 - 15)/0{,}002 = 3\,500\ \text{A/s}\) en phase active, \(-(2 + 15)/0{,}002 = -8\,500\ \text{A/s}\) en roue libre ; on vérifie \(3\,500\,\alpha = 8\,500\,(1 - \alpha)\) : la montée compense la descente.</p>
+  </div>
+
+  <div class="method-box">
+    <strong>Méthode 3 — Trouver quel composant conduit</strong>
+    <ol style="margin-top:0.4rem">
+      <li><span class="step">Commande.</span> La commande fixe, à chaque instant, quel interrupteur de chaque cellule est fermé, donc la valeur de \(u\) (\(E\), 0 ou \(-E\)).</li>
+      <li><span class="step">Courant.</span> Dans un interrupteur fermé à trois segments (transistor + diode antiparallèle), c'est le signe du courant qui décide : le transistor conduit le courant dans son sens passant, sinon sa diode.</li>
+      <li><span class="step">Énergie.</span> La source fournit de l'énergie quand le courant sort par sa borne + (transistors) ; elle en reçoit quand il y entre (diodes du côté +).</li>
+    </ol>
+    <p><em>Exemple éclair :</em> hacheur réversible en courant, commande complémentaire, \(E = 48\ \text{V}\), \(\alpha = 0{,}5\), machine : \(E_m = 30\ \text{V}\), \(R = 0{,}5\ \Omega\). \(\langle u\rangle = 24\ \text{V} \lt E_m\) : \(\langle i\rangle = -12\ \text{A}\). Pendant \(\alpha T\), \(T_1\) est commandé mais c'est \(D_1\) qui conduit (\(u = E\), la batterie reçoit de l'énergie) ; pendant \((1-\alpha)T\), \(T_2\) conduit (\(u = 0\)).</p>
+  </div>
+
+  <div class="method-box">
+    <strong>Méthode 4 — Choisir la structure du hacheur</strong>
+    <ol style="margin-top:0.4rem">
+      <li><span class="step">Cahier des charges.</span> Lister les régimes de la machine (moteur, frein, marche avant, marche arrière) et les traduire en signes de \(u\) (vitesse) et de \(i\) (couple), dans le plan \((u, i)\).</li>
+      <li><span class="step">1 quadrant</span> (\(u \geq 0\), \(i \geq 0\) : un sens, pas de freinage électrique) : hacheur série, une cellule, un transistor et une diode.</li>
+      <li><span class="step">2 quadrants, \(i\) des deux signes</span> (freinage avec récupération, un sens) : hacheur réversible en courant, une cellule de deux interrupteurs transistor + diode antiparallèle.</li>
+      <li><span class="step">2 quadrants, \(u\) des deux signes</span> (charge qui lève puis est retenue) : pont asymétrique, deux cellules, deux transistors et deux diodes.</li>
+      <li><span class="step">4 quadrants</span> (les deux sens, moteur et frein) : pont en H, deux cellules (bras), quatre interrupteurs transistor + diode antiparallèle.</li>
+    </ol>
+    <p><em>Exemple éclair :</em> trottinette qui récupère l'énergie au freinage mais ne recule pas : \(u > 0\), \(i\) des deux signes → hacheur réversible en courant. Ascenseur : il monte et descend, chargé ou à vide, son contrepoids pouvant l'entraîner dans les deux sens → pont en H.</p>
+  </div>
+
+  <div class="method-box">
+    <strong>Méthode 5 — Identifier les semi-conducteurs passants dans le pont en H (commande séquentielle)</strong>
+    <ol style="margin-top:0.4rem">
+      <li><span class="step">Étape 1.</span> Identifier le quadrant du plan \((u, i)\) : signes de \(u\) et de \(i\).</li>
+      <li><span class="step">Étape 2.</span> Interrupteur d'aiguillage (fermé en permanence), selon le signe de \(u\) : \(u > 0\) → \(T_1\) ; \(u \lt 0\) → \(T_3\).</li>
+      <li><span class="step">Étape 3.</span> Interrupteur de hachage : Q1 (\(i > 0\), \(u > 0\)) : \(T_4\) ; Q2 (\(i > 0\), \(u \lt 0\)) : \(T_1\) ; Q3 (\(i \lt 0\), \(u \lt 0\)) : \(T_2\) ; Q4 (\(i \lt 0\), \(u > 0\)) : \(T_3\).</li>
+      <li><span class="step">Étape 4.</span> Phase \(u \neq 0\) : en moteur (Q1, Q3), deux transistors en diagonale ; en frein (Q2, Q4), deux diodes en diagonale, qui renvoient l'énergie. Phase \(u = 0\) : un transistor et une diode du même côté (haut).</li>
+    </ol>
+    <p><em>Exemple éclair :</em> charge retenue en marche arrière, \(u \lt 0\), \(i > 0\) : Q2. Aiguillage \(T_3\), hachage \(T_1\) ; \(u = -E\) par \(D_2\) et \(D_3\) (énergie renvoyée), \(u = 0\) par \(T_1\) et \(D_3\).</p>
+  </div>
+
+  <div class="method-box">
+    <strong>Méthode 6 — Calculer l'ondulation du courant et choisir l'inductance</strong>
+    <ol style="margin-top:0.4rem">
+      <li>Vérifier \(T \ll L/R\), puis appliquer \(\Delta i \approx \dfrac{\alpha(1-\alpha)E}{Lf}\) (hacheur série, réversible en courant, pont en commande séquentielle) ou \(\dfrac{2\alpha(1-\alpha)E}{Lf}\) (pont en commande bipolaire).</li>
+      <li>Pour un cahier des charges « \(\Delta i \leq \Delta i_{max}\) pour tout \(\alpha\) », prendre le cas \(\alpha = 1/2\) : \(L \geq \dfrac{E}{4f\,\Delta i_{max}}\) (série).</li>
+      <li>Comparer à l'inductance de l'induit ; ajouter une inductance de lissage ou augmenter \(f\) si besoin.</li>
+      <li>Hacheur série : vérifier la conduction continue, \(\langle i\rangle \gt \Delta i/2\).</li>
+    </ol>
+    <p><em>Exemple éclair :</em> \(E = 24\ \text{V}\), \(f = 20\ \text{kHz}\), \(L = 0{,}4\ \text{mH}\), \(\alpha = 0{,}3\) : \(\Delta i = \dfrac{0{,}3 \times 0{,}7 \times 24}{0{,}4\times10^{-3} \times 2\times10^4} = 0{,}63\ \text{A}\) (au plus 0,75 A pour \(\alpha = 0{,}5\)). Conduction continue tant que \(\langle i\rangle \gt 0{,}32\ \text{A}\).</p>
+  </div>
+
+  <div class="method-box">
+    <strong>Méthode 7 — Passer du signal de commande au rapport cyclique</strong>
+    <ol style="margin-top:0.4rem">
+      <li><span class="step">Porteuse en dents de scie</span> de 0 à \(V_p\) : \(\alpha = v_c/V_p\), \(\langle u\rangle = \dfrac{E}{V_p}\,v_c\).</li>
+      <li><span class="step">Porteuse triangulaire symétrique</span> entre \(-V_p\) et \(V_p\), pont en H bipolaire : \(\alpha = \dfrac12\left(1 + \dfrac{v_c}{V_p}\right)\) et encore \(\langle u\rangle = \dfrac{E}{V_p}\,v_c\).</li>
+      <li><span class="step">Schéma-blocs</span> : remplacer le hacheur par le gain \(G = E/V_p\), si la fréquence de découpage est grande devant les fréquences utiles du système.</li>
+      <li><span class="step">Commande numérique</span> : un compteur de \(N\) pas par période donne une résolution \(E/N\) sur la tension moyenne.</li>
+    </ol>
+    <p><em>Exemple éclair :</em> \(E = 48\ \text{V}\), dents de scie de 0 à 10 V, \(v_c = 6{,}5\ \text{V}\) : \(\alpha = 0{,}65\), \(\langle u\rangle = 31{,}2\ \text{V}\), \(G = 4{,}8\). Porteuse triangulaire \(\pm 10\ \text{V}\) et \(v_c = -2\ \text{V}\) : \(\alpha = 0{,}4\), \(\langle u\rangle = -9{,}6\ \text{V}\).</p>
+  </div>
+
+  <div class="method-box">
+    <strong>Méthode 8 — Régler le point de fonctionnement d'une MCC par le rapport cyclique</strong>
+    <ol style="margin-top:0.4rem">
+      <li>Courant moyen imposé par le couple voulu : \(\langle i\rangle = C_{em}/K\) (négatif pour freiner).</li>
+      <li>Tension moyenne : \(\langle u\rangle = K\Omega + R\langle i\rangle\) (négative en marche arrière).</li>
+      <li>Rapport cyclique selon la structure : \(\alpha = \langle u\rangle/E\) ou \(\alpha = \frac12(1 + \langle u\rangle/E)\) ; vérifier qu'il existe (entre 0 et 1) et que la structure accepte les signes de \(\langle u\rangle\) et \(\langle i\rangle\).</li>
+      <li>Puissance échangée avec la source : \(\langle u\rangle\langle i\rangle\), négative en freinage (la source doit l'accepter).</li>
+    </ol>
+    <p><em>Exemple éclair :</em> \(K = 0{,}12\ \text{V·s/rad}\), \(R = 0{,}8\ \Omega\), pont bipolaire sous 48 V, 250 rad/s. Moteur à 0,6 N·m : \(\langle i\rangle = 5\ \text{A}\), \(\langle u\rangle = 30 + 4 = 34\ \text{V}\), \(\alpha = 0{,}85\). Freinage à 0,6 N·m à la même vitesse : \(\langle i\rangle = -5\ \text{A}\), \(\langle u\rangle = 26\ \text{V}\), \(\alpha = 0{,}77\) ; la source reçoit 130 W.</p>
+  </div>
+
+  <div class="method-box">
+    <strong>Méthode 9 — Faire le bilan de puissance d'un hacheur</strong>
+    <ol style="margin-top:0.4rem">
+      <li>Puissance de sortie : \(P_s = \langle u\,i\rangle \approx \langle u\rangle\langle i\rangle\) si le courant est bien lissé (jamais \(\langle u\rangle^2/R\) pour une charge résistive découpée).</li>
+      <li>Pertes par conduction : \(R_{DS}\langle i\rangle^2\alpha\) pour le transistor, \(V_F\langle i\rangle(1 - \alpha)\) pour la diode.</li>
+      <li>Pertes par commutation : énergie par période × \(f\).</li>
+      <li>Rendement : \(\eta = \dfrac{P_s}{P_s + \text{pertes}}\) ; la puissance prise à la source vaut \(E\langle i_e\rangle = P_s + \text{pertes}\).</li>
+    </ol>
+    <p><em>Exemple éclair :</em> \(E = 24\ \text{V}\), \(\langle u\rangle = 18\ \text{V}\), \(\langle i\rangle = 10\ \text{A}\), \(R_{DS} = 20\ \text{m}\Omega\), \(V_F = 0{,}6\ \text{V}\), 30 µJ par période à 25 kHz : pertes \(1{,}5 + 1{,}5 + 0{,}75 = 3{,}75\ \text{W}\) pour 180 W transmis, \(\eta = 0{,}98\).</p>
+  </div>
+
+  <div class="notice"><strong>Pièges classiques des hacheurs</strong>
+    <ul style="margin-top:0.4rem">
+      <li>Oublier la diode de roue libre d'un hacheur série : à l'ouverture du transistor, l'inductance produit une surtension destructrice.</li>
+      <li>Croire que la fréquence influe sur la valeur moyenne de \(u\) : non, seul \(\alpha\) compte ; la fréquence fixe l'ondulation.</li>
+      <li>Fermer ensemble les deux interrupteurs d'un même bras (\(T_1\) et \(T_2\), ou \(T_3\) et \(T_4\)) : court-circuit de la source, destruction immédiate ; d'où les temps morts.</li>
+      <li>Compter une cellule par interrupteur : une cellule de commutation, c'est deux interrupteurs complémentaires (un bras). Le hacheur réversible en courant en a une, le pont en H deux.</li>
+      <li>Croire que l'énergie de freinage revient à la source quand le transistor du bas conduit : elle revient quand le courant passe par la diode du haut.</li>
+      <li>Nommer un quadrant sans dire dans quel plan : le freinage en marche avant est Q4 dans le plan \((u, i)\), Q2 dans le plan \((C_{em}, \Omega)\).</li>
+    </ul>
+  </div>
+</div>
+
+</template>
+<template class="pan-tpl" data-panneau="hach-exos">
+
+<div class="exo-wrapper">
+
+<div class="exo">
+  <span class="num">EXO 01</span><span class="diff">★ ☆ ☆</span>
+  <h3>Hacheur série — tensions et courants</h3>
+  <div class="statement">Un hacheur série (1 quadrant) commute à \(f = 20\ \text{kHz}\), rapport cyclique \(\alpha = 0{,}6\), tension d'entrée \(E = 48\ \text{V}\). Charge : \(R = 4\ \Omega\), \(L = 2\ \text{mH}\).</div>
+  <div class="q"><strong>Q1.</strong> Donner la tension moyenne \(\langle u\rangle\) en sortie et le courant moyen \(\langle i\rangle\).</div>
+  <div class="q"><strong>Q2.</strong> Le transistor est passant pendant \(\alpha T\) avec \(u_L \approx E - R\langle i\rangle\). Calculer l'ondulation de courant \(\Delta I = (E - \langle u\rangle)\alpha T / L\).</div>
+  <div class="q"><strong>Q3.</strong> Le courant est-il continu ? (Vérifier que \(\langle i\rangle - \Delta I/2 > 0\).)</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> \(\langle u\rangle = \alpha E = 0{,}6\times48 = 28{,}8\ \text{V}\). La tension moyenne aux bornes de \(L\) est nulle en régime périodique, donc \(\langle i\rangle = \langle u\rangle/R = 28{,}8/4 = 7{,}2\ \text{A}\).</p>
+    <p><strong>Q2.</strong> Période : \(T = 1/f = 50\ \mu\text{s}\), \(\alpha T = 30\ \mu\text{s}\). La constante de temps \(L/R = 0{,}5\ \text{ms}\) est dix fois plus grande que \(T\) : le courant varie presque linéairement. \(\Delta I = \dfrac{19{,}2 \times 30\times10^{-6}}{2\times10^{-3}} = 0{,}288\ \text{A}\), soit 4 % du courant moyen (le calcul exact du régime périodique donne la même valeur à 0,1 % près).</p>
+    <p><strong>Q3.</strong> \(i_{min} = \langle i\rangle - \Delta I/2\), soit \(i_{min} = 7{,}2 - 0{,}144 = 7{,}06\ \text{A}\), positif : le courant ne s'annule jamais, la conduction est continue ; la diode de roue libre conduit pendant \((1-\alpha)T\).</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 02</span><span class="diff">★ ☆ ☆</span>
+  <h3>Diode de roue libre — rôle et fonctionnement</h3>
+  <div class="statement">Un hacheur série alimente la bobine d'un électroaimant : inductance \(L = 10\ \text{mH}\), résistance \(r = 2\ \Omega\). \(E = 24\ \text{V}\), \(\alpha = 0{,}5\), \(f = 10\ \text{kHz}\).</div>
+  <div class="q"><strong>Q1.</strong> Calculer le courant moyen. Pendant la phase active (transistor passant), calculer \(\mathrm{d}i/\mathrm{d}t\) et la variation de courant \(\Delta I^+\) (on assimilera \(ri\) à \(r\langle i\rangle\)).</div>
+  <div class="q"><strong>Q2.</strong> Avec la diode de roue libre, décrire le trajet du courant pendant la phase de roue libre et calculer \(\Delta I^-\). Conclure.</div>
+  <div class="q"><strong>Q3.</strong> Sans diode, que se passerait-il à l'ouverture du transistor ? Estimer la tension qu'il faudrait pour annuler le courant en 1 µs, et l'énergie à évacuer.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> \(\langle u\rangle = 12\ \text{V}\) et \(\langle i\rangle = \langle u\rangle/r = 6\ \text{A}\). Phase active : \(L\,\mathrm{d}i/\mathrm{d}t = E - ri \approx 24 - 12 = 12\ \text{V}\), d'où \(\mathrm{d}i/\mathrm{d}t = 1\,200\ \text{A/s}\) ; pendant \(\alpha T = 50\ \mu\text{s}\), \(\Delta I^+ = 0{,}06\ \text{A}\).</p>
+    <p><strong>Q2.</strong> Le transistor ouvert, le courant de la bobine continue dans le même sens et se referme par la diode (bobine → diode → bobine) : \(u = 0\) et \(L\,\mathrm{d}i/\mathrm{d}t = -ri \approx -12\ \text{V}\), d'où \(\mathrm{d}i/\mathrm{d}t = -1\,200\ \text{A/s}\) et \(\Delta I^- = -0{,}06\ \text{A}\) en 50 µs. Le courant perd exactement ce qu'il a gagné : régime périodique, ondulation de 0,06 A (1 %) autour de 6 A. La constante de temps \(L/r = 5\ \text{ms}\), cinquante fois la période, explique que le courant n'ait pas le temps de varier.</p>
+    <p><strong>Q3.</strong> Sans diode, le courant de 6 A n'aurait plus de chemin : il chuterait brutalement, et la bobine développerait \(L\,|\mathrm{d}i/\mathrm{d}t| \approx 10^{-2}\times 6/10^{-6} = 60\ \text{kV}\) pour l'annuler en 1 µs. Bien avant, la tension aux bornes du transistor dépasserait sa tenue (quelques dizaines à quelques centaines de volts) : claquage, et l'énergie \(\frac12 LI^2 = 0{,}18\ \text{J}\) serait dissipée dans le transistor à chaque ouverture, ce qui le détruirait. C'est la règle « ne jamais ouvrir une source de courant ».</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 03</span><span class="diff">★ ★ ☆</span>
+  <h3>Hacheur abaisseur — dimensionnement de L</h3>
+  <div class="statement">Un hacheur série alimente une MCC depuis \(E = 100\ \text{V}\). La vitesse souhaitée correspond à \(\langle u\rangle = 60\ \text{V}\). On exige une ondulation de courant \(\Delta I \leq 2\ \text{A}\) pour \(\langle i\rangle = 10\ \text{A}\), \(f = 25\ \text{kHz}\).</div>
+  <div class="q"><strong>Q1.</strong> Calculer le rapport cyclique \(\alpha\).</div>
+  <div class="q"><strong>Q2.</strong> Déterminer l'inductance minimale \(L_{min}\) à partir de \(\Delta I = (E-\langle u\rangle)\alpha/(Lf)\).</div>
+  <div class="q"><strong>Q3.</strong> Pour \(L = 200\ \mu\text{H}\), vérifier que le courant est continu. Calculer \(I_{min}\) et \(I_{max}\).</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> \(\alpha = \langle u\rangle/E = 60/100 = 0{,}6\).</p>
+    <p><strong>Q2.</strong> \(\Delta I = (E-\langle u\rangle)\alpha/(Lf) \leq 2\ \text{A}\) impose</p>
+    <div class="formula">$$L \geq \frac{(E-\langle u\rangle)\,\alpha}{2f} = \frac{40\times0{,}6}{2\times25\times10^3} = 480\ \mu\text{H}$$</div>
+    <p></p>
+    <p><strong>Q3.</strong> Avec \(L = 200\ \mu\text{H} \lt L_{min}\) : \(\Delta I = \dfrac{40\times0{,}6}{200\times10^{-6}\times25\,000} = 4{,}8\ \text{A}\). \(I_{min} = 10 - 2{,}4 = 7{,}6\ \text{A} > 0\) : courant continu. \(I_{max} = 10 + 2{,}4 = 12{,}4\ \text{A}\). L'inductance de 200 µH ne respecte pas la contrainte \(\Delta I \leq 2\ \text{A}\), mais le courant reste continu ; pour \(\Delta I \leq 2\ \text{A}\), il faut \(L \geq 480\ \mu\text{H}\) (ou une fréquence 2,4 fois plus grande).</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 04</span><span class="diff">★ ★ ☆</span>
+  <h3>Hacheur 4 quadrants — pont en H en commande bipolaire</h3>
+  <div class="statement">Un pont en H (\(E = 24\ \text{V}\), cours §4) pilote une MCC (\(K = 0{,}05\ \text{V·s/rad}\), \(R = 1\ \Omega\), \(L = 2\ \text{mH}\)), à \(f = 20\ \text{kHz}\). Commande bipolaire : \(T_1\) et \(T_4\) commandés pendant \(\alpha T\), \(T_2\) et \(T_3\) pendant \((1-\alpha)T\).</div>
+  <div class="q"><strong>Q1.</strong> Donner la tension \(u = v_A - v_B\) pendant chaque phase et \(\langle u\rangle\) en fonction de \(\alpha\). Calculer \(\langle u\rangle\) pour \(\alpha = 0{,}7\).</div>
+  <div class="q"><strong>Q2.</strong> La machine tourne en marche avant à 150 rad/s et fournit un couple de 0,1 N·m. Calculer le courant moyen, la tension moyenne nécessaire et \(\alpha\). Le courant étant positif et bien lissé, quels composants conduisent dans chaque phase ?</div>
+  <div class="q"><strong>Q3.</strong> Même vitesse et même couple en marche arrière : calculer \(\alpha\). Quelle valeur de \(\alpha\) donne \(\langle u\rangle = 0\) ? Quel est l'intérêt de cette commande ?</div>
+  <div class="q"><strong>Q4.</strong> Calculer l'ondulation du courant au point de Q2 et la comparer à celle d'une commande séquentielle donnant la même tension moyenne.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> Diagonale \(T_1\), \(T_4\) commandée : A relié au +, B au − : \(u = +E\). Diagonale \(T_2\), \(T_3\) commandée : \(u = -E\). Ce sont les interrupteurs commandés qui fixent \(u\), quel que soit le sens du courant (transistors ou diodes). \(\langle u\rangle = \alpha E - (1-\alpha)E = (2\alpha - 1)E\) ; pour \(\alpha = 0{,}7\), \(\langle u\rangle = 24 \times 0{,}4 = 9{,}6\ \text{V}\).</p>
+    <p><strong>Q2.</strong> \(\langle i\rangle = 0{,}1/0{,}05 = 2\ \text{A}\) ; \(\langle u\rangle = K\Omega + R\langle i\rangle = 7{,}5 + 2 = 9{,}5\ \text{V}\) ; \(\alpha = \frac12(1 + 9{,}5/24) = 0{,}70\). Le courant ne change pas de signe d'une phase à l'autre (l'inductance l'en empêche) : pendant \(\alpha T\), \(T_1\) et \(T_4\) conduisent (\(u = +E\), la source fournit) ; pendant \((1-\alpha)T\), \(T_2\) et \(T_3\) sont commandés, mais le courant positif ne peut passer que par \(D_2\) et \(D_3\) (\(u = -E\)) : il entre alors dans la source par sa borne +, qui reçoit de l'énergie pendant cette phase. En moyenne, la source fournit \(\langle u\rangle\langle i\rangle = 19\ \text{W}\).</p>
+    <p><strong>Q3.</strong> \(\langle u\rangle = -7{,}5 - 2 = -9{,}5\ \text{V}\) (le courant est alors négatif) : \(\alpha = \frac12(1 - 9{,}5/24) = 0{,}30\). \(\langle u\rangle = 0\) pour \(\alpha = 0{,}5\). Intérêt : \(\langle u\rangle\) varie continûment de \(-E\) à \(+E\) quand \(\alpha\) va de 0 à 1, et le courant change de signe sans changer de commande : les quatre quadrants (moteur et frein dans les deux sens) sont accessibles, sans détecter le passage par zéro du courant.</p>
+    <p><strong>Q4.</strong> Bipolaire :</p>
+    <div class="formula">$$\Delta i \approx \frac{2\alpha(1-\alpha)E}{Lf} = \frac{2 \times 0{,}70 \times 0{,}30 \times 24}{2\times10^{-3} \times 2\times10^4} = 0{,}25\ \text{A}$$</div>
+    <p> Séquentielle (\(u\) entre 0 et \(E\), fraction \(9{,}5/24 = 0{,}40\)) : \(\Delta i \approx \dfrac{0{,}40 \times 0{,}60 \times 24}{40} = 0{,}14\ \text{A}\). La commande bipolaire ondule presque deux fois plus, car la tension saute de \(2E\) à chaque commutation.</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 05</span><span class="diff">★ ★ ☆</span>
+  <h3>Rendement et pertes dans un hacheur</h3>
+  <div class="statement">Un hacheur série convertit \(E = 48\ \text{V}\) en \(\langle u\rangle = 36\ \text{V}\) pour une charge de puissance \(P_s = 500\ \text{W}\), courant bien lissé. Transistor MOS : résistance à l'état passant \(R_{DS} = 12\ \text{m}\Omega\) ; énergies de commutation 40 µJ à la fermeture et 60 µJ à l'ouverture. Diode : tension de seuil \(V_F = 0{,}7\ \text{V}\). \(f = 20\ \text{kHz}\).</div>
+  <div class="q"><strong>Q1.</strong> Calculer le courant de charge \(\langle i\rangle\) et le rapport cyclique.</div>
+  <div class="q"><strong>Q2.</strong> Calculer les pertes par conduction du transistor et de la diode, les pertes par commutation, puis le rendement et le courant moyen fourni par la source.</div>
+  <div class="q"><strong>Q3.</strong> On baisse la fréquence à 5 kHz. Que deviennent les pertes et le rendement ? Quel inconvénient ?</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> \(\langle i\rangle = P_s/\langle u\rangle = 500/36 = 13{,}9\ \text{A}\) ; \(\alpha = 36/48 = 0{,}75\).</p>
+    <p><strong>Q2.</strong> Transistor, qui conduit pendant \(\alpha T\) : \(R_{DS}\langle i\rangle^2\alpha = 0{,}012 \times 13{,}9^2 \times 0{,}75 = 1{,}74\ \text{W}\). Diode, pendant \((1-\alpha)T\) : \(V_F\langle i\rangle(1-\alpha) = 0{,}7 \times 13{,}9 \times 0{,}25 = 2{,}43\ \text{W}\). Commutation : \((40 + 60)\times10^{-6} \times 2\times10^4 = 2{,}0\ \text{W}\). Pertes totales : 6,2 W ; \(\eta = 500/506{,}2 = 0{,}988\). La source fournit 506,2 W, soit \(\langle i_e\rangle = 506{,}2/48 = 10{,}5\ \text{A}\) (un peu plus que \(\alpha\langle i\rangle = 10{,}4\ \text{A}\), à cause des pertes).</p>
+    <p><strong>Q3.</strong> Les pertes par commutation sont proportionnelles à \(f\) : 0,5 W à 5 kHz, d'où 4,7 W de pertes et \(\eta = 0{,}991\). Mais l'ondulation du courant, proportionnelle à \(1/f\), est multipliée par 4, et 5 kHz est en plein dans le domaine audible : le moteur siffle. On retient en général 15 à 20 kHz pour un moteur. Les montages à commutation douce (hors programme) réduisent les pertes de commutation sans baisser la fréquence.</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 06</span><span class="diff">★ ★ ★</span>
+  <h3>Hacheur survolteur (boost) — analyse complète (hors programme, pour aller plus loin)</h3>
+  <div class="statement">Un hacheur survolteur relie une source de tension \(E = 12\ \text{V}\), en série avec une inductance \(L = 500\ \mu\text{H}\) (ensemble qui se comporte comme une source de courant), à une charge \(R = 50\ \Omega\) aux bornes de laquelle un condensateur de forte capacité maintient une tension \(V_s\) quasi constante. Le transistor \(T\), en parallèle sur l'ensemble diode + charge, est commandé avec \(\alpha = 0{,}6\) à \(f = 50\ \text{kHz}\) ; la diode relie l'inductance à la charge.</div>
+  <div class="q"><strong>Q1.</strong> Rappeler le principe du survolteur : en phase active (\(T\) passant), où circule l'énergie ? En roue libre (diode passante), que se passe-t-il ?</div>
+  <div class="q"><strong>Q2.</strong> En régime permanent, montrer que \(V_s = E/(1-\alpha)\). Application numérique.</div>
+  <div class="q"><strong>Q3.</strong> Calculer le courant moyen d'entrée \(\langle i_L\rangle\) par bilan de puissance (rendement idéal). Calculer l'ondulation \(\Delta I_L = E\alpha/(Lf)\).</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> Phase active (\(T\) passant, diode bloquée) : \(v_L = E\), le courant \(i_L\) croît, l'énergie de la source s'accumule dans \(L\) ; le condensateur alimente seul la charge. Roue libre (\(T\) bloqué, diode passante) : \(v_L = E - V_s \lt 0\), le courant \(i_L\) décroît ; l'inductance restitue son énergie vers la charge par la diode, en plus de celle fournie par \(E\).</p>
+    <p><strong>Q2.</strong> En régime périodique, la tension moyenne aux bornes de \(L\) est nulle : \(E\alpha T + (E - V_s)(1-\alpha)T = 0\), soit \(E - V_s(1-\alpha) = 0\) et \(V_s = E/(1-\alpha) = 12/0{,}4 = \boxed{30\ \text{V}}\). Rapport \(2{,}5 > 1\) : la tension est bien élevée.</p>
+    <p><strong>Q3.</strong> Puissance de sortie : \(P_s = V_s^2/R = 900/50 = 18\ \text{W}\). Bilan (\(\eta = 1\)) : \(\langle i_L\rangle = P_s/E = 1{,}5\ \text{A}\). Ondulation : \(\Delta I_L = E\alpha/(Lf)\), soit \(\Delta I_L = \dfrac{12\times0{,}6}{500\times10^{-6}\times50\,000} = 0{,}288\ \text{A}\), soit \(\pm 9{,}6\ \%\) du courant moyen : acceptable.</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 07</span><span class="diff">★ ☆ ☆</span>
+  <h3>Hacheur série et moteur : grandeurs moyennes et puissances</h3>
+  <div class="statement">Un hacheur série (\(E = 36\ \text{V}\), \(f = 10\ \text{kHz}\), \(\alpha = 0{,}75\)) alimente une MCC : \(K = 0{,}08\ \text{V·s/rad}\), \(R = 0{,}6\ \Omega\), \(L = 2\ \text{mH}\). La charge impose un couple de 0,4 N·m (pertes mécaniques comprises).</div>
+  <div class="q"><strong>Q1.</strong> Calculer le courant moyen, la tension moyenne, la f.é.m. et la vitesse (en rad/s et en tr/min).</div>
+  <div class="q"><strong>Q2.</strong> Calculer les courants moyens dans le transistor, dans la diode et dans la source.</div>
+  <div class="q"><strong>Q3.</strong> Faire le bilan des puissances : fournie par la source, reçue par la machine, convertie en puissance mécanique, perdue par effet Joule.</div>
+  <div class="q"><strong>Q4.</strong> Calculer l'ondulation du courant et vérifier la conduction continue.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> Le couple fixe le courant : \(\langle i\rangle = 0{,}4/0{,}08 = 5{,}0\ \text{A}\). \(\langle u\rangle = \alpha E = 27\ \text{V}\) ; \(E_m = \langle u\rangle - R\langle i\rangle = 27 - 3 = 24\ \text{V}\) ; \(\Omega = E_m/K = 300\ \text{rad/s}\), soit 2 860 tr/min.</p>
+    <p><strong>Q2.</strong> Le transistor porte \(i\) pendant \(\alpha T\) : \(\langle i_T\rangle = 0{,}75 \times 5 = 3{,}75\ \text{A}\), c'est aussi \(\langle i_e\rangle\) ; la diode pendant \((1-\alpha)T\) : \(\langle i_D\rangle = 1{,}25\ \text{A}\). On vérifie \(\langle i_T\rangle + \langle i_D\rangle = \langle i\rangle\).</p>
+    <p><strong>Q3.</strong> Source : \(E\langle i_e\rangle = 36 \times 3{,}75 = 135\ \text{W}\). Machine : \(\langle u\rangle\langle i\rangle = 27 \times 5 = 135\ \text{W}\) (hacheur parfait). Puissance électromagnétique \(E_m\langle i\rangle = 120\ \text{W} = C_{em}\Omega = 0{,}4 \times 300\) ; pertes Joule \(R\langle i\rangle^2 = 15\ \text{W}\) (l'ondulation, faible, n'ajoute presque rien).</p>
+    <p><strong>Q4.</strong> \(\Delta i \approx \dfrac{0{,}75 \times 0{,}25 \times 36}{2\times10^{-3} \times 10^4} = 0{,}34\ \text{A}\) ; \(i_{min} \approx 5 - 0{,}17 = 4{,}83\ \text{A} > 0\) : conduction continue. (\(L/R = 3{,}3\ \text{ms}\), trente fois la période : approximation justifiée.)</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 08</span><span class="diff">★ ★ ☆</span>
+  <h3>Freinage avec récupération d'une trottinette électrique</h3>
+  <div class="statement">Une trottinette (masse totale avec l'utilisateur \(m = 100\ \text{kg}\)) est mue par une MCC (\(K = 0{,}06\ \text{V·s/rad}\), \(R = 0{,}10\ \Omega\)) qui entraîne la roue arrière (rayon 0,10 m) par un réducteur de rapport \(k = 1/8\) (vitesse de la roue sur vitesse du moteur), alimentée par une batterie de 36 V à travers un hacheur réversible en courant à commande complémentaire. À 6 m/s, le conducteur freine : la commande impose un courant constant \(\langle i\rangle = -20\ \text{A}\). On néglige les frottements, les pertes du réducteur et les inerties tournantes.</div>
+  <div class="q"><strong>Q1.</strong> Calculer la vitesse du moteur et la f.é.m. au début du freinage, puis la tension moyenne et le rapport cyclique. Quels composants conduisent ?</div>
+  <div class="q"><strong>Q2.</strong> Calculer le couple de freinage, la force de freinage au sol et la décélération.</div>
+  <div class="q"><strong>Q3.</strong> Faire le bilan des puissances au début du freinage.</div>
+  <div class="q"><strong>Q4.</strong> Jusqu'à quelle vitesse ce freinage est-il possible ? Pourquoi ? Combien de temps dure-t-il, sur quelle distance ?</div>
+  <div class="q"><strong>Q5.</strong> Calculer l'énergie renvoyée à la batterie pendant ce freinage et la comparer à l'énergie cinétique initiale.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> Roue : \(6/0{,}10 = 60\ \text{rad/s}\) ; moteur : \(\Omega_0 = 60 \times 8 = 480\ \text{rad/s}\) ; \(E_m = 0{,}06 \times 480 = 28{,}8\ \text{V}\). \(\langle u\rangle = E_m + R\langle i\rangle = 28{,}8 - 2 = 26{,}8\ \text{V}\), \(\alpha = 26{,}8/36 = 0{,}74\). Le courant étant négatif : \(D_1\) (diode du haut) conduit pendant \(\alpha T\) (\(u = E\), courant renvoyé dans la batterie), \(T_2\) (transistor du bas) pendant \((1-\alpha)T\).</p>
+    <p><strong>Q2.</strong> \(C_{em} = K\langle i\rangle = -1{,}2\ \text{N·m}\). Sur la roue, le couple est multiplié par 8 : \(-9{,}6\ \text{N·m}\), soit une force au sol de \(9{,}6/0{,}10 = 96\ \text{N}\) vers l'arrière. Décélération : \(96/100 = 0{,}96\ \text{m/s}^2\), constante tant que le courant l'est.</p>
+    <p><strong>Q3.</strong> La machine convertit \(-E_m\langle i\rangle = 576\ \text{W}\) (prélevés sur l'énergie cinétique, \(96 \times 6\)) ; pertes Joule \(R\langle i\rangle^2 = 40\ \text{W}\) ; la batterie reçoit \(-\langle u\rangle\langle i\rangle = 536\ \text{W}\).</p>
+    <p><strong>Q4.</strong> Le hacheur réversible en courant ne fournit que \(\langle u\rangle \geq 0\). Or \(\langle u\rangle = K\Omega - 2\) s'annule pour \(\Omega = 2/0{,}06 = 33{,}3\ \text{rad/s}\), soit \(v = 33{,}3 \times 0{,}10/8 = 0{,}42\ \text{m/s}\) : en dessous, le courant de freinage décroît et il faut un frein mécanique pour finir. Durée : \((6 - 0{,}42)/0{,}96 = 5{,}8\ \text{s}\) ; distance : \((6^2 - 0{,}42^2)/(2 \times 0{,}96) = 18{,}7\ \text{m}\).</p>
+    <p><strong>Q5.</strong> Énergie cinétique perdue : \(\frac12 \times 100 \times (6^2 - 0{,}42^2) = 1\,791\ \text{J}\) ; pertes Joule : \(40 \times 5{,}8 = 233\ \text{J}\) ; énergie renvoyée : \(1\,791 - 233 = 1\,559\ \text{J}\), soit 87 % de l'énergie cinétique initiale (1 800 J). En pratique, frottements et rendement de la batterie en réduisent la part, mais la récupération reste nettement intéressante en ville.</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 09</span><span class="diff">★ ★ ☆</span>
+  <h3>Commande MLI : du microcontrôleur à la vitesse</h3>
+  <div class="statement">Un hacheur série (\(E = 24\ \text{V}\)) alimente une MCC à vide : \(K = 0{,}04\ \text{V·s/rad}\), \(R = 0{,}8\ \Omega\), \(J = 2\times10^{-4}\ \text{kg·m}^2\), inductance et frottements négligés. La commande compare une tension \(v_c\) à une porteuse en dents de scie de 0 à 5 V, à 20 kHz.</div>
+  <div class="q"><strong>Q1.</strong> Exprimer \(\alpha\) et \(\langle u\rangle\) en fonction de \(v_c\). Application : \(v_c = 2\ \text{V}\). Quel est le gain du hacheur ?</div>
+  <div class="q"><strong>Q2.</strong> La MLI est produite par un microcontrôleur dont l'horloge vaut 64 MHz. Combien de pas compte une période ? Quelle est la résolution sur \(\langle u\rangle\) ?</div>
+  <div class="q"><strong>Q3.</strong> Établir la fonction de transfert \(\dfrac{\Omega(p)}{V_c(p)}\) en modélisant le hacheur par son gain. Gain statique, constante de temps ? Pourquoi ce modèle moyen est-il légitime ?</div>
+  <div class="q"><strong>Q4.</strong> Quelle tension \(v_c\) donne 300 rad/s en régime permanent ? Quelle vitesse maximale peut-on obtenir ?</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> Le transistor est commandé tant que \(v_c\) dépasse la porteuse : \(\alpha = v_c/5\) et \(\langle u\rangle = \alpha E = 4{,}8\,v_c\). Pour \(v_c = 2\ \text{V}\) : \(\alpha = 0{,}4\), \(\langle u\rangle = 9{,}6\ \text{V}\). Gain du hacheur : \(G = E/V_p = 4{,}8\).</p>
+    <p><strong>Q2.</strong> \(64\times10^6/(20\times10^3) = 3\,200\) pas par période : \(\alpha\) se règle par pas de 1/3 200, et \(\langle u\rangle\) par pas de \(24/3\,200 = 7{,}5\ \text{mV}\), bien assez fin.</p>
+    <p><strong>Q3.</strong> Moteur à vide, inductance négligée (« Machine à courant continu », §6) : \(\dfrac{\Omega}{\langle U\rangle} = \dfrac{1/K}{1 + \tau_m p}\) avec \(\tau_m = RJ/K^2\), soit \(\tau_m = \dfrac{0{,}8 \times 2\times10^{-4}}{0{,}0016} = 0{,}1\ \text{s}\). Avec \(\langle U\rangle = G\,V_c\) : \(\dfrac{\Omega(p)}{V_c(p)} = \dfrac{G/K}{1 + \tau_m p} = \dfrac{120}{1 + 0{,}1\,p}\) (rad/s par volt). La période de découpage (50 µs) est 2 000 fois plus courte que \(\tau_m\) : la vitesse ne « voit » que la valeur moyenne de la tension.</p>
+    <p><strong>Q4.</strong> \(v_c = 300/120 = 2{,}5\ \text{V}\) (\(\alpha = 0{,}5\)). Vitesse maximale, pour \(v_c = 5\ \text{V}\) (\(\alpha = 1\)) : 600 rad/s, la vitesse à vide sous 24 V.</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 10</span><span class="diff">★ ★ ☆</span>
+  <h3>Pont en H en commande séquentielle : qui conduit sur un cycle ?</h3>
+  <div class="statement">Un pont en H (cours §4, \(E = 24\ \text{V}\)) commande une MCC (\(K = 0{,}06\ \text{V·s/rad}\), \(R = 1\ \Omega\)) en commande séquentielle. Le cycle comporte quatre phases, chacune en régime établi : a) marche avant à 300 rad/s, moteur, \(\langle i\rangle = 2\ \text{A}\) ; b) même vitesse, freinage, \(\langle i\rangle = -2\ \text{A}\) ; c) marche arrière à 300 rad/s, moteur ; d) marche arrière, freinage.</div>
+  <div class="q"><strong>Q1.</strong> Pour chaque phase, calculer \(\langle u\rangle\) et placer le point dans le plan \((u, i)\) puis dans le plan \((C_{em}, \Omega)\).</div>
+  <div class="q"><strong>Q2.</strong> Pour chaque phase, donner l'interrupteur d'aiguillage, l'interrupteur de hachage, les composants qui conduisent quand \(u \neq 0\) et quand \(u = 0\), et la fraction de période où \(u \neq 0\).</div>
+  <div class="q"><strong>Q3.</strong> Calculer la puissance échangée avec la source dans chaque phase. Quelle condition sur la source ?</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> \(\langle u\rangle = K\Omega + R\langle i\rangle\) : a) \(18 + 2 = 20\ \text{V}\) ; b) \(18 - 2 = 16\ \text{V}\) ; c) \(-18 - 2 = -20\ \text{V}\) (\(\langle i\rangle = -2\ \text{A}\)) ; d) \(-18 + 2 = -16\ \text{V}\) (\(\langle i\rangle = 2\ \text{A}\)). Plan \((u, i)\) : a en Q1, b en Q4, c en Q3, d en Q2. Plan \((C_{em}, \Omega)\) : a en Q1, b en Q2, c en Q3, d en Q4.</p>
+    <p><strong>Q2.</strong> (Table du cours, §4.)</p>
+    <div style="overflow-x:auto"><table>
+      <tr><th>Phase</th><th>Aiguillage</th><th>Hachage</th><th>\(u \neq 0\)</th><th>\(u = 0\)</th><th>Fraction</th></tr>
+      <tr><td>a (Q1)</td><td>\(T_1\)</td><td>\(T_4\)</td><td>\(T_1 + T_4\)</td><td>\(T_1 + D_3\)</td><td>\(20/24 = 0{,}83\)</td></tr>
+      <tr><td>b (Q4)</td><td>\(T_1\)</td><td>\(T_3\)</td><td>\(D_1 + D_4\)</td><td>\(T_3 + D_1\)</td><td>\(16/24 = 0{,}67\)</td></tr>
+      <tr><td>c (Q3)</td><td>\(T_3\)</td><td>\(T_2\)</td><td>\(T_2 + T_3\)</td><td>\(T_3 + D_1\)</td><td>0,83</td></tr>
+      <tr><td>d (Q2)</td><td>\(T_3\)</td><td>\(T_1\)</td><td>\(D_2 + D_3\)</td><td>\(T_1 + D_3\)</td><td>0,67</td></tr>
+    </table></div>
+    <p><strong>Q3.</strong> \(\langle u\rangle\langle i\rangle\) : a) et c) \(+40\ \text{W}\) fournis par la source ; b) et d) \(-32\ \text{W}\) : la source reçoit 32 W (la machine en convertit \(18 \times 2 = 36\ \text{W}\), dont 4 W perdus par effet Joule). La source doit être réversible en courant : batterie, ou bus continu muni d'une résistance de freinage.</p>
+  </div>
+</div>
+
+<div class="exo concours">
+  <span class="num">CONCOURS PT</span><span class="diff">★ ★ ★</span>
+  <h3>Motorisation d'un chariot autonome : hacheur en pont et machine à courant continu</h3>
+  <div class="exo-source">
+    Exercice <strong>original</strong> au format des épreuves de Sciences industrielles PT (thème <em>hacheurs</em>). Pour t'entraîner sur les sujets réellement tombés :
+    <a href="https://www.banquept.fr/rubrique38.html" target="_blank" rel="noopener">annales officielles de la Banque PT</a>.
+  </div>
+  <div class="statement">
+    Un chariot autonome de manutention (masse en charge \(m = 400\ \text{kg}\)) est propulsé par une MCC à aimants : \(K = 0{,}20\ \text{V·s/rad}\), \(R = 0{,}15\ \Omega\), \(L = 1{,}2\ \text{mH}\), inertie du rotor négligée. Elle entraîne les roues motrices (rayon \(r = 0{,}10\ \text{m}\)) par un réducteur de rapport \(k = 1/10\) (vitesse des roues sur vitesse du moteur), de rendement supposé égal à 1. Batterie : \(E = 48\ \text{V}\). Un pont en H commandé en mode bipolaire, à \(f = 16\ \text{kHz}\), alimente la machine. En ligne droite, la résistance à l'avancement vaut \(F_r = 120\ \text{N}\) dans les deux sens. Cycle type : accélération de 0 à 1,5 m/s en 2 s, croisière à 1,5 m/s, freinage jusqu'à l'arrêt en 1,5 s ; le chariot doit aussi reculer pour ses manœuvres.
+  </div>
+
+  <p class="exo-part">Partie A — Structure du convertisseur</p>
+  <div class="q"><strong>A1.</strong> Placer chaque régime du cycle (accélération, croisière, freinage, recul moteur) dans le plan \((C_{em}, \Omega)\) et dans le plan \((u, i)\). Justifier le choix d'un pont en H et la nature de ses interrupteurs.</div>
+  <div class="q"><strong>A2.</strong> Montrer que l'inertie de la masse ramenée sur l'arbre moteur vaut \(J_{eq} = m(rk)^2\) et que la résistance à l'avancement équivaut à un couple résistant \(C_r = F_r\,r\,k\) sur l'arbre moteur. Valeurs numériques.</div>
+
+  <p class="exo-part">Partie B — Croisière</p>
+  <div class="q"><strong>B1.</strong> Calculer la vitesse du moteur, le courant, la tension moyenne et le rapport cyclique.</div>
+  <div class="q"><strong>B2.</strong> Calculer l'ondulation du courant en croisière, sa valeur maximale possible, et la comparer à celle d'une commande séquentielle.</div>
+
+  <p class="exo-part">Partie C — Accélération et freinage</p>
+  <div class="q"><strong>C1.</strong> Pendant l'accélération (uniforme), calculer le couple et le courant. Tension, rapport cyclique et puissance fournie par la batterie à la fin de l'accélération ?</div>
+  <div class="q"><strong>C2.</strong> Pendant le freinage (uniforme), calculer le couple et le courant. Tension, rapport cyclique et puissance renvoyée à la batterie au début du freinage. Quels composants conduisent ?</div>
+  <div class="q"><strong>C3.</strong> Faire le bilan énergétique du freinage : énergie cinétique, énergie dissipée par la résistance à l'avancement, pertes Joule, énergie renvoyée à la batterie. Que se passe-t-il pendant les tout derniers instants du freinage ?</div>
+
+  <p class="exo-part">Partie D — Commande</p>
+  <div class="q"><strong>D1.</strong> La commande compare une tension \(v_c\) à une porteuse triangulaire symétrique entre \(-5\) et \(+5\ \text{V}\). Montrer que \(\langle u\rangle = G\,v_c\) et calculer \(G\). Valeur de \(v_c\) en croisière ?</div>
+  <div class="q"><strong>D2.</strong> Justifier un modèle du premier ordre pour la machine et le modèle moyen du hacheur. Établir \(\Omega(p)\) en fonction de \(V_c(p)\) et de \(C_r(p)\).</div>
+  <div class="q"><strong>D3.</strong> À \(v_c\) fixé, de combien la vitesse baisse-t-elle si la résistance à l'avancement double (pente) ? Faut-il asservir la vitesse ?</div>
+
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>A1.</strong> Accélération et croisière en marche avant : \(C_{em} > 0\), \(\Omega > 0\), Q1 dans les deux plans. Freinage en marche avant : \(C_{em} \lt 0\), \(\Omega > 0\) : Q2 du plan \((C_{em}, \Omega)\), Q4 du plan \((u, i)\) (\(u > 0\), \(i \lt 0\)). Recul moteur : Q3 dans les deux plans. Il faut donc \(u\) et \(i\) des deux signes : pont en H, deux cellules de commutation, quatre interrupteurs à trois segments (transistor et diode antiparallèle) qui bloquent \(+E\) et conduisent les deux sens de courant.</p>
+    <p><strong>A2.</strong> La masse se déplace à \(v = r\,k\,\Omega\) : \(\frac12 m v^2 = \frac12 m (rk)^2\Omega^2\), d'où \(J_{eq} = 400 \times 0{,}01^2 = 0{,}04\ \text{kg·m}^2\). La puissance de la résistance à l'avancement \(F_r v = F_r\,r\,k\,\Omega\) est celle d'un couple \(C_r = 120 \times 0{,}01 = 1{,}2\ \text{N·m}\) sur l'arbre moteur (rendement 1).</p>
+    <p><strong>B1.</strong> \(\Omega = v/(rk) = 1{,}5/0{,}01 = 150\ \text{rad/s}\) ; \(\langle i\rangle = C_r/K = 6\ \text{A}\) ; \(\langle u\rangle = K\Omega + R\langle i\rangle = 30 + 0{,}9 = 30{,}9\ \text{V}\) ; \(\alpha = \frac12(1 + 30{,}9/48) = 0{,}82\).</p>
+    <p><strong>B2.</strong></p>
+    <div class="formula">$$\Delta i \approx \frac{2\alpha(1-\alpha)E}{Lf} = \frac{2 \times 0{,}82 \times 0{,}18 \times 48}{1{,}2\times10^{-3} \times 16\times10^3} = 0{,}73\ \text{A}$$</div>
+    <p>soit au plus \(\dfrac{E}{2Lf} = 1{,}25\ \text{A}\) (\(\alpha = 0{,}5\)). En commande séquentielle, fraction \(30{,}9/48 = 0{,}64\) : \(\Delta i \approx 0{,}64 \times 0{,}36 \times 48/19{,}2 = 0{,}57\ \text{A}\). Hypothèse vérifiée : \(L/R = 8\ \text{ms}\), 128 fois la période.</p>
+    <p><strong>C1.</strong> \(\dot\Omega = 150/2 = 75\ \text{rad/s}^2\) ; \(C_{em} = J_{eq}\dot\Omega + C_r = 3{,}0 + 1{,}2 = 4{,}2\ \text{N·m}\) ; \(\langle i\rangle = 21\ \text{A}\). En fin d'accélération : \(\langle u\rangle = 30 + 0{,}15 \times 21 = 33{,}2\ \text{V}\), \(\alpha = 0{,}85\), puissance fournie \(33{,}2 \times 21 = 696\ \text{W}\).</p>
+    <p><strong>C2.</strong> \(\dot\Omega = -150/1{,}5 = -100\ \text{rad/s}^2\) ; \(C_{em} = -4{,}0 + 1{,}2 = -2{,}8\ \text{N·m}\) (la résistance à l'avancement aide à freiner) ; \(\langle i\rangle = -14\ \text{A}\). Au début : \(\langle u\rangle = 30 - 2{,}1 = 27{,}9\ \text{V}\), \(\alpha = 0{,}79\) ; la batterie reçoit \(27{,}9 \times 14 = 391\ \text{W}\). Le courant étant négatif, ce sont les diodes \(D_1\), \(D_4\) qui conduisent quand la diagonale \(T_1\), \(T_4\) est commandée (\(u = +E\), énergie renvoyée), et les transistors \(T_2\), \(T_3\) pendant l'autre phase (\(u = -E\)).</p>
+    <p><strong>C3.</strong> Énergie cinétique initiale : \(\frac12 J_{eq}\Omega^2 = \frac12 \times 0{,}04 \times 150^2 = 450\ \text{J}\) (c'est \(\frac12 mv^2\)). Angle parcouru par le moteur : \(150 \times 1{,}5/2 = 112{,}5\ \text{rad}\), d'où \(1{,}2 \times 112{,}5 = 135\ \text{J}\) dissipés par la résistance à l'avancement (\(120\ \text{N} \times 1{,}125\ \text{m}\)). Pertes Joule : \(0{,}15 \times 14^2 \times 1{,}5 = 44\ \text{J}\). Énergie renvoyée : \(450 - 135 - 44 = 271\ \text{J}\) (60 % de l'énergie cinétique ; l'intégration de \(-\langle u\rangle\langle i\rangle\) le confirme). À la fin, \(\langle u\rangle = K\Omega - 2{,}1\) devient négative pour \(\Omega \lt 10{,}5\ \text{rad/s}\) (les 0,105 dernières secondes) : la batterie fournit alors un peu d'énergie pour maintenir le courant de freinage, ce que le pont en H permet (Q3 du plan \((u, i)\)).</p>
+    <p><strong>D1.</strong> Avec une porteuse triangulaire symétrique, la diagonale \(T_1\), \(T_4\) est commandée tant que \(v_c\) dépasse la porteuse : \(\alpha = \frac12(1 + v_c/5)\), donc \(\langle u\rangle = (2\alpha - 1)E = \dfrac{E}{5}\,v_c\) et \(G = 48/5 = 9{,}6\). En croisière : \(v_c = 30{,}9/9{,}6 = 3{,}22\ \text{V}\).</p>
+    <p><strong>D2.</strong> \(\tau_e = L/R = 8\ \text{ms}\) et \(\tau_m = RJ_{eq}/K^2 = 0{,}15 \times 0{,}04/0{,}04 = 0{,}15\ \text{s}\) : \(\tau_m \gg \tau_e\), premier ordre (« Machine à courant continu », §6). Période de découpage \(62{,}5\ \mu\text{s} \ll \tau_e\) : modèle moyen légitime. Avec \(J_{eq}p\,\Omega = KI - C_r\) et \(G V_c = K\Omega + RI\) :</p>
+    <div class="formula">$$\Omega(p) = \frac{G/K}{1 + \tau_m p}\,V_c(p) - \frac{R/K^2}{1 + \tau_m p}\,C_r(p) = \frac{48\,V_c(p) - 3{,}75\,C_r(p)}{1 + 0{,}15\,p}$$</div>
+    <p><strong>D3.</strong> En régime permanent, \(\Delta\Omega = -\dfrac{R}{K^2}\,\Delta C_r\), soit \(\Delta\Omega = -3{,}75 \times 1{,}2 = -4{,}5\ \text{rad/s}\), environ 3 % de la vitesse de croisière : la machine est « raide ». Pour une simple consigne de vitesse, la boucle ouverte suffirait ; mais pour maîtriser les couples d'accélération et de freinage, limiter le courant et suivre une trajectoire, on asservit le courant puis la vitesse (2ᵉ année).</p>
+  </div>
+</div>
+
+</div>
+
+</template>

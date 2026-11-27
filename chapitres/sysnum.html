@@ -1,0 +1,1030 @@
+<!-- Chapitre « Systèmes numériques — acquisition, filtrage et commande » (sysnum) : contenu des onglets Cours, Méthodes et Exercices, chargé à l'ouverture du chapitre.
+     On l'édite ici, puis : node tools/chapitres.js (docs/chargement-chapitres.md). -->
+<template class="pan-tpl" data-panneau="snumx-cours">
+
+<div class="course-section">
+  <div class="sec-num">AU PROGRAMME · PT</div>
+  <h2>Ce que le programme officiel demande</h2>
+  <div class="intro">Compétences B2 « Modéliser un correcteur numérique » (S4), D3 « Effectuer des traitements à partir de données » (S3) et C3 « Résoudre numériquement une équation » pour son volet intégration et dérivation numériques (S3), toutes trois en lien avec l'informatique. Les erreurs de mesure (résolution, quantification, échantillonnage) sont des rappels de S2. Les correcteurs continus que l'on programme ici sont réglés dans « Correction des SLCI » ; l'effet d'un retard sur la stabilité est vu dans le chapitre « Stabilité » de 1ʳᵉ année.</div>
+  <div class="reveal" onclick="this.classList.toggle('open')">
+    <span class="label">Programme officiel</span>
+    <span class="prompt">Les capacités exigibles, dans l'ordre du chapitre</span>
+    <div class="content">
+      <ul>
+        <li><strong>Chaîne d'acquisition et de commande numérique</strong> : signaux analogique, échantillonné et numérique (§1).</li>
+        <li><strong>Signaux à temps discret</strong> (S4) : échantillonnage, condition de Shannon, repliement et filtre anti-repliement (§2) ; quantification, quantum, résolution et nombre de bits (§3) ; conversion numérique-analogique et bloqueur d'ordre 0 (§4).</li>
+        <li><strong>Traitement de données</strong> (S3) : relations de récurrence, moyenne glissante ; traitement d'un fichier de mesures, moyenne et écart type (§5).</li>
+        <li><strong>Filtres numériques passe-bas du premier et du second ordre</strong> (S3), obtenus par les schémas avant et arrière (§6).</li>
+        <li><strong>Intégration et dérivation numériques</strong> (S3) : schémas arrière et avant, méthode des trapèzes (§7).</li>
+        <li><strong>Équations de récurrence des correcteurs numériques</strong> proportionnel, proportionnel intégral et à avance de phase ; influence de la période d'échantillonnage, qui montre les limites du modèle continu (§8).</li>
+      </ul>
+      <p>La transformée en z n'est pas au programme (elle n'est pas utilisée ici). L'intégration exacte sur une période (§6) et la forme incrémentale du PID (§8) sont des compléments, signalés comme tels.</p>
+    </div>
+  </div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§1 · LA CHAÎNE NUMÉRIQUE</div>
+  <h2>Acquérir, calculer, commander</h2>
+  <div class="intro">Dans un drone, un robot, une imprimante 3D ou un véhicule récent, la loi de commande n'est plus câblée avec des composants analogiques : c'est un programme exécuté par un calculateur (microcontrôleur, automate, carte embarquée). Or un calculateur ne manipule que des nombres, et seulement à des instants séparés. Il faut donc convertir les grandeurs physiques à l'entrée, et reconstituer un signal physique à la sortie.</div>
+
+  <h3>Les maillons de la chaîne</h3>
+  <ul>
+    <li><strong>Capteur</strong> : traduit la grandeur physique (position, vitesse, température, pression…) en grandeur électrique.</li>
+    <li><strong>Conditionnement</strong> : amplifie et décale le signal pour qu'il occupe toute la plage d'entrée du convertisseur, et le filtre (filtre anti-repliement, §2).</li>
+    <li><strong>Échantillonneur-bloqueur + CAN</strong> (convertisseur analogique-numérique) : prélève la valeur du signal toutes les \(T_e\) secondes, la fige le temps de la conversion, puis la code par un entier sur \(N\) bits.</li>
+    <li><strong>Calculateur</strong> : exécute une fois par période l'algorithme (filtrage, comparaison à la consigne, loi de commande).</li>
+    <li><strong>CNA</strong> (convertisseur numérique-analogique) <strong>+ bloqueur</strong> : transforme le nombre calculé en une tension maintenue jusqu'au calcul suivant.</li>
+    <li><strong>Préactionneur</strong> (variateur, hacheur, étage de puissance à MLI) puis <strong>actionneur</strong>.</li>
+  </ul>
+
+<figure class="schema">
+<svg viewBox="0 0 340 150" role="img" aria-label="Asservissement numérique : comparateur et correcteur dans le calculateur, CNA et bloqueur vers le processus, capteur et CAN en retour">
+  <rect x="38" y="14" width="148" height="128" rx="6" class="sk-dash"/>
+  <text x="44" y="136" class="lab-muted" style="font-size:10px">calculateur</text>
+  <text x="4" y="42" class="lab-it">cₖ</text>
+  <line x1="16" y1="48" x2="43" y2="48" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+  <circle cx="52" cy="48" r="8" class="sk-ink"/>
+  <text x="34" y="42" class="lab-muted" style="font-size:10px">+</text>
+  <text x="56" y="70" class="lab-muted" style="font-size:11px">−</text>
+  <line x1="60" y1="48" x2="81" y2="48" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+  <text x="63" y="42" class="lab-it" style="font-size:11px">εₖ</text>
+  <rect x="82" y="33" width="58" height="30" rx="3" class="sk-ink"/>
+  <text x="111" y="52" text-anchor="middle" style="font-size:10px">Correcteur</text>
+  <line x1="140" y1="48" x2="163" y2="48" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+  <text x="144" y="42" class="lab-it" style="font-size:11px">uₖ</text>
+  <rect x="164" y="33" width="44" height="30" rx="3" class="fl-paper"/>
+  <rect x="164" y="33" width="44" height="30" rx="3" class="sk-accent2"/>
+  <text x="186" y="46" text-anchor="middle" class="lab-accent2" style="font-size:10px">CNA</text>
+  <text x="186" y="58" text-anchor="middle" class="lab-accent2" style="font-size:10px">+ B₀</text>
+  <line x1="208" y1="48" x2="227" y2="48" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+  <text x="210" y="28" class="lab-it" style="font-size:10px">u(t)</text>
+  <rect x="228" y="33" width="72" height="30" rx="3" class="sk-ink"/>
+  <text x="264" y="46" text-anchor="middle" style="font-size:9px">Préactionneur</text>
+  <text x="264" y="58" text-anchor="middle" style="font-size:9px">+ processus</text>
+  <line x1="300" y1="48" x2="334" y2="48" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+  <text x="314" y="42" class="lab-it" style="font-size:11px">s(t)</text>
+  <path d="M316,48 L316,112 L301,112" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+  <rect x="228" y="97" width="72" height="30" rx="3" class="sk-ink"/>
+  <text x="264" y="110" text-anchor="middle" style="font-size:9px">Capteur +</text>
+  <text x="264" y="121" text-anchor="middle" style="font-size:9px">conditionnement</text>
+  <line x1="228" y1="112" x2="209" y2="112" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+  <rect x="164" y="97" width="44" height="30" rx="3" class="fl-paper"/>
+  <rect x="164" y="97" width="44" height="30" rx="3" class="sk-accent2"/>
+  <text x="186" y="116" text-anchor="middle" class="lab-accent2" style="font-size:10px">CAN</text>
+  <path d="M164,112 L52,112 L52,57" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+  <text x="100" y="106" class="lab-it" style="font-size:11px">sₖ</text>
+</svg>
+<figcaption>Asservissement numérique : le comparateur et le correcteur sont des lignes de programme ; B₀ désigne le bloqueur d'ordre 0 (§4). Les convertisseurs (CAN, CNA) sont à la <strong>frontière</strong> entre le domaine numérique (cadencé à \(T_e\)) et le monde physique.</figcaption>
+</figure>
+
+  <h3>Trois natures de signaux</h3>
+  <div class="def-box">
+    <ul style="margin:.2rem 0">
+      <li><strong>Analogique</strong> : défini à chaque instant, à valeurs dans un continuum.</li>
+      <li><strong>Échantillonné</strong> : connu seulement aux instants \(t_k = kT_e\) ; on note \(s_k = s(kT_e)\) l'échantillon d'indice \(k\). Ses valeurs sont encore quelconques.</li>
+      <li><strong>Numérique</strong> : échantillonné <em>et</em> quantifié : chaque échantillon est remplacé par un entier codé sur \(N\) bits (§3).</li>
+    </ul>
+    $$s_k = s(kT_e),\quad k\in\mathbb{N}\qquad\qquad f_e = \frac{1}{T_e}$$
+    \(T_e\) : période d'échantillonnage (s) ; \(f_e\) : fréquence d'échantillonnage (Hz).
+  </div>
+  <div class="prop-box">
+    <strong>Capteurs directement numériques.</strong> Un codeur optique incrémental (comptage d'impulsions) ou absolu (mot binaire lu sur un disque gravé) délivre déjà un nombre : pas de CAN. La mesure reste quantifiée (un pas du codeur) et n'est lue qu'à la cadence du calculateur.
+  </div>
+  <div class="reveal" onclick="this.classList.toggle('open')">
+    <span class="label">À retenir</span>
+    <span class="prompt">Pourquoi tout ne se fait-il pas en analogique ? Quel est le prix à payer ?</span>
+    <div class="content">
+      <p><strong>Atouts du numérique</strong> : loi de commande modifiable par simple reprogrammation, lois non linéaires, saturations, séquences et surveillance faciles à coder, aucune dérive des composants, communication avec d'autres calculateurs.</p>
+      <p><strong>Contreparties</strong> : on ignore ce qui se passe entre deux échantillons, chaque valeur est arrondie (quantification), et la conversion, le calcul et le blocage ajoutent un <strong>retard</strong> qui dégrade la stabilité (§4 et §8).</p>
+    </div>
+  </div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§2 · ÉCHANTILLONNAGE</div>
+  <h2>Période d'échantillonnage, Shannon et repliement</h2>
+  <div class="intro">Échantillonner, c'est ne regarder le signal qu'une fois toutes les \(T_e\) secondes. Si le signal varie trop vite entre deux prélèvements, les échantillons ne permettent plus de le reconnaître ; pire, ils peuvent faire croire à une variation lente qui n'existe pas.</div>
+
+  <h3>Condition de Nyquist-Shannon</h3>
+  <div class="prop-box">
+    <strong>Théorème d'échantillonnage.</strong> Si le spectre d'un signal ne contient aucune composante au-delà d'une fréquence \(f_{max}\), le signal est entièrement déterminé par ses échantillons pourvu que
+    $$f_e > 2\,f_{max}$$
+    La fréquence \(f_e/2\) est la <strong>fréquence de Nyquist</strong> : la plus haute fréquence qu'un échantillonnage à \(f_e\) représente sans ambiguïté.
+  </div>
+
+  <h3>Repliement de spectre</h3>
+  <p>Pour tout entier \(n\), le produit \(n f_e \cdot kT_e = nk\) est entier, donc deux sinusoïdes dont les fréquences diffèrent d'un multiple de \(f_e\) prennent exactement les mêmes valeurs aux instants d'échantillonnage :</p>
+  <div class="formula">$$\cos\big(2\pi f\,kT_e\big)=\cos\big(2\pi\,(f-n f_e)\,kT_e\big)\qquad n\in\mathbb{Z}$$</div>
+  <div class="def-box">
+    <strong>Repliement</strong> (<em>aliasing</em>). Une composante de fréquence \(f > f_e/2\) fournit les mêmes échantillons qu'une composante de <strong>fréquence apparente</strong>
+    $$f_{app} = |f - n\,f_e|,\qquad n\in\mathbb{Z}\ \text{tel que}\ 0 \leq f_{app} \leq f_e/2$$
+    Le calculateur « voit » une fréquence fausse, et aucun traitement numérique ultérieur ne peut la distinguer d'une composante réelle.
+  </div>
+
+  <h3>Filtre anti-repliement</h3>
+  <div class="prop-box">
+    On place <strong>avant l'échantillonneur</strong> un filtre passe-bas <strong>analogique</strong> qui atténue fortement tout ce qui dépasse \(f_e/2\) (bruit, parasites, harmoniques inutiles). Il ne peut pas être numérique : une fois le signal échantillonné, le mal est fait.
+  </div>
+  <div class="notice">
+    <strong>Choix pratique de \(T_e\).</strong> Shannon n'est qu'une borne théorique (elle suppose une reconstruction idéale). En commande, on prend une marge : \(f_e\) de l'ordre de 10 à 30 fois la bande passante de la boucle, ou \(T_e\) voisin du dixième de la plus petite constante de temps à suivre. Mais un \(T_e\) minuscule a un coût : plus de calculs par seconde, plus de données, et une dérivation numérique plus bruitée (§7).
+  </div>
+  <div class="prop-box">
+    <strong>Ordres de grandeur de \(f_e\).</strong>
+    <ul style="margin:.4rem 0">
+      <li>Audio (CD) : 44,1 kHz pour une oreille limitée à environ 20 kHz.</li>
+      <li>Boucle de courant d'un variateur de moteur : 10 à 20 kHz.</li>
+      <li>Boucle de vitesse ou de position d'un axe : 1 à 10 kHz.</li>
+      <li>Régulation thermique d'un four ou d'un local : 0,1 à 10 Hz.</li>
+    </ul>
+  </div>
+  <div class="reveal" onclick="this.classList.toggle('open')">
+    <span class="label">Application</span>
+    <span class="prompt">Une vibration à 70 Hz est échantillonnée à 100 Hz. Quelle fréquence le calculateur observe-t-il ?</span>
+    <div class="content">
+      <p>\(f_e/2 = 50\ \text{Hz} \lt 70\ \text{Hz}\) : il y a repliement. Le multiple de \(f_e\) le plus proche de 70 Hz est 100 Hz, d'où \(f_{app} = |70-100| = 30\ \text{Hz}\). Le calculateur croit voir une oscillation lente à 30 Hz. Il faudrait \(f_e > 140\ \text{Hz}\), et un filtre anti-repliement pour les composantes plus rapides.</p>
+    </div>
+  </div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§3 · QUANTIFICATION</div>
+  <h2>Coder sur N bits : quantum, résolution, erreur</h2>
+  <div class="intro">Un CAN de \(N\) bits ne délivre que \(2^N\) codes entiers, de \(0\) à \(2^N-1\). Sa plage d'entrée est découpée en paliers de même hauteur : le quantum. Toute valeur comprise dans un palier reçoit le même code.</div>
+
+  <div class="def-box">
+    <strong>Quantum</strong> (pas de quantification). Pour une plage d'entrée (pleine échelle) \(\Delta s = s_{max} - s_{min}\) et un codage sur \(N\) bits :
+    $$q = \frac{\Delta s}{2^N}$$
+    C'est le poids du <strong>bit de poids faible</strong> (LSB, <em>least significant bit</em>) : le code augmente d'une unité quand le signal augmente de \(q\). Le bit de poids fort (MSB) pèse \(\Delta s/2\).
+  </div>
+  <p>Certaines documentations écrivent \(q = \Delta s/(2^N-1)\) (le code maximal correspond alors exactement à \(s_{max}\)) ; dès \(N \geq 8\), l'écart est négligeable.</p>
+
+  <h3>Code et valeur reconstituée</h3>
+  <div class="formula">$$n = \mathrm{E}\!\left(\frac{s-s_{min}}{q}\right)\qquad\qquad \tilde{s} = s_{min} + n\,q$$</div>
+  <p>\(\mathrm{E}\) désigne la partie entière (conversion par troncature) ; certains convertisseurs arrondissent au code le plus proche.</p>
+  <div class="prop-box">
+    <strong>Erreur de quantification</strong> \(\varepsilon_q = s - \tilde{s}\) :
+    <ul style="margin:.4rem 0">
+      <li>par troncature : \(0 \leq \varepsilon_q \lt q\) ;</li>
+      <li>par arrondi : \(|\varepsilon_q| \leq q/2\).</li>
+    </ul>
+    Dans les deux cas, l'erreur reste inférieure à un quantum (<strong>1 LSB</strong>) : aucune mesure numérisée n'est plus fine que \(q\).
+  </div>
+
+  <h3>Nombre de bits pour une résolution donnée</h3>
+  <div class="prop-box">
+    Pour garantir une résolution \(\delta\) (exprimée dans l'unité du signal converti) sur la plage \(\Delta s\) :
+    $$q \leq \delta \iff 2^N \geq \frac{\Delta s}{\delta} \iff N \geq \log_2\frac{\Delta s}{\delta} = \frac{\ln(\Delta s/\delta)}{\ln 2}$$
+    On prend l'entier immédiatement supérieur, puis le format standard (8, 10, 12, 16 bits). Repère utile : \(2^{10} = 1024 \approx 10^3\).
+  </div>
+  <div class="prop-box">
+    <strong>Passer en unités physiques.</strong> Si l'ensemble capteur + conditionnement a une sensibilité \(K_c\) (en V par unité physique), la résolution sur la grandeur mesurée vaut \(q/K_c\). Si le signal n'occupe qu'une partie de la plage du CAN, des codes ne servent jamais : on règle le gain et le décalage du conditionnement pour que l'étendue utile du signal couvre toute la plage.
+  </div>
+  <div style="overflow-x:auto;margin:.6rem 0">
+    <table style="width:100%;border-collapse:collapse;font-size:.85rem;text-align:center">
+      <tr style="background:var(--paper-dark)">
+        <th style="padding:.3rem;border:1px solid var(--grid)">\(N\)</th>
+        <th style="padding:.3rem;border:1px solid var(--grid)">\(2^N\)</th>
+        <th style="padding:.3rem;border:1px solid var(--grid)">\(q\) pour \(\Delta s = 5\ \text{V}\)</th>
+        <th style="padding:.3rem;border:1px solid var(--grid)">\(q\) pour \(\Delta s = 3{,}3\ \text{V}\)</th>
+      </tr>
+      <tr><td style="padding:.3rem;border:1px solid var(--grid)">8</td><td style="border:1px solid var(--grid)">256</td><td style="border:1px solid var(--grid)">19,5 mV</td><td style="border:1px solid var(--grid)">12,9 mV</td></tr>
+      <tr><td style="padding:.3rem;border:1px solid var(--grid)">10</td><td style="border:1px solid var(--grid)">1 024</td><td style="border:1px solid var(--grid)">4,88 mV</td><td style="border:1px solid var(--grid)">3,22 mV</td></tr>
+      <tr><td style="padding:.3rem;border:1px solid var(--grid)">12</td><td style="border:1px solid var(--grid)">4 096</td><td style="border:1px solid var(--grid)">1,22 mV</td><td style="border:1px solid var(--grid)">0,81 mV</td></tr>
+      <tr><td style="padding:.3rem;border:1px solid var(--grid)">16</td><td style="border:1px solid var(--grid)">65 536</td><td style="border:1px solid var(--grid)">76 µV</td><td style="border:1px solid var(--grid)">50 µV</td></tr>
+    </table>
+  </div>
+  <div class="notice">
+    <strong>Résolution n'est pas précision.</strong> La quantification n'est qu'une source d'erreur parmi d'autres (précision du capteur, bruit, dérives du conditionnement). Inutile de payer un CAN 16 bits si le capteur n'est fiable qu'à 1 % près.
+  </div>
+  <div class="reveal" onclick="this.classList.toggle('open')">
+    <span class="label">Application</span>
+    <span class="prompt">Combien de bits pour mesurer une température de 0 à 150 °C au dixième de degré ?</span>
+    <div class="content">
+      <p>Il faut \(150/0{,}1 = 1500\) paliers au moins. \(2^{10} = 1024\) ne suffit pas, \(2^{11} = 2048\) convient : \(N = 11\) (un CAN 12 bits en pratique), à condition que l'intervalle 0–150 °C soit étalé sur toute la plage du convertisseur.</p>
+    </div>
+  </div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§4 · CONVERSION NUMÉRIQUE-ANALOGIQUE</div>
+  <h2>CNA et bloqueur d'ordre 0</h2>
+  <div class="intro">À chaque période, le calculateur produit un nombre \(u_k\). Le préactionneur, lui, attend un signal défini à chaque instant : il faut décider de ce que vaut la commande entre deux calculs.</div>
+
+  <div class="def-box">
+    Le <strong>CNA</strong> transforme un code entier \(n\) en tension \(u = n\,q\) (à un décalage près), avec la même définition du quantum que pour le CAN. Le <strong>bloqueur d'ordre 0</strong> maintient la dernière valeur calculée pendant toute la période :
+    $$u(t) = u_k \qquad\text{pour}\qquad kT_e \leq t \lt (k+1)\,T_e$$
+    La commande appliquée est un <strong>signal en escalier</strong>.
+  </div>
+
+<figure class="schema">
+<svg viewBox="0 0 320 170" role="img" aria-label="Signal continu, ses échantillons et le signal en escalier issu du bloqueur, en retard d'environ une demi-période">
+  <line x1="36" y1="140" x2="312" y2="140" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+  <line x1="40" y1="146" x2="40" y2="14" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+  <path d="M52.0,72.8 L56.8,67.0 L61.6,61.5 L66.4,56.6 L71.2,52.5 L76.0,49.2 L80.8,47.0 L85.6,45.8 L90.4,45.6 L95.2,46.3 L100.0,47.8 L104.8,49.9 L109.6,52.3 L114.4,54.8 L119.2,57.3 L124.0,59.6 L128.8,61.5 L133.6,63.0 L138.4,64.0 L143.2,64.5 L148.0,64.6 L152.8,64.5 L157.6,64.2 L162.4,64.1 L167.2,64.3 L172.0,64.9 L176.8,66.2 L181.6,68.2 L186.4,71.0 L191.2,74.6 L196.0,78.9 L200.8,83.8 L205.6,89.2 L210.4,94.9 L215.2,100.5 L220.0,105.9 L224.8,110.8 L229.6,115.0 L234.4,118.4 L239.2,120.7 L244.0,122.0 L248.8,122.2 L253.6,121.3 L258.4,119.7 L263.2,117.3 L268.0,114.3 L272.8,111.1 L277.6,107.8 L282.4,104.7 L287.2,101.8 L292.0,99.4 L296.8,97.5 L301.6,96.1" class="sk-dash"/>
+  <path d="M40.0,72.8 L44.8,67.0 L49.6,61.5 L54.4,56.6 L59.2,52.5 L64.0,49.2 L68.8,47.0 L73.6,45.8 L78.4,45.6 L83.2,46.3 L88.0,47.8 L92.8,49.9 L97.6,52.3 L102.4,54.8 L107.2,57.3 L112.0,59.6 L116.8,61.5 L121.6,63.0 L126.4,64.0 L131.2,64.5 L136.0,64.6 L140.8,64.5 L145.6,64.2 L150.4,64.1 L155.2,64.3 L160.0,64.9 L164.8,66.2 L169.6,68.2 L174.4,71.0 L179.2,74.6 L184.0,78.9 L188.8,83.8 L193.6,89.2 L198.4,94.9 L203.2,100.5 L208.0,105.9 L212.8,110.8 L217.6,115.0 L222.4,118.4 L227.2,120.7 L232.0,122.0 L236.8,122.2 L241.6,121.3 L246.4,119.7 L251.2,117.3 L256.0,114.3 L260.8,111.1 L265.6,107.8 L270.4,104.7 L275.2,101.8 L280.0,99.4 L284.8,97.5 L289.6,96.1" class="sk-accent2"/>
+  <path d="M40.0,72.8 L64.0,72.8 L64.0,49.2 L88.0,49.2 L88.0,47.8 L112.0,47.8 L112.0,59.6 L136.0,59.6 L136.0,64.6 L160.0,64.6 L160.0,64.9 L184.0,64.9 L184.0,78.9 L208.0,78.9 L208.0,105.9 L232.0,105.9 L232.0,122.0 L256.0,122.0 L256.0,114.3 L280.0,114.3 L280.0,99.4 L304.0,99.4" class="sk-accent"/>
+  <circle cx="40.0" cy="72.8" r="2.6" class="fl-accent2"/>
+  <circle cx="64.0" cy="49.2" r="2.6" class="fl-accent2"/>
+  <circle cx="88.0" cy="47.8" r="2.6" class="fl-accent2"/>
+  <circle cx="112.0" cy="59.6" r="2.6" class="fl-accent2"/>
+  <circle cx="136.0" cy="64.6" r="2.6" class="fl-accent2"/>
+  <circle cx="160.0" cy="64.9" r="2.6" class="fl-accent2"/>
+  <circle cx="184.0" cy="78.9" r="2.6" class="fl-accent2"/>
+  <circle cx="208.0" cy="105.9" r="2.6" class="fl-accent2"/>
+  <circle cx="232.0" cy="122.0" r="2.6" class="fl-accent2"/>
+  <circle cx="256.0" cy="114.3" r="2.6" class="fl-accent2"/>
+  <circle cx="280.0" cy="99.4" r="2.6" class="fl-accent2"/>
+  <path d="M208,147 L208,155 M208,151 L232,151 M232,147 L232,155" class="sk-ink"/>
+  <text x="220" y="166" text-anchor="middle" class="lab-muted">Tₑ</text>
+  <text x="300" y="155" class="lab-muted">t</text>
+  <text x="70" y="36" class="lab-accent2" style="font-size:11px">s(t)</text>
+  <text x="48" y="116" class="lab-accent" style="font-size:11px">u(t) en escalier</text>
+  <text x="246" y="92" class="lab-muted" style="font-size:10px">≈ s(t − Tₑ/2)</text>
+</svg>
+<figcaption>Les échantillons \(s_k\) (points) sont maintenus pendant \(T_e\) : l'escalier obtenu (en rouge) suit le signal d'origine avec, en moyenne, un <strong>retard d'une demi-période</strong> (tirets : signal retardé de \(T_e/2\)).</figcaption>
+</figure>
+
+  <h3>Modèle du bloqueur</h3>
+  <div class="prop-box">
+    La réponse du bloqueur à une impulsion d'aire unité est un créneau de hauteur 1 et de durée \(T_e\) : un échelon unité diminué du même échelon retardé de \(T_e\). Avec le théorème du retard :
+    $$B_0(p) = \frac{1 - e^{-T_e p}}{p}$$
+  </div>
+
+  <h3>Effet : un retard d'environ \(T_e/2\)</h3>
+  <div class="prop-box">
+    En factorisant \(e^{-T_e p/2}\) :
+    $$\frac{B_0(p)}{T_e} = e^{-T_e p/2}\,\frac{\sinh(T_e p/2)}{T_e p/2} \approx e^{-T_e p/2}\quad\text{quand}\ \omega T_e \ll 1$$
+    Le couple échantillonneur-bloqueur conserve donc la valeur moyenne (gain statique 1) et se comporte, aux basses fréquences, comme un <strong>retard pur de \(T_e/2\)</strong>, qui déphase de
+    $$\Delta\varphi(\omega) \approx -\,\omega\,\frac{T_e}{2}\quad\text{(rad)}$$
+    Dans une boucle, la marge de phase diminue d'environ \(\omega_{c0}T_e/2\). S'y ajoute le temps de calcul (souvent une période entière si la commande calculée à l'instant \(k\) n'est appliquée qu'à l'instant \(k+1\)).
+  </div>
+  <div class="notice">
+    <strong>Conséquence pour le choix de \(T_e\).</strong> Pour perdre moins de 5° (0,087 rad) de marge de phase à cause du bloqueur, il faut \(\omega_{c0}T_e/2 \leq 0{,}087\), soit \(T_e \leq 0{,}17/\omega_{c0}\) : une fréquence d'échantillonnage d'environ 35 fois la fréquence de coupure \(\omega_{c0}/2\pi\).
+  </div>
+  <div class="reveal" onclick="this.classList.toggle('open')">
+    <span class="label">Application</span>
+    <span class="prompt">Une boucle de vitesse a, en continu, \(\omega_{c0} = 200\ \text{rad/s}\) et \(M_\varphi = 50°\). Que reste-t-il avec \(T_e = 2\ \text{ms}\) ?</span>
+    <div class="content">
+      <p>Perte due au bloqueur : \(\omega_{c0}T_e/2 = 0{,}2\ \text{rad} \approx 11{,}5°\), d'où \(M_\varphi \approx 38{,}5°\). Si de plus la commande n'est appliquée qu'à la période suivante (retard de calcul \(T_e\)), on perd encore \(0{,}4\ \text{rad} \approx 23°\) : \(M_\varphi \approx 16°\), comportement très oscillant. Il faut réduire \(T_e\).</p>
+    </div>
+  </div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§5 · FILTRAGE NUMÉRIQUE</div>
+  <h2>Filtrer par le calcul : relations de récurrence</h2>
+  <div class="intro">Un filtre numérique est un algorithme : à chaque période, il calcule un échantillon de sortie \(v_k\) à partir de l'entrée courante \(u_k\), des entrées précédentes et, éventuellement, des sorties déjà calculées. Ses coefficients se règlent par logiciel et ne dérivent pas.</div>
+
+  <div class="def-box">
+    <strong>Forme générale</strong> d'un filtre numérique linéaire causal :
+    $$v_k = \sum_{i=0}^{n} a_i\,u_{k-i} \;-\; \sum_{i=1}^{m} b_i\,v_{k-i}$$
+    Les coefficients \(a_i\) et \(b_i\) sont des constantes (qui dépendent en général de \(T_e\)). <strong>Causal</strong> : seules les valeurs présentes et passées interviennent, ce qui autorise le calcul en temps réel. Le programme mémorise \(n\) entrées et \(m\) sorties passées.
+  </div>
+
+  <h3>Non récursif ou récursif</h3>
+  <div class="prop-box">
+    <ul style="margin:.2rem 0">
+      <li><strong>Filtre non récursif</strong> (tous les \(b_i\) nuls) : la sortie ne dépend que des entrées. Sa réponse impulsionnelle (sortie pour \(u_0 = 1\), puis \(u_k = 0\)) est la suite \(a_0, a_1, \dots, a_n\) suivie de zéros : elle est <strong>finie</strong>, d'où le nom de filtre <strong>RIF</strong>. Un RIF est <strong>toujours stable</strong> : \(|v_k| \leq \big(\sum|a_i|\big)\max|u|\).</li>
+      <li><strong>Filtre récursif</strong> (un \(b_i\) au moins non nul) : la sortie est réinjectée dans le calcul ; la réponse impulsionnelle est en général infinie (filtre RII) et la <strong>stabilité doit être vérifiée</strong>.</li>
+    </ul>
+  </div>
+  <div class="prop-box">
+    <strong>Gain statique.</strong> Si \(u_k = U\) pour tout \(k\) et si la sortie converge vers \(V\), on remplace tous les \(u_{k-i}\) par \(U\) et tous les \(v_{k-i}\) par \(V\) :
+    $$V = \frac{\sum_i a_i}{1 + \sum_i b_i}\;U$$
+  </div>
+  <div class="prop-box">
+    <strong>Stabilité du premier ordre récursif.</strong> Pour \(v_k = \alpha\,v_{k-1} + \beta\,u_k\), la réponse libre est la suite géométrique \(v_k = \alpha^k v_0\) : le filtre est stable si et seulement si \(|\alpha| \lt 1\). Si \(-1 \lt \alpha \lt 0\), la sortie converge en changeant de signe à chaque pas (oscillation à \(f_e/2\)).
+  </div>
+
+  <h3>Moyenne glissante</h3>
+  <div class="def-box">
+    La <strong>moyenne glissante</strong> sur \(N\) échantillons est la moyenne arithmétique des \(N\) dernières entrées :
+    $$v_k = \frac{1}{N}\sum_{i=0}^{N-1} u_{k-i}\qquad (k \geq N-1)$$
+    C'est un RIF dont les \(N\) coefficients valent \(1/N\) ; son gain statique vaut 1. Écriture équivalente, bien moins coûteuse quand \(N\) est grand (trois opérations par pas au lieu d'environ \(N\), mais \(N\) entrées toujours mémorisées) :
+    $$v_k = v_{k-1} + \frac{u_k - u_{k-N}}{N}$$
+  </div>
+  <div class="prop-box">
+    <ul style="margin:.2rem 0">
+      <li>Elle <strong>lisse le bruit</strong> : la moyenne de \(N\) erreurs aléatoires indépendantes a un écart-type divisé par \(\sqrt{N}\).</li>
+      <li>Elle <strong>annule exactement</strong> toute composante sinusoïdale de période \(NT_e\), ainsi que ses harmoniques de rang non multiple de \(N\), car une sinusoïde a une moyenne nulle sur un nombre entier de périodes : moyenner sur 20 ms supprime un parasite secteur à 50 Hz.</li>
+      <li>Elle introduit un <strong>retard moyen</strong> de \((N-1)T_e/2\) et met \(N-1\) périodes à répondre complètement à un échelon : lissage fort et rapidité sont contradictoires.</li>
+      <li>Sur un petit microcontrôleur, on choisit volontiers \(N = 4, 8, 16\ldots\) : diviser par \(2^p\) revient à décaler le nombre binaire de \(p\) rangs.</li>
+    </ul>
+  </div>
+  <div class="reveal" onclick="this.classList.toggle('open')">
+    <span class="label">Application</span>
+    <span class="prompt">Des mesures bruitées valent 10, 12, 8, 11, 13, 9. Moyenne glissante sur 3 échantillons ?</span>
+    <div class="content">
+      <p>Dès \(k = 2\) : \(v_2 = (10+12+8)/3 = 10\) ; \(v_3 = (12+8+11)/3 \approx 10{,}33\) ; \(v_4 = (8+11+13)/3 \approx 10{,}67\) ; \(v_5 = (11+13+9)/3 = 11\). Les mesures brutes s'étalent sur 5 unités, la sortie filtrée sur 1 seulement.</p>
+    </div>
+  </div>
+
+  <h3>Traiter un fichier de mesures : moyenne, écart type, moyenne glissante</h3>
+  <p>Hors temps réel, les échantillons enregistrés pendant un essai (banc d'essai, carte d'acquisition, oscilloscope) sont exportés dans un fichier texte : une ligne par instant, des colonnes séparées par un point-virgule ou une virgule (format CSV), souvent une ligne d'en-tête. On les traite alors d'un bloc, sur tout le tableau, avec la bibliothèque numpy.</p>
+  <div class="def-box">
+    <strong>Moyenne et écart type.</strong> Pour \(N\) valeurs \(x_1, \dots, x_N\) d'une même grandeur, mesurée plusieurs fois dans les mêmes conditions :
+    <div class="formula" data-nom="Moyenne d'une série de mesures">$$\bar x = \frac{1}{N}\sum_{i=1}^{N} x_i$$</div>
+    <div class="formula" data-nom="Écart type d'une série de mesures">$$s = \sqrt{\frac{1}{N-1}\sum_{i=1}^{N}\left(x_i-\bar x\right)^2}$$</div>
+    La moyenne estime la valeur de la grandeur ; l'écart type mesure la dispersion des valeurs autour d'elle (la fidélité de la mesure), dans l'unité de la grandeur. Le diviseur \(N-1\) corrige le fait que \(\bar x\) est elle-même calculée à partir des données ; l'écart avec un diviseur \(N\) devient négligeable dès quelques dizaines de valeurs.
+  </div>
+  <div class="prop-box">
+    <strong>Écart type de la moyenne.</strong> Si les \(N\) mesures sont indépendantes, leur moyenne fluctue beaucoup moins qu'une mesure isolée :
+    <div class="formula" data-nom="Écart type de la moyenne">$$s_{\bar x} = \frac{s}{\sqrt N}$$</div>
+    C'est l'incertitude-type associée au résultat \(\bar x\). La même propriété explique le lissage du bruit par la moyenne glissante.
+  </div>
+  <pre class="codeblock"><span class="kw">import</span> numpy <span class="kw">as</span> np
+<span class="kw">import</span> matplotlib.pyplot <span class="kw">as</span> plt
+d = np.loadtxt('essai.csv', delimiter=';', skiprows=1)  <span class="cmt"># en-tête sauté</span>
+t, F = d[:, 0], d[:, 1]          <span class="cmt"># colonnes : temps (s), effort (N)</span>
+m = np.mean(F)                   <span class="cmt"># moyenne</span>
+s = np.std(F, ddof=1)            <span class="cmt"># écart type (diviseur N-1)</span>
+N = 20                           <span class="cmt"># largeur de la fenêtre</span>
+Fg = np.convolve(F, np.ones(N)/N, mode='valid')  <span class="cmt"># N-1 valeurs de moins</span>
+tg = t[N-1:]                     <span class="cmt"># date du dernier échantillon de chaque fenêtre</span>
+plt.plot(t, F, label='mesure brute')
+plt.plot(tg, Fg, label='moyenne glissante')
+plt.xlabel('t (s)'); plt.ylabel('F (N)'); plt.legend(); plt.show()</pre>
+  <div class="notice"><strong>Pièges.</strong> <code>np.std</code> divise par \(N\) par défaut : préciser <code>ddof=1</code> pour l'estimateur à \(N-1\). La moyenne glissante vectorisée par <code>np.convolve(…, mode='valid')</code> compte \(N-1\) valeurs de moins que le signal : la dater par le dernier échantillon de chaque fenêtre reproduit le calcul en temps réel, avec son retard de \((N-1)T_e/2\) ; la dater par le milieu de la fenêtre supprime ce retard, ce qui n'est possible qu'hors temps réel. Enfin, moyenne et écart type ne décrivent un régime que s'il est établi : on écarte d'abord le transitoire (tranche <code>F[k0:]</code>).</div>
+  <div class="method-box">
+    <strong>Exemple — effort d'un vérin mesuré huit fois</strong>
+    <p>Un capteur d'effort donne, pour huit sorties de tige dans les mêmes conditions : 251, 248, 253, 250, 247, 252, 249 et 254 N.</p>
+    <ol>
+      <li>Moyenne : \(\bar F = 2004/8 = 250{,}5\ \text{N}\).</li>
+      <li>Écarts à la moyenne : 0,5 ; −2,5 ; 2,5 ; −0,5 ; −3,5 ; 1,5 ; −1,5 ; 3,5. Somme de leurs carrés : 42, d'où \(s = \sqrt{42/7} = \sqrt 6 \approx 2{,}45\ \text{N}\) (avec le diviseur 8, on trouverait 2,29 N).</li>
+      <li>Écart type de la moyenne : \(2{,}45/\sqrt 8 \approx 0{,}87\ \text{N}\). On retient \(\bar F = 250{,}5\ \text{N}\) avec une incertitude-type d'environ 0,9 N, alors qu'une mesure isolée se disperse d'environ 2,5 N.</li>
+    </ol>
+  </div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§6 · DISCRÉTISATION</div>
+  <h2>D'une équation différentielle à une récurrence</h2>
+  <div class="intro">Le comportement voulu pour un filtre ou un correcteur est souvent donné en continu (fonction de transfert, équation différentielle). Pour le programmer, on remplace chaque dérivée par un taux d'accroissement calculé entre échantillons successifs.</div>
+
+  <h3>Approximations des dérivées</h3>
+  <div class="def-box">
+    <strong>Différence arrière</strong> (valeur présente et précédente : causale, utilisable en temps réel) :
+    $$\left.\frac{\mathrm{d}s}{\mathrm{d}t}\right|_{t=kT_e} \approx \frac{s_k - s_{k-1}}{T_e}$$
+    <strong>Différence avant</strong> (valeur présente et suivante) :
+    $$\left.\frac{\mathrm{d}s}{\mathrm{d}t}\right|_{t=kT_e} \approx \frac{s_{k+1} - s_k}{T_e}$$
+    <strong>Dérivée seconde</strong> (différence arrière appliquée deux fois) :
+    $$\left.\frac{\mathrm{d}^2 s}{\mathrm{d}t^2}\right|_{t=kT_e} \approx \frac{s_k - 2\,s_{k-1} + s_{k-2}}{T_e^2}$$
+  </div>
+  <p>Si le point de départ est une fonction de transfert, on revient d'abord à l'équation différentielle (conditions initiales nulles : multiplier par \(p\) revient à dériver), puis on discrétise.</p>
+
+  <h3>Exemple fondamental : le passe-bas du premier ordre</h3>
+  <div class="formula">$$\tau\,\frac{\mathrm{d}v}{\mathrm{d}t} + v(t) = K\,u(t)\qquad\Longleftrightarrow\qquad H(p)=\frac{K}{1+\tau p}$$</div>
+  <div class="prop-box">
+    <strong>Par différence arrière</strong> : \(\tau\,(v_k - v_{k-1})/T_e + v_k = K u_k\), d'où
+    $$v_k = a\,v_{k-1} + K(1-a)\,u_k\qquad\text{avec}\qquad a = \frac{\tau}{\tau+T_e}$$
+    Comme \(0 \lt a \lt 1\) pour tout \(T_e > 0\), ce schéma est <strong>stable quel que soit \(T_e\)</strong>, et son gain statique vaut bien \(K\).
+  </div>
+  <div class="prop-box">
+    <strong>Par différence avant</strong> : \(\tau\,(v_{k+1} - v_k)/T_e + v_k = K u_k\), d'où
+    $$v_{k+1} = \left(1-\frac{T_e}{\tau}\right)v_k + K\,\frac{T_e}{\tau}\,u_k$$
+    Stable si et seulement si \(|1 - T_e/\tau| \lt 1\), c'est-à-dire \(T_e \lt 2\tau\) ; sans oscillation si \(T_e \leq \tau\). Avec un \(T_e\) trop grand, le calcul <strong>diverge</strong> alors que le filtre continu est stable.
+  </div>
+  <div class="reveal" onclick="this.classList.toggle('open')">
+    <span class="label">Pour aller plus loin</span>
+    <span class="prompt">Que donnerait une intégration exacte sur une période ?</span>
+    <div class="content">
+      <p>Si l'entrée est constante sur chaque période (bloqueur), l'équation s'intègre exactement de \(kT_e\) à \((k+1)T_e\) :</p>
+      $$v_{k+1} = e^{-T_e/\tau}\,v_k + K\left(1 - e^{-T_e/\tau}\right)u_k$$
+      <p>Pour \(T_e \ll \tau\), \(e^{-T_e/\tau} \approx 1 - T_e/\tau \approx \tau/(\tau+T_e)\) : les deux schémas approchés rejoignent la solution exacte au premier ordre en \(T_e/\tau\). Ils s'en écartent dès que \(T_e\) n'est plus petit devant \(\tau\).</p>
+    </div>
+  </div>
+  <div class="notice">
+    <strong>Choisir \(T_e\).</strong> Règle pratique : \(T_e \leq \tau/10\) pour que le filtre numérique reproduise fidèlement le filtre continu. La fréquence de coupure \(f_c = 1/(2\pi\tau)\) doit par ailleurs rester très inférieure à \(f_e/2\).
+  </div>
+
+  <h3>Passe-bas du second ordre</h3>
+  <p>Quand un premier ordre ne filtre pas assez, on passe au second ordre : au-delà de sa pulsation propre, son gain décroît de 40 dB par décade au lieu de 20, ce qui atténue bien davantage les composantes rapides du bruit.</p>
+  <div class="formula">$$\frac{1}{\omega_0^2}\,\frac{\mathrm{d}^2v}{\mathrm{d}t^2} + \frac{2\xi}{\omega_0}\,\frac{\mathrm{d}v}{\mathrm{d}t} + v(t) = K\,u(t)$$
+$$H(p) = \frac{K}{1+\dfrac{2\xi}{\omega_0}\,p+\dfrac{p^2}{\omega_0^2}}$$</div>
+  <div class="prop-box">
+    <strong>Par différences arrière</strong> (dérivées première et seconde ci-dessus), en multipliant par \(\omega_0^2T_e^2\) et en posant \(x = \omega_0 T_e\) :
+    <div class="formula">$$\begin{aligned} &x^2\,v_k + 2\xi x\,(v_k - v_{k-1}) \\ &\quad + (v_k - 2v_{k-1} + v_{k-2}) = K x^2\,u_k \end{aligned}$$</div>
+    <div class="formula" data-nom="Passe-bas numérique du second ordre">$$v_k = \frac{(2+2\xi x)\,v_{k-1} - v_{k-2} + K x^2\,u_k}{D}$$
+$$D = 1+2\xi x+x^2$$</div>
+    <ul style="margin:.3rem 0">
+      <li>Récurrence d'ordre 2 : le programme mémorise les deux dernières sorties.</li>
+      <li><strong>Gain statique</strong> : avec \(u_k = U\) et \(v_k \to V\), les termes en \(\xi x\) se compensent et il reste \(x^2\,V = Kx^2\,U\), soit \(V = K\,U\).</li>
+      <li>Comme au premier ordre, le schéma arrière reste stable quel que soit \(T_e\), mais il n'est <strong>fidèle</strong> que si \(\omega_0 T_e \ll 1\) (en pratique \(\omega_0 T_e \leq 0{,}1\)). Pour \(\omega_0 = 62{,}8\ \text{rad/s}\) (10 Hz) et \(\xi = 0{,}7\) : avec \(T_e = 1\ \text{ms}\), le filtre calculé se comporte comme un 2ᵉ ordre de pulsation propre 61,5 rad/s et d'amortissement 0,72 ; avec \(T_e = 10\ \text{ms}\), comme un 2ᵉ ordre de 51 rad/s et d'amortissement 0,81, nettement plus lent et plus amorti.</li>
+    </ul>
+  </div>
+  <div class="reveal" onclick="this.classList.toggle('open')">
+    <span class="label">Programme</span>
+    <span class="prompt">Appliquer le filtre à un tableau de mesures (hors temps réel).</span>
+    <div class="content">
+  <pre class="codeblock"><span class="kw">def</span> passe_bas2(u, Te, w0, xi, K=1.0):
+    x = w0*Te
+    D = 1 + 2*xi*x + x**2
+    v = np.zeros(len(u))
+    v[0] = v[1] = K*u[0]          <span class="cmt"># départ à l'équilibre</span>
+    <span class="kw">for</span> k <span class="kw">in</span> range(2, len(u)):  <span class="cmt"># récursif : une boucle</span>
+        v[k] = ((2 + 2*xi*x)*v[k-1] - v[k-2] + K*x**2*u[k])/D
+    <span class="kw">return</span> v</pre>
+      <p>Contrairement à la moyenne glissante, un filtre récursif ne se vectorise pas par une simple convolution : chaque sortie dépend des précédentes.</p>
+    </div>
+  </div>
+  <div class="method-box">
+    <strong>Exemple — lisser une mesure de vitesse : moyenne glissante ou second ordre ?</strong>
+    <p>Une mesure de vitesse, échantillonnée à 1 kHz, porte un bruit d'écart type 0,1 (en unités de la consigne). On compare une moyenne glissante sur \(N = 40\) échantillons (fenêtre de 40 ms) et un passe-bas du second ordre de fréquence propre 10 Hz, \(\xi = 0{,}7\) (valeurs obtenues par simulation).</p>
+    <ol>
+      <li><strong>Lissage</strong> : écart type du bruit en sortie 0,016 pour la moyenne glissante, 0,015 pour le second ordre. Les deux réglages lissent autant.</li>
+      <li><strong>Rapidité</strong> : après un échelon unité, la moyenne glissante atteint 95 % en 37 ms, sans dépasser ; le second ordre en 47 ms, avec un dépassement de 4 %.</li>
+      <li><strong>Parasite secteur à 50 Hz</strong> : annulé exactement par la moyenne glissante (sa fenêtre dure deux périodes) ; réduit à 4 % de son amplitude par le second ordre.</li>
+      <li><strong>Composantes rapides</strong> : entre les fréquences qu'elle annule, la moyenne glissante laisse passer davantage : à 37,5 Hz, 21 % de l'amplitude contre 7 % ; à 87,5 Hz, 9 % contre 1,3 %.</li>
+    </ol>
+    <p>Conclusion : la moyenne glissante est imbattable contre un parasite de fréquence connue et ne dépasse jamais ; le second ordre filtre mieux un bruit étalé vers les hautes fréquences et ne mémorise que deux valeurs au lieu de \(N\).</p>
+  </div>
+<figure class="schema">
+<svg viewBox="0 0 380 200" role="img" aria-label="Échelon unité bruité échantillonné à 1 kHz, filtré par une moyenne glissante sur 40 échantillons et par un passe-bas numérique du second ordre de fréquence propre 10 Hz">
+<line x1="40" y1="170" x2="342" y2="170" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<line x1="40" y1="170" x2="40" y2="8" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<text x="344" y="174" class="lab-muted lab-it">t (s)</text>
+<line x1="40" y1="48.1" x2="330" y2="48.1" class="sk-dash"/>
+<line x1="40" y1="141.9" x2="330" y2="141.9" class="sk-dash"/>
+<polyline points="40,143.8 42.9,136.4 45.8,143.9 48.7,139.7 51.6,135.4 54.5,157.2 57.4,150.9 60.3,160.9 63.2,135.2 66.1,162.1 69,138.8 71.9,127 74.8,138.6 77.7,128.7 80.6,145.4 83.5,126.1 86.4,134.8 89.3,138.6 92.2,149.4 95.1,129 98,147.5 100.9,139.8 103.8,153.6 106.7,141.9 109.6,134.8 112.5,51.1 115.4,50.4 118.3,55.6 121.2,49.2 124.1,46 127,34.1 129.9,67.2 132.8,53.8 135.7,69.5 138.6,38.1 141.5,57.3 144.4,47.7 147.3,28.9 150.2,40.9 153.1,31.6 156,35.3 158.9,49.9 161.8,34 164.7,51 167.6,43.6 170.5,56.8 173.4,25 176.3,53.3 179.2,60.6 182.1,40.1 185,45 187.9,46.8 190.8,52.4 193.7,55.5 196.6,55.8 199.5,40.1 202.4,49.6 205.3,42.1 208.2,67.7 211.1,52.6 214,40.3 216.9,38.4 219.8,33 222.7,49.4 225.6,53.3 228.5,38.6 231.4,48.4 234.3,46.6 237.2,53.6 240.1,48.3 243,54.3 245.9,54.2 248.8,54.8 251.7,46.8 254.6,46.6 257.5,32.8 260.4,46.3 263.3,63.2 266.2,64.6 269.1,48.3 272,48.8 274.9,44.8 277.8,49.8 280.7,49.4 283.6,55.9 286.5,68.2 289.4,59.4 292.3,36.2 295.2,46.8 298.1,57.9 301,52.5 303.9,50.6 306.8,47.1 309.7,42.4 312.6,58.9 315.5,48.9 318.4,31.8 321.3,57.6 324.2,48.7 327.1,49.8 330,43.3" class="sk-ink" style="opacity:.3"/>
+<polyline points="40,140.9 42.9,141.2 45.8,141.3 48.7,141.6 51.6,141.9 54.5,142.2 57.4,142.5 60.3,142.8 63.2,143.1 66.1,143.3 69,143.6 71.9,143.8 74.8,143.9 77.7,144 80.6,144 83.5,144.1 86.4,144 89.3,143.7 92.2,143.6 95.1,143.4 98,143.4 100.9,143.4 103.8,143.3 106.7,143.4 109.6,143.3 112.5,142.9 115.4,141.2 118.3,138.5 121.2,135 124.1,130.8 127,126 129.9,120.7 132.8,115.4 135.7,110.1 138.6,104.8 141.5,99.6 144.4,94.6 147.3,89.6 150.2,84.9 153.1,80.2 156,75.8 158.9,71.7 161.8,67.9 164.7,64.4 167.6,61.3 170.5,58.5 173.4,56 176.3,53.7 179.2,51.9 182.1,50.2 185,48.8 187.9,47.6 190.8,46.6 193.7,45.9 196.6,45.4 199.5,45.1 202.4,44.8 205.3,44.6 208.2,44.4 211.1,44.3 214,44.3 216.9,44.1 219.8,44 222.7,43.9 225.6,43.9 228.5,43.7 231.4,43.5 234.3,43.4 237.2,43.3 240.1,43.4 243,43.4 245.9,43.4 248.8,43.6 251.7,43.9 254.6,44.2 257.5,44.3 260.4,44.5 263.3,44.7 266.2,45 269.1,45.3 272,45.5 274.9,45.8 277.8,46 280.7,46.3 283.6,46.6 286.5,47 289.4,47.5 292.3,47.8 295.2,48.1 298.1,48.4 301,48.7 303.9,49.1 306.8,49.4 309.7,49.7 312.6,49.9 315.5,50.1 318.4,50.3 321.3,50.3 324.2,50.4 327.1,50.3 330,50.2" class="sk-accent"/>
+<polyline points="40,141.4 42.9,141.4 45.8,140.9 48.7,141 51.6,141.6 54.5,141.8 57.4,142.5 60.3,142.7 63.2,143.3 66.1,143.4 69,143.5 71.9,143.4 74.8,143.7 77.7,143.2 80.6,143.3 83.5,142.9 86.4,142.7 89.3,142.1 92.2,142.7 95.1,142.8 98,143.5 100.9,143.4 103.8,143.7 106.7,144 109.6,143.1 112.5,140.5 115.4,135.6 118.3,130.6 121.2,125.8 124.1,120.7 127,115.1 129.9,110.7 132.8,106.1 135.7,101.9 138.6,96.6 141.5,92.4 144.4,88.2 147.3,83.3 150.2,78.1 153.1,73.1 156,67.5 158.9,63 161.8,58 164.7,52.9 167.6,48.6 170.5,46.6 173.4,46 176.3,46.2 179.2,46.7 182.1,46.6 185,47.5 187.9,47.3 190.8,47.5 193.7,47.3 196.6,48.1 199.5,47.5 202.4,47.4 205.3,47.7 208.2,47.9 211.1,48.3 214,48.5 216.9,47.8 219.8,47.5 222.7,47.7 225.6,47.6 228.5,46.5 231.4,46.7 234.3,46.6 237.2,45.9 240.1,46.2 243,46 245.9,46 248.8,45.9 251.7,46 254.6,45.4 257.5,45 260.4,44.8 263.3,45.6 266.2,45.7 269.1,45.6 272,45.6 274.9,46.2 277.8,46.8 280.7,46.7 283.6,47 286.5,48.3 289.4,49.1 292.3,48.5 295.2,49 298.1,49.3 301,49.6 303.9,50.1 306.8,49.7 309.7,49.6 312.6,50 315.5,50.7 318.4,50.6 321.3,50.3 324.2,50.3 327.1,49.9 330,50" class="sk-accent2"  style="stroke-dasharray:5 3"/>
+<line x1="112.5" y1="170" x2="112.5" y2="172.8" class="sk-ink"/>
+<text x="112.5" y="185" class="lab-muted" text-anchor="middle">0,10</text>
+<line x1="185" y1="170" x2="185" y2="172.8" class="sk-ink"/>
+<text x="185" y="185" class="lab-muted" text-anchor="middle">0,15</text>
+<line x1="257.5" y1="170" x2="257.5" y2="172.8" class="sk-ink"/>
+<text x="257.5" y="185" class="lab-muted" text-anchor="middle">0,20</text>
+<line x1="330" y1="170" x2="330" y2="172.8" class="sk-ink"/>
+<text x="330" y="185" class="lab-muted" text-anchor="middle">0,25</text>
+<text x="34" y="52.1" class="lab-muted" text-anchor="end">1</text>
+<text x="34" y="145.9" class="lab-muted" text-anchor="end">0</text>
+<text x="192.2" y="93.1" class="lab-accent">passe-bas du 2ᵉ ordre</text>
+<text x="192.2" y="108.1" class="lab-accent2">moyenne glissante</text>
+<text x="192.2" y="123.1" class="lab-muted">mesure brute</text>
+</svg>
+<figcaption>Mesure bruitée d'un échelon (écart type du bruit 0,1, f<sub>e</sub> = 1 kHz) : moyenne glissante sur 40 échantillons (tirets) et passe-bas du 2ᵉ ordre f<sub>0</sub> = 10 Hz, ξ = 0,7, discrétisé par différences arrière (trait plein). Lissage comparable ; la moyenne glissante monte en rampe et ne dépasse pas, le 2ᵉ ordre dépasse de 4 %.</figcaption>
+</figure>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§7 · INTÉGRATION ET DÉRIVATION EN TEMPS RÉEL</div>
+  <h2>Intégrer et dériver au fil des échantillons</h2>
+  <div class="intro">Action intégrale ou dérivée d'un correcteur, vitesse calculée à partir d'une position, vitesse obtenue en intégrant une accélération : le calculateur doit intégrer ou dériver un signal connu seulement par ses échantillons, au fur et à mesure de leur arrivée.</div>
+
+  <h3>Intégration</h3>
+  <div class="def-box">
+    On cherche \(I_k \approx I(kT_e)\) avec \(I(t) = \int_0^t e(\theta)\,\mathrm{d}\theta\). À chaque période, on ajoute l'aire d'une bande de largeur \(T_e\) :
+    <ul style="margin:.4rem 0">
+      <li>rectangles à gauche : $$I_k = I_{k-1} + T_e\,e_{k-1}$$</li>
+      <li>rectangles à droite : $$I_k = I_{k-1} + T_e\,e_k$$</li>
+      <li>trapèzes : $$I_k = I_{k-1} + \frac{T_e}{2}\,\big(e_k + e_{k-1}\big)$$</li>
+    </ul>
+  </div>
+  <div class="prop-box">
+    Les rectangles à droite reviennent à discrétiser \(\mathrm{d}I/\mathrm{d}t = e\) par la différence arrière, les rectangles à gauche par la différence avant. La méthode des trapèzes est plus précise (sur une durée fixée, erreur proportionnelle à \(T_e^2\) au lieu de \(T_e\)). Toutes ces formes sont <strong>récursives</strong> : on ne stocke pas la liste des échantillons, seulement \(I_{k-1}\).
+  </div>
+
+  <h3>Dérivation</h3>
+  <div class="def-box">
+    En temps réel, seule la différence arrière est utilisable (la valeur suivante n'est pas encore connue) :
+    $$D_k = \frac{e_k - e_{k-1}}{T_e}$$
+  </div>
+  <div class="notice">
+    <strong>La dérivation amplifie le bruit.</strong> Un bruit d'amplitude \(\pm\delta\) sur chaque mesure peut produire une erreur de \(2\delta/T_e\) sur \(D_k\) ; la quantification seule fait déjà sauter \(D_k\) par paliers de \(q/T_e\). Plus \(T_e\) est petit, plus la dérivée est bruitée. Remèdes : filtrer avant de dériver, ou dériver sur plusieurs périodes, \((e_k - e_{k-m})/(mT_e)\), au prix d'un retard. À l'inverse, l'intégration accumule les erreurs lentes : un léger décalage de zéro intégré produit une dérive proportionnelle au temps.
+  </div>
+  <div class="reveal" onclick="this.classList.toggle('open')">
+    <span class="label">Application</span>
+    <span class="prompt">Vitesse estimée à partir d'un codeur de 1000 incréments par tour, lu toutes les millisecondes : quelle résolution ?</span>
+    <div class="content">
+      <p>Pendant \(T_e\), on compte un nombre entier d'incréments de \(2\pi/1000\ \text{rad}\). La vitesse estimée est donc un multiple de \(\dfrac{2\pi/1000}{10^{-3}} \approx 6{,}3\ \text{rad/s}\), soit 60 tr/min ! Diminuer \(T_e\) rendrait l'estimation encore plus grossière.</p>
+    </div>
+  </div>
+  <pre class="codeblock">Te = 0.001                    <span class="cmt"># période d'échantillonnage (s)</span>
+I, e_prec = 0.0, lire_mesure()
+<span class="kw">while</span> True:
+    attendre_top_horloge()    <span class="cmt"># cadence strictement régulière</span>
+    e = lire_mesure()
+    I = I + Te*(e + e_prec)/2 <span class="cmt"># intégrale (trapèzes)</span>
+    D = (e - e_prec)/Te       <span class="cmt"># dérivée (différence arrière)</span>
+    e_prec = e</pre>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§8 · CORRECTION NUMÉRIQUE</div>
+  <h2>Correcteurs P, PI et à avance de phase discrétisés ; influence de \(T_e\)</h2>
+  <div class="intro">Dans un asservissement numérique, comparateur et correcteur sont des lignes de programme. Le réglage se pense d'abord en continu, avec les outils habituels (diagramme de Bode, marges, classe de la FTBO), tant que \(T_e\) reste petite devant les constantes de temps de la boucle ; on traduit ensuite le correcteur en une relation de récurrence entre les écarts \(\varepsilon_k = c_k - s_k\) (consigne moins mesure) et les commandes \(u_k\).</div>
+
+  <div class="def-box">
+    <strong>Forme générale</strong> d'un correcteur numérique linéaire (même structure qu'un filtre) :
+    $$u_k = \sum_{i=0}^{n} a_i\,\varepsilon_{k-i} \;-\; \sum_{i=1}^{m} b_i\,u_{k-i}$$
+    Le plus simple est le correcteur proportionnel : \(u_k = K_p\,\varepsilon_k\).
+  </div>
+
+  <h3>Correcteur PI : forme « position » et forme incrémentale</h3>
+  <div class="formula">$$u(t) = K_p\left(\varepsilon(t) + \frac{1}{T_i}\int_0^t \varepsilon(\theta)\,\mathrm{d}\theta\right)$$
+  $$C(p) = K_p\left(1+\frac{1}{T_i\,p}\right)$$</div>
+  <div class="prop-box">
+    <strong>Forme position</strong> (intégrale par la méthode des rectangles à droite) :
+    $$u_k = K_p\left(\varepsilon_k + \frac{T_e}{T_i}\sum_{j=0}^{k}\varepsilon_j\right)$$
+    Elle impose de tenir à jour la somme de tous les écarts passés.
+  </div>
+  <div class="prop-box">
+    <strong>Forme incrémentale.</strong> On dérive la loi du PI, \(\dot u = K_p\left(\dot\varepsilon + \varepsilon/T_i\right)\), puis on applique la différence arrière :
+    $$\frac{u_k - u_{k-1}}{T_e} = K_p\left(\frac{\varepsilon_k-\varepsilon_{k-1}}{T_e} + \frac{\varepsilon_k}{T_i}\right)$$
+    $$u_k = u_{k-1} + K_p\left(1+\frac{T_e}{T_i}\right)\varepsilon_k - K_p\,\varepsilon_{k-1}$$
+    C'est la même suite que la forme position (différence de deux termes consécutifs), mais seules \(u_{k-1}\) et \(\varepsilon_{k-1}\) sont mémorisées. Autres atouts : on <strong>sature</strong> \(u_k\) avant de le mémoriser, ce qui empêche l'action intégrale de s'emballer pendant une saturation (anti-emballement, <em>anti-windup</em>) ; un changement de réglage en marche ne provoque pas d'à-coup.
+  </div>
+  <div class="reveal" onclick="this.classList.toggle('open')">
+    <span class="label">Extension</span>
+    <span class="prompt">Forme incrémentale du PID \(C(p) = K_p\left(1 + \frac{1}{T_i p} + T_d\,p\right)\) ?</span>
+    <div class="content">
+      <p>Même démarche, la dérivée seconde de \(\varepsilon\) étant approchée par différence arrière :</p>
+      $$\begin{aligned} u_k = u_{k-1} + K_p\Big[&\big(\varepsilon_k-\varepsilon_{k-1}\big) + \frac{T_e}{T_i}\,\varepsilon_k \\ &+ \frac{T_d}{T_e}\big(\varepsilon_k - 2\varepsilon_{k-1} + \varepsilon_{k-2}\big)\Big] \end{aligned}$$
+      <p>Le terme en \(T_d/T_e\) devient énorme quand \(T_e\) diminue : en pratique on filtre l'action dérivée.</p>
+    </div>
+  </div>
+
+  <h3>Correcteur à avance de phase</h3>
+  <div class="formula">$$C(p) = K_p\,\frac{1+aTp}{1+Tp}\quad(a \gt 1)$$
+$$u + T\,\frac{\mathrm{d}u}{\mathrm{d}t} = K_p\left(\varepsilon + aT\,\frac{\mathrm{d}\varepsilon}{\mathrm{d}t}\right)$$</div>
+  <div class="prop-box">
+    <strong>Par différence arrière</strong> sur les deux dérivées :
+    <div class="formula">$$\begin{aligned} u_k + T\,\frac{u_k-u_{k-1}}{T_e} &= K_p\,\varepsilon_k \\ &\quad + K_p\,aT\,\frac{\varepsilon_k-\varepsilon_{k-1}}{T_e} \end{aligned}$$</div>
+    puis, en multipliant par \(T_e\) et en isolant \(u_k\) :
+    <div class="formula" data-nom="Avance de phase numérique">$$u_k = \alpha\,u_{k-1} + b_0\,\varepsilon_k + b_1\,\varepsilon_{k-1}$$
+$$\alpha = \frac{T}{T+T_e}$$
+$$b_0 = K_p\,\frac{T_e+aT}{T+T_e}, \qquad b_1 = -K_p\,\frac{aT}{T+T_e}$$</div>
+    <ul style="margin:.3rem 0">
+      <li><strong>Stabilité</strong> : le coefficient \(\alpha\) de \(u_{k-1}\) est compris entre 0 et 1 : la récurrence est stable quel que soit \(T_e\).</li>
+      <li><strong>Gain statique</strong> : avec \(\varepsilon_k = E\) et \(u_k \to U\), \(U = \dfrac{b_0+b_1}{1-\alpha}\,E = K_p\,E\) (car \(b_0+b_1 = K_pT_e/(T+T_e)\) et \(1-\alpha = T_e/(T+T_e)\)) : en régime permanent, le correcteur se réduit à son gain \(K_p\), comme en continu.</li>
+      <li><strong>Pic de commande</strong> : pour un échelon d'écart \(\varepsilon_0\) appliqué au repos, \(u_0 = b_0\,\varepsilon_0\), qui tend vers \(aK_p\,\varepsilon_0\) (valeur du correcteur continu) quand \(T_e \ll T\).</li>
+      <li><strong>Effet de \(T_e\) devant \(T\)</strong> : l'avance de phase agit autour de \(\omega_m = 1/(T\sqrt a)\) ; si \(T_e\) n'est pas petite devant \(T\), la différence arrière dérive mal \(\varepsilon\), et le retard du bloqueur retranche en plus \(\omega_m T_e/2\) à l'avance apportée. Règle pratique : \(T_e \leq T/10\).</li>
+    </ul>
+  </div>
+  <div class="method-box">
+    <strong>Exemple — avance de phase réglée en continu, puis programmée</strong>
+    <p>Le réglage continu d'un axe a donné \(K_p = 2\), \(a = 4\), \(T = 25\ \text{ms}\) : avance maximale de 36,9° à \(\omega_m = 1/(T\sqrt a) = 20\ \text{rad/s}\), la coupure visée. Les avances « nettes » ci-dessous (avance de la récurrence moins le retard \(\omega_m T_e/2\) du bloqueur, à 20 rad/s) ont été calculées numériquement.</p>
+    <ol>
+      <li>\(T_e = 1\ \text{ms}\) : \(\alpha = 0{,}9615\), \(b_0 = 7{,}769\), \(b_1 = -7{,}692\). Contrôle du gain statique : \((7{,}769 - 7{,}692)/(1 - 0{,}9615) \approx 2\). Pic de commande \(7{,}77\,\varepsilon_0\) (\(8\,\varepsilon_0\) en continu). Avance nette : 36°, presque celle du correcteur continu.</li>
+      <li>\(T_e = 10\ \text{ms}\) : \(\alpha = 0{,}714\), \(b_0 = 6{,}286\), \(b_1 = -5{,}714\). Avance nette : 33,6° − 5,7° ≈ 28° ; il manque 9° de marge de phase par rapport au réglage continu.</li>
+      <li>\(T_e = T = 25\ \text{ms}\) : avance nette de 15° seulement ; le correcteur programmé n'a presque plus d'effet. Augmenter \(T_e\) révèle ici les limites du modèle continu : on garde \(T_e \leq T/10\), ou l'on reprend le réglage en tenant compte du retard.</li>
+    </ol>
+    <p>Dans le programme ci-dessous, il suffit de remplacer la ligne de calcul de <code>u</code> par <code>u = al*u_prec + b0*eps + b1*eps_prec</code>, avec <code>al = T/(T+Te)</code>, <code>b0 = Kp*(Te+a*T)/(T+Te)</code> et <code>b1 = -Kp*a*T/(T+Te)</code> calculés une fois pour toutes.</p>
+  </div>
+
+  <h3>Le programme</h3>
+  <pre class="codeblock">Kp, Ti, Te = 1.5, 0.2, 0.005       <span class="cmt"># réglage et période (s)</span>
+U_MIN, U_MAX = 0.0, 10.0           <span class="cmt"># limites du préactionneur (V)</span>
+q0, q1 = Kp*(1 + Te/Ti), -Kp       <span class="cmt"># coefficients calculés une fois</span>
+u_prec, eps_prec = 0.0, 0.0
+<span class="kw">while</span> True:
+    attendre_top_horloge()          <span class="cmt"># interruption toutes les Te</span>
+    eps = lire_consigne() - lire_CAN()
+    u = u_prec + q0*eps + q1*eps_prec
+    u = min(max(u, U_MIN), U_MAX)   <span class="cmt"># saturation (et anti-emballement)</span>
+    ecrire_CNA(u)
+    u_prec, eps_prec = u, eps</pre>
+  <div class="notice">
+    Le calcul doit être lancé à <strong>période strictement constante</strong> (interruption d'horloge), et durer nettement moins que \(T_e\). Les coefficients dépendent de \(T_e\) : changer la période impose de les recalculer.
+  </div>
+
+  <h3>Influence de \(T_e\) sur la stabilité</h3>
+  <div class="prop-box">
+    Deux effets se cumulent :
+    <ul style="margin:.4rem 0">
+      <li>le <strong>retard</strong> du bloqueur (\(\approx T_e/2\)) et du calcul réduit la marge de phase d'environ \(\omega_{c0}\) fois le retard total ;</li>
+      <li>les coefficients de la récurrence dépendent de \(T_e\) : la boucle numérique peut devenir <strong>instable</strong> alors que la boucle continue équivalente est stable.</li>
+    </ul>
+  </div>
+  <div class="prop-box">
+    <strong>Cas d'école : procédé intégrateur commandé en P.</strong> Soit \(\dot s = K_0\,u\) avec \(u\) bloquée sur chaque période : en intégrant exactement, \(s_{k+1} = s_k + K_0 T_e\,u_k\). Avec \(u_k = K_p(c - s_k)\) et \(K = K_p K_0\), l'écart vérifie
+    $$\varepsilon_{k+1} = (1 - K T_e)\,\varepsilon_k$$
+    Suite géométrique : la boucle est stable si et seulement si \(|1 - KT_e| \lt 1\), soit \(0 \lt KT_e \lt 2\). Elle ne présente pas d'oscillation si \(KT_e \leq 1\), et pour \(T_e = 1/K\) la consigne est atteinte en une seule période. En continu (\(\dot s = K(c-s)\)), la boucle est stable pour tout \(K > 0\) ; quand \(T_e \to 0\), \((1-KT_e)^k \approx e^{-K\,kT_e}\) redonne le comportement continu.
+  </div>
+  <div class="notice">
+    <strong>À retenir.</strong> Diminuer \(T_e\) rapproche la commande numérique du correcteur continu et améliore la stabilité, dans la limite de la puissance de calcul et du bruit sur les dérivées ; augmenter \(T_e\) dégrade les marges, jusqu'à l'instabilité.
+  </div>
+</div>
+
+</template>
+<template class="pan-tpl" data-panneau="snumx-meth">
+<div class="course-section">
+  <div class="sec-num">MÉTHODES · SYSTÈMES NUMÉRIQUES</div>
+  <h2>Savoir-faire pour les écrits et les oraux</h2>
+
+  <div class="method-box">
+    <strong>Méthode 1 — Choisir la fréquence d'échantillonnage</strong>
+    <ol style="margin-top:.4rem">
+      <li><span class="step">Fréquences en jeu.</span> Repérer la plus haute fréquence utile \(f_{max}\) (bande passante du système, harmoniques à conserver) et les parasites possibles (secteur à 50 Hz, découpage MLI, vibrations).</li>
+      <li><span class="step">Borne de Shannon.</span> \(f_e > 2 f_{max}\) : c'est un minimum. En commande, viser 10 à 30 fois la bande passante de la boucle, ou \(T_e \approx \tau_{min}/10\).</li>
+      <li><span class="step">Repliement.</span> Pour chaque composante au-delà de \(f_e/2\), calculer sa fréquence apparente (méthode 3). Si elle tombe dans la bande utile : filtre anti-repliement analogique (coupure entre \(f_{max}\) et \(f_e/2\)) ou augmentation de \(f_e\).</li>
+      <li><span class="step">Faisabilité.</span> Vérifier que le calcul d'une période tient largement dans \(T_e\).</li>
+    </ol>
+  </div>
+
+  <div class="method-box">
+    <strong>Méthode 2 — Dimensionner un CAN (nombre de bits)</strong>
+    <ol style="margin-top:.4rem">
+      <li><span class="step">Résolution physique.</span> Écrire la résolution exigée \(\delta_{phys}\) (en bar, °C, mm…).</li>
+      <li><span class="step">Conversion en tension.</span> \(\delta = K_c\,\delta_{phys}\), où \(K_c\) est la sensibilité de l'ensemble capteur + conditionnement.</li>
+      <li><span class="step">Nombre de bits.</span> Avec \(\Delta s\) la plage du <em>CAN</em> (et non l'étendue du signal) :
+        $$N = \left\lceil \log_2 \frac{\Delta s}{K_c\,\delta_{phys}} \right\rceil$$
+        puis arrondir au format standard (8, 10, 12, 16 bits).</li>
+      <li><span class="step">Optimiser.</span> Si le signal n'occupe qu'une partie de \(\Delta s\), proposer d'adapter le conditionnement plutôt que d'augmenter \(N\).</li>
+    </ol>
+  </div>
+
+  <div class="method-box">
+    <strong>Méthode 3 — Prévoir la fréquence apparente d'une composante</strong>
+    <ol style="margin-top:.4rem">
+      <li><span class="step">Test.</span> Si \(f \leq f_e/2\), pas de repliement : \(f_{app} = f\).</li>
+      <li><span class="step">Sinon.</span> Retrancher le multiple de \(f_e\) le plus proche : \(f_{app} = |f - n f_e|\), avec \(n\) l'entier le plus proche de \(f/f_e\).</li>
+      <li><span class="step">Contrôle.</span> Le résultat doit être compris entre 0 et \(f_e/2\) (le spectre se replie « en accordéon » autour de \(f_e/2\), \(f_e\), \(3f_e/2\)…).</li>
+    </ol>
+    <p style="margin:.3rem 0 0">Exemple : à \(f_e = 1\ \text{kHz}\), une composante à 1,3 kHz apparaît à 300 Hz, une composante à 1,8 kHz à 200 Hz.</p>
+  </div>
+
+  <div class="method-box">
+    <strong>Méthode 4 — Discrétiser une fonction de transfert ou une équation différentielle</strong>
+    <ol style="margin-top:.4rem">
+      <li><span class="step">Équation différentielle.</span> Écrire \(D(p)\,V(p) = N(p)\,U(p)\) et traduire \(p^n\) par \(\mathrm{d}^n/\mathrm{d}t^n\) (conditions initiales nulles).</li>
+      <li><span class="step">Dérivées.</span> Remplacer chaque dérivée à l'instant \(kT_e\) par sa différence arrière (temps réel), ou avant si l'énoncé l'impose ; une dérivée seconde par \((v_k - 2v_{k-1} + v_{k-2})/T_e^2\) (un second ordre donne une récurrence qui mémorise deux sorties).</li>
+      <li><span class="step">Récurrence.</span> Isoler la valeur courante \(v_k\) (ou \(v_{k+1}\)) ; identifier les coefficients \(a_i\), \(b_i\).</li>
+      <li><span class="step">Initialisation.</span> Fixer les valeurs nécessaires avant le premier calcul (souvent \(v_{-1} = u_{-1} = 0\)).</li>
+      <li><span class="step">Contrôles.</span> Gain statique identique au gain continu ; stabilité (pour un premier ordre, coefficient de \(v_{k-1}\) de valeur absolue inférieure à 1) ; fidélité au filtre continu si \(T_e \leq \tau/10\) (second ordre : \(\omega_0T_e \leq 0{,}1\)).</li>
+    </ol>
+  </div>
+
+  <div class="method-box">
+    <strong>Méthode 5 — Faire tourner une récurrence à la main</strong>
+    <ol style="margin-top:.4rem">
+      <li><span class="step">Tableau.</span> Colonnes \(k\), \(u_k\), \(v_k\) ; écrire d'abord les valeurs passées nécessaires (indices négatifs).</li>
+      <li><span class="step">Calcul.</span> Avancer ligne par ligne, avec 3 ou 4 chiffres significatifs.</li>
+      <li><span class="step">Entrées types.</span> Réponse impulsionnelle : \(u_0 = 1\), autres nuls (finie ⇒ RIF). Réponse indicielle : \(u_k = 1\) pour \(k \geq 0\).</li>
+      <li><span class="step">Conclusion.</span> Valeur finale (gain statique), durée en nombre de périodes multiplié par \(T_e\), oscillations (coefficient négatif), divergence éventuelle.</li>
+    </ol>
+  </div>
+
+  <div class="method-box">
+    <strong>Méthode 6 — Programmer un correcteur numérique</strong>
+    <ol style="margin-top:.4rem">
+      <li><span class="step">Loi temporelle.</span> Partir de \(C(p)\), écrire la relation entre \(u\) et \(\varepsilon\) ; choisir la forme incrémentale (plus robuste).</li>
+      <li><span class="step">Coefficients.</span> Les calculer une fois avant la boucle (\(q_0 = K_p(1+T_e/T_i)\), \(q_1 = -K_p\) pour un PI).</li>
+      <li><span class="step">Avance de phase.</span> Par différence arrière sur \(u + T\dot u = K_p(\varepsilon + aT\dot\varepsilon)\) : \(u_k = \alpha\,u_{k-1} + b_0\,\varepsilon_k + b_1\,\varepsilon_{k-1}\), avec \(\alpha = \dfrac{T}{T+T_e}\), \(b_0 = K_p\,\dfrac{T_e+aT}{T+T_e}\), \(b_1 = -K_p\,\dfrac{aT}{T+T_e}\). Contrôles : \(b_0 + b_1 = K_p(1-\alpha)\) (gain statique \(K_p\)) et \(T_e \leq T/10\), sinon l'avance apportée fond.</li>
+      <li><span class="step">Structure.</span> Initialisation, puis boucle cadencée à \(T_e\) : acquisition → écart → calcul → saturation → écriture sur le CNA → décalage des mémoires.</li>
+      <li><span class="step">Saturation.</span> Borner \(u_k\) aux limites du préactionneur <em>avant</em> de le mémoriser.</li>
+    </ol>
+    <p><em>Exemple éclair :</em> avance de phase \(K_p = 1\), \(a = 5\), \(T = 20\ \text{ms}\), programmée avec \(T_e = 2\ \text{ms}\) : \(\alpha = 20/22 \approx 0{,}909\), \(b_0 = 102/22 \approx 4{,}64\), \(b_1 = -100/22 \approx -4{,}55\) ; \(b_0 + b_1 \approx 0{,}091 = 1 - \alpha\) : gain statique 1. Pic de commande \(u_0 = b_0\,\varepsilon_0 \approx 4{,}6\,\varepsilon_0\) (\(5\,\varepsilon_0\) en continu).</p>
+  </div>
+
+  <div class="method-box">
+    <strong>Méthode 7 — Étudier l'influence de \(T_e\) sur la stabilité</strong>
+    <ol style="margin-top:.4rem">
+      <li><span class="step">Approche exacte.</span> Écrire la récurrence de la boucle fermée sur l'écart. Premier ordre \(\varepsilon_{k+1} = r\,\varepsilon_k\) : stable ⇔ \(|r| \lt 1\). Second ordre (\(\varepsilon_{k+2} + \alpha\,\varepsilon_{k+1} + \beta\,\varepsilon_k = 0\)) : les deux racines de \(r^2 + \alpha r + \beta = 0\) doivent être de module strictement inférieur à 1.</li>
+      <li><span class="step">Approche fréquentielle.</span> Modéliser bloqueur et calcul par un retard \(T_r\) (\(T_e/2\), plus \(T_e\) si la commande est appliquée à la période suivante). Perte de marge : \(\omega_{c0}T_r\) rad. Imposer la marge restante du cahier des charges.</li>
+      <li><span class="step">Conclure</span> par une période maximale \(T_{e,max}\), et rappeler que l'approche fréquentielle n'est fiable que si \(\omega_{c0}T_e \ll 1\).</li>
+    </ol>
+  </div>
+
+  <div class="method-box">
+    <strong>Méthode 8 — Traiter un fichier de mesures (moyenne, écart type, moyenne glissante)</strong>
+    <ol style="margin-top:.4rem">
+      <li><span class="step">Lire.</span> <code>d = np.loadtxt(nom, delimiter=';', skiprows=1)</code> (en-tête sauté), puis une colonne par grandeur : <code>t, x = d[:, 0], d[:, 1]</code>.</li>
+      <li><span class="step">Choisir la tranche.</span> Moyenne et écart type ne décrivent qu'un régime établi : écarter d'abord le transitoire (<code>x[k0:]</code>).</li>
+      <li><span class="step">Statistiques.</span> <code>np.mean(x)</code> ; <code>np.std(x, ddof=1)</code> pour le diviseur \(N-1\) (par défaut <code>np.std</code> divise par \(N\)) ; incertitude-type de la moyenne \(s/\sqrt N\) si les mesures sont indépendantes.</li>
+      <li><span class="step">Lisser.</span> <code>np.convolve(x, np.ones(N)/N, mode='valid')</code> rend \(N-1\) valeurs de moins : les dater par <code>t[N-1:]</code> reproduit le calcul en temps réel (retard \((N-1)T_e/2\)) ; les dater par le milieu de la fenêtre supprime ce retard (post-traitement seulement).</li>
+      <li><span class="step">Conclure</span> dans l'unité de la grandeur : valeur moyenne, dispersion d'une mesure, incertitude du résultat.</li>
+    </ol>
+    <p><em>Exemple éclair :</em> cinq mesures 4,02 ; 3,98 ; 4,05 ; 3,97 ; 4,03 bar. Moyenne 4,01 bar ; somme des carrés des écarts \(46\cdot10^{-4}\ \text{bar}^2\), d'où \(s = \sqrt{46\cdot10^{-4}/4} \approx 0{,}034\ \text{bar}\) (0,030 bar avec le diviseur 5) et \(s/\sqrt5 \approx 0{,}015\ \text{bar}\).</p>
+  </div>
+
+  <div class="method-box">
+    <strong>Méthode 9 — Intégrer et dériver au fil des échantillons</strong>
+    <ol style="margin-top:.4rem">
+      <li><span class="step">Intégrer.</span> Forme récursive : seul \(I_{k-1}\) est mémorisé. Trapèzes \(I_k = I_{k-1} + \frac{T_e}{2}(e_k + e_{k-1})\), plus précis que les rectangles (erreur en \(T_e^2\) au lieu de \(T_e\)).</li>
+      <li><span class="step">Dériver.</span> En temps réel, seule la différence arrière \(D_k = (e_k - e_{k-1})/T_e\) est utilisable.</li>
+      <li><span class="step">Chiffrer le bruit.</span> Une erreur \(\pm\delta\) sur chaque mesure peut donner \(2\delta/T_e\) sur \(D_k\) ; un capteur de quantum \(q\) fait sauter \(D_k\) par paliers de \(q/T_e\) (codeur : vitesse multiple de \(q_\theta/T_e\)).</li>
+      <li><span class="step">Remédier.</span> Filtrer avant de dériver, ou dériver sur \(m\) périodes, \((e_k - e_{k-m})/(mT_e)\), au prix d'un retard ; surveiller la dérive d'une intégrale (un décalage de zéro intégré croît comme le temps).</li>
+    </ol>
+    <p><em>Exemple éclair :</em> \(e_0 = 0\), \(e_1 = 1\), \(e_2 = 3\) avec \(T_e = 0{,}1\ \text{s}\) : trapèzes \(I_2 = 0{,}05 + 0{,}2 = 0{,}25\) ; dérivée arrière \(D_2 = (3 - 1)/0{,}1 = 20\ \text{s}^{-1}\).</p>
+  </div>
+
+  <div class="method-box">
+    <strong>Pièges classiques</strong>
+    <ul style="margin-top:.4rem">
+      <li>Confondre la plage du CAN \(\Delta s\) et l'étendue réellement occupée par le signal.</li>
+      <li>Écrire \(q = \Delta s/N\) au lieu de \(\Delta s/2^N\).</li>
+      <li>Proposer un filtre anti-repliement <em>numérique</em> : il doit être analogique et placé avant l'échantillonneur.</li>
+      <li>Oublier que la différence avant peut diverger (\(T_e \geq 2\tau\) pour un premier ordre).</li>
+      <li>Mélanger les indices : dans l'expression de \(u_k\), tous les termes doivent être connus à l'instant \(kT_e\).</li>
+      <li>Garder les mêmes coefficients après avoir changé \(T_e\).</li>
+      <li>Calculer un écart type avec <code>np.std</code> sans <code>ddof=1</code>, ou sur une tranche qui contient encore le transitoire.</li>
+      <li>Oublier le retard d'une moyenne glissante, \((N-1)T_e/2\), dans le bilan des retards d'une boucle.</li>
+    </ul>
+  </div>
+</div>
+</template>
+<template class="pan-tpl" data-panneau="snumx-exos">
+<div class="exo-wrapper">
+
+<div class="exo">
+  <span class="num">EXO 01</span><span class="diff">★ ☆ ☆</span>
+  <h3>Résolution d'une chaîne de mesure de pression</h3>
+  <div class="statement">Un capteur de pression industriel mesure de 0 à 10 bar ; sa tension de sortie varie linéairement de 0,5 V (à 0 bar) à 4,5 V (à 10 bar). Il est relié directement à un CAN 10 bits de plage 0–5 V.</div>
+  <div class="q"><strong>Q1.</strong> Calculer le quantum \(q\) du CAN.</div>
+  <div class="q"><strong>Q2.</strong> En déduire la résolution de la mesure de pression, en mbar.</div>
+  <div class="q"><strong>Q3.</strong> Combien de codes sont réellement utilisés ? Les codes inutilisés peuvent-ils servir à quelque chose ?</div>
+  <div class="q"><strong>Q4.</strong> Le cahier des charges exige une résolution de 5 mbar. Combien de bits faut-il avec ce câblage ? Et si un conditionnement ramène l'étendue 0,5–4,5 V sur 0–5 V ?</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> \(q = \Delta s/2^N = 5/1024 \approx 4{,}88\ \text{mV}\).</p>
+    <p><strong>Q2.</strong> Sensibilité du capteur : \(K_c = (4{,}5-0{,}5)/10 = 0{,}4\ \text{V/bar}\). Résolution : \(q/K_c = 4{,}88\cdot10^{-3}/0{,}4 \approx 12{,}2\ \text{mbar}\).</p>
+    <p><strong>Q3.</strong> Le signal s'étend sur 4 V, soit \(4/q \approx 819\) codes sur 1024 (80 %). Les codes correspondant à moins de 0,5 V ou plus de 4,5 V ne sont jamais atteints en fonctionnement normal : une lecture proche de 0 V signale par exemple un fil coupé ou un capteur non alimenté. C'est l'intérêt d'un « zéro décalé ».</p>
+    <p><strong>Q4.</strong> Il faut \(q \leq K_c \times 5\ \text{mbar} = 0{,}4 \times 0{,}005 = 2\ \text{mV}\), donc \(2^N \geq 5/0{,}002 = 2500\), soit \(N \geq 11{,}3\) : <strong>12 bits</strong>. Avec le conditionnement, \(K_c' = 5/10 = 0{,}5\ \text{V/bar}\), il faut \(q \leq 2{,}5\ \text{mV}\), \(2^N \geq 2000\), \(N \geq 10{,}97\) : <strong>11 bits</strong> suffisent. Étaler le signal sur toute la plage fait gagner (presque) un bit.</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 02</span><span class="diff">★ ☆ ☆</span>
+  <h3>Surveillance vibratoire et repliement</h3>
+  <div class="statement">Sur la broche d'une machine-outil, un accéléromètre délivre un signal contenant une composante utile à 50 Hz (fréquence de rotation), son harmonique 3 à 150 Hz, et une vibration parasite à 420 Hz transmise par une machine voisine. Le signal est échantillonné à \(f_e = 500\ \text{Hz}\).</div>
+  <div class="q"><strong>Q1.</strong> Les composantes utiles respectent-elles la condition de Shannon ?</div>
+  <div class="q"><strong>Q2.</strong> À quelle fréquence le calculateur verra-t-il la vibration parasite ? Pourquoi est-ce gênant pour un diagnostic ?</div>
+  <div class="q"><strong>Q3.</strong> On veut diviser par 5 l'amplitude de la composante à 420 Hz avant l'échantillonnage, avec un passe-bas analogique du premier ordre. Quelle fréquence de coupure faut-il ? Quel est alors l'effet sur les composantes à 50 Hz et 150 Hz ? Conclure.</div>
+  <div class="q"><strong>Q4.</strong> Proposer une solution plus satisfaisante.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> \(f_e/2 = 250\ \text{Hz}\) dépasse 150 Hz : les composantes utiles sont correctement échantillonnées.</p>
+    <p><strong>Q2.</strong> \(420\ \text{Hz} > 250\ \text{Hz}\) : repliement. Le multiple de \(f_e\) le plus proche est 500 Hz, d'où \(f_{app} = |420-500| = 80\ \text{Hz}\). Cette raie fictive tombe entre 50 et 150 Hz : on pourrait l'attribuer à un défaut de la broche (balourd, engrenage…) et poser un faux diagnostic. Aucun traitement numérique ne peut l'éliminer après coup.</p>
+    <p><strong>Q3.</strong> Il faut \(1/\sqrt{1+(420/f_c)^2} \leq 0{,}2\), soit \((420/f_c)^2 \geq 24\) et \(f_c \leq 420/\sqrt{24} \approx 85{,}7\ \text{Hz}\). Alors \(|H(150)| = 1/\sqrt{1+(150/85{,}7)^2} \approx 0{,}50\) : l'harmonique 3 perd la moitié de son amplitude, et même \(|H(50)| \approx 0{,}86\), avec un déphasage d'environ \(-30°\) : le signal utile est atténué et déformé. Un premier ordre est insuffisant quand \(f_e/2\) est si proche des fréquences utiles.</p>
+    <p><strong>Q4.</strong> Augmenter \(f_e\), par exemple à 2 kHz (\(f_e/2 = 1\ \text{kHz}\)) : la composante à 420 Hz est échantillonnée à sa vraie fréquence, hors de la bande utile, et un filtre numérique peut ensuite la supprimer. Le filtre anti-repliement ne doit plus traiter que d'éventuelles composantes au-delà de 1 kHz : sa coupure peut être placée bien au-dessus de 150 Hz, par exemple \(f_c = 400\ \text{Hz}\), où \(|H(150)| \approx 0{,}94\) : la composante utile est presque intacte. Autre solution : un filtre analogique d'ordre plus élevé.</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 03</span><span class="diff">★ ★ ☆</span>
+  <h3>Moyenne glissante sur quatre échantillons</h3>
+  <div class="statement">On étudie le filtre \(v_k = \dfrac{u_k + u_{k-1} + u_{k-2} + u_{k-3}}{4}\), les entrées étant nulles pour \(k \lt 0\).</div>
+  <div class="q"><strong>Q1.</strong> Ce filtre est-il récursif ? Donner sa réponse impulsionnelle. Est-il stable ?</div>
+  <div class="q"><strong>Q2.</strong> Calculer sa réponse à l'échelon unité (\(u_k = 1\) pour \(k \geq 0\)). Gain statique ? Au bout de combien de périodes la valeur finale est-elle atteinte ?</div>
+  <div class="q"><strong>Q3.</strong> Calculer la sortie pour \(u_k = (-1)^k\) (\(k \geq 0\)). Interpréter en termes de fréquence.</div>
+  <div class="q"><strong>Q4.</strong> Écrire une forme récursive équivalente. Quel est son intérêt ?</div>
+  <div class="q"><strong>Q5.</strong> Une tension échantillonnée à 1 kHz est polluée par un ronflement secteur à 50 Hz. Quel nombre d'échantillons choisir pour une moyenne glissante qui l'élimine totalement ? Quel retard introduit-elle ?</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> Non récursif : seules les entrées interviennent. Réponse impulsionnelle : \(1/4,\ 1/4,\ 1/4,\ 1/4\), puis 0 (RIF). Il est stable : \(|v_k| \leq \max|u|\).</p>
+    <p><strong>Q2.</strong> \(v_0 = 0{,}25\), \(v_1 = 0{,}5\), \(v_2 = 0{,}75\), puis \(v_k = 1\) pour \(k \geq 3\). Gain statique 1 ; valeur finale atteinte après 3 périodes (\(N-1\)).</p>
+    <p><strong>Q3.</strong> \(v_0 = 1/4\), \(v_1 = 0\), \(v_2 = 1/4\), puis \(v_k = 0\) pour \(k \geq 3\) (deux \(+1\) et deux \(-1\) dans chaque fenêtre). Or \((-1)^k = \cos(\pi k) = \cos\big(2\pi\,\tfrac{f_e}{2}\,kT_e\big)\) : c'est une sinusoïde à la fréquence de Nyquist, de période \(2T_e\). La fenêtre de 4 échantillons contient exactement deux périodes : la composante est éliminée.</p>
+    <p><strong>Q4.</strong> \(v_k = v_{k-1} + (u_k - u_{k-4})/4\). Elle donne la même suite (la réponse impulsionnelle reste finie) avec trois opérations par pas quel que soit \(N\) : avantageux pour une longue fenêtre (il faut tout de même mémoriser les \(N\) dernières entrées pour disposer de \(u_{k-N}\)).</p>
+    <p><strong>Q5.</strong> La période du parasite vaut 20 ms, soit 20 périodes d'échantillonnage : \(N = 20\) (ou un multiple). Retard moyen \((N-1)T_e/2 = 9{,}5\ \text{ms}\) ; réponse complète à un échelon en 19 ms.</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 04</span><span class="diff">★ ★ ☆</span>
+  <h3>Passe-bas numérique : différence arrière ou avant ?</h3>
+  <div class="statement">On veut programmer un filtre équivalent à \(\tau\,\dot v + v = u\), avec \(\tau = 20\ \text{ms}\) (gain statique 1).</div>
+  <div class="q"><strong>Q1.</strong> Par différence arrière, établir la récurrence \(v_k = a\,v_{k-1} + b\,u_k\) ; exprimer \(a\) et \(b\). Vérifier le gain statique.</div>
+  <div class="q"><strong>Q2.</strong> Pour \(T_e = 2\ \text{ms}\), calculer \(v_0\), \(v_1\), \(v_2\) en réponse à un échelon unité (\(u_k = 1\) pour \(k \geq 0\), \(v_{-1} = 0\)). Exprimer \(v_k\) et comparer \(v_{10}\) à la réponse exacte du filtre continu à \(t = \tau\).</div>
+  <div class="q"><strong>Q3.</strong> Par différence avant, établir l'expression de \(v_{k+1}\). Calculer les premiers termes pour \(T_e = 50\ \text{ms}\) (\(v_0 = 0\)). Conclure.</div>
+  <div class="q"><strong>Q4.</strong> À quelle condition sur \(T_e\) le schéma avant est-il stable ? sans oscillation ? Quel schéma retenir ?</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> \(\tau(v_k - v_{k-1})/T_e + v_k = u_k\), d'où</p>
+    $$v_k = \frac{\tau}{\tau+T_e}\,v_{k-1} + \frac{T_e}{\tau+T_e}\,u_k$$
+    <p>Ainsi \(a = \tau/(\tau+T_e)\), \(b = T_e/(\tau+T_e)\) et \(a + b = 1\) : pour \(u_k = U\), \(V = aV + bU\) donne \(V = U\). Gain statique 1.</p>
+    <p><strong>Q2.</strong> \(a = 20/22 \approx 0{,}909\), \(b \approx 0{,}0909\). \(v_0 \approx 0{,}0909\), \(v_1 \approx 0{,}174\), \(v_2 \approx 0{,}249\). Par récurrence, \(v_k = 1 - a^{k+1}\), donc \(v_{10} = 1 - 0{,}909^{11} \approx 0{,}650\). Réponse exacte à \(t = 10T_e = \tau\) : \(1 - e^{-1} \approx 0{,}632\). L'écart (environ 0,02) vient de ce que le schéma arrière utilise \(u_k\) dès \(k = 0\) : il est légèrement « en avance ». Il diminue avec \(T_e\).</p>
+    <p><strong>Q3.</strong> \(\tau(v_{k+1}-v_k)/T_e + v_k = u_k\), d'où \(v_{k+1} = (1 - T_e/\tau)\,v_k + (T_e/\tau)\,u_k\). Pour \(T_e = 50\ \text{ms}\) : \(v_{k+1} = -1{,}5\,v_k + 2{,}5\). Suite : \(0\) ; \(2{,}5\) ; \(-1{,}25\) ; \(4{,}375\) ; \(-4{,}06\)… Le calcul diverge en oscillant, alors que le filtre continu est stable.</p>
+    <p><strong>Q4.</strong> Stabilité : \(|1 - T_e/\tau| \lt 1 \iff 0 \lt T_e \lt 2\tau = 40\ \text{ms}\). Sans oscillation : \(1 - T_e/\tau \geq 0 \iff T_e \leq \tau = 20\ \text{ms}\). Le schéma arrière, stable pour tout \(T_e\), est préférable ; dans tous les cas, on prend \(T_e \leq \tau/10 = 2\ \text{ms}\) pour une bonne fidélité.</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 05</span><span class="diff">★ ★ ☆</span>
+  <h3>Vitesse par codeur, vitesse par intégration</h3>
+  <div class="statement"><strong>Partie A.</strong> Un moteur porte un codeur incrémental donnant 2000 incréments par tour (fronts comptés). Le calculateur lit le compteur toutes les \(T_e\) et estime la vitesse par \(\omega_k = (\theta_k - \theta_{k-1})/T_e\).<br><strong>Partie B.</strong> Un accéléromètre embarqué fournit, toutes les \(T_e = 0{,}1\ \text{s}\), les échantillons \(a_0, \dots, a_4\) = 0 ; 2 ; 4 ; 4 ; 2 (en m/s²). La vitesse initiale est nulle.</div>
+  <div class="q"><strong>A1.</strong> Quelle est la résolution angulaire \(q_\theta\) du codeur ?</div>
+  <div class="q"><strong>A2.</strong> Quelle est la résolution de l'estimation de vitesse (en rad/s et en tr/min) pour \(T_e = 1\ \text{ms}\), puis \(T_e = 10\ \text{ms}\) ?</div>
+  <div class="q"><strong>A3.</strong> À 1500 tr/min, combien d'incréments compte-t-on pendant 1 ms ? Quelle est l'erreur relative maximale de l'estimation ? Quel compromis apparaît ?</div>
+  <div class="q"><strong>B1.</strong> Estimer la vitesse à \(t = 0{,}4\ \text{s}\) par la méthode des rectangles à gauche, à droite, puis des trapèzes.</div>
+  <div class="q"><strong>B2.</strong> Écrire la mise à jour récursive de la méthode des trapèzes et une fonction Python qui renvoie la liste des vitesses.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>A1.</strong> \(q_\theta = 2\pi/2000 \approx 3{,}14\ \text{mrad}\) (0,18°).</p>
+    <p><strong>A2.</strong> La vitesse estimée est un multiple de \(q_\theta/T_e\). Pour \(T_e = 1\ \text{ms}\) : \(3{,}14\ \text{rad/s}\), soit 30 tr/min. Pour \(T_e = 10\ \text{ms}\) : \(0{,}314\ \text{rad/s}\), soit 3 tr/min.</p>
+    <p><strong>A3.</strong> \(1500\ \text{tr/min} \approx 157\ \text{rad/s}\), soit \(157\times10^{-3}/3{,}14\cdot10^{-3} = 50\) incréments par milliseconde. Le comptage est exact à un incrément près : erreur relative \(1/50 = 2\ \%\). Avec \(T_e = 10\ \text{ms}\), 500 incréments et 0,2 %, mais une vitesse rafraîchie dix fois moins souvent et un retard accru (environ 5 ms) : la dérivation numérique impose un compromis entre résolution et rapidité.</p>
+    <p><strong>B1.</strong> Rectangles à gauche : \(v_4 = 0{,}1\,(0+2+4+4) = 1{,}0\ \text{m/s}\). À droite : \(0{,}1\,(2+4+4+2) = 1{,}2\ \text{m/s}\). Trapèzes : \(0{,}1\,\big[(0+2)/2 + 2+4+4\big] = 1{,}1\ \text{m/s}\), moyenne des deux précédentes.</p>
+    <p><strong>B2.</strong> \(v_k = v_{k-1} + T_e\,(a_k + a_{k-1})/2\).</p>
+    <pre class="codeblock"><span class="kw">def</span> integre_trapezes(a, Te, v0=0.0):
+    v = [v0]
+    <span class="kw">for</span> k <span class="kw">in</span> range(1, len(a)):
+        v.append(v[-1] + Te*(a[k] + a[k-1])/2)
+    <span class="kw">return</span> v
+
+integre_trapezes([0, 2, 4, 4, 2], 0.1)  <span class="cmt"># [0.0, 0.1, 0.4, 0.8, 1.1]</span></pre>
+    <p>Un léger décalage de zéro de l'accéléromètre serait lui aussi intégré : la vitesse calculée dériverait linéairement avec le temps.</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 06</span><span class="diff">★ ★ ★</span>
+  <h3>PI numérique incrémental et saturation</h3>
+  <div class="statement">Un variateur de vitesse est commandé par un correcteur \(C(p) = K_p\left(1 + \dfrac{1}{T_i\,p}\right)\) avec \(K_p = 3\) et \(T_i = 0{,}6\ \text{s}\), réalisé numériquement avec \(T_e = 30\ \text{ms}\). La commande \(u\) est limitée à l'intervalle \([-10\ \text{V}\,;\ 10\ \text{V}]\).</div>
+  <div class="q"><strong>Q1.</strong> Établir la forme incrémentale \(u_k = u_{k-1} + q_0\,\varepsilon_k + q_1\,\varepsilon_{k-1}\) et calculer \(q_0\), \(q_1\).</div>
+  <div class="q"><strong>Q2.</strong> L'écart vaut \(\varepsilon_k = 0{,}1\) pour \(k \geq 0\) (avec \(u_{-1} = \varepsilon_{-1} = 0\)). Calculer \(u_0\), \(u_1\), \(u_2\), puis \(u_k\). Comparer à la réponse du PI continu.</div>
+  <div class="q"><strong>Q3.</strong> Montrer que la forme position ci-dessous donne la même suite :
+    $$u_k = K_p\left(\varepsilon_k + \frac{T_e}{T_i}\sum_{j=0}^{k}\varepsilon_j\right)$$</div>
+  <div class="q"><strong>Q4.</strong> Écrire une fonction Python <span class="code-inline">pi_increment(eps, eps_prec, u_prec)</span> qui renvoie la commande saturée. Expliquer pourquoi, sous cette forme, l'action intégrale ne s'emballe pas pendant une saturation prolongée.</div>
+  <div class="q"><strong>Q5.</strong> Que deviennent \(q_0\) et \(q_1\) pour \(T_e = 3\ \text{ms}\) ? Quelles précautions de programmation en tirer ?</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> De \(\dot u = K_p(\dot\varepsilon + \varepsilon/T_i)\), par différence arrière :</p>
+    $$u_k - u_{k-1} = K_p\big(\varepsilon_k - \varepsilon_{k-1}\big) + K_p\,\frac{T_e}{T_i}\,\varepsilon_k$$
+    <p>Donc \(q_0 = K_p(1 + T_e/T_i) = 3 \times 1{,}05 = 3{,}15\) et \(q_1 = -K_p = -3\).</p>
+    <p><strong>Q2.</strong> \(u_0 = 3{,}15\times0{,}1 = 0{,}315\) ; \(u_1 = 0{,}315 + 0{,}315 - 0{,}3 = 0{,}33\) ; \(u_2 = 0{,}345\) ; plus généralement \(u_k = 0{,}315 + 0{,}015\,k\). C'est une rampe de 0,015 V par période, soit 0,5 V/s. En continu, \(u(t) = K_p\varepsilon_0(1 + t/T_i)\) : pente \(K_p\varepsilon_0/T_i = 0{,}5\ \text{V/s}\), identique ; seule la valeur de départ diffère (0,315 au lieu de 0,3), car la méthode des rectangles à droite compte le premier échantillon immédiatement.</p>
+    <p><strong>Q3.</strong> En formant \(u_k - u_{k-1}\) avec la forme position, les deux sommes ne diffèrent que par leur dernier terme \(\varepsilon_k\) : on retrouve exactement la relation de Q1, c'est-à-dire la forme incrémentale. Les premiers termes coïncident aussi : \(u_0 = K_p(1 + T_e/T_i)\,\varepsilon_0\) dans les deux cas.</p>
+    <p><strong>Q4.</strong></p>
+    <pre class="codeblock">KP, TI, TE = 3.0, 0.6, 0.03
+Q0, Q1 = KP*(1 + TE/TI), -KP
+U_MIN, U_MAX = -10.0, 10.0
+
+<span class="kw">def</span> pi_increment(eps, eps_prec, u_prec):
+    u = u_prec + Q0*eps + Q1*eps_prec
+    <span class="kw">return</span> min(max(u, U_MIN), U_MAX)</pre>
+    <p>La valeur mémorisée et réutilisée au pas suivant est la commande <em>saturée</em> : tant que la saturation dure, \(u\) reste collée à la limite et aucune intégrale cachée ne grossit ; la commande quitte la butée dès que l'incrément calculé change de signe (en pratique dès que l'écart diminue assez vite), sans attendre que l'écart s'inverse. Sous forme position, la somme \(\sum\varepsilon_j\) continuerait de croître pendant la saturation : il faudrait ensuite un long écart de signe opposé pour la « vider », d'où un fort dépassement.</p>
+    <p><strong>Q5.</strong> \(q_0 = 3(1 + 0{,}005) = 3{,}015\) et \(q_1 = -3\) : les coefficients dépendent de \(T_e\) et doivent être recalculés à partir de la constante <span class="code-inline">TE</span>, jamais saisis « en dur ». L'action intégrale par pas, \(q_0 + q_1 = K_pT_e/T_i = 0{,}015\), devient petite devant chaque terme : en arithmétique entière (virgule fixe) sur un petit microcontrôleur, les arrondis pourraient la faire disparaître ; il faut alors augmenter la précision des calculs.</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 07</span><span class="diff">★ ★ ★</span>
+  <h3>Régulation de niveau : période d'échantillonnage maximale</h3>
+  <div class="statement">Le niveau \(h\) d'une cuve de section \(S = 0{,}5\ \text{m}^2\) est réglé par une pompe de débit volumique \(q_v = K_v\,u\), avec \(K_v = 2\cdot10^{-3}\ \text{m}^3\cdot\text{s}^{-1}\cdot\text{V}^{-1}\) ; \(u\) est la tension délivrée par un CNA suivi d'un bloqueur. Le débit de sortie est négligé : \(S\,\dot h = q_v\). Le calculateur mesure \(h_k\) et calcule \(u_k = K_p(h_c - h_k)\), avec \(K_p = 50\ \text{V/m}\) et une consigne \(h_c\) constante. On pose \(K = K_pK_v/S\).</div>
+  <div class="q"><strong>Q1.</strong> En commande continue (\(u = K_p(h_c - h)\)), établir l'équation du niveau et montrer que la boucle est stable quel que soit \(K_p > 0\). Calculer \(K\).</div>
+  <div class="q"><strong>Q2.</strong> En numérique, \(u\) est constante sur chaque période. Montrer que \(h_{k+1} = h_k + \dfrac{K_vT_e}{S}\,u_k\) exactement, puis établir la récurrence vérifiée par \(\varepsilon_k = h_c - h_k\).</div>
+  <div class="q"><strong>Q3.</strong> En déduire la condition de stabilité sur \(T_e\), la condition d'absence d'oscillation, et la période qui amène le niveau à la consigne en un seul pas.</div>
+  <div class="q"><strong>Q4.</strong> Approche fréquentielle : donner la FTBO continue, \(\omega_{c0}\) et \(M_\varphi\). En modélisant le bloqueur par un retard \(T_e/2\), quelle période garantit \(M_\varphi \geq 45°\) ? Comparer à Q3.</div>
+  <div class="q"><strong>Q5.</strong> Le calcul dure en réalité une période : \(u_k\) n'est appliquée qu'entre \((k+1)T_e\) et \((k+2)T_e\). Montrer que \(\varepsilon_{k+2} = \varepsilon_{k+1} - KT_e\,\varepsilon_k\), puis en déduire la nouvelle condition de stabilité.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> \(S\dot h = K_vK_p(h_c - h)\), soit \(\dot h + K h = K h_c\) : premier ordre de constante de temps \(1/K\), dont le pôle \(-K\) est négatif pour tout \(K_p > 0\). \(K = 50\times2\cdot10^{-3}/0{,}5 = 0{,}2\ \text{s}^{-1}\) (constante de temps 5 s).</p>
+    <p><strong>Q2.</strong> Sur \([kT_e,(k+1)T_e]\), \(u = u_k\) est constante : en intégrant \(S\dot h = K_vu_k\), \(S(h_{k+1} - h_k) = K_vT_e\,u_k\), sans approximation. Avec \(u_k = K_p\varepsilon_k\) et \(h_c\) constante : \(\varepsilon_{k+1} = \varepsilon_k - \tfrac{K_vT_e}{S}K_p\varepsilon_k\), soit</p>
+    $$\varepsilon_{k+1} = (1 - KT_e)\,\varepsilon_k$$
+    <p><strong>Q3.</strong> Stabilité : \(|1 - KT_e| \lt 1 \iff 0 \lt T_e \lt 2/K = 10\ \text{s}\). Pas d'oscillation si \(1 - KT_e \geq 0\), soit \(T_e \leq 1/K = 5\ \text{s}\). Pour \(T_e = 5\ \text{s}\), \(\varepsilon_1 = 0\) : consigne atteinte en un pas (en pratique, la pompe saturerait). Pour \(T_e = 0{,}5\ \text{s}\), l'écart est multiplié par 0,9 à chaque pas : après 10 pas (5 s), \(0{,}9^{10} \approx 0{,}35\), proche de \(e^{-1} \approx 0{,}37\) en continu.</p>
+    <p><strong>Q4.</strong> FTBO \(= K/p\) : intégrateur pur, \(\omega_{c0} = K = 0{,}2\ \text{rad/s}\), \(M_\varphi = 90°\). Le retard \(T_e/2\) retire \(KT_e/2\) rad : \(M_\varphi \geq 45°\) impose \(KT_e/2 \leq \pi/4\), soit \(T_e \leq \pi/(2K) \approx 7{,}9\ \text{s}\). Cette approche prédirait l'instabilité pour \(KT_e/2 = \pi/2\), soit \(T_e \approx 15{,}7\ \text{s}\), alors que la limite exacte est 10 s : le modèle « retard \(T_e/2\) » est optimiste dès que \(\omega_{c0}T_e\) n'est plus petit devant 1.</p>
+    <p><strong>Q5.</strong> Sur \([(k+1)T_e,(k+2)T_e]\), la commande vaut \(u_k\) : \(h_{k+2} = h_{k+1} + \tfrac{K_vT_e}{S}K_p\varepsilon_k\), d'où \(\varepsilon_{k+2} = \varepsilon_{k+1} - KT_e\,\varepsilon_k\). Équation caractéristique : \(r^2 - r + KT_e = 0\), de discriminant \(1 - 4KT_e\).</p>
+    <ul>
+      <li>Si \(KT_e \leq 1/4\) : racines réelles \(\big(1 \pm \sqrt{1-4KT_e}\big)/2\), comprises entre 0 et 1 : stable, sans oscillation.</li>
+      <li>Si \(KT_e > 1/4\) : racines complexes conjuguées de module \(\sqrt{KT_e}\) (leur produit vaut \(KT_e\)) : stable si et seulement si \(KT_e \lt 1\).</li>
+    </ul>
+    <p>Condition de stabilité : \(0 \lt T_e \lt 1/K = 5\ \text{s}\). Le retard de calcul <strong>divise par deux</strong> la période maximale, et l'absence d'oscillation exige maintenant \(T_e \leq 1/(4K) = 1{,}25\ \text{s}\).</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 08</span><span class="diff">★ ★ ☆</span>
+  <h3>Banc d'essai d'un ressort : fichier de mesures et filtre du second ordre</h3>
+  <div class="statement">Un banc mesure l'effort \(F\) d'un ressort de suspension de VTT maintenu comprimé à course fixée. Le capteur est échantillonné à \(f_e = 500\ \text{Hz}\) (\(T_e = 2\ \text{ms}\)). Le fichier essai.csv contient une ligne d'en-tête, puis une ligne par échantillon : le temps \(t\) (s) et l'effort \(F\) (N), séparés par un point-virgule. La première demi-seconde est un transitoire (mise en compression).</div>
+  <div class="q"><strong>Q1.</strong> Écrire les instructions Python (numpy) qui lisent le fichier, ne gardent que les échantillons tels que \(t \geq 0{,}5\ \text{s}\), puis calculent la moyenne et l'écart type de l'effort.</div>
+  <div class="q"><strong>Q2.</strong> Dix valeurs du régime établi sont : 812, 806, 809, 815, 803, 810, 808, 811, 805 et 811 N. Calculer leur moyenne, leur écart type (diviseur \(N-1\)) et l'incertitude-type de la moyenne. Que renverrait np.std sans option ?</div>
+  <div class="q"><strong>Q3.</strong> Pour afficher une valeur lissée en temps réel, on calcule une moyenne glissante sur 25 échantillons. Donner la durée de la fenêtre, le retard moyen, le temps de réponse complet à un échelon et le facteur de réduction d'un bruit indépendant d'un échantillon à l'autre. Élimine-t-elle un parasite secteur à 50 Hz ?</div>
+  <div class="q"><strong>Q4.</strong> On envisage plutôt un passe-bas du second ordre de gain 1, de fréquence propre \(f_0 = 4\ \text{Hz}\) et d'amortissement \(\xi = 1\), discrétisé par différences arrière. Écrire sa récurrence avec ses coefficients numériques, vérifier le gain statique et la condition de fidélité au filtre continu.</div>
+  <div class="q"><strong>Q5.</strong> Calculer \(v_0\), \(v_1\), \(v_2\) pour un échelon unité appliqué au repos (\(v_{-1} = v_{-2} = 0\)). Une simulation donne pour ce filtre un temps de réponse à 5 % de 192 ms, sans dépassement, et un bruit divisé par 9 ; la moyenne glissante atteint 95 % en 46 ms. Comparer les deux filtres.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> On sélectionne le régime établi par un masque booléen (tableau de True et False de même longueur que t) :</p>
+    <pre class="codeblock"><span class="kw">import</span> numpy <span class="kw">as</span> np
+d = np.loadtxt(<span class="str">'essai.csv'</span>, delimiter=<span class="str">';'</span>, skiprows=1)
+t, F = d[:, 0], d[:, 1]
+Fe = F[t &gt;= 0.5]              <span class="cmt"># régime établi seulement</span>
+m = np.mean(Fe)               <span class="cmt"># moyenne (N)</span>
+s = np.std(Fe, ddof=1)        <span class="cmt"># écart type, diviseur N-1</span></pre>
+    <p><strong>Q2.</strong> Somme 8 090 N, d'où \(\bar F = 809{,}0\ \text{N}\). Écarts à la moyenne : 3 ; −3 ; 0 ; 6 ; −6 ; 1 ; −1 ; 2 ; −4 ; 2, dont les carrés ont pour somme 116 N². Écart type \(s = \sqrt{116/9} \approx 3{,}59\ \text{N}\) ; incertitude-type de la moyenne \(s/\sqrt{10} \approx 1{,}14\ \text{N}\). Sans option, np.std divise par \(N = 10\) : \(\sqrt{11{,}6} \approx 3{,}41\ \text{N}\), soit 5 % de moins, un écart qui devient négligeable sur quelques centaines de valeurs.</p>
+    <p><strong>Q3.</strong> Fenêtre : \(25 \times 2 = 50\ \text{ms}\). Retard moyen \((N-1)T_e/2 = 24\ \text{ms}\) ; la réponse à un échelon est complète après \(N - 1 = 24\) périodes, soit 48 ms. Un bruit indépendant est divisé par \(\sqrt{25} = 5\). La moyenne glissante annule exactement les sinusoïdes de période 50 ms (20 Hz) et leurs harmoniques de rang non multiple de 25 ; une période du secteur (20 ms) dure 10 échantillons, et la fenêtre en contient 2,5 : le 50 Hz n'est pas éliminé (il en reste environ 13 %). Il faudrait \(N = 10, 20, 30\)…</p>
+    <p><strong>Q4.</strong> Avec \(x = \omega_0T_e = 2\pi \times 4 \times 0{,}002 \approx 0{,}0503\) : \(2\xi x \approx 0{,}1005\), \(x^2 \approx 0{,}00253\) et \(D = 1 + 2\xi x + x^2 \approx 1{,}1031\). La récurrence du cours, \(v_k = \big[(2+2\xi x)\,v_{k-1} - v_{k-2} + x^2u_k\big]/D\), devient</p>
+    <div class="formula">$$v_k = 1{,}9043\,v_{k-1} - 0{,}9066\,v_{k-2} + 0{,}00229\,u_k$$</div>
+    <p>Gain statique : avec \(u_k = U\) et \(v_k \to V\), \((1 - 1{,}9043 + 0{,}9066)\,V = 0{,}00229\,U\) ; le coefficient de gauche vaut exactement \(x^2/D\), comme celui de droite : \(V = U\). Fidélité : \(\omega_0T_e \approx 0{,}05 \leq 0{,}1\) ; le filtre calculé a un pôle double en \(-24{,}5\ \text{s}^{-1}\), au lieu de \(-\omega_0 \approx -25{,}1\ \text{s}^{-1}\) en continu.</p>
+    <p><strong>Q5.</strong> \(v_0 = 0{,}00229\), puis</p>
+    <div class="formula">$$v_1 = 1{,}9043 \times 0{,}00229 + 0{,}00229 \approx 0{,}00665$$</div>
+    <div class="formula">$$v_2 = 1{,}9043 \times 0{,}00665 - 0{,}9066 \times 0{,}00229 + 0{,}00229 \approx 0{,}0129$$</div>
+    <p>Le départ est très lent, comme pour le second ordre continu (tangente horizontale à l'origine), alors que la moyenne glissante monte de \(1/25 = 0{,}04\) par période. Bilan : la moyenne glissante est quatre fois plus rapide (46 ms contre 192 ms) mais lisse moins (bruit divisé par 5 contre 9) et mémorise 25 valeurs contre 2 ; le second ordre atténue aussi bien mieux le 50 Hz (il en laisse 0,6 % environ). Pour une valeur affichée, où quelques dixièmes de seconde importent peu, le second ordre convient mieux.</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 09</span><span class="diff">★ ★ ★</span>
+  <h3>Avance de phase programmée : influence de la période d'échantillonnage</h3>
+  <div class="statement">Le réglage continu de la boucle de position d'un axe de robot a donné un correcteur à avance de phase \(C(p) = K_p\,\dfrac{1+aTp}{1+Tp}\), avec \(K_p = 0{,}8\ \text{V/rad}\), \(a = 9\) et \(T = 5\ \text{ms}\), centré sur la coupure visée. Le calculateur l'exécute toutes les \(T_e\) ; \(\varepsilon_k\) est l'écart de position (rad) et \(u_k\) la commande (V).</div>
+  <div class="q"><strong>Q1.</strong> Calculer \(\omega_m\) et \(\varphi_m\) du correcteur continu, puis la commande juste après un échelon d'écart \(\varepsilon_0 = 0{,}1\ \text{rad}\) et sa valeur finale.</div>
+  <div class="q"><strong>Q2.</strong> À partir de la loi temporelle du correcteur, établir par différence arrière la récurrence \(u_k = \alpha\,u_{k-1} + b_0\,\varepsilon_k + b_1\,\varepsilon_{k-1}\) et exprimer \(\alpha\), \(b_0\), \(b_1\).</div>
+  <div class="q"><strong>Q3.</strong> Pour \(T_e = 0{,}5\ \text{ms}\) : calculer les coefficients et vérifier le gain statique. L'écart passe de 0 à 0,1 rad à \(k = 0\) et y reste : calculer \(u_0\), \(u_1\), \(u_2\), puis exprimer \(u_k\). Comparer au correcteur continu.</div>
+  <div class="q"><strong>Q4.</strong> Pour \(T_e = 2{,}5\ \text{ms}\), calculer les coefficients et \(u_0\). On admet qu'à \(\omega_m\) la récurrence apporte une avance de 52,4° pour \(T_e = 0{,}5\ \text{ms}\) et de 49,4° pour \(T_e = 2{,}5\ \text{ms}\). En tenant compte du retard \(T_e/2\) du bloqueur, calculer l'avance nette dans les deux cas. Conclure.</div>
+  <div class="q"><strong>Q5.</strong> Écrire les lignes Python qui calculent les coefficients une fois pour toutes, puis, à chaque période, la commande saturée à \(\pm 10\ \text{V}\).</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> \(\omega_m = \dfrac{1}{T\sqrt a} = \dfrac{1}{0{,}005 \times 3} \approx 66{,}7\ \text{rad/s}\) ; \(\sin\varphi_m = \dfrac{a-1}{a+1} = 0{,}8\), d'où \(\varphi_m \approx 53{,}1°\). Valeur initiale \(u(0^+) = aK_p\,\varepsilon_0 = 0{,}72\ \text{V}\) ; valeur finale \(K_p\,\varepsilon_0 = 0{,}08\ \text{V}\). Entre les deux, \(u(t) = K_p\varepsilon_0\big[1 + (a-1)\,e^{-t/T}\big]\) décroît avec la constante de temps \(T\).</p>
+    <p><strong>Q2.</strong> La loi \(u + T\,\dot u = K_p(\varepsilon + aT\,\dot\varepsilon)\) donne, par différence arrière sur les deux dérivées puis multiplication par \(T_e\) :</p>
+    <div class="formula">$$(T + T_e)\,u_k = T\,u_{k-1} + K_p(T_e + aT)\,\varepsilon_k - K_paT\,\varepsilon_{k-1}$$</div>
+    <p>d'où \(\alpha = \dfrac{T}{T+T_e}\), \(b_0 = K_p\,\dfrac{T_e+aT}{T+T_e}\) et \(b_1 = -K_p\,\dfrac{aT}{T+T_e}\).</p>
+    <p><strong>Q3.</strong> \(\alpha = 5/5{,}5 \approx 0{,}9091\), \(b_0 = 0{,}8 \times 45{,}5/5{,}5 \approx 6{,}618\), \(b_1 = -0{,}8 \times 45/5{,}5 \approx -6{,}545\). Gain statique : \(\dfrac{b_0 + b_1}{1 - \alpha} = \dfrac{0{,}0727}{0{,}0909} = 0{,}8\), soit \(K_p\). Pour \(k \geq 1\), \(\varepsilon_k = \varepsilon_{k-1} = 0{,}1\) : \(u_k = \alpha\,u_{k-1} + 0{,}00727\). Donc \(u_0 = b_0 \times 0{,}1 \approx 0{,}662\ \text{V}\), \(u_1 \approx 0{,}609\ \text{V}\), \(u_2 \approx 0{,}561\ \text{V}\) et, la suite étant arithmético-géométrique de point fixe 0,08 :</p>
+    <div class="formula">$$u_k = 0{,}08 + 0{,}582\,\alpha^k\quad(\text{V})$$</div>
+    <p>Comme \(\alpha^k = e^{k\ln\alpha}\) avec \(\ln\alpha \approx -0{,}0953\), l'excédent décroît avec une constante de temps \(T_e/0{,}0953 \approx 5{,}2\ \text{ms}\), presque \(T\). Le pic (0,662 V au lieu de 0,72 V) est un peu plus faible qu'en continu : le correcteur programmé reproduit fidèlement le correcteur continu.</p>
+    <p><strong>Q4.</strong> \(\alpha = 5/7{,}5 \approx 0{,}667\), \(b_0 = 0{,}8 \times 47{,}5/7{,}5 \approx 5{,}067\), \(b_1 = -0{,}8 \times 45/7{,}5 = -4{,}8\) (gain statique toujours \(0{,}267/0{,}333 = 0{,}8\)) ; \(u_0 \approx 0{,}507\ \text{V}\). Retard du bloqueur à \(\omega_m\) : \(\omega_mT_e/2\), soit 0,0167 rad (0,95°) pour 0,5 ms et 0,0833 rad (4,8°) pour 2,5 ms. Avances nettes : \(52{,}4 - 0{,}95 \approx 51{,}4°\) et \(49{,}4 - 4{,}8 \approx 44{,}6°\), contre 53,1° en continu. Avec \(T_e = T/10\), il ne manque que 1,7° ; avec \(T_e = T/2\), il manque 8,5° de marge de phase : le réglage continu n'est plus respecté. On garde \(T_e \leq T/10 = 0{,}5\ \text{ms}\), ou l'on reprend le réglage en comptant ce retard.</p>
+    <p><strong>Q5.</strong></p>
+    <pre class="codeblock">KP, A, T, TE = 0.8, 9.0, 0.005, 0.0005
+AL = T/(T + TE)                    <span class="cmt"># coefficients calculés une fois</span>
+B0 = KP*(TE + A*T)/(T + TE)
+B1 = -KP*A*T/(T + TE)
+u_prec, eps_prec = 0.0, 0.0
+<span class="kw">while</span> True:
+    attendre_top_horloge()          <span class="cmt"># toutes les TE</span>
+    eps = lire_consigne() - lire_position()
+    u = AL*u_prec + B0*eps + B1*eps_prec
+    u = min(max(u, -10.0), 10.0)    <span class="cmt"># saturation</span>
+    ecrire_CNA(u)
+    u_prec, eps_prec = u, eps</pre>
+  </div>
+</div>
+
+<div class="exo concours">
+  <span class="num">CONCOURS PT</span><span class="diff">★ ★ ★</span>
+  <h3>Plateau chauffant d'imprimante 3D : de la mesure au correcteur</h3>
+  <div class="exo-source">
+    Exercice <strong>original</strong> au format des épreuves de Sciences industrielles PT (thème <em>systèmes numériques : acquisition, filtrage, correction</em>). Pour t'entraîner sur les sujets réellement tombés :
+    <a href="https://www.banquept.fr/rubrique38.html" target="_blank" rel="noopener">annales officielles de la Banque PT</a>.
+  </div>
+  <div class="statement">
+    Le plateau chauffant d'une imprimante 3D doit être maintenu à une température de consigne \(\theta_c\) réglable de 20 à 110 °C. La chaîne comprend : une sonde et son conditionnement, qui délivrent \(u_m = k_c\,\theta\) avec \(k_c = 25\ \text{mV/°C}\) (de 0 à 130 °C) ; le CAN 12 bits du microcontrôleur, de plage 0–3,3 V ; le programme de régulation ; une commande de puissance par MLI dont le rapport cyclique \(u\) (en %) est borné entre 0 et 100 %. Autour du point de fonctionnement, le plateau est modélisé par
+    $$H(p) = \frac{\Theta(p)}{U(p)} = \frac{K}{1+\tau p},\qquad K = 1{,}2\ \text{°C}/\%,\quad \tau = 120\ \text{s}$$
+    Extraits du cahier des charges : résolution de mesure \(\leq 0{,}1\ \text{°C}\) ; écart statique nul pour une consigne en échelon ; marge de phase \(\geq 60°\).
+  </div>
+
+  <p class="exo-part">Partie A — Acquisition</p>
+  <div class="q"><strong>A1.</strong> Calculer le quantum du CAN et la résolution de la mesure en °C. Le cahier des charges est-il respecté ? Combien de bits auraient suffi ?</div>
+  <div class="q"><strong>A2.</strong> La mesure est polluée par un parasite à 50 Hz d'amplitude 20 mV rayonné par l'alimentation. Le CAN échantillonne à \(f_a = 1\ \text{kHz}\). Que représente ce parasite en °C ? Montrer qu'une moyenne glissante sur 20 échantillons l'élimine.</div>
+
+  <p class="exo-part">Partie B — Filtrage numérique</p>
+  <div class="q"><strong>B1.</strong> On envisage plutôt un passe-bas du premier ordre de gain 1 et de constante de temps \(\tau_f = 0{,}1\ \text{s}\), discrétisé par différence arrière avec \(T_a = 1\ \text{ms}\). Écrire la récurrence et calculer son coefficient.</div>
+  <div class="q"><strong>B2.</strong> À l'aide du modèle continu, calculer l'atténuation du parasite à 50 Hz et son amplitude résiduelle en °C. Conclure.</div>
+  <div class="q"><strong>B3.</strong> Le retard introduit par ce filtre est-il gênant pour la régulation ?</div>
+
+  <p class="exo-part">Partie C — Correction numérique</p>
+  <div class="q"><strong>C1.</strong> On choisit \(C(p) = K_p\left(1 + \dfrac{1}{T_i\,p}\right)\) avec \(T_i = \tau\). Justifier ce choix vis-à-vis du cahier des charges et montrer que la FTBO devient \(K_pK/(\tau p)\). Pour \(K_p = 5\ \%/\text{°C}\), calculer \(\omega_{c0}\) et la marge de phase en continu.</div>
+  <div class="q"><strong>C2.</strong> Le correcteur est exécuté toutes les \(T_e = 0{,}5\ \text{s}\) sur la mesure filtrée. Établir sa forme incrémentale et calculer ses coefficients.</div>
+  <div class="q"><strong>C3.</strong> On modélise le bloqueur par un retard \(T_e/2\) et on ajoute un retard de calcul d'une période (retard total \(3T_e/2\)). Calculer la marge de phase. Quelle période maximale respecte encore \(M_\varphi \geq 60°\) ?</div>
+
+  <p class="exo-part">Partie D — Programme</p>
+  <div class="q"><strong>D1.</strong> Écrire en Python la boucle complète : acquisition à 1 kHz, filtrage (B1), calcul du correcteur une fois toutes les 500 acquisitions, saturation du rapport cyclique.</div>
+
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>A1.</strong> \(q = 3{,}3/4096 \approx 0{,}806\ \text{mV}\), soit \(q/k_c \approx 0{,}032\ \text{°C}\) : la résolution exigée (0,1 °C) est respectée. La plage du CAN correspond à \(3{,}3/0{,}025 = 132\ \text{°C}\) ; pour 0,1 °C il faut 1320 paliers, et \(2^{11} = 2048 \geq 1320\) : <strong>11 bits</strong> auraient suffi (10 bits, 1024 paliers, non).</p>
+    <p><strong>A2.</strong> \(20/25 = 0{,}8\ \text{°C}\) : huit fois la résolution exigée, inacceptable. À 1 kHz, une période du parasite (20 ms) contient exactement 20 échantillons ; la moyenne d'une sinusoïde sur une période entière est nulle, donc la moyenne glissante sur 20 échantillons supprime le parasite (ainsi que ses harmoniques de rang 2 à 19). Shannon est respecté (50 Hz \(\lt\) 500 Hz) : pas de repliement.</p>
+    <p><strong>B1.</strong> \(\theta_{f,k} = a\,\theta_{f,k-1} + (1-a)\,\theta_k\), avec \(a = \tau_f/(\tau_f + T_a) = 0{,}1/0{,}101 \approx 0{,}990\).</p>
+    <p><strong>B2.</strong> \(|H_f(j\omega)| = 1/\sqrt{1 + (\omega\tau_f)^2}\) avec \(\omega\tau_f = 2\pi\times50\times0{,}1 \approx 31{,}4\) : atténuation \(\approx 0{,}032\). Amplitude résiduelle : \(20\times0{,}032 \approx 0{,}64\ \text{mV}\), soit \(0{,}025\ \text{°C}\), inférieure à la résolution exigée et de l'ordre du quantum. Le filtre convient.</p>
+    <p><strong>B3.</strong> Non : \(\tau_f = 0{,}1\ \text{s}\) est négligeable devant \(\tau = 120\ \text{s}\) et devant \(1/\omega_{c0} = 20\ \text{s}\) (C1). Déphasage à \(\omega_{c0}\) : \(\arctan(0{,}05\times0{,}1) \approx 0{,}3°\).</p>
+    <p><strong>C1.</strong> L'action intégrale rend la FTBO de classe 1 : écart statique nul en réponse à un échelon. Le choix \(T_i = \tau\) compense le pôle du plateau :</p>
+    $$C(p)\,H(p) = K_p\,\frac{1+\tau p}{\tau p}\cdot\frac{K}{1+\tau p} = \frac{K_pK}{\tau p}$$
+    <p>Intégrateur pur : \(\omega_{c0} = K_pK/\tau = 5\times1{,}2/120 = 0{,}05\ \text{rad/s}\) et \(M_\varphi = 90°\).</p>
+    <p><strong>C2.</strong> Par différence arrière sur la loi du PI (cours, §8), avec \(\varepsilon_k = \theta_{c} - \theta_{f}\) relevé à l'instant \(kT_e\) :</p>
+    $$u_k = u_{k-1} + K_p\left(1 + \frac{T_e}{T_i}\right)\varepsilon_k - K_p\,\varepsilon_{k-1}$$
+    <p>Numériquement, \(K_p(1 + T_e/T_i) = 5\times(1 + 0{,}5/120) \approx 5{,}021\) : \(u_k = u_{k-1} + 5{,}021\,\varepsilon_k - 5\,\varepsilon_{k-1}\).</p>
+    <p><strong>C3.</strong> Perte de phase : \(\omega_{c0}\cdot 3T_e/2 = 0{,}05\times0{,}75\), soit \(0{,}0375\ \text{rad} \approx 2{,}1°\), d'où \(M_\varphi \approx 88°\). Pour garder \(M_\varphi \geq 60°\) : \(\omega_{c0}\cdot3T_e/2 \leq \pi/6\), soit \(T_e \leq \pi/(9\,\omega_{c0}) \approx 7\ \text{s}\). La période choisie (0,5 s) laisse une très large marge, et l'approximation est justifiée (\(\omega_{c0}T_e = 0{,}025 \ll 1\)).</p>
+    <p><strong>D1.</strong></p>
+    <pre class="codeblock">TA, TE = 0.001, 0.5                <span class="cmt"># acquisition 1 ms, régulation 0,5 s</span>
+KC = 0.025                         <span class="cmt"># sensibilité (V/°C)</span>
+A = 0.1/(0.1 + TA)                 <span class="cmt"># passe-bas, tau_f = 0,1 s</span>
+KP, TI = 5.0, 120.0
+Q0, Q1 = KP*(1 + TE/TI), -KP
+
+theta_f = lire_CAN()/KC            <span class="cmt"># lire_CAN renvoie des volts</span>
+u_prec, eps_prec, n = 0.0, 0.0, 0
+<span class="kw">while</span> True:
+    attendre_top(TA)               <span class="cmt"># cadence 1 kHz</span>
+    theta = lire_CAN()/KC
+    theta_f = A*theta_f + (1 - A)*theta
+    n = n + 1
+    <span class="kw">if</span> n == 500:                   <span class="cmt"># une fois toutes les TE</span>
+        n = 0
+        eps = lire_consigne() - theta_f
+        u = u_prec + Q0*eps + Q1*eps_prec
+        u = min(max(u, 0.0), 100.0)  <span class="cmt"># rapport cyclique borné</span>
+        ecrire_MLI(u)
+        u_prec, eps_prec = u, eps</pre>
+    <p>Au démarrage, plateau froid, l'écart est grand et la commande calculée dépasse largement 100 % : \(u\) est saturée. Sous forme position, la somme des écarts continuerait de croître pendant toute la chauffe et la température dépasserait nettement la consigne (une simulation du modèle donne près de 20 °C de dépassement pour une montée de 20 à 110 °C). Avec la forme incrémentale saturée, aucune intégrale ne s'accumule : la commande quitte la butée dès que la température monte, et la consigne est rejointe sans dépassement, au prix d'une approche plus progressive.</p>
+  </div>
+</div>
+
+</div>
+</template>

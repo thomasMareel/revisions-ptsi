@@ -1,0 +1,383 @@
+<!-- Chapitre « Calcul matriciel (approfondissements) » (matrices2a) : contenu des onglets Cours, Méthodes et Exercices, chargé à l'ouverture du chapitre.
+     On l'édite ici, puis : node tools/chapitres.js (docs/chargement-chapitres.md). -->
+<template class="pan-tpl" data-panneau="mx2-cours">
+<div class="course-section">
+  <div class="sec-num">AU PROGRAMME · PT</div>
+  <h2>Ce que le programme officiel demande</h2>
+  <div class="intro">Ce chapitre rassemble les outils matriciels de 2ᵉ année. Il reprend la représentation matricielle de 1ʳᵉ année (programme de PTSI, « Matrices et applications linéaires ») et y ajoute la trace, les matrices semblables et le calcul par blocs, qui préparent la réduction (chapitres Éléments propres et Réduction des endomorphismes).</div>
+  <div class="reveal" onclick="this.classList.toggle('open')">
+    <span class="label">Programme officiel</span>
+    <span class="prompt">Les capacités exigibles, dans l'ordre du chapitre</span>
+    <div class="content">
+      <ul>
+        <li><strong>Matrice d'une application linéaire, formules de changement de base</strong> (1ʳᵉ année, constamment réutilisées) (§1).</li>
+        <li><strong>Rang</strong> d'une matrice, matrices équivalentes (1ʳᵉ année) (§2).</li>
+        <li><strong>Trace</strong> d'une matrice carrée, linéarité, \(\operatorname{tr}(AB)=\operatorname{tr}(BA)\), deux matrices semblables ont même trace, trace d'un endomorphisme en dimension finie (§3).</li>
+        <li><strong>Matrices semblables</strong> : deux matrices d'un même endomorphisme ; invariants (rang, trace, déterminant) (§4).</li>
+        <li><strong>Calcul par blocs</strong> ; interprétation d'une forme triangulaire par blocs en termes de sous-espace stable, et inversement (détaillé au chapitre Applications linéaires) (§5).</li>
+        <li><strong>Polynômes de matrices</strong>, comme outil de calcul des puissances et de l'inverse, toujours guidé par l'énoncé (§6).</li>
+      </ul>
+      <p>Hors programme : toute théorie des polynômes d'endomorphisme (polynôme minimal, lemme des noyaux, théorème de Cayley-Hamilton) ; les polynômes de matrices du §6 ne servent qu'au calcul.</p>
+    </div>
+  </div>
+</div>
+<div class="course-section">
+  <div class="sec-num">§1 · MATRICE D'UNE APPLICATION LINÉAIRE ET CHANGEMENT DE BASE</div>
+  <h2>Une application, plusieurs matrices</h2>
+  <div class="intro">En première année, une matrice était surtout un tableau de calcul. En deuxième année, on la voit comme le <strong>portrait d'une application linéaire dans une base</strong>. Changer de base change le portrait, pas l'application : tout le chapitre (rang, trace, matrices semblables, calcul par blocs, polynômes de matrices) prépare la réduction des endomorphismes.</div>
+
+  <div class="def-box">
+    Soit \(E\) de base \(\mathcal{B} = (e_1, \ldots, e_p)\) (donc de dimension \(p\)), \(F\) de dimension \(n\), de base \(\mathcal{C}\), et \(f \in \mathcal{L}(E, F)\). La matrice \(\operatorname{Mat}_{\mathcal{B},\mathcal{C}}(f)\) a pour \(j\)-ième colonne les coordonnées de \(f(e_j)\) dans \(\mathcal{C}\). Si \(X\) et \(Y\) sont les colonnes de coordonnées de \(x\) et de \(y = f(x)\), alors \(Y = AX\). Pour un endomorphisme (\(E = F\), même base), on note simplement \(\operatorname{Mat}_{\mathcal{B}}(f)\).
+  </div>
+  <div class="prop-box">
+    L'application \(f \mapsto \operatorname{Mat}_{\mathcal{B},\mathcal{C}}(f)\) est un isomorphisme de \(\mathcal{L}(E, F)\) sur \(\mathcal{M}_{n,p}(\mathbb{K})\) ; en particulier \(\dim \mathcal{L}(E, F) = np\). Elle transforme la composition en produit : \(\operatorname{Mat}(g \circ f) = \operatorname{Mat}(g)\,\operatorname{Mat}(f)\) (bases compatibles). Un endomorphisme est bijectif si et seulement si sa matrice est inversible, et alors \(\operatorname{Mat}(f^{-1}) = \operatorname{Mat}(f)^{-1}\).
+  </div>
+
+  <h3>Matrice de passage</h3>
+  <div class="def-box">
+    Soit \(\mathcal{B}\) et \(\mathcal{B}'\) deux bases de \(E\). La <strong>matrice de passage</strong> \(P = P_{\mathcal{B} \to \mathcal{B}'}\) a pour colonnes les coordonnées des vecteurs de la <strong>nouvelle</strong> base \(\mathcal{B}'\) dans l'<strong>ancienne</strong> \(\mathcal{B}\). Elle est inversible, d'inverse \(P_{\mathcal{B}' \to \mathcal{B}}\), et relie les coordonnées d'un même vecteur : \(X = PX'\) (ancienne = \(P\) × nouvelle).
+  </div>
+  <div class="prop-box">
+    <strong>Formules de changement de base.</strong> Si \(A = \operatorname{Mat}_{\mathcal{B},\mathcal{C}}(f)\) et \(A' = \operatorname{Mat}_{\mathcal{B}',\mathcal{C}'}(f)\), avec \(P = P_{\mathcal{B}\to\mathcal{B}'}\) et \(Q = P_{\mathcal{C}\to\mathcal{C}'}\) :
+    <div class="formula" data-nom="Changement de bases">$$A' = Q^{-1} A P.$$</div>
+    Pour un endomorphisme, avec une seule base de départ et d'arrivée :
+    <div class="formula" data-nom="Changement de base d'un endomorphisme">$$A' = P^{-1} A P.$$</div>
+  </div>
+  <div class="reveal" onclick="this.classList.toggle('open')">
+    <span class="label">Démonstration</span>
+    <span class="prompt">Retrouver \(A' = P^{-1}AP\) en une ligne.</span>
+    <div class="content"><p>Soit \(x\) de coordonnées \(X\) (ancienne base) et \(X'\) (nouvelle), et \(y = f(x)\) de coordonnées \(Y\), \(Y'\). On a \(Y = AX\), \(X = PX'\) et \(Y = PY'\). Donc \(PY' = APX'\), soit \(Y' = P^{-1}AP\,X'\) pour toute colonne \(X'\) : c'est la définition de \(A' = P^{-1}AP\). Lecture de droite à gauche : on passe des nouvelles coordonnées aux anciennes (\(P\)), on applique \(f\) (\(A\)), on revient aux nouvelles (\(P^{-1}\)).</p></div>
+  </div>
+
+  <div class="method-box">
+    <strong>Exemple — la bonne base simplifie tout</strong>
+    <p>Soit \(f\) l'endomorphisme de \(\mathbb{R}^2\) de matrice \(A = \begin{pmatrix} 3 & 1 \\ 1 & 3 \end{pmatrix}\) dans la base canonique, et les vecteurs \(u_1 = (1, 1)\), \(u_2 = (1, -1)\).</p>
+    <ol>
+      <li>Calcul direct : \(f(u_1) = (4, 4) = 4u_1\) et \(f(u_2) = (2, -2) = 2u_2\).</li>
+      <li>\(\mathcal{B}' = (u_1, u_2)\) est une base (vecteurs non colinéaires), et \(\operatorname{Mat}_{\mathcal{B}'}(f) = \begin{pmatrix} 4 & 0 \\ 0 & 2 \end{pmatrix}\) se lit directement sur les images.</li>
+      <li>Vérification par la formule : \(P = \begin{pmatrix} 1 & 1 \\ 1 & -1 \end{pmatrix}\), \(P^{-1} = \tfrac{1}{2}\begin{pmatrix} 1 & 1 \\ 1 & -1 \end{pmatrix}\), et
+      <div class="formula">$$P^{-1}AP = \tfrac{1}{2}\begin{pmatrix} 1 & 1 \\ 1 & -1 \end{pmatrix}\begin{pmatrix} 4 & 2 \\ 4 & -2 \end{pmatrix} = \begin{pmatrix} 4 & 0 \\ 0 & 2 \end{pmatrix}.$$</div></li>
+      <li>Bénéfice immédiat :
+      <div class="formula">$$A^n = P \begin{pmatrix} 4^n & 0 \\ 0 & 2^n \end{pmatrix} P^{-1} = \dfrac{1}{2}\begin{pmatrix} 4^n + 2^n & 4^n - 2^n \\ 4^n - 2^n & 4^n + 2^n \end{pmatrix}.$$</div></li>
+    </ol>
+  </div>
+  <div class="notice"><strong>L'erreur la plus fréquente</strong> est d'écrire \(PAP^{-1}\) au lieu de \(P^{-1}AP\). Pour ne pas se tromper : les colonnes de \(P\) sont les <strong>nouveaux</strong> vecteurs exprimés dans l'<strong>ancienne</strong> base, et \(P\) agit en premier, à droite de \(A\).</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§2 · RANG ET MATRICES ÉQUIVALENTES</div>
+  <h2>Mesurer et classer les matrices</h2>
+  <div class="def-box">
+    Le <strong>rang</strong> de \(A \in \mathcal{M}_{n,p}(\mathbb{K})\) est la dimension du sous-espace de \(\mathbb{K}^n\) engendré par ses colonnes. C'est le rang de toute application linéaire représentée par \(A\), et \(\operatorname{rg} A \leq \min(n, p)\).
+  </div>
+  <div class="prop-box">
+    <ul>
+      <li>Multiplier par une matrice <strong>inversible</strong> ne change pas le rang : \(\operatorname{rg}(QAP) = \operatorname{rg} A\) pour \(P, Q\) inversibles. Les opérations élémentaires sur les lignes et sur les colonnes conservent donc le rang, et le rang est le <strong>nombre de pivots</strong> d'une forme échelonnée.</li>
+      <li>\(\operatorname{rg}(A^\top) = \operatorname{rg}(A)\) : les lignes engendrent un espace de même dimension que les colonnes.</li>
+      <li><strong>Théorème du rang</strong> : \(\operatorname{rg} A + \dim \ker A = p\), où \(\ker A = \{X \in \mathbb{K}^p,\ AX = 0\}\).</li>
+      <li>Une matrice carrée de taille \(n\) est inversible si et seulement si son rang vaut \(n\).</li>
+    </ul>
+  </div>
+
+  <div class="method-box">
+    <strong>Exemple — rang et noyau en un seul pivot</strong>
+    <p>\(A = \begin{pmatrix} 1 & 2 & 1 & 0 \\ 2 & 4 & 0 & 2 \\ 1 & 2 & -1 & 2 \end{pmatrix}\).</p>
+    <ol>
+      <li>\(L_2 \leftarrow L_2 - 2L_1\) et \(L_3 \leftarrow L_3 - L_1\) donnent deux lignes égales à \((0\ 0\ {-2}\ 2)\) ; puis \(L_3 \leftarrow L_3 - L_2\) annule la troisième.</li>
+      <li>Deux pivots : \(\operatorname{rg} A = 2\), donc \(\dim \ker A = 4 - 2 = 2\).</li>
+      <li>Le système échelonné \(x + 2y + z = 0\), \(-2z + 2t = 0\) donne \(z = t\) et \(x = -2y - t\) : \(\ker A = \operatorname{Vect}\big((-2, 1, 0, 0),\ (-1, 0, 1, 1)\big)\).</li>
+    </ol>
+  </div>
+
+  <div class="def-box">
+    \(A, B \in \mathcal{M}_{n,p}(\mathbb{K})\) sont <strong>équivalentes</strong> s'il existe \(Q \in GL_n(\mathbb{K})\) et \(P \in GL_p(\mathbb{K})\) telles que \(B = QAP\). Autrement dit, elles représentent la même application linéaire dans d'autres bases <strong>au départ et à l'arrivée</strong>.
+  </div>
+  <div class="prop-box">
+    <strong>Théorème.</strong> Une matrice de rang \(r\) est équivalente à \(J_r = \begin{pmatrix} I_r & 0 \\ 0 & 0 \end{pmatrix}\). Par conséquent, deux matrices de même taille sont équivalentes <strong>si et seulement si</strong> elles ont le même rang : le rang est le seul invariant de l'équivalence.
+  </div>
+  <div class="reveal" onclick="this.classList.toggle('open')">
+    <span class="label">Démonstration</span>
+    <span class="prompt">Pourquoi toute matrice de rang \(r\) est-elle équivalente à \(J_r\) ?</span>
+    <div class="content"><p>Soit \(f\) l'application de matrice \(A\), de rang \(r\). On choisit un supplémentaire \(S\) de \(\ker f\), de dimension \(r\) par le théorème du rang, une base \((e_1, \ldots, e_r)\) de \(S\), complétée par une base \((e_{r+1}, \ldots, e_p)\) de \(\ker f\). Les vecteurs \(f(e_1), \ldots, f(e_r)\) forment une base de \(\operatorname{Im} f\) (\(f\) restreinte à \(S\) est injective), que l'on complète en une base de l'espace d'arrivée. Dans ces deux bases, la matrice de \(f\) est exactement \(J_r\).</p></div>
+  </div>
+  <div class="reveal" onclick="this.classList.toggle('open')">
+    <span class="label">Application</span>
+    <span class="prompt">Montrer qu'une matrice de rang 1 s'écrit \(A = XY^\top\) (une colonne fois une ligne), et que \(A^2 = \operatorname{tr}(A)\,A\).</span>
+    <div class="content"><p>Les colonnes de \(A\) sont toutes proportionnelles à une même colonne non nulle \(X\) : la colonne \(j\) vaut \(y_j X\), d'où \(A = XY^\top\) avec \(Y = (y_1, \ldots, y_p)\). Alors \(A^2 = X(Y^\top X)Y^\top\), et \(Y^\top X = \sum y_i x_i = \operatorname{tr}(A)\) est un scalaire : \(A^2 = \operatorname{tr}(A)\,A\). Exemple :</p>
+    <div class="formula">$$\begin{pmatrix} 1 & 2 & 3 \\ 2 & 4 & 6 \\ -1 & -2 & -3 \end{pmatrix} = \begin{pmatrix} 1 \\ 2 \\ -1 \end{pmatrix}\begin{pmatrix} 1 & 2 & 3 \end{pmatrix},$$</div>
+    <p>de trace 2 : son carré vaut deux fois elle-même.</p></div>
+  </div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§3 · TRACE</div>
+  <h2>Une forme linéaire très utile</h2>
+  <div class="def-box">
+    La <strong>trace</strong> d'une matrice carrée est la somme de ses coefficients diagonaux : \(\operatorname{tr} A = \sum_{i=1}^n a_{ii}\). C'est une forme linéaire sur \(\mathcal{M}_n(\mathbb{K})\), et \(\operatorname{tr}(A^\top) = \operatorname{tr}(A)\).
+  </div>
+  <div class="prop-box">
+    Pour \(A \in \mathcal{M}_{n,p}(\mathbb{K})\) et \(B \in \mathcal{M}_{p,n}(\mathbb{K})\) :
+    <div class="formula" data-nom="Trace d'un produit">$$\operatorname{tr}(AB) = \operatorname{tr}(BA).$$</div>
+    Conséquence : deux matrices semblables ont la même trace, car \(\operatorname{tr}(P^{-1}AP) = \operatorname{tr}(AP\,P^{-1}) = \operatorname{tr}(A)\). On définit ainsi la <strong>trace d'un endomorphisme</strong> comme la trace de sa matrice dans n'importe quelle base.
+  </div>
+  <div class="reveal" onclick="this.classList.toggle('open')">
+    <span class="label">Démonstration</span>
+    <span class="prompt">Prouver \(\operatorname{tr}(AB) = \operatorname{tr}(BA)\).</span>
+    <div class="content"><p>\(\operatorname{tr}(AB) = \sum_{i=1}^n (AB)_{ii} = \sum_{i=1}^n \sum_{k=1}^p a_{ik} b_{ki}\). La même somme double, écrite dans l'autre ordre, est \(\sum_{k=1}^p \sum_{i=1}^n b_{ki} a_{ik} = \sum_{k=1}^p (BA)_{kk} = \operatorname{tr}(BA)\).</p></div>
+  </div>
+  <div class="notice"><strong>Attention</strong> : seule une permutation <strong>circulaire</strong> est permise. \(\operatorname{tr}(ABC) = \operatorname{tr}(BCA) = \operatorname{tr}(CAB)\), mais \(\operatorname{tr}(ABC)\) diffère en général de \(\operatorname{tr}(BAC)\). Et bien sûr \(\operatorname{tr}(AB) \neq \operatorname{tr}(A)\operatorname{tr}(B)\).</div>
+  <div class="method-box">
+    <strong>Deux résultats classiques obtenus par la trace</strong>
+    <ol>
+      <li>Il n'existe pas de matrices \(A, B \in \mathcal{M}_n(\mathbb{K})\) telles que \(AB - BA = I_n\) : la trace du membre de gauche vaut \(\operatorname{tr}(AB) - \operatorname{tr}(BA) = 0\), celle de \(I_n\) vaut \(n\).</li>
+      <li>La trace d'un projecteur est égale à son rang : dans une base adaptée à \(E = \operatorname{Im} p \oplus \ker p\), la matrice de \(p\) est \(\operatorname{diag}(1, \ldots, 1, 0, \ldots, 0)\), avec autant de 1 que \(\dim \operatorname{Im} p\).</li>
+    </ol>
+  </div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§4 · MATRICES SEMBLABLES</div>
+  <h2>Un même endomorphisme, deux bases</h2>
+  <div class="def-box">
+    \(A, B \in \mathcal{M}_n(\mathbb{K})\) sont <strong>semblables</strong> s'il existe \(P \in GL_n(\mathbb{K})\) telle que \(B = P^{-1}AP\). C'est une relation d'équivalence : deux matrices sont semblables si et seulement si elles représentent le <strong>même endomorphisme</strong> dans deux bases.
+  </div>
+  <div class="prop-box">
+    Deux matrices semblables ont le même <strong>rang</strong>, la même <strong>trace</strong>, le même <strong>déterminant</strong>, le même <strong>polynôme caractéristique</strong> et donc les mêmes valeurs propres. Si \(B = P^{-1}AP\), alors \(B^k = P^{-1}A^kP\) pour tout \(k\), et plus généralement \(Q(B) = P^{-1}Q(A)P\) pour tout polynôme \(Q\).
+  </div>
+  <div class="notice"><strong>Ces invariants ne suffisent pas.</strong> Semblables implique équivalentes, mais la réciproque est fausse. Et même des matrices ayant rang, trace, déterminant et polynôme caractéristique égaux peuvent ne pas être semblables (exemple ci-dessous).</div>
+
+  <div class="method-box">
+    <strong>Méthode — prouver que deux matrices ne sont pas semblables</strong>
+    <p>On cherche un invariant qui diffère : rang, trace, déterminant, polynôme caractéristique, rang de \(A - \lambda I_n\)… Exemple : \(I_2\) et \(T = \begin{pmatrix} 1 & 1 \\ 0 & 1 \end{pmatrix}\) ont même trace (2), même déterminant (1), même rang (2) et même polynôme caractéristique \((X - 1)^2\). Pourtant elles ne sont pas semblables : pour tout \(P\) inversible, \(P^{-1} I_2 P = I_2 \neq T\). L'invariant qui les distingue est \(\operatorname{rg}(A - I_2)\), égal à 0 pour \(I_2\) et à 1 pour \(T\).</p>
+  </div>
+  <div class="method-box">
+    <strong>Méthode — prouver que deux matrices sont semblables</strong>
+    <p>On interprète \(A\) comme la matrice d'un endomorphisme \(f\) et l'on cherche une base dans laquelle la matrice de \(f\) est \(B\). Exemple : \(A = \begin{pmatrix} 0 & 1 \\ 0 & 0 \end{pmatrix}\) envoie \(e_1\) sur \(0\) et \(e_2\) sur \(e_1\). Dans la base \((e_2, e_1)\), la matrice devient \(B = \begin{pmatrix} 0 & 0 \\ 1 & 0 \end{pmatrix}\) : \(A\) et \(B\) sont semblables, avec \(P = \begin{pmatrix} 0 & 1 \\ 1 & 0 \end{pmatrix}\).</p>
+  </div>
+  <div class="prop-box">
+    Le cas le plus utile : \(A\) est <strong>diagonalisable</strong> si elle est semblable à une matrice diagonale, c'est-à-dire s'il existe une base de vecteurs propres (exemple du §1). C'est l'objet du chapitre Réduction des endomorphismes.
+  </div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§5 · CALCUL PAR BLOCS</div>
+  <h2>Découper pour calculer</h2>
+  <div class="prop-box">
+    On découpe une matrice en <strong>blocs</strong> par des traits horizontaux et verticaux. Si les découpages sont compatibles (colonnes de la première comme lignes de la seconde), le produit se calcule par blocs exactement comme avec des coefficients, <strong>en respectant l'ordre</strong> des produits :
+    <div class="formula" data-nom="Produit par blocs">$$\begin{pmatrix} A & B \\ C & D \end{pmatrix}\begin{pmatrix} A' & B' \\ C' & D' \end{pmatrix} = \begin{pmatrix} AA' + BC' & AB' + BD' \\ CA' + DC' & CB' + DD' \end{pmatrix}.$$</div>
+  </div>
+  <div class="prop-box">
+    Pour une matrice <strong>triangulaire par blocs</strong> (blocs diagonaux \(A\) et \(D\) carrés) :
+    <div class="formula" data-nom="Déterminant triangulaire par blocs">$$\det\begin{pmatrix} A & B \\ 0 & D \end{pmatrix} = \det(A)\,\det(D).$$</div>
+    Pour une matrice <strong>diagonale par blocs</strong> \(M = \operatorname{diag}(A, D)\) : \(M^k = \operatorname{diag}(A^k, D^k)\), \(Q(M) = \operatorname{diag}(Q(A), Q(D))\), et \(M\) est inversible si et seulement si \(A\) et \(D\) le sont, avec \(M^{-1} = \operatorname{diag}(A^{-1}, D^{-1})\).
+  </div>
+  <div class="method-box">
+    <strong>Exemple — un déterminant 4 × 4 en dix secondes</strong>
+    <p>\(M = \begin{pmatrix} 1 & 2 & 5 & 7 \\ 3 & 4 & 6 & 8 \\ 0 & 0 & 2 & 1 \\ 0 & 0 & 1 & 1 \end{pmatrix}\) est triangulaire par blocs. Donc</p>
+    <div class="formula">$$\det M = \det\begin{pmatrix} 1 & 2 \\ 3 & 4 \end{pmatrix} \times \det\begin{pmatrix} 2 & 1 \\ 1 & 1 \end{pmatrix} = (-2) \times 1 = -2,$$</div>
+    <p>quels que soient les coefficients du bloc en haut à droite.</p>
+  </div>
+
+  <h3>Sous-espaces stables</h3>
+  <div class="def-box">
+    Un sous-espace \(F\) est <strong>stable</strong> par l'endomorphisme \(u\) si \(u(F) \subset F\). L'endomorphisme induit \(u_F : F \to F\) est alors bien défini.
+  </div>
+  <div class="prop-box">
+    Soit \((e_1, \ldots, e_k)\) une base de \(F\), complétée en une base \(\mathcal{B}\) de \(E\). Alors \(F\) est stable par \(u\) si et seulement si \(\operatorname{Mat}_{\mathcal{B}}(u)\) est <strong>triangulaire supérieure par blocs</strong> \(\begin{pmatrix} A & B \\ 0 & D \end{pmatrix}\), où \(A\) (taille \(k\)) est la matrice de \(u_F\). Si \(E = F \oplus G\) avec \(F\) et \(G\) tous deux stables, la matrice dans une base adaptée est <strong>diagonale par blocs</strong>.
+  </div>
+  <div class="reveal" onclick="this.classList.toggle('open')">
+    <span class="label">Application</span>
+    <span class="prompt">Écrire la matrice de la rotation d'angle \(\theta\) autour de l'axe dirigé par un vecteur unitaire \(k\) de l'espace.</span>
+    <div class="content"><p>L'axe \(\mathbb{R}k\) et le plan orthogonal \(k^\perp\) sont stables, et \(\mathbb{R}^3 = k^\perp \oplus \mathbb{R}k\). Dans une base orthonormée directe \((i, j, k)\) adaptée, la matrice est diagonale par blocs :</p>
+    <div class="formula">$$\begin{pmatrix} \cos\theta & -\sin\theta & 0 \\ \sin\theta & \cos\theta & 0 \\ 0 & 0 & 1 \end{pmatrix},$$</div>
+    <p>une rotation plane et l'identité sur l'axe. Sa trace vaut \(1 + 2\cos\theta\), ce qui permet de retrouver l'angle à partir de n'importe quelle matrice de la rotation.</p></div>
+  </div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§6 · POLYNÔMES DE MATRICES</div>
+  <h2>Calculer \(A^n\) et \(A^{-1}\) sans diagonaliser</h2>
+  <div class="def-box">
+    Pour \(Q = \sum_{k=0}^d c_k X^k \in \mathbb{K}[X]\) et \(A \in \mathcal{M}_n(\mathbb{K})\), on pose \(Q(A) = \sum_{k=0}^d c_k A^k\), avec \(A^0 = I_n\). On dit que \(Q\) est un <strong>polynôme annulateur</strong> de \(A\) si \(Q(A) = 0\).
+  </div>
+  <div class="prop-box">
+    \((Q + R)(A) = Q(A) + R(A)\) et \((QR)(A) = Q(A)\,R(A)\) : deux polynômes en \(A\) <strong>commutent</strong> toujours. Pour une matrice diagonale \(D = \operatorname{diag}(\lambda_1, \ldots, \lambda_n)\), on a \(Q(D) = \operatorname{diag}\big(Q(\lambda_1), \ldots, Q(\lambda_n)\big)\) ; pour une matrice triangulaire, la diagonale de \(Q(A)\) est formée des \(Q(a_{ii})\). Toute matrice carrée admet un polynôme annulateur non nul : les \(n^2 + 1\) matrices \(I_n, A, \ldots, A^{n^2}\) sont liées dans \(\mathcal{M}_n(\mathbb{K})\), de dimension \(n^2\).
+  </div>
+  <div class="prop-box">
+    <strong>En taille 2</strong>, un calcul direct montre que toute matrice \(A\) vérifie
+    <div class="formula" data-nom="Polynôme annulateur en taille 2">$$A^2 - \operatorname{tr}(A)\,A + \det(A)\,I_2 = 0.$$</div>
+    (En toute taille, le polynôme caractéristique est annulateur : c'est le théorème de Cayley-Hamilton, hors programme.)
+  </div>
+
+  <div class="method-box">
+    <strong>Méthode — inverse à partir d'un polynôme annulateur</strong>
+    <p>Si \(c_d A^d + \cdots + c_1 A + c_0 I_n = 0\) avec \(c_0 \neq 0\), alors \(A \times \left(-\dfrac{1}{c_0}\right)(c_d A^{d-1} + \cdots + c_1 I_n) = I_n\) : \(A\) est inversible et l'on a son inverse. Exemple : \(A = \begin{pmatrix} 1 & 2 \\ 2 & 1 \end{pmatrix}\) vérifie \(A^2 - 2A - 3I_2 = 0\), donc \(A^{-1} = \tfrac{1}{3}(A - 2I_2) = \tfrac{1}{3}\begin{pmatrix} -1 & 2 \\ 2 & -1 \end{pmatrix}\).</p>
+  </div>
+  <div class="method-box">
+    <strong>Méthode — \(A^n\) par division euclidienne</strong>
+    <ol>
+      <li>Trouver un polynôme annulateur \(Q\) de degré \(d\), si possible à racines simples connues.</li>
+      <li>Écrire la division euclidienne \(X^n = Q\,S_n + R_n\) avec \(\deg R_n \lt d\). Comme \(Q(A) = 0\), on obtient \(A^n = R_n(A)\).</li>
+      <li>Trouver les coefficients de \(R_n\) en évaluant l'égalité aux racines \(\lambda\) de \(Q\) : \(\lambda^n = R_n(\lambda)\).</li>
+    </ol>
+    <p>Exemple : pour \(A = \begin{pmatrix} 1 & 2 \\ 2 & 1 \end{pmatrix}\), \(Q = X^2 - 2X - 3 = (X - 3)(X + 1)\) et \(R_n = a_n X + b_n\). En \(3\) : \(3^n = 3a_n + b_n\) ; en \(-1\) : \((-1)^n = -a_n + b_n\). D'où \(a_n = \dfrac{3^n - (-1)^n}{4}\), \(b_n = \dfrac{3^n + 3(-1)^n}{4}\) et \(A^n = a_n A + b_n I_2\). Contrôle : \(n = 1\) donne \(a_1 = 1\), \(b_1 = 0\).</p>
+  </div>
+
+  <h3>Matrices nilpotentes</h3>
+  <div class="def-box">
+    \(N\) est <strong>nilpotente</strong> s'il existe \(p \geq 1\) tel que \(N^p = 0\) ; le plus petit tel \(p\) est son <strong>indice</strong>, et il vaut au plus \(n\). Toute matrice triangulaire à diagonale nulle (<strong>strictement</strong> triangulaire) est nilpotente.
+  </div>
+  <div class="prop-box">
+    Une matrice nilpotente n'est pas inversible (\(\det N^p = (\det N)^p = 0\)) et sa trace est nulle. Si \(N\) est nilpotente d'indice \(p\), \(I_n - N\) est inversible :
+    <div class="formula" data-nom="Inverse de I − N">$$(I_n - N)^{-1} = I_n + N + N^2 + \cdots + N^{p-1},$$</div>
+    et pour \(A = \lambda I_n + N\), le binôme de Newton donne \(A^m = \sum_{k=0}^{p-1} \binom{m}{k} \lambda^{m-k} N^k\) (somme finie).
+  </div>
+
+  <div class="method-box">
+    <strong>Exemple concret — une chaîne à deux états</strong>
+    <p>Chaque jour, une machine est en marche (M) ou en panne (P). En marche, elle le reste le lendemain avec probabilité 0,8 ; en panne, elle est réparée avec probabilité 0,3. Les probabilités \(X_k = \begin{pmatrix} m_k \\ p_k \end{pmatrix}\) vérifient \(X_{k+1} = AX_k\) avec \(A = \begin{pmatrix} 0{,}8 & 0{,}3 \\ 0{,}2 & 0{,}7 \end{pmatrix}\).</p>
+    <ol>
+      <li>\(\operatorname{tr} A = 1{,}5\) et \(\det A = 0{,}5\) : \(A^2 - 1{,}5A + 0{,}5I_2 = 0\), polynôme de racines \(1\) et \(\tfrac{1}{2}\).</li>
+      <li>\(A^k = a_k A + b_k I_2\) avec \(1 = a_k + b_k\) et \(2^{-k} = \tfrac{1}{2}a_k + b_k\), d'où \(a_k = 2(1 - 2^{-k})\) et \(b_k = 2^{1-k} - 1\).</li>
+      <li>Quand \(k \to +\infty\), \(A^k \to 2A - I_2 = \begin{pmatrix} 0{,}6 & 0{,}6 \\ 0{,}4 & 0{,}4 \end{pmatrix}\) : quel que soit l'état initial, la machine finit en marche avec probabilité 0,6.</li>
+    </ol>
+  </div>
+</div>
+</template>
+<template class="pan-tpl" data-panneau="mx2-meth">
+<div class="course-section">
+  <div class="sec-num">MÉTHODES · CALCUL MATRICIEL 2A</div>
+  <h2>Les réflexes du chapitre</h2>
+  <div class="method-box"><strong>Méthode 1 — Écrire la matrice d'un endomorphisme dans une nouvelle base</strong>
+    <ol style="margin-top:.4rem">
+      <li>Calculer l'image de chaque vecteur de la nouvelle base et l'exprimer dans cette même base : chaque image donne une colonne.</li>
+      <li>Si c'est plus simple, former \(P\) (colonnes = nouveaux vecteurs dans l'ancienne base) et calculer \(P^{-1}AP\).</li>
+      <li>Contrôler avec un invariant : la trace et le déterminant de la nouvelle matrice doivent être ceux de \(A\).</li>
+    </ol></div>
+  <div class="method-box"><strong>Méthode 2 — Calculer un rang</strong>
+    <ol style="margin-top:.4rem">
+      <li>Échelonner par opérations élémentaires sur les lignes (ou sur les colonnes) : le rang est le nombre de pivots.</li>
+      <li>Repérer d'abord les relations évidentes (colonnes proportionnelles, colonne somme d'autres) : chacune fait baisser le rang.</li>
+      <li>Pour un rang dépendant d'un paramètre, discuter quand un pivot s'annule ; le théorème du rang donne ensuite \(\dim \ker\).</li>
+    </ol></div>
+  <div class="method-box"><strong>Méthode 3 — Montrer que deux matrices sont, ou ne sont pas, semblables</strong>
+    <ol style="margin-top:.4rem">
+      <li>Pas semblables : exhiber un invariant différent (rang, trace, déterminant, polynôme caractéristique, rang de \(A - \lambda I_n\)).</li>
+      <li>Semblables : voir \(A\) comme la matrice d'un endomorphisme et construire une base où sa matrice est \(B\) ; ou montrer que les deux sont semblables à une même troisième (par exemple la même matrice diagonale).</li>
+      <li>Retenir qu'une matrice semblable à \(\lambda I_n\) est égale à \(\lambda I_n\).</li>
+    </ol></div>
+  <div class="method-box"><strong>Méthode 4 — Utiliser la trace</strong>
+    <ol style="margin-top:.4rem">
+      <li>Pour une égalité de matrices carrées, prendre la trace des deux membres donne une condition nécessaire, souvent décisive (\(AB - BA = I_n\) est impossible).</li>
+      <li>\(\operatorname{tr}(AB) = \operatorname{tr}(BA)\) : n'utiliser que des permutations circulaires.</li>
+      <li>Trace d'un projecteur = rang ; trace d'un endomorphisme = trace de sa matrice dans n'importe quelle base.</li>
+    </ol></div>
+  <div class="method-box"><strong>Méthode 5 — Calculer par blocs</strong>
+    <ol style="margin-top:.4rem">
+      <li>Vérifier la compatibilité des découpages, puis multiplier les blocs dans l'ordre (ils ne commutent pas).</li>
+      <li>Triangulaire par blocs : \(\det = \det(A)\det(D)\) ; diagonale par blocs : puissances, inverse et polynômes bloc par bloc.</li>
+      <li>Un bloc nul sous la diagonale signale un sous-espace stable, et réciproquement.</li>
+    </ol></div>
+  <div class="method-box"><strong>Méthode 6 — Calculer \(A^n\)</strong>
+    <ol style="margin-top:.4rem">
+      <li>\(A = \lambda I_n + N\) avec \(N\) nilpotente : binôme de Newton, somme finie.</li>
+      <li>Polynôme annulateur \(Q\) connu (en taille 2 : \(X^2 - \operatorname{tr}(A)X + \det A\)) : division euclidienne \(X^n = QS_n + R_n\), puis \(A^n = R_n(A)\), coefficients trouvés aux racines de \(Q\).</li>
+      <li>Base de vecteurs propres connue : \(A = PDP^{-1}\) et \(A^n = PD^nP^{-1}\).</li>
+      <li>Toujours vérifier \(n = 0\) et \(n = 1\).</li>
+    </ol></div>
+  <div class="method-box"><strong>Méthode 7 — Inverser grâce à un polynôme annulateur</strong>
+    <ol style="margin-top:.4rem">
+      <li>Écrire \(c_d A^d + \cdots + c_1 A + c_0 I_n = 0\) avec \(c_0 \neq 0\).</li>
+      <li>Isoler \(I_n\) et factoriser par \(A\) : \(A \times \big(-\tfrac{1}{c_0}(c_d A^{d-1} + \cdots + c_1 I_n)\big) = I_n\).</li>
+      <li>Si \(c_0 = 0\) (0 racine du polynôme annulateur), on ne peut pas conclure ainsi.</li>
+    </ol></div>
+  <div class="method-box"><strong>Pièges</strong><ul style="margin-top:.4rem">
+    <li>Changement de base : \(P^{-1}AP\), pas \(PAP^{-1}\) ; les colonnes de \(P\) sont les nouveaux vecteurs dans l'ancienne base.</li>
+    <li>Même rang ⇒ équivalentes, mais pas semblables ; même trace, même déterminant et même polynôme caractéristique ne suffisent pas non plus.</li>
+    <li>\(\operatorname{tr}(AB) = \operatorname{tr}(BA)\) mais \(AB \neq BA\) en général, et \(\operatorname{tr}(ABC) \neq \operatorname{tr}(BAC)\) en général.</li>
+    <li>Le binôme de Newton exige que les deux matrices commutent.</li>
+  </ul></div>
+</div>
+</template>
+<template class="pan-tpl" data-panneau="mx2-exos">
+<div class="exo-wrapper">
+<div class="exo"><span class="num">EXO 01</span><span class="diff">★ ★ ☆</span>
+  <h3>Rang d'une matrice</h3>
+  <div class="statement">Rang de \(A = \begin{pmatrix} 1 & 2 & 3 \\ 2 & 4 & 6 \\ 1 & 1 & 1\end{pmatrix}\) ?</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution"><h4>Correction</h4>
+  <p>\(L_2 = 2L_1\) : ligne dépendante. Restent \(L_1\) et \(L_3\) non proportionnelles. Rang \(= 2\).</p></div>
+</div>
+<div class="exo"><span class="num">EXO 02</span><span class="diff">★ ★ ☆</span>
+  <h3>Trace et similitude</h3>
+  <div class="statement">Les matrices \(\begin{pmatrix}1&0\\0&2\end{pmatrix}\) et \(\begin{pmatrix}2&5\\0&1\end{pmatrix}\) peuvent-elles être semblables ?</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution"><h4>Correction</h4>
+  <p>Trace \(=3\) pour les deux, déterminant \(=2\) pour les deux, mêmes valeurs propres \(\{1,2\}\). Toutes deux diagonalisables (valeurs propres distinctes) donc semblables à \(\operatorname{diag}(1,2)\) : <strong>oui, elles sont semblables</strong>.</p></div>
+</div>
+<div class="exo"><span class="num">EXO 03</span><span class="diff">★ ★ ★</span>
+  <h3>Puissance via nilpotence</h3>
+  <div class="statement">Soit \(A = \begin{pmatrix} 2 & 1 \\ 0 & 2\end{pmatrix}\). Calculer \(A^n\).</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution"><h4>Correction</h4>
+  <p>\(A = 2I + N\) avec \(N=\begin{pmatrix}0&1\\0&0\end{pmatrix}\), \(N^2=0\). Comme \(I\) et \(N\) commutent, binôme : \(A^n = (2I)^n + n(2I)^{n-1}N = 2^n I + n2^{n-1}N\).</p>
+  <p>Donc \(A^n = \begin{pmatrix} 2^n & n2^{n-1} \\ 0 & 2^n\end{pmatrix}\).</p></div>
+</div>
+<div class="exo"><span class="num">EXO 04</span><span class="diff">★ ★ ☆</span>
+  <h3>Déterminant triangulaire par blocs</h3>
+  <div class="statement">Calculer \(\det M\) pour \(M = \begin{pmatrix} A & B \\ 0 & D\end{pmatrix}\) avec \(A=\begin{pmatrix}1&2\\3&4\end{pmatrix}\), \(D=\begin{pmatrix}5\end{pmatrix}\), \(B\) quelconque.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution"><h4>Correction</h4>
+  <p>\(\det M = \det(A)\det(D) = (1\cdot4-2\cdot3)\times5 = (-2)\times5 = -10\), indépendamment de \(B\).</p></div>
+</div>
+<div class="exo"><span class="num">EXO 05</span><span class="diff">★ ★ ☆</span>
+  <h3>Changer de base pour calculer une puissance</h3>
+  <div class="statement">Soit \(f\) l'endomorphisme de \(\mathbb{R}^2\) de matrice \(A = \begin{pmatrix} 5 & -2 \\ 4 & -1 \end{pmatrix}\) dans la base canonique, \(u_1 = (1, 2)\) et \(u_2 = (1, 1)\). Montrer que \((u_1, u_2)\) est une base, donner la matrice de \(f\) dans cette base, puis calculer \(A^n\).</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution"><h4>Correction</h4>
+  <p>\(u_1\) et \(u_2\) ne sont pas colinéaires : c'est une base de \(\mathbb{R}^2\). \(f(u_1) = (5 - 4,\ 4 - 2) = (1, 2) = u_1\) et \(f(u_2) = (3, 3) = 3u_2\), donc \(D = \operatorname{Mat}_{(u_1, u_2)}(f) = \begin{pmatrix} 1 & 0 \\ 0 & 3 \end{pmatrix}\).</p>
+  <p>Avec \(P = \begin{pmatrix} 1 & 1 \\ 2 & 1 \end{pmatrix}\) (déterminant \(-1\)), \(P^{-1} = \begin{pmatrix} -1 & 1 \\ 2 & -1 \end{pmatrix}\) et \(A = PDP^{-1}\), d'où \(A^n = PD^nP^{-1}\) :</p>
+  <p>\(A^n = \begin{pmatrix} 1 & 3^n \\ 2 & 3^n \end{pmatrix}\begin{pmatrix} -1 & 1 \\ 2 & -1 \end{pmatrix} = \begin{pmatrix} 2\cdot 3^n - 1 & 1 - 3^n \\ 2\cdot 3^n - 2 & 2 - 3^n \end{pmatrix}\). Contrôle : \(n = 1\) redonne \(A\), \(n = 0\) donne \(I_2\).</p></div>
+</div>
+<div class="exo"><span class="num">EXO 06</span><span class="diff">★ ★ ☆</span>
+  <h3>Matrices de rang 1</h3>
+  <div class="statement">Soit \(A \in \mathcal{M}_n(\mathbb{R})\) de rang 1. Montrer qu'il existe deux colonnes non nulles \(X, Y\) telles que \(A = XY^\top\), puis que \(A^2 = \operatorname{tr}(A)\,A\). En déduire \(A^k\) pour \(k \geq 1\), et la nature de \(A\) quand \(\operatorname{tr} A = 1\).</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution"><h4>Correction</h4>
+  <p>L'image est une droite \(\mathbb{R}X\) : chaque colonne s'écrit \(y_jX\), donc \(A = XY^\top\) avec \(Y = (y_j)\), non nulle car \(A \neq 0\). Puis \(A^2 = X(Y^\top X)Y^\top = \operatorname{tr}(A)\,A\), car \(Y^\top X = \sum_i x_iy_i = \sum_i a_{ii}\).</p>
+  <p>Par récurrence, \(A^k = \operatorname{tr}(A)^{k-1}A\) pour \(k \geq 1\). Si \(\operatorname{tr} A = 1\), \(A^2 = A\) : \(A\) est la matrice d'un projecteur, de rang 1, ce qui est cohérent avec « trace d'un projecteur = rang ».</p></div>
+</div>
+<div class="exo"><span class="num">EXO 07</span><span class="diff">★ ★ ★</span>
+  <h3>Mêmes invariants, pas semblables</h3>
+  <div class="statement">Soit \(A = \begin{pmatrix} 1 & 1 & 0 \\ 0 & 1 & 0 \\ 0 & 0 & 2 \end{pmatrix}\) et \(B = \begin{pmatrix} 1 & 0 & 0 \\ 0 & 1 & 1 \\ 0 & 0 & 2 \end{pmatrix}\). Comparer trace, déterminant et polynôme caractéristique, puis montrer que \(A\) et \(B\) ne sont pas semblables.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution"><h4>Correction</h4>
+  <p>Les deux matrices sont triangulaires de diagonale \((1, 1, 2)\) : même trace 4, même déterminant 2, même polynôme caractéristique \((X - 1)^2(X - 2)\).</p>
+  <p>Mais \(A - I_3 = \begin{pmatrix} 0 & 1 & 0 \\ 0 & 0 & 0 \\ 0 & 0 & 1 \end{pmatrix}\) est de rang 2, alors que \(B - I_3 = \begin{pmatrix} 0 & 0 & 0 \\ 0 & 0 & 1 \\ 0 & 0 & 1 \end{pmatrix}\) est de rang 1. Si l'on avait \(B = P^{-1}AP\), on aurait \(B - I_3 = P^{-1}(A - I_3)P\), de même rang que \(A - I_3\) : contradiction.</p></div>
+</div>
+<div class="exo"><span class="num">EXO 08</span><span class="diff">★ ★ ☆</span>
+  <h3>Puissance par polynôme annulateur</h3>
+  <div class="statement">Soit \(A = \begin{pmatrix} 2 & 1 \\ 1 & 2 \end{pmatrix}\). Trouver un polynôme annulateur de degré 2, puis exprimer \(A^n\) en fonction de \(A\) et \(I_2\).</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution"><h4>Correction</h4>
+  <p>\(\operatorname{tr} A = 4\), \(\det A = 3\), donc \(A^2 - 4A + 3I_2 = 0\), de racines 1 et 3. Division euclidienne : \(X^n = (X - 1)(X - 3)S_n + a_nX + b_n\).</p>
+  <p>En 1 : \(1 = a_n + b_n\) ; en 3 : \(3^n = 3a_n + b_n\). D'où \(a_n = \dfrac{3^n - 1}{2}\), \(b_n = \dfrac{3 - 3^n}{2}\) et \(A^n = \dfrac{3^n - 1}{2}A + \dfrac{3 - 3^n}{2}I_2 = \dfrac{1}{2}\begin{pmatrix} 3^n + 1 & 3^n - 1 \\ 3^n - 1 & 3^n + 1 \end{pmatrix}\).</p></div>
+</div>
+<div class="exo"><span class="num">EXO 09</span><span class="diff">★ ★ ★</span>
+  <h3>Une suite récurrente d'ordre 2 par les matrices</h3>
+  <div class="statement">La suite \((u_n)\) vérifie \(u_0 = 0\), \(u_1 = 1\) et \(u_{n+2} = u_{n+1} + 2u_n\). En posant \(X_n = \begin{pmatrix} u_{n+1} \\ u_n \end{pmatrix}\), trouver \(A\) telle que \(X_{n+1} = AX_n\), puis exprimer \(u_n\).</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution"><h4>Correction</h4>
+  <p>\(A = \begin{pmatrix} 1 & 2 \\ 1 & 0 \end{pmatrix}\), de trace 1 et de déterminant \(-2\) : \(A^2 - A - 2I_2 = 0\), de racines 2 et \(-1\). Alors \(A^n = a_nA + b_nI_2\) avec \(2^n = 2a_n + b_n\) et \((-1)^n = -a_n + b_n\), soit \(a_n = \dfrac{2^n - (-1)^n}{3}\).</p>
+  <p>\(X_n = A^nX_0\) avec \(X_0 = \begin{pmatrix} 1 \\ 0 \end{pmatrix}\) : \(AX_0 = \begin{pmatrix} 1 \\ 1 \end{pmatrix}\), donc la seconde coordonnée de \(X_n\) vaut \(a_n\) : \(u_n = \dfrac{2^n - (-1)^n}{3}\). Contrôle : \(u_2 = 1\), \(u_3 = 3\).</p></div>
+</div>
+<div class="exo"><span class="num">EXO 10</span><span class="diff">★ ★ ☆</span>
+  <h3>Inverse de \(I - N\)</h3>
+  <div class="statement">Soit \(N = \begin{pmatrix} 0 & 1 & 2 \\ 0 & 0 & 3 \\ 0 & 0 & 0 \end{pmatrix}\). Calculer \(N^2\) et \(N^3\), puis l'inverse de \(I_3 - N\) sans pivot de Gauss.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution"><h4>Correction</h4>
+  <p>\(N^2 = \begin{pmatrix} 0 & 0 & 3 \\ 0 & 0 & 0 \\ 0 & 0 & 0 \end{pmatrix}\) et \(N^3 = 0\) (matrice strictement triangulaire). Comme \((I_3 - N)(I_3 + N + N^2) = I_3 - N^3 = I_3\) :</p>
+  <p>\((I_3 - N)^{-1} = I_3 + N + N^2 = \begin{pmatrix} 1 & 1 & 5 \\ 0 & 1 & 3 \\ 0 & 0 & 1 \end{pmatrix}\).</p></div>
+</div>
+</div>
+</template>

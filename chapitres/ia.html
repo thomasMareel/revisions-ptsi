@@ -1,0 +1,953 @@
+<!-- Chapitre « Intelligence artificielle — apprentissage automatique » (ia) : contenu des onglets Cours, Méthodes et Exercices, chargé à l'ouverture du chapitre.
+     On l'édite ici, puis : node tools/chapitres.js (docs/chargement-chapitres.md). -->
+<template class="pan-tpl" data-panneau="ia-cours">
+
+<div class="course-section">
+  <div class="sec-num">AU PROGRAMME · PT</div>
+  <h2>Ce que le programme officiel demande</h2>
+  <div class="intro">Compétences A3 « Analyser les principes d'intelligence artificielle » (S3), C1 « Choisir une démarche de résolution d'un problème d'ingénierie numérique ou d'intelligence artificielle » (S3), C3 « Résoudre un problème en utilisant une solution d'intelligence artificielle » (S3), puis A4 « Analyser les performances et les écarts » et C3 « Mener une simulation numérique » pour l'évaluation et le choix des paramètres de classification (S4). Toutes sont partagées avec l'informatique : <strong>les algorithmes sont mis en œuvre avec des bibliothèques préimplémentées</strong> ; il s'agit d'en comprendre le principe, de préparer les données, de choisir et de régler le modèle, puis d'interpréter les résultats. La notion de modèle de comportement vient de « Modélisation multiphysique ».</div>
+  <div class="reveal" onclick="this.classList.toggle('open')">
+    <span class="label">Programme officiel</span>
+    <span class="prompt">Les capacités exigibles, dans l'ordre du chapitre</span>
+    <div class="content">
+      <ul>
+        <li><strong>Données, caractéristiques, étiquettes</strong> ; phases d'apprentissage et d'inférence (§1).</li>
+        <li><strong>Régression et classification ; apprentissages supervisé et non supervisé</strong> ; choix d'un algorithme (réseau de neurones, \(k\) plus proches voisins, régression linéaire multiple) et décomposition d'un problème en sous-problèmes (§2).</li>
+        <li><strong>Choix et préparation des données d'apprentissage</strong> : nettoyage, mise à l'échelle, séparation entraînement / test ; sur- et sous-apprentissage (§3).</li>
+        <li><strong>Évaluer un modèle</strong> (S4) : erreur quadratique, coefficient de détermination ; matrice de confusion (tableau de contingence), sensibilité et spécificité d'un test ; choix des paramètres de classification (seuil) (§4).</li>
+        <li><strong>Modèle linéaire monovariable ou multivariable</strong> ; régression linéaire multiple (§5).</li>
+        <li><strong>Principe de l'apprentissage itératif</strong> : descente de gradient (§6), pour comprendre ce que fait une bibliothèque.</li>
+        <li><strong>\(k\) plus proches voisins</strong> : principe, choix de \(k\) (§7).</li>
+        <li><strong>Réseaux de neurones</strong> : couches d'entrée, cachées et de sortie, neurones, poids, biais, fonction d'activation (§8) ; apprentissage et inférence d'un réseau avec une bibliothèque (§9).</li>
+      </ul>
+      <p>Hors programme (regroupé en fin de chapitre) : apprentissage par renforcement ; variantes stochastique et par mini-lots de la descente de gradient ; régularisation (Ridge, LASSO) ; théorème d'approximation universelle ; formules matricielles de la rétropropagation. L'analyse en composantes principales n'est citée que comme exemple ; le partitionnement par \(k\)-moyennes relève du programme d'informatique.</p>
+    </div>
+  </div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§1 · VOCABULAIRE ET DÉMARCHE</div>
+  <h2>Apprendre un modèle à partir de données</h2>
+  <div class="intro">Jusqu'ici, un modèle de SI se construisait à partir des lois de la physique (PFD, lois de Kirchhoff, fonctions de transfert…) : c'est un <strong>modèle de connaissance</strong>. Quand ces lois sont inconnues, trop coûteuses à écrire ou trop imprécises (usure, perception d'images, comportement humain), on peut construire un <strong>modèle de comportement</strong> en ajustant automatiquement une fonction sur des exemples mesurés. C'est l'objet de l'<strong>apprentissage automatique</strong> (<em>machine learning</em>), branche de l'intelligence artificielle au programme de PT.</div>
+
+  <h3>Données, caractéristiques, étiquettes</h3>
+  <div class="def-box">
+    <strong>Jeu de données.</strong> Ensemble de \(N\) exemples (on dit aussi individus ou observations). L'exemple n° \(i\) est décrit par :
+    <ul style="margin:.4rem 0">
+      <li>un vecteur de <strong>caractéristiques</strong> (<em>features</em>, variables explicatives) \(x_i = (x_{i1}, x_{i2}, \dots, x_{in}) \in \mathbb{R}^n\) : les grandeurs d'entrée mesurées ;</li>
+      <li>éventuellement une <strong>étiquette</strong> (<em>label</em>, cible) \(y_i\) : la sortie que l'on souhaite savoir prédire.</li>
+    </ul>
+    On range les caractéristiques dans une matrice \(X\) à \(N\) lignes (une par exemple) et \(n\) colonnes (une par caractéristique), et les étiquettes dans un vecteur \(y\) de taille \(N\).
+  </div>
+  <div class="def-box">
+    <strong>Modèle de prédiction.</strong> Fonction \(f_w\) dépendant d'un vecteur de <strong>paramètres</strong> \(w\) (poids, biais) qui associe à une entrée \(x\) une prédiction \(\hat{y} = f_w(x)\). Le chapeau (\(\hat{y}\), \(\hat{w}\)) sert à distinguer ce que <em>calcule</em> le modèle de ce que l'on a <em>mesuré</em> (\(y\)).
+    <ul style="margin:.4rem 0">
+      <li><strong>Phase d'apprentissage</strong> (entraînement) : on choisit \(w\) de façon à minimiser une <strong>fonction de perte</strong> (ou coût) \(J(w)\) mesurant l'écart entre prédictions et étiquettes sur les données d'entraînement.</li>
+      <li><strong>Phase d'inférence</strong> : le modèle, désormais figé, est utilisé pour prédire la sortie d'une donnée <em>nouvelle</em>, jamais vue.</li>
+    </ul>
+  </div>
+
+  <h3>La chaîne de traitement</h3>
+  <p>Tout problème d'apprentissage suit la même démarche, qu'on retrouve dans les sujets de concours :</p>
+  <ol style="margin:.4rem 0 .8rem 1.2rem">
+    <li><strong>Collecte</strong> des données brutes (capteurs, bases de mesures, images…).</li>
+    <li><strong>Prétraitement</strong> : nettoyage, sélection des caractéristiques utiles, mise à l'échelle (§3).</li>
+    <li><strong>Séparation</strong> aléatoire en données d'entraînement et données de test.</li>
+    <li><strong>Apprentissage</strong> : choix d'un algorithme, calcul des paramètres sur l'entraînement.</li>
+    <li><strong>Évaluation</strong> sur le test avec des indicateurs adaptés (§4).</li>
+    <li><strong>Inférence</strong> : déploiement du modèle (souvent embarqué dans le système).</li>
+  </ol>
+  <div class="notice"><strong>Exemple fil rouge.</strong> Sur un banc de convoyage, on relève pour chaque moteur la température du stator, le courant absorbé et le niveau vibratoire (caractéristiques, \(n = 3\)). L'étiquette peut être « panne dans la semaine : oui / non » ou « usure du roulement en µm ». Un modèle appris sur l'historique permet ensuite de planifier la maintenance (<strong>maintenance prédictive</strong>).</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§2 · FAMILLES D'APPRENTISSAGE</div>
+  <h2>Apprentissage supervisé ou non supervisé</h2>
+  <div class="intro">La nature des données disponibles — étiquetées ou non — et celle de la sortie recherchée — continue ou catégorielle — déterminent la famille d'algorithmes à employer. C'est la première question à se poser face à un problème.</div>
+
+  <h3>Apprentissage supervisé</h3>
+  <div class="def-box">
+    Chaque exemple d'entraînement est fourni <strong>avec sa sortie attendue</strong> : on dispose des couples \((x_i, y_i)\), et le modèle doit apprendre à passer de l'un à l'autre. Selon la nature de \(y\) :
+    <ul style="margin:.4rem 0">
+      <li>la <strong>régression</strong> : la sortie \(y\) est une grandeur <strong>continue</strong> (effort, température, durée de vie, position…) ;</li>
+      <li>la <strong>classification</strong> : la sortie \(y\) appartient à un ensemble <strong>fini</strong> de catégories (classes). Classification <em>binaire</em> (2 classes : conforme / défectueux) ou <em>multiclasse</em> (type de défaut parmi 5, chiffre manuscrit parmi 10…).</li>
+    </ul>
+    L'<strong>apprentissage profond</strong> (<em>deep learning</em>) désigne l'apprentissage, le plus souvent supervisé, de réseaux de neurones comportant de nombreuses couches (§8).
+  </div>
+
+  <h3>Apprentissage non supervisé</h3>
+  <div class="def-box">
+    On ne connaît que les entrées \(x_i\) : aucune sortie n'accompagne les exemples, donc rien à imiter. L'algorithme doit dégager par lui-même une organisation du nuage de points. Deux usages fréquents :
+    <ul style="margin:.4rem 0">
+      <li><strong>partitionnement</strong> (<em>clustering</em>) : former des groupes d'exemples voisins dans l'espace des caractéristiques (ex. : algorithme des \(k\)-moyennes, vu en informatique) ;</li>
+      <li><strong>réduction de dimension</strong> : remplacer les \(n\) caractéristiques par quelques combinaisons qui conservent l'essentiel de la dispersion (ex. : analyse en composantes principales, hors programme), pour tracer les données en 2D ou alléger un traitement ultérieur.</li>
+    </ul>
+  </div>
+
+  <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:.82rem;margin:.6rem 0">
+    <tr style="background:var(--paper-dark)"><th style="padding:.35rem;border:1px solid var(--grid)">Famille</th><th style="padding:.35rem;border:1px solid var(--grid)">Données</th><th style="padding:.35rem;border:1px solid var(--grid)">But</th><th style="padding:.35rem;border:1px solid var(--grid)">Exemple en SI</th></tr>
+    <tr><td style="padding:.35rem;border:1px solid var(--grid)">Supervisé — régression</td><td style="padding:.35rem;border:1px solid var(--grid)">\((x_i, y_i)\), \(y_i\) réel</td><td style="padding:.35rem;border:1px solid var(--grid)">prédire une valeur</td><td style="padding:.35rem;border:1px solid var(--grid)">estimer la température d'un moteur dans 10 min</td></tr>
+    <tr><td style="padding:.35rem;border:1px solid var(--grid)">Supervisé — classification</td><td style="padding:.35rem;border:1px solid var(--grid)">\((x_i, y_i)\), \(y_i\) catégorie</td><td style="padding:.35rem;border:1px solid var(--grid)">attribuer une classe</td><td style="padding:.35rem;border:1px solid var(--grid)">trier des soudures conformes / non conformes</td></tr>
+    <tr><td style="padding:.35rem;border:1px solid var(--grid)">Non supervisé</td><td style="padding:.35rem;border:1px solid var(--grid)">\(x_i\) seuls</td><td style="padding:.35rem;border:1px solid var(--grid)">structurer, résumer</td><td style="padding:.35rem;border:1px solid var(--grid)">regrouper des profils de consommation électrique</td></tr>
+    <tr><td style="padding:.35rem;border:1px solid var(--grid)">Renforcement (hors programme)</td><td style="padding:.35rem;border:1px solid var(--grid)">états, actions, récompenses</td><td style="padding:.35rem;border:1px solid var(--grid)">apprendre une stratégie</td><td style="padding:.35rem;border:1px solid var(--grid)">apprendre à un drone à se stabiliser</td></tr>
+  </table></div>
+  <p>Les trois algorithmes détaillés plus loin (régression linéaire, \(k\) plus proches voisins, réseaux de neurones) relèvent tous de l'apprentissage <strong>supervisé</strong>.</p>
+
+  <h3>Choisir un algorithme</h3>
+  <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:.82rem;margin:.6rem 0">
+    <tr style="background:var(--paper-dark)"><th style="padding:.35rem;border:1px solid var(--grid)">Algorithme</th><th style="padding:.35rem;border:1px solid var(--grid)">Quand le choisir</th><th style="padding:.35rem;border:1px solid var(--grid)">Points faibles</th></tr>
+    <tr><td style="padding:.35rem;border:1px solid var(--grid)">Régression linéaire multiple (§5)</td><td style="padding:.35rem;border:1px solid var(--grid)">sortie continue ; relation que la physique dit linéaire en des caractéristiques bien choisies (\(v^2\), \(N^3\)…) ; besoin d'un modèle interprétable, calculé d'un coup</td><td style="padding:.35rem;border:1px solid var(--grid)">ne capte que ce que les caractéristiques choisies permettent</td></tr>
+    <tr><td style="padding:.35rem;border:1px solid var(--grid)">\(k\) plus proches voisins (§7)</td><td style="padding:.35rem;border:1px solid var(--grid)">peu de caractéristiques, données assez nombreuses et représentatives ; classification ou régression sans hypothèse sur la forme de la relation</td><td style="padding:.35rem;border:1px solid var(--grid)">inférence lente sur un grand jeu (tout est conservé) ; sensible à l'échelle des caractéristiques</td></tr>
+    <tr><td style="padding:.35rem;border:1px solid var(--grid)">Réseau de neurones (§8, §9)</td><td style="padding:.35rem;border:1px solid var(--grid)">relation fortement non linéaire, nombreuses caractéristiques (signaux, images), beaucoup de données ; inférence rapide une fois appris</td><td style="padding:.35rem;border:1px solid var(--grid)">beaucoup de données et de réglages ; modèle peu interprétable</td></tr>
+  </table></div>
+  <div class="prop-box"><strong>Démarche.</strong> Un problème complexe se découpe en sous-problèmes simples, chacun confié à l'outil adapté : par exemple, extraire d'un signal de vibration quelques caractéristiques (moyenne, écart type, amplitude à la fréquence de rotation) par un calcul classique, puis confier à un classifieur la décision « roulement sain ou usé ». On commence par le modèle le plus simple (régression linéaire, \(k\)-NN), qui sert de référence ; un réseau de neurones ne se justifie que s'il fait nettement mieux sur les données de test.</div>
+
+  <div class="reveal" onclick="this.classList.toggle('open')">
+    <span class="label">Application</span>
+    <span class="prompt">Un bras robotisé doit reconnaître, à partir de 6 mesures d'effort, si la pièce saisie est « bien prise », « mal centrée » ou « absente ». Type de problème ?</span>
+    <div class="content"><p>On dispose d'essais où l'opérateur a noté l'état réel : données <strong>étiquetées</strong> → apprentissage <strong>supervisé</strong>. La sortie prend 3 valeurs possibles → <strong>classification multiclasse</strong> à \(n = 6\) caractéristiques. Si l'on voulait prédire l'excentrement de la pièce en mm, ce serait une régression.</p></div>
+  </div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§3 · PRÉTRAITEMENT ET GÉNÉRALISATION</div>
+  <h2>Préparer les données, éviter le surapprentissage</h2>
+  <div class="intro">Un algorithme n'est jamais meilleur que les données qu'on lui fournit. Le prétraitement — souvent l'essentiel du travail réel — conditionne la qualité du modèle, et la séparation entraînement / test permet de vérifier honnêtement qu'il sait <strong>généraliser</strong> à des cas nouveaux.</div>
+
+  <h3>Nettoyage</h3>
+  <ul style="margin:.4rem 0 .8rem 1.2rem">
+    <li><strong>Valeurs manquantes</strong> (capteur déconnecté) : supprimer l'exemple ou remplacer la valeur (moyenne de la colonne, interpolation temporelle).</li>
+    <li><strong>Données aberrantes</strong> (<em>outliers</em>) : mesures incohérentes physiquement (température négative d'un moteur en marche, saut de 10⁴ sur un capteur). On les repère par connaissance du système ou par un critère statistique (écart à la moyenne supérieur à \(3\sigma\), par exemple), puis on les corrige ou on les retire. Les moindres carrés y sont très sensibles : une seule valeur aberrante peut faire basculer une droite de régression.</li>
+    <li><strong>Sélection des caractéristiques</strong> : écarter les variables sans lien avec la sortie ou redondantes (deux capteurs mesurant la même grandeur).</li>
+  </ul>
+
+  <h3>Mise à l'échelle</h3>
+  <div class="def-box">
+    Pour une caractéristique (une colonne de \(X\)) de valeurs \(x\) :
+    <ul style="margin:.4rem 0">
+      <li><strong>normalisation</strong> (min-max) : la plus petite valeur devient 0, la plus grande 1 ;</li>
+      <li><strong>standardisation</strong> : on centre puis on réduit la colonne (variable « centrée réduite » : moyenne 0, écart type 1), avec \(\mu\) et \(\sigma\) la moyenne et l'écart type de la colonne.</li>
+    </ul>
+    <div class="formula">$$x' = \frac{x - x_{\min}}{x_{\max} - x_{\min}} \qquad\qquad x' = \frac{x - \mu}{\sigma}$$</div>
+  </div>
+  <div class="prop-box">
+    <strong>Pourquoi ?</strong> Les caractéristiques n'ont ni les mêmes unités ni les mêmes ordres de grandeur (vitesse en tr/min ≈ 10³, température ≈ 10², courant ≈ 1 A). Sans mise à l'échelle :
+    <ul style="margin:.4rem 0">
+      <li>une <strong>distance</strong> (k plus proches voisins) est dominée par la caractéristique de plus grande amplitude, qui écrase les autres ;</li>
+      <li>la <strong>descente de gradient</strong> converge mal : les poids n'évoluent pas au même rythme (§6).</li>
+    </ul>
+    La solution analytique des moindres carrés, elle, n'en a pas besoin (les poids s'adaptent aux unités), mais la mise à l'échelle rend les poids comparables entre eux.
+  </div>
+  <div class="notice"><strong>Piège — fuite d'information.</strong> Les grandeurs \(x_{\min}\), \(x_{\max}\), \(\mu\), \(\sigma\) se calculent sur les <strong>seules données d'entraînement</strong>, puis on applique <em>exactement la même transformation</em> aux données de test et aux données nouvelles en inférence. Les calculer sur tout le jeu reviendrait à laisser le test influencer l'apprentissage.</div>
+
+  <h3>Séparation entraînement / test</h3>
+  <div class="def-box">
+    Après un <strong>mélange aléatoire</strong> des exemples (pour éviter qu'un ordre chronologique ou par catégorie biaise le découpage), on sépare le jeu en :
+    <ul style="margin:.4rem 0">
+      <li><strong>données d'entraînement</strong> (environ 70 % à 80 %) : servent à calculer les paramètres ;</li>
+      <li><strong>données de test</strong> (environ 30 % à 20 %) : jamais vues pendant l'apprentissage, elles mesurent la performance <em>en généralisation</em>.</li>
+    </ul>
+    Pour régler les <strong>hyperparamètres</strong> (grandeurs fixées avant l'apprentissage : nombre de voisins \(k\), taux d'apprentissage \(\eta\), coefficient de régularisation \(\lambda\), nombre de couches…), on réserve en plus un jeu de <strong>validation</strong>, ou on pratique la <strong>validation croisée</strong> (découpage en \(K\) blocs servant tour à tour de validation). Le test ne sert qu'une fois, à la fin.
+  </div>
+
+  <h3>Surapprentissage et sous-apprentissage</h3>
+  <div class="def-box">
+    <ul style="margin:.4rem 0">
+      <li><strong>Sous-apprentissage</strong> : modèle trop simple pour représenter le phénomène (droite pour une relation quadratique). Erreur <em>élevée</em> sur l'entraînement <em>et</em> sur le test.</li>
+      <li><strong>Surapprentissage</strong> (<em>overfitting</em>) : modèle trop riche qui « apprend par cœur » les données d'entraînement, bruit de mesure compris. Erreur <em>très faible</em> sur l'entraînement mais <em>nettement plus grande</em> sur le test : il généralise mal.</li>
+    </ul>
+    Seule compte l'erreur commise sur des cas que le modèle n'a jamais vus : une erreur d'entraînement quasi nulle est plutôt un signal d'alerte qu'un gage de qualité.
+  </div>
+
+<figure class="schema">
+<svg viewBox="0 0 320 212" role="img" aria-label="Erreurs d'entraînement et de test en fonction de la complexité du modèle">
+  <line x1="40" y1="175" x2="305" y2="175" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+  <line x1="40" y1="175" x2="40" y2="15" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+  <path d="M50,40 C110,105 180,138 300,152" class="sk-accent2"/>
+  <path d="M50,32 C95,95 135,112 170,110 C215,108 260,88 300,52" class="sk-accent"/>
+  <line x1="168" y1="110" x2="168" y2="175" class="sk-dash"/>
+  <circle cx="168" cy="110" r="2.6" class="fl-accent"/>
+  <text x="34" y="20" class="lab-muted" text-anchor="end">erreur</text>
+  <text x="305" y="204" class="lab-muted" text-anchor="end">complexité du modèle</text>
+  <text x="168" y="189" class="lab-muted" text-anchor="middle">optimum</text>
+  <text x="286" y="48" class="lab-accent" text-anchor="end">test</text>
+  <text x="298" y="168" class="lab-accent2" text-anchor="end">entraînement</text>
+  <text x="62" y="16" class="lab-muted">sous-apprentissage</text>
+  <text x="255" y="16" class="lab-muted" text-anchor="middle">surapprentissage</text>
+</svg>
+<figcaption>Quand la complexité augmente (degré du polynôme, nombre de neurones, \(1/k\) pour les k plus proches voisins), l'erreur d'entraînement décroît (jusqu'à s'annuler pour un modèle capable d'interpoler toutes les données) ; l'erreur de test passe par un <strong>minimum</strong>, puis remonte : c'est le surapprentissage.</figcaption>
+</figure>
+
+  <div class="prop-box">
+    <strong>Remèdes au surapprentissage :</strong> davantage de données, modèle plus simple (moins de caractéristiques, moins de neurones, \(k\) plus grand), <strong>régularisation</strong> (hors programme, présentée en fin de chapitre), arrêt précoce de l'apprentissage quand l'erreur de validation remonte.<br>
+    <strong>Remèdes au sous-apprentissage :</strong> modèle plus riche, caractéristiques supplémentaires ou transformées (\(x^2\), \(\ln x\)…), régularisation moins forte.
+  </div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§4 · ÉVALUER UN MODÈLE</div>
+  <h2>Indicateurs de qualité en régression et en classification</h2>
+  <div class="intro">Un modèle s'évalue toujours sur les données de <strong>test</strong>, avec des indicateurs adaptés au type de problème et au cahier des charges. Un seul nombre ne suffit en général pas : il faut savoir lire plusieurs critères et vérifier la cohérence physique des prédictions.</div>
+
+  <h3>Régression</h3>
+  <div class="def-box">
+    Sur \(N\) données de test de valeurs réelles \(y_i\), de prédictions \(\hat{y}_i\) et de moyenne \(\bar{y} = \frac{1}{N}\sum y_i\) :
+    <div class="formula">$$\mathrm{MSE} = \frac{1}{N}\sum_{i=1}^{N}\left(y_i - \hat{y}_i\right)^2 \qquad \mathrm{RMSE} = \sqrt{\mathrm{MSE}}$$</div>
+    <div class="formula">$$R^2 = 1 - \frac{\displaystyle\sum_{i=1}^{N}\left(y_i - \hat{y}_i\right)^2}{\displaystyle\sum_{i=1}^{N}\left(y_i - \bar{y}\right)^2}$$</div>
+    MSE : erreur quadratique moyenne (<em>mean squared error</em>) ; RMSE : sa racine, dans l'<strong>unité de la grandeur prédite</strong> ; \(R^2\) : coefficient de détermination.
+  </div>
+  <div class="prop-box">
+    <strong>Lecture.</strong>
+    <ul style="margin:.4rem 0">
+      <li>Une RMSE isolée ne veut rien dire : on la rapporte à la <strong>dispersion des valeurs</strong> (le modèle constant \(\hat{y} = \bar{y}\) a pour RMSE l'écart type des \(y_i\), c'est la référence à battre) et à la <strong>tolérance du cahier des charges</strong> sur la grandeur prédite.</li>
+      <li>\(R^2 \leq 1\), avec \(R^2 = 1\) pour une prédiction parfaite. \(R^2 = 0\) : le modèle ne fait pas mieux que prédire constamment la moyenne \(\bar{y}\). Sur les données d'entraînement d'une régression linéaire avec biais, \(0 \leq R^2 \leq 1\) ; sur le test, \(R^2\) peut devenir <strong>négatif</strong> si le modèle est pire que la moyenne (surapprentissage sévère).</li>
+      <li>Tracer \(\hat{y}\) en fonction de \(y\) (points proches de la première bissectrice) et les résidus \(y_i - \hat{y}_i\) (qui ne doivent montrer aucune tendance) complète utilement ces nombres.</li>
+    </ul>
+  </div>
+
+  <h3>Classification : matrice de confusion</h3>
+  <div class="def-box">
+    La <strong>matrice de confusion</strong> compte, pour chaque couple (classe réelle, classe prédite), le nombre d'exemples de test concernés. Sa diagonale contient les exemples bien classés. En classification binaire, on choisit une classe « positive » (celle que l'on cherche à détecter : défaut, panne, malade…) :
+    <div style="overflow-x:auto"><table style="border-collapse:collapse;font-size:.85rem;margin:.6rem auto;text-align:center">
+      <tr style="background:var(--paper-dark)"><th style="padding:.35rem .6rem;border:1px solid var(--grid)"></th><th style="padding:.35rem .6rem;border:1px solid var(--grid)">prédit positif</th><th style="padding:.35rem .6rem;border:1px solid var(--grid)">prédit négatif</th></tr>
+      <tr><th style="padding:.35rem .6rem;border:1px solid var(--grid);background:var(--paper-dark)">réel positif</th><td style="padding:.35rem .6rem;border:1px solid var(--grid)"><strong>VP</strong> (vrais positifs)</td><td style="padding:.35rem .6rem;border:1px solid var(--grid)"><strong>FN</strong> (faux négatifs)</td></tr>
+      <tr><th style="padding:.35rem .6rem;border:1px solid var(--grid);background:var(--paper-dark)">réel négatif</th><td style="padding:.35rem .6rem;border:1px solid var(--grid)"><strong>FP</strong> (faux positifs)</td><td style="padding:.35rem .6rem;border:1px solid var(--grid)"><strong>VN</strong> (vrais négatifs)</td></tr>
+    </table></div>
+  </div>
+  <div class="def-box">
+    <strong>Indicateurs</strong> (tous entre 0 et 1, idéalement proches de 1) :
+    <div class="formula">$$\text{exactitude} = \frac{VP + VN}{VP + VN + FP + FN} \qquad \text{précision} = \frac{VP}{VP + FP}$$</div>
+    <div class="formula">$$\text{rappel} = \frac{VP}{VP + FN} \qquad \text{spécificité} = \frac{VN}{VN + FP}$$</div>
+    <ul style="margin:.4rem 0">
+      <li><strong>Exactitude</strong> (<em>accuracy</em>) : proportion de bonnes prédictions, toutes classes confondues. Son complément à 1 est le taux d'erreur.</li>
+      <li><strong>Précision</strong> (<em>precision</em>) : parmi les exemples annoncés positifs, proportion de vrais positifs. « Quand le modèle sonne l'alarme, a-t-il raison ? »</li>
+      <li><strong>Rappel</strong> ou <strong>sensibilité</strong> (<em>recall</em>) : parmi les positifs réels, proportion détectée. « Le modèle rate-t-il des défauts ? »</li>
+      <li><strong>Spécificité</strong> : parmi les négatifs réels, proportion reconnue comme telle (c'est le rappel de la classe négative).</li>
+    </ul>
+    En multiclasse, l'exactitude est la somme de la diagonale divisée par le total ; précision et rappel se calculent classe par classe (colonne et ligne de la classe).
+  </div>
+  <div class="notice"><strong>Pièges.</strong> (1) Vocabulaire : certains énoncés et ouvrages appellent « précision » (ou « précision globale ») ce qui est ici l'exactitude, et « sensibilité » le rappel — toujours relire la définition donnée. (2) Convention de la matrice : scikit-learn place la classe <em>réelle</em> en ligne et la classe <em>prédite</em> en colonne, dans l'ordre croissant des étiquettes ; avec 0 = négatif et 1 = positif, il affiche donc \(\begin{pmatrix} VN &amp; FP \\ FN &amp; VP \end{pmatrix}\). (3) <strong>Classes déséquilibrées</strong> : si 2 % des pièces sont défectueuses, un « modèle » répondant toujours « conforme » obtient 98 % d'exactitude… et un rappel nul. L'exactitude d'un classifieur se compare donc toujours à la proportion de la classe majoritaire, et c'est le couple rappel / précision (ou rappel / spécificité) qui tranche.</div>
+  <div class="prop-box">
+    <strong>Compromis précision / rappel.</strong> Beaucoup de classifieurs fournissent un score (une probabilité) comparé à un <strong>seuil</strong>. Abaisser le seuil fait déclarer plus d'exemples positifs : le rappel ne peut qu'augmenter, la spécificité ne peut que diminuer, et la précision baisse en général (sans être forcément monotone). Le seuil se règle selon le coût relatif d'un faux négatif (défaut non détecté, panne non anticipée) et d'un faux positif (pièce bonne rebutée, intervention inutile).
+  </div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§5 · RÉGRESSION LINÉAIRE</div>
+  <h2>Modèle linéaire et moindres carrés</h2>
+  <div class="intro">C'est le modèle de régression le plus simple et le plus utilisé : la sortie prédite est une combinaison affine des caractéristiques. Ses paramètres optimaux s'obtiennent même par une formule explicite, ce qui en fait la référence à laquelle comparer des modèles plus élaborés.</div>
+
+  <h3>Le modèle</h3>
+  <div class="def-box">
+    Pour une donnée \(x = (x_1, \dots, x_n)\), le modèle linéaire multiple prédit
+    <div class="formula">$$\hat{y} = w_0 + w_1 x_1 + w_2 x_2 + \cdots + w_n x_n$$</div>
+    où \(w_1, \dots, w_n\) sont les <strong>poids</strong> et \(w_0\) le <strong>biais</strong> (ordonnée à l'origine). En ajoutant une caractéristique constante égale à 1, on écrit \(\hat{y} = \tilde{x}^{\mathsf T} w\) avec \(\tilde{x} = (1, x_1, \dots, x_n)\) et \(w = (w_0, \dots, w_n)\). Pour les \(N\) exemples à la fois :
+    <div class="formula">$$\hat{y} = X w \quad\text{avec}\quad X = \begin{pmatrix} 1 &amp; x_{11} &amp; \cdots &amp; x_{1n} \\ \vdots &amp; \vdots &amp; &amp; \vdots \\ 1 &amp; x_{N1} &amp; \cdots &amp; x_{Nn} \end{pmatrix} \in \mathcal{M}_{N,\,n+1}(\mathbb{R})$$</div>
+    Grâce à sa première colonne remplie de 1, cette matrice dite « augmentée » traite le biais \(w_0\) comme un poids ordinaire : un seul vecteur \(w\) de taille \(n+1\) à déterminer.
+  </div>
+  <div class="prop-box">
+    Le modèle doit être linéaire <strong>en les paramètres</strong> \(w\), pas forcément en les grandeurs physiques : on peut prendre comme caractéristiques \(v^2\), \(v^3\), \(\sin\theta\), \(\ln I\)… (régression polynomiale, par exemple). Le choix de ces caractéristiques est souvent guidé par la physique du système.
+  </div>
+
+  <h3>Moindres carrés : solution analytique</h3>
+  <div class="def-box">
+    On choisit \(w\) minimisant la somme des carrés des résidus \(\varepsilon_i = y_i - \hat{y}_i\) :
+    <div class="formula">$$J(w) = \sum_{i=1}^{N}\left(y_i - \tilde{x}_i^{\mathsf T} w\right)^2 = \lVert y - Xw \rVert^2$$</div>
+    Si \(X^{\mathsf T}X\) est inversible (colonnes de \(X\) linéairement indépendantes, ce qui impose \(N \geq n+1\)), le minimum est atteint en un unique point :
+    <div class="formula">$$\hat{w} = \left(X^{\mathsf T}X\right)^{-1} X^{\mathsf T} y$$</div>
+  </div>
+  <div class="reveal" onclick="this.classList.toggle('open')">
+    <span class="label">Démonstration résumée</span>
+    <span class="prompt">Pourquoi \(\hat{w}\) annule-t-il le gradient, et pourquoi est-ce un minimum global ?</span>
+    <div class="content">
+      <p>On développe : \(J(w) = y^{\mathsf T}y - 2\,w^{\mathsf T}X^{\mathsf T}y + w^{\mathsf T}X^{\mathsf T}X\,w\). Son gradient vaut</p>
+      <div class="formula">$$\nabla J(w) = -2\,X^{\mathsf T}(y - Xw)$$</div>
+      <p>Il s'annule si et seulement si \(X^{\mathsf T}X\,w = X^{\mathsf T}y\) (<strong>équations normales</strong>), d'où \(\hat{w}\) quand \(X^{\mathsf T}X\) est inversible. Pour tout \(h\), \(J(\hat{w}+h) = J(\hat{w}) + \lVert Xh \rVert^2 \geq J(\hat{w})\) (le terme croisé est nul grâce aux équations normales) : c'est un minimum global, strict si \(X\) est de rang \(n+1\).</p>
+      <p>Interprétation géométrique : \(X\hat{w}\) est le projeté orthogonal de \(y\) sur l'image de \(X\), et le vecteur des résidus est orthogonal à chaque colonne de \(X\). La colonne de 1 donne en particulier \(\sum_i \varepsilon_i = 0\).</p>
+    </div>
+  </div>
+
+  <h3>Cas d'une seule caractéristique</h3>
+  <div class="prop-box">
+    Pour \(\hat{y} = w_0 + w_1 x\), les équations normales donnent la droite des moindres carrés :
+    <div class="formula">$$\hat{w}_1 = \frac{\sum_{i}(x_i - \bar{x})(y_i - \bar{y})}{\sum_{i}(x_i - \bar{x})^2} = \frac{\operatorname{cov}(x, y)}{\operatorname{var}(x)}$$</div>
+    <div class="formula">$$\hat{w}_0 = \bar{y} - \hat{w}_1\,\bar{x}$$</div>
+    La droite passe par le point moyen \((\bar{x}, \bar{y})\).
+  </div>
+
+  <h3>Limites</h3>
+  <ul style="margin:.4rem 0 .8rem 1.2rem">
+    <li>Le calcul (formation de \(X^{\mathsf T}X\) puis résolution d'un système \((n+1)\times(n+1)\)) devient coûteux pour \(n\) et \(N\) très grands : on lui préfère alors la <strong>descente de gradient</strong> (§6).</li>
+    <li>Si des caractéristiques sont presque colinéaires, \(X^{\mathsf T}X\) est mal conditionnée et les poids deviennent instables : on retire une des caractéristiques redondantes, ou l'on régularise (fin de chapitre, hors programme).</li>
+    <li>Sensibilité aux données aberrantes (le carré amplifie les grands écarts).</li>
+  </ul>
+
+  <h3>Mise en œuvre Python</h3>
+  <p>Puissance absorbée par un ventilateur mesurée à cinq vitesses (données inventées). La physique des turbomachines suggère \(P \approx w_0 + w_1 N^3\) : on prend donc \((N/1000)^3\) comme caractéristique.</p>
+<pre class="codeblock"><span class="kw">import</span> numpy <span class="kw">as</span> np
+N = np.array([500, 1000, 1500, 2000, 2500])          <span class="cmt"># vitesse (tr/min)</span>
+P = np.array([3.1, 12.4, 37.0, 86.9, 168.5])          <span class="cmt"># puissance mesurée (W)</span>
+X = np.column_stack([np.ones(len(N)), (N/1000)**3])   <span class="cmt"># matrice augmentée</span>
+w = np.linalg.solve(X.T @ X, X.T @ P)                 <span class="cmt"># équations normales</span>
+P_pred = X @ w
+R2 = 1 - ((P - P_pred)**2).sum() / ((P - P.mean())**2).sum()
+print(w, R2)                                          <span class="cmt"># ≈ [1.51  10.68]  0.99998</span></pre>
+  <div class="notice"><strong>Vérifier la cohérence.</strong> Avec la caractéristique \(N\) seule (modèle affine), on obtient \(R^2 \approx 0{,}89\), ce qui peut sembler correct, mais le modèle prédit une puissance <em>négative</em> (≈ −19 W) à 500 tr/min : physiquement absurde. Avec \(N^3\), \(R^2 \approx 0{,}99998\) et \(w_0 \approx 1{,}5\ \text{W}\) (pertes fixes) est plausible. On préfère <code class="code-inline">np.linalg.solve</code> au calcul explicite de l'inverse (plus rapide et plus précis) ; <code class="code-inline">LinearRegression</code> de scikit-learn donne le même résultat.</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§6 · DESCENTE DE GRADIENT</div>
+  <h2>Minimiser une perte de façon itérative</h2>
+  <div class="intro">Pour la plupart des modèles (réseaux de neurones, pertes non quadratiques), aucune formule explicite ne donne les paramètres optimaux. On les approche alors pas à pas, en descendant la « pente » de la fonction de perte. La méthode sert aussi pour la régression linéaire quand les données sont très nombreuses.</div>
+
+  <h3>Principe</h3>
+  <div class="def-box">
+    Le <strong>gradient</strong> \(\nabla J(w) = \left(\frac{\partial J}{\partial w_0}, \dots, \frac{\partial J}{\partial w_n}\right)\) indique la direction de plus forte croissance de \(J\). Partant d'un \(w^{(0)}\) (nul ou aléatoire), on itère :
+    <div class="formula">$$w^{(p+1)} = w^{(p)} - \eta\,\nabla J\!\left(w^{(p)}\right)$$</div>
+    \(\eta > 0\) est le <strong>taux d'apprentissage</strong> (<em>learning rate</em>), un hyperparamètre.
+  </div>
+  <div class="prop-box">
+    <strong>Justification.</strong> Au premier ordre, \(J\!\left(w - \eta\nabla J(w)\right) \approx J(w) - \eta\,\lVert\nabla J(w)\rVert^2\) : pour \(\eta\) assez petit, chaque pas fait diminuer la perte, tant que le gradient n'est pas nul.<br>
+    <strong>Choix de \(\eta\).</strong> Trop petit : convergence très lente. Trop grand : la suite oscille, voire diverge. La standardisation des caractéristiques (§3) accélère en général la convergence. On peut aussi faire décroître \(\eta\) au fil des itérations.
+  </div>
+  <div class="reveal" onclick="this.classList.toggle('open')">
+    <span class="label">Pour aller plus loin (hors programme)</span>
+    <span class="prompt">Condition de convergence pour une perte quadratique.</span>
+    <div class="content"><p>Pour une perte quadratique de matrice hessienne \(H\) constante et définie positive, la méthode converge (quel que soit le point de départ) si et seulement si \(0 \lt \eta \lt 2/\lambda_{\max}(H)\), où \(\lambda_{\max}\) est la plus grande valeur propre de \(H\). La vitesse dépend du rapport \(\lambda_{\max}/\lambda_{\min}\) (conditionnement) : plus il est proche de 1, plus on converge vite ; la standardisation, qui réduit en général ce rapport, accélère donc la convergence.</p></div>
+  </div>
+  <div class="def-box">
+    <strong>Critères d'arrêt</strong> (souvent combinés) : nombre maximal d'itérations ; norme du gradient inférieure à un seuil \(\epsilon\) ; variation de \(J\) ou de \(w\) entre deux itérations inférieure à un seuil ; erreur de validation qui remonte (arrêt précoce).
+  </div>
+
+  <h3>Cas de la régression linéaire</h3>
+  <p>Avec la perte \(J(w) = \mathrm{MSE} = \frac{1}{N}\lVert y - Xw\rVert^2\), le gradient se calcule sans inverser de matrice :</p>
+  <div class="formula">$$\nabla J(w) = -\frac{2}{N}\,X^{\mathsf T}\left(y - Xw\right)$$</div>
+  <div class="formula">$$\text{soit}\quad \frac{\partial J}{\partial w_j} = -\frac{2}{N}\sum_{i=1}^{N} x_{ij}\left(y_i - \hat{y}_i\right)$$</div>
+  <p>(avec \(x_{i0} = 1\)). Multiplier la perte par une constante positive ne déplace pas son minimum : certains énoncés minimisent \(\frac{1}{2}\,\mathrm{MSE}\) ou la somme des carrés, ce qui change seulement le facteur devant le gradient (donc l'échelle de \(\eta\)).</p>
+<pre class="codeblock"><span class="kw">def</span> descente_gradient(X, y, eta=0.05, n_max=10000, eps=1e-6):
+    <span class="str">"""X : matrice augmentée N x (n+1), y : vecteur des N étiquettes."""</span>
+    N, p = X.shape
+    w = np.zeros(p)
+    <span class="kw">for</span> it <span class="kw">in</span> range(n_max):
+        grad = -2 / N * X.T @ (y - X @ w)    <span class="cmt"># gradient de la MSE</span>
+        w = w - eta * grad
+        <span class="kw">if</span> np.linalg.norm(grad) &lt; eps:     <span class="cmt"># critère d'arrêt</span>
+            <span class="kw">break</span>
+    <span class="kw">return</span> w</pre>
+  <p>Ce programme calcule le gradient sur toutes les données à chaque pas (descente « par lots ») ; les bibliothèques emploient des variantes plus économes, décrites en fin de chapitre (hors programme).</p>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§7 · K PLUS PROCHES VOISINS</div>
+  <h2>Prédire par analogie : l'algorithme k-NN</h2>
+  <div class="intro">Idée intuitive : une donnée nouvelle ressemble probablement à celles qui lui sont proches dans l'espace des caractéristiques. L'algorithme des \(k\) plus proches voisins (<em>k-nearest neighbors</em>) n'apprend aucun paramètre : il conserve le jeu d'entraînement et le consulte à chaque prédiction.</div>
+
+  <h3>Distance</h3>
+  <div class="def-box">
+    Entre deux données \(a = (a_1, \dots, a_n)\) et \(b = (b_1, \dots, b_n)\), on utilise le plus souvent la <strong>distance euclidienne</strong> :
+    <div class="formula">$$d(a, b) = \sqrt{\sum_{j=1}^{n}\left(a_j - b_j\right)^2}$$</div>
+    D'autres choix existent (distance de Manhattan \(\sum_j \lvert a_j - b_j\rvert\)…). Pour comparer des distances, il est inutile de calculer la racine.
+  </div>
+
+  <h3>Algorithme</h3>
+  <div class="def-box">
+    Entrées : le jeu d'entraînement \((x_i, y_i)_{1 \leq i \leq N}\), l'entier \(k\) et la donnée \(x\) à traiter.
+    <ol style="margin:.4rem 0 .4rem 1.2rem">
+      <li>former la liste des \(N\) couples (distance \(d(x, x_i)\), étiquette \(y_i\)) ;</li>
+      <li>la trier par distance croissante et n'en garder que les \(k\) premiers : ce sont les voisins de \(x\) ;</li>
+      <li>en <strong>classification</strong>, renvoyer l'étiquette qui revient le plus souvent chez ces voisins (<strong>vote majoritaire</strong>) ; en <strong>régression</strong>, renvoyer la <strong>moyenne</strong> de leurs étiquettes.</li>
+    </ol>
+    Variante : pondérer chaque voisin par l'inverse de sa distance.
+  </div>
+  <div class="prop-box">
+    <strong>Propriétés.</strong>
+    <ul style="margin:.4rem 0">
+      <li>Pas de phase d'apprentissage (apprentissage « paresseux ») ; en contrepartie, chaque inférence coûte \(N\) calculs de distance en dimension \(n\), soit de l'ordre de \(Nn\) opérations, plus le tri (\(N\log N\), ou \(N\) par une sélection), et tout le jeu doit être stocké.</li>
+      <li><strong>Mise à l'échelle indispensable</strong> : sinon la caractéristique de plus grande amplitude décide seule du voisinage.</li>
+      <li><strong>Choix de \(k\)</strong> : \(k = 1\) colle au bruit (surapprentissage, frontière très découpée) ; \(k\) très grand lisse tout et tend à prédire la classe majoritaire (sous-apprentissage). En binaire, on prend \(k\) impair pour éviter les égalités. On choisit \(k\) en comparant les performances sur un jeu de validation pour plusieurs valeurs.</li>
+      <li>Les performances se dégradent en grande dimension : les distances deviennent toutes comparables.</li>
+    </ul>
+  </div>
+<pre class="codeblock"><span class="kw">def</span> knn_classe(X_entr, y_entr, x, k):
+    d2 = ((X_entr - x)**2).sum(axis=1)       <span class="cmt"># carrés des distances (N valeurs)</span>
+    voisins = np.argsort(d2)[:k]             <span class="cmt"># indices des k plus proches</span>
+    etiq = list(y_entr[voisins])
+    <span class="kw">return</span> max(set(etiq), key=etiq.count)    <span class="cmt"># vote majoritaire</span>
+
+<span class="kw">def</span> knn_valeur(X_entr, y_entr, x, k):
+    d2 = ((X_entr - x)**2).sum(axis=1)
+    <span class="kw">return</span> y_entr[np.argsort(d2)[:k]].mean()   <span class="cmt"># moyenne des k voisins</span></pre>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§8 · RÉSEAUX DE NEURONES</div>
+  <h2>Du neurone formel au perceptron multicouche</h2>
+  <div class="intro">Un réseau de neurones est une composition de fonctions élémentaires très simples — les neurones — organisées en couches. Avec suffisamment de neurones, il peut approcher des relations entrée-sortie très complexes, en régression comme en classification.</div>
+
+  <h3>Le neurone</h3>
+  <div class="def-box">
+    Un neurone reçoit les entrées \(x_1, \dots, x_n\), en calcule une <strong>combinaison linéaire</strong> pondérée par ses <strong>poids</strong> \(w_j\), augmentée d'un <strong>biais</strong> \(b\), puis applique une <strong>fonction d'activation</strong> \(f\) :
+    <div class="formula">$$z = \sum_{j=1}^{n} w_j x_j + b = w^{\mathsf T}x + b \qquad\qquad s = f(z)$$</div>
+    Le <strong>perceptron</strong> historique utilise la fonction de Heaviside : il répond 1 si \(w^{\mathsf T}x + b \gt 0\), 0 sinon. C'est un classifieur <strong>linéaire</strong> : sa frontière de décision est l'hyperplan \(w^{\mathsf T}x + b = 0\) (une droite si \(n = 2\)).
+  </div>
+  <div class="reveal" onclick="this.classList.toggle('open')">
+    <span class="label">Application</span>
+    <span class="prompt">Trouver des poids et un biais pour qu'un perceptron à deux entrées binaires réalise le ET logique.</span>
+    <div class="content"><p>Il faut \(s = 1\) seulement pour \((1,1)\). Avec \(w_1 = w_2 = 1\) et \(b = -1{,}5\) : \(z = -1{,}5\) pour \((0,0)\), \(-0{,}5\) pour \((1,0)\) et \((0,1)\), \(+0{,}5\) pour \((1,1)\). Seul le dernier cas donne \(z \gt 0\). La frontière est la droite \(x_1 + x_2 = 1{,}5\). Une infinité d'autres choix conviennent.</p></div>
+  </div>
+  <div class="notice"><strong>Limite du neurone seul.</strong> Il ne sépare que des classes <strong>linéairement séparables</strong>. Le OU exclusif, par exemple (sortie 1 pour \((0,1)\) et \((1,0)\) seulement), ne peut être réalisé par aucun neurone isolé : il faut au moins une couche cachée.</div>
+
+  <h3>Fonctions d'activation</h3>
+  <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:.82rem;margin:.6rem 0">
+    <tr style="background:var(--paper-dark)"><th style="padding:.35rem;border:1px solid var(--grid)">Nom</th><th style="padding:.35rem;border:1px solid var(--grid)">\(f(z)\)</th><th style="padding:.35rem;border:1px solid var(--grid)">\(f'(z)\)</th><th style="padding:.35rem;border:1px solid var(--grid)">Valeurs</th><th style="padding:.35rem;border:1px solid var(--grid)">Usage typique</th></tr>
+    <tr><td style="padding:.35rem;border:1px solid var(--grid)">Identité</td><td style="padding:.35rem;border:1px solid var(--grid)">\(z\)</td><td style="padding:.35rem;border:1px solid var(--grid)">\(1\)</td><td style="padding:.35rem;border:1px solid var(--grid)">\(\mathbb{R}\)</td><td style="padding:.35rem;border:1px solid var(--grid)">sortie d'une régression</td></tr>
+    <tr><td style="padding:.35rem;border:1px solid var(--grid)">Heaviside</td><td style="padding:.35rem;border:1px solid var(--grid)">1 si \(z \gt 0\), 0 sinon</td><td style="padding:.35rem;border:1px solid var(--grid)">0 (sauf en 0)</td><td style="padding:.35rem;border:1px solid var(--grid)">\(\{0, 1\}\)</td><td style="padding:.35rem;border:1px solid var(--grid)">perceptron historique (inutilisable par gradient)</td></tr>
+    <tr><td style="padding:.35rem;border:1px solid var(--grid)">Sigmoïde</td><td style="padding:.35rem;border:1px solid var(--grid)">\(\sigma(z) = \dfrac{1}{1 + e^{-z}}\)</td><td style="padding:.35rem;border:1px solid var(--grid)">\(\sigma(z)\left(1 - \sigma(z)\right)\)</td><td style="padding:.35rem;border:1px solid var(--grid)">\(]0, 1[\)</td><td style="padding:.35rem;border:1px solid var(--grid)">sortie d'une classification binaire (probabilité)</td></tr>
+    <tr><td style="padding:.35rem;border:1px solid var(--grid)">Tangente hyperbolique</td><td style="padding:.35rem;border:1px solid var(--grid)">\(\tanh z\)</td><td style="padding:.35rem;border:1px solid var(--grid)">\(1 - \tanh^2 z\)</td><td style="padding:.35rem;border:1px solid var(--grid)">\(]-1, 1[\)</td><td style="padding:.35rem;border:1px solid var(--grid)">couches cachées (sortie centrée)</td></tr>
+    <tr><td style="padding:.35rem;border:1px solid var(--grid)">ReLU</td><td style="padding:.35rem;border:1px solid var(--grid)">\(\max(0, z)\)</td><td style="padding:.35rem;border:1px solid var(--grid)">1 si \(z \gt 0\), 0 si \(z \lt 0\)</td><td style="padding:.35rem;border:1px solid var(--grid)">\([0, +\infty[\)</td><td style="padding:.35rem;border:1px solid var(--grid)">couches cachées (choix par défaut)</td></tr>
+  </table></div>
+
+<figure class="schema">
+<svg viewBox="0 0 320 200" role="img" aria-label="Allure des fonctions sigmoïde, tangente hyperbolique et ReLU">
+  <line x1="25" y1="120" x2="300" y2="120" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+  <line x1="160" y1="182" x2="160" y2="12" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+  <line x1="30" y1="70" x2="290" y2="70" class="sk-dash"/>
+  <line x1="30" y1="170" x2="290" y2="170" class="sk-dash"/>
+  <path d="M30.0,119.1 L43.0,118.7 L56.0,118.0 L69.0,117.1 L82.0,115.8 L95.0,114.0 L108.0,111.6 L121.0,108.4 L134.0,104.5 L147.0,99.9 L160.0,95.0 L173.0,90.1 L186.0,85.5 L199.0,81.6 L212.0,78.4 L225.0,76.0 L238.0,74.2 L251.0,72.9 L264.0,72.0 L277.0,71.3 L290.0,70.9" class="sk-accent"/>
+  <path d="M30.0,170.0 L43.0,169.9 L56.0,169.8 L69.0,169.6 L82.0,169.2 L95.0,168.2 L108.0,166.1 L121.0,161.7 L134.0,153.2 L147.0,139.0 L160.0,120.0 L173.0,101.0 L186.0,86.8 L199.0,78.3 L212.0,73.9 L225.0,71.8 L238.0,70.8 L251.0,70.4 L264.0,70.2 L277.0,70.1 L290.0,70.0" class="sk-accent2"/>
+  <path d="M30,120 L160,120 L225,20" class="sk-green"/>
+  <text x="152" y="66" class="lab-muted" text-anchor="end">1</text>
+  <text x="152" y="166" class="lab-muted" text-anchor="end">−1</text>
+  <text x="298" y="134" class="lab-muted" text-anchor="end">z</text>
+  <text x="230" y="30" class="lab-green">ReLU</text>
+  <text x="290" y="88" class="lab-accent" text-anchor="end">sigmoïde</text>
+  <text x="120" y="182" class="lab-accent2" text-anchor="end">tanh</text>
+</svg>
+<figcaption>Sigmoïde (de 0 à 1, vaut 1/2 en 0), tangente hyperbolique (de −1 à 1, pente 1 en 0) et ReLU (nulle pour \(z \lt 0\), identité ensuite). Les deux premières saturent : leur dérivée tend vers 0 aux grandes valeurs de \(|z|\).</figcaption>
+</figure>
+
+  <h3>Perceptron multicouche (MLP)</h3>
+  <div class="def-box">
+    L'information circule dans un seul sens, de l'entrée vers la sortie, à travers des <strong>couches</strong> de neurones. Dans un réseau <strong>dense</strong> (entièrement connecté), chaque neurone reçoit toutes les sorties de la couche qui le précède.
+    <ul style="margin:.4rem 0">
+      <li>La <strong>couche d'entrée</strong> ne calcule rien : elle présente au réseau les \(n\) caractéristiques de l'exemple.</li>
+      <li>Les <strong>couches cachées</strong> — ainsi nommées car leurs valeurs ne sont ni des données ni des résultats — fabriquent des représentations intermédiaires ; on y emploie le plus souvent une même activation non linéaire par couche.</li>
+      <li>La <strong>couche de sortie</strong> est dictée par le problème : activation identité (une sortie par grandeur) en régression, un neurone sigmoïde en classification binaire, \(m\) neurones suivis d'un softmax pour \(m\) classes.</li>
+    </ul>
+    Si la couche \(\ell\) a \(n_\ell\) neurones, de poids rangés dans une matrice \(W^{(\ell)}\) de taille \(n_\ell \times n_{\ell-1}\) et de biais \(b^{(\ell)}\), la <strong>propagation avant</strong> s'écrit :
+    <div class="formula">$$a^{(0)} = x \qquad z^{(\ell)} = W^{(\ell)}a^{(\ell-1)} + b^{(\ell)} \qquad a^{(\ell)} = f_\ell\!\left(z^{(\ell)}\right)$$</div>
+  </div>
+  <div class="prop-box">
+    <strong>Nombre de paramètres.</strong> Entre une couche de \(p\) neurones et une couche entièrement connectée de \(q\) neurones : \(p \times q\) poids et \(q\) biais, soit \((p+1)\,q\) paramètres. Pour un réseau 4 – 10 – 10 – 3 : \(5\times10 + 11\times10 + 11\times3 = 193\) paramètres.<br>
+    <strong>Pourquoi des activations non linéaires ?</strong> Une composition de couches affines reste affine :
+    <div class="formula">$$W_2(W_1x + b_1) + b_2 = (W_2W_1)\,x + (W_2b_1 + b_2)$$</div>
+    Sans non-linéarité, un réseau profond ne ferait pas mieux qu'un modèle linéaire. Avec, il peut représenter des frontières de décision courbes (le OU exclusif, par exemple) et des relations non linéaires très variées, d'autant mieux qu'il a de neurones.
+  </div>
+
+  <h3>Softmax</h3>
+  <div class="def-box">
+    En classification à \(m\) classes, la couche de sortie produit \(z = (z_1, \dots, z_m)\), transformé en probabilités par la fonction <strong>softmax</strong> :
+    <div class="formula">$$\hat{y}_j = \frac{e^{z_j}}{\displaystyle\sum_{k=1}^{m} e^{z_k}} \qquad 1 \leq j \leq m$$</div>
+    Les \(\hat{y}_j\) sont strictement positifs, de somme 1, et conservent l'ordre des \(z_j\) : la classe prédite est celle de plus grand \(z_j\). Ajouter une même constante à tous les \(z_j\) ne change rien (en pratique, on retranche \(\max_k z_k\) pour éviter les dépassements numériques). Pour \(m = 2\), on retrouve la sigmoïde de \(z_1 - z_2\).
+  </div>
+  <div class="notice"><strong>Ordres de grandeur.</strong> Un petit MLP embarqué sur microcontrôleur (diagnostic d'un moteur) : 10² à 10⁴ paramètres. Un réseau de reconnaissance d'images : 10⁶ à 10⁸. Les grands modèles de langage : 10¹¹ paramètres et plus. Plus il y a de paramètres, plus il faut de données pour éviter le surapprentissage, et plus le modèle est difficile à interpréter.</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§9 · APPRENTISSAGE D'UN RÉSEAU</div>
+  <h2>Fonctions de perte et rétropropagation</h2>
+  <div class="intro">Apprendre un réseau, c'est trouver les milliers (ou millions) de poids et biais qui minimisent une fonction de perte. On utilise la descente de gradient ; tout l'enjeu est de calculer efficacement le gradient par rapport à chaque paramètre : c'est la rétropropagation.</div>
+
+  <h3>Fonctions de perte</h3>
+  <div class="def-box">
+    La perte totale est la moyenne (ou la somme) des pertes élémentaires \(L(\hat{y}_i, y_i)\) sur les exemples, éventuellement augmentée d'un terme de régularisation \(\lambda R(w)\) (hors programme) :
+    <ul style="margin:.4rem 0">
+      <li><strong>régression</strong> — erreur quadratique : \(L = (\hat{y} - y)^2\) ;</li>
+      <li><strong>classification binaire</strong> (\(y \in \{0, 1\}\), \(\hat{y} \in\, ]0,1[\) sortie sigmoïde) — <strong>entropie croisée binaire</strong> :</li>
+    </ul>
+    <div class="formula">$$L(\hat{y}, y) = -\Big(y \ln \hat{y} + (1 - y)\ln(1 - \hat{y})\Big)$$</div>
+    <ul style="margin:.4rem 0">
+      <li><strong>classification multiclasse</strong> (étiquette codée « un parmi \(m\) » : \(y_j = 1\) pour la vraie classe \(c\), 0 ailleurs ; sortie softmax) — <strong>entropie croisée</strong> :</li>
+    </ul>
+    <div class="formula">$$L(\hat{y}, y) = -\sum_{j=1}^{m} y_j \ln \hat{y}_j = -\ln \hat{y}_c$$</div>
+    L'entropie croisée est nulle si la probabilité attribuée à la bonne classe vaut 1 et tend vers \(+\infty\) quand elle tend vers 0 : elle pénalise fortement une erreur commise avec assurance.
+  </div>
+
+  <h3>Rétropropagation du gradient</h3>
+  <div class="def-box">
+    Pour un exemple, une itération d'apprentissage comporte quatre étapes :
+    <ol style="margin:.4rem 0 .4rem 1.2rem">
+      <li><strong>propagation avant</strong> : calculer couche après couche les \(z^{(\ell)}\) et \(a^{(\ell)}\), jusqu'à la sortie \(\hat{y}\) et la perte \(L\), en mémorisant les valeurs intermédiaires ;</li>
+      <li><strong>erreur de sortie</strong> : dérivée de la perte par rapport aux grandeurs \(z\) de la dernière couche (voir le résultat clé ci-dessous) ;</li>
+      <li><strong>propagation arrière</strong> : par la règle de dérivation des fonctions composées, cette erreur remonte couche par couche, de la sortie vers l'entrée, et donne au passage la dérivée de la perte par rapport à chaque poids et à chaque biais ;</li>
+      <li><strong>mise à jour</strong> de tous les poids et biais par descente de gradient (§6).</li>
+    </ol>
+    On répète sur toutes les données (une <strong>époque</strong>), puis on recommence pendant de nombreuses époques jusqu'au critère d'arrêt. La bibliothèque réalise ces calculs ; leur forme matricielle, hors programme, est donnée en fin de chapitre.
+  </div>
+  <div class="reveal" onclick="this.classList.toggle('open')">
+    <span class="label">Résultat clé</span>
+    <span class="prompt">Neurone de sortie sigmoïde et entropie croisée binaire : que vaut \(\partial L/\partial z\) ?</span>
+    <div class="content">
+      <p>Avec \(\hat{y} = \sigma(z)\) et \(\sigma' = \sigma(1-\sigma)\) : \(\dfrac{\partial L}{\partial \hat{y}} = -\dfrac{y}{\hat{y}} + \dfrac{1-y}{1-\hat{y}} = \dfrac{\hat{y} - y}{\hat{y}(1-\hat{y})}\), donc</p>
+      <div class="formula">$$\frac{\partial L}{\partial z} = \frac{\partial L}{\partial \hat{y}}\,\sigma'(z) = \hat{y} - y$$</div>
+      <p>L'erreur de sortie est simplement l'écart prédiction – étiquette, sans facteur \(\sigma'\) qui pourrait l'écraser quand la sigmoïde sature : c'est l'une des raisons pour lesquelles on associe sigmoïde et entropie croisée plutôt que sigmoïde et erreur quadratique. Le même résultat \(\hat{y} - y\) vaut pour softmax et entropie croisée multiclasse.</p>
+    </div>
+  </div>
+  <div class="prop-box">
+    <strong>En pratique.</strong>
+    <ul style="margin:.4rem 0">
+      <li>Standardiser les entrées et <strong>initialiser les poids aléatoirement</strong> (avec des poids tous égaux, les neurones d'une couche resteraient identiques).</li>
+      <li>Dans les couches cachées, la dérivée de la sigmoïde (au plus 1/4) multipliée couche après couche fait s'évanouir le gradient : on préfère <strong>ReLU</strong>, de dérivée 1 pour \(z \gt 0\) et très peu coûteuse à calculer.</li>
+      <li>La perte d'entraînement doit décroître au fil des époques ; on surveille la perte de validation pour détecter le surapprentissage et arrêter à temps.</li>
+      <li>Avec scikit-learn : <code class="code-inline">MLPRegressor</code> ou <code class="code-inline">MLPClassifier</code>, architecture fixée par <code class="code-inline">hidden_layer_sizes=(16, 8)</code> (deux couches cachées de 16 et 8 neurones), activation par <code class="code-inline">activation='relu'</code> ; les poids appris sont dans <code class="code-inline">coefs_</code> et les biais dans <code class="code-inline">intercepts_</code>.</li>
+    </ul>
+  </div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">POUR ALLER PLUS LOIN · HORS PROGRAMME</div>
+  <h2>Ce que font les bibliothèques, et au-delà</h2>
+  <div class="intro">Le programme utilise des bibliothèques préimplémentées. Les compléments ci-dessous expliquent une partie de ce qu'elles font, ou ouvrent sur d'autres familles d'apprentissage ; ils ne sont pas exigibles, et un sujet qui s'en sert les présente.</div>
+
+  <h3>Apprentissage par renforcement</h3>
+  <div class="def-box">
+    Un <strong>agent</strong> (robot, contrôleur) observe l'<strong>état</strong> de son environnement, choisit une <strong>action</strong> et reçoit en retour une <strong>récompense</strong> (positive ou négative). Par essais et erreurs, il améliore sa stratégie (<em>politique</em>) afin de maximiser la récompense cumulée au cours du temps. Il n'y a pas d'étiquette, mais un signal d'évaluation différé.
+  </div>
+
+  <h3>Descente par lots, stochastique, par mini-lots</h3>
+  <div class="def-box">
+    <ul style="margin:.4rem 0">
+      <li><strong>Par lots</strong> (<em>batch</em>) : le gradient est calculé sur <em>toutes</em> les données d'entraînement avant chaque mise à jour. Trajectoire régulière, mais chaque pas est coûteux.</li>
+      <li><strong>Stochastique</strong> (<em>SGD</em>, <em>online</em>) : chaque mise à jour n'utilise que la perte d'<em>un</em> exemple, les exemples étant parcourus dans un ordre aléatoire renouvelé à chaque passage. Pour la régression linéaire : \(w \leftarrow w + 2\eta\,(y_i - \tilde{x}_i^{\mathsf T} w)\,\tilde{x}_i\). Chaque pas coûte très peu (un seul exemple), mais la trajectoire est bruitée.</li>
+      <li><strong>Par mini-lots</strong> : gradient moyen sur un paquet de \(B\) exemples (typiquement 16 à 256). Compromis le plus utilisé, adapté au calcul parallèle et à une mémoire limitée.</li>
+    </ul>
+    Une <strong>époque</strong> (<em>epoch</em>) est un passage complet sur l'ensemble des données d'entraînement : elle comporte 1 mise à jour par lots, \(N\) mises à jour stochastiques, ou \(N/B\) par mini-lots.
+  </div>
+
+  <h3>Régularisation</h3>
+  <div class="def-box">
+    On ajoute à la perte un terme pénalisant les poids de grande valeur, pour limiter le surapprentissage (\(\lambda \geq 0\) hyperparamètre ; le biais \(w_0\) n'est en général pas pénalisé) :
+    <div class="formula">$$J_{\text{Ridge}}(w) = \sum_{i=1}^{N}\left(y_i - \hat{y}_i\right)^2 + \lambda\sum_{j=1}^{n} w_j^2$$</div>
+    <div class="formula">$$J_{\text{LASSO}}(w) = \sum_{i=1}^{N}\left(y_i - \hat{y}_i\right)^2 + \lambda\sum_{j=1}^{n} \lvert w_j \rvert$$</div>
+    <ul style="margin:.4rem 0">
+      <li><strong>Ridge</strong> : rétrécit tous les poids ; solution explicite \(\hat{w} = (X^{\mathsf T}X + \lambda I)^{-1}X^{\mathsf T}y\) (sur données centrées), toujours définie pour \(\lambda \gt 0\).</li>
+      <li><strong>LASSO</strong> : annule exactement certains poids, ce qui <strong>sélectionne</strong> les caractéristiques utiles ; pas de formule explicite. Le mélange des deux pénalités s'appelle <em>elastic net</em>.</li>
+    </ul>
+    \(\lambda\) trop petit : surapprentissage inchangé ; \(\lambda\) trop grand : poids écrasés, sous-apprentissage. On le règle sur les données de validation.
+  </div>
+
+  <h3>Approximation universelle</h3>
+  <div class="prop-box"><strong>Théorème d'approximation universelle.</strong> Un réseau à une seule couche cachée, d'activation non linéaire et suffisamment large, peut approcher d'aussi près que l'on veut toute fonction continue sur un domaine fermé borné. Le théorème ne dit rien du nombre de neurones ni du volume de données nécessaires pour y parvenir.</div>
+
+  <h3>Rétropropagation sous forme matricielle</h3>
+  <div class="def-box">
+    Avec les notations du §8 (couche \(\ell\) de poids \(W^{(\ell)}\), de biais \(b^{(\ell)}\), d'activation \(f_\ell\)), on note \(\delta^{(\ell)} = \partial L/\partial z^{(\ell)}\). Partant de l'erreur de sortie \(\delta^{(\ell_s)}\), l'erreur remonte par
+    <div class="formula">$$\delta^{(\ell)} = \left(W^{(\ell+1)\mathsf T}\,\delta^{(\ell+1)}\right) \odot f_\ell'\!\left(z^{(\ell)}\right)$$</div>
+    puis les gradients des paramètres de la couche \(\ell\) s'en déduisent directement :
+    <div class="formula">$$\frac{\partial L}{\partial W^{(\ell)}} = \delta^{(\ell)}\,a^{(\ell-1)\mathsf T} \qquad \frac{\partial L}{\partial b^{(\ell)}} = \delta^{(\ell)}$$</div>
+    (\(\odot\) : produit composante par composante.)
+  </div>
+</div>
+</template>
+<template class="pan-tpl" data-panneau="ia-meth">
+<div class="course-section">
+  <div class="sec-num">MÉTHODES · INTELLIGENCE ARTIFICIELLE</div>
+  <h2>Stratégies pour les exercices</h2>
+  <div class="intro">Dans l'ordre du cours : poser le problème et choisir un algorithme (§1, §2), préparer les données (§3), évaluer et régler le modèle (§4), puis les trois algorithmes au programme — régression linéaire (§5, avec le principe de la descente de gradient, §6), \(k\) plus proches voisins (§7), réseaux de neurones (§8, §9). Les algorithmes sont mis en œuvre avec des bibliothèques : il s'agit d'en comprendre le principe et d'interpréter les résultats.</div>
+
+  <div class="method-box">
+    <strong>Méthode 1 — Identifier le problème et choisir un algorithme</strong>
+    <ol style="margin-top:.4rem">
+      <li><span class="step">Étape 1.</span> Les données d'entraînement sont-elles étiquetées ? Oui → supervisé ; non → non supervisé. (Un agent qui apprend par des récompenses relève de l'apprentissage par renforcement, hors programme : savoir seulement le reconnaître.)</li>
+      <li><span class="step">Étape 2.</span> En supervisé, la sortie est-elle continue (→ régression) ou prise dans un ensemble fini (→ classification binaire ou multiclasse) ?</li>
+      <li><span class="step">Étape 3.</span> Lister les caractéristiques disponibles (\(n\)) et le nombre d'exemples (\(N\)) : peu de données → modèle simple (linéaire, k-NN) ; beaucoup de données et relation complexe → réseau de neurones.</li>
+      <li><span class="step">Étape 4.</span> Tenir compte des contraintes du système : temps de calcul en inférence, mémoire embarquée, besoin d'interpréter le modèle.</li>
+      <li><span class="step">Étape 5.</span> Si le problème est complexe, le découper : extraire d'abord quelques caractéristiques par un calcul classique (moyenne, écart type, amplitude d'un signal), puis confier la décision à un modèle simple, qui sert de référence avant d'essayer un réseau.</li>
+    </ol>
+    <p style="margin-top:.4rem"><strong>Piège :</strong> une sortie codée par des nombres (0, 1, 2) n'est pas pour autant continue — ce sont des numéros de classes.</p>
+  </div>
+
+  <div class="method-box">
+    <strong>Méthode 2 — Préparer les données et enchaîner sous scikit-learn</strong>
+    <ol style="margin-top:.4rem">
+      <li><span class="step">Étape 1.</span> Retirer ou corriger les valeurs manquantes et aberrantes (justifier physiquement).</li>
+      <li><span class="step">Étape 2.</span> Mélanger et séparer (≈ 70 / 30) <em>avant</em> toute mise à l'échelle.</li>
+      <li><span class="step">Étape 3.</span> Calculer \(\mu\), \(\sigma\) (ou min, max) sur l'entraînement seul ; transformer entraînement, test et futures données avec ces valeurs.</li>
+      <li><span class="step">Étape 4.</span> Apprendre (<code class="code-inline">fit</code>), prédire (<code class="code-inline">predict</code>), évaluer sur le test.</li>
+    </ol>
+<pre class="codeblock"><span class="kw">from</span> sklearn.model_selection <span class="kw">import</span> train_test_split
+<span class="kw">from</span> sklearn.preprocessing <span class="kw">import</span> StandardScaler
+<span class="kw">from</span> sklearn.neighbors <span class="kw">import</span> KNeighborsClassifier
+<span class="kw">from</span> sklearn.metrics <span class="kw">import</span> confusion_matrix, accuracy_score
+
+X_entr, X_test, y_entr, y_test = train_test_split(X, y, test_size=0.3, random_state=1)
+sc = StandardScaler().fit(X_entr)           <span class="cmt"># μ et σ de l'entraînement seulement</span>
+X_entr, X_test = sc.transform(X_entr), sc.transform(X_test)
+modele = KNeighborsClassifier(n_neighbors=5).fit(X_entr, y_entr)
+y_pred = modele.predict(X_test)
+print(confusion_matrix(y_test, y_pred))      <span class="cmt"># lignes : réel, colonnes : prédit</span>
+print(accuracy_score(y_test, y_pred))</pre>
+  </div>
+
+  <div class="method-box">
+    <strong>Méthode 3 — Exploiter une matrice de confusion</strong>
+    <ol style="margin-top:.4rem">
+      <li><span class="step">Étape 1.</span> Repérer ce qui est en ligne et en colonne (réel / prédit) et quelle est la classe positive.</li>
+      <li><span class="step">Étape 2.</span> Lire VP, FN (ligne des positifs réels), FP, VN (ligne des négatifs réels) ; vérifier que la somme vaut le nombre d'exemples de test.</li>
+      <li><span class="step">Étape 3.</span> Calculer exactitude, précision (colonne « prédit positif »), rappel (ligne « réel positif »), spécificité (ligne « réel négatif »).</li>
+      <li><span class="step">Étape 4.</span> Comparer à un classifieur trivial (toujours la classe majoritaire) et au cahier des charges : quel type d'erreur coûte le plus cher ?</li>
+    </ol>
+    <p style="margin-top:.4rem"><strong>Piège :</strong> une exactitude élevée ne prouve rien si les classes sont déséquilibrées.</p>
+  </div>
+
+  <div class="method-box">
+    <strong>Méthode 4 — Juger un modèle de régression</strong>
+    <ol style="margin-top:.4rem">
+      <li><span class="step">Étape 1.</span> Calculer MSE, RMSE et \(R^2\) sur le <em>test</em> (et sur l'entraînement pour diagnostiquer).</li>
+      <li><span class="step">Étape 2.</span> Comparer la RMSE à l'étendue ou à l'ordre de grandeur des valeurs, et à l'exigence du cahier des charges (erreur relative).</li>
+      <li><span class="step">Étape 3.</span> Diagnostiquer : erreurs fortes partout → sous-apprentissage ; erreur faible en entraînement mais forte en test → surapprentissage.</li>
+      <li><span class="step">Étape 4.</span> Contrôler la cohérence physique : signe et unité des coefficients, prédictions dans le domaine de validité (pas d'extrapolation lointaine), pas de valeur impossible (puissance négative, probabilité supérieure à 1).</li>
+    </ol>
+  </div>
+
+  <div class="method-box">
+    <strong>Méthode 5 — Calculer une régression linéaire</strong>
+    <ol style="margin-top:.4rem">
+      <li><span class="step">Étape 1.</span> Choisir les caractéristiques (éventuellement transformées : \(x^2\), \(N^3\)…) et construire la matrice augmentée \(X\) (colonne de 1 en tête).</li>
+      <li><span class="step">Étape 2.</span> À la main, à une caractéristique : calculer \(\bar{x}\), \(\bar{y}\), puis \(\hat{w}_1 = \sum(x_i-\bar{x})(y_i-\bar{y}) / \sum(x_i-\bar{x})^2\) et \(\hat{w}_0 = \bar{y} - \hat{w}_1\bar{x}\).</li>
+      <li><span class="step">Étape 3.</span> En Python : <code class="code-inline">w = np.linalg.solve(X.T @ X, X.T @ y)</code>, puis <code class="code-inline">y_pred = X @ w</code>.</li>
+      <li><span class="step">Étape 4.</span> Vérifier : la somme des résidus est nulle (avec biais) ; si les colonnes de \(X\) sont orthogonales (plan d'expériences), \(X^{\mathsf T}X\) est diagonale et les calculs se découplent.</li>
+    </ol>
+  </div>
+
+  <div class="method-box">
+    <strong>Méthode 6 — Écrire et régler une descente de gradient</strong>
+    <ol style="margin-top:.4rem">
+      <li><span class="step">Étape 1.</span> Écrire la perte \(J(w)\), puis chaque dérivée partielle \(\partial J/\partial w_j\) (dérivation des fonctions composées).</li>
+      <li><span class="step">Étape 2.</span> Initialiser \(w\), choisir \(\eta\), un nombre maximal d'itérations et un seuil d'arrêt.</li>
+      <li><span class="step">Étape 3.</span> Boucler : calculer le gradient sur toutes les données d'entraînement, mettre à jour \(w \leftarrow w - \eta\nabla J\), tester l'arrêt. (Les bibliothèques utilisent des variantes stochastique ou par mini-lots, hors programme.)</li>
+      <li><span class="step">Étape 4.</span> Tracer \(J\) au fil des itérations : si \(J\) augmente ou oscille, diminuer \(\eta\) ; si \(J\) décroît très lentement, augmenter \(\eta\) ou standardiser les données.</li>
+    </ol>
+    <p style="margin-top:.4rem"><strong>Piège :</strong> multiplier la perte par une constante (\(\tfrac12\,\mathrm{MSE}\), somme des carrés au lieu de la moyenne) ne déplace pas le minimum mais change l'échelle du gradient : un \(\eta\) réglé pour une forme de la perte peut faire diverger l'autre.</p>
+  </div>
+
+  <div class="method-box">
+    <strong>Méthode 7 — Appliquer les k plus proches voisins</strong>
+    <ol style="margin-top:.4rem">
+      <li><span class="step">Étape 1.</span> Mettre les caractéristiques à l'échelle (min et max, ou \(\mu\) et \(\sigma\), de l'entraînement), y compris la donnée à classer.</li>
+      <li><span class="step">Étape 2.</span> Calculer les distances (ou leurs carrés) à tous les exemples d'entraînement, puis les classer par ordre croissant.</li>
+      <li><span class="step">Étape 3.</span> Garder les \(k\) premiers : vote majoritaire (classification) ou moyenne (régression).</li>
+      <li><span class="step">Étape 4.</span> Discuter le choix de \(k\) (impair en binaire, réglé sur validation) et le coût d'inférence (\(\approx Nn\) opérations par prédiction).</li>
+    </ol>
+  </div>
+
+  <div class="method-box">
+    <strong>Méthode 8 — Analyser un réseau de neurones</strong>
+    <ol style="margin-top:.4rem">
+      <li><span class="step">Étape 1.</span> Préciser l'architecture : \(n\) entrées, tailles des couches cachées, nombre de sorties ; compter les paramètres \(\sum_\ell (n_{\ell-1} + 1)\,n_\ell\).</li>
+      <li><span class="step">Étape 2.</span> Choisir la sortie selon le problème : identité + erreur quadratique (régression) ; sigmoïde + entropie croisée binaire (binaire) ; softmax + entropie croisée (multiclasse).</li>
+      <li><span class="step">Étape 3.</span> Propagation avant à la main : pour chaque neurone, \(z = w^{\mathsf T}x + b\) puis \(f(z)\), couche après couche.</li>
+      <li><span class="step">Étape 4.</span> Un pas d'apprentissage : \(\partial L/\partial z\) en sortie, gradient des poids \(\partial L/\partial w_j = (\partial L/\partial z)\,x_j\), mise à jour, et vérifier que la nouvelle prédiction s'est rapprochée de l'étiquette.</li>
+      <li><span class="step">Étape 5.</span> Avec la bibliothèque : <code class="code-inline">MLPClassifier(hidden_layer_sizes=(16, 8), activation='relu')</code> (ou <code class="code-inline">MLPRegressor</code>), puis <code class="code-inline">fit</code> sur l'entraînement standardisé et <code class="code-inline">predict</code> en inférence ; poids dans <code class="code-inline">coefs_</code>, biais dans <code class="code-inline">intercepts_</code>.</li>
+    </ol>
+  </div>
+
+  <div class="method-box">
+    <strong>Méthode 9 — Choisir le seuil d'un classifieur</strong>
+    <ol style="margin-top:.4rem">
+      <li><span class="step">Étape 1.</span> Récupérer les scores (probabilités) du classifieur sur un jeu de <em>validation</em> et leur classe réelle.</li>
+      <li><span class="step">Étape 2.</span> Pour plusieurs seuils, déclarer positifs les exemples de score supérieur ou égal au seuil, et calculer rappel et spécificité (ou précision).</li>
+      <li><span class="step">Étape 3.</span> Abaisser le seuil ne peut qu'augmenter le rappel et diminuer la spécificité : parmi les seuils qui respectent l'exigence la plus importante du cahier des charges (souvent un rappel minimal), garder celui qui maximise l'autre indicateur.</li>
+      <li><span class="step">Étape 4.</span> Vérifier une seule fois, sur le test, que le seuil retenu tient ses promesses.</li>
+    </ol>
+    <p style="margin-top:.4rem"><em>Exemple éclair :</em> scores de 6 exemples de validation : positifs 0,9 ; 0,6 ; 0,35 ; négatifs 0,7 ; 0,3 ; 0,1. Seuil 0,5 : rappel 2/3, spécificité 2/3. Seuil 0,33 : rappel 1, spécificité 2/3 (meilleur sur les deux plans). Seuil 0,25 : rappel 1, spécificité 1/3. On retient un seuil entre 0,30 et 0,35.</p>
+  </div>
+</div>
+</template>
+<template class="pan-tpl" data-panneau="ia-exos">
+<div class="exo-wrapper">
+
+<div class="exo">
+  <span class="num">EXO 01</span><span class="diff">★ ☆ ☆</span>
+  <h3>Typologie de problèmes et mise à l'échelle</h3>
+  <div class="statement">Une PME qui fabrique des portails motorisés souhaite exploiter les données de ses produits connectés.</div>
+  <div class="q"><strong>Q1.</strong> Pour chaque besoin, préciser la famille d'apprentissage et, le cas échéant, s'il s'agit d'une régression ou d'une classification : (a) prédire le courant maximal absorbé par le moteur à partir de la masse du vantail et de la température extérieure, grâce à 3000 manœuvres enregistrées ; (b) décider, à partir de la courbe de courant d'une manœuvre, si un obstacle a été heurté, des techniciens ayant annoté 800 manœuvres ; (c) regrouper les clients selon leurs habitudes d'utilisation (heures, fréquence), sans catégorie prédéfinie ; (d) laisser la carte de commande ajuster sa rampe d'accélération en étant « récompensée » quand la manœuvre est rapide sans choc (famille hors programme, citée au §2 du cours : la reconnaître seulement).</div>
+  <div class="q"><strong>Q2.</strong> Pour le besoin (a), la masse du vantail varie de 80 kg à 400 kg et la température de −10 °C à 40 °C. Normaliser (min-max) le vantail de 160 kg et la température de 15 °C. Pourquoi cette opération est-elle utile avant un algorithme des plus proches voisins ?</div>
+  <div class="q"><strong>Q3.</strong> Sur l'échantillon de températures \(\{-5, 5, 10, 30\}\) °C, calculer la moyenne et l'écart type, puis standardiser la valeur 30 °C.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> (a) Données étiquetées (courant mesuré), sortie continue → <strong>supervisé, régression</strong>. (b) Étiquettes fournies par les techniciens, sortie « obstacle / pas d'obstacle » → <strong>supervisé, classification binaire</strong>. (c) Pas d'étiquette → <strong>non supervisé</strong>, partitionnement. (d) Agent, actions, récompense → <strong>apprentissage par renforcement</strong> (hors programme : aucun algorithme n'en est exigible).</p>
+    <p><strong>Q2.</strong> \(m' = \dfrac{160 - 80}{400 - 80} = \dfrac{80}{320} = 0{,}25\) et \(T' = \dfrac{15 - (-10)}{40 - (-10)} = \dfrac{25}{50} = 0{,}5\). Sans normalisation, un écart de masse (centaines de kg) pèserait bien plus qu'un écart de température (dizaines de °C) dans la distance euclidienne : la température serait pratiquement ignorée. Après normalisation, les deux grandeurs varient dans \([0,1]\) et contribuent comparablement.</p>
+    <p><strong>Q3.</strong> \(\mu = \dfrac{-5 + 5 + 10 + 30}{4} = 10\ \text{°C}\). Écarts : \(-15, -5, 0, 20\) ; \(\sigma^2 = \dfrac{225 + 25 + 0 + 400}{4} = 162{,}5\ \text{°C}^2\), \(\sigma \approx 12{,}75\ \text{°C}\). Valeur standardisée : \(\dfrac{30 - 10}{12{,}75} \approx 1{,}57\) (sans unité).</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 02</span><span class="diff">★ ☆ ☆</span>
+  <h3>Contrôle visuel de pièces usinées</h3>
+  <div class="statement">Une caméra en sortie de machine-outil alimente un classifieur qui déclare chaque pièce « défectueuse » (classe positive) ou « conforme ». Sur un lot de test de 500 pièces, 40 sont réellement défectueuses. Le classifieur en signale 50 comme défectueuses, dont 32 le sont vraiment.</div>
+  <div class="q"><strong>Q1.</strong> Construire la matrice de confusion (lignes : classe réelle ; colonnes : classe prédite).</div>
+  <div class="q"><strong>Q2.</strong> Calculer l'exactitude, la précision, le rappel et la spécificité.</div>
+  <div class="q"><strong>Q3.</strong> Un « classifieur » qui déclarerait toutes les pièces conformes aurait quelle exactitude ? quel rappel ? Conclure sur l'indicateur pertinent ici.</div>
+  <div class="q"><strong>Q4.</strong> Le score de sortie du classifieur est comparé à un seuil de 0,5. Que se passe-t-il qualitativement si l'on abaisse ce seuil à 0,3 ?</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> VP = 32 (défectueuses détectées) ; FN = 40 − 32 = 8 (défectueuses manquées) ; FP = 50 − 32 = 18 (conformes rebutées à tort) ; VN = 460 − 18 = 442. Matrice : \(\begin{pmatrix} 32 &amp; 8 \\ 18 &amp; 442 \end{pmatrix}\), de somme 500 ✓.</p>
+    <p><strong>Q2.</strong> Exactitude \(= \dfrac{32 + 442}{500} = 0{,}948\). Précision \(= \dfrac{32}{32 + 18} = 0{,}64\). Rappel \(= \dfrac{32}{32 + 8} = 0{,}80\). Spécificité \(= \dfrac{442}{442 + 18} \approx 0{,}961\).</p>
+    <p><strong>Q3.</strong> Exactitude \(= 460/500 = 0{,}92\), presque aussi bonne… mais rappel \(= 0\) : aucune pièce défectueuse n'est détectée. Les classes étant déséquilibrées (8 % de défauts), l'exactitude est trompeuse ; l'indicateur décisif est le <strong>rappel</strong> (une pièce défectueuse livrée coûte cher), à surveiller avec la précision (taux de fausses alarmes, qui coûte en rebuts).</p>
+    <p><strong>Q4.</strong> Plus de pièces dépassent le seuil et sont déclarées défectueuses : le rappel augmente (moins de défauts manqués), mais les faux positifs aussi : la spécificité diminue et, en général, la précision aussi. Le choix du seuil traduit le compromis économique entre défauts livrés et rebuts inutiles.</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 03</span><span class="diff">★ ★ ☆</span>
+  <h3>Étalonnage d'un capteur d'effort</h3>
+  <div class="statement">Pour étalonner une jauge d'extensométrie montée en pont, on applique des efforts connus \(F\) et l'on relève la tension de sortie \(u\) du conditionneur :</div>
+  <div style="overflow-x:auto"><table style="border-collapse:collapse;font-size:.85rem;margin:.5rem 0;text-align:center">
+    <tr><th style="padding:.3rem .6rem;border:1px solid var(--grid);background:var(--paper-dark)">\(F\) (N)</th><td style="padding:.3rem .6rem;border:1px solid var(--grid)">0</td><td style="padding:.3rem .6rem;border:1px solid var(--grid)">10</td><td style="padding:.3rem .6rem;border:1px solid var(--grid)">20</td><td style="padding:.3rem .6rem;border:1px solid var(--grid)">30</td><td style="padding:.3rem .6rem;border:1px solid var(--grid)">40</td></tr>
+    <tr><th style="padding:.3rem .6rem;border:1px solid var(--grid);background:var(--paper-dark)">\(u\) (mV)</th><td style="padding:.3rem .6rem;border:1px solid var(--grid)">0,1</td><td style="padding:.3rem .6rem;border:1px solid var(--grid)">2,1</td><td style="padding:.3rem .6rem;border:1px solid var(--grid)">3,9</td><td style="padding:.3rem .6rem;border:1px solid var(--grid)">6,2</td><td style="padding:.3rem .6rem;border:1px solid var(--grid)">7,7</td></tr>
+  </table></div>
+  <div class="q"><strong>Q1.</strong> On cherche un modèle \(\hat{u} = w_0 + w_1 F\). Calculer par les moindres carrés \(\hat{w}_1\) (sensibilité du capteur) et \(\hat{w}_0\) (décalage de zéro).</div>
+  <div class="q"><strong>Q2.</strong> Calculer les résidus, vérifier leur somme, puis la RMSE et le coefficient \(R^2\). Conclure.</div>
+  <div class="q"><strong>Q3.</strong> En service, le conditionneur affiche 5,0 mV. Quel effort en déduit-on ? Peut-on utiliser le modèle pour un effort de 200 N ?</div>
+  <div class="q"><strong>Q4.</strong> Écrire une fonction Python <code class="code-inline">moindres_carres(x, y)</code> qui reçoit deux listes de même longueur et renvoie le couple \((\hat{w}_0, \hat{w}_1)\), sans bibliothèque.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> \(\bar{F} = 20\ \text{N}\), \(\bar{u} = 20{,}0/5 = 4{,}0\ \text{mV}\). Écarts \(F_i - \bar{F}\) : \(-20, -10, 0, 10, 20\) ; écarts \(u_i - \bar{u}\) : \(-3{,}9 ; -1{,}9 ; -0{,}1 ; 2{,}2 ; 3{,}7\).</p>
+    <div class="formula">$$\hat{w}_1 = \frac{78 + 19 + 0 + 22 + 74}{400 + 100 + 0 + 100 + 400} = \frac{193}{1000} = 0{,}193\ \text{mV/N}$$</div>
+    <div class="formula">$$\hat{w}_0 = \bar{u} - \hat{w}_1\bar{F} = 4{,}0 - 3{,}86 = 0{,}14\ \text{mV}$$</div>
+    <p><strong>Q2.</strong> Prédictions : 0,14 ; 2,07 ; 4,00 ; 5,93 ; 7,86 mV. Résidus : \(-0{,}04 ; 0{,}03 ; -0{,}10 ; 0{,}27 ; -0{,}16\), de somme nulle ✓ (propriété des moindres carrés avec biais). Somme des carrés : 0,111 mV², donc MSE = 0,0222 mV² et RMSE ≈ 0,15 mV, soit environ 0,8 N d'erreur sur l'effort (0,15/0,193). \(\sum(u_i - \bar{u})^2 = 37{,}36\), d'où \(R^2 = 1 - 0{,}111/37{,}36 \approx 0{,}997\). Le modèle linéaire décrit très bien le capteur sur la plage étudiée ; l'erreur est de l'ordre de 2 % de l'étendue de mesure.</p>
+    <p><strong>Q3.</strong> On inverse le modèle :</p>
+    <div class="formula">$$F = \frac{u - \hat{w}_0}{\hat{w}_1} = \frac{5{,}0 - 0{,}14}{0{,}193} \approx 25{,}2\ \text{N}$$</div>
+    <p>Pour 200 N, on sortirait du domaine d'étalonnage (0 à 40 N) : rien ne garantit la linéarité (saturation du conditionneur, plasticité de la jauge). Il faut étalonner sur toute la plage d'utilisation — un modèle appris ne vaut que dans le domaine de ses données.</p>
+    <p><strong>Q4.</strong></p>
+<pre class="codeblock"><span class="kw">def</span> moindres_carres(x, y):
+    n = len(x)
+    mx, my = sum(x) / n, sum(y) / n
+    num = sum((x[i] - mx) * (y[i] - my) <span class="kw">for</span> i <span class="kw">in</span> range(n))
+    den = sum((x[i] - mx)**2 <span class="kw">for</span> i <span class="kw">in</span> range(n))
+    w1 = num / den
+    <span class="kw">return</span> my - w1 * mx, w1</pre>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 04</span><span class="diff">★ ★ ☆</span>
+  <h3>Plan d'expériences et régression multiple</h3>
+  <div class="statement">On étudie la puissance électrique \(P\) absorbée par un convoyeur en fonction de la masse transportée \(m\) (20 kg ou 60 kg) et de la vitesse de bande \(v\) (0,5 m/s ou 1,5 m/s). On utilise des variables codées \(x_1 = (m - 40)/20\) et \(x_2 = (v - 1)/0{,}5\), qui valent \(\pm 1\). Quatre essais donnent :</div>
+  <div style="overflow-x:auto"><table style="border-collapse:collapse;font-size:.85rem;margin:.5rem 0;text-align:center">
+    <tr style="background:var(--paper-dark)"><th style="padding:.3rem .6rem;border:1px solid var(--grid)">Essai</th><th style="padding:.3rem .6rem;border:1px solid var(--grid)">\(x_1\)</th><th style="padding:.3rem .6rem;border:1px solid var(--grid)">\(x_2\)</th><th style="padding:.3rem .6rem;border:1px solid var(--grid)">\(P\) (W)</th></tr>
+    <tr><td style="padding:.3rem .6rem;border:1px solid var(--grid)">1</td><td style="padding:.3rem .6rem;border:1px solid var(--grid)">−1</td><td style="padding:.3rem .6rem;border:1px solid var(--grid)">−1</td><td style="padding:.3rem .6rem;border:1px solid var(--grid)">120</td></tr>
+    <tr><td style="padding:.3rem .6rem;border:1px solid var(--grid)">2</td><td style="padding:.3rem .6rem;border:1px solid var(--grid)">+1</td><td style="padding:.3rem .6rem;border:1px solid var(--grid)">−1</td><td style="padding:.3rem .6rem;border:1px solid var(--grid)">180</td></tr>
+    <tr><td style="padding:.3rem .6rem;border:1px solid var(--grid)">3</td><td style="padding:.3rem .6rem;border:1px solid var(--grid)">−1</td><td style="padding:.3rem .6rem;border:1px solid var(--grid)">+1</td><td style="padding:.3rem .6rem;border:1px solid var(--grid)">200</td></tr>
+    <tr><td style="padding:.3rem .6rem;border:1px solid var(--grid)">4</td><td style="padding:.3rem .6rem;border:1px solid var(--grid)">+1</td><td style="padding:.3rem .6rem;border:1px solid var(--grid)">+1</td><td style="padding:.3rem .6rem;border:1px solid var(--grid)">268</td></tr>
+  </table></div>
+  <div class="q"><strong>Q1.</strong> On cherche \(\hat{P} = w_0 + w_1x_1 + w_2x_2\). Écrire la matrice augmentée \(X\), calculer \(X^{\mathsf T}X\), puis \(\hat{w} = (X^{\mathsf T}X)^{-1}X^{\mathsf T}y\).</div>
+  <div class="q"><strong>Q2.</strong> Calculer les prédictions, les résidus, la RMSE et \(R^2\).</div>
+  <div class="q"><strong>Q3.</strong> Les résidus présentent un motif régulier. Quelle caractéristique supplémentaire proposer ? Calculer son poids et conclure.</div>
+  <div class="q"><strong>Q4.</strong> Prédire la puissance pour \(m = 50\ \text{kg}\) et \(v = 1\ \text{m/s}\). Écrire les deux lignes numpy réalisant le calcul de Q1.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> Les colonnes de \(X\) sont orthogonales deux à deux (plan factoriel complet), donc \(X^{\mathsf T}X\) est diagonale :</p>
+    <div class="formula">$$X = \begin{pmatrix} 1 &amp; -1 &amp; -1 \\ 1 &amp; 1 &amp; -1 \\ 1 &amp; -1 &amp; 1 \\ 1 &amp; 1 &amp; 1 \end{pmatrix}$$</div>
+    <div class="formula">$$X^{\mathsf T}X = 4\,I_3 \qquad \hat{w} = \frac{1}{4}X^{\mathsf T}y$$</div>
+    <p>\(\hat{w}_0 = \frac{120 + 180 + 200 + 268}{4} = 192\ \text{W}\) ; \(\hat{w}_1 = \frac{-120 + 180 - 200 + 268}{4} = 32\ \text{W}\) ; \(\hat{w}_2 = \frac{-120 - 180 + 200 + 268}{4} = 42\ \text{W}\). Le biais est la moyenne des essais ; chaque poids est la demi-variation de \(P\) quand le facteur passe de son niveau bas à son niveau haut (effet du facteur).</p>
+    <p><strong>Q2.</strong> Prédictions : 118, 182, 202, 266 W. Résidus : \(+2, -2, -2, +2\) ; somme des carrés 16, MSE = 4 W², <strong>RMSE = 2 W</strong>. \(\bar{P} = 192\) et \(\sum(P_i - \bar{P})^2 = 11\,168\) (écarts \(-72, -12, 8, 76\)), d'où \(R^2 = 1 - 16/11\,168 \approx 0{,}9986\).</p>
+    <p><strong>Q3.</strong> Le signe des résidus \((+,-,-,+)\) est exactement celui du produit \(x_1x_2\) : il manque un terme d'<strong>interaction</strong> (l'effet de la vitesse dépend de la charge). Avec la colonne \(x_1x_2 = (1, -1, -1, 1)\), toujours orthogonale aux autres : \(\hat{w}_3 = \frac{120 - 180 - 200 + 268}{4} = 2\ \text{W}\), les autres poids restent inchangés et les résidus deviennent nuls. Avec 4 paramètres pour 4 essais, l'ajustement parfait n'a toutefois rien de probant : il faudrait des essais supplémentaires pour valider le modèle.</p>
+    <p><strong>Q4.</strong> \(x_1 = (50 - 40)/20 = 0{,}5\), \(x_2 = 0\) : \(\hat{P} = 192 + 32\times0{,}5 + 0 = 208\ \text{W}\) (le terme d'interaction est nul car \(x_2 = 0\)). En numpy :</p>
+<pre class="codeblock">X = np.array([[1, -1, -1], [1, 1, -1], [1, -1, 1], [1, 1, 1]])
+w = np.linalg.solve(X.T @ X, X.T @ np.array([120, 180, 200, 268]))   <span class="cmt"># [192. 32. 42.]</span></pre>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 05</span><span class="diff">★ ★ ☆</span>
+  <h3>Convergence d'une descente de gradient</h3>
+  <div class="statement">On ajuste un modèle sans biais \(\hat{y} = w\,x\) sur trois données \((x_i, y_i)\) : \((1 ; 2{,}1)\), \((2 ; 3{,}9)\), \((3 ; 6{,}0)\), en minimisant \(J(w) = \frac{1}{N}\sum_{i=1}^{N}(y_i - w x_i)^2\). On note \(S = \frac{1}{N}\sum x_i^2\) et \(C = \frac{1}{N}\sum x_iy_i\).</div>
+  <div class="q"><strong>Q1.</strong> Calculer \(J'(w)\) en fonction de \(S\) et \(C\). En déduire le minimiseur \(w^*\) et sa valeur numérique.</div>
+  <div class="q"><strong>Q2.</strong> On applique \(w_{p+1} = w_p - \eta J'(w_p)\). Montrer que \(w_{p+1} - w^* = (1 - 2\eta S)(w_p - w^*)\). À quelle condition sur \(\eta\) la méthode converge-t-elle ? Quelle valeur de \(\eta\) donne la convergence en une itération ?</div>
+  <div class="q"><strong>Q3.</strong> Avec \(w_0 = 0\) et \(\eta = 0{,}05\), calculer \(w_1\) et \(w_2\), puis le nombre d'itérations nécessaires pour que \(|w_p - w^*| \lt 0{,}01\). Que se passe-t-il avec \(\eta = 0{,}25\) ?</div>
+  <div class="q"><strong>Q4.</strong> <em>(Hors programme, pour aller plus loin.)</em> Écrire la mise à jour de la version stochastique (un exemple \(i\) par pas), décrite en fin de cours.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong></p>
+    <div class="formula">$$J'(w) = -\frac{2}{N}\sum_{i} x_i(y_i - wx_i) = 2(Sw - C)$$</div>
+    <p>nul pour \(w^* = C/S\). Ici \(S = \frac{1 + 4 + 9}{3} = \frac{14}{3} \approx 4{,}667\) et \(C = \frac{2{,}1 + 7{,}8 + 18{,}0}{3} = 9{,}3\), donc \(w^* = 27{,}9/14 \approx 1{,}993\). \(J'' = 2S \gt 0\) : c'est bien un minimum.</p>
+    <p><strong>Q2.</strong> \(w_{p+1} = w_p - 2\eta(Sw_p - C)\) ; comme \(C = Sw^*\) :</p>
+    <div class="formula">$$w_{p+1} - w^* = (w_p - w^*) - 2\eta S\,(w_p - w^*) = (1 - 2\eta S)(w_p - w^*)$$</div>
+    <p>L'erreur est une suite géométrique de raison \(q = 1 - 2\eta S\) : convergence si et seulement si \(|q| \lt 1\), soit \(0 \lt \eta \lt 1/S \approx 0{,}214\) (on retrouve la condition \(\eta \lt 2/\lambda_{\max}\) du complément du §6, avec \(J'' = 2S\)). Pour \(\eta = 1/(2S) \approx 0{,}107\), \(q = 0\) : convergence en un pas (cas idéal propre au quadratique 1D).</p>
+    <p><strong>Q3.</strong> \(q = 1 - 2\times0{,}05\times\frac{14}{3} \approx 0{,}533\). Puis :</p>
+    <div class="formula">$$w_1 = 0 - 0{,}05\times2\,(0 - 9{,}3) = 0{,}93$$</div>
+    <div class="formula">$$w_2 = 0{,}93 - 0{,}1\,(4{,}667\times0{,}93 - 9{,}3) \approx 1{,}426$$</div>
+    <p>Comme \(|w_p - w^*| = 0{,}533^p\times1{,}993\), il faut \(p \gt \dfrac{\ln(0{,}01/1{,}993)}{\ln 0{,}533} \approx 8{,}4\), soit <strong>9 itérations</strong>. Avec \(\eta = 0{,}25 \gt 1/S\) : \(q \approx -1{,}33\), l'erreur change de signe et croît en valeur absolue à chaque pas : la suite <strong>diverge en oscillant</strong>.</p>
+    <p><strong>Q4.</strong> Pour l'exemple \(i\) tiré au hasard, la perte élémentaire \((y_i - wx_i)^2\) a pour dérivée \(-2x_i(y_i - wx_i)\), d'où \(w \leftarrow w + 2\eta\,x_i\,(y_i - w x_i)\). Une époque enchaîne les 3 exemples, dans un ordre mélangé à chaque époque.</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 06</span><span class="diff">★ ★ ☆</span>
+  <h3>Diagnostic de moteurs par les plus proches voisins</h3>
+  <div class="statement">On classe l'état d'un motoréducteur (S : sain, D : défaillant) à partir de sa température de carter \(T\) (°C) et de sa vitesse vibratoire efficace \(v\) (mm/s). Données d'entraînement :</div>
+  <div style="overflow-x:auto"><table style="border-collapse:collapse;font-size:.85rem;margin:.5rem 0;text-align:center">
+    <tr style="background:var(--paper-dark)"><th style="padding:.3rem .5rem;border:1px solid var(--grid)"></th><th style="padding:.3rem .5rem;border:1px solid var(--grid)">A</th><th style="padding:.3rem .5rem;border:1px solid var(--grid)">B</th><th style="padding:.3rem .5rem;border:1px solid var(--grid)">C</th><th style="padding:.3rem .5rem;border:1px solid var(--grid)">D</th><th style="padding:.3rem .5rem;border:1px solid var(--grid)">E</th><th style="padding:.3rem .5rem;border:1px solid var(--grid)">F</th><th style="padding:.3rem .5rem;border:1px solid var(--grid)">G</th><th style="padding:.3rem .5rem;border:1px solid var(--grid)">H</th></tr>
+    <tr><th style="padding:.3rem .5rem;border:1px solid var(--grid);background:var(--paper-dark)">\(T\) (°C)</th><td style="padding:.3rem .5rem;border:1px solid var(--grid)">50</td><td style="padding:.3rem .5rem;border:1px solid var(--grid)">58</td><td style="padding:.3rem .5rem;border:1px solid var(--grid)">62</td><td style="padding:.3rem .5rem;border:1px solid var(--grid)">66</td><td style="padding:.3rem .5rem;border:1px solid var(--grid)">48</td><td style="padding:.3rem .5rem;border:1px solid var(--grid)">75</td><td style="padding:.3rem .5rem;border:1px solid var(--grid)">88</td><td style="padding:.3rem .5rem;border:1px solid var(--grid)">92</td></tr>
+    <tr><th style="padding:.3rem .5rem;border:1px solid var(--grid);background:var(--paper-dark)">\(v\) (mm/s)</th><td style="padding:.3rem .5rem;border:1px solid var(--grid)">1,2</td><td style="padding:.3rem .5rem;border:1px solid var(--grid)">1,8</td><td style="padding:.3rem .5rem;border:1px solid var(--grid)">1,5</td><td style="padding:.3rem .5rem;border:1px solid var(--grid)">2,2</td><td style="padding:.3rem .5rem;border:1px solid var(--grid)">6,0</td><td style="padding:.3rem .5rem;border:1px solid var(--grid)">5,4</td><td style="padding:.3rem .5rem;border:1px solid var(--grid)">2,5</td><td style="padding:.3rem .5rem;border:1px solid var(--grid)">6,4</td></tr>
+    <tr><th style="padding:.3rem .5rem;border:1px solid var(--grid);background:var(--paper-dark)">État</th><td style="padding:.3rem .5rem;border:1px solid var(--grid)">S</td><td style="padding:.3rem .5rem;border:1px solid var(--grid)">S</td><td style="padding:.3rem .5rem;border:1px solid var(--grid)">S</td><td style="padding:.3rem .5rem;border:1px solid var(--grid)">S</td><td style="padding:.3rem .5rem;border:1px solid var(--grid)">D</td><td style="padding:.3rem .5rem;border:1px solid var(--grid)">D</td><td style="padding:.3rem .5rem;border:1px solid var(--grid)">D</td><td style="padding:.3rem .5rem;border:1px solid var(--grid)">D</td></tr>
+  </table></div>
+  <div class="statement">On veut classer un nouveau moteur M : \(T = 60\ \text{°C}\), \(v = 5{,}0\ \text{mm/s}\).</div>
+  <div class="q"><strong>Q1.</strong> Sans mise à l'échelle, déterminer les 3 plus proches voisins de M (distance euclidienne sur \((T, v)\)) et la classe prédite.</div>
+  <div class="q"><strong>Q2.</strong> Normaliser les deux caractéristiques (min et max des données d'entraînement), puis reprendre la question avec \(k = 3\). Expliquer la différence.</div>
+  <div class="q"><strong>Q3.</strong> Toujours après normalisation, quelle classe obtient-on avec \(k = 1\) ? avec \(k = 5\) ? Comment choisir \(k\) de façon rigoureuse ?</div>
+  <div class="q"><strong>Q4.</strong> Le jeu réel comporte 20 000 relevés de 6 caractéristiques. Estimer le nombre d'opérations d'une prédiction et commenter pour une implantation sur l'automate de la machine.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> Distances brutes : B ≈ 3,77 ; C ≈ 4,03 ; D ≈ 6,62 ; A ≈ 10,7 ; E ≈ 12,0 ; F ≈ 15,0 ; G ≈ 28,1 ; H ≈ 32,0. Les 3 plus proches sont B, C, D, tous sains → M serait déclaré <strong>sain</strong>. Les écarts de température (quelques dizaines de °C) dominent les écarts de vibration (quelques mm/s).</p>
+    <p><strong>Q2.</strong> \(T' = (T - 48)/44\) et \(v' = (v - 1{,}2)/5{,}2\). Coordonnées normalisées (arrondies) : A (0,05 ; 0,00), B (0,23 ; 0,12), C (0,32 ; 0,06), D (0,41 ; 0,19), E (0,00 ; 0,92), F (0,61 ; 0,81), G (0,91 ; 0,25), H (1,00 ; 1,00), et M (0,27 ; 0,73). Distances : E ≈ 0,33 ; F ≈ 0,35 ; D ≈ 0,56 ; B ≈ 0,62 ; C ≈ 0,67 ; A ≈ 0,77 ; H ≈ 0,78 ; G ≈ 0,80. Les 3 voisins E (D), F (D), D (S) donnent <strong>défaillant</strong> par 2 voix contre 1. Une fois les échelles égalisées, le niveau vibratoire élevé de M — signature typique d'un roulement dégradé — est enfin pris en compte. La conclusion dépendait d'un simple choix d'unités : la mise à l'échelle est indispensable.</p>
+    <p><strong>Q3.</strong> \(k = 1\) : voisin E → défaillant. \(k = 5\) : E, F (D) contre D, B, C (S) → sain. La prédiction est sensible à \(k\) car M se trouve entre les deux groupes. Pour choisir \(k\), on évalue plusieurs valeurs impaires sur un jeu de <strong>validation</strong> (ou par validation croisée) avec l'indicateur du cahier des charges (ici plutôt le rappel de la classe D), et on retient la meilleure ; le test final sert ensuite à estimer la performance.</p>
+    <p><strong>Q4.</strong> Par relevé : 6 soustractions, 6 multiplications, 5 additions ≈ 17 opérations, soit environ \(3{,}4\times10^5\) opérations pour 20 000 relevés, plus la sélection des \(k\) plus petites distances (de l'ordre de \(N\) comparaisons), et le stockage de \(1{,}2\times10^5\) valeurs. C'est faisable sur un PC mais lourd pour un automate à chaque cycle ; un modèle paramétrique compact (régression logistique, petit réseau) serait plus adapté à l'embarqué.</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 07</span><span class="diff">★ ★ ★</span>
+  <h3>Neurone, softmax et un pas de rétropropagation</h3>
+  <div class="statement">On étudie quelques calculs élémentaires dans un réseau de neurones de tri de colis.</div>
+  <div class="q"><strong>Q1.</strong> Le réseau prend 4 caractéristiques (longueur, largeur, hauteur, masse), a deux couches cachées de 8 neurones et une sortie à 3 classes (petit, moyen, volumineux). Compter les poids et les biais.</div>
+  <div class="q"><strong>Q2.</strong> Pour un colis, la couche de sortie produit \(z = (2 ; 1 ; -1)\). Calculer les probabilités softmax, la classe prédite, puis la perte d'entropie croisée si la vraie classe est « petit » (1ʳᵉ), puis si c'est « moyen ».</div>
+  <div class="q"><strong>Q3.</strong> Montrer que \(\sigma'(z) = \sigma(z)\left(1 - \sigma(z)\right)\) pour la sigmoïde \(\sigma(z) = 1/(1 + e^{-z})\).</div>
+  <div class="q"><strong>Q4.</strong> Un neurone sigmoïde isolé, de poids \(w = (0{,}5 ; -0{,}25)\) et de biais \(b = 0\), reçoit \(x = (1 ; 2)\) d'étiquette \(y = 1\), avec la perte d'entropie croisée binaire (on admet \(\partial L/\partial z = \hat{y} - y\)). Calculer \(\hat{y}\), le gradient par rapport à \(w\) et \(b\), effectuer un pas avec \(\eta = 0{,}1\) et vérifier que la prédiction s'améliore.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> Entrée → 1ʳᵉ cachée : \(4\times8 = 32\) poids + 8 biais ; 1ʳᵉ → 2ᵉ cachée : \(8\times8 = 64\) poids + 8 biais ; 2ᵉ cachée → sortie : \(8\times3 = 24\) poids + 3 biais. Total : 120 poids et 19 biais, soit <strong>139 paramètres</strong> (\(5\times8 + 9\times8 + 9\times3 = 139\)).</p>
+    <p><strong>Q2.</strong> \(e^2 \approx 7{,}389\), \(e^1 \approx 2{,}718\), \(e^{-1} \approx 0{,}368\), somme ≈ 10,475. Probabilités : \(\hat{y} \approx (0{,}705 ; 0{,}259 ; 0{,}035)\), de somme 1 ✓ ; classe prédite : <strong>petit</strong>. Si la vraie classe est « petit » : \(L = -\ln 0{,}705 \approx 0{,}35\). Si c'est « moyen » : \(L = -\ln 0{,}259 \approx 1{,}35\), perte bien plus forte puisque le réseau s'est trompé.</p>
+    <p><strong>Q3.</strong> On dérive puis on factorise :</p>
+    <div class="formula">$$\sigma'(z) = \frac{e^{-z}}{(1 + e^{-z})^2} = \frac{1}{1 + e^{-z}}\cdot\frac{e^{-z}}{1 + e^{-z}}$$</div>
+    <div class="formula">$$\text{et}\quad \frac{e^{-z}}{1 + e^{-z}} = 1 - \frac{1}{1 + e^{-z}} = 1 - \sigma(z)$$</div>
+    <p>D'où le résultat ; en particulier \(\sigma'(0) = 1/4\) est le maximum de \(\sigma'\).</p>
+    <p><strong>Q4.</strong> \(z = 0{,}5\times1 - 0{,}25\times2 + 0 = 0\), donc \(\hat{y} = \sigma(0) = 0{,}5\). \(\partial L/\partial z = 0{,}5 - 1 = -0{,}5\) ; \(\partial L/\partial w_j = (\partial L/\partial z)\,x_j\), soit \(\nabla_w L = (-0{,}5 ; -1)\) et \(\partial L/\partial b = -0{,}5\). Mise à jour (\(w \leftarrow w - \eta\nabla_w L\)) :</p>
+    <div class="formula">$$w = (0{,}5 + 0{,}05\ ;\ -0{,}25 + 0{,}1) = (0{,}55\ ;\ -0{,}15) \qquad b = 0{,}05$$</div>
+    <p>Nouvelle sortie : \(z = 0{,}55 - 0{,}30 + 0{,}05 = 0{,}30\), \(\hat{y} = \sigma(0{,}3) \approx 0{,}574\) : la prédiction s'est rapprochée de l'étiquette 1 et la perte est passée de \(-\ln 0{,}5 \approx 0{,}69\) à \(-\ln \sigma(0{,}3) \approx 0{,}55\).</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 08</span><span class="diff">★ ★ ☆</span>
+  <h3>Régler le seuil d'un détecteur de défaut de roulement</h3>
+  <div class="statement">Un réseau de neurones à sortie sigmoïde estime, à partir de mesures vibratoires, la probabilité qu'un roulement soit défectueux (classe positive, étiquette 1). Sur un jeu de <em>validation</em> de 12 roulements, on obtient les scores suivants :</div>
+  <div style="overflow-x:auto"><table style="border-collapse:collapse;font-size:.85rem;margin:.5rem 0;text-align:center">
+    <tr><th style="padding:.3rem .5rem;border:1px solid var(--grid);background:var(--paper-dark)">Score</th><td style="padding:.3rem .5rem;border:1px solid var(--grid)">0,92</td><td style="padding:.3rem .5rem;border:1px solid var(--grid)">0,81</td><td style="padding:.3rem .5rem;border:1px solid var(--grid)">0,64</td><td style="padding:.3rem .5rem;border:1px solid var(--grid)">0,45</td><td style="padding:.3rem .5rem;border:1px solid var(--grid)">0,28</td><td style="padding:.3rem .5rem;border:1px solid var(--grid)">0,55</td><td style="padding:.3rem .5rem;border:1px solid var(--grid)">0,38</td><td style="padding:.3rem .5rem;border:1px solid var(--grid)">0,22</td><td style="padding:.3rem .5rem;border:1px solid var(--grid)">0,15</td><td style="padding:.3rem .5rem;border:1px solid var(--grid)">0,10</td><td style="padding:.3rem .5rem;border:1px solid var(--grid)">0,06</td><td style="padding:.3rem .5rem;border:1px solid var(--grid)">0,03</td></tr>
+    <tr><th style="padding:.3rem .5rem;border:1px solid var(--grid);background:var(--paper-dark)">Classe réelle</th><td style="padding:.3rem .5rem;border:1px solid var(--grid)">1</td><td style="padding:.3rem .5rem;border:1px solid var(--grid)">1</td><td style="padding:.3rem .5rem;border:1px solid var(--grid)">1</td><td style="padding:.3rem .5rem;border:1px solid var(--grid)">1</td><td style="padding:.3rem .5rem;border:1px solid var(--grid)">1</td><td style="padding:.3rem .5rem;border:1px solid var(--grid)">0</td><td style="padding:.3rem .5rem;border:1px solid var(--grid)">0</td><td style="padding:.3rem .5rem;border:1px solid var(--grid)">0</td><td style="padding:.3rem .5rem;border:1px solid var(--grid)">0</td><td style="padding:.3rem .5rem;border:1px solid var(--grid)">0</td><td style="padding:.3rem .5rem;border:1px solid var(--grid)">0</td><td style="padding:.3rem .5rem;border:1px solid var(--grid)">0</td></tr>
+  </table></div>
+  <div class="statement">Un roulement est déclaré défectueux si son score est supérieur ou égal au seuil \(s\). Le cahier des charges impose un rappel d'au moins 0,8 (un roulement défectueux non détecté peut détruire la broche) ; parmi les seuils qui le respectent, on veut la meilleure spécificité (chaque alerte coûte un démontage).</div>
+  <div class="q"><strong>Q1.</strong> Pour \(s = 0{,}5\), construire la matrice de confusion (lignes : classe réelle ; colonnes : classe prédite) et calculer exactitude, précision, rappel et spécificité.</div>
+  <div class="q"><strong>Q2.</strong> Calculer le rappel et la spécificité pour \(s = 0{,}7\), \(s = 0{,}3\) et \(s = 0{,}25\). Commenter l'évolution quand le seuil baisse.</div>
+  <div class="q"><strong>Q3.</strong> Quel seuil retenir ? Pourquoi le choisit-on sur le jeu de validation plutôt que sur le jeu de test ? Quelle réserve inspire un jeu de 12 exemples ?</div>
+  <div class="q"><strong>Q4.</strong> Écrire une fonction Python <code class="code-inline">indicateurs(score, y, seuil)</code>, sans bibliothèque, qui renvoie le couple (rappel, spécificité).</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> Scores ≥ 0,5 : 0,92 ; 0,81 ; 0,64 (défectueux) et 0,55 (sain). VP = 3, FN = 2 (0,45 et 0,28 manqués), FP = 1, VN = 6. Matrice \(\begin{pmatrix} 3 &amp; 2 \\ 1 &amp; 6 \end{pmatrix}\), de somme 12. Exactitude \(9/12 = 0{,}75\) ; précision \(3/4 = 0{,}75\) ; rappel \(3/5 = 0{,}6\) ; spécificité \(6/7 \approx 0{,}86\). Le rappel ne respecte pas le cahier des charges.</p>
+    <p><strong>Q2.</strong> \(s = 0{,}7\) : VP = 2, FP = 0 → rappel 0,4, spécificité 1. \(s = 0{,}3\) : VP = 4 (0,28 reste manqué), FP = 2 (0,55 et 0,38) → rappel 0,8, spécificité \(5/7 \approx 0{,}71\). \(s = 0{,}25\) : VP = 5, FP = 2 → rappel 1, spécificité \(5/7\). Quand le seuil baisse, des exemples passent du côté positif : le rappel ne peut qu'augmenter (ou rester égal), la spécificité ne peut que diminuer (ou rester égale). C'est le compromis du §4 du cours.</p>
+    <p><strong>Q3.</strong> Tout seuil de \(]0{,}22\,;\,0{,}28]\) donne rappel 1 et spécificité \(5/7\) ; un seuil de \(]0{,}28\,;\,0{,}38]\) donne rappel 0,8 et la <em>même</em> spécificité. On retient donc un seuil d'environ 0,25 : meilleur rappel à spécificité égale. Le seuil est un paramètre de classification réglé pendant la mise au point : le choisir sur le test ferait du test une donnée d'apprentissage, et sa performance ne serait plus une estimation honnête de celle en service. Avec 12 exemples, un seul roulement de plus ou de moins fait varier le rappel de 0,2 : le réglage est fragile, il faudrait un jeu de validation bien plus grand (ou une validation croisée).</p>
+    <p><strong>Q4.</strong></p>
+<pre class="codeblock"><span class="kw">def</span> indicateurs(score, y, seuil):
+    VP = FN = FP = VN = 0
+    <span class="kw">for</span> s, e <span class="kw">in</span> zip(score, y):
+        pred = 1 <span class="kw">if</span> s >= seuil <span class="kw">else</span> 0
+        <span class="kw">if</span> e == 1 <span class="kw">and</span> pred == 1: VP += 1
+        <span class="kw">elif</span> e == 1: FN += 1
+        <span class="kw">elif</span> pred == 1: FP += 1
+        <span class="kw">else</span>: VN += 1
+    <span class="kw">return</span> VP / (VP + FN), VN / (VN + FP)</pre>
+    <p>Appelée avec les données de l'énoncé pour les seuils 0,7 ; 0,5 ; 0,3 ; 0,25, elle renvoie (0,4 ; 1,0), (0,6 ; 0,857), (0,8 ; 0,714) et (1,0 ; 0,714).</p>
+  </div>
+</div>
+
+<div class="exo concours">
+  <span class="num">CONCOURS PT</span><span class="diff">★ ★ ★</span>
+  <h3>Maintenance prédictive d'une électrobroche</h3>
+  <div class="exo-source">
+    Exercice <strong>original</strong> au format des épreuves de Sciences industrielles PT (thème <em>intelligence artificielle</em>). Pour t'entraîner sur les sujets réellement tombés :
+    <a href="https://www.banquept.fr/rubrique38.html" target="_blank" rel="noopener">annales officielles de la Banque PT</a>.
+  </div>
+  <div class="statement">
+    Un fabricant de centres d'usinage veut anticiper les défaillances des électrobroches (moteurs de broche à grande vitesse). Pour chaque broche, l'automate enregistre toutes les heures quatre grandeurs : vitesse de rotation \(N\) (tr/min, de 2000 à 24 000), puissance \(P\) (kW, de 0,5 à 15), température du palier avant \(T\) (°C, de 25 à 80) et vitesse vibratoire efficace \(v\) (mm/s, de 0,3 à 8). Deux objectifs sont visés : estimer l'<strong>usure</strong> des roulements (en µm), et prédire une <strong>défaillance dans les 48 h</strong> (oui / non).
+  </div>
+
+  <p class="exo-part">Partie A — Analyse du problème et prétraitement</p>
+  <div class="q"><strong>A1.</strong> Pour chacun des deux objectifs, préciser le type d'apprentissage et de problème.</div>
+  <div class="q"><strong>A2.</strong> Justifier la nécessité d'une mise à l'échelle des quatre caractéristiques. Écrire une fonction Python <code class="code-inline">standardiser(X_entr, X_test)</code> (tableaux numpy, une colonne par caractéristique) qui renvoie les deux tableaux standardisés, en respectant les bonnes pratiques.</div>
+  <div class="q"><strong>A3.</strong> Pour la défaillance, on dispose de 2000 relevés étiquetés, séparés en 70 % / 30 %. Combien d'exemples d'entraînement et de test ? Pourquoi mélanger les relevés avant la séparation ?</div>
+
+  <p class="exo-part">Partie B — Régression de l'usure (la régularisation Ridge du modèle M3 et la question B3 sont hors programme, pour aller plus loin : voir la fin du cours)</p>
+  <div class="statement">La mesure de l'usure impose de démonter la broche : on ne dispose que de 60 mesures (42 en entraînement, 18 en test), d'usures comprises entre 5 et 45 µm et d'écart type ≈ 10,4 µm. Trois modèles sont comparés :</div>
+  <div style="overflow-x:auto"><table style="border-collapse:collapse;font-size:.82rem;margin:.5rem 0;text-align:center">
+    <tr style="background:var(--paper-dark)"><th style="padding:.3rem .5rem;border:1px solid var(--grid)">Modèle</th><th style="padding:.3rem .5rem;border:1px solid var(--grid)">Nb de coefficients</th><th style="padding:.3rem .5rem;border:1px solid var(--grid)">RMSE entraînement</th><th style="padding:.3rem .5rem;border:1px solid var(--grid)">RMSE test</th><th style="padding:.3rem .5rem;border:1px solid var(--grid)">\(R^2\) test</th></tr>
+    <tr><td style="padding:.3rem .5rem;border:1px solid var(--grid)">M1 : linéaire en \(N, P, T, v\)</td><td style="padding:.3rem .5rem;border:1px solid var(--grid)">?</td><td style="padding:.3rem .5rem;border:1px solid var(--grid)">4,2 µm</td><td style="padding:.3rem .5rem;border:1px solid var(--grid)">4,9 µm</td><td style="padding:.3rem .5rem;border:1px solid var(--grid)">0,78</td></tr>
+    <tr><td style="padding:.3rem .5rem;border:1px solid var(--grid)">M2 : polynôme de degré ≤ 3</td><td style="padding:.3rem .5rem;border:1px solid var(--grid)">?</td><td style="padding:.3rem .5rem;border:1px solid var(--grid)">0,8 µm</td><td style="padding:.3rem .5rem;border:1px solid var(--grid)">13 µm</td><td style="padding:.3rem .5rem;border:1px solid var(--grid)">?</td></tr>
+    <tr><td style="padding:.3rem .5rem;border:1px solid var(--grid)">M3 : M2 + régularisation Ridge</td><td style="padding:.3rem .5rem;border:1px solid var(--grid)">idem M2</td><td style="padding:.3rem .5rem;border:1px solid var(--grid)">3,6 µm</td><td style="padding:.3rem .5rem;border:1px solid var(--grid)">4,1 µm</td><td style="padding:.3rem .5rem;border:1px solid var(--grid)">0,85</td></tr>
+  </table></div>
+  <div class="q"><strong>B1.</strong> Combien de coefficients (biais compris) comportent M1 et M2 ? (M2 utilise tous les monômes en \(N, P, T, v\) de degré inférieur ou égal à 3.)</div>
+  <div class="q"><strong>B2.</strong> Estimer le \(R^2\) de test de M2 (on assimilera la variance des usures de test à \(10{,}4^2\)). Que vaudraient la RMSE et le \(R^2\) d'un modèle prédisant toujours l'usure moyenne ? Diagnostiquer chacun des trois modèles.</div>
+  <div class="q"><strong>B3.</strong> <em>(Hors programme, pour aller plus loin.)</em> La perte Ridge s'écrit ici \(J_R(w) = \lVert y - Xw\rVert^2 + \lambda\lVert w\rVert^2\) (données centrées). Établir l'expression de son minimiseur et montrer que la matrice à inverser l'est toujours pour \(\lambda \gt 0\).</div>
+  <div class="q"><strong>B4.</strong> Comment le coefficient \(\lambda\) de M3 doit-il être choisi ? Pourquoi pas sur les 18 données de test ?</div>
+
+  <p class="exo-part">Partie C — Classification de la défaillance</p>
+  <div class="statement">Sur les 600 relevés de test, 60 correspondent à une défaillance effective dans les 48 h (classe positive). Le cahier des charges impose un <strong>rappel ≥ 0,90</strong> (une défaillance non anticipée immobilise la machine plusieurs jours) et une <strong>spécificité ≥ 0,90</strong> (chaque alerte déclenche une intervention coûteuse). Deux classifieurs donnent :</div>
+  <div style="overflow-x:auto"><table style="border-collapse:collapse;font-size:.82rem;margin:.5rem 0;text-align:center">
+    <tr style="background:var(--paper-dark)"><th style="padding:.3rem .5rem;border:1px solid var(--grid)">Classifieur</th><th style="padding:.3rem .5rem;border:1px solid var(--grid)">VP</th><th style="padding:.3rem .5rem;border:1px solid var(--grid)">FN</th><th style="padding:.3rem .5rem;border:1px solid var(--grid)">FP</th><th style="padding:.3rem .5rem;border:1px solid var(--grid)">VN</th></tr>
+    <tr><td style="padding:.3rem .5rem;border:1px solid var(--grid)">k-NN (\(k = 5\))</td><td style="padding:.3rem .5rem;border:1px solid var(--grid)">45</td><td style="padding:.3rem .5rem;border:1px solid var(--grid)">15</td><td style="padding:.3rem .5rem;border:1px solid var(--grid)">27</td><td style="padding:.3rem .5rem;border:1px solid var(--grid)">513</td></tr>
+    <tr><td style="padding:.3rem .5rem;border:1px solid var(--grid)">Réseau de neurones</td><td style="padding:.3rem .5rem;border:1px solid var(--grid)">55</td><td style="padding:.3rem .5rem;border:1px solid var(--grid)">5</td><td style="padding:.3rem .5rem;border:1px solid var(--grid)">40</td><td style="padding:.3rem .5rem;border:1px solid var(--grid)">500</td></tr>
+  </table></div>
+  <div class="q"><strong>C1.</strong> Calculer, pour chaque classifieur, l'exactitude, la précision, le rappel et la spécificité. Lequel respecte le cahier des charges ? Commenter le classement selon l'exactitude seule.</div>
+  <div class="q"><strong>C2.</strong> Le réseau comporte 4 entrées, deux couches cachées de 16 et 8 neurones (ReLU) et un neurone de sortie. Quelle activation et quelle fonction de perte choisir pour la sortie ? Compter les paramètres.</div>
+  <div class="q"><strong>C3.</strong> La sortie du réseau est comparée à un seuil de 0,5. Quel serait l'effet d'un seuil de 0,3 sur les indicateurs ? Dans quel cas serait-il judicieux ?</div>
+  <div class="q"><strong>C4.</strong> Compléter le script : <code class="code-inline">clf = MLPClassifier(hidden_layer_sizes=......, activation=......, max_iter=2000)</code>, puis les lignes d'apprentissage, de prédiction sur le test et d'affichage de la matrice de confusion.</div>
+
+  <p class="exo-part">Partie D — Implantation embarquée</p>
+  <div class="q"><strong>D1.</strong> L'inférence doit tourner dans l'automate de la machine. Comparer, en ordre de grandeur, le nombre d'opérations et la mémoire nécessaires à une prédiction par le k-NN (1400 exemples d'entraînement) et par le réseau de neurones. Conclure.</div>
+
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>A1.</strong> Usure : grandeur continue mesurée → apprentissage <strong>supervisé</strong>, <strong>régression</strong>. Défaillance dans les 48 h : étiquette oui / non → <strong>supervisé</strong>, <strong>classification binaire</strong>.</p>
+    <p><strong>A2.</strong> Les grandeurs ont des unités et des ordres de grandeur très différents (\(N \sim 10^4\), \(v \sim 1\)) : sans mise à l'échelle, \(N\) dominerait les distances du k-NN et déséquilibrerait la descente de gradient du réseau. Les moyennes et écarts types se calculent sur l'entraînement seul et s'appliquent aux deux tableaux :</p>
+<pre class="codeblock"><span class="kw">def</span> standardiser(X_entr, X_test):
+    mu = X_entr.mean(axis=0)          <span class="cmt"># moyenne de chaque colonne (entraînement)</span>
+    sigma = X_entr.std(axis=0)        <span class="cmt"># écart type de chaque colonne (entraînement)</span>
+    <span class="kw">return</span> (X_entr - mu) / sigma, (X_test - mu) / sigma</pre>
+    <p><strong>A3.</strong> 1400 exemples d'entraînement et 600 de test. Les relevés étant horaires, ils sont rangés chronologiquement (et par broche) : sans mélange, le test ne contiendrait que les dernières heures ou d'autres broches, avec des conditions différentes de celles de l'entraînement, ce qui biaiserait l'évaluation. <em>Nuance :</em> deux relevés horaires consécutifs d'une même broche se ressemblent beaucoup ; après un mélange au hasard, le test contient des « quasi-copies » de relevés d'entraînement et la performance est surestimée. Pour juger la capacité à prédire des broches ou des périodes nouvelles, on réserve plutôt certaines broches (ou les dernières semaines) au test.</p>
+    <p><strong>B1.</strong> M1 : 4 poids + 1 biais = <strong>5</strong> coefficients. M2 : le nombre de monômes de degré au plus 3 en 4 variables est \(\binom{4+3}{3} = 35\) (1 constant, 4 de degré 1, 10 de degré 2, 20 de degré 3), soit <strong>35</strong> coefficients — presque autant que les 42 données d'entraînement.</p>
+    <p><strong>B2.</strong></p>
+    <div class="formula">$$R^2 \approx 1 - \frac{13^2}{10{,}4^2} = 1 - \frac{169}{108} \approx -0{,}56$$</div>
+    <p>Le modèle constant égal à la moyenne aurait une RMSE ≈ écart type ≈ 10,4 µm et \(R^2 = 0\) : M2 fait <strong>pire</strong> qu'une simple moyenne. Diagnostic : M2 est en <strong>surapprentissage</strong> massif (RMSE de 0,8 µm en entraînement contre 13 µm en test, 35 coefficients pour 42 données). M1 est correct mais un peu limité (erreurs voisines en entraînement et en test, ≈ 12 % de l'étendue : léger sous-apprentissage possible). M3 est le meilleur : la régularisation a supprimé le surapprentissage tout en gardant la richesse du polynôme (RMSE de test ≈ 4 µm, soit 10 % de l'étendue, \(R^2 = 0{,}85\)).</p>
+    <p><strong>B3.</strong> \(\nabla J_R(w) = -2X^{\mathsf T}(y - Xw) + 2\lambda w\), nul si et seulement si \((X^{\mathsf T}X + \lambda I)\,w = X^{\mathsf T}y\), d'où</p>
+    <div class="formula">$$\hat{w}_R = \left(X^{\mathsf T}X + \lambda I\right)^{-1}X^{\mathsf T}y$$</div>
+    <p>Pour tout \(u \neq 0\) :</p>
+    <div class="formula">$$u^{\mathsf T}(X^{\mathsf T}X + \lambda I)\,u = \lVert Xu\rVert^2 + \lambda\lVert u\rVert^2 \geq \lambda\lVert u\rVert^2 \gt 0$$</div>
+    <p>La matrice symétrique \(X^{\mathsf T}X + \lambda I\) est donc définie positive (ses valeurs propres sont celles de \(X^{\mathsf T}X\), positives, augmentées de \(\lambda\)), donc inversible — même si \(X^{\mathsf T}X\) ne l'est pas (plus de coefficients que de données, colonnes liées). \(J_R\) étant convexe, ce point critique est le minimum global.</p>
+    <p><strong>B4.</strong> On teste plusieurs valeurs de \(\lambda\) (par exemple de \(10^{-3}\) à \(10^{3}\) en progression géométrique) par <strong>validation croisée</strong> sur les 42 données d'entraînement, et on retient celle qui minimise l'erreur de validation. Choisir \(\lambda\) sur le test reviendrait à apprendre sur le test : sa RMSE ne serait plus une estimation honnête de l'erreur en service (d'autant plus avec seulement 18 données).</p>
+    <p><strong>C1.</strong> k-NN : exactitude \(= \frac{45 + 513}{600} = 0{,}93\) ; précision \(= \frac{45}{72} \approx 0{,}63\) ; rappel \(= \frac{45}{60} = 0{,}75\) ; spécificité \(= \frac{513}{540} = 0{,}95\). Réseau : exactitude \(= \frac{55 + 500}{600} \approx 0{,}925\) ; précision \(= \frac{55}{95} \approx 0{,}58\) ; rappel \(= \frac{55}{60} \approx 0{,}92\) ; spécificité \(= \frac{500}{540} \approx 0{,}93\). Seul le <strong>réseau</strong> respecte les deux exigences (le k-NN manque 25 % des défaillances). Pourtant, son exactitude est légèrement inférieure : avec 90 % de relevés négatifs (un modèle répondant toujours « non » aurait 0,90 d'exactitude), l'exactitude n'est pas le bon critère de choix.</p>
+    <p><strong>C2.</strong> Sortie : un neurone <strong>sigmoïde</strong> (probabilité de défaillance), perte d'<strong>entropie croisée binaire</strong>. Paramètres :</p>
+    <div class="formula">$$(4+1)\times16 + (16+1)\times8 + (8+1)\times1 = 80 + 136 + 9 = 225$$</div>
+    <p><strong>C3.</strong> Davantage de relevés seraient déclarés positifs : le rappel augmenterait (moins de défaillances manquées), la spécificité baisserait, et la précision en général aussi (plus d'interventions inutiles). Ce serait judicieux si le coût d'une défaillance non anticipée devenait prépondérant (machine critique dans la production), à condition que la spécificité reste au-dessus de 0,90.</p>
+    <p><strong>C4.</strong></p>
+<pre class="codeblock"><span class="kw">from</span> sklearn.neural_network <span class="kw">import</span> MLPClassifier
+<span class="kw">from</span> sklearn.metrics <span class="kw">import</span> confusion_matrix
+clf = MLPClassifier(hidden_layer_sizes=(16, 8), activation=<span class="str">'relu'</span>, max_iter=2000)
+clf.fit(X_entr, y_entr)                   <span class="cmt"># apprentissage (données standardisées)</span>
+y_pred = clf.predict(X_test)              <span class="cmt"># inférence sur le test</span>
+print(confusion_matrix(y_test, y_pred))   <span class="cmt"># [[VN, FP], [FN, VP]] avec 0 = pas de défaillance</span></pre>
+    <p><strong>D1.</strong> k-NN : pour chacun des 1400 exemples, 4 soustractions, 4 multiplications et 3 additions (pas de racine nécessaire), soit ≈ \(1{,}5\times10^4\) opérations, plus la recherche des 5 plus petites distances (≈ \(10^4\) comparaisons) ; il faut stocker les 1400 × 4 valeurs et les 1400 étiquettes (7000 nombres). Réseau : \(4\times16 + 16\times8 + 8\times1 = 200\) multiplications et autant d'additions, 25 biais et 25 activations, soit ≈ 450 opérations, et 225 paramètres à stocker. Le réseau est environ <strong>50 fois moins coûteux</strong> en calcul et 30 fois moins en mémoire : il est bien plus adapté à une exécution embarquée à chaque cycle de l'automate, en plus de satisfaire le cahier des charges.</p>
+  </div>
+</div>
+
+</div>
+</template>

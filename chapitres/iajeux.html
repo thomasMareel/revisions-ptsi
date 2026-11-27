@@ -1,0 +1,1697 @@
+<!-- Chapitre « Algorithmes pour l'IA et les jeux » (iajeux) : contenu des onglets Cours, Méthodes et Exercices, chargé à l'ouverture du chapitre.
+     On l'édite ici, puis : node tools/chapitres.js (docs/chargement-chapitres.md). -->
+<template class="pan-tpl" data-panneau="iaj-cours">
+<div class="course-section">
+  <div class="sec-num">AU PROGRAMME · INFORMATIQUE</div>
+  <h2>Ce que le programme officiel demande</h2>
+  <div class="intro">Ce chapitre couvre la partie 3.3 du programme d'informatique commune, « Algorithmique pour l'intelligence artificielle et l'étude des jeux », étudiée au 3ᵉ semestre. Il réinvestit les listes, les dictionnaires (chapitre <em>Dictionnaires et programmation dynamique</em>) et les graphes (chapitre <em>Graphes : parcours et plus courts chemins</em>). Le chapitre de SI <em>Intelligence artificielle — apprentissage automatique</em> traite aussi les \(k\) plus proches voisins (§7 de ce chapitre), avec des bibliothèques ; ici, on écrit les algorithmes soi-même, avec les seuls éléments de Python du programme.</div>
+  <div class="reveal" onclick="this.classList.toggle('open')">
+    <span class="label">Programme officiel</span>
+    <span class="prompt">Les notions exigibles, dans l'ordre du chapitre (toutes du 3ᵉ semestre)</span>
+    <div class="content">
+      <ul>
+        <li><strong>Apprentissage supervisé et non supervisé</strong> : le lien de chacun des deux algorithmes avec l'un de ces deux cadres (§1).</li>
+        <li><strong>Algorithme des \(k\) plus proches voisins</strong> avec la distance euclidienne (§2).</li>
+        <li><strong>Matrice de confusion</strong> (§3).</li>
+        <li><strong>Algorithme des \(k\)-moyennes</strong> (§4) ; on observe des convergences vers des minima locaux, la démonstration de la convergence n'est pas au programme (§5).</li>
+        <li><strong>Jeux d'accessibilité à deux joueurs sur un graphe</strong> biparti (états contrôlés par \(J_1\), états contrôlés par \(J_2\)) ; trois types d'états finals : gagnants pour \(J_1\), gagnants pour \(J_2\), match nul (§6).</li>
+        <li><strong>Stratégie</strong> (sans mémoire), <strong>stratégie gagnante</strong>, <strong>position gagnante</strong> (§7).</li>
+        <li><strong>Calcul des attracteurs</strong> pour déterminer les positions gagnantes ; construction de stratégies gagnantes (§8).</li>
+        <li><strong>Notion d'heuristique</strong> ; <strong>algorithme minimax avec une heuristique</strong> (§9, §10).</li>
+      </ul>
+      <p>« La connaissance dans le détail des algorithmes de cette section n'est pas un attendu du programme » : il faut en comprendre les idées pour les réinvestir dans des situations où les énoncés guident la modélisation et l'écriture du code. Le code n'utilise que les éléments de Python de l'annexe du programme ; les fonctions de modules (<span class="code-inline">sqrt</span>, <span class="code-inline">random.sample</span>) sont documentées là où elles servent.</p>
+      <p>Hors programme : l'élagage alpha-bêta, la preuve de la convergence des \(k\)-moyennes, les stratégies avec mémoire (voir la dernière section).</p>
+    </div>
+  </div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§1 · APPRENDRE À PARTIR D'EXEMPLES</div>
+  <h2>Données, étiquettes et distance</h2>
+  <div class="intro">Un robot d'exploration doit reconnaître le sol sur lequel il roule (asphalte, gravier ou herbe) pour adapter sa vitesse. Plutôt que d'écrire des règles à la main, on lui fournit des exemples : des mesures prises sur des sols connus. Les deux algorithmes d'apprentissage du programme partent de tels nuages de points.</div>
+
+  <div class="def-box">
+    <ul>
+      <li>Une <strong>donnée</strong> est un point \(x = (x_1, \dots, x_d)\) de \(\mathbb{R}^d\) : ses coordonnées sont des <strong>caractéristiques</strong> mesurées. En Python, un tuple de flottants ; un jeu de \(N\) données est une liste <span class="code-inline">X</span> de \(N\) tuples.</li>
+      <li>En <strong>apprentissage supervisé</strong>, chaque donnée d'apprentissage est accompagnée de son <strong>étiquette</strong> (sa classe) : liste <span class="code-inline">Y</span>, où <span class="code-inline">Y[i]</span> est la classe de <span class="code-inline">X[i]</span>. Le but est de prédire la classe d'une donnée nouvelle (§2, §3).</li>
+      <li>En <strong>apprentissage non supervisé</strong>, on ne dispose que des données, sans étiquettes. Le but est d'y découvrir une structure, par exemple des groupes de points proches (§4, §5).</li>
+    </ul>
+  </div>
+  <p>Sur l'exemple du robot, chaque mesure a deux caractéristiques, l'intensité des vibrations et le glissement des roues, déjà ramenées entre 0 et 10 :</p>
+  <pre class="codeblock"><span class="cmt"># caractéristiques mesurées (vibration, glissement), ramenées entre 0 et 10</span>
+X = [(0.5, 1.6), (5.3, 2.9), (1.2, 1.1), (3.2, 1.5), (3.1, 0.6), (3.9, 4.1),
+     (0.4, 1.1), (3.5, 0.8), (0.1, 0.5), (2.9, 3.2), (5.4, 2.1), (8.6, 3.3),
+     (3.7, 3.1), (7.2, 4.5), (8.6, 3.5), (5.4, 2.6), (7.7, 4.3), (6.7, 4.8),
+     (5.9, 3.9), (6.8, 3.1), (5.9, 7.3), (4.2, 8.2), (4.0, 5.4), (6.4, 4.4),
+     (4.0, 9.0), (3.8, 8.2), (4.1, 8.5), (2.3, 7.6), (7.1, 6.9), (5.2, 7.7)]
+Y = [<span class="str">"asphalte"</span>] * 10 + [<span class="str">"gravier"</span>] * 10 + [<span class="str">"herbe"</span>] * 10     <span class="cmt"># étiquettes</span></pre>
+  <p>La notion de proximité entre deux données est mesurée par la <strong>distance euclidienne</strong> :</p>
+  <div class="formula" data-nom="Distance euclidienne">$$d(p, q) = \sqrt{\sum_{k=1}^{d} (p_k - q_k)^2}$$</div>
+  <pre class="codeblock"><span class="kw">from</span> math <span class="kw">import</span> sqrt
+
+<span class="kw">def</span> distance(p: tuple, q: tuple) -&gt; float:
+    <span class="str">"""Distance euclidienne entre deux points de même dimension."""</span>
+    s = 0
+    <span class="kw">for</span> k <span class="kw">in</span> range(len(p)):
+        s = s + (p[k] - q[k]) ** 2
+    <span class="kw">return</span> sqrt(s)</pre>
+  <div class="notice"><strong>Documentation</strong> : <span class="code-inline">from math import sqrt</span> donne la fonction racine carrée, <span class="code-inline">sqrt(x)</span> pour \(x \geq 0\).</div>
+  <div class="method-box"><strong>Exemple — distance entre deux mesures</strong>
+    <ol>
+      <li>Entre \(p = (6{,}2\ ;\ 4{,}4)\) et \(q = (5{,}9\ ;\ 3{,}9)\) : \((6{,}2 - 5{,}9)^2 + (4{,}4 - 3{,}9)^2 = 0{,}09 + 0{,}25 = 0{,}34\).</li>
+      <li>D'où \(d(p, q) = \sqrt{0{,}34} \approx 0{,}58\).</li>
+      <li>Pour seulement <em>comparer</em> des distances, la racine est inutile : on peut comparer les carrés, ce qui évite un calcul.</li>
+    </ol>
+  </div>
+  <div class="notice"><strong>Attention aux échelles</strong> : si une caractéristique varie de 0 à 1 000 et une autre de 0 à 1, la première décide seule de la distance. On ramène d'abord chaque caractéristique à une même échelle (mise à l'échelle, détaillée dans le chapitre de SI <em>Intelligence artificielle</em>, §3 ; voir aussi l'exercice 3).</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§2 · L'ALGORITHME DES k PLUS PROCHES VOISINS</div>
+  <h2>Prédire la classe d'une donnée par celle de ses voisines</h2>
+  <div class="intro">Une donnée nouvelle ressemble probablement aux exemples qui lui sont proches. L'algorithme des \(k\) plus proches voisins (\(k\)-NN, de l'anglais <em>nearest neighbors</em>) applique cette idée telle quelle : il garde tous les exemples et les consulte à chaque prédiction.</div>
+
+  <div class="def-box"><strong>Algorithme des \(k\) plus proches voisins.</strong> Données : un jeu étiqueté \((X, Y)\) de \(N\) exemples, un entier \(k\) entre 1 et \(N\), une donnée \(x\).
+    <ol>
+      <li>Calculer les \(N\) distances \(d(x, X_i)\).</li>
+      <li>Retenir les \(k\) exemples les plus proches de \(x\) : ses \(k\) plus proches voisins.</li>
+      <li>Prédire l'étiquette la plus fréquente parmi ces \(k\) voisins (vote majoritaire).</li>
+    </ol>
+  </div>
+  <p>Pour sélectionner les \(k\) plus proches, il suffit de \(k\) étapes du tri par sélection (chapitre <em>Algorithmes de tri</em>) sur la liste des couples (distance, indice). Le vote compte les étiquettes dans un dictionnaire ; en cas d'égalité, il garde l'étiquette apparue la première, c'est-à-dire celle du voisin le plus proche parmi les ex æquo.</p>
+  <pre class="codeblock"><span class="kw">def</span> k_plus_proches(X: list, x: tuple, k: int) -&gt; list:
+    <span class="str">"""Indices des k points de X les plus proches de x (1 &lt;= k &lt;= len(X))."""</span>
+    d = [(distance(X[i], x), i) <span class="kw">for</span> i <span class="kw">in</span> range(len(X))]
+    <span class="kw">for</span> a <span class="kw">in</span> range(k):                  <span class="cmt"># k étapes d'un tri par sélection</span>
+        m = a
+        <span class="kw">for</span> b <span class="kw">in</span> range(a + 1, len(d)):
+            <span class="kw">if</span> d[b] &lt; d[m]:             <span class="cmt"># comparaison des couples (distance, indice)</span>
+                m = b
+        d[a], d[m] = d[m], d[a]
+    <span class="kw">return</span> [d[a][1] <span class="kw">for</span> a <span class="kw">in</span> range(k)]   <span class="cmt"># du plus proche au moins proche</span>
+
+<span class="kw">def</span> vote(etiquettes: list):
+    <span class="str">"""Étiquette la plus fréquente ; en cas d'égalité, celle qui apparaît</span>
+<span class="str">    la première (les étiquettes sont rangées du plus proche au moins proche)."""</span>
+    nb = {}
+    <span class="kw">for</span> e <span class="kw">in</span> etiquettes:
+        <span class="kw">if</span> e <span class="kw">in</span> nb:
+            nb[e] = nb[e] + 1
+        <span class="kw">else</span>:
+            nb[e] = 1
+    gagnante = etiquettes[0]
+    <span class="kw">for</span> e <span class="kw">in</span> etiquettes:
+        <span class="kw">if</span> nb[e] &gt; nb[gagnante]:
+            gagnante = e
+    <span class="kw">return</span> gagnante
+
+<span class="kw">def</span> knn(X: list, Y: list, x: tuple, k: int):
+    <span class="str">"""Classe prédite pour x par les k plus proches voisins de (X, Y)."""</span>
+    voisins = k_plus_proches(X, x, k)
+    <span class="kw">return</span> vote([Y[i] <span class="kw">for</span> i <span class="kw">in</span> voisins])</pre>
+  <div class="notice"><strong>Documentation</strong> : deux tuples se comparent dans l'ordre <strong>lexicographique</strong> : d'abord la première composante, puis la deuxième en cas d'égalité. Ainsi <span class="code-inline">(0.5, 7) &lt; (0.5, 9)</span> : à distance égale, le voisin de plus petit indice passe devant.</div>
+
+  <div class="method-box"><strong>Exemple — classer la mesure \(x = (6{,}2\ ;\ 4{,}4)\)</strong>
+    <pre class="codeblock">x = (6.2, 4.4)                       <span class="cmt"># mesures d'un nouveau terrain</span>
+k_plus_proches(X, x, 5)              <span class="cmt"># [23, 18, 17, 13, 19]</span>
+knn(X, Y, x, 1)                      <span class="cmt"># 'herbe' : le seul point 23</span>
+knn(X, Y, x, 5)                      <span class="cmt"># 'gravier' : 4 voix contre 1</span></pre>
+    <div><table>
+<tr><th>rang</th><th>indice</th><th>point</th><th>distance à \(x\)</th><th>étiquette</th></tr>
+<tr><td>1</td><td>23</td><td>(6,4 ; 4,4)</td><td>0,20</td><td>herbe</td></tr>
+<tr><td>2</td><td>18</td><td>(5,9 ; 3,9)</td><td>0,58</td><td>gravier</td></tr>
+<tr><td>3</td><td>17</td><td>(6,7 ; 4,8)</td><td>0,64</td><td>gravier</td></tr>
+<tr><td>4</td><td>13</td><td>(7,2 ; 4,5)</td><td>1,00</td><td>gravier</td></tr>
+<tr><td>5</td><td>19</td><td>(6,8 ; 3,1)</td><td>1,43</td><td>gravier</td></tr>
+</table></div>
+    <ol>
+      <li>Avec \(k = 1\), on recopie l'étiquette du plus proche voisin, l'exemple 23 : « herbe ».</li>
+      <li>Avec \(k = 5\), le vote donne 4 voix à « gravier » et 1 à « herbe » : « gravier ».</li>
+      <li>L'exemple 23, un point d'herbe isolé au milieu du gravier, est sans doute une mesure atypique (une touffe d'herbe sur un chemin de gravier, un capteur bruité). Avec \(k = 1\), il décide seul ; avec \(k = 5\), il est mis en minorité.</li>
+    </ol>
+  </div>
+  <figure class="schema" style="max-width:345px">
+<svg viewBox="0 0 345 320" role="img" aria-label="Nuage de 30 points de trois classes, asphalte en bas à gauche, gravier en bas à droite, herbe en haut ; un point x en 6,2 et 4,4 avec le cercle de ses 5 plus proches voisins">
+<line x1="34" y1="300" x2="330" y2="300" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<line x1="34" y1="300" x2="34" y2="16" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<line x1="34" y1="300" x2="34" y2="304" class="sk-axis"/>
+<text x="34" y="317" class="lab-muted" text-anchor="middle">0</text>
+<line x1="92" y1="300" x2="92" y2="304" class="sk-axis"/>
+<text x="92" y="317" class="lab-muted" text-anchor="middle">2</text>
+<line x1="150" y1="300" x2="150" y2="304" class="sk-axis"/>
+<text x="150" y="317" class="lab-muted" text-anchor="middle">4</text>
+<line x1="208" y1="300" x2="208" y2="304" class="sk-axis"/>
+<text x="208" y="317" class="lab-muted" text-anchor="middle">6</text>
+<line x1="266" y1="300" x2="266" y2="304" class="sk-axis"/>
+<text x="266" y="317" class="lab-muted" text-anchor="middle">8</text>
+<line x1="324" y1="300" x2="324" y2="304" class="sk-axis"/>
+<text x="324" y="317" class="lab-muted" text-anchor="middle">10</text>
+<line x1="30" y1="244.4" x2="34" y2="244.4" class="sk-axis"/>
+<text x="27" y="248.4" class="lab-muted" text-anchor="end">2</text>
+<line x1="30" y1="188.8" x2="34" y2="188.8" class="sk-axis"/>
+<text x="27" y="192.8" class="lab-muted" text-anchor="end">4</text>
+<line x1="30" y1="133.2" x2="34" y2="133.2" class="sk-axis"/>
+<text x="27" y="137.2" class="lab-muted" text-anchor="end">6</text>
+<line x1="30" y1="77.6" x2="34" y2="77.6" class="sk-axis"/>
+<text x="27" y="81.6" class="lab-muted" text-anchor="end">8</text>
+<line x1="30" y1="22" x2="34" y2="22" class="sk-axis"/>
+<text x="27" y="26" class="lab-muted" text-anchor="end">10</text>
+<text x="328" y="292" class="lab-muted" text-anchor="end">vibration</text>
+<text x="40" y="20" class="lab-muted">glissement</text>
+<circle cx="213.8" cy="177.7" r="41.5" class="sk-dash"/>
+<circle cx="213.8" cy="177.7" r="7.8" class="sk-ink"/>
+<circle cx="48.5" cy="255.5" r="4.6" class="fl-accent-soft"/><circle cx="48.5" cy="255.5" r="4.6" class="sk-accent"/>
+<circle cx="187.7" cy="219.4" r="4.6" class="fl-accent-soft"/><circle cx="187.7" cy="219.4" r="4.6" class="sk-accent"/>
+<circle cx="68.8" cy="269.4" r="4.6" class="fl-accent-soft"/><circle cx="68.8" cy="269.4" r="4.6" class="sk-accent"/>
+<circle cx="126.8" cy="258.3" r="4.6" class="fl-accent-soft"/><circle cx="126.8" cy="258.3" r="4.6" class="sk-accent"/>
+<circle cx="123.9" cy="283.3" r="4.6" class="fl-accent-soft"/><circle cx="123.9" cy="283.3" r="4.6" class="sk-accent"/>
+<circle cx="147.1" cy="186" r="4.6" class="fl-accent-soft"/><circle cx="147.1" cy="186" r="4.6" class="sk-accent"/>
+<circle cx="45.6" cy="269.4" r="4.6" class="fl-accent-soft"/><circle cx="45.6" cy="269.4" r="4.6" class="sk-accent"/>
+<circle cx="135.5" cy="277.8" r="4.6" class="fl-accent-soft"/><circle cx="135.5" cy="277.8" r="4.6" class="sk-accent"/>
+<circle cx="36.9" cy="286.1" r="4.6" class="fl-accent-soft"/><circle cx="36.9" cy="286.1" r="4.6" class="sk-accent"/>
+<circle cx="118.1" cy="211" r="4.6" class="fl-accent-soft"/><circle cx="118.1" cy="211" r="4.6" class="sk-accent"/>
+<rect x="186" y="237" width="9.2" height="9.2" class="fl-accent2-soft"/><rect x="186" y="237" width="9.2" height="9.2" class="sk-accent2"/>
+<rect x="278.8" y="203.7" width="9.2" height="9.2" class="fl-accent2-soft"/><rect x="278.8" y="203.7" width="9.2" height="9.2" class="sk-accent2"/>
+<rect x="136.7" y="209.2" width="9.2" height="9.2" class="fl-accent2-soft"/><rect x="136.7" y="209.2" width="9.2" height="9.2" class="sk-accent2"/>
+<rect x="238.2" y="170.3" width="9.2" height="9.2" class="fl-accent2-soft"/><rect x="238.2" y="170.3" width="9.2" height="9.2" class="sk-accent2"/>
+<rect x="278.8" y="198.1" width="9.2" height="9.2" class="fl-accent2-soft"/><rect x="278.8" y="198.1" width="9.2" height="9.2" class="sk-accent2"/>
+<rect x="186" y="223.1" width="9.2" height="9.2" class="fl-accent2-soft"/><rect x="186" y="223.1" width="9.2" height="9.2" class="sk-accent2"/>
+<rect x="252.7" y="175.9" width="9.2" height="9.2" class="fl-accent2-soft"/><rect x="252.7" y="175.9" width="9.2" height="9.2" class="sk-accent2"/>
+<rect x="223.7" y="162" width="9.2" height="9.2" class="fl-accent2-soft"/><rect x="223.7" y="162" width="9.2" height="9.2" class="sk-accent2"/>
+<rect x="200.5" y="187" width="9.2" height="9.2" class="fl-accent2-soft"/><rect x="200.5" y="187" width="9.2" height="9.2" class="sk-accent2"/>
+<rect x="226.6" y="209.2" width="9.2" height="9.2" class="fl-accent2-soft"/><rect x="226.6" y="209.2" width="9.2" height="9.2" class="sk-accent2"/>
+<polygon points="205.1,91.3 210.4,101 199.8,101" class="fl-green-soft"/><polygon points="205.1,91.3 210.4,101 199.8,101" class="sk-green"/>
+<polygon points="155.8,66.3 161.1,76 150.5,76" class="fl-green-soft"/><polygon points="155.8,66.3 161.1,76 150.5,76" class="sk-green"/>
+<polygon points="150,144.1 155.3,153.8 144.7,153.8" class="fl-green-soft"/><polygon points="150,144.1 155.3,153.8 144.7,153.8" class="sk-green"/>
+<polygon points="219.6,171.9 224.9,181.6 214.3,181.6" class="fl-green-soft"/><polygon points="219.6,171.9 224.9,181.6 214.3,181.6" class="sk-green"/>
+<polygon points="150,44 155.3,53.7 144.7,53.7" class="fl-green-soft"/><polygon points="150,44 155.3,53.7 144.7,53.7" class="sk-green"/>
+<polygon points="144.2,66.3 149.5,76 138.9,76" class="fl-green-soft"/><polygon points="144.2,66.3 149.5,76 138.9,76" class="sk-green"/>
+<polygon points="152.9,57.9 158.2,67.6 147.6,67.6" class="fl-green-soft"/><polygon points="152.9,57.9 158.2,67.6 147.6,67.6" class="sk-green"/>
+<polygon points="100.7,83 106,92.6 95.4,92.6" class="fl-green-soft"/><polygon points="100.7,83 106,92.6 95.4,92.6" class="sk-green"/>
+<polygon points="239.9,102.4 245.2,112.1 234.6,112.1" class="fl-green-soft"/><polygon points="239.9,102.4 245.2,112.1 234.6,112.1" class="sk-green"/>
+<polygon points="184.8,80.2 190.1,89.8 179.5,89.8" class="fl-green-soft"/><polygon points="184.8,80.2 190.1,89.8 179.5,89.8" class="sk-green"/>
+<path d="M 207.8,171.7 L 219.8,183.7 M 207.8,183.7 L 219.8,171.7" class="sk-ink"/>
+<text x="222.8" y="168.7" class="lab-b lab-it">x</text>
+<circle cx="210" cy="18" r="4.6" class="fl-accent-soft"/><circle cx="210" cy="18" r="4.6" class="sk-accent"/>
+<text x="220" y="22.5">asphalte</text>
+<rect x="205.4" y="31.4" width="9.2" height="9.2" class="fl-accent2-soft"/><rect x="205.4" y="31.4" width="9.2" height="9.2" class="sk-accent2"/>
+<text x="220" y="40.5">gravier</text>
+<polygon points="210,48.2 215.3,57.9 204.7,57.9" class="fl-green-soft"/><polygon points="210,48.2 215.3,57.9 204.7,57.9" class="sk-green"/>
+<text x="220" y="58.5">herbe</text>
+</svg>
+<figcaption>Les 30 exemples d’apprentissage (cercles : asphalte, carrés : gravier, triangles : herbe) et une nouvelle mesure \(x = (6{,}2\ ;\ 4{,}4)\). Son plus proche voisin (petit cercle) est un point d’herbe atypique : avec \(k = 1\), on prédit « herbe ». Le cercle pointillé contient les 5 plus proches voisins : 4 graviers et 1 herbe, d’où « gravier » avec \(k = 5\).</figcaption>
+</figure>
+
+  <div class="prop-box"><strong>Coût d'une prédiction.</strong> Calcul des \(N\) distances en dimension \(d\) : \(O(Nd)\) ; sélection des \(k\) plus proches : \(O(kN)\) (ou \(O(N \log N)\) avec un tri complet) ; vote : \(O(k)\) en moyenne avec un dictionnaire. Au total \(O(N(d + k))\) par donnée à classer. Il n'y a pas de phase d'apprentissage : tout le coût est reporté sur la prédiction, et tout le jeu d'exemples doit être conservé.</div>
+  <div class="prop-box"><strong>Choix de \(k\).</strong>
+    <ul>
+      <li>\(k\) petit : la prédiction suit les moindres détails des exemples, y compris le bruit (surapprentissage).</li>
+      <li>\(k\) grand : la prédiction s'uniformise et tend vers la classe la plus nombreuse (sous-apprentissage) ; avec \(k = N\), on prédit toujours la même classe.</li>
+      <li>Avec deux classes, un \(k\) impair évite les égalités de vote. On compare plusieurs valeurs de \(k\) sur des données qui n'ont pas servi d'exemples (§3).</li>
+    </ul>
+  </div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§3 · ÉVALUER UN CLASSIFIEUR : LA MATRICE DE CONFUSION</div>
+  <h2>Compter les bonnes et les mauvaises prédictions</h2>
+  <div class="intro">Pour juger un classifieur, on le teste sur des données dont on connaît la classe, mais qui n'ont pas servi d'exemples : les <strong>données de test</strong>. Tester sur les exemples eux-mêmes serait trompeur (avec \(k = 1\), chaque exemple est son propre plus proche voisin : tout serait juste).</div>
+  <pre class="codeblock">XT = [(5.2, 1.1), (1.6, 2.3), (2.8, 2.6), (4.7, 1.7), (0.8, 1.7), (1.6, 3.8),
+      (7.0, 5.9), (5.1, 2.6), (6.8, 4.1), (8.8, 3.9), (8.2, 2.9), (6.4, 2.4),
+      (3.4, 7.4), (4.5, 7.1), (5.0, 4.6), (4.9, 9.1), (1.9, 8.2), (5.0, 8.9)]
+YT = [<span class="str">"asphalte"</span>] * 6 + [<span class="str">"gravier"</span>] * 6 + [<span class="str">"herbe"</span>] * 6</pre>
+
+  <div class="def-box">Pour \(c\) classes numérotées \(0, \dots, c - 1\), la <strong>matrice de confusion</strong> est la matrice \(M\) de taille \(c \times c\) où \(M_{i,j}\) est le nombre de données de test de classe réelle \(i\) auxquelles le classifieur attribue la classe \(j\). La <strong>diagonale</strong> compte les prédictions justes ; chaque case hors diagonale compte une confusion précise. L'<strong>exactitude</strong> est la proportion de prédictions justes :</div>
+  <div class="formula" data-nom="Exactitude">$$\text{exactitude} = \frac{\sum_{i} M_{i,i}}{\sum_{i,j} M_{i,j}}$$</div>
+  <pre class="codeblock"><span class="kw">def</span> matrice_confusion(reelles: list, predites: list, classes: list) -&gt; list:
+    <span class="str">"""M[i][j] : nombre d'exemples de classe réelle classes[i]</span>
+<span class="str">    auxquels le modèle a attribué la classe classes[j]."""</span>
+    num = {}                          <span class="cmt"># classe -&gt; numéro de ligne / colonne</span>
+    <span class="kw">for</span> i <span class="kw">in</span> range(len(classes)):
+        num[classes[i]] = i
+    c = len(classes)
+    M = [[0] * c <span class="kw">for</span> i <span class="kw">in</span> range(c)]
+    <span class="kw">for</span> k <span class="kw">in</span> range(len(reelles)):
+        i, j = num[reelles[k]], num[predites[k]]
+        M[i][j] = M[i][j] + 1
+    <span class="kw">return</span> M
+
+<span class="kw">def</span> exactitude(M: list) -&gt; float:
+    <span class="str">"""Proportion d'exemples bien classés (diagonale / total)."""</span>
+    bien, total = 0, 0
+    <span class="kw">for</span> i <span class="kw">in</span> range(len(M)):
+        <span class="kw">for</span> j <span class="kw">in</span> range(len(M)):
+            total = total + M[i][j]
+            <span class="kw">if</span> i == j:
+                bien = bien + M[i][j]
+    <span class="kw">return</span> bien / total</pre>
+  <p>On suit la même convention que le chapitre de SI <em>Intelligence artificielle</em> (§4) : la classe réelle en ligne, la classe prédite en colonne. Une ligne a pour somme le nombre de données de test de cette classe ; une colonne, le nombre de prédictions de cette classe. Le dictionnaire <span class="code-inline">num</span> associe à chaque nom de classe son numéro de ligne.</p>
+
+  <div class="method-box"><strong>Exemple — le robot avec \(k = 5\) puis \(k = 1\)</strong>
+    <pre class="codeblock">CLASSES = [<span class="str">"asphalte"</span>, <span class="str">"gravier"</span>, <span class="str">"herbe"</span>]
+predites = [knn(X, Y, x, 5) <span class="kw">for</span> x <span class="kw">in</span> XT]
+M = matrice_confusion(YT, predites, CLASSES)
+<span class="cmt"># [[6, 0, 0], [0, 6, 0], [0, 1, 5]]</span>
+exactitude(M)                         <span class="cmt"># 17 / 18 = 0.944...</span></pre>
+    <p>Avec \(k = 5\) :</p>
+    <div><table>
+<tr><th>réel ↓ / prédit →</th><th>asphalte</th><th>gravier</th><th>herbe</th></tr>
+<tr><td>asphalte</td><td><strong>6</strong></td><td>0</td><td>0</td></tr>
+<tr><td>gravier</td><td>0</td><td><strong>6</strong></td><td>0</td></tr>
+<tr><td>herbe</td><td>0</td><td>1</td><td><strong>5</strong></td></tr>
+</table></div>
+    <p>Avec \(k = 1\) :</p>
+    <div><table>
+<tr><th>réel ↓ / prédit →</th><th>asphalte</th><th>gravier</th><th>herbe</th></tr>
+<tr><td>asphalte</td><td><strong>4</strong></td><td>2</td><td>0</td></tr>
+<tr><td>gravier</td><td>0</td><td><strong>4</strong></td><td>2</td></tr>
+<tr><td>herbe</td><td>0</td><td>1</td><td><strong>5</strong></td></tr>
+</table></div>
+    <ol>
+      <li>Avec \(k = 5\) : 17 prédictions justes sur 18, exactitude \(17/18 \approx 94\,\%\). La seule erreur est un sol d'herbe pris pour du gravier.</li>
+      <li>Avec \(k = 1\) : 13 sur 18, soit 72 %. La matrice montre <em>où</em> sont les erreurs : deux asphaltes pris pour du gravier, deux graviers pour de l'herbe (attirés par les points d'herbe atypiques), une herbe pour du gravier.</li>
+      <li>Pour un robot, confondre de l'herbe avec du gravier est peut-être sans gravité, et prendre du gravier pour de l'asphalte (où il roulerait trop vite) plus grave : la matrice permet de pondérer les erreurs selon leurs conséquences, ce qu'une exactitude seule ne dit pas.</li>
+    </ol>
+  </div>
+  <p>Exactitude sur les 18 données de test selon la valeur de \(k\) :</p>
+  <div><table>
+<tr><th>\(k\)</th><th>1</th><th>3</th><th>5</th><th>7</th><th>9</th><th>15</th><th>25</th></tr>
+<tr><td>bien classés</td><td>13 / 18</td><td>15 / 18</td><td>17 / 18</td><td>17 / 18</td><td>16 / 18</td><td>15 / 18</td><td>14 / 18</td></tr>
+<tr><td>exactitude</td><td>72 %</td><td>83 %</td><td>94 %</td><td>94 %</td><td>89 %</td><td>83 %</td><td>78 %</td></tr>
+</table></div>
+  <p>On retrouve le compromis du §2 : \(k\) trop petit colle aux exemples atypiques, \(k\) trop grand mélange les classes voisines. Ici, \(k = 5\) ou \(k = 7\) conviennent le mieux.</p>
+  <div class="notice"><strong>Pour aller plus loin, en SI</strong> : précision et rappel d'une classe (lus dans sa colonne et dans sa ligne), réglage de \(k\) sur des données de validation distinctes des données de test, piège des classes déséquilibrées : chapitre <em>Intelligence artificielle</em>, §3 et §4.</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§4 · L'ALGORITHME DES k-MOYENNES</div>
+  <h2>Former des groupes sans étiquettes</h2>
+  <div class="intro">Sans étiquettes, on peut encore chercher des groupes de données proches les unes des autres : regrouper des clients aux habitudes voisines, des pièces aux défauts semblables, les couleurs d'une image en une palette réduite. C'est du partitionnement, ou apprentissage non supervisé.</div>
+
+  <div class="def-box">On cherche à répartir \(N\) points en \(k\) <strong>groupes</strong> (\(k\) fixé). À chaque groupe \(j\) on associe un <strong>centre</strong> \(c_j\), et à chaque point \(x_i\) le numéro \(g(i)\) de son groupe. L'<strong>inertie</strong> mesure la dispersion des groupes autour de leurs centres :
+    <div class="formula" data-nom="Inertie d'une partition">$$I = \sum_{i=1}^{N} d\big(x_i,\ c_{g(i)}\big)^2$$</div>
+    Une bonne partition a une petite inertie : des groupes serrés autour de leurs centres.</div>
+  <div class="def-box"><strong>Algorithme des \(k\)-moyennes.</strong> Choisir \(k\) centres initiaux (par exemple \(k\) points du nuage), puis répéter les deux étapes suivantes jusqu'à ce que l'affectation ne change plus :
+    <ol>
+      <li><strong>Affectation</strong> : chaque point rejoint le groupe du centre le plus proche.</li>
+      <li><strong>Mise à jour</strong> : chaque centre devient le <strong>barycentre</strong> (la moyenne, coordonnée par coordonnée) des points de son groupe.</li>
+    </ol>
+  </div>
+  <pre class="codeblock"><span class="kw">def</span> plus_proche(centres: list, p: tuple) -&gt; int:
+    <span class="str">"""Indice du centre le plus proche de p (le premier en cas d'égalité)."""</span>
+    m = 0
+    <span class="kw">for</span> j <span class="kw">in</span> range(1, len(centres)):
+        <span class="kw">if</span> distance(p, centres[j]) &lt; distance(p, centres[m]):
+            m = j
+    <span class="kw">return</span> m
+
+<span class="kw">def</span> barycentre(points: list) -&gt; tuple:
+    <span class="str">"""Moyenne, coordonnée par coordonnée, d'une liste non vide de points."""</span>
+    dim = len(points[0])
+    s = [0] * dim
+    <span class="kw">for</span> p <span class="kw">in</span> points:
+        <span class="kw">for</span> d <span class="kw">in</span> range(dim):
+            s[d] = s[d] + p[d]
+    <span class="kw">return</span> tuple([s[d] / len(points) <span class="kw">for</span> d <span class="kw">in</span> range(dim)])
+
+<span class="kw">def</span> kmoyennes(points: list, centres: list) -&gt; tuple:
+    <span class="str">"""Algorithme des k-moyennes à partir des centres initiaux donnés.</span>
+<span class="str">    Renvoie les centres finaux et le groupe (numéro de centre) de chaque point."""</span>
+    centres = [c <span class="kw">for</span> c <span class="kw">in</span> centres]           <span class="cmt"># on ne modifie pas l'argument</span>
+    groupe = [-1] * len(points)
+    change = <span class="kw">True</span>
+    <span class="kw">while</span> change:
+        change = <span class="kw">False</span>
+        <span class="kw">for</span> i <span class="kw">in</span> range(len(points)):         <span class="cmt"># 1. affectation</span>
+            j = plus_proche(centres, points[i])
+            <span class="kw">if</span> j != groupe[i]:
+                groupe[i] = j
+                change = <span class="kw">True</span>
+        <span class="kw">for</span> j <span class="kw">in</span> range(len(centres)):        <span class="cmt"># 2. mise à jour des centres</span>
+            membres = [points[i] <span class="kw">for</span> i <span class="kw">in</span> range(len(points)) <span class="kw">if</span> groupe[i] == j]
+            <span class="kw">if</span> len(membres) &gt; 0:             <span class="cmt"># un groupe vide garde son centre</span>
+                centres[j] = barycentre(membres)
+    <span class="kw">return</span> centres, groupe
+
+<span class="kw">def</span> inertie(points: list, centres: list, groupe: list) -&gt; float:
+    <span class="str">"""Somme des carrés des distances de chaque point à son centre."""</span>
+    s = 0
+    <span class="kw">for</span> i <span class="kw">in</span> range(len(points)):
+        s = s + distance(points[i], centres[groupe[i]]) ** 2
+    <span class="kw">return</span> s</pre>
+  <div class="notice"><strong>Documentation</strong> : <span class="code-inline">tuple(L)</span> construit le tuple des éléments de la liste <span class="code-inline">L</span>. Un groupe peut se vider (aucun point n'a ce centre pour plus proche) : on garde alors son centre tel quel ; d'autres conventions existent (le supprimer, le replacer au hasard) et un énoncé précise toujours la sienne.</div>
+
+  <div class="method-box"><strong>Exemple — neuf nombres, trois groupes</strong>
+    <p>Données en dimension 1 : 1, 2, 4, 5, 11, 12, 13, 19, 20 ; on part des centres 1, 2 et 4.</p>
+    <pre class="codeblock">P1 = [(1,), (2,), (4,), (5,), (11,), (12,), (13,), (19,), (20,)]
+C, g = kmoyennes(P1, [(1,), (2,), (4,)])
+<span class="cmt"># C == [(1.5,), (4.5,), (15.0,)], inertie 71.0</span>
+C, g = kmoyennes(P1, [(1,), (12,), (20,)])
+<span class="cmt"># C == [(3.0,), (12.0,), (19.5,)], inertie 12.5</span></pre>
+    <div><table>
+<tr><th>centres utilisés</th><th>groupes obtenus</th><th>nouveaux centres</th></tr>
+<tr><td>1 ; 2 ; 4</td><td>{1}<br>{2}<br>{4, 5, 11, 12, 13, 19, 20}</td><td>1 ; 2 ; 12</td></tr>
+<tr><td>1 ; 2 ; 12</td><td>{1}<br>{2, 4, 5}<br>{11, 12, 13, 19, 20}</td><td>1 ; 3,67 ; 15</td></tr>
+<tr><td>1 ; 3,67 ; 15</td><td>{1, 2}<br>{4, 5}<br>{11, 12, 13, 19, 20}</td><td>1,5 ; 4,5 ; 15</td></tr>
+<tr><td>1,5 ; 4,5 ; 15</td><td>{1, 2}<br>{4, 5}<br>{11, 12, 13, 19, 20}</td><td>1,5 ; 4,5 ; 15</td></tr>
+</table></div>
+    <ol>
+      <li>Tour 1 : tous les points à partir de 4 sont plus près de 4 que de 2 ; le troisième centre devient la moyenne de 4, 5, 11, 12, 13, 19, 20, soit \(84/7 = 12\).</li>
+      <li>Tour 2 : 4 et 5 sont maintenant plus près de 2 que de 12 ; centres 1, \(11/3 \approx 3{,}67\), 15.</li>
+      <li>Tour 3 : 2 passe au premier groupe (\(|2 - 1| \lt |2 - 3{,}67|\)) ; centres 1,5 ; 4,5 ; 15. Tour 4 : rien ne change, l'algorithme s'arrête.</li>
+      <li>Inertie finale : \(0{,}5^2 \times 4 + (4^2 + 3^2 + 2^2 + 4^2 + 5^2) = 1 + 70 = 71\).</li>
+    </ol>
+  </div>
+  <figure class="schema" style="max-width:345px">
+<svg viewBox="0 0 345 202" role="img" aria-label="Trois tours de l’algorithme des k-moyennes sur neuf nombres, depuis les centres 1, 2 et 4">
+<line x1="58" y1="30" x2="339.4" y2="30" class="sk-axis"/>
+<text x="48" y="34" class="lab-muted" text-anchor="end">tour 1</text>
+<circle cx="71.4" cy="30" r="4.2" class="fl-accent-soft"/><circle cx="71.4" cy="30" r="4.2" class="sk-accent"/>
+<rect x="80.6" y="25.8" width="8.4" height="8.4" class="fl-accent2-soft"/><rect x="80.6" y="25.8" width="8.4" height="8.4" class="sk-accent2"/>
+<polygon points="111.6,24.8 116.4,33.6 106.8,33.6" class="fl-green-soft"/><polygon points="111.6,24.8 116.4,33.6 106.8,33.6" class="sk-green"/>
+<polygon points="125,24.8 129.8,33.6 120.2,33.6" class="fl-green-soft"/><polygon points="125,24.8 129.8,33.6 120.2,33.6" class="sk-green"/>
+<polygon points="205.4,24.8 210.2,33.6 200.6,33.6" class="fl-green-soft"/><polygon points="205.4,24.8 210.2,33.6 200.6,33.6" class="sk-green"/>
+<polygon points="218.8,24.8 223.6,33.6 214,33.6" class="fl-green-soft"/><polygon points="218.8,24.8 223.6,33.6 214,33.6" class="sk-green"/>
+<polygon points="232.2,24.8 237,33.6 227.4,33.6" class="fl-green-soft"/><polygon points="232.2,24.8 237,33.6 227.4,33.6" class="sk-green"/>
+<polygon points="312.6,24.8 317.4,33.6 307.8,33.6" class="fl-green-soft"/><polygon points="312.6,24.8 317.4,33.6 307.8,33.6" class="sk-green"/>
+<polygon points="326,24.8 330.8,33.6 321.2,33.6" class="fl-green-soft"/><polygon points="326,24.8 330.8,33.6 321.2,33.6" class="sk-green"/>
+<line x1="71.4" y1="15" x2="71.4" y2="23" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<text x="71.4" y="12" class="lab-muted" text-anchor="middle">1</text>
+<line x1="84.8" y1="15" x2="84.8" y2="23" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<text x="84.8" y="12" class="lab-muted" text-anchor="middle">2</text>
+<line x1="111.6" y1="15" x2="111.6" y2="23" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<text x="111.6" y="12" class="lab-muted" text-anchor="middle">4</text>
+<line x1="58" y1="74" x2="339.4" y2="74" class="sk-axis"/>
+<text x="48" y="78" class="lab-muted" text-anchor="end">tour 2</text>
+<circle cx="71.4" cy="74" r="4.2" class="fl-accent-soft"/><circle cx="71.4" cy="74" r="4.2" class="sk-accent"/>
+<rect x="80.6" y="69.8" width="8.4" height="8.4" class="fl-accent2-soft"/><rect x="80.6" y="69.8" width="8.4" height="8.4" class="sk-accent2"/>
+<rect x="107.4" y="69.8" width="8.4" height="8.4" class="fl-accent2-soft"/><rect x="107.4" y="69.8" width="8.4" height="8.4" class="sk-accent2"/>
+<rect x="120.8" y="69.8" width="8.4" height="8.4" class="fl-accent2-soft"/><rect x="120.8" y="69.8" width="8.4" height="8.4" class="sk-accent2"/>
+<polygon points="205.4,68.8 210.2,77.6 200.6,77.6" class="fl-green-soft"/><polygon points="205.4,68.8 210.2,77.6 200.6,77.6" class="sk-green"/>
+<polygon points="218.8,68.8 223.6,77.6 214,77.6" class="fl-green-soft"/><polygon points="218.8,68.8 223.6,77.6 214,77.6" class="sk-green"/>
+<polygon points="232.2,68.8 237,77.6 227.4,77.6" class="fl-green-soft"/><polygon points="232.2,68.8 237,77.6 227.4,77.6" class="sk-green"/>
+<polygon points="312.6,68.8 317.4,77.6 307.8,77.6" class="fl-green-soft"/><polygon points="312.6,68.8 317.4,77.6 307.8,77.6" class="sk-green"/>
+<polygon points="326,68.8 330.8,77.6 321.2,77.6" class="fl-green-soft"/><polygon points="326,68.8 330.8,77.6 321.2,77.6" class="sk-green"/>
+<line x1="71.4" y1="59" x2="71.4" y2="67" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<text x="71.4" y="56" class="lab-muted" text-anchor="middle">1</text>
+<line x1="84.8" y1="59" x2="84.8" y2="67" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<text x="84.8" y="56" class="lab-muted" text-anchor="middle">2</text>
+<line x1="218.8" y1="59" x2="218.8" y2="67" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<text x="218.8" y="56" class="lab-muted" text-anchor="middle">12</text>
+<line x1="58" y1="118" x2="339.4" y2="118" class="sk-axis"/>
+<text x="48" y="122" class="lab-muted" text-anchor="end">tour 3</text>
+<circle cx="71.4" cy="118" r="4.2" class="fl-accent-soft"/><circle cx="71.4" cy="118" r="4.2" class="sk-accent"/>
+<circle cx="84.8" cy="118" r="4.2" class="fl-accent-soft"/><circle cx="84.8" cy="118" r="4.2" class="sk-accent"/>
+<rect x="107.4" y="113.8" width="8.4" height="8.4" class="fl-accent2-soft"/><rect x="107.4" y="113.8" width="8.4" height="8.4" class="sk-accent2"/>
+<rect x="120.8" y="113.8" width="8.4" height="8.4" class="fl-accent2-soft"/><rect x="120.8" y="113.8" width="8.4" height="8.4" class="sk-accent2"/>
+<polygon points="205.4,112.8 210.2,121.6 200.6,121.6" class="fl-green-soft"/><polygon points="205.4,112.8 210.2,121.6 200.6,121.6" class="sk-green"/>
+<polygon points="218.8,112.8 223.6,121.6 214,121.6" class="fl-green-soft"/><polygon points="218.8,112.8 223.6,121.6 214,121.6" class="sk-green"/>
+<polygon points="232.2,112.8 237,121.6 227.4,121.6" class="fl-green-soft"/><polygon points="232.2,112.8 237,121.6 227.4,121.6" class="sk-green"/>
+<polygon points="312.6,112.8 317.4,121.6 307.8,121.6" class="fl-green-soft"/><polygon points="312.6,112.8 317.4,121.6 307.8,121.6" class="sk-green"/>
+<polygon points="326,112.8 330.8,121.6 321.2,121.6" class="fl-green-soft"/><polygon points="326,112.8 330.8,121.6 321.2,121.6" class="sk-green"/>
+<line x1="71.4" y1="103" x2="71.4" y2="111" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<text x="71.4" y="100" class="lab-muted" text-anchor="middle">1</text>
+<line x1="107.1" y1="103" x2="107.1" y2="111" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<text x="107.1" y="100" class="lab-muted" text-anchor="middle">3,67</text>
+<line x1="259" y1="103" x2="259" y2="111" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<text x="259" y="100" class="lab-muted" text-anchor="middle">15</text>
+<line x1="58" y1="162" x2="339.4" y2="162" class="sk-axis"/>
+<text x="48" y="166" class="lab-muted" text-anchor="end">tour 4</text>
+<circle cx="71.4" cy="162" r="4.2" class="fl-accent-soft"/><circle cx="71.4" cy="162" r="4.2" class="sk-accent"/>
+<circle cx="84.8" cy="162" r="4.2" class="fl-accent-soft"/><circle cx="84.8" cy="162" r="4.2" class="sk-accent"/>
+<rect x="107.4" y="157.8" width="8.4" height="8.4" class="fl-accent2-soft"/><rect x="107.4" y="157.8" width="8.4" height="8.4" class="sk-accent2"/>
+<rect x="120.8" y="157.8" width="8.4" height="8.4" class="fl-accent2-soft"/><rect x="120.8" y="157.8" width="8.4" height="8.4" class="sk-accent2"/>
+<polygon points="205.4,156.8 210.2,165.6 200.6,165.6" class="fl-green-soft"/><polygon points="205.4,156.8 210.2,165.6 200.6,165.6" class="sk-green"/>
+<polygon points="218.8,156.8 223.6,165.6 214,165.6" class="fl-green-soft"/><polygon points="218.8,156.8 223.6,165.6 214,165.6" class="sk-green"/>
+<polygon points="232.2,156.8 237,165.6 227.4,165.6" class="fl-green-soft"/><polygon points="232.2,156.8 237,165.6 227.4,165.6" class="sk-green"/>
+<polygon points="312.6,156.8 317.4,165.6 307.8,165.6" class="fl-green-soft"/><polygon points="312.6,156.8 317.4,165.6 307.8,165.6" class="sk-green"/>
+<polygon points="326,156.8 330.8,165.6 321.2,165.6" class="fl-green-soft"/><polygon points="326,156.8 330.8,165.6 321.2,165.6" class="sk-green"/>
+<line x1="78.1" y1="147" x2="78.1" y2="155" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<text x="78.1" y="144" class="lab-muted" text-anchor="middle">1,5</text>
+<line x1="118.3" y1="147" x2="118.3" y2="155" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<text x="118.3" y="144" class="lab-muted" text-anchor="middle">4,5</text>
+<line x1="259" y1="147" x2="259" y2="155" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<text x="259" y="144" class="lab-muted" text-anchor="middle">15</text>
+<text x="58" y="194" class="lab-muted" text-anchor="middle">0</text>
+<text x="125" y="194" class="lab-muted" text-anchor="middle">5</text>
+<text x="192" y="194" class="lab-muted" text-anchor="middle">10</text>
+<text x="259" y="194" class="lab-muted" text-anchor="middle">15</text>
+<text x="326" y="194" class="lab-muted" text-anchor="middle">20</text>
+</svg>
+<figcaption>Les k-moyennes sur les nombres 1, 2, 4, 5, 11, 12, 13, 19, 20 avec \(k = 3\), depuis les centres 1, 2 et 4 (flèches). Chaque ligne montre l’affectation des points (une forme par groupe) et les centres utilisés pour la faire. L’algorithme s’arrête sur les centres 1,5 ; 4,5 ; 15 : inertie 71, alors que les centres 3 ; 12 ; 19,5 donnent 12,5.</figcaption>
+</figure>
+  <div class="prop-box"><strong>Coût.</strong> Un tour coûte \(O(Nkd)\) : pour chacun des \(N\) points, \(k\) distances en dimension \(d\) ; la mise à jour coûte \(O(Nd)\) avec un simple cumul par groupe (la version du cours, qui reparcourt les points pour chaque groupe, coûte \(O(Nk + Nd)\)). Le nombre de tours est en pratique petit (quelques dizaines au plus), sans borne simple a priori.</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§5 · CONVERGENCE ET MINIMA LOCAUX</div>
+  <h2>Un résultat qui dépend du point de départ</h2>
+  <div class="intro">Les \(k\)-moyennes s'arrêtent toujours, et chaque tour fait diminuer l'inertie (ou la laisse inchangée). Mais le résultat n'est pas forcément la partition d'inertie minimale : l'algorithme peut s'arrêter dans un minimum local.</div>
+
+  <div class="prop-box"><strong>Propriétés (admises).</strong>
+    <ul>
+      <li>Au cours de l'algorithme, l'inertie ne fait que décroître (au sens large), et l'algorithme s'arrête après un nombre fini de tours.</li>
+      <li>La partition obtenue est un <strong>minimum local</strong> : aucune des deux étapes ne peut plus l'améliorer. Ce n'est pas toujours le <strong>minimum global</strong> (la partition d'inertie la plus petite parmi toutes).</li>
+    </ul>
+    La démonstration n'est pas au programme (une idée en est donnée dans la dernière section) ; on <em>observe</em> ces comportements.</div>
+  <p>Dans l'exemple du §4, en partant des centres 1, 12 et 20, l'algorithme forme dès le premier tour les groupes {1, 2, 4, 5}, {11, 12, 13}, {19, 20}, de centres 3 ; 12 ; 19,5, qui ne bougent plus ensuite : inertie 12,5. Le départ 1, 2, 4 donnait une inertie de 71 : un minimum local, presque six fois moins bon.</p>
+  <pre class="codeblock">P2 = [(2.5, 4.4), (3.1, 3.3), (2.7, 2.7), (2.7, 2.4), (1.6, 1.7), (1.3, 2.7),
+      (2.7, 3.8), (7.9, 2.9), (8.0, 2.7), (6.0, 3.5), (7.1, 2.9), (7.3, 5.1),
+      (8.4, 3.0), (6.6, 3.4), (4.2, 8.4), (3.6, 7.4), (5.7, 6.8), (5.0, 7.6),
+      (5.7, 7.1), (5.5, 9.2), (3.7, 6.8)]</pre>
+  <figure class="schema" style="max-width:345px">
+<svg viewBox="0 0 345 222" role="img" aria-label="Deux partitions en trois groupes du même nuage de 21 points : à gauche les trois paquets naturels, à droite un paquet coupé en deux et deux paquets fusionnés">
+<rect x="8" y="10" width="154" height="166" rx="6" class="sk-axis"/>
+<circle cx="50.5" cy="100" r="4" class="fl-accent-soft"/><circle cx="50.5" cy="100" r="4" class="sk-accent"/>
+<circle cx="59.3" cy="116.5" r="4" class="fl-accent-soft"/><circle cx="59.3" cy="116.5" r="4" class="sk-accent"/>
+<circle cx="53.4" cy="125.5" r="4" class="fl-accent-soft"/><circle cx="53.4" cy="125.5" r="4" class="sk-accent"/>
+<circle cx="53.4" cy="130" r="4" class="fl-accent-soft"/><circle cx="53.4" cy="130" r="4" class="sk-accent"/>
+<circle cx="37.4" cy="140.5" r="4" class="fl-accent-soft"/><circle cx="37.4" cy="140.5" r="4" class="sk-accent"/>
+<circle cx="33" cy="125.5" r="4" class="fl-accent-soft"/><circle cx="33" cy="125.5" r="4" class="sk-accent"/>
+<circle cx="53.4" cy="109" r="4" class="fl-accent-soft"/><circle cx="53.4" cy="109" r="4" class="sk-accent"/>
+<rect x="125.3" y="118.5" width="8" height="8" class="fl-accent2-soft"/><rect x="125.3" y="118.5" width="8" height="8" class="sk-accent2"/>
+<rect x="126.8" y="121.5" width="8" height="8" class="fl-accent2-soft"/><rect x="126.8" y="121.5" width="8" height="8" class="sk-accent2"/>
+<rect x="97.6" y="109.5" width="8" height="8" class="fl-accent2-soft"/><rect x="97.6" y="109.5" width="8" height="8" class="sk-accent2"/>
+<rect x="113.7" y="118.5" width="8" height="8" class="fl-accent2-soft"/><rect x="113.7" y="118.5" width="8" height="8" class="sk-accent2"/>
+<rect x="116.6" y="85.5" width="8" height="8" class="fl-accent2-soft"/><rect x="116.6" y="85.5" width="8" height="8" class="sk-accent2"/>
+<rect x="132.6" y="117" width="8" height="8" class="fl-accent2-soft"/><rect x="132.6" y="117" width="8" height="8" class="sk-accent2"/>
+<rect x="106.4" y="111" width="8" height="8" class="fl-accent2-soft"/><rect x="106.4" y="111" width="8" height="8" class="sk-accent2"/>
+<polygon points="75.3,35 79.9,43.4 70.7,43.4" class="fl-green-soft"/><polygon points="75.3,35 79.9,43.4 70.7,43.4" class="sk-green"/>
+<polygon points="66.6,50 71.2,58.4 62,58.4" class="fl-green-soft"/><polygon points="66.6,50 71.2,58.4 62,58.4" class="sk-green"/>
+<polygon points="97.2,59 101.8,67.4 92.6,67.4" class="fl-green-soft"/><polygon points="97.2,59 101.8,67.4 92.6,67.4" class="sk-green"/>
+<polygon points="87,47 91.6,55.4 82.4,55.4" class="fl-green-soft"/><polygon points="87,47 91.6,55.4 82.4,55.4" class="sk-green"/>
+<polygon points="97.2,54.5 101.8,62.9 92.6,62.9" class="fl-green-soft"/><polygon points="97.2,54.5 101.8,62.9 92.6,62.9" class="sk-green"/>
+<polygon points="94.3,23 98.9,31.4 89.7,31.4" class="fl-green-soft"/><polygon points="94.3,23 98.9,31.4 89.7,31.4" class="sk-green"/>
+<polygon points="68,59 72.6,67.4 63.4,67.4" class="fl-green-soft"/><polygon points="68,59 72.6,67.4 63.4,67.4" class="sk-green"/>
+<path d="M 42.6,121 L 54.6,121 M 48.6,115 L 48.6,127" class="sk-ink"/>
+<path d="M 115,115.6 L 127,115.6 M 121,109.6 L 121,121.6" class="sk-ink"/>
+<path d="M 77.7,51.8 L 89.7,51.8 M 83.7,45.8 L 83.7,57.8" class="sk-ink"/>
+<text x="85" y="196" class="lab-b" text-anchor="middle">minimum global</text>
+<text x="85" y="214" class="lab-muted" text-anchor="middle">inertie ≈ 25,8</text>
+<rect x="176" y="10" width="154" height="166" rx="6" class="sk-axis"/>
+<rect x="214.5" y="96" width="8" height="8" class="fl-accent2-soft"/><rect x="214.5" y="96" width="8" height="8" class="sk-accent2"/>
+<rect x="223.3" y="112.5" width="8" height="8" class="fl-accent2-soft"/><rect x="223.3" y="112.5" width="8" height="8" class="sk-accent2"/>
+<rect x="217.4" y="121.5" width="8" height="8" class="fl-accent2-soft"/><rect x="217.4" y="121.5" width="8" height="8" class="sk-accent2"/>
+<rect x="217.4" y="126" width="8" height="8" class="fl-accent2-soft"/><rect x="217.4" y="126" width="8" height="8" class="sk-accent2"/>
+<polygon points="205.4,135.5 210,143.9 200.8,143.9" class="fl-green-soft"/><polygon points="205.4,135.5 210,143.9 200.8,143.9" class="sk-green"/>
+<polygon points="201,120.5 205.6,128.9 196.4,128.9" class="fl-green-soft"/><polygon points="201,120.5 205.6,128.9 196.4,128.9" class="sk-green"/>
+<rect x="217.4" y="105" width="8" height="8" class="fl-accent2-soft"/><rect x="217.4" y="105" width="8" height="8" class="sk-accent2"/>
+<circle cx="297.3" cy="122.5" r="4" class="fl-accent-soft"/><circle cx="297.3" cy="122.5" r="4" class="sk-accent"/>
+<circle cx="298.8" cy="125.5" r="4" class="fl-accent-soft"/><circle cx="298.8" cy="125.5" r="4" class="sk-accent"/>
+<circle cx="269.6" cy="113.5" r="4" class="fl-accent-soft"/><circle cx="269.6" cy="113.5" r="4" class="sk-accent"/>
+<circle cx="285.7" cy="122.5" r="4" class="fl-accent-soft"/><circle cx="285.7" cy="122.5" r="4" class="sk-accent"/>
+<circle cx="288.6" cy="89.5" r="4" class="fl-accent-soft"/><circle cx="288.6" cy="89.5" r="4" class="sk-accent"/>
+<circle cx="304.6" cy="121" r="4" class="fl-accent-soft"/><circle cx="304.6" cy="121" r="4" class="sk-accent"/>
+<circle cx="278.4" cy="115" r="4" class="fl-accent-soft"/><circle cx="278.4" cy="115" r="4" class="sk-accent"/>
+<circle cx="243.3" cy="40" r="4" class="fl-accent-soft"/><circle cx="243.3" cy="40" r="4" class="sk-accent"/>
+<circle cx="234.6" cy="55" r="4" class="fl-accent-soft"/><circle cx="234.6" cy="55" r="4" class="sk-accent"/>
+<circle cx="265.2" cy="64" r="4" class="fl-accent-soft"/><circle cx="265.2" cy="64" r="4" class="sk-accent"/>
+<circle cx="255" cy="52" r="4" class="fl-accent-soft"/><circle cx="255" cy="52" r="4" class="sk-accent"/>
+<circle cx="265.2" cy="59.5" r="4" class="fl-accent-soft"/><circle cx="265.2" cy="59.5" r="4" class="sk-accent"/>
+<circle cx="262.3" cy="28" r="4" class="fl-accent-soft"/><circle cx="262.3" cy="28" r="4" class="sk-accent"/>
+<circle cx="236" cy="64" r="4" class="fl-accent-soft"/><circle cx="236" cy="64" r="4" class="sk-accent"/>
+<path d="M 264.3,83.7 L 276.3,83.7 M 270.3,77.7 L 270.3,89.7" class="sk-ink"/>
+<path d="M 216,116.2 L 228,116.2 M 222,110.2 L 222,122.2" class="sk-ink"/>
+<path d="M 197.2,133 L 209.2,133 M 203.2,127 L 203.2,139" class="sk-ink"/>
+<text x="253" y="196" class="lab-b" text-anchor="middle">minimum local</text>
+<text x="253" y="214" class="lab-muted" text-anchor="middle">inertie ≈ 107,9</text>
+</svg>
+<figcaption>Le même nuage de 21 points, partitionné par les k-moyennes (\(k = 3\)) depuis deux initialisations. À gauche, un centre de départ dans chaque paquet : les trois paquets sont retrouvés. À droite, les trois centres de départ sont pris dans le paquet du bas à gauche : l’algorithme s’arrête en le coupant en deux et en fusionnant les deux autres, avec une inertie quatre fois plus grande (107,9 contre 25,8). Les croix marquent les centres finaux.</figcaption>
+</figure>
+  <div class="method-box"><strong>Exemple — combien de départs mènent au bon résultat ?</strong>
+    <ol>
+      <li>Sur le nuage <span class="code-inline">P2</span> de 21 points en trois paquets, on lance les \(k\)-moyennes (\(k = 3\)) depuis chacun des \(\binom{21}{3} = 1\,330\) choix de trois points de départ.</li>
+      <li>1 138 départs sur 1 330 (environ 86 %) aboutissent à la partition d'inertie minimale 25,8 ; les autres s'arrêtent dans des minima locaux (16 valeurs d'inertie différentes), tous d'inertie supérieure à 100.</li>
+      <li>Tous les mauvais départs ont au moins deux centres dans un même paquet (l'inverse n'est pas vrai : bien des départs de ce type finissent quand même par séparer les paquets). Quand deux centres restent coincés dans le même paquet, l'algorithme, qui ne fait que des améliorations locales, ne peut plus en déplacer un vers le paquet resté sans centre.</li>
+    </ol>
+  </div>
+  <p>Le remède usuel : relancer l'algorithme depuis plusieurs initialisations tirées au hasard et garder la partition de plus petite inertie.</p>
+  <pre class="codeblock"><span class="kw">import</span> random
+
+<span class="kw">def</span> meilleur_partitionnement(points: list, k: int, essais: int) -&gt; tuple:
+    <span class="str">"""Relance les k-moyennes depuis plusieurs initialisations tirées au</span>
+<span class="str">    hasard et garde le résultat de plus petite inertie."""</span>
+    <span class="kw">for</span> e <span class="kw">in</span> range(essais):
+        depart = random.sample(points, k)    <span class="cmt"># k points distincts au hasard</span>
+        centres, groupe = kmoyennes(points, depart)
+        I = inertie(points, centres, groupe)
+        <span class="kw">if</span> e == 0 <span class="kw">or</span> I &lt; meilleur[0]:
+            meilleur = (I, centres, groupe)
+    <span class="kw">return</span> meilleur</pre>
+  <div class="notice"><strong>Documentation</strong> : après <span class="code-inline">import random</span>, <span class="code-inline">random.sample(L, k)</span> renvoie une liste de \(k\) éléments de <span class="code-inline">L</span>, distincts (de positions distinctes), tirés au hasard.</div>
+
+  <h3>Choisir le nombre de groupes</h3>
+  <p>L'inertie minimale diminue toujours quand \(k\) augmente (elle est nulle pour \(k = N\), un point par groupe) : on ne peut pas choisir \(k\) en minimisant l'inertie. On repère plutôt la valeur au-delà de laquelle elle ne diminue plus beaucoup (le « coude ») :</p>
+  <div><table>
+<tr><th>\(k\)</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th><th>6</th></tr>
+<tr><td>meilleure inertie</td><td>204,1</td><td>112,1</td><td>25,8</td><td>21,1</td><td>16,4</td><td>11,9</td></tr>
+</table></div>
+  <p>Sur le nuage <span class="code-inline">P2</span>, l'inertie chute jusqu'à \(k = 3\), puis ne baisse plus que lentement : trois groupes décrivent bien les données.</p>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§6 · JEUX À DEUX JOUEURS SUR UN GRAPHE</div>
+  <h2>Modéliser un jeu par une arène</h2>
+  <div class="intro">Deux joueurs déplacent à tour de rôle un jeton sur un graphe orienté : les sommets sont les états du jeu, les arcs les coups possibles. Une partie est un chemin dans ce graphe. Cette modélisation couvre les jeux de plateau à information complète, sans hasard : allumettes, morpion, dames, échecs…</div>
+
+  <div class="def-box">
+    <ul>
+      <li>Une <strong>arène</strong> est un graphe orienté \(G = (S, A)\) dont l'ensemble des états est partagé en deux : \(S = S_1 \cup S_2\), avec \(S_1 \cap S_2 = \emptyset\). Dans un état de \(S_1\), c'est au joueur \(J_1\) de jouer ; dans un état de \(S_2\), à \(J_2\). Chaque arc va d'un état de l'un vers un état de l'autre : le graphe est <strong>biparti</strong>, les joueurs alternent.</li>
+      <li>Les états sans successeur sont les états <strong>finals</strong>, de trois types : gagnants pour \(J_1\) (ensemble \(F_1\)), gagnants pour \(J_2\) (ensemble \(F_2\)), match nul. On suppose que tout état non final a au moins un successeur.</li>
+      <li>Une <strong>partie</strong> depuis un état \(s_0\) est un chemin \(s_0 \to s_1 \to s_2 \to \cdots\) où chaque coup est choisi par le joueur qui contrôle l'état. Elle s'arrête si elle atteint un état final ; elle peut aussi être infinie, ce que l'on compte comme un match nul.</li>
+      <li>Dans un <strong>jeu d'accessibilité</strong>, l'objectif de \(J_1\) est d'atteindre \(F_1\), celui de \(J_2\) d'atteindre \(F_2\).</li>
+    </ul>
+  </div>
+  <p>En Python, on numérote les états de 0 à \(n - 1\) : <span class="code-inline">G[s]</span> est la liste des successeurs de \(s\) (vide si \(s\) est final), <span class="code-inline">joueur[s]</span> vaut 1 ou 2, et des listes donnent les états finals de chaque type. Voici l'arène de la figure du §8 :</p>
+  <pre class="codeblock"><span class="cmt"># arène de la figure : G[s] = successeurs de s (vide si s est final)</span>
+G = [[1, 2], [3, 4], [4, 12], [7, 8], [5, 9], [4, 10], [11, 13],
+     [6, 10], [], [], [], [], [5, 7], [6]]
+joueur = [1, 2, 2, 1, 1, 2, 1, 2, 2, 2, 1, 2, 1, 2]   <span class="cmt"># qui joue en s</span>
+F1, F2, NUL = [8, 9], [10], [11]                      <span class="cmt"># états finals</span></pre>
+
+  <h3>Un vrai jeu : les allumettes</h3>
+  <p>Des allumettes sont posées sur la table ; chacun à son tour, un joueur en retire une ou deux ; celui qui prend la dernière a gagné. Un état doit contenir tout ce qui détermine la suite : le nombre \(a\) d'allumettes restantes <em>et</em> le joueur \(j\) qui doit jouer. On numérote les couples \((a, j)\) avec un dictionnaire dont les clés sont des tuples (chapitre <em>Dictionnaires et programmation dynamique</em>, §2).</p>
+  <pre class="codeblock"><span class="kw">def</span> jeu_allumettes(n: int) -&gt; tuple:
+    <span class="str">"""Arène du jeu : n allumettes, chacun à son tour en retire 1 ou 2,</span>
+<span class="str">    celui qui prend la dernière gagne. État (a, j) : a allumettes restent,</span>
+<span class="str">    c'est à j de jouer ; num associe à chaque état son numéro."""</span>
+    num = {}
+    <span class="kw">for</span> a <span class="kw">in</span> range(n + 1):
+        <span class="kw">for</span> j <span class="kw">in</span> [1, 2]:
+            num[(a, j)] = len(num)          <span class="cmt"># numéros 0, 1, 2, ...</span>
+    G = [[] <span class="kw">for</span> e <span class="kw">in</span> range(len(num))]
+    joueur = [0] * len(num)
+    <span class="kw">for</span> a, j <span class="kw">in</span> num.keys():
+        joueur[num[(a, j)]] = j
+        <span class="kw">for</span> r <span class="kw">in</span> [1, 2]:
+            <span class="kw">if</span> r &lt;= a:                       <span class="cmt"># l'autre joueur jouera ensuite</span>
+                G[num[(a, j)]].append(num[(a - r, 3 - j)])
+    <span class="cmt"># (0, 2) : J1 a pris la dernière allumette, J1 a gagné</span>
+    <span class="kw">return</span> G, joueur, num, [num[(0, 2)]], [num[(0, 1)]]</pre>
+  <div class="method-box"><strong>Exemple — l'arène pour 2 allumettes</strong>
+    <ol>
+      <li>États : \((0, 1), (0, 2), (1, 1), (1, 2), (2, 1), (2, 2)\), numérotés 0 à 5 dans cet ordre.</li>
+      <li>Coups : \((2, 1) \to (1, 2)\) et \((2, 1) \to (0, 2)\) ; \((1, 1) \to (0, 2)\) ; et de même pour \(J_2\). Le joueur change à chaque coup : l'arène est biparti.</li>
+      <li>Finals : \((0, 2)\) est gagnant pour \(J_1\) (c'est \(J_1\) qui vient de prendre la dernière allumette), \((0, 1)\) est gagnant pour \(J_2\). Ce jeu n'a pas de match nul.</li>
+    </ol>
+  </div>
+  <div class="notice"><strong>Erreur classique</strong> : oublier le joueur dans l'état. « Il reste 3 allumettes » ne suffit pas à savoir qui gagne : la même situation est perdante pour celui qui doit jouer et gagnante pour l'autre.</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§7 · STRATÉGIES ET POSITIONS GAGNANTES</div>
+  <h2>Jouer à coup sûr</h2>
+  <div class="intro">Une stratégie dit à un joueur quel coup jouer dans chacun de ses états. Elle est gagnante si elle fait gagner quoi que fasse l'adversaire. Les positions d'où une telle stratégie existe sont les positions gagnantes.</div>
+
+  <div class="def-box">
+    <ul>
+      <li>Une <strong>stratégie</strong> (sans mémoire) pour \(J_1\) est une fonction \(\sigma\) qui associe à chaque état non final \(s \in S_1\) un successeur \(\sigma(s)\) de \(s\). Elle ne dépend que de l'état courant, pas de l'historique de la partie ; le programme ne considère que de telles stratégies.</li>
+      <li>Une partie est <strong>jouée selon \(\sigma\)</strong> si, à chaque fois que la partie passe par un état \(s\) de \(J_1\), le coup suivant est \(s \to \sigma(s)\) ; les coups de \(J_2\) sont quelconques.</li>
+      <li>\(\sigma\) est <strong>gagnante depuis \(s_0\)</strong> si toute partie depuis \(s_0\) jouée selon \(\sigma\) atteint \(F_1\).</li>
+      <li>\(s_0\) est une <strong>position gagnante</strong> pour \(J_1\) s'il existe une stratégie gagnante pour \(J_1\) depuis \(s_0\). Mêmes définitions pour \(J_2\).</li>
+    </ul>
+  </div>
+  <p>En Python, une stratégie sans mémoire se range naturellement dans un dictionnaire <span class="code-inline">{état: état suivant}</span>.</p>
+
+  <div class="method-box"><strong>Exemple — gagner aux allumettes</strong>
+    <ol>
+      <li>Stratégie \(\sigma\) de \(J_1\) : s'il reste \(a\) allumettes avec \(a\) non multiple de 3, en retirer \(a \bmod 3\) (1 ou 2) ; le nombre restant devient multiple de 3.</li>
+      <li>Depuis un multiple de 3, \(J_2\) retire 1 ou 2 : il laisse un nombre qui n'est pas multiple de 3, en particulier pas 0. \(J_1\) peut donc toujours rejouer \(\sigma\).</li>
+      <li>Le nombre d'allumettes diminue à chaque coup : la partie finit, et seul \(J_1\) peut laisser 0 allumette (0 est multiple de 3). Il prend la dernière : \(\sigma\) est gagnante depuis toute position \((a, 1)\) avec \(a\) non multiple de 3.</li>
+      <li>Depuis \((a, 1)\) avec \(a\) multiple de 3, c'est \(J_2\) qui peut appliquer la même stratégie : ces positions sont gagnantes pour \(J_2\).</li>
+    </ol>
+    <div><table>
+<tr><th>allumettes \(a\)</th><th>0</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th><th>6</th><th>7</th></tr>
+<tr><td>J1 doit jouer</td><td>perdante</td><td>gagnante</td><td>gagnante</td><td>perdante</td><td>gagnante</td><td>gagnante</td><td>perdante</td><td>gagnante</td></tr>
+</table></div>
+  </div>
+  <div class="prop-box"><strong>Une position n'est pas gagnante pour les deux joueurs.</strong> Si \(J_1\) et \(J_2\) avaient chacun une stratégie gagnante depuis \(s_0\), la partie jouée selon les deux à la fois atteindrait à la fois \(F_1\) et \(F_2\), impossible puisqu'une partie s'arrête au premier état final. Mais une position peut n'être gagnante pour aucun des deux : chacun peut alors empêcher l'autre de gagner, et le jeu bien joué finit en match nul (§8).</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§8 · CALCUL DES ATTRACTEURS</div>
+  <h2>Remonter depuis les états gagnants</h2>
+  <div class="intro">Pour trouver toutes les positions gagnantes de \(J_1\), on part des états de \(F_1\) et on remonte les arcs : un état de \(J_1\) est gagnant s'il a <em>un</em> successeur gagnant, un état de \(J_2\) l'est si <em>tous</em> ses successeurs le sont. L'ensemble obtenu est l'attracteur de \(F_1\).</div>
+
+  <div class="def-box">L'<strong>attracteur</strong> de \(F_1\) pour \(J_1\) est la réunion des ensembles \(A_0 \subset A_1 \subset A_2 \subset \cdots\) définis par \(A_0 = F_1\) et
+    <div class="formula" data-nom="Attracteur">$$A_{i+1} = A_i \cup \{s \in S_1 \text{ non final} : \text{un successeur de } s \text{ est dans } A_i\} \cup \{s \in S_2 \text{ non final} : \text{tous les successeurs de } s \text{ sont dans } A_i\}$$</div>
+    Le <strong>rang</strong> d'un état de l'attracteur est le plus petit \(i\) tel que \(s \in A_i\). La suite est croissante et ne peut grossir qu'un nombre fini de fois : elle est constante à partir d'un rang au plus égal à \(|S|\). L'attracteur de \(F_2\) pour \(J_2\) se définit de même, en échangeant les rôles.</div>
+  <div class="prop-box"><strong>Théorème.</strong> Les positions gagnantes de \(J_1\) sont exactement les états de l'attracteur de \(F_1\). Depuis un état \(s \in S_1\) de rang \(r \geq 1\), la stratégie qui joue vers un successeur de rang strictement inférieur est gagnante, et gagne en au plus \(r\) coups.</div>
+  <div class="reveal" onclick="this.classList.toggle('open')"><span class="label">Démonstration</span><span class="prompt">Le rang décroît ; hors de l'attracteur, \(J_2\) peut y rester</span><div class="content">
+    <p><strong>Les états de l'attracteur sont gagnants.</strong> Un état \(s \in S_1\) de rang \(r \geq 1\) a, par définition, un successeur dans \(A_{r-1}\), de rang au plus \(r - 1\) : la stratégie y joue. Un état \(s \in S_2\) de rang \(r \geq 1\) a tous ses successeurs dans \(A_{r-1}\) : quoi que joue \(J_2\), le rang diminue. Le long d'une partie jouée selon cette stratégie depuis un état de rang \(r\), le rang diminue donc d'au moins 1 à chaque coup : en au plus \(r\) coups, on atteint le rang 0, c'est-à-dire \(F_1\).</p>
+    <p><strong>Les autres états ne sont pas gagnants.</strong> Soit \(B\) l'ensemble des états hors de l'attracteur. Un état non final de \(J_1\) dans \(B\) n'a <em>aucun</em> successeur dans l'attracteur (sinon il y serait entré) : tous ses coups restent dans \(B\). Un état non final de \(J_2\) dans \(B\) a au moins un successeur dans \(B\) (sinon il y serait entré) : \(J_2\) peut toujours rester dans \(B\). Depuis un état de \(B\), \(J_2\) peut donc maintenir la partie dans \(B\), qui ne contient aucun état de \(F_1\) : \(J_1\) n'a pas de stratégie gagnante.</p>
+  </div></div>
+
+  <p>Le calcul suit la définition : à chaque étape, on parcourt tous les états hors de l'attracteur et on ajoute ceux qui vérifient la condition. Les ajouts sont faits après le parcours, pour que le numéro d'étape soit bien le rang.</p>
+  <pre class="codeblock"><span class="kw">def</span> attracteur(G: list, joueur: list, cibles: list, j: int) -&gt; list:
+    <span class="str">"""rang[s] : étape à laquelle s entre dans l'attracteur du joueur j</span>
+<span class="str">    vers les états cibles (0 pour les cibles), -1 si s n'y entre jamais."""</span>
+    n = len(G)
+    rang = [-1] * n
+    <span class="kw">for</span> s <span class="kw">in</span> cibles:
+        rang[s] = 0
+    etape, change = 0, <span class="kw">True</span>
+    <span class="kw">while</span> change:
+        etape = etape + 1
+        nouveaux = []
+        <span class="kw">for</span> s <span class="kw">in</span> range(n):
+            <span class="kw">if</span> rang[s] == -1 <span class="kw">and</span> len(G[s]) &gt; 0:      <span class="cmt"># état non final, hors attracteur</span>
+                dedans = 0                            <span class="cmt"># successeurs déjà dans l'attracteur</span>
+                <span class="kw">for</span> t <span class="kw">in</span> G[s]:
+                    <span class="kw">if</span> rang[t] != -1:
+                        dedans = dedans + 1
+                <span class="kw">if</span> ((joueur[s] == j <span class="kw">and</span> dedans &gt; 0)
+                        <span class="kw">or</span> (joueur[s] != j <span class="kw">and</span> dedans == len(G[s]))):
+                    nouveaux.append(s)
+        <span class="kw">for</span> s <span class="kw">in</span> nouveaux:                            <span class="cmt"># ajout après le parcours</span>
+            rang[s] = etape
+        change = len(nouveaux) &gt; 0
+    <span class="kw">return</span> rang</pre>
+  <pre class="codeblock"><span class="kw">def</span> strategie(G: list, joueur: list, rang: list, j: int) -&gt; dict:
+    <span class="str">"""Stratégie gagnante (sans mémoire) du joueur j sur son attracteur :</span>
+<span class="str">    depuis chaque état s de j de rang &gt; 0, aller vers un successeur de</span>
+<span class="str">    plus petit rang."""</span>
+    sigma = {}
+    <span class="kw">for</span> s <span class="kw">in</span> range(len(G)):
+        <span class="kw">if</span> joueur[s] == j <span class="kw">and</span> rang[s] &gt; 0:
+            meilleur = -1
+            <span class="kw">for</span> t <span class="kw">in</span> G[s]:
+                <span class="kw">if</span> rang[t] != -1 <span class="kw">and</span> (meilleur == -1 <span class="kw">or</span> rang[t] &lt; rang[meilleur]):
+                    meilleur = t
+            sigma[s] = meilleur
+    <span class="kw">return</span> sigma</pre>
+  <div class="method-box"><strong>Exemple — l'arène de la figure</strong>
+    <pre class="codeblock">r1 = attracteur(G, joueur, F1, 1)
+<span class="cmt"># [3, 2, -1, 1, 1, -1, -1, -1, 0, 0, -1, -1, -1, -1]</span>
+r2 = attracteur(G, joueur, F2, 2)
+<span class="cmt"># [-1, -1, 3, -1, -1, 1, -1, 1, -1, -1, 0, -1, 2, -1]</span>
+strategie(G, joueur, r1, 1)          <span class="cmt"># {0: 1, 3: 8, 4: 9}</span></pre>
+    <div><table>
+<tr><th>étape</th><th>états ajoutés à l’attracteur de J1</th></tr>
+<tr><td>0</td><td>8, 9</td></tr>
+<tr><td>1</td><td>3, 4</td></tr>
+<tr><td>2</td><td>1</td></tr>
+<tr><td>3</td><td>0</td></tr>
+</table></div>
+    <ol>
+      <li>Étape 1 : 3 et 4 (à \(J_1\)) ont un successeur final gagnant, 8 et 9. Étape 2 : 1 (à \(J_2\)) n'a que des successeurs gagnants, 3 et 4. Étape 3 : 0 (à \(J_1\)) a le successeur 1. Étape 4 : rien de nouveau (2 a le successeur 12, hors de l'attracteur) : fin.</li>
+      <li>Stratégie gagnante de \(J_1\) : \(0 \to 1\), \(3 \to 8\), \(4 \to 9\). Depuis 0, \(J_1\) gagne en au plus 3 coups.</li>
+      <li>De même pour \(J_2\) avec \(F_2 = \{10\}\) :</li>
+    </ol>
+    <div><table>
+<tr><th>étape</th><th>états ajoutés à l’attracteur de J2</th></tr>
+<tr><td>0</td><td>10</td></tr>
+<tr><td>1</td><td>5, 7</td></tr>
+<tr><td>2</td><td>12</td></tr>
+<tr><td>3</td><td>2</td></tr>
+</table></div>
+    <p>L'état 12 (à \(J_1\)) y entre à l'étape 2 car ses deux successeurs, 5 et 7, permettent à \(J_2\) de jouer vers 10. Restent 6 et 13 (et le final nul 11) : depuis 6, \(J_1\) peut jouer vers le match nul 11, ou vers 13, d'où \(J_2\) ne peut que revenir en 6 ; aucun des deux ne peut forcer la victoire.</p>
+  </div>
+  <figure class="schema" style="max-width:345px">
+<svg viewBox="0 0 345 356" role="img" aria-label="Arène de jeu à 14 états ; les états 0, 1, 3, 4, 8, 9 forment l’attracteur de J1, les états 2, 5, 7, 10, 12 celui de J2, les états 6, 11, 13 mènent au mieux à un match nul">
+<line x1="39.4" y1="110.2" x2="84.3" y2="71.7" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<line x1="38.6" y1="130.6" x2="85.3" y2="177.3" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<line x1="111.6" y1="53.8" x2="151.6" y2="35.5" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<line x1="110" y1="68.9" x2="153.6" y2="101.3" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<line x1="108" y1="178.8" x2="156" y2="125.4" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<line x1="111.6" y1="196.2" x2="151.6" y2="214.5" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<line x1="173.1" y1="42.1" x2="231.9" y2="205.1" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<line x1="183" y1="28" x2="220" y2="28" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<path d="M 181.6,118.2 Q 203,128 221.6,119.5" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<line x1="182.3" y1="107.5" x2="282.8" y2="75.5" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<path d="M 224.4,105.8 Q 203,96 184.4,104.5" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<line x1="250.5" y1="120.3" x2="295" y2="150" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<line x1="286" y1="265.3" x2="236.9" y2="283.7" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<path d="M 295.8,274.4 Q 289.2,297.3 300.3,314.8" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<line x1="250.8" y1="229.8" x2="284.7" y2="250.6" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<line x1="249.4" y1="212.2" x2="296.4" y2="171.7" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<line x1="176.1" y1="209.3" x2="228.3" y2="127.2" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<line x1="183" y1="222" x2="220" y2="222" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<path d="M 314.2,315.6 Q 320.8,292.7 309.7,275.2" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<circle cx="28" cy="120" r="15" class="fl-paper"/>
+<circle cx="28" cy="120" r="15" class="fl-green-soft"/><circle cx="28" cy="120" r="15" class="sk-green"/>
+<text x="28" y="124.6" class="lab-b" text-anchor="middle">0</text>
+<text x="45" y="107" class="lab-green lab-b">3</text>
+<rect x="83" y="45" width="30" height="30" rx="3" class="fl-paper"/>
+<rect x="83" y="45" width="30" height="30" rx="3" class="fl-green-soft"/><rect x="83" y="45" width="30" height="30" rx="3" class="sk-green"/>
+<text x="98" y="64.6" class="lab-b" text-anchor="middle">1</text>
+<text x="115" y="47" class="lab-green lab-b">2</text>
+<rect x="83" y="175" width="30" height="30" rx="3" class="fl-paper"/>
+<rect x="83" y="175" width="30" height="30" rx="3" class="fl-accent-soft"/><rect x="83" y="175" width="30" height="30" rx="3" class="sk-accent"/>
+<text x="98" y="194.6" class="lab-b" text-anchor="middle">2</text>
+<text x="115" y="177" class="lab-accent lab-b">3</text>
+<circle cx="168" cy="28" r="15" class="fl-paper"/>
+<circle cx="168" cy="28" r="15" class="fl-green-soft"/><circle cx="168" cy="28" r="15" class="sk-green"/>
+<text x="168" y="32.6" class="lab-b" text-anchor="middle">3</text>
+<text x="185" y="15" class="lab-green lab-b">1</text>
+<circle cx="168" cy="112" r="15" class="fl-paper"/>
+<circle cx="168" cy="112" r="15" class="fl-green-soft"/><circle cx="168" cy="112" r="15" class="sk-green"/>
+<text x="168" y="116.6" class="lab-b" text-anchor="middle">4</text>
+<text x="185" y="99" class="lab-green lab-b">1</text>
+<rect x="223" y="97" width="30" height="30" rx="3" class="fl-paper"/>
+<rect x="223" y="97" width="30" height="30" rx="3" class="fl-accent-soft"/><rect x="223" y="97" width="30" height="30" rx="3" class="sk-accent"/>
+<text x="238" y="116.6" class="lab-b" text-anchor="middle">5</text>
+<text x="255" y="99" class="lab-accent lab-b">1</text>
+<circle cx="168" cy="222" r="15" class="fl-paper"/>
+<circle cx="168" cy="222" r="15" class="fl-accent-soft"/><circle cx="168" cy="222" r="15" class="sk-accent"/>
+<text x="168" y="226.6" class="lab-b" text-anchor="middle">12</text>
+<text x="185" y="209" class="lab-accent lab-b">2</text>
+<rect x="223" y="207" width="30" height="30" rx="3" class="fl-paper"/>
+<rect x="223" y="207" width="30" height="30" rx="3" class="fl-accent-soft"/><rect x="223" y="207" width="30" height="30" rx="3" class="sk-accent"/>
+<text x="238" y="226.6" class="lab-b" text-anchor="middle">7</text>
+<text x="255" y="209" class="lab-accent lab-b">1</text>
+<rect x="223" y="13" width="30" height="30" rx="3" class="fl-paper"/>
+<rect x="223" y="13" width="30" height="30" rx="3" class="fl-green-soft"/><rect x="223" y="13" width="30" height="30" rx="3" class="sk-green"/>
+<rect x="227" y="17" width="22" height="22" rx="2" class="sk-green"/>
+<text x="238" y="32.6" class="lab-b" text-anchor="middle">8</text>
+<rect x="285" y="55" width="30" height="30" rx="3" class="fl-paper"/>
+<rect x="285" y="55" width="30" height="30" rx="3" class="fl-green-soft"/><rect x="285" y="55" width="30" height="30" rx="3" class="sk-green"/>
+<rect x="289" y="59" width="22" height="22" rx="2" class="sk-green"/>
+<text x="300" y="74.6" class="lab-b" text-anchor="middle">9</text>
+<circle cx="310" cy="160" r="15" class="fl-paper"/>
+<circle cx="310" cy="160" r="15" class="fl-accent-soft"/><circle cx="310" cy="160" r="15" class="sk-accent"/>
+<circle cx="310" cy="160" r="11" class="sk-accent"/>
+<text x="310" y="164.6" class="lab-b" text-anchor="middle">10</text>
+<circle cx="300" cy="260" r="15" class="fl-paper"/>
+<circle cx="300" cy="260" r="15" class="sk-ink"/>
+<text x="300" y="264.6" class="lab-b" text-anchor="middle">6</text>
+<rect x="205" y="275" width="30" height="30" rx="3" class="fl-paper"/>
+<rect x="205" y="275" width="30" height="30" rx="3" class="fl-amber-soft"/><rect x="205" y="275" width="30" height="30" rx="3" class="sk-ink"/>
+<rect x="209" y="279" width="22" height="22" rx="2" class="sk-ink"/>
+<text x="220" y="294.6" class="lab-b" text-anchor="middle">11</text>
+<rect x="295" y="315" width="30" height="30" rx="3" class="fl-paper"/>
+<rect x="295" y="315" width="30" height="30" rx="3" class="sk-ink"/>
+<text x="310" y="334.6" class="lab-b" text-anchor="middle">13</text>
+<circle cx="20" cy="300" r="7" class="sk-ink"/>
+<text x="31" y="304">J1 joue</text>
+<rect x="13" y="315" width="14" height="14" rx="2" class="sk-ink"/>
+<text x="31" y="326">J2 joue</text>
+<text x="20" y="348" class="lab-muted">double contour : état final</text>
+</svg>
+<figcaption>Une arène à 14 états (cercles : J1 joue ; carrés : J2 joue ; double contour : état final). Finals gagnants pour J1 : 8 et 9 ; pour J2 : 10 ; nul : 11. En vert, l’attracteur de J1 (positions gagnantes de J1), avec le rang de chaque état ; en rouge, l’attracteur de J2 ; en clair, les positions où aucun joueur ne peut forcer la victoire (6, 13 et le final nul 11).</figcaption>
+</figure>
+  <div class="prop-box"><strong>Trois issues.</strong> Les états se partagent en trois : l'attracteur de \(F_1\) (\(J_1\) gagne s'il joue bien), l'attracteur de \(F_2\) (\(J_2\) gagne s'il joue bien), et les autres, d'où chacun peut empêcher l'autre de gagner (d'après la seconde partie de la démonstration) : bien joué, le jeu y finit en match nul ou ne finit pas.</div>
+  <div class="prop-box"><strong>Coût.</strong> Une étape parcourt tous les états et leurs arcs : \(O(n + m)\) pour \(n\) états et \(m\) arcs. Il y a au plus \(n + 1\) étapes : \(O(n(n + m))\). Une version plus fine, qui remonte les arcs avec la liste des prédécesseurs et un compteur de successeurs par état, atteint \(O(n + m)\) (exercice 9).</div>
+  <p>Sur le jeu des allumettes, le calcul retrouve les résultats du §7 :</p>
+  <pre class="codeblock">G7, joueur7, num7, F1_7, F2_7 = jeu_allumettes(7)
+r = attracteur(G7, joueur7, F1_7, 1)
+gagnantes = [a <span class="kw">for</span> a <span class="kw">in</span> range(8) <span class="kw">if</span> r[num7[(a, 1)]] != -1]
+<span class="cmt"># [1, 2, 4, 5, 7] : J1 gagne s'il doit jouer et que a n'est pas multiple de 3</span></pre>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§9 · HEURISTIQUE ET ALGORITHME MINIMAX</div>
+  <h2>Quand l'arène est trop grande</h2>
+  <div class="intro">Le morpion a quelques milliers d'états, les dames environ \(10^{20}\), les échecs plus de \(10^{40}\) : on ne peut ni construire l'arène, ni calculer les attracteurs. On se contente d'explorer les coups à partir de l'état courant, jusqu'à une profondeur limitée, et d'estimer la valeur des états atteints par une heuristique.</div>
+
+  <div class="def-box">Une <strong>heuristique</strong> est une fonction \(h\) qui associe à un état une estimation rapide de son intérêt pour \(J_1\) : plus \(h(s)\) est grand, plus l'état semble favorable à \(J_1\) (et défavorable à \(J_2\)). Sur un état final, on lui donne une valeur exacte : très grande s'il est gagnant pour \(J_1\), très petite s'il est gagnant pour \(J_2\), 0 pour un match nul. C'est la même idée qu'avec l'algorithme A* (chapitre <em>Graphes</em>, §10) : une estimation, sans garantie, qui guide la recherche.</div>
+  <div class="def-box">La <strong>valeur minimax</strong> d'un état \(s\) à la profondeur \(p\) est définie par récurrence :
+    <div class="formula" data-nom="Minimax">$$v_p(s) = \begin{cases} h(s) &amp; \text{si } p = 0 \text{ ou si } s \text{ est final} \\ \max_{s \to t} v_{p-1}(t) &amp; \text{si } s \in S_1 \\ \min_{s \to t} v_{p-1}(t) &amp; \text{si } s \in S_2 \end{cases}$$</div>
+    \(J_1\) joue vers un successeur de valeur maximale, en supposant que \(J_2\) répondra au mieux pour lui, c'est-à-dire en minimisant.</div>
+  <pre class="codeblock"><span class="kw">def</span> minimax(G: list, joueur: list, h: list, s: int, p: int) -&gt; float:
+    <span class="str">"""Valeur minimax de l'état s à la profondeur p : J1 maximise, J2</span>
+<span class="str">    minimise ; h[s] évalue s (valeur exacte si s est final)."""</span>
+    <span class="kw">if</span> p == 0 <span class="kw">or</span> len(G[s]) == 0:
+        <span class="kw">return</span> h[s]
+    valeurs = [minimax(G, joueur, h, t, p - 1) <span class="kw">for</span> t <span class="kw">in</span> G[s]]
+    v = valeurs[0]
+    <span class="kw">for</span> x <span class="kw">in</span> valeurs:
+        <span class="kw">if</span> (joueur[s] == 1 <span class="kw">and</span> x &gt; v) <span class="kw">or</span> (joueur[s] == 2 <span class="kw">and</span> x &lt; v):
+            v = x
+    <span class="kw">return</span> v</pre>
+  <div class="method-box"><strong>Exemple — un arbre de profondeur 3</strong>
+    <pre class="codeblock"><span class="cmt"># arbre de la figure : 0 = racine (J1), feuilles = états 11 à 24</span>
+A = [[1, 2, 3], [4, 5], [6, 7], [8, 9, 10], [11, 12], [13, 14], [15, 16],
+     [17, 18], [19, 20], [21, 22], [23, 24], [], [], [], [], [], [], [],
+     [], [], [], [], [], [], []]
+jA = [1, 2, 2, 2] + [1] * 7 + [2] * 14
+hA = [0] * 11 + [3, 6, 2, 7, 5, 1, 8, 4, 2, 9, 4, 3, 7, 5]</pre>
+    <ol>
+      <li>Niveau des feuilles : on lit \(h\). Les nœuds où \(J_1\) joue juste au-dessus prennent le maximum de leurs fils : \(\max(3, 6) = 6\), \(\max(2, 7) = 7\), et ainsi de suite.</li>
+      <li>Les nœuds de \(J_2\) prennent le minimum : \(\min(6, 7) = 6\) pour le premier, \(\min(5, 8) = 5\), \(\min(9, 4, 7) = 4\).</li>
+      <li>La racine prend le maximum, \(\max(6, 5, 4) = 6\) : \(J_1\) joue vers son premier fils. Il s'assure au moins la valeur 6 (selon \(h\)) quoi que fasse \(J_2\) ; le troisième fils, qui contient la feuille 9, est un piège : \(J_2\) y répondrait vers la valeur 4.</li>
+    </ol>
+  </div>
+  <figure class="schema" style="max-width:345px">
+<svg viewBox="0 0 345 274" role="img" aria-label="Arbre de jeu de profondeur 3 : la racine vaut 6, ses trois fils valent 6, 5 et 4">
+<line x1="160.4" y1="51" x2="51.3" y2="91" class="sk-accent"/>
+<line x1="160.4" y1="51" x2="148.3" y2="91" class="sk-ink"/>
+<line x1="160.4" y1="51" x2="269.4" y2="91" class="sk-ink"/>
+<line x1="51.3" y1="113" x2="27.1" y2="153" class="sk-accent"/>
+<line x1="51.3" y1="113" x2="75.6" y2="153" class="sk-ink"/>
+<line x1="148.3" y1="113" x2="124" y2="153" class="sk-ink"/>
+<line x1="148.3" y1="113" x2="172.5" y2="153" class="sk-ink"/>
+<line x1="269.4" y1="113" x2="221" y2="153" class="sk-ink"/>
+<line x1="269.4" y1="113" x2="269.4" y2="153" class="sk-ink"/>
+<line x1="269.4" y1="113" x2="317.9" y2="153" class="sk-ink"/>
+<line x1="27.1" y1="175" x2="15" y2="215" class="sk-ink"/>
+<line x1="27.1" y1="175" x2="39.2" y2="215" class="sk-accent"/>
+<line x1="75.6" y1="175" x2="63.5" y2="215" class="sk-ink"/>
+<line x1="75.6" y1="175" x2="87.7" y2="215" class="sk-ink"/>
+<line x1="124" y1="175" x2="111.9" y2="215" class="sk-ink"/>
+<line x1="124" y1="175" x2="136.2" y2="215" class="sk-ink"/>
+<line x1="172.5" y1="175" x2="160.4" y2="215" class="sk-ink"/>
+<line x1="172.5" y1="175" x2="184.6" y2="215" class="sk-ink"/>
+<line x1="221" y1="175" x2="208.8" y2="215" class="sk-ink"/>
+<line x1="221" y1="175" x2="233.1" y2="215" class="sk-ink"/>
+<line x1="269.4" y1="175" x2="257.3" y2="215" class="sk-ink"/>
+<line x1="269.4" y1="175" x2="281.5" y2="215" class="sk-ink"/>
+<line x1="317.9" y1="175" x2="305.8" y2="215" class="sk-ink"/>
+<line x1="317.9" y1="175" x2="330" y2="215" class="sk-ink"/>
+<polygon points="160.4,27 174.4,50 146.4,50" class="fl-paper"/>
+<polygon points="160.4,27 174.4,50 146.4,50" class="sk-accent"/>
+<text x="160.4" y="46" class="lab-b" text-anchor="middle">6</text>
+<polygon points="51.3,115 65.3,92 37.3,92" class="fl-paper"/>
+<polygon points="51.3,115 65.3,92 37.3,92" class="sk-accent"/>
+<text x="51.3" y="103" class="lab-b" text-anchor="middle">6</text>
+<polygon points="148.3,115 162.3,92 134.3,92" class="fl-paper"/>
+<polygon points="148.3,115 162.3,92 134.3,92" class="sk-ink"/>
+<text x="148.3" y="103" class="lab-b" text-anchor="middle">5</text>
+<polygon points="269.4,115 283.4,92 255.4,92" class="fl-paper"/>
+<polygon points="269.4,115 283.4,92 255.4,92" class="sk-ink"/>
+<text x="269.4" y="103" class="lab-b" text-anchor="middle">4</text>
+<polygon points="27.1,151 41.1,174 13.1,174" class="fl-paper"/>
+<polygon points="27.1,151 41.1,174 13.1,174" class="sk-accent"/>
+<text x="27.1" y="170" class="lab-b" text-anchor="middle">6</text>
+<polygon points="75.6,151 89.6,174 61.6,174" class="fl-paper"/>
+<polygon points="75.6,151 89.6,174 61.6,174" class="sk-ink"/>
+<text x="75.6" y="170" class="lab-b" text-anchor="middle">7</text>
+<polygon points="124,151 138,174 110,174" class="fl-paper"/>
+<polygon points="124,151 138,174 110,174" class="sk-ink"/>
+<text x="124" y="170" class="lab-b" text-anchor="middle">5</text>
+<polygon points="172.5,151 186.5,174 158.5,174" class="fl-paper"/>
+<polygon points="172.5,151 186.5,174 158.5,174" class="sk-ink"/>
+<text x="172.5" y="170" class="lab-b" text-anchor="middle">8</text>
+<polygon points="221,151 235,174 207,174" class="fl-paper"/>
+<polygon points="221,151 235,174 207,174" class="sk-ink"/>
+<text x="221" y="170" class="lab-b" text-anchor="middle">9</text>
+<polygon points="269.4,151 283.4,174 255.4,174" class="fl-paper"/>
+<polygon points="269.4,151 283.4,174 255.4,174" class="sk-ink"/>
+<text x="269.4" y="170" class="lab-b" text-anchor="middle">4</text>
+<polygon points="317.9,151 331.9,174 303.9,174" class="fl-paper"/>
+<polygon points="317.9,151 331.9,174 303.9,174" class="sk-ink"/>
+<text x="317.9" y="170" class="lab-b" text-anchor="middle">7</text>
+<rect x="4" y="215" width="22" height="22" rx="3" class="fl-soft"/><rect x="4" y="215" width="22" height="22" rx="3" class="sk-ink"/>
+<text x="15" y="230.5" class="lab-b" text-anchor="middle">3</text>
+<rect x="28.2" y="215" width="22" height="22" rx="3" class="fl-soft"/><rect x="28.2" y="215" width="22" height="22" rx="3" class="sk-ink"/>
+<text x="39.2" y="230.5" class="lab-b" text-anchor="middle">6</text>
+<rect x="52.5" y="215" width="22" height="22" rx="3" class="fl-soft"/><rect x="52.5" y="215" width="22" height="22" rx="3" class="sk-ink"/>
+<text x="63.5" y="230.5" class="lab-b" text-anchor="middle">2</text>
+<rect x="76.7" y="215" width="22" height="22" rx="3" class="fl-soft"/><rect x="76.7" y="215" width="22" height="22" rx="3" class="sk-ink"/>
+<text x="87.7" y="230.5" class="lab-b" text-anchor="middle">7</text>
+<rect x="100.9" y="215" width="22" height="22" rx="3" class="fl-soft"/><rect x="100.9" y="215" width="22" height="22" rx="3" class="sk-ink"/>
+<text x="111.9" y="230.5" class="lab-b" text-anchor="middle">5</text>
+<rect x="125.2" y="215" width="22" height="22" rx="3" class="fl-soft"/><rect x="125.2" y="215" width="22" height="22" rx="3" class="sk-ink"/>
+<text x="136.2" y="230.5" class="lab-b" text-anchor="middle">1</text>
+<rect x="149.4" y="215" width="22" height="22" rx="3" class="fl-soft"/><rect x="149.4" y="215" width="22" height="22" rx="3" class="sk-ink"/>
+<text x="160.4" y="230.5" class="lab-b" text-anchor="middle">8</text>
+<rect x="173.6" y="215" width="22" height="22" rx="3" class="fl-soft"/><rect x="173.6" y="215" width="22" height="22" rx="3" class="sk-ink"/>
+<text x="184.6" y="230.5" class="lab-b" text-anchor="middle">4</text>
+<rect x="197.8" y="215" width="22" height="22" rx="3" class="fl-soft"/><rect x="197.8" y="215" width="22" height="22" rx="3" class="sk-ink"/>
+<text x="208.8" y="230.5" class="lab-b" text-anchor="middle">2</text>
+<rect x="222.1" y="215" width="22" height="22" rx="3" class="fl-soft"/><rect x="222.1" y="215" width="22" height="22" rx="3" class="sk-ink"/>
+<text x="233.1" y="230.5" class="lab-b" text-anchor="middle">9</text>
+<rect x="246.3" y="215" width="22" height="22" rx="3" class="fl-soft"/><rect x="246.3" y="215" width="22" height="22" rx="3" class="sk-ink"/>
+<text x="257.3" y="230.5" class="lab-b" text-anchor="middle">4</text>
+<rect x="270.5" y="215" width="22" height="22" rx="3" class="fl-soft"/><rect x="270.5" y="215" width="22" height="22" rx="3" class="sk-ink"/>
+<text x="281.5" y="230.5" class="lab-b" text-anchor="middle">3</text>
+<rect x="294.8" y="215" width="22" height="22" rx="3" class="fl-soft"/><rect x="294.8" y="215" width="22" height="22" rx="3" class="sk-ink"/>
+<text x="305.8" y="230.5" class="lab-b" text-anchor="middle">7</text>
+<rect x="319" y="215" width="22" height="22" rx="3" class="fl-soft"/><rect x="319" y="215" width="22" height="22" rx="3" class="sk-ink"/>
+<text x="330" y="230.5" class="lab-b" text-anchor="middle">5</text>
+<polygon points="16,249 26,265 6,265" class="sk-ink"/>
+<text x="32" y="264">J1 : max</text>
+<polygon points="106,266 116,250 96,250" class="sk-ink"/>
+<text x="122" y="264">J2 : min</text>
+<rect x="190" y="252" width="16" height="16" rx="3" class="fl-soft"/><rect x="190" y="252" width="16" height="16" rx="3" class="sk-ink"/>
+<text x="212" y="264">feuille : valeur de h</text>
+</svg>
+<figcaption>Minimax à profondeur 3 : les feuilles (carrés gris) portent l’heuristique ; un nœud où J1 joue (triangle pointe en haut) prend le maximum de ses fils, un nœud où J2 joue (pointe en bas) le minimum. La racine vaut 6 : J1 joue vers son premier fils (en couleur, la suite de coups attendue si chacun joue au mieux selon \(h\)).</figcaption>
+</figure>
+  <div class="prop-box"><strong>Coût et profondeur.</strong> Si chaque état a environ \(b\) successeurs, l'exploration à la profondeur \(p\) visite de l'ordre de \(b^p\) états. Aux échecs (\(b \approx 35\)), \(p = 4\) demande environ \(1{,}5 \times 10^6\) évaluations et \(p = 6\) près de \(2 \times 10^9\). La profondeur est donc limitée par le temps disponible, et la qualité du jeu dépend autant de l'heuristique que de la profondeur.</div>
+  <div class="notice"><strong>Effet d'horizon</strong> : ce qui se passe au-delà de la profondeur \(p\) est invisible. Une heuristique qui ne voit pas une menace immédiate peut conduire à un coup perdant (exemple au §10). Si l'on explore jusqu'aux états finals (\(p\) assez grand), minimax donne la valeur exacte du jeu et retrouve les positions gagnantes du §8.</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§10 · UN EXEMPLE COMPLET : LE MORPION</div>
+  <h2>Minimax avec une heuristique sur un vrai jeu</h2>
+  <div class="intro">Deux joueurs, X (\(J_1\)) et O (\(J_2\)), posent tour à tour leur symbole dans une grille \(3 \times 3\) ; le premier qui en aligne trois gagne ; si la grille se remplit sans alignement, la partie est nulle. Le jeu est assez petit pour être résolu exactement, et assez riche pour montrer le rôle de l'heuristique.</div>
+
+  <p>Une grille est un tuple de 9 cases (<span class="code-inline">'X'</span>, <span class="code-inline">'O'</span> ou <span class="code-inline">' '</span>), numérotées de 0 à 8 ligne par ligne. Un tuple plutôt qu'une liste : jouer crée une nouvelle grille au lieu de modifier l'ancienne, et un tuple peut servir de clé de dictionnaire.</p>
+  <pre class="codeblock">LIGNES = [(0, 1, 2), (3, 4, 5), (6, 7, 8), (0, 3, 6), (1, 4, 7),
+          (2, 5, 8), (0, 4, 8), (2, 4, 6)]
+
+<span class="kw">def</span> gagnant(g: tuple) -&gt; str:
+    <span class="str">"""'X' ou 'O' si ce joueur a aligné trois symboles, '' sinon.</span>
+<span class="str">    g : tuple de 9 cases ('X', 'O' ou ' '), numérotées ligne par ligne."""</span>
+    <span class="kw">for</span> a, b, c <span class="kw">in</span> LIGNES:
+        <span class="kw">if</span> g[a] != <span class="str">' '</span> <span class="kw">and</span> g[a] == g[b] <span class="kw">and</span> g[b] == g[c]:
+            <span class="kw">return</span> g[a]
+    <span class="kw">return</span> <span class="str">''</span>
+
+<span class="kw">def</span> coups(g: tuple) -&gt; list:
+    <span class="str">"""Cases libres de la grille g."""</span>
+    <span class="kw">return</span> [c <span class="kw">for</span> c <span class="kw">in</span> range(9) <span class="kw">if</span> g[c] == <span class="str">' '</span>]
+
+<span class="kw">def</span> jouer(g: tuple, c: int, s: str) -&gt; tuple:
+    <span class="str">"""Nouvelle grille : le symbole s posé dans la case c."""</span>
+    <span class="kw">return</span> g[:c] + (s,) + g[c + 1:]
+
+<span class="kw">def</span> h(g: tuple) -&gt; int:
+    <span class="str">"""Heuristique : lignes encore possibles pour X moins lignes encore</span>
+<span class="str">    possibles pour O (une ligne est possible pour X si elle n'a aucun O)."""</span>
+    v = 0
+    <span class="kw">for</span> a, b, c <span class="kw">in</span> LIGNES:
+        <span class="kw">if</span> <span class="str">'O'</span> <span class="kw">not</span> <span class="kw">in</span> (g[a], g[b], g[c]):
+            v = v + 1
+        <span class="kw">if</span> <span class="str">'X'</span> <span class="kw">not</span> <span class="kw">in</span> (g[a], g[b], g[c]):
+            v = v - 1
+    <span class="kw">return</span> v</pre>
+  <div class="method-box"><strong>Exemple — l'heuristique en début de partie</strong>
+    <ol>
+      <li>Grille vide : 8 lignes possibles pour chacun, \(h = 8 - 8 = 0\).</li>
+      <li>X au centre : les 4 lignes qui passent par le centre (une ligne, une colonne, deux diagonales) deviennent impossibles pour O : \(h = 8 - 4 = 4\). X dans un coin : 3 lignes perdues pour O, \(h = 3\) ; X au milieu d'un bord : \(h = 2\).</li>
+      <li>L'heuristique traduit une règle connue des joueurs : le centre est la meilleure case d'ouverture.</li>
+    </ol>
+  </div>
+  <pre class="codeblock"><span class="kw">def</span> valeur(g: tuple, trait: str, p: int) -&gt; int:
+    <span class="str">"""Valeur minimax de g à la profondeur p ; trait : symbole qui joue.</span>
+<span class="str">    X (J1) maximise, O (J2) minimise ; victoire : +100 ou -100."""</span>
+    w = gagnant(g)
+    <span class="kw">if</span> w == <span class="str">'X'</span>:
+        <span class="kw">return</span> 100
+    <span class="kw">if</span> w == <span class="str">'O'</span>:
+        <span class="kw">return</span> -100
+    <span class="kw">if</span> len(coups(g)) == 0:
+        <span class="kw">return</span> 0                                 <span class="cmt"># grille pleine : nul</span>
+    <span class="kw">if</span> p == 0:
+        <span class="kw">return</span> h(g)
+    autre = <span class="str">'O'</span>
+    <span class="kw">if</span> trait == <span class="str">'O'</span>:
+        autre = <span class="str">'X'</span>
+    vals = [valeur(jouer(g, c, trait), autre, p - 1) <span class="kw">for</span> c <span class="kw">in</span> coups(g)]
+    v = vals[0]
+    <span class="kw">for</span> x <span class="kw">in</span> vals:
+        <span class="kw">if</span> (trait == <span class="str">'X'</span> <span class="kw">and</span> x &gt; v) <span class="kw">or</span> (trait == <span class="str">'O'</span> <span class="kw">and</span> x &lt; v):
+            v = x
+    <span class="kw">return</span> v
+
+<span class="kw">def</span> meilleur_coup(g: tuple, trait: str, p: int) -&gt; int:
+    <span class="str">"""Case choisie par minimax à la profondeur p (la première des meilleures)."""</span>
+    autre = <span class="str">'O'</span>
+    <span class="kw">if</span> trait == <span class="str">'O'</span>:
+        autre = <span class="str">'X'</span>
+    meilleure, vm = -1, 0
+    <span class="kw">for</span> c <span class="kw">in</span> coups(g):
+        v = valeur(jouer(g, c, trait), autre, p - 1)
+        <span class="kw">if</span> meilleure == -1 <span class="kw">or</span> (trait == <span class="str">'X'</span> <span class="kw">and</span> v &gt; vm) <span class="kw">or</span> (trait == <span class="str">'O'</span> <span class="kw">and</span> v &lt; vm):
+            meilleure, vm = c, v
+    <span class="kw">return</span> meilleure</pre>
+  <div class="method-box"><strong>Exemple — l'effet d'horizon</strong>
+    <pre class="codeblock">VIDE = (<span class="str">' '</span>,) * 9
+h(VIDE)                         <span class="cmt"># 0 : 8 lignes possibles de chaque côté</span>
+h(jouer(VIDE, 4, <span class="str">'X'</span>))          <span class="cmt"># 4 : le centre ôte 4 lignes à O</span>
+meilleur_coup(VIDE, <span class="str">'X'</span>, 2)     <span class="cmt"># 4 : le centre</span>
+g = (<span class="str">'X'</span>, <span class="str">'O'</span>, <span class="str">' '</span>,
+     <span class="str">'X'</span>, <span class="str">' '</span>, <span class="str">' '</span>,
+     <span class="str">' '</span>, <span class="str">' '</span>, <span class="str">' '</span>)             <span class="cmt"># O joue ; X menace la colonne 0, 3, 6</span>
+meilleur_coup(g, <span class="str">'O'</span>, 1)        <span class="cmt"># 4 : meilleure heuristique, mais X gagne en 6</span>
+meilleur_coup(g, <span class="str">'O'</span>, 2)        <span class="cmt"># 6 : à profondeur 2, O voit la menace</span></pre>
+    <ol>
+      <li>Dans la grille <span class="code-inline">g</span>, X a joué en 0 et en 3, O en 1 ; c'est à O de jouer, et X menace d'aligner la colonne 0, 3, 6.</li>
+      <li>À profondeur 1, O compare seulement \(h\) après son coup : trois coups (cases 4, 6 et 8) donnent la plus petite valeur, \(-1\), et la fonction retient le premier examiné, le centre. Mais X joue alors en 6 et gagne : l'heuristique ne « voit » pas la menace.</li>
+      <li>À profondeur 2, O examine aussi les réponses de X : après tout coup autre que 6, X peut gagner (valeur \(+100\)) ; O choisit 6 et pare la menace.</li>
+    </ol>
+  </div>
+  <figure class="schema" style="max-width:345px">
+<svg viewBox="0 0 345 136" role="img" aria-label="Trois grilles de morpion : la position où O doit jouer, le coup au centre choisi à profondeur 1 suivi de la victoire de X, le coup en 6 choisi à profondeur 2">
+<line x1="44" y1="30" x2="44" y2="108" class="sk-ink"/>
+<line x1="18" y1="56" x2="96" y2="56" class="sk-ink"/>
+<line x1="70" y1="30" x2="70" y2="108" class="sk-ink"/>
+<line x1="18" y1="82" x2="96" y2="82" class="sk-ink"/>
+<text x="31" y="48" class="lab-b" text-anchor="middle">X</text>
+<text x="57" y="48" class="lab-b" text-anchor="middle">O</text>
+<text x="31" y="74" class="lab-b" text-anchor="middle">X</text>
+<text x="57" y="20" class="lab-muted" text-anchor="middle">position</text>
+<line x1="158" y1="30" x2="158" y2="108" class="sk-ink"/>
+<line x1="132" y1="56" x2="210" y2="56" class="sk-ink"/>
+<line x1="184" y1="30" x2="184" y2="108" class="sk-ink"/>
+<line x1="132" y1="82" x2="210" y2="82" class="sk-ink"/>
+<text x="145" y="48" class="lab-b" text-anchor="middle">X</text>
+<text x="171" y="48" class="lab-b" text-anchor="middle">O</text>
+<text x="145" y="74" class="lab-b" text-anchor="middle">X</text>
+<rect x="160" y="58" width="22" height="22" rx="3" class="fl-accent2-soft"/><rect x="160" y="58" width="22" height="22" rx="3" class="sk-accent2"/>
+<text x="171" y="74" class="lab-b" text-anchor="middle">O</text>
+<rect x="134" y="84" width="22" height="22" rx="3" class="fl-accent-soft"/><rect x="134" y="84" width="22" height="22" rx="3" class="sk-accent"/>
+<text x="145" y="100" class="lab-b" text-anchor="middle">X</text>
+<text x="171" y="20" class="lab-muted" text-anchor="middle">p = 1 : O en 4</text>
+<line x1="272" y1="30" x2="272" y2="108" class="sk-ink"/>
+<line x1="246" y1="56" x2="324" y2="56" class="sk-ink"/>
+<line x1="298" y1="30" x2="298" y2="108" class="sk-ink"/>
+<line x1="246" y1="82" x2="324" y2="82" class="sk-ink"/>
+<text x="259" y="48" class="lab-b" text-anchor="middle">X</text>
+<text x="285" y="48" class="lab-b" text-anchor="middle">O</text>
+<text x="259" y="74" class="lab-b" text-anchor="middle">X</text>
+<rect x="248" y="84" width="22" height="22" rx="3" class="fl-green-soft"/><rect x="248" y="84" width="22" height="22" rx="3" class="sk-green"/>
+<text x="259" y="100" class="lab-b" text-anchor="middle">O</text>
+<text x="285" y="20" class="lab-muted" text-anchor="middle">p = 2 : O en 6</text>
+<text x="171" y="128" class="lab-accent" text-anchor="middle">X gagne en 6</text>
+<text x="285" y="128" class="lab-green" text-anchor="middle">menace parée</text>
+</svg>
+<figcaption>Effet d’horizon. O doit jouer ; X menace la colonne de gauche. À profondeur 1, O ne regarde que l’heuristique après son coup : le centre (case 4) est le premier des coups qui la rendent la plus favorable à O, mais X gagne aussitôt en 6. À profondeur 2, O voit la réponse de X et bloque en 6.</figcaption>
+</figure>
+
+  <h3>Résolution exacte, avec un dictionnaire</h3>
+  <p>Sans limite de profondeur, minimax calcule la valeur exacte du jeu. Mais une même grille est atteinte par de nombreux ordres de coups : la récursion naïve examine 549 946 parties partielles depuis la grille vide, alors qu'il n'y a que 5 478 couples (grille, joueur au trait) atteignables. C'est le chevauchement de sous-problèmes du chapitre <em>Dictionnaires et programmation dynamique</em> : on mémoïse la valeur de chaque couple dans un dictionnaire.</p>
+  <pre class="codeblock"><span class="kw">def</span> valeur_exacte(g: tuple, trait: str, memo: dict) -&gt; int:
+    <span class="str">"""Valeur du jeu parfait depuis g : 1 si X gagne, -1 si O gagne, 0 si nul."""</span>
+    <span class="kw">if</span> (g, trait) <span class="kw">in</span> memo:
+        <span class="kw">return</span> memo[(g, trait)]
+    w = gagnant(g)
+    <span class="kw">if</span> w != <span class="str">''</span> <span class="kw">or</span> len(coups(g)) == 0:
+        r = 0
+        <span class="kw">if</span> w == <span class="str">'X'</span>:
+            r = 1
+        <span class="kw">elif</span> w == <span class="str">'O'</span>:
+            r = -1
+    <span class="kw">else</span>:
+        autre = <span class="str">'O'</span>
+        <span class="kw">if</span> trait == <span class="str">'O'</span>:
+            autre = <span class="str">'X'</span>
+        vals = [valeur_exacte(jouer(g, c, trait), autre, memo) <span class="kw">for</span> c <span class="kw">in</span> coups(g)]
+        r = vals[0]
+        <span class="kw">for</span> x <span class="kw">in</span> vals:
+            <span class="kw">if</span> (trait == <span class="str">'X'</span> <span class="kw">and</span> x &gt; r) <span class="kw">or</span> (trait == <span class="str">'O'</span> <span class="kw">and</span> x &lt; r):
+                r = x
+    memo[(g, trait)] = r
+    <span class="kw">return</span> r</pre>
+  <p><span class="code-inline">valeur_exacte((' ',) * 9, 'X', {})</span> vaut 0 : bien joué par les deux, le morpion finit toujours en match nul. Ce calcul est exactement celui des attracteurs : la valeur 1 correspond aux positions gagnantes de X, −1 à celles de O, 0 aux autres.</p>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">POUR ALLER PLUS LOIN · HORS PROGRAMME</div>
+  <h2>Compléments</h2>
+  <ul>
+    <li><strong>Élagage alpha-bêta</strong> : pendant le calcul de minimax, on peut se dispenser d'explorer certaines branches. Si \(J_1\) s'est déjà assuré la valeur 6 avec un premier coup, et qu'en explorant un deuxième coup il découvre une réponse de \(J_2\) qui vaut 5, ce deuxième coup ne vaudra pas plus de 5 : inutile d'examiner les autres réponses. Bien ordonné, l'élagage permet d'aller environ deux fois plus profond dans le même temps.</li>
+    <li><strong>Convergence des \(k\)-moyennes</strong> : l'affectation au centre le plus proche ne peut pas augmenter l'inertie (chaque terme diminue ou reste égal), et le barycentre d'un groupe est le point qui minimise la somme des carrés des distances à ses points (on le montre en développant la somme). L'inertie décroît donc à chaque tour ; comme il n'y a qu'un nombre fini de partitions, l'algorithme s'arrête (avec une règle d'égalité fixe, comme « le premier centre le plus proche »).</li>
+    <li><strong>Initialisation des \(k\)-moyennes</strong> : la méthode « \(k\)-means++ » tire les centres initiaux au hasard, mais avec une probabilité qui favorise les points éloignés des centres déjà choisis ; elle évite la plupart des mauvais départs.</li>
+    <li><strong>Stratégies avec mémoire</strong> : dans les jeux d'accessibilité, les stratégies sans mémoire suffisent (le théorème du §8 le montre) ; pour des objectifs plus complexes (passer infiniment souvent par un état…), la mémoire peut devenir nécessaire.</li>
+    <li><strong>Au-delà de minimax</strong> : les programmes de go et d'échecs actuels combinent une exploration aléatoire de l'arbre de jeu (« Monte-Carlo ») et des réseaux de neurones, entraînés en jouant contre eux-mêmes, qui servent d'heuristique (apprentissage par renforcement, chapitre de SI <em>Intelligence artificielle</em>).</li>
+  </ul>
+</div>
+</template>
+<template class="pan-tpl" data-panneau="iaj-meth">
+<div class="course-section">
+  <div class="sec-num">MÉTHODES · IA ET JEUX</div>
+  <h2>Les réflexes du chapitre</h2>
+  <div class="intro">Neuf savoir-faire : dérouler et programmer les deux algorithmes d'apprentissage, lire une matrice de confusion, modéliser un jeu, calculer des positions gagnantes, appliquer minimax. Le programme n'exige pas de connaître ces algorithmes par cœur : les énoncés les décrivent, il faut savoir les appliquer, les programmer et les critiquer.</div>
+
+  <div class="method-box"><strong>Méthode 1 — Classer une donnée à la main par les k plus proches voisins</strong>
+    <ol>
+      <li><span class="step">Distances.</span> Calculer les carrés des distances euclidiennes de la donnée \(x\) à chaque exemple (la racine est inutile pour comparer).</li>
+      <li><span class="step">Classer</span> les exemples par distance croissante et garder les \(k\) premiers.</li>
+      <li><span class="step">Voter</span> : la classe la plus fréquente parmi ces \(k\) voisins ; en cas d'égalité, appliquer la règle de l'énoncé (par exemple, celle du voisin le plus proche).</li>
+      <li><span class="step">Critiquer</span> : un seul voisin atypique décide avec \(k = 1\) ; vérifier que les caractéristiques sont à la même échelle.</li>
+    </ol>
+    <p><em>Exemple éclair :</em> exemples ronds (3, 3), (7, 3), (3, 6), carrés (3, 2), (6, 4) ; pour \(x = (4, 3)\), les carrés des distances sont 1, 9, 10, 2, 5. Ordre : (3, 3) rond, (3, 2) carré, (6, 4) carré, (7, 3) rond, (3, 6) rond. Prédiction : rond pour \(k = 1\), carré pour \(k = 3\), rond pour \(k = 5\).</p>
+  </div>
+
+  <div class="method-box"><strong>Méthode 2 — Programmer les k plus proches voisins et en évaluer le coût</strong>
+    <ol>
+      <li><span class="step">Distances</span> : une fonction <span class="code-inline">distance(p, q)</span> sur des tuples, par une boucle sur les coordonnées.</li>
+      <li><span class="step">Sélection</span> : liste des couples <span class="code-inline">(distance, indice)</span>, puis \(k\) étapes d'un tri par sélection (ou un tri complet, documenté) ; les couples se comparent dans l'ordre lexicographique.</li>
+      <li><span class="step">Vote</span> : compter les étiquettes des voisins dans un dictionnaire, puis chercher la plus fréquente.</li>
+      <li><span class="step">Coût</span> : \(O(Nd)\) pour les distances, \(O(kN)\) pour la sélection : \(O(N(d + k))\) par donnée classée ; rien n'est appris à l'avance.</li>
+    </ol>
+    <p><em>Exemple éclair :</em> classer \(10^4\) images de \(28 \times 28 = 784\) pixels avec \(N = 6 \times 10^4\) exemples demande \(10^4 \times 6 \times 10^4 \times 784 \approx 5 \times 10^{11}\) opérations pour les seules distances : bien trop pour Python. D'où l'intérêt de réduire \(N\) ou \(d\).</p>
+  </div>
+  <div class="notice"><strong>Piège</strong> : comparer les distances de \(x\) aux exemples sans les associer à leur indice. Après le tri, on ne sait plus de quel exemple vient chaque distance, donc plus quelle est son étiquette.</div>
+
+  <div class="method-box"><strong>Méthode 3 — Construire et lire une matrice de confusion</strong>
+    <ol>
+      <li><span class="step">Convention</span> : classe réelle en ligne, classe prédite en colonne (la vérifier dans l'énoncé).</li>
+      <li><span class="step">Remplir</span> : pour chaque donnée de test, ajouter 1 dans la case (classe réelle, classe prédite) ; un dictionnaire associe à chaque classe son numéro.</li>
+      <li><span class="step">Lire</span> : la diagonale compte les bonnes réponses, exactitude = diagonale / total ; chaque case hors diagonale nomme une confusion précise.</li>
+      <li><span class="step">Comparer</span> à un classifieur naïf (toujours la classe la plus fréquente) et pondérer les erreurs selon leurs conséquences.</li>
+    </ol>
+    <p><em>Exemple éclair :</em> \(M = \begin{pmatrix} 7 &amp; 1 &amp; 0 \\ 1 &amp; 3 &amp; 0 \\ 0 &amp; 1 &amp; 2 \end{pmatrix}\) (conforme, rayée, fêlée) : exactitude \(12/15 = 80\,\%\). Répondre toujours « conforme » donnerait déjà \(8/15 \approx 53\,\%\). Une pièce fêlée sur trois est acceptée comme rayée.</p>
+  </div>
+
+  <div class="method-box"><strong>Méthode 4 — Dérouler les k-moyennes et repérer un minimum local</strong>
+    <ol>
+      <li><span class="step">Tableau</span> à une ligne par tour : centres utilisés, groupes obtenus, nouveaux centres.</li>
+      <li><span class="step">Affecter</span> chaque point au centre le plus proche (règle d'égalité de l'énoncé), puis <span class="step">recalculer</span> chaque centre comme la moyenne de son groupe.</li>
+      <li><span class="step">S'arrêter</span> quand les groupes ne changent plus ; calculer l'inertie (somme des carrés des distances aux centres).</li>
+      <li><span class="step">Critiquer</span> : relancer depuis d'autres centres initiaux ; une inertie plus petite prouve que le premier résultat n'était qu'un minimum local.</li>
+    </ol>
+    <p><em>Exemple éclair :</em> points 0, 1, 5, 6, 10, 11, \(k = 3\). Depuis les centres 0, 5, 10 : groupes {0, 1}, {5, 6}, {10, 11}, inertie 1,5. Depuis 0, 1, 5 : centres finaux 0 ; 1 ; 8, groupes {0}, {1}, {5, 6, 10, 11}, inertie 26 : minimum local.</p>
+  </div>
+  <div class="notice"><strong>Piège</strong> : choisir \(k\) en minimisant l'inertie. Elle diminue toujours quand \(k\) augmente (nulle pour un point par groupe) : on cherche plutôt le « coude » au-delà duquel elle ne diminue plus guère.</div>
+
+  <div class="method-box"><strong>Méthode 5 — Modéliser un jeu par une arène</strong>
+    <ol>
+      <li><span class="step">État</span> = tout ce qui détermine la suite de la partie : la position <em>et</em> le joueur qui doit jouer.</li>
+      <li><span class="step">Coups</span> : un arc de chaque état vers chaque état atteignable en un coup ; vérifier que les arcs vont d'un joueur à l'autre (graphe biparti).</li>
+      <li><span class="step">Finals</span> : états sans coup possible, classés gagnant pour \(J_1\), gagnant pour \(J_2\) ou nul.</li>
+      <li><span class="step">Python</span> : numéroter les états avec un dictionnaire de clés tuples, puis construire <span class="code-inline">G</span> (successeurs) et <span class="code-inline">joueur</span>.</li>
+    </ol>
+    <p><em>Exemple éclair :</em> allumettes de 0 à \(n\), deux joueurs : \(2(n + 1)\) états \((a, j)\). Avec des retraits de 1 ou 2, chaque état \((a, j)\) avec \(a \geq 2\) a deux successeurs \((a - 1, 3 - j)\) et \((a - 2, 3 - j)\).</p>
+  </div>
+
+  <div class="method-box"><strong>Méthode 6 — Calculer un attracteur et en déduire les positions gagnantes</strong>
+    <ol>
+      <li><span class="step">Départ</span> : \(A_0\) = états finals gagnants pour le joueur considéré (rang 0).</li>
+      <li><span class="step">Étape</span> : ajouter ses états (non finals) qui ont <em>au moins un</em> successeur déjà dans l'ensemble, et les états de l'adversaire (non finals) dont <em>tous</em> les successeurs y sont ; noter le numéro d'étape (rang).</li>
+      <li><span class="step">Arrêt</span> quand une étape n'ajoute rien. L'attracteur est l'ensemble des positions gagnantes.</li>
+      <li><span class="step">Stratégie</span> : depuis chaque état du joueur de rang \(r \geq 1\), jouer vers un successeur de rang plus petit.</li>
+      <li><span class="step">Issues</span> : calculer aussi l'attracteur de l'adversaire ; les états restants sont des positions de match nul.</li>
+    </ol>
+    <p><em>Exemple éclair :</em> 0 (\(J_1\)) mène à 1 et 2 (\(J_2\)) ; 1 mène à 3 (gagnant pour \(J_1\)) et 4 (gagnant pour \(J_2\)) ; 2 ne mène qu'à 3. Étape 0 : {3} ; étape 1 : 2 (son seul successeur est 3) ; étape 2 : 0. Stratégie : \(0 \to 2\). L'état 1 est gagnant pour \(J_2\) (il joue vers 4).</p>
+  </div>
+  <div class="notice"><strong>Piège</strong> : traiter les deux joueurs de la même façon. Pour l'adversaire, il faut que <em>tous</em> ses coups mènent dans l'attracteur ; un seul coup qui en sort lui suffit pour échapper.</div>
+
+  <div class="method-box"><strong>Méthode 7 — Prouver qu'une stratégie est gagnante</strong>
+    <ol>
+      <li><span class="step">Invariant</span> : une propriété des états atteints après chaque coup du joueur qui applique la stratégie (« le nombre d'allumettes restantes est multiple de 4 »).</li>
+      <li><span class="step">Conservation</span> : montrer que la stratégie peut toujours être appliquée depuis un état atteint par un coup quelconque de l'adversaire, et qu'elle rétablit l'invariant.</li>
+      <li><span class="step">Terminaison</span> : une quantité entière positive qui décroît à chaque coup (un variant) garantit que la partie finit.</li>
+      <li><span class="step">Conclusion</span> : l'état final atteint vérifie l'invariant, ce qui le rend gagnant.</li>
+    </ol>
+    <p><em>Exemple éclair :</em> retraits de 1, 2 ou 3 allumettes, celui qui prend la dernière gagne. Stratégie : laisser un multiple de 4 (retirer \(a \bmod 4\)). L'adversaire retire 1 à 3 : il laisse un non-multiple de 4, d'où l'on peut revenir à un multiple de 4. Le nombre d'allumettes décroît ; seul le joueur qui applique la stratégie peut laisser 0.</p>
+  </div>
+
+  <div class="method-box"><strong>Méthode 8 — Appliquer minimax à la main</strong>
+    <ol>
+      <li><span class="step">Feuilles</span> : à la profondeur limite (ou sur un état final), écrire la valeur de l'heuristique.</li>
+      <li><span class="step">Remonter</span> niveau par niveau : un état où \(J_1\) joue prend le <em>maximum</em> des valeurs de ses fils, un état où \(J_2\) joue le <em>minimum</em>.</li>
+      <li><span class="step">Choisir</span> à la racine le coup vers un fils de valeur égale à celle de la racine.</li>
+      <li><span class="step">Coût</span> : environ \(b^p\) feuilles pour \(b\) coups par état et une profondeur \(p\).</li>
+    </ol>
+    <p><em>Exemple éclair :</em> \(J_1\) a deux coups ; après le premier, \(J_2\) peut mener aux valeurs 3 ou 9 ; après le second, aux valeurs 5 ou 6. Valeurs des deux coups : \(\min(3, 9) = 3\) et \(\min(5, 6) = 5\) ; racine : 5, on joue le second coup. Viser la feuille 9 serait naïf : \(J_2\) répondrait vers 3.</p>
+  </div>
+
+  <div class="method-box"><strong>Méthode 9 — Concevoir une heuristique</strong>
+    <ol>
+      <li><span class="step">Sens</span> : grande quand l'état est favorable à \(J_1\), petite quand il l'est à \(J_2\) ; souvent « avantage de \(J_1\) moins avantage de \(J_2\) ».</li>
+      <li><span class="step">Finals</span> : valeurs exactes et extrêmes (par exemple \(\pm 100\), au-delà de toutes les valeurs de l'heuristique), 0 pour un nul.</li>
+      <li><span class="step">Coût</span> : rapide à calculer, puisqu'elle est évaluée sur chacune des \(b^p\) feuilles.</li>
+      <li><span class="step">Tester</span> sur des positions connues (ouverture, menace immédiate) et augmenter la profondeur si elle manque une menace (effet d'horizon).</li>
+    </ol>
+    <p><em>Exemple éclair :</em> au morpion, \(h\) = (lignes encore possibles pour X) − (lignes encore possibles pour O) vaut 4 après un X au centre, 3 dans un coin, 2 au milieu d'un bord : elle recommande le centre, comme les joueurs expérimentés.</p>
+  </div>
+</div>
+</template>
+<template class="pan-tpl" data-panneau="iaj-exos">
+<div class="exo-wrapper">
+
+<div class="exo">
+  <span class="num">EXO 01</span><span class="diff">★ ☆ ☆</span>
+  <h3>Plus proches voisins à la main</h3>
+  <div class="statement">Huit exemples du plan sont étiquetés : ronds en (3, 3), (3, 6), (7, 3), (0, 2) ; carrés en (3, 2), (6, 4), (8, 4), (6, 6). On veut classer \(x = (4, 3)\). En cas d'égalité des votes, on retient la classe du voisin le plus proche parmi les classes ex æquo, et à distance égale, l'exemple cité le premier.</div>
+  <div class="q"><strong>Q1.</strong> Calculer les carrés des distances de \(x\) aux huit exemples et les ranger par ordre croissant.</div>
+  <div class="q"><strong>Q2.</strong> Quelle classe prédit-on pour \(k = 1\), \(k = 3\), \(k = 5\) ?</div>
+  <div class="q"><strong>Q3.</strong> Et pour \(k = 8\) ? Que prédit-on en général quand \(k\) est égal au nombre d'exemples ?</div>
+  <div class="q"><strong>Q4.</strong> On ajoute un exemple carré en (4, 4). Que devient la prédiction pour \(k = 1\) ? Qu'en conclure ?</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> Par exemple, pour (3, 6) : \((3 - 4)^2 + (6 - 3)^2 = 1 + 9 = 10\).</p>
+    <div><table>
+<tr><th>rang</th><th>point</th><th>distance au carré</th><th>classe</th></tr>
+<tr><td>1</td><td>(3, 3)</td><td>1</td><td>rond</td></tr>
+<tr><td>2</td><td>(3, 2)</td><td>2</td><td>carré</td></tr>
+<tr><td>3</td><td>(6, 4)</td><td>5</td><td>carré</td></tr>
+<tr><td>4</td><td>(7, 3)</td><td>9</td><td>rond</td></tr>
+<tr><td>5</td><td>(3, 6)</td><td>10</td><td>rond</td></tr>
+<tr><td>6</td><td>(6, 6)</td><td>13</td><td>carré</td></tr>
+<tr><td>7</td><td>(0, 2)</td><td>17</td><td>rond</td></tr>
+<tr><td>8</td><td>(8, 4)</td><td>17</td><td>carré</td></tr>
+</table></div>
+    <p><strong>Q2.</strong> \(k = 1\) : le voisin (3, 3) est rond, on prédit rond. \(k = 3\) : un rond, deux carrés, on prédit carré. \(k = 5\) : trois ronds ((3, 3), (7, 3), (3, 6)) contre deux carrés, on prédit rond. La prédiction change avec \(k\) : \(x\) est à la frontière des deux classes.</p>
+    <pre class="codeblock">P = [(3, 3), (3, 6), (7, 3), (0, 2), (3, 2), (6, 4), (8, 4), (6, 6)]
+E = [<span class="str">"rond"</span>] * 4 + [<span class="str">"carré"</span>] * 4
+x = (4, 3)
+knn(P, E, x, 1)     <span class="cmt"># 'rond'</span>
+knn(P, E, x, 3)     <span class="cmt"># 'carré'</span>
+knn(P, E, x, 5)     <span class="cmt"># 'rond'</span></pre>
+    <p><strong>Q3.</strong> Pour \(k = 8\), tous les exemples votent : 4 contre 4. Égalité : on retient la classe du plus proche voisin, rond. En général, avec \(k = N\), on prédit pour toute donnée la classe majoritaire du jeu d'exemples (ou la règle d'égalité) : la position de \(x\) ne compte plus, c'est le sous-apprentissage extrême.</p>
+    <p><strong>Q4.</strong> (4, 4) est à distance 1 de \(x\), comme (3, 3), mais cité après : avec la règle de l'énoncé, le plus proche reste (3, 3) et l'on prédit toujours rond. Une autre règle d'égalité donnerait carré : avec \(k = 1\), la prédiction d'un point frontière tient à un détail, d'où l'intérêt d'un \(k\) plus grand.</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 02</span><span class="diff">★ ☆ ☆</span>
+  <h3>Lire une matrice de confusion</h3>
+  <div class="statement">Un système de vision trie des pièces de verre en trois classes : conforme, rayée, fêlée. Sur 15 pièces de test, les classes réelles et prédites sont :
+    <pre class="codeblock">reelles = [<span class="str">"conforme"</span>] * 8 + [<span class="str">"rayée"</span>] * 4 + [<span class="str">"fêlée"</span>] * 3
+predites = [<span class="str">"conforme"</span>] * 6 + [<span class="str">"rayée"</span>, <span class="str">"conforme"</span>] \
+         + [<span class="str">"rayée"</span>, <span class="str">"conforme"</span>, <span class="str">"rayée"</span>, <span class="str">"rayée"</span>] \
+         + [<span class="str">"fêlée"</span>, <span class="str">"rayée"</span>, <span class="str">"fêlée"</span>]
+M = matrice_confusion(reelles, predites, [<span class="str">"conforme"</span>, <span class="str">"rayée"</span>, <span class="str">"fêlée"</span>])
+<span class="cmt"># [[7, 1, 0], [1, 3, 0], [0, 1, 2]]</span>
+exactitude(M)          <span class="cmt"># 12 / 15 = 0.8</span></pre>
+  </div>
+  <div class="q"><strong>Q1.</strong> Construire la matrice de confusion (classe réelle en ligne, prédite en colonne). Que valent la somme d'une ligne, celle d'une colonne ?</div>
+  <div class="q"><strong>Q2.</strong> Calculer l'exactitude. La comparer à celle d'un « classifieur » qui répond toujours « conforme ».</div>
+  <div class="q"><strong>Q3.</strong> Quelle erreur est la plus grave pour un fabricant de vitrages ? Quelle proportion des pièces fêlées est détectée ?</div>
+  <div class="q"><strong>Q4.</strong> Écrire <span class="code-inline">matrice_confusion(reelles, predites, classes)</span> et <span class="code-inline">exactitude(M)</span>.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong></p>
+    <div><table>
+<tr><th>réel ↓ / prédit →</th><th>conforme</th><th>rayée</th><th>fêlée</th></tr>
+<tr><td>conforme</td><td><strong>7</strong></td><td>1</td><td>0</td></tr>
+<tr><td>rayée</td><td>1</td><td><strong>3</strong></td><td>0</td></tr>
+<tr><td>fêlée</td><td>0</td><td>1</td><td><strong>2</strong></td></tr>
+</table></div>
+    <p>La somme d'une ligne est le nombre de pièces réellement de cette classe (8, 4, 3) ; celle d'une colonne, le nombre de pièces que le système a rangées dans cette classe (8, 5, 2).</p>
+    <p><strong>Q2.</strong> Diagonale : \(7 + 3 + 2 = 12\), exactitude \(12/15 = 80\,\%\). Le classifieur constant « conforme » a raison sur les 8 pièces conformes : \(8/15 \approx 53\,\%\). Le système fait mieux, mais 80 % n'est pas un résultat spectaculaire face à cette référence.</p>
+    <p><strong>Q3.</strong> Livrer une pièce fêlée comme acceptable (ou seulement rayée) est le plus grave : elle peut casser chez le client. Ici, une pièce fêlée sur trois est classée « rayée » : seules \(2/3\) des pièces fêlées sont détectées (c'est le <em>rappel</em> de la classe fêlée, notion vue dans le chapitre de SI <em>Intelligence artificielle</em>, §4). L'exactitude globale masque ce défaut.</p>
+    <p><strong>Q4.</strong> Fonctions du cours (§3) :</p>
+    <pre class="codeblock"><span class="kw">def</span> matrice_confusion(reelles: list, predites: list, classes: list) -&gt; list:
+    <span class="str">"""M[i][j] : nombre d'exemples de classe réelle classes[i]</span>
+<span class="str">    auxquels le modèle a attribué la classe classes[j]."""</span>
+    num = {}                          <span class="cmt"># classe -&gt; numéro de ligne / colonne</span>
+    <span class="kw">for</span> i <span class="kw">in</span> range(len(classes)):
+        num[classes[i]] = i
+    c = len(classes)
+    M = [[0] * c <span class="kw">for</span> i <span class="kw">in</span> range(c)]
+    <span class="kw">for</span> k <span class="kw">in</span> range(len(reelles)):
+        i, j = num[reelles[k]], num[predites[k]]
+        M[i][j] = M[i][j] + 1
+    <span class="kw">return</span> M
+
+<span class="kw">def</span> exactitude(M: list) -&gt; float:
+    <span class="str">"""Proportion d'exemples bien classés (diagonale / total)."""</span>
+    bien, total = 0, 0
+    <span class="kw">for</span> i <span class="kw">in</span> range(len(M)):
+        <span class="kw">for</span> j <span class="kw">in</span> range(len(M)):
+            total = total + M[i][j]
+            <span class="kw">if</span> i == j:
+                bien = bien + M[i][j]
+    <span class="kw">return</span> bien / total</pre>
+    <p>Coût \(O(n + c^2)\) pour \(n\) données et \(c\) classes : un passage sur les données, plus la création et le parcours de la matrice.</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 03</span><span class="diff">★ ★ ☆</span>
+  <h3>Mettre les caractéristiques à l'échelle</h3>
+  <div class="statement">On distingue des pêches et des pommes par leur masse (en grammes) et leur diamètre (en cm) :
+    <pre class="codeblock"><span class="cmt"># (masse en g, diamètre en cm)</span>
+F = [(120, 6.0), (150, 7.6), (135, 6.4), (180, 7.0), (200, 8.2), (160, 7.2)]
+EF = [<span class="str">"pêche"</span>, <span class="str">"pomme"</span>, <span class="str">"pêche"</span>, <span class="str">"pêche"</span>, <span class="str">"pomme"</span>, <span class="str">"pomme"</span>]
+x = (152, 6.1)
+knn(F, EF, x, 1)                      <span class="cmt"># 'pomme' : la masse décide seule</span>
+Z, mini, maxi = normaliser(F)
+knn(Z, EF, transformer(x, mini, maxi), 1)    <span class="cmt"># 'pêche'</span></pre>
+  </div>
+  <div class="q"><strong>Q1.</strong> Calculer les distances de \(x = (152\ ;\ 6{,}1)\) aux exemples (150 ; 7,6) et (135 ; 6,4). Quel est son plus proche voisin ? Pourquoi le diamètre ne compte-t-il presque pas ?</div>
+  <div class="q"><strong>Q2.</strong> Écrire <span class="code-inline">normaliser(X)</span>, qui ramène chaque caractéristique entre 0 et 1 par \(x' = (x - x_{\min}) / (x_{\max} - x_{\min})\), et renvoie aussi les minima et maxima ; puis <span class="code-inline">transformer(x, mini, maxi)</span>.</div>
+  <div class="q"><strong>Q3.</strong> Que prédit le plus proche voisin après normalisation ? Pourquoi la nouvelle donnée doit-elle être transformée avec les minima et maxima des <em>exemples</em> ?</div>
+  <div class="q"><strong>Q4.</strong> Que se passe-t-il si une caractéristique a la même valeur pour tous les exemples ?</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> Vers (150 ; 7,6) : \(\sqrt{2^2 + 1{,}5^2} = \sqrt{6{,}25} = 2{,}5\). Vers (135 ; 6,4) : \(\sqrt{17^2 + 0{,}3^2} \approx 17{,}0\). Le plus proche voisin est (150 ; 7,6), une pomme, alors que le diamètre de \(x\) (6,1 cm) est typique des pêches. Les masses varient sur 80 g, les diamètres sur 2,2 cm : les écarts de masse écrasent ceux de diamètre dans la distance.</p>
+    <p><strong>Q2.</strong></p>
+    <pre class="codeblock"><span class="kw">def</span> normaliser(X: list) -&gt; tuple:
+    <span class="str">"""Ramène chaque caractéristique entre 0 et 1 (min-max) ; renvoie les</span>
+<span class="str">    points normalisés et les listes des minima et des maxima."""</span>
+    dim = len(X[0])
+    mini = [X[0][d] <span class="kw">for</span> d <span class="kw">in</span> range(dim)]
+    maxi = [X[0][d] <span class="kw">for</span> d <span class="kw">in</span> range(dim)]
+    <span class="kw">for</span> p <span class="kw">in</span> X:
+        <span class="kw">for</span> d <span class="kw">in</span> range(dim):
+            <span class="kw">if</span> p[d] &lt; mini[d]:
+                mini[d] = p[d]
+            <span class="kw">if</span> p[d] &gt; maxi[d]:
+                maxi[d] = p[d]
+    Z = []
+    <span class="kw">for</span> p <span class="kw">in</span> X:
+        Z.append(tuple([(p[d] - mini[d]) / (maxi[d] - mini[d]) <span class="kw">for</span> d <span class="kw">in</span> range(dim)]))
+    <span class="kw">return</span> Z, mini, maxi
+
+<span class="kw">def</span> transformer(x: tuple, mini: list, maxi: list) -&gt; tuple:
+    <span class="str">"""Même transformation, pour une nouvelle donnée x."""</span>
+    <span class="kw">return</span> tuple([(x[d] - mini[d]) / (maxi[d] - mini[d]) <span class="kw">for</span> d <span class="kw">in</span> range(len(x))])</pre>
+    <p><strong>Q3.</strong> Après normalisation, le plus proche voisin est une pêche : les deux caractéristiques pèsent autant. La transformation fait partie du modèle : une donnée nouvelle doit subir exactement la même que les exemples, sinon elle ne serait pas comparable à eux (et l'on ne peut pas recalculer minima et maxima avec une seule donnée).</p>
+    <p><strong>Q4.</strong> \(x_{\max} - x_{\min} = 0\) : division par zéro. Une telle caractéristique ne distingue aucun exemple : on la retire avant la normalisation.</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 04</span><span class="diff">★ ★ ☆</span>
+  <h3>Les k-moyennes à la main</h3>
+  <div class="statement">On partitionne les six nombres 0, 1, 5, 6, 10, 11 en \(k = 3\) groupes par l'algorithme des \(k\)-moyennes (en cas d'égalité de distance, un point rejoint le centre de plus petit numéro).</div>
+  <div class="q"><strong>Q1.</strong> Dérouler l'algorithme depuis les centres 0, 5, 10. Donner les groupes et l'inertie finale.</div>
+  <div class="q"><strong>Q2.</strong> Le dérouler depuis les centres 0, 1, 5. Même question.</div>
+  <div class="q"><strong>Q3.</strong> Expliquer pourquoi l'algorithme s'arrête dans la question 2 alors que la partition n'est pas la meilleure.</div>
+  <div class="q"><strong>Q4.</strong> Combien y a-t-il de choix de trois points de départ distincts parmi les six ? Proposer une stratégie simple pour obtenir presque sûrement la meilleure partition.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> Affectation : {0, 1}, {5, 6}, {10, 11} ; centres 0,5 ; 5,5 ; 10,5. Les groupes ne changent plus. Inertie : six écarts de 0,5, soit \(6 \times 0{,}25 = 1{,}5\).</p>
+    <p><strong>Q2.</strong> Tour 1 : 0 → centre 0, 1 → centre 1, et 5, 6, 10, 11 → centre 5. Nouveaux centres : 0, 1, \((5 + 6 + 10 + 11)/4 = 8\). Tour 2 : 5 est à distance 4 de 1 et 3 de 8 : il reste avec 8 ; rien ne change. Groupes {0}, {1}, {5, 6, 10, 11}, inertie \(0 + 0 + 9 + 4 + 4 + 9 = 26\).</p>
+    <pre class="codeblock">P = [(0,), (1,), (5,), (6,), (10,), (11,)]
+kmoyennes(P, [(0,), (5,), (10,)])    <span class="cmt"># centres 0.5, 5.5, 10.5</span>
+kmoyennes(P, [(0,), (1,), (5,)])     <span class="cmt"># centres 0, 1, 8</span></pre>
+    <p><strong>Q3.</strong> Chaque étape ne fait que des améliorations locales : chaque point est déjà au plus proche des centres existants, et chaque centre est déjà la moyenne de son groupe. Aucune des deux étapes ne modifie rien, alors qu'une autre partition, très différente, est bien meilleure : c'est un minimum local. Deux centres se partagent le paquet {0, 1}, et rien ne pousse l'un d'eux vers le paquet {10, 11}.</p>
+    <p><strong>Q4.</strong> \(\binom{6}{3} = 20\) choix. On relance l'algorithme depuis plusieurs initialisations tirées au hasard et on garde la partition d'inertie minimale (fonction <span class="code-inline">meilleur_partitionnement</span> du cours, §5) ; ici, il suffit qu'un départ prenne un point dans chaque paquet.</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 05</span><span class="diff">★ ★ ☆</span>
+  <h3>Groupes vides et choix du nombre de groupes</h3>
+  <div class="statement">On reprend les fonctions <span class="code-inline">plus_proche</span>, <span class="code-inline">barycentre</span>, <span class="code-inline">kmoyennes</span> et <span class="code-inline">inertie</span> du cours (§4). Dans <span class="code-inline">kmoyennes</span>, un groupe vide garde son centre.</div>
+  <div class="q"><strong>Q1.</strong> Pourquoi ne peut-on pas calculer le barycentre d'un groupe vide ? Que se passerait-il sans le test <span class="code-inline">len(membres) &gt; 0</span> ?</div>
+  <div class="q"><strong>Q2.</strong> Les points sont 0, 0 et 5 (deux points confondus), et les centres initiaux sont ces trois points. Dérouler l'algorithme. Le groupe 1 peut-il recevoir un point ?</div>
+  <div class="q"><strong>Q3.</strong> Écrire <span class="code-inline">inerties(points, kmax, essais)</span>, qui renvoie la meilleure inertie trouvée (avec <span class="code-inline">meilleur_partitionnement</span>) pour \(k = 1, \dots, k_{\max}\).</div>
+  <div class="q"><strong>Q4.</strong> Sur le nuage <span class="code-inline">P2</span> du cours, on obtient le tableau ci-dessous. Quel nombre de groupes choisir ? Pourquoi pas celui qui minimise l'inertie ?
+    <div><table>
+<tr><th>\(k\)</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th><th>6</th></tr>
+<tr><td>meilleure inertie</td><td>204,1</td><td>112,1</td><td>25,8</td><td>21,1</td><td>16,4</td><td>11,9</td></tr>
+</table></div>
+  </div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> Le barycentre est une moyenne : il faut diviser par le nombre de points du groupe, ici 0. Sans le test, <span class="code-inline">barycentre([])</span> lirait <span class="code-inline">points[0]</span> dans une liste vide : erreur <span class="code-inline">IndexError</span>, et le programme s'arrête.</p>
+    <p><strong>Q2.</strong> Les centres 0 et 1 sont égaux (valeur 0). Le premier 0 est à égale distance (nulle) des centres 0 et 1 : il rejoint le premier, de même que le second 0 ; 5 rejoint le centre 2. Le groupe 1 est vide, son centre reste 0, et à chaque tour il est battu par le centre 0 (égalité, plus petit numéro) : il ne recevra jamais de point. L'algorithme rend en fait deux groupes. Tirer des points de départ de <em>valeurs</em> distinctes évite ce cas.</p>
+    <pre class="codeblock">P = [(0,), (0,), (5,)]               <span class="cmt"># deux points confondus</span>
+C, g = kmoyennes(P, [P[0], P[1], P[2]])
+<span class="cmt"># g == [0, 0, 2] : le groupe 1 reste vide, son centre ne bouge pas</span></pre>
+    <p><strong>Q3.</strong></p>
+    <pre class="codeblock"><span class="kw">def</span> inerties(points: list, kmax: int, essais: int) -&gt; list:
+    <span class="str">"""Meilleure inertie trouvée pour k = 1, 2, ..., kmax."""</span>
+    <span class="kw">return</span> [meilleur_partitionnement(points, k, essais)[0] <span class="kw">for</span> k <span class="kw">in</span> range(1, kmax + 1)]</pre>
+    <p><strong>Q4.</strong> L'inertie chute fortement jusqu'à \(k = 3\) (de 204,1 à 25,8), puis ne diminue plus que lentement : trois groupes (le « coude »). L'inertie diminue toujours quand \(k\) augmente et s'annule pour \(k = N\) (un point par groupe) : la minimiser ferait choisir \(k = N\), une partition sans intérêt.</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 06</span><span class="diff">★ ☆ ☆</span>
+  <h3>Qui prend la dernière perd</h3>
+  <div class="statement">Variante du jeu des allumettes : chacun à son tour retire 1, 2 ou 3 allumettes ; celui qui prend la dernière <strong>perd</strong>. \(J_1\) commence.</div>
+  <div class="q"><strong>Q1.</strong> Décrire les états, les coups et les états finals. Quel est l'état final gagnant pour \(J_1\) ?</div>
+  <div class="q"><strong>Q2.</strong> Calculer à la main l'attracteur pour \(J_1\) jusqu'à 9 allumettes. Quelles sont les positions \((a, 1)\) gagnantes ?</div>
+  <div class="q"><strong>Q3.</strong> Conjecturer la règle générale, donner une stratégie gagnante et la prouver.</div>
+  <div class="q"><strong>Q4.</strong> Adapter la fonction <span class="code-inline">jeu_allumettes</span> du cours et vérifier la conjecture jusqu'à 20 allumettes.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> États \((a, j)\) : \(a\) allumettes restent, \(j\) doit jouer. Coups : \((a, j) \to (a - r, 3 - j)\) pour \(r \in \{1, 2, 3\}\), \(r \leq a\). Finals : \(a = 0\). Dans \((0, 1)\), c'est \(J_2\) qui vient de prendre la dernière : il a perdu, \((0, 1)\) est gagnant pour \(J_1\) ; \((0, 2)\) est gagnant pour \(J_2\).</p>
+    <p><strong>Q2.</strong> Rang 0 : \((0, 1)\). Rang 1 : les états de \(J_2\) dont tous les coups mènent dans l'attracteur : \((1, 2)\) (son seul coup mène en \((0, 1)\)). Rang 2 : les états de \(J_1\) qui peuvent jouer vers \((1, 2)\) : \((2, 1), (3, 1), (4, 1)\). Rang 3 : \((5, 2)\), dont les trois coups mènent en \((4, 1), (3, 1), (2, 1)\). Rang 4 : \((6, 1), (7, 1), (8, 1)\). Rang 5 : \((9, 2)\). Et \((9, 1)\) ? Ses coups mènent en \((8, 2), (7, 2), (6, 2)\), qui ne sont pas dans l'attracteur : \((9, 1)\) est perdante pour \(J_1\), comme \((1, 1)\) et \((5, 1)\). Positions gagnantes : \(a \in \{2, 3, 4, 6, 7, 8\}\) ; perdantes : 1, 5, 9.</p>
+    <p><strong>Q3.</strong> Conjecture : \((a, 1)\) est gagnante si et seulement si \(a \bmod 4 \neq 1\). Stratégie : laisser à l'adversaire un nombre \(\equiv 1 \pmod 4\), en retirant \((a - 1) \bmod 4\) allumettes (entre 1 et 3 quand \(a \bmod 4 \neq 1\)). Invariant : après chaque coup de \(J_1\), il reste \(4q + 1\) allumettes. Depuis \(4q + 1\) avec \(q \geq 1\), \(J_2\) en retire 1 à 3 et laisse entre \(4q - 2\) et \(4q\), d'où \(J_1\) revient à \(4(q - 1) + 1\). Variant : le nombre d'allumettes décroît. La partie finit avec \(J_2\) face à 1 allumette : il doit la prendre et perd.</p>
+    <pre class="codeblock"><span class="kw">def</span> jeu_misere(n: int) -&gt; tuple:
+    <span class="str">"""n allumettes ; on en retire 1, 2 ou 3 ; qui prend la dernière PERD.</span>
+<span class="str">    États (a, j) numérotés par le dictionnaire num, comme au cours."""</span>
+    num = {}
+    <span class="kw">for</span> a <span class="kw">in</span> range(n + 1):
+        <span class="kw">for</span> j <span class="kw">in</span> [1, 2]:
+            num[(a, j)] = len(num)
+    G = [[] <span class="kw">for</span> e <span class="kw">in</span> range(len(num))]
+    joueur = [0] * len(num)
+    <span class="kw">for</span> a, j <span class="kw">in</span> num.keys():
+        joueur[num[(a, j)]] = j
+        <span class="kw">for</span> r <span class="kw">in</span> [1, 2, 3]:
+            <span class="kw">if</span> r &lt;= a:
+                G[num[(a, j)]].append(num[(a - r, 3 - j)])
+    <span class="cmt"># (0, 1) : J2 a pris la dernière, il a perdu : J1 gagne</span>
+    <span class="kw">return</span> G, joueur, num, [num[(0, 1)]], [num[(0, 2)]]</pre>
+    <p><strong>Q4.</strong> Seule change la liste des retraits (\([1, 2, 3]\)) et l'état final gagnant pour \(J_1\) : \((0, 1)\) au lieu de \((0, 2)\). Avec la fonction <span class="code-inline">attracteur</span> du cours, les positions \((a, 1)\) gagnantes jusqu'à 20 sont exactement celles où \(a \bmod 4 \neq 1\).</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 07</span><span class="diff">★ ★ ☆</span>
+  <h3>Positions gagnantes d'une arène</h3>
+  <div class="statement">On considère l'arène ci-dessous : 7 est gagnant pour \(J_1\), 8 est gagnant pour \(J_2\), 9 est un match nul.
+    <figure class="schema" style="max-width:345px">
+<svg viewBox="0 0 345 300" role="img" aria-label="Arène de l’exercice 7 : onze états, finals 7 gagnant pour J1, 8 gagnant pour J2, 9 nul">
+<line x1="41.7" y1="105.6" x2="90.9" y2="66.2" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<line x1="41" y1="125.2" x2="91.8" y2="172.7" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<line x1="118.9" y1="49.4" x2="163.3" y2="31.7" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<line x1="117.5" y1="63.3" x2="165" y2="95" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<line x1="120" y1="185" x2="162" y2="185" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<line x1="115.3" y1="195.9" x2="167.7" y2="251.9" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<line x1="194.1" y1="30" x2="248" y2="49" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<line x1="173.6" y1="38.6" x2="112.6" y2="168.7" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<line x1="192.9" y1="97.4" x2="249.5" y2="64.1" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<line x1="190.9" y1="115.3" x2="251.9" y2="172.7" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<line x1="195" y1="185" x2="247" y2="185" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<path d="M 187.8,197.8 Q 211.5,236.7 249.1,256.6" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<path d="M 257.2,252.2 Q 233.5,213.3 195.9,193.4" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<line x1="280" y1="265" x2="312" y2="265" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<line x1="190.9" y1="254.7" x2="251.9" y2="197.3" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<circle cx="30" cy="115" r="15" class="sk-ink fl-paper"/>
+<text x="30" y="119.6" class="lab-b" text-anchor="middle">0</text>
+<rect x="90" y="40" width="30" height="30" rx="3" class="sk-ink fl-paper"/>
+<text x="105" y="59.6" class="lab-b" text-anchor="middle">1</text>
+<rect x="90" y="170" width="30" height="30" rx="3" class="sk-ink fl-paper"/>
+<text x="105" y="189.6" class="lab-b" text-anchor="middle">2</text>
+<circle cx="180" cy="25" r="15" class="sk-ink fl-paper"/>
+<text x="180" y="29.6" class="lab-b" text-anchor="middle">3</text>
+<circle cx="180" cy="105" r="15" class="sk-ink fl-paper"/>
+<text x="180" y="109.6" class="lab-b" text-anchor="middle">4</text>
+<circle cx="180" cy="185" r="15" class="sk-ink fl-paper"/>
+<text x="180" y="189.6" class="lab-b" text-anchor="middle">5</text>
+<circle cx="180" cy="265" r="15" class="sk-ink fl-paper"/>
+<text x="180" y="269.6" class="lab-b" text-anchor="middle">10</text>
+<rect x="250" y="40" width="30" height="30" rx="3" class="sk-ink fl-paper"/>
+<rect x="254" y="44" width="22" height="22" rx="2" class="sk-ink"/>
+<text x="265" y="59.6" class="lab-b" text-anchor="middle">7</text>
+<text x="285" y="59.5" class="lab-muted">J1 gagne</text>
+<rect x="250" y="170" width="30" height="30" rx="3" class="sk-ink fl-paper"/>
+<rect x="254" y="174" width="22" height="22" rx="2" class="sk-ink"/>
+<text x="265" y="189.6" class="lab-b" text-anchor="middle">8</text>
+<text x="285" y="189.5" class="lab-muted">J2 gagne</text>
+<rect x="250" y="250" width="30" height="30" rx="3" class="sk-ink fl-paper"/>
+<text x="265" y="269.6" class="lab-b" text-anchor="middle">6</text>
+<circle cx="330" cy="265" r="15" class="sk-ink fl-paper"/>
+<circle cx="330" cy="265" r="11" class="sk-ink"/>
+<text x="330" y="269.6" class="lab-b" text-anchor="middle">9</text>
+<text x="330" y="295" class="lab-muted" text-anchor="middle">nul</text>
+</svg>
+<figcaption>L’arène de l’exercice 7 (cercles : \(J_1\) joue ; carrés : \(J_2\) joue ; double contour : état final).</figcaption>
+</figure>
+    <pre class="codeblock">G = [[1, 2], [3, 4], [5, 10], [7, 2], [7, 8], [8, 6], [5, 9],
+     [], [], [], [8]]
+joueur = [1, 2, 2, 1, 1, 1, 2, 2, 2, 1, 1]
+F1, F2, NUL = [7], [8], [9]</pre>
+  </div>
+  <div class="q"><strong>Q1.</strong> Vérifier que l'arène est biparti.</div>
+  <div class="q"><strong>Q2.</strong> Calculer l'attracteur de \(F_1 = \{7\}\) pour \(J_1\), avec le rang de chaque état, et une stratégie gagnante.</div>
+  <div class="q"><strong>Q3.</strong> Calculer l'attracteur de \(F_2 = \{8\}\) pour \(J_2\).</div>
+  <div class="q"><strong>Q4.</strong> Que se passe-t-il, bien joué, depuis les états restants ? Depuis l'état 0 ?</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> États de \(J_1\) : 0, 3, 4, 5, 10 (et le final 9) ; de \(J_2\) : 1, 2, 6 (et les finals 7, 8). Chaque arc relie un état de \(J_1\) à un état de \(J_2\) ou l'inverse (par exemple \(3 \to 2\), \(5 \to 6\), \(6 \to 5\), \(6 \to 9\)) : l'arène est biparti.</p>
+    <p><strong>Q2.</strong> Rang 0 : 7. Rang 1 : 3 et 4 (à \(J_1\), un successeur 7). Rang 2 : 1 (à \(J_2\), ses successeurs 3 et 4 sont dans l'attracteur) ; 2 n'y entre pas (successeurs 5 et 10). Rang 3 : 0 (successeur 1). Rien ensuite. Stratégie : \(0 \to 1\), \(3 \to 7\), \(4 \to 7\).</p>
+    <p><strong>Q3.</strong> Rang 0 : 8. Rang 1 : 10 (à \(J_1\), son seul successeur est 8). 5 n'y entre pas (il peut aller en 6), ni 4 (il peut aller en 7). Rang 2 : 2 (à \(J_2\), il peut aller en 10). Rang 3 : 0 a un successeur, 1, hors de l'attracteur : il n'y entre pas. Attracteur de \(J_2\) : {8, 10, 2}, stratégie \(2 \to 10\).</p>
+    <p><strong>Q4.</strong> Restent 5, 6 et le final nul 9. Depuis 5, \(J_1\) évite 8 en jouant vers 6 ; depuis 6, \(J_2\) peut finir sur le nul 9 ou revenir en 5. Aucun ne peut forcer la victoire : match nul (atteint en 9, ou partie infinie). Depuis 0, \(J_1\) gagne en jouant vers 1 (rang 3, au plus trois coups) ; jouer vers 2 serait une erreur, car \(J_2\) gagnerait en jouant vers 10.</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 08</span><span class="diff">★ ★ ☆</span>
+  <h3>Minimax à la main</h3>
+  <div class="statement">\(J_1\) doit jouer et dispose de trois coups A, B, C. Après chacun, \(J_2\) a plusieurs réponses, qui mènent à des états dont l'heuristique (du point de vue de \(J_1\)) vaut : après A : 4, 8, 6 ; après B : 2, 9 ; après C : 5, 7, 6.</div>
+  <div class="q"><strong>Q1.</strong> Calculer la valeur minimax à la profondeur 2 de chaque coup, puis de l'état courant. Quel coup \(J_1\) joue-t-il ?</div>
+  <div class="q"><strong>Q2.</strong> Un joueur naïf vise l'état de plus grande heuristique. Quel coup jouerait-il, et que risque-t-il ?</div>
+  <div class="q"><strong>Q3.</strong> On découvre que l'état de valeur 7 après C est en fait gagnant pour \(J_2\) (valeur \(-100\)). Le choix change-t-il ?</div>
+  <div class="q"><strong>Q4.</strong> Avec 3 coups par état, combien d'états évalue-t-on à la profondeur 6 ? À la profondeur 10 ? Pourquoi la qualité de l'heuristique compte-t-elle autant que la profondeur ?</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> \(J_2\) minimise : A vaut \(\min(4, 8, 6) = 4\), B vaut \(\min(2, 9) = 2\), C vaut \(\min(5, 7, 6) = 5\). \(J_1\) maximise : l'état courant vaut 5, et \(J_1\) joue C.</p>
+    <p><strong>Q2.</strong> Il jouerait B pour viser 9, mais \(J_2\) répondrait vers 2, la pire valeur de toutes. Minimax suppose que l'adversaire joue au mieux pour lui.</p>
+    <p><strong>Q3.</strong> C vaut alors \(\min(5, -100, 6) = -100\) : \(J_2\) a une réponse gagnante. A (valeur 4) devient le meilleur coup. Une seule réponse adverse suffit à disqualifier un coup.</p>
+    <p><strong>Q4.</strong> \(3^6 = 729\) feuilles à la profondeur 6, \(3^{10} = 59\,049\) à la profondeur 10 : le coût est exponentiel en la profondeur. À temps de calcul fixé, une heuristique plus juste permet de jouer mieux sans aller plus profond ; une heuristique trompeuse égare minimax quelle que soit la profondeur atteignable (effet d'horizon).</p>
+    <pre class="codeblock"><span class="kw">def</span> minimax(G: list, joueur: list, h: list, s: int, p: int) -&gt; float:
+    <span class="str">"""Valeur minimax de l'état s à la profondeur p : J1 maximise, J2</span>
+<span class="str">    minimise ; h[s] évalue s (valeur exacte si s est final)."""</span>
+    <span class="kw">if</span> p == 0 <span class="kw">or</span> len(G[s]) == 0:
+        <span class="kw">return</span> h[s]
+    valeurs = [minimax(G, joueur, h, t, p - 1) <span class="kw">for</span> t <span class="kw">in</span> G[s]]
+    v = valeurs[0]
+    <span class="kw">for</span> x <span class="kw">in</span> valeurs:
+        <span class="kw">if</span> (joueur[s] == 1 <span class="kw">and</span> x &gt; v) <span class="kw">or</span> (joueur[s] == 2 <span class="kw">and</span> x &lt; v):
+            v = x
+    <span class="kw">return</span> v</pre>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 09</span><span class="diff">★ ★ ★</span>
+  <h3>Un calcul d'attracteur en temps linéaire</h3>
+  <div class="statement">La fonction <span class="code-inline">attracteur</span> du cours reparcourt tous les états à chaque étape : \(O(n(n + m))\). On veut un calcul en \(O(n + m)\) pour une arène à \(n\) états et \(m\) arcs. Idée : quand un état \(t\) entre dans l'attracteur, seuls ses <em>prédécesseurs</em> (les états \(s\) tels que \(s \to t\)) peuvent y entrer à leur tour.</div>
+  <div class="q"><strong>Q1.</strong> Écrire la construction de la liste <span class="code-inline">pred</span> des prédécesseurs de chaque état. Coût ?</div>
+  <div class="q"><strong>Q2.</strong> Pour un état \(s\) de l'adversaire, on tient un compteur <span class="code-inline">reste[s]</span> : le nombre de ses successeurs encore hors de l'attracteur. Quand \(s\) entre-t-il dans l'attracteur ? Et un état du joueur ?</div>
+  <div class="q"><strong>Q3.</strong> Écrire <span class="code-inline">attracteur_rapide(G, joueur, cibles, j)</span>, qui renvoie la liste des booléens « \(s\) est dans l'attracteur », en gérant une liste d'états à traiter.</div>
+  <div class="q"><strong>Q4.</strong> Justifier la complexité \(O(n + m)\). Le résultat est-il le même ensemble que celui de <span class="code-inline">attracteur</span> ?</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> On crée \(n\) listes vides, puis pour chaque arc \(s \to t\), on ajoute \(s\) à <span class="code-inline">pred[t]</span> : \(O(n + m)\) (voir le début de la fonction ci-dessous).</p>
+    <p><strong>Q2.</strong> Un état \(s\) de l'adversaire entre dès que <span class="code-inline">reste[s]</span> tombe à 0 (tous ses successeurs sont dans l'attracteur). Un état du joueur entre dès qu'un de ses successeurs y entre. Comme les états finals n'ont pas de successeur, ils ne sont prédécesseurs de personne et n'entrent que s'ils sont des cibles.</p>
+    <p><strong>Q3.</strong></p>
+    <pre class="codeblock"><span class="kw">def</span> attracteur_rapide(G: list, joueur: list, cibles: list, j: int) -&gt; list:
+    <span class="str">"""Même résultat que attracteur (les ensembles ; les rangs peuvent</span>
+<span class="str">    différer), en O(n + m) grâce aux prédécesseurs et à des compteurs."""</span>
+    n = len(G)
+    pred = [[] <span class="kw">for</span> s <span class="kw">in</span> range(n)]
+    <span class="kw">for</span> s <span class="kw">in</span> range(n):
+        <span class="kw">for</span> t <span class="kw">in</span> G[s]:
+            pred[t].append(s)
+    reste = [len(G[s]) <span class="kw">for</span> s <span class="kw">in</span> range(n)]   <span class="cmt"># successeurs hors attracteur</span>
+    dans = [<span class="kw">False</span>] * n
+    a_traiter = []
+    <span class="kw">for</span> s <span class="kw">in</span> cibles:
+        dans[s] = <span class="kw">True</span>
+        a_traiter.append(s)
+    <span class="kw">while</span> len(a_traiter) &gt; 0:
+        t = a_traiter.pop()
+        <span class="kw">for</span> s <span class="kw">in</span> pred[t]:                    <span class="cmt"># t vient d'entrer : ses prédécesseurs</span>
+            <span class="kw">if</span> <span class="kw">not</span> dans[s]:
+                reste[s] = reste[s] - 1
+                <span class="kw">if</span> joueur[s] == j <span class="kw">or</span> reste[s] == 0:
+                    dans[s] = <span class="kw">True</span>
+                    a_traiter.append(s)
+    <span class="kw">return</span> dans</pre>
+    <p><strong>Q4.</strong> Chaque état entre au plus une fois dans <span class="code-inline">a_traiter</span> (il est marqué <span class="code-inline">dans</span> avant d'y être ajouté) ; quand il en sort, on parcourt ses prédécesseurs. Chaque arc \(s \to t\) est donc examiné au plus une fois (quand \(t\) est traité), avec un travail \(O(1)\) : \(O(n + m)\) en tout, plus \(O(n + m)\) pour <span class="code-inline">pred</span>. L'ensemble obtenu est le même : un état entre exactement quand la condition de la définition devient vraie, quel que soit l'ordre des traitements ; seuls les numéros d'étape (les rangs) ne sont plus calculés. On le vérifie sur des arènes tirées au hasard.</p>
+  </div>
+</div>
+
+<div class="exo concours">
+  <span class="num">CONCOURS PT</span><span class="diff">★ ★ ★</span>
+  <h3>Le chat et la souris</h3>
+  <div class="exo-source">Exercice <strong>original</strong> au format des épreuves d'informatique des concours (thème : jeux d'accessibilité, attracteurs, parcours en largeur, minimax avec heuristique).</div>
+  <div class="statement">Un chat et une souris se déplacent sur un plateau modélisé par un graphe non orienté à \(n\) cases, donné par ses listes d'adjacence <span class="code-inline">G</span>. Une case particulière, <span class="code-inline">trou</span>, est un abri : la souris y est à l'abri et le chat ne peut pas y entrer. Les deux animaux jouent à tour de rôle, la souris (\(J_1\)) d'abord : à son tour, un animal <em>doit</em> passer à une case voisine. Le chat gagne s'il se trouve sur la même case que la souris ; la souris gagne si elle atteint le trou. Si cela n'arrive jamais, la partie est nulle. Exemple de plateau (<span class="code-inline">TROU = 6</span>) :
+    <figure class="schema" style="max-width:345px">
+<svg viewBox="0 0 345 185" role="img" aria-label="Plateau de sept cases : 0 relié à 1 et 2, 1 à 3, 2 à 3 et 4, 3 à 5, 4 et 5 au trou 6">
+<line x1="40" y1="56" x2="40" y2="124" class="sk-ink"/>
+<line x1="56" y1="40" x2="124" y2="40" class="sk-ink"/>
+<line x1="56" y1="140" x2="124" y2="140" class="sk-ink"/>
+<line x1="140" y1="56" x2="140" y2="124" class="sk-ink"/>
+<line x1="156" y1="40" x2="224" y2="40" class="sk-ink"/>
+<line x1="156" y1="140" x2="224" y2="140" class="sk-ink"/>
+<line x1="253.3" y1="48.9" x2="301.7" y2="81.1" class="sk-ink"/>
+<line x1="253.3" y1="131.1" x2="301.7" y2="98.9" class="sk-ink"/>
+<circle cx="40" cy="40" r="16" class="sk-ink fl-paper"/>
+<text x="40" y="44.6" class="lab-b" text-anchor="middle">0</text>
+<circle cx="40" cy="140" r="16" class="sk-ink fl-paper"/>
+<text x="40" y="144.6" class="lab-b" text-anchor="middle">1</text>
+<circle cx="140" cy="40" r="16" class="sk-ink fl-paper"/>
+<text x="140" y="44.6" class="lab-b" text-anchor="middle">2</text>
+<circle cx="140" cy="140" r="16" class="sk-ink fl-paper"/>
+<text x="140" y="144.6" class="lab-b" text-anchor="middle">3</text>
+<circle cx="240" cy="40" r="16" class="sk-ink fl-paper"/>
+<text x="240" y="44.6" class="lab-b" text-anchor="middle">4</text>
+<circle cx="240" cy="140" r="16" class="sk-ink fl-paper"/>
+<text x="240" y="144.6" class="lab-b" text-anchor="middle">5</text>
+<circle cx="315" cy="90" r="16" class="fl-green-soft"/><circle cx="315" cy="90" r="16" class="sk-green"/>
+<text x="315" y="122" class="lab-green" text-anchor="middle">trou</text>
+<text x="315" y="94.6" class="lab-b" text-anchor="middle">6</text>
+</svg>
+<figcaption>Le plateau : sept cases et leurs liaisons (à double sens). La case 6 est le trou, où la souris est à l’abri et où le chat ne peut pas entrer.</figcaption>
+</figure>
+    <pre class="codeblock"><span class="cmt"># plateau : 7 cases ; la souris (J1) veut rejoindre le trou en 6</span>
+P = [[1, 2], [0, 3], [0, 3, 4], [1, 2, 5], [2, 6], [3, 6], [4, 5]]
+TROU = 6</pre>
+    On dispose des fonctions <span class="code-inline">attracteur(G, joueur, cibles, j)</span>, <span class="code-inline">strategie(G, joueur, rang, j)</span> et <span class="code-inline">minimax(G, joueur, h, s, p)</span> du cours.</div>
+  <p class="exo-part">Partie A — L'arène</p>
+  <div class="q"><strong>A1.</strong> Un état est un triplet \((c, s, j)\) : case du chat, case de la souris, animal qui doit jouer (1 : souris, 2 : chat). Pourquoi faut-il \(j\) ? Combien y a-t-il d'états pour le plateau donné ?</div>
+  <div class="q"><strong>A2.</strong> Écrire <span class="code-inline">etats(G, trou)</span>, qui renvoie un dictionnaire <span class="code-inline">num</span> associant à chaque état son numéro, et la liste <span class="code-inline">liste</span> des états (inverse de <span class="code-inline">num</span>).</div>
+  <div class="q"><strong>A3.</strong> Quels sont les états finals ? Écrire <span class="code-inline">arene(G, trou)</span>, qui renvoie les successeurs, le joueur de chaque état, <span class="code-inline">num</span>, <span class="code-inline">liste</span> et les listes des états finals gagnants pour la souris et pour le chat. Pourquoi l'arène est-elle biparti ?</div>
+  <p class="exo-part">Partie B — Positions gagnantes</p>
+  <div class="q"><strong>B1.</strong> Comment obtenir, avec les fonctions du cours, les positions gagnantes de la souris ? celles du chat ?</div>
+  <div class="q"><strong>B2.</strong> Le tableau suivant donne le résultat pour toutes les positions où la souris doit jouer (S\(r\) : la souris gagne, rang \(r\) ; C\(r\) : le chat gagne, rang \(r\)). Que se passe-t-il, bien joué, si la souris part de 0 et le chat de 5 ? de 4 ? de 2 ?
+    <div><table>
+<tr><th>souris au trait</th><th>souris en 0</th><th>souris en 1</th><th>souris en 2</th><th>souris en 3</th><th>souris en 4</th><th>souris en 5</th><th>souris en 6</th></tr>
+<tr><td>chat en 0</td><td>pris</td><td>S5</td><td>S3</td><td>S3</td><td>S1</td><td>S1</td><td>abri</td></tr>
+<tr><td>chat en 1</td><td>S5</td><td>pris</td><td>S3</td><td>S3</td><td>S1</td><td>S1</td><td>abri</td></tr>
+<tr><td>chat en 2</td><td>nul</td><td>C2</td><td>pris</td><td>S3</td><td>S1</td><td>S1</td><td>abri</td></tr>
+<tr><td>chat en 3</td><td>C2</td><td>nul</td><td>S3</td><td>pris</td><td>S1</td><td>S1</td><td>abri</td></tr>
+<tr><td>chat en 4</td><td>C4</td><td>S5</td><td>S5</td><td>S3</td><td>pris</td><td>S1</td><td>abri</td></tr>
+<tr><td>chat en 5</td><td>S5</td><td>C4</td><td>S3</td><td>S5</td><td>S1</td><td>pris</td><td>abri</td></tr>
+</table></div>
+  </div>
+  <div class="q"><strong>B3.</strong> Depuis \((c, s) = (5, 0)\), quel premier déplacement la stratégie gagnante de la souris propose-t-elle ? Pourquoi la souris ne peut-elle pas gagner en se dirigeant tout droit vers le trou depuis \((c, s) = (2, 0)\) ?</div>
+  <p class="exo-part">Partie C — Une heuristique pour les grands plateaux</p>
+  <div class="q"><strong>C1.</strong> Sur un grand plateau, l'arène a \(2n^2\) états environ. On évalue alors une position \((c, s)\) par \(h = d_{\text{chat}}(c, s) - d(s, \text{trou})\), où \(d\) est le nombre minimal de déplacements et \(d_{\text{chat}}\) le même nombre pour le chat, qui évite le trou. Justifier le sens de \(h\). Écrire <span class="code-inline">distances(G, s, interdit)</span> (parcours en largeur, sans passer par la case <span class="code-inline">interdit</span>), puis <span class="code-inline">h_souris(G, trou, c, s)</span>.</div>
+  <div class="q"><strong>C2.</strong> On donne aux états finals les valeurs \(+100\) (souris à l'abri) et \(-100\) (souris prise). Depuis \((5, 0)\), souris au trait, minimax trouve la valeur 100 à la profondeur 5 mais pas à la profondeur 4 ; depuis \((4, 0)\), il trouve \(-100\) à la profondeur 4 ; depuis \((2, 0)\), aucune profondeur ne donne \(\pm 100\). Interpréter ces résultats à l'aide du tableau de B2.</div>
+  <div class="q"><strong>C3.</strong> Chaque case a au plus 3 voisines. Majorer le nombre d'états examinés par minimax à la profondeur \(p\). Comparer au coût du calcul des attracteurs pour un plateau de \(n = 1\,000\) cases ayant au plus 3 voisines chacune.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>A1.</strong> Sans \(j\), on ne saurait pas qui doit jouer, donc quels sont les coups possibles (une même disposition peut être gagnante pour l'animal qui joue et perdante pour l'autre). Le chat n'est jamais dans le trou : 6 cases pour le chat, 7 pour la souris, 2 joueurs : \(6 \times 7 \times 2 = 84\) états.</p>
+    <p><strong>A2.</strong></p>
+    <pre class="codeblock"><span class="kw">def</span> etats(G: list, trou: int) -&gt; tuple:
+    <span class="str">"""Numérote les états (c, s, j) du jeu du chat et de la souris :</span>
+<span class="str">    chat en c, souris en s, j = 1 si la souris doit jouer, 2 si c'est le chat.</span>
+<span class="str">    Le chat n'entre jamais dans le trou."""</span>
+    num, liste = {}, []
+    <span class="kw">for</span> c <span class="kw">in</span> range(len(G)):
+        <span class="kw">if</span> c != trou:
+            <span class="kw">for</span> s <span class="kw">in</span> range(len(G)):
+                <span class="kw">for</span> j <span class="kw">in</span> [1, 2]:
+                    num[(c, s, j)] = len(liste)
+                    liste.append((c, s, j))
+    <span class="kw">return</span> num, liste</pre>
+    <p><strong>A3.</strong> Finals : \(c = s\) (souris prise, gagnant pour le chat), et \(s = \text{trou}\) (souris à l'abri, gagnant pour la souris) ; les deux ne peuvent pas arriver ensemble puisque le chat n'entre pas dans le trou. Un déplacement de la souris mène d'un état \((c, s, 1)\) à un état \((c, s', 2)\), un déplacement du chat de \((c, s, 2)\) à \((c', s, 1)\) : chaque arc change le joueur, l'arène est biparti. Sur l'exemple : 130 arcs.</p>
+    <pre class="codeblock"><span class="kw">def</span> arene(G: list, trou: int) -&gt; tuple:
+    <span class="str">"""Successeurs, joueur et états finals de l'arène."""</span>
+    num, liste = etats(G, trou)
+    succ = [[] <span class="kw">for</span> e <span class="kw">in</span> liste]
+    joueur = [0] * len(liste)
+    souris_gagne, chat_gagne = [], []
+    <span class="kw">for</span> e <span class="kw">in</span> range(len(liste)):
+        c, s, j = liste[e]
+        joueur[e] = j
+        <span class="kw">if</span> c == s:
+            chat_gagne.append(e)             <span class="cmt"># final : la souris est prise</span>
+        <span class="kw">elif</span> s == trou:
+            souris_gagne.append(e)           <span class="cmt"># final : la souris est à l'abri</span>
+        <span class="kw">elif</span> j == 1:
+            <span class="kw">for</span> v <span class="kw">in</span> G[s]:                   <span class="cmt"># la souris se déplace</span>
+                succ[e].append(num[(c, v, 2)])
+        <span class="kw">else</span>:
+            <span class="kw">for</span> v <span class="kw">in</span> G[c]:                   <span class="cmt"># le chat se déplace, hors du trou</span>
+                <span class="kw">if</span> v != trou:
+                    succ[e].append(num[(v, s, 1)])
+    <span class="kw">return</span> succ, joueur, num, liste, souris_gagne, chat_gagne</pre>
+    <p><strong>B1.</strong> Les positions gagnantes de la souris sont l'attracteur de ses états finals gagnants : <span class="code-inline">attracteur(succ, joueur, souris_gagne, 1)</span> ; celles du chat : <span class="code-inline">attracteur(succ, joueur, chat_gagne, 2)</span>. Les états restants sont des positions de match nul.</p>
+    <p><strong>B2.</strong> Chat en 5 : la souris gagne en au plus 5 déplacements (en comptant ceux des deux animaux). Chat en 4 : le chat gagne en au plus 4 déplacements. Chat en 2 : aucun ne peut forcer la victoire, la partie bien jouée ne finit pas (le chat garde le passage, la souris ne s'y aventure pas).</p>
+    <p><strong>B3.</strong> La stratégie (fonction <span class="code-inline">strategie</span>) fait passer la souris en 2, de rang plus petit. Depuis \((2, 0)\), les voisines de la souris sont 1 et 2 ; en 2, elle se jetterait sur le chat. Si elle va en 1, le chat va en 3 ; la souris, dont les voisines sont 0 et 3, doit revenir en 0, et le chat revient en 2 : on retrouve la position de départ. Toute autre réponse du chat donnerait une position gagnante pour la souris (chat en 0 ou en 4 face à la souris en 1, chat en 1 ou en 5 face à la souris en 0 : S5 dans le tableau). Le chat garde le passage sans pouvoir prendre la souris : partie nulle.</p>
+    <p><strong>C1.</strong> Plus le chat est loin de la souris et plus la souris est près du trou, plus la position est bonne pour la souris (\(J_1\)) : \(h\) croît avec la première distance et décroît avec la seconde.</p>
+    <pre class="codeblock"><span class="kw">def</span> distances(G: list, s: int, interdit: int) -&gt; list:
+    <span class="str">"""Nombre minimal de déplacements de s à chaque case sans passer par la</span>
+<span class="str">    case interdit (-1 : aucune) ; -1 pour une case inaccessible."""</span>
+    d = [-1] * len(G)
+    d[s] = 0
+    file = [s]
+    k = 0
+    <span class="kw">while</span> k &lt; len(file):                 <span class="cmt"># file : liste lue de gauche à droite</span>
+        u = file[k]
+        k = k + 1
+        <span class="kw">for</span> v <span class="kw">in</span> G[u]:
+            <span class="kw">if</span> d[v] == -1 <span class="kw">and</span> v != interdit:
+                d[v] = d[u] + 1
+                file.append(v)
+    <span class="kw">return</span> d</pre>
+    <pre class="codeblock"><span class="kw">def</span> h_souris(G: list, trou: int, c: int, s: int) -&gt; int:
+    <span class="str">"""Évaluation pour la souris : distance (pour le chat, qui évite le</span>
+<span class="str">    trou) du chat à la souris, moins distance de la souris au trou."""</span>
+    <span class="kw">return</span> distances(G, c, trou)[s] - distances(G, s, -1)[trou]</pre>
+    <p>Depuis \((5, 0)\) : le chat est à 3 déplacements de la souris (5, 3, 1 ou 2, puis 0) et la souris à 3 déplacements du trou, d'où \(h = 0\).</p>
+    <p><strong>C2.</strong> \((5, 0)\) est de rang 5 pour la souris : elle peut forcer l'arrivée au trou en au plus 5 déplacements, et pas moins ; minimax, qui examine tous les coups des deux animaux, le découvre exactement à la profondeur 5. \((4, 0)\) est de rang 4 pour le chat : à la profondeur 4, toutes les réponses de la souris mènent à sa capture. \((2, 0)\) est une position nulle : aucune profondeur ne fait apparaître une victoire forcée, et seule l'heuristique départage les coups. Minimax à profondeur suffisante retrouve ainsi les attracteurs, sans construire toute l'arène.</p>
+    <p><strong>C3.</strong> Au plus \(3^p\) états à la profondeur \(p\) (et \(1 + 3 + \cdots + 3^p \le \frac{3}{2} \cdot 3^p\) en comptant les niveaux intermédiaires) : pour \(p = 10\), environ \(6 \times 10^4\) feuilles, quelle que soit la taille du plateau. Les attracteurs demandent l'arène entière : \(2 \times 1\,000^2 = 2 \times 10^6\) états et environ \(6 \times 10^6\) arcs ; avec la version du cours, \(O(n(n + m))\) atteint \(10^{13}\) opérations, hors de portée ; même la version linéaire (exercice 9) doit d'abord construire ces millions d'états. Minimax ne regarde que le voisinage de la position courante, mais ne donne qu'une estimation.</p>
+  </div>
+</div>
+
+</div>
+</template>

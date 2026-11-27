@@ -1,0 +1,760 @@
+<!-- Chapitre « Diffusion thermique » (diffth) : contenu des onglets Cours, Méthodes et Exercices, chargé à l'ouverture du chapitre.
+     On l'édite ici, puis : node tools/chapitres.js (docs/chargement-chapitres.md). -->
+<template class="pan-tpl" data-panneau="dth-cours">
+
+<div class="course-section">
+  <div class="sec-num">AU PROGRAMME · PT</div>
+  <h2>Ce que le programme officiel demande</h2>
+  <div class="intro">Partie 1.7 « Transfert d'énergie par conduction thermique à une dimension en coordonnées cartésiennes » du programme de PT. Les géométries cylindrique et sphérique sont données en complément ; elles sont toujours guidées dans les sujets.</div>
+  <div class="reveal" onclick="this.classList.toggle('open')">
+    <span class="label">Programme officiel</span>
+    <span class="prompt">Les capacités exigibles, dans l'ordre du chapitre</span>
+    <div class="content">
+      <ul>
+        <li><strong>Flux thermique</strong> : vecteur densité de flux, flux à travers une interface algébrisé (§1).</li>
+        <li><strong>Loi de Fourier</strong> : lier non-uniformité de la température et flux ; ordres de grandeur de conductivités dans l'habitat (§3).</li>
+        <li><strong>Bilan d'énergie</strong> et <strong>équation de la diffusion</strong> (sans terme source) : les établir ; interpréter l'irréversibilité (§2, §4).</li>
+        <li><strong>Échelles caractéristiques</strong> : relier temps et longueur par analyse dimensionnelle (§5).</li>
+        <li><strong>Régime stationnaire</strong> : résistance thermique, analogie électrique dans un bilan (§6).</li>
+        <li><strong>Loi de Newton</strong> (fournie) pour les échanges conducto-convectifs (§7, §8).</li>
+        <li><strong>Capacité numérique</strong> : résoudre l'équation de la diffusion à une dimension par différences finies, schéma dérivé d'Euler explicite (§9).</li>
+      </ul>
+      <p>Le terme source et les géométries non cartésiennes sont des compléments.</p>
+    </div>
+  </div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§1 · MODES DE TRANSFERT</div>
+  <h2>Trois façons de transporter l'énergie thermique</h2>
+  <div class="intro">Dès que la température d'un système n'est pas uniforme, de l'énergie circule spontanément des zones chaudes vers les zones froides. Ce chapitre décrit le mode de transfert propre aux solides — la diffusion thermique — puis son raccordement avec un fluide au niveau d'une paroi.</div>
+
+  <h3>Conduction, convection, rayonnement</h3>
+  <ul>
+    <li><strong>Conduction (ou diffusion thermique)</strong> : l'énergie avance de proche en proche, sans mouvement d'ensemble de la matière. Microscopiquement : collisions entre molécules dans un fluide, vibrations collectives du réseau dans un solide et, dans les métaux, transport par les électrons libres — c'est pourquoi les bons conducteurs électriques sont aussi de bons conducteurs thermiques.</li>
+    <li><strong>Convection</strong> : l'énergie est emportée par le déplacement macroscopique d'un fluide. Elle est <em>naturelle</em> lorsque le mouvement naît des écarts de masse volumique (le fluide chauffé, plus léger, s'élève) et <em>forcée</em> lorsqu'une pompe ou un ventilateur impose l'écoulement.</li>
+    <li><strong>Rayonnement</strong> : tout corps émet des ondes électromagnétiques dont la puissance et le spectre dépendent de sa température (infrarouge vers 300 K). Ce transfert n'a besoin d'aucun milieu matériel : c'est ainsi que l'énergie solaire traverse le vide jusqu'à la Terre.</li>
+  </ul>
+  <div class="notice">Dans ce chapitre, seules la conduction et l'échange conducto-convectif à une paroi (§8) sont traités quantitativement ; le rayonnement est simplement identifié. Pour la culture : un corps noir à la température \(T\) rayonne une puissance surfacique \(\sigma T^4\) (loi de Stefan, \(\sigma \approx 5{,}67\times10^{-8}\ \text{W·m}^{-2}\text{·K}^{-4}\)).</div>
+
+  <h3>Flux thermique et vecteur densité de courant thermique</h3>
+  <div class="def-box">
+    Le transport d'énergie par conduction est décrit par un champ de vecteurs \(\vec{j}_Q(M,t)\), le <strong>vecteur densité de courant thermique</strong>, en W·m⁻². L'énergie qui traverse un élément de surface \(\mathrm{d}S\), orienté par sa normale \(\vec{n}\), pendant la durée \(\mathrm{d}t\), vaut :
+    $$\delta^2 Q = \vec{j}_Q\cdot\vec{n}\,\mathrm{d}S\,\mathrm{d}t$$
+    Le <strong>flux thermique</strong> (ou puissance thermique) à travers une surface orientée \(\Sigma\) est le flux de ce vecteur :
+    $$\Phi_Q = \iint_\Sigma \vec{j}_Q\cdot\vec{n}\,\mathrm{d}S \quad\text{(en W)},\qquad \delta Q = \Phi_Q\,\mathrm{d}t$$
+  </div>
+  <p>La direction de \(\vec{j}_Q\) indique le sens de l'écoulement d'énergie, sa norme la puissance par unité de surface perpendiculaire. Le signe de \(\Phi_Q\) dépend de l'orientation choisie pour \(\Sigma\) : c'est l'exact analogue de l'intensité \(I\), flux du vecteur densité de courant électrique \(\vec{j}\).</p>
+
+  <div class="reveal" onclick="this.classList.toggle('open')">
+    <span class="label">Application</span>
+    <span class="prompt">Une plaque de cuisson transmet 1,8 kW au fond d'une casserole de 18 cm de diamètre. Ordre de grandeur de \(j_Q\) ?</span>
+    <div class="content"><p>Surface : \(S = \pi (0{,}09)^2 \approx 2{,}5\times10^{-2}\ \text{m}^2\). Densité moyenne : \(j_Q = \Phi_Q/S \approx 1800/0{,}025\) \(\approx 7\times10^{4}\ \text{W·m}^{-2}\), soit environ 70 fois le flux solaire au sol par beau temps (≈ 1 kW·m⁻²).</p></div>
+  </div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§2 · BILAN D'ÉNERGIE LOCAL</div>
+  <h2>Premier principe appliqué à un volume élémentaire</h2>
+  <div class="intro">L'équation qui gouverne la température s'obtient toujours de la même façon : on applique le premier principe à une tranche infinitésimale du matériau pendant une durée infinitésimale, puis on fait tendre les dimensions vers zéro.</div>
+
+  <h3>Hypothèses de travail</h3>
+  <p>Le milieu est <strong>immobile et indéformable</strong> (solide, ou liquide au repos), de masse volumique \(\rho\) et de capacité thermique massique \(c\). Pour une phase condensée, \(c_p \approx c_v = c\) : l'énergie interne d'un volume \(\mathrm{d}\tau\) varie de \(\mathrm{d}U = \rho\,c\,\mathrm{d}\tau\,\mathrm{d}T\) (et \(\mathrm{d}H \approx \mathrm{d}U\)). Aucun travail n'est échangé.</p>
+
+  <h3>Bilan unidimensionnel</h3>
+  <p>On suppose \(T = T(x,t)\) et \(\vec{j}_Q = j_Q(x,t)\,\vec{e}_x\) (barre à surface latérale calorifugée, ou mur de grande étendue). Système : la tranche de section \(S\) comprise entre \(x\) et \(x+\mathrm{d}x\), éventuellement siège d'une production d'énergie de puissance volumique \(p_v\).</p>
+
+  <figure class="schema" style="max-width:420px">
+  <svg viewBox="0 0 360 150" role="img" aria-label="Tranche élémentaire d'une barre entre x et x+dx : le courant thermique j(x) entre à gauche et j(x+dx) sort à droite">
+    <rect x="30" y="35" width="300" height="60" class="sk-ink"/>
+    <rect x="150" y="35" width="60" height="60" class="fl-accent-soft"/>
+    <line x1="150" y1="30" x2="150" y2="118" class="sk-dash"/>
+    <line x1="210" y1="30" x2="210" y2="118" class="sk-dash"/>
+    <line x1="92" y1="65" x2="146" y2="65" class="sk-accent" marker-end="url(#sk-arrow-accent)"/>
+    <line x1="212" y1="65" x2="266" y2="65" class="sk-accent" marker-end="url(#sk-arrow-accent)"/>
+    <text x="80" y="56" class="lab-accent">j(x, t)</text>
+    <text x="222" y="56" class="lab-accent">j(x+dx, t)</text>
+    <text x="166" y="70" class="lab-muted">S, pᵥ</text>
+    <line x1="20" y1="128" x2="345" y2="128" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+    <text x="150" y="145" text-anchor="middle" class="lab-it">x</text>
+    <text x="210" y="145" text-anchor="middle" class="lab-it">x+dx</text>
+    <text x="348" y="132" class="lab-it">x</text>
+  </svg>
+  <figcaption>Tranche élémentaire : l'énergie entre par la face d'abscisse x, sort par la face x+dx, et peut être produite dans le volume S·dx.</figcaption>
+  </figure>
+
+  <p>Entre \(t\) et \(t+\mathrm{d}t\), au premier ordre :</p>
+  <ul>
+    <li>variation d'énergie interne : \(\mathrm{d}^2U = \rho c\,S\,\mathrm{d}x\,\dfrac{\partial T}{\partial t}\,\mathrm{d}t\) ;</li>
+    <li>énergie reçue par conduction : \(\big[j_Q(x,t)-j_Q(x+\mathrm{d}x,t)\big]S\,\mathrm{d}t\) \(= -\dfrac{\partial j_Q}{\partial x}\,S\,\mathrm{d}x\,\mathrm{d}t\) ;</li>
+    <li>énergie produite : \(p_v\,S\,\mathrm{d}x\,\mathrm{d}t\).</li>
+  </ul>
+  <div class="prop-box">
+    <strong>Bilan local unidimensionnel.</strong>
+    $$\rho c\,\frac{\partial T}{\partial t} = -\frac{\partial j_Q}{\partial x} + p_v$$
+  </div>
+
+  <h3>Généralisation à trois dimensions</h3>
+  <div class="prop-box">
+    <strong>Bilan local d'énergie.</strong> Pour un volume \(V\) fixe quelconque, de surface fermée \(\Sigma\) orientée vers l'extérieur :
+    $$\frac{\mathrm{d}}{\mathrm{d}t}\iiint_V \rho c\,T\,\mathrm{d}\tau = -\oint_\Sigma \vec{j}_Q\cdot\mathrm{d}\vec{S} + \iiint_V p_v\,\mathrm{d}\tau$$
+    Avec le théorème de Green-Ostrogradski, et \(V\) arbitraire, on obtient la forme locale :
+    $$\rho c\,\frac{\partial T}{\partial t} + \mathrm{div}\,\vec{j}_Q = p_v$$
+  </div>
+  <p>C'est une <strong>équation de conservation</strong>, de même structure que la conservation de la charge \(\partial\rho/\partial t + \mathrm{div}\,\vec{j} = 0\).</p>
+
+  <h3>Le terme source</h3>
+  <p>La puissance volumique \(p_v\) (W·m⁻³) est algébrique : \(p_v > 0\) pour une <strong>source</strong>, \(p_v \lt 0\) pour un <strong>puits</strong>. Exemples : effet Joule dans un conducteur de conductivité \(\gamma\) parcouru par une densité de courant \(j\) (\(p_v = j^2/\gamma\)), réaction chimique exothermique ou endothermique, désintégrations radioactives, absorption d'un rayonnement (four à micro-ondes).</p>
+
+  <div class="reveal" onclick="this.classList.toggle('open')">
+    <span class="label">Application</span>
+    <span class="prompt">Bilan radial dans une coquille cylindrique comprise entre \(r\) et \(r+\mathrm{d}r\), de hauteur \(H\)</span>
+    <div class="content">
+      <p>Avec \(\vec{j}_Q = j_Q(r,t)\,\vec{e}_r\), la puissance qui traverse le cylindre de rayon \(r\) vaut \(\Phi(r) = 2\pi r H\,j_Q(r,t)\). Volume de la coquille : \(2\pi r H\,\mathrm{d}r\). Le bilan s'écrit \(\rho c\,2\pi rH\,\mathrm{d}r\,\dfrac{\partial T}{\partial t}\) \(= \Phi(r)-\Phi(r+\mathrm{d}r) + p_v\,2\pi rH\,\mathrm{d}r\), soit :</p>
+      $$\rho c\,\frac{\partial T}{\partial t} = -\frac{1}{r}\frac{\partial (r\,j_Q)}{\partial r} + p_v$$
+      <p>En sphérique (coquille de volume \(4\pi r^2\mathrm{d}r\)) : \(\rho c\,\partial_t T = -\dfrac{1}{r^2}\partial_r(r^2 j_Q) + p_v\). Piège classique : la surface traversée dépend de \(r\), on ne peut pas écrire simplement \(-\partial j_Q/\partial r\).</p>
+    </div>
+  </div>
+
+  <div class="notice"><strong>Régime stationnaire sans source</strong> : \(\mathrm{div}\,\vec{j}_Q = 0\), le flux est <strong>conservatif</strong> — la même puissance traverse toutes les sections d'un tube de courant thermique. Conséquences : \(j_Q\) uniforme en géométrie plane, \(r\,j_Q(r)\) constant en cylindrique, \(r^2 j_Q(r)\) constant en sphérique.</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§3 · LOI DE FOURIER</div>
+  <h2>Le gradient de température, moteur de la diffusion</h2>
+  <div class="intro">Le bilan d'énergie contient deux inconnues, \(T\) et \(\vec{j}_Q\). Pour fermer le problème, il faut une loi de comportement du matériau reliant le courant thermique aux inhomogénéités de température.</div>
+
+  <div class="def-box">
+    <strong>Loi de Fourier.</strong> Dans un milieu isotrope, pour des écarts de température modérés :
+    $$\vec{j}_Q = -\lambda\,\overrightarrow{\mathrm{grad}}\,T \qquad\text{soit, à une dimension :}\qquad j_Q = -\lambda\,\frac{\partial T}{\partial x}$$
+    \(\lambda > 0\) est la <strong>conductivité thermique</strong> du matériau, en W·m⁻¹·K⁻¹.
+  </div>
+  <ul>
+    <li>Le signe « − » exprime que l'énergie va du chaud vers le froid, conformément au second principe.</li>
+    <li>C'est une loi <strong>phénoménologique</strong> et linéaire : elle cesse d'être valable pour des gradients extrêmes ; dans un milieu anisotrope (bois, composites stratifiés), \(\lambda\) dépend de la direction ; \(\lambda\) varie aussi avec \(T\), mais on la suppose constante dans les exercices.</li>
+  </ul>
+
+  <h3>Ordres de grandeur de \(\lambda\) (vers 20 °C)</h3>
+  <div style="overflow-x:auto;margin:.5rem 0">
+    <table style="width:100%;border-collapse:collapse;font-size:.85rem;text-align:left">
+      <tr style="background:var(--paper-dark)">
+        <th style="padding:.3rem .5rem;border:1px solid var(--grid)">Famille</th>
+        <th style="padding:.3rem .5rem;border:1px solid var(--grid)">Exemples</th>
+        <th style="padding:.3rem .5rem;border:1px solid var(--grid)">\(\lambda\) (W·m⁻¹·K⁻¹)</th>
+      </tr>
+      <tr><td style="padding:.3rem .5rem;border:1px solid var(--grid)">Métaux</td><td style="padding:.3rem .5rem;border:1px solid var(--grid)">cuivre, aluminium, acier</td><td style="padding:.3rem .5rem;border:1px solid var(--grid)">≈ 390 ; 240 ; 15 à 50</td></tr>
+      <tr><td style="padding:.3rem .5rem;border:1px solid var(--grid)">Minéraux</td><td style="padding:.3rem .5rem;border:1px solid var(--grid)">verre, béton, pierre</td><td style="padding:.3rem .5rem;border:1px solid var(--grid)">≈ 1 ; 1 à 2 ; 1 à 3</td></tr>
+      <tr><td style="padding:.3rem .5rem;border:1px solid var(--grid)">Liquides</td><td style="padding:.3rem .5rem;border:1px solid var(--grid)">eau</td><td style="padding:.3rem .5rem;border:1px solid var(--grid)">≈ 0,6</td></tr>
+      <tr><td style="padding:.3rem .5rem;border:1px solid var(--grid)">Organiques</td><td style="padding:.3rem .5rem;border:1px solid var(--grid)">bois, plastiques</td><td style="padding:.3rem .5rem;border:1px solid var(--grid)">≈ 0,1 à 0,3</td></tr>
+      <tr><td style="padding:.3rem .5rem;border:1px solid var(--grid)">Isolants</td><td style="padding:.3rem .5rem;border:1px solid var(--grid)">laines minérales, polystyrène, mousses</td><td style="padding:.3rem .5rem;border:1px solid var(--grid)">≈ 0,02 à 0,04</td></tr>
+      <tr><td style="padding:.3rem .5rem;border:1px solid var(--grid)">Gaz</td><td style="padding:.3rem .5rem;border:1px solid var(--grid)">air immobile</td><td style="padding:.3rem .5rem;border:1px solid var(--grid)">≈ 0,026</td></tr>
+    </table>
+  </div>
+  <div class="notice">Un bon isolant est essentiellement de l'<strong>air immobilisé</strong> dans des fibres ou des cellules fermées : on profite de la faible conductivité du gaz tout en empêchant la convection. Quatre ordres de grandeur séparent le cuivre de la laine de verre.</div>
+
+  <h3>Une famille de lois de transport</h3>
+  <p>La loi de Fourier a la même forme que la loi d'Ohm locale \(\vec{j} = \gamma\vec{E} = -\gamma\,\overrightarrow{\mathrm{grad}}\,V\) et que la loi de Fick \(\vec{j}_N = -D\,\overrightarrow{\mathrm{grad}}\,n\) pour la diffusion de particules : un courant proportionnel au gradient d'une grandeur intensive, dirigé vers les valeurs décroissantes. Cette parenté fonde l'analogie électrique du §6.</p>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§4 · ÉQUATION DE LA CHALEUR</div>
+  <h2>Équation de la diffusion thermique</h2>
+  <div class="intro">En injectant la loi de Fourier dans le bilan local, on obtient une équation aux dérivées partielles portant sur la seule température : l'équation de la chaleur, établie par Fourier en 1822.</div>
+
+  <div class="prop-box">
+    <strong>Équation de la diffusion thermique.</strong> Pour un milieu homogène (\(\lambda\) uniforme), \(\mathrm{div}(-\lambda\,\overrightarrow{\mathrm{grad}}\,T) = -\lambda\,\Delta T\), d'où :
+    $$\rho c\,\frac{\partial T}{\partial t} = \lambda\,\Delta T + p_v$$
+    Sans terme source, en introduisant la <strong>diffusivité thermique</strong> \(a = \dfrac{\lambda}{\rho c}\) (en m²·s⁻¹) :
+    $$\frac{\partial T}{\partial t} = a\,\Delta T \qquad\text{(à une dimension : } \frac{\partial T}{\partial t} = a\,\frac{\partial^2 T}{\partial x^2}\text{)}$$
+  </div>
+
+  <h3>Laplacien des géométries usuelles (complément)</h3>
+  <p>Pour un champ ne dépendant que de la distance \(r\) à un axe (cylindrique) ou à un point (sphérique) :</p>
+  <div class="formula">$$\Delta T = \frac{1}{r}\frac{\partial}{\partial r}\left(r\,\frac{\partial T}{\partial r}\right) \qquad\qquad \Delta T = \frac{1}{r^2}\frac{\partial}{\partial r}\left(r^2\,\frac{\partial T}{\partial r}\right)$$</div>
+  <p>On retrouve les bilans sur coquilles du §2 combinés à la loi de Fourier \(j_Q = -\lambda\,\partial T/\partial r\).</p>
+
+  <h3>Sens physique de la diffusivité</h3>
+  <p>\(\lambda\) mesure l'aptitude à <em>conduire</em> l'énergie, \(\rho c\) l'aptitude à la <em>stocker</em>. Une grande diffusivité signifie que la température s'uniformise vite. Ordres de grandeur : cuivre \(\approx 1{,}1\times10^{-4}\) ; acier \(\approx 1\times10^{-5}\) ; air immobile \(\approx 2\times10^{-5}\) ; béton \(\approx 7\times10^{-7}\) ; verre \(\approx 5\times10^{-7}\) ; bois \(\approx 1{,}5\times10^{-7}\) ; eau \(\approx 1{,}4\times10^{-7}\ \text{m}^2\text{·s}^{-1}\).</p>
+
+  <h3>Une équation irréversible</h3>
+  <div class="prop-box">
+    <strong>Irréversibilité.</strong> Changer \(t\) en \(-t\) change le signe de \(\partial T/\partial t\) mais pas celui de \(\Delta T\) : l'équation n'est <strong>pas invariante par renversement du temps</strong>. Le film « à l'envers » d'une diffusion (une barre tiède qui deviendrait spontanément chaude à un bout et froide à l'autre) n'est pas physique. Au contraire, l'équation de d'Alembert, d'ordre 2 en temps, décrit des phénomènes réversibles. La diffusion lisse les inhomogénéités et s'accompagne d'une création d'entropie.
+  </div>
+  <p>Pour déterminer \(T(M,t)\) de façon unique, il faut une <strong>condition initiale</strong> \(T(M,0)\) et des <strong>conditions aux limites</strong> sur le bord du domaine (§7).</p>
+
+  <div class="reveal" onclick="this.classList.toggle('open')">
+    <span class="label">Application</span>
+    <span class="prompt">Vérifier que \(T(x,t) = T_0 + \theta\,e^{-t/\tau}\sin(kx)\) est solution de l'équation 1D pour un \(\tau\) à préciser, et interpréter.</span>
+    <div class="content"><p>\(\partial_t T = -\dfrac{1}{\tau}(T-T_0)\) et \(\partial_{xx} T = -k^2 (T-T_0)\). L'équation impose \(\tau = \dfrac{1}{a k^2} = \dfrac{\Lambda^2}{4\pi^2 a}\), où \(\Lambda = 2\pi/k\) est la période spatiale. Une modulation de température s'efface d'autant plus vite que son échelle est petite : le temps d'amortissement varie comme le <strong>carré</strong> de la longueur (voir §5).</p></div>
+  </div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§5 · ÉCHELLES CARACTÉRISTIQUES</div>
+  <h2>Temps et longueur de diffusion</h2>
+  <div class="intro">Sans résoudre l'équation de la chaleur, une simple analyse d'échelle donne la durée nécessaire pour que la chaleur traverse une épaisseur donnée. C'est souvent la première chose à estimer dans un problème.</div>
+
+  <h3>Analyse en ordres de grandeur</h3>
+  <p>Si la température varie de \(\Delta T\) sur une longueur typique \(L\) et une durée typique \(\tau\) : \(\partial T/\partial t \sim \Delta T/\tau\) et \(\partial^2T/\partial x^2 \sim \Delta T/L^2\). L'équation de diffusion impose alors :</p>
+  <div class="formula">$$\tau \sim \frac{L^2}{a} \qquad\Longleftrightarrow\qquad L \sim \sqrt{a\,\tau}$$</div>
+  <div class="prop-box">
+    <strong>Diffusion ≠ propagation.</strong> La distance atteinte croît comme \(\sqrt{t}\) et non comme \(t\) : doubler une épaisseur multiplie par <strong>quatre</strong> le temps de traversée. La diffusion est efficace aux petites échelles et extrêmement lente aux grandes, alors qu'une onde parcourt \(L = c\,\tau\).
+  </div>
+
+  <div class="reveal" onclick="this.classList.toggle('open')">
+    <span class="label">Ordres de grandeur</span>
+    <span class="prompt">Temps de diffusion à travers 1 cm d'acier, 20 cm de béton, 1 m de roche (diffusivités respectives \(10^{-5}\), \(7\times10^{-7}\) et \(10^{-6}\ \text{m}^2\text{·s}^{-1}\)) ?</span>
+    <div class="content"><p>Acier : \(\tau \sim (10^{-2})^2/10^{-5} = 10\ \text{s}\). Béton : \(\tau \sim (0{,}2)^2/(7\times10^{-7})\) \(\approx 6\times10^{4}\ \text{s}\) \(\approx 16\ \text{h}\). Roche : \(\tau \sim 1/10^{-6} = 10^{6}\ \text{s} \approx 12\ \text{jours}\). Ce sont des ordres de grandeur : un facteur numérique (2, \(\pi^2\)…) dépend de la géométrie et des conditions aux limites.</p></div>
+  </div>
+
+  <figure class="schema">
+<svg viewBox="0 0 640 260" role="img" aria-label="Profils de température dans un milieu semi-infini après une variation brusque de la température de surface">
+<line x1="70" y1="230" x2="562" y2="230" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<line x1="70" y1="230" x2="70" y2="18" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<text x="564" y="234" class="lab-muted lab-it">x (cm)</text>
+<text x="66" y="16" class="lab-muted lab-it" text-anchor="end">θ</text>
+<text x="70" y="246" class="lab-muted" text-anchor="middle">0</text>
+<text x="166" y="246" class="lab-muted" text-anchor="middle">2</text>
+<text x="262" y="246" class="lab-muted" text-anchor="middle">4</text>
+<text x="358" y="246" class="lab-muted" text-anchor="middle">6</text>
+<text x="454" y="246" class="lab-muted" text-anchor="middle">8</text>
+<text x="550" y="246" class="lab-muted" text-anchor="middle">10</text>
+<text x="64" y="141.4" class="lab-muted" text-anchor="end">0,5</text>
+<text x="64" y="48.8" class="lab-muted" text-anchor="end">1</text>
+<polyline points="70,44.8 73,48.6 76,52.4 79.1,56.2 82.1,60 85.1,63.7 88.1,67.5 91.1,71.2 94.2,75 97.2,78.7 100.2,82.3 103.2,86 106.2,89.6 109.2,93.2 112.3,96.8 115.3,100.3 118.3,103.9 121.3,107.3 124.3,110.7 127.4,114.1 130.4,117.5 133.4,120.8 136.4,124 139.4,127.3 142.5,130.4 145.5,133.5 148.5,136.6 151.5,139.6 154.5,142.6 157.5,145.5 160.6,148.3 163.6,151.1 166.6,153.8 169.6,156.5 172.6,159.1 175.7,161.7 178.7,164.2 181.7,166.6 184.7,169 187.7,171.4 190.8,173.6 193.8,175.8 196.8,178 199.8,180.1 202.8,182.1 205.8,184.1 208.9,186 211.9,187.9 214.9,189.7 217.9,191.4 220.9,193.1 224,194.7 227,196.3 230,197.9 233,199.3 236,200.8 239.1,202.1 242.1,203.5 245.1,204.7 248.1,206 251.1,207.1 254.2,208.3 257.2,209.4 260.2,210.4 263.2,211.4 266.2,212.4 269.2,213.3 272.3,214.2 275.3,215 278.3,215.8 281.3,216.6 284.3,217.4 287.4,218.1 290.4,218.7 293.4,219.4 296.4,220 299.4,220.6 302.5,221.1 305.5,221.6 308.5,222.1 311.5,222.6 314.5,223 317.5,223.5 320.6,223.9 323.6,224.3 326.6,224.6 329.6,225 332.6,225.3 335.7,225.6 338.7,225.9 341.7,226.1 344.7,226.4 347.7,226.6 350.8,226.9 353.8,227.1 356.8,227.3 359.8,227.5 362.8,227.6 365.8,227.8 368.9,228 371.9,228.1 374.9,228.2 377.9,228.4 380.9,228.5 384,228.6 387,228.7 390,228.8 393,228.9 396,229 399.1,229 402.1,229.1 405.1,229.2 408.1,229.3 411.1,229.3 414.2,229.4 417.2,229.4 420.2,229.5 423.2,229.5 426.2,229.5 429.2,229.6 432.3,229.6 435.3,229.6 438.3,229.7 441.3,229.7 444.3,229.7 447.4,229.8 450.4,229.8 453.4,229.8 456.4,229.8 459.4,229.8 462.5,229.8 465.5,229.9 468.5,229.9 471.5,229.9 474.5,229.9 477.5,229.9 480.6,229.9 483.6,229.9 486.6,229.9 489.6,229.9 492.6,229.9 495.7,229.9 498.7,230 501.7,230 504.7,230 507.7,230 510.8,230 513.8,230 516.8,230 519.8,230 522.8,230 525.8,230 528.9,230 531.9,230 534.9,230 537.9,230 540.9,230 544,230 547,230 550,230" class="sk-accent"/>
+<text x="154.5" y="131.4" class="lab-accent">5 min</text>
+<polyline points="70,44.8 73,46.4 76,47.9 79.1,49.5 82.1,51 85.1,52.6 88.1,54.1 91.1,55.6 94.2,57.2 97.2,58.7 100.2,60.3 103.2,61.8 106.2,63.4 109.2,64.9 112.3,66.4 115.3,68 118.3,69.5 121.3,71 124.3,72.5 127.4,74 130.4,75.6 133.4,77.1 136.4,78.6 139.4,80.1 142.5,81.6 145.5,83.1 148.5,84.6 151.5,86.1 154.5,87.6 157.5,89 160.6,90.5 163.6,92 166.6,93.5 169.6,94.9 172.6,96.4 175.7,97.8 178.7,99.3 181.7,100.7 184.7,102.1 187.7,103.6 190.8,105 193.8,106.4 196.8,107.8 199.8,109.2 202.8,110.6 205.8,112 208.9,113.4 211.9,114.8 214.9,116.1 217.9,117.5 220.9,118.9 224,120.2 227,121.5 230,122.9 233,124.2 236,125.5 239.1,126.8 242.1,128.1 245.1,129.4 248.1,130.7 251.1,132 254.2,133.2 257.2,134.5 260.2,135.7 263.2,137 266.2,138.2 269.2,139.4 272.3,140.7 275.3,141.9 278.3,143.1 281.3,144.2 284.3,145.4 287.4,146.6 290.4,147.7 293.4,148.9 296.4,150 299.4,151.2 302.5,152.3 305.5,153.4 308.5,154.5 311.5,155.6 314.5,156.7 317.5,157.8 320.6,158.8 323.6,159.9 326.6,160.9 329.6,162 332.6,163 335.7,164 338.7,165 341.7,166 344.7,167 347.7,168 350.8,169 353.8,169.9 356.8,170.9 359.8,171.8 362.8,172.7 365.8,173.6 368.9,174.6 371.9,175.5 374.9,176.3 377.9,177.2 380.9,178.1 384,179 387,179.8 390,180.6 393,181.5 396,182.3 399.1,183.1 402.1,183.9 405.1,184.7 408.1,185.5 411.1,186.3 414.2,187 417.2,187.8 420.2,188.5 423.2,189.3 426.2,190 429.2,190.7 432.3,191.4 435.3,192.1 438.3,192.8 441.3,193.5 444.3,194.1 447.4,194.8 450.4,195.4 453.4,196.1 456.4,196.7 459.4,197.3 462.5,198 465.5,198.6 468.5,199.2 471.5,199.8 474.5,200.3 477.5,200.9 480.6,201.5 483.6,202 486.6,202.6 489.6,203.1 492.6,203.7 495.7,204.2 498.7,204.7 501.7,205.2 504.7,205.7 507.7,206.2 510.8,206.7 513.8,207.2 516.8,207.6 519.8,208.1 522.8,208.5 525.8,209 528.9,209.4 531.9,209.9 534.9,210.3 537.9,210.7 540.9,211.1 544,211.5 547,211.9 550,212.3" class="sk-accent2"/>
+<text x="269.2" y="131.4" class="lab-accent2">30 min</text>
+<polyline points="70,44.8 73,45.4 76,46.1 79.1,46.7 82.1,47.3 85.1,48 88.1,48.6 91.1,49.2 94.2,49.9 97.2,50.5 100.2,51.1 103.2,51.8 106.2,52.4 109.2,53 112.3,53.7 115.3,54.3 118.3,54.9 121.3,55.6 124.3,56.2 127.4,56.8 130.4,57.4 133.4,58.1 136.4,58.7 139.4,59.3 142.5,60 145.5,60.6 148.5,61.2 151.5,61.8 154.5,62.5 157.5,63.1 160.6,63.7 163.6,64.4 166.6,65 169.6,65.6 172.6,66.2 175.7,66.9 178.7,67.5 181.7,68.1 184.7,68.7 187.7,69.4 190.8,70 193.8,70.6 196.8,71.2 199.8,71.9 202.8,72.5 205.8,73.1 208.9,73.7 211.9,74.3 214.9,75 217.9,75.6 220.9,76.2 224,76.8 227,77.4 230,78 233,78.7 236,79.3 239.1,79.9 242.1,80.5 245.1,81.1 248.1,81.7 251.1,82.3 254.2,83 257.2,83.6 260.2,84.2 263.2,84.8 266.2,85.4 269.2,86 272.3,86.6 275.3,87.2 278.3,87.8 281.3,88.4 284.3,89 287.4,89.6 290.4,90.2 293.4,90.8 296.4,91.4 299.4,92 302.5,92.6 305.5,93.2 308.5,93.8 311.5,94.4 314.5,95 317.5,95.6 320.6,96.2 323.6,96.8 326.6,97.4 329.6,98 332.6,98.6 335.7,99.2 338.7,99.8 341.7,100.3 344.7,100.9 347.7,101.5 350.8,102.1 353.8,102.7 356.8,103.3 359.8,103.9 362.8,104.4 365.8,105 368.9,105.6 371.9,106.2 374.9,106.7 377.9,107.3 380.9,107.9 384,108.5 387,109 390,109.6 393,110.2 396,110.7 399.1,111.3 402.1,111.9 405.1,112.4 408.1,113 411.1,113.6 414.2,114.1 417.2,114.7 420.2,115.3 423.2,115.8 426.2,116.4 429.2,116.9 432.3,117.5 435.3,118 438.3,118.6 441.3,119.1 444.3,119.7 447.4,120.2 450.4,120.8 453.4,121.3 456.4,121.9 459.4,122.4 462.5,123 465.5,123.5 468.5,124 471.5,124.6 474.5,125.1 477.5,125.7 480.6,126.2 483.6,126.7 486.6,127.3 489.6,127.8 492.6,128.3 495.7,128.8 498.7,129.4 501.7,129.9 504.7,130.4 507.7,130.9 510.8,131.5 513.8,132 516.8,132.5 519.8,133 522.8,133.5 525.8,134 528.9,134.6 531.9,135.1 534.9,135.6 537.9,136.1 540.9,136.6 544,137.1 547,137.6 550,138.1" class="sk-green"/>
+<text x="553" y="129.6" class="lab-green">3 h</text>
+<polyline points="70,44.8 73,45.1 76,45.4 79.1,45.7 82.1,45.9 85.1,46.2 88.1,46.5 91.1,46.8 94.2,47.1 97.2,47.4 100.2,47.6 103.2,47.9 106.2,48.2 109.2,48.5 112.3,48.8 115.3,49.1 118.3,49.3 121.3,49.6 124.3,49.9 127.4,50.2 130.4,50.5 133.4,50.8 136.4,51 139.4,51.3 142.5,51.6 145.5,51.9 148.5,52.2 151.5,52.4 154.5,52.7 157.5,53 160.6,53.3 163.6,53.6 166.6,53.9 169.6,54.1 172.6,54.4 175.7,54.7 178.7,55 181.7,55.3 184.7,55.6 187.7,55.8 190.8,56.1 193.8,56.4 196.8,56.7 199.8,57 202.8,57.2 205.8,57.5 208.9,57.8 211.9,58.1 214.9,58.4 217.9,58.7 220.9,58.9 224,59.2 227,59.5 230,59.8 233,60.1 236,60.3 239.1,60.6 242.1,60.9 245.1,61.2 248.1,61.5 251.1,61.7 254.2,62 257.2,62.3 260.2,62.6 263.2,62.9 266.2,63.1 269.2,63.4 272.3,63.7 275.3,64 278.3,64.3 281.3,64.5 284.3,64.8 287.4,65.1 290.4,65.4 293.4,65.7 296.4,66 299.4,66.2 302.5,66.5 305.5,66.8 308.5,67.1 311.5,67.3 314.5,67.6 317.5,67.9 320.6,68.2 323.6,68.5 326.6,68.7 329.6,69 332.6,69.3 335.7,69.6 338.7,69.9 341.7,70.1 344.7,70.4 347.7,70.7 350.8,71 353.8,71.3 356.8,71.5 359.8,71.8 362.8,72.1 365.8,72.4 368.9,72.6 371.9,72.9 374.9,73.2 377.9,73.5 380.9,73.8 384,74 387,74.3 390,74.6 393,74.9 396,75.1 399.1,75.4 402.1,75.7 405.1,76 408.1,76.2 411.1,76.5 414.2,76.8 417.2,77.1 420.2,77.3 423.2,77.6 426.2,77.9 429.2,78.2 432.3,78.5 435.3,78.7 438.3,79 441.3,79.3 444.3,79.6 447.4,79.8 450.4,80.1 453.4,80.4 456.4,80.7 459.4,80.9 462.5,81.2 465.5,81.5 468.5,81.7 471.5,82 474.5,82.3 477.5,82.6 480.6,82.8 483.6,83.1 486.6,83.4 489.6,83.7 492.6,83.9 495.7,84.2 498.7,84.5 501.7,84.8 504.7,85 507.7,85.3 510.8,85.6 513.8,85.8 516.8,86.1 519.8,86.4 522.8,86.7 525.8,86.9 528.9,87.2 531.9,87.5 534.9,87.7 537.9,88 540.9,88.3 544,88.6 547,88.8 550,89.1" class="sk-amber"/>
+<text x="556" y="81.1" class="lab-amber">15 h</text>
+<line x1="70" y1="137.4" x2="550" y2="137.4" class="sk-dash"/>
+</svg>
+<figcaption>Température réduite θ = (T − T₀)/(T₁ − T₀) dans un mur épais (diffusivité D = 10⁻⁶ m²·s⁻¹, béton) initialement à T₀, dont la surface x = 0 est portée brusquement à T₁ : profils calculés après 5 min, 30 min, 3 h et 15 h. La profondeur atteinte croît comme √(Dt) : multiplier le temps par 36 (de 5 min à 3 h) ne la multiplie que par 6.</figcaption>
+</figure>
+  <div class="method-box">
+    <strong>Exemple — jusqu'où pénètre une vague de chaleur ?</strong>
+    <p>Un mur épais en béton (\(D \approx 10^{-6}\ \text{m}^2\text{·s}^{-1}\)) voit la température de sa face extérieure augmenter brusquement.</p>
+    <ol>
+      <li>Profondeur atteinte en un temps \(t\) : \(\delta \sim \sqrt{Dt}\). En 3 h, \(\delta \sim \sqrt{10^{-6}\times10\,800} \approx 10\ \text{cm}\) ; en une journée, environ 30 cm.</li>
+      <li>Un mur de 30 cm « absorbe » donc l'onde de chaleur d'une journée : c'est l'inertie thermique des bâtiments en pierre, qui restent frais l'été.</li>
+      <li>Pour traverser 1 m, il faudrait \(t \sim L^2/D = 10^6\ \text{s}\), près de deux semaines : la diffusion est lente sur les grandes distances.</li>
+    </ol>
+  </div>
+
+  <h3>Régime quasi-stationnaire</h3>
+  <p>Si les conditions aux limites évoluent sur une durée \(\Theta\) très grande devant le temps de diffusion \(L^2/a\) du milieu, le profil de température a le temps de s'adapter : à chaque instant, il coïncide avec le profil <strong>stationnaire</strong> calculé avec les valeurs instantanées des températures aux limites. C'est l'équivalent thermique de l'ARQS ; il justifie l'emploi des résistances thermiques (§6) avec des températures lentement variables.</p>
+
+  <h3>Régime sinusoïdal forcé : onde thermique</h3>
+  <p>Milieu semi-infini (\(x>0\), sol par exemple) dont la surface subit \(T(0,t) = T_m + \theta_0\cos(\omega t)\). En régime établi, on cherche \(T = T_m + \mathrm{Re}\big[\underline{\theta}(x)\,e^{i\omega t}\big]\). L'équation de diffusion donne \(i\omega\,\underline{\theta} = a\,\underline{\theta}''\), d'où \(\underline{\theta} = A\,e^{-(1+i)x/\delta} + B\,e^{(1+i)x/\delta}\) avec :</p>
+  <div class="formula">$$\delta = \sqrt{\frac{2a}{\omega}} \qquad\text{(car } (1+i)^2 = 2i\text{)}$$</div>
+  <p>La solution bornée quand \(x\to+\infty\) impose \(B = 0\) et \(A = \theta_0\) :</p>
+  <div class="formula">$$T(x,t) = T_m + \theta_0\,e^{-x/\delta}\cos\!\left(\omega t - \frac{x}{\delta}\right)$$</div>
+  <p>L'oscillation pénètre en s'amortissant (amplitude divisée par \(e\) tous les \(\delta\)) et avec un retard de phase \(x/\delta\). L'<strong>épaisseur de peau thermique</strong> \(\delta\) décroît avec la fréquence : le sol se comporte comme un filtre passe-bas, les variations journalières restent superficielles tandis que les variations annuelles pénètrent de quelques mètres. On retrouve \(\delta \sim \sqrt{a\,\tau}\) avec \(\tau \sim 1/\omega\).</p>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§6 · RÉGIME STATIONNAIRE</div>
+  <h2>Résistance thermique et analogie électrique</h2>
+  <div class="intro">En régime permanent et sans source, le flux est conservatif et l'écart de température entre deux surfaces isothermes lui est proportionnel : exactement comme la tension et l'intensité aux bornes d'un conducteur ohmique.</div>
+
+  <h3>Mur plan</h3>
+  <p>Mur d'épaisseur \(e\), de surface \(S\), faces à \(T_1\) (en \(x=0\)) et \(T_2\) (en \(x=e\)). En stationnaire sans source : \(\mathrm{d}^2T/\mathrm{d}x^2 = 0\), donc le profil est <strong>affine</strong> :</p>
+  <div class="formula">$$T(x) = T_1 + (T_2-T_1)\,\frac{x}{e} \qquad\Longrightarrow\qquad \Phi = \lambda S\,\frac{T_1-T_2}{e}$$</div>
+
+  <div class="def-box">
+    <strong>Résistance thermique.</strong> Entre deux surfaces isothermes aux températures \(T_1\) et \(T_2\), traversées (de 1 vers 2) par le flux conservatif \(\Phi\) :
+    $$R_{th} = \frac{T_1-T_2}{\Phi} \quad\text{(en K·W}^{-1}\text{)}, \qquad G_{th} = \frac{1}{R_{th}}$$
+    Elle n'a de sens qu'en régime <strong>stationnaire</strong> (ou quasi-stationnaire) et <strong>sans terme source</strong>.
+  </div>
+
+  <h3>Les trois résistances à connaître</h3>
+  <div class="formula">$$R_{\text{plan}} = \frac{e}{\lambda S} \qquad R_{\text{cyl}} = \frac{\ln(r_2/r_1)}{2\pi\lambda H} \qquad R_{\text{sph}} = \frac{1}{4\pi\lambda}\left(\frac{1}{r_1}-\frac{1}{r_2}\right)$$</div>
+  <div class="reveal" onclick="this.classList.toggle('open')">
+    <span class="label">Démonstration</span>
+    <span class="prompt">Résistance d'une coquille cylindrique (rayons \(r_1 \lt r_2\), hauteur \(H\))</span>
+    <div class="content">
+      <p>Flux conservatif : \(\Phi = 2\pi r H\,j_Q(r) = -2\pi r H\lambda\,\dfrac{\mathrm{d}T}{\mathrm{d}r}\) est indépendant de \(r\). Donc \(\mathrm{d}T = -\dfrac{\Phi}{2\pi\lambda H}\dfrac{\mathrm{d}r}{r}\), et en intégrant de \(r_1\) à \(r_2\) :</p>
+      $$T_1 - T_2 = \frac{\Phi}{2\pi\lambda H}\ln\frac{r_2}{r_1}$$
+      <p>Le profil est logarithmique : \(T(r) = T_1 - (T_1-T_2)\dfrac{\ln(r/r_1)}{\ln(r_2/r_1)}\). Pour une coquille mince (\(r_2 = r_1 + e\), \(e \ll r_1\)), \(\ln(1+e/r_1) \approx e/r_1\) et l'on retrouve \(R \approx e/(\lambda\,2\pi r_1 H)\), la résistance d'un mur plan de surface \(2\pi r_1 H\).</p>
+    </div>
+  </div>
+
+  <h3>Associations</h3>
+  <ul>
+    <li><strong>En série</strong> (couches traversées successivement par le <em>même flux</em>) : \(R_{eq} = \sum_k R_k\).</li>
+    <li><strong>En parallèle</strong> (chemins soumis au <em>même écart de température</em>) : \(G_{eq} = \sum_k G_k\), soit \(\dfrac{1}{R_{eq}} = \sum_k \dfrac{1}{R_k}\).</li>
+  </ul>
+
+  <div class="method-box">
+    <strong>Exemple — simple ou double vitrage ?</strong>
+    <p>Fenêtre de 2 m², écart de température intérieur-extérieur 20 K. Coefficients conducto-convectifs : \(h_{\text{int}} = 8\), \(h_{\text{ext}} = 20\ \text{W·m}^{-2}\text{·K}^{-1}\) ; verre \(\lambda = 1{,}0\), air immobile \(\lambda = 0{,}026\ \text{W·m}^{-1}\text{·K}^{-1}\).</p>
+    <ol>
+      <li>Résistances surfaciques (par m², en série) : convection \(1/8 + 1/20 = 0{,}175\ \text{m}^2\text{·K·W}^{-1}\) ; verre de 4 mm \(0{,}004\).</li>
+      <li>Simple vitrage : \(R \approx 0{,}179\), soit \(\Phi = \dfrac{20\times2}{0{,}179} \approx 220\ \text{W}\). C'est la convection, pas le verre, qui limite le flux.</li>
+      <li>Double vitrage 4/16/4 : on ajoute une lame d'air de 16 mm, \(0{,}016/0{,}026 \approx 0{,}62\), et un second verre : \(R \approx 0{,}80\) et \(\Phi \approx 50\ \text{W}\). En réalité, la convection dans la lame réduit son efficacité (\(\Phi\) de l'ordre de 70 à 100 W), d'où l'intérêt des gaz lourds (argon) et des couches peu émissives.</li>
+    </ol>
+  </div>
+
+  <h3>Tableau des analogies</h3>
+  <div style="overflow-x:auto;margin:.5rem 0">
+    <table style="width:100%;border-collapse:collapse;font-size:.85rem;text-align:left">
+      <tr style="background:var(--paper-dark)">
+        <th style="padding:.3rem .5rem;border:1px solid var(--grid)">Électrocinétique</th>
+        <th style="padding:.3rem .5rem;border:1px solid var(--grid)">Diffusion thermique</th>
+      </tr>
+      <tr><td style="padding:.3rem .5rem;border:1px solid var(--grid)">potentiel \(V\)</td><td style="padding:.3rem .5rem;border:1px solid var(--grid)">température \(T\)</td></tr>
+      <tr><td style="padding:.3rem .5rem;border:1px solid var(--grid)">intensité \(I\)</td><td style="padding:.3rem .5rem;border:1px solid var(--grid)">flux thermique \(\Phi\)</td></tr>
+      <tr><td style="padding:.3rem .5rem;border:1px solid var(--grid)">\(\vec{j} = -\gamma\,\overrightarrow{\mathrm{grad}}\,V\)</td><td style="padding:.3rem .5rem;border:1px solid var(--grid)">\(\vec{j}_Q = -\lambda\,\overrightarrow{\mathrm{grad}}\,T\)</td></tr>
+      <tr><td style="padding:.3rem .5rem;border:1px solid var(--grid)">\(R = \dfrac{\ell}{\gamma S}\), \(V_1-V_2 = RI\)</td><td style="padding:.3rem .5rem;border:1px solid var(--grid)">\(R_{th} = \dfrac{e}{\lambda S}\), \(T_1-T_2 = R_{th}\Phi\)</td></tr>
+      <tr><td style="padding:.3rem .5rem;border:1px solid var(--grid)">capacité \(C\), charge \(q = CV\)</td><td style="padding:.3rem .5rem;border:1px solid var(--grid)">capacité thermique \(C_{th} = mc\), énergie \(C_{th}T\)</td></tr>
+      <tr><td style="padding:.3rem .5rem;border:1px solid var(--grid)">\(\Delta V = 0\) (régime permanent)</td><td style="padding:.3rem .5rem;border:1px solid var(--grid)">\(\Delta T = 0\) (stationnaire, sans source)</td></tr>
+    </table>
+  </div>
+  <div class="notice"><strong>Modèle « RC » thermique.</strong> Un corps de capacité \(C_{th}\), à température quasi uniforme \(T(t)\), relié à un milieu à \(T_{ext}\) par une résistance \(R_{th}\) (quasi-stationnaire) vérifie \(C_{th}\,\dfrac{\mathrm{d}T}{\mathrm{d}t} = -\dfrac{T-T_{ext}}{R_{th}}\) : relaxation exponentielle de constante de temps \(\tau = R_{th}C_{th}\), comme la décharge d'un condensateur.</div>
+
+  <div class="reveal" onclick="this.classList.toggle('open')">
+    <span class="label">Application</span>
+    <span class="prompt">Mur de 10 m² : 20 cm de béton (\(\lambda = 1{,}5\)) seul, puis doublé de 8 cm d'isolant (\(\lambda = 0{,}035\)). Flux pour 15 K d'écart (conduction seule) ?</span>
+    <div class="content"><p>\(R_b = 0{,}20/(1{,}5\times10)\) \(\approx 1{,}3\times10^{-2}\ \text{K·W}^{-1}\) ; \(R_i = 0{,}08/(0{,}035\times10) \approx 0{,}23\ \text{K·W}^{-1}\). Béton seul : \(\Phi \approx 15/0{,}013 \approx 1{,}1\ \text{kW}\). En série : \(R \approx 0{,}24\ \text{K·W}^{-1}\), \(\Phi \approx 62\ \text{W}\). L'isolant, pourtant moins épais, impose presque toute la résistance (et presque tout l'écart de température).</p></div>
+  </div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§7 · CONDITIONS AUX LIMITES</div>
+  <h2>Raccorder la solution à son environnement</h2>
+  <div class="intro">L'équation de la chaleur ne suffit pas : à une dimension, il faut deux conditions aux limites (et une condition initiale hors régime stationnaire). Voici les cas types et leur traduction mathématique.</div>
+
+  <ul>
+    <li><strong>Température imposée</strong> : contact avec un thermostat (grand réservoir, fluide énergiquement brassé, corps en changement d'état) : \(T(x_0,t) = T_0\).</li>
+    <li><strong>Paroi calorifugée</strong> : aucun flux ne la traverse, \(\vec{j}_Q\cdot\vec{n} = 0\), soit \(\dfrac{\partial T}{\partial x}(x_0,t) = 0\) : le profil arrive avec une tangente horizontale.</li>
+    <li><strong>Plan de symétrie</strong> du problème : même traduction, \(\partial T/\partial x = 0\) ; on peut ne traiter qu'une moitié du domaine.</li>
+    <li><strong>Contact parfait entre deux solides</strong> (en \(x_0\)) : continuité de la température et continuité du flux :</li>
+  </ul>
+  <div class="formula">$$T_1(x_0,t) = T_2(x_0,t) \qquad\text{et}\qquad \lambda_1\,\frac{\partial T_1}{\partial x}(x_0,t) = \lambda_2\,\frac{\partial T_2}{\partial x}(x_0,t)$$</div>
+  <div class="prop-box">
+    <strong>Pourquoi le flux est continu.</strong> Faire un bilan sur un cylindre plat de section \(S\) et d'épaisseur \(\varepsilon\), à cheval sur l'interface : quand \(\varepsilon \to 0\), son énergie interne et les échanges par sa surface latérale tendent vers zéro, donc \(j_{Q,1}\,S = j_{Q,2}\,S\). Une surface de volume nul ne peut pas accumuler d'énergie.
+  </div>
+  <p>Conséquence : le rapport des pentes du profil vaut \(\lambda_2/\lambda_1\). Le profil est <strong>plus raide dans le matériau le plus isolant</strong>, qui « encaisse » l'essentiel de l'écart de température.</p>
+  <div class="notice">Un contact réel n'est jamais parfait : rugosités et micro-poches d'air créent une <strong>résistance de contact</strong> et un saut de température à l'interface. D'où l'usage de pâte thermique entre un processeur et son dissipateur.</div>
+  <p>Le cas d'une paroi solide en contact avec un fluide fait l'objet du paragraphe suivant.</p>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§8 · TRANSFERT CONDUCTO-CONVECTIF</div>
+  <h2>Échange entre une paroi et un fluide : loi de Newton</h2>
+  <div class="intro">Au contact d'une paroi, le fluide forme une fine couche limite où le transfert est essentiellement conductif ; au-delà, la convection homogénéise la température. On modélise globalement cet échange par une loi empirique.</div>
+
+  <div class="def-box">
+    <strong>Loi de Newton.</strong> La puissance cédée par une paroi d'aire \(S\), à la température de surface \(T_s\), à un fluide de température \(T_f\) (loin de la paroi) vaut :
+    $$\Phi_{s\to f} = h\,S\,(T_s - T_f)$$
+    \(h\) est le <strong>coefficient de transfert conducto-convectif</strong>, en W·m⁻²·K⁻¹. Il dépend du fluide, de sa vitesse, de la géométrie et de l'état de surface.
+  </div>
+  <div style="overflow-x:auto;margin:.5rem 0">
+    <table style="width:100%;border-collapse:collapse;font-size:.85rem;text-align:left">
+      <tr style="background:var(--paper-dark)">
+        <th style="padding:.3rem .5rem;border:1px solid var(--grid)">Situation</th>
+        <th style="padding:.3rem .5rem;border:1px solid var(--grid)">\(h\) (W·m⁻²·K⁻¹)</th>
+      </tr>
+      <tr><td style="padding:.3rem .5rem;border:1px solid var(--grid)">air, convection naturelle</td><td style="padding:.3rem .5rem;border:1px solid var(--grid)">5 à 25</td></tr>
+      <tr><td style="padding:.3rem .5rem;border:1px solid var(--grid)">air, convection forcée (vent, ventilateur)</td><td style="padding:.3rem .5rem;border:1px solid var(--grid)">20 à 300</td></tr>
+      <tr><td style="padding:.3rem .5rem;border:1px solid var(--grid)">eau, convection naturelle à forcée</td><td style="padding:.3rem .5rem;border:1px solid var(--grid)">10² à 10⁴</td></tr>
+      <tr><td style="padding:.3rem .5rem;border:1px solid var(--grid)">ébullition, condensation</td><td style="padding:.3rem .5rem;border:1px solid var(--grid)">10³ à 10⁵</td></tr>
+    </table>
+  </div>
+
+  <h3>Résistance conducto-convective et condition aux limites</h3>
+  <p>L'échange se comporte comme une résistance \(R_{cc} = \dfrac{1}{hS}\) placée en série avec celles de la paroi. Écrit localement, c'est une condition aux limites (continuité du flux à la surface). Pour un solide occupant \(x \lt e\), au contact d'un fluide situé en \(x > e\) :</p>
+  <div class="formula">$$-\lambda\,\frac{\partial T}{\partial x}(e,t) = h\,\big[T(e,t) - T_f\big]$$</div>
+  <p>Pour une face en \(x = 0\) avec le fluide du côté \(x \lt 0\), le signe du membre de gauche s'inverse : \(\lambda\,\partial_x T(0,t) = h\,[T(0,t)-T_f]\). Limites : \(h\to\infty\) redonne une température imposée \(T_s = T_f\) ; \(h \to 0\) une paroi calorifugée.</p>
+
+  <h3>Paroi composite</h3>
+  <p>Fluide intérieur à \(T_i\), couches planes \((e_k, \lambda_k)\), fluide extérieur à \(T_e\) : toutes les résistances sont en série.</p>
+  <div class="formula">$$R_{tot} = \frac{1}{S}\left(\frac{1}{h_i} + \sum_k \frac{e_k}{\lambda_k} + \frac{1}{h_e}\right), \qquad \Phi = \frac{T_i - T_e}{R_{tot}}, \qquad U = \frac{1}{R_{tot}S}$$</div>
+  <p>\(U\) (W·m⁻²·K⁻¹), le coefficient de transmission surfacique, est la grandeur utilisée dans le bâtiment pour comparer les parois.</p>
+
+  <figure class="schema" style="max-width:460px">
+  <svg viewBox="0 0 380 220" role="img" aria-label="Profil de température à travers une paroi composite à deux couches entre deux fluides, et circuit équivalent de quatre résistances en série">
+    <rect x="110" y="20" width="70" height="120" class="fl-accent2-soft"/>
+    <rect x="180" y="20" width="80" height="120" class="fl-amber-soft"/>
+    <line x1="110" y1="20" x2="110" y2="140" class="sk-ink"/>
+    <line x1="180" y1="20" x2="180" y2="140" class="sk-ink"/>
+    <line x1="260" y1="20" x2="260" y2="140" class="sk-ink"/>
+    <polyline points="20,38 80,38 100,44 110,50 180,64 260,120 270,126 290,130 360,130" class="sk-accent"/>
+    <text x="22" y="30" class="lab-accent">Tᵢ</text>
+    <text x="340" y="122" class="lab-accent">Tₑ</text>
+    <text x="145" y="155" text-anchor="middle" class="lab-muted">λ₁, e₁</text>
+    <text x="220" y="155" text-anchor="middle" class="lab-muted">λ₂, e₂</text>
+    <text x="55" y="80" text-anchor="middle" class="lab-muted">fluide int.</text>
+    <text x="320" y="80" text-anchor="middle" class="lab-muted">fluide ext.</text>
+    <line x1="20" y1="195" x2="40" y2="195" class="sk-ink"/>
+    <rect x="40" y="186" width="60" height="18" class="sk-ink fl-paper"/>
+    <line x1="100" y1="195" x2="120" y2="195" class="sk-ink"/>
+    <rect x="120" y="186" width="60" height="18" class="sk-ink fl-paper"/>
+    <line x1="180" y1="195" x2="200" y2="195" class="sk-ink"/>
+    <rect x="200" y="186" width="60" height="18" class="sk-ink fl-paper"/>
+    <line x1="260" y1="195" x2="280" y2="195" class="sk-ink"/>
+    <rect x="280" y="186" width="60" height="18" class="sk-ink fl-paper"/>
+    <line x1="340" y1="195" x2="362" y2="195" class="sk-ink"/>
+    <text x="70" y="180" text-anchor="middle" class="lab-muted">1/(hᵢS)</text>
+    <text x="150" y="180" text-anchor="middle" class="lab-muted">e₁/(λ₁S)</text>
+    <text x="230" y="180" text-anchor="middle" class="lab-muted">e₂/(λ₂S)</text>
+    <text x="310" y="180" text-anchor="middle" class="lab-muted">1/(hₑS)</text>
+    <line x1="150" y1="214" x2="230" y2="214" class="sk-accent2" marker-end="url(#sk-arrow-accent2)"/>
+    <text x="240" y="218" class="lab-accent2">Φ</text>
+  </svg>
+  <figcaption>Paroi composite : profil affine par morceaux, plus raide dans la couche la plus isolante, avec deux chutes de température dans les couches limites ; le circuit équivalent aligne quatre résistances en série parcourues par le même flux Φ.</figcaption>
+  </figure>
+
+  <h3>Corps à température quasi uniforme</h3>
+  <p>Pour un solide de taille caractéristique \(L\), comparer la résistance de conduction interne \(L/(\lambda S)\) à la résistance d'échange \(1/(hS)\) revient à former le nombre de Biot \(\mathrm{Bi} = hL/\lambda\) (outil de modélisation commode, non exigible en tant que tel). Si \(\mathrm{Bi} \ll 1\), la température est pratiquement uniforme dans le solide et un <strong>bilan global</strong> suffit :</p>
+  <div class="formula">$$m c\,\frac{\mathrm{d}T}{\mathrm{d}t} = -h S\,(T - T_f) \qquad\Longrightarrow\qquad T(t) = T_f + (T_0 - T_f)\,e^{-t/\tau},\quad \tau = \frac{mc}{hS}$$</div>
+  <div class="reveal" onclick="this.classList.toggle('open')">
+    <span class="label">Application</span>
+    <span class="prompt">Bille d'acier de rayon 5 mm (\(\rho = 7800\), \(c = 460\ \text{J·kg}^{-1}\text{·K}^{-1}\), \(\lambda = 50\)) refroidie à l'air calme (\(h = 20\)). Modèle uniforme valable ? Durée caractéristique ?</span>
+    <div class="content"><p>\(L = V/S = r/3 \approx 1{,}7\ \text{mm}\), donc \(\mathrm{Bi} = 20\times1{,}7\times10^{-3}/50\) \(\approx 7\times10^{-4} \ll 1\) : oui. \(\tau = \dfrac{\rho c\,r}{3h}\) \(= \dfrac{7800\times460\times0{,}005}{60}\) \(\approx 3\times10^{2}\ \text{s}\), soit environ 5 minutes.</p></div>
+  </div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§9 · RÉSOLUTION NUMÉRIQUE</div>
+  <h2>Schéma explicite aux différences finies (Python)</h2>
+  <div class="intro">Hors de quelques cas simples, l'équation de la chaleur se résout numériquement. Le programme demande de savoir discrétiser l'équation 1D, d'écrire le schéma explicite, d'en connaître la condition de stabilité et d'observer l'évolution vers le régime permanent.</div>
+
+  <h3>Discrétisation</h3>
+  <p>Grille spatiale \(x_i = i\,\Delta x\) (\(0 \le i \le N\), \(\Delta x = L/N\)), instants \(t_n = n\,\Delta t\), et \(T_i^n \approx T(x_i,t_n)\). On approche les dérivées par :</p>
+  <div class="formula">$$\frac{\partial T}{\partial t} \approx \frac{T_i^{n+1}-T_i^n}{\Delta t} \qquad\qquad \frac{\partial^2 T}{\partial x^2} \approx \frac{T_{i+1}^n - 2T_i^n + T_{i-1}^n}{\Delta x^2}$$</div>
+  <p>La seconde formule s'obtient en additionnant les développements de Taylor de \(T(x\pm\Delta x)\) : les termes d'ordre impair se compensent.</p>
+  <div class="prop-box">
+    <strong>Schéma explicite.</strong> En reportant dans \(\partial_t T = a\,\partial_{xx}T\) :
+    $$T_i^{n+1} = T_i^n + r\left(T_{i+1}^n - 2T_i^n + T_{i-1}^n\right), \qquad r = \frac{a\,\Delta t}{\Delta x^2}$$
+    Les valeurs à l'instant \(n+1\) se calculent directement à partir de celles de l'instant \(n\).
+  </div>
+
+  <h3>Condition de stabilité</h3>
+  <div class="prop-box">
+    <strong>Le schéma explicite est stable si et seulement si \(r \le 1/2\)</strong>, c'est-à-dire \(\Delta t \le \dfrac{\Delta x^2}{2a}\).
+  </div>
+  <p>Interprétation : \(T_i^{n+1} = r\,T_{i-1}^n + (1-2r)\,T_i^n + r\,T_{i+1}^n\) est une moyenne pondérée à coefficients positifs dès que \(r \le 1/2\) ; la nouvelle valeur reste comprise entre le plus petit et le plus grand des trois nombres \(T_{i-1}^n\), \(T_i^n\), \(T_{i+1}^n\) (principe du maximum discret) et aucune oscillation parasite ne peut croître. Si \(r > 1/2\), le coefficient central devient négatif : une erreur de signe alterné d'un nœud à l'autre est amplifiée à chaque pas et la solution diverge. Prix à payer : diviser \(\Delta x\) par 2 impose de diviser \(\Delta t\) par 4, soit 8 fois plus de calculs.</p>
+
+  <h3>Conditions aux limites numériques</h3>
+  <ul>
+    <li><strong>Température imposée</strong> : on fixe \(T_0^n\) et \(T_N^n\) à chaque pas (on ne met à jour que les nœuds intérieurs).</li>
+    <li><strong>Extrémité calorifugée</strong> en \(x = L\) : après chaque pas, \(T_N^{n+1} = T_{N-1}^{n+1}\) (traduction d'ordre 1 de \(\partial_x T = 0\)).</li>
+  </ul>
+
+  <h3>Exemple de programme</h3>
+  <p>Barre de 40 cm, initialement à 20 °C, dont l'extrémité gauche est portée à 100 °C à \(t = 0\) et la droite maintenue à 20 °C :</p>
+  <pre class="codeblock"><span class="kw">import</span> numpy <span class="kw">as</span> np
+<span class="kw">import</span> matplotlib.pyplot <span class="kw">as</span> plt
+
+L, a = 0.40, 1.0e-5          <span class="cmt"># longueur (m), diffusivité (m²/s)</span>
+N = 40                        <span class="cmt"># nombre d'intervalles</span>
+dx = L / N
+r = 0.4                       <span class="cmt"># choisi ≤ 0,5 pour la stabilité</span>
+dt = r * dx**2 / a            <span class="cmt"># pas de temps correspondant (4 s)</span>
+
+x = np.linspace(0, L, N + 1)
+T = np.full(N + 1, 20.0)      <span class="cmt"># condition initiale</span>
+T[0] = 100.0                  <span class="cmt"># bord gauche porté à 100 °C ; T[-1] reste à 20 °C</span>
+
+profils = {}                  <span class="cmt"># instant (s) -> copie du profil</span>
+<span class="kw">for</span> n <span class="kw">in</span> range(1, 5001):
+    <span class="cmt"># le membre de droite est calculé en entier AVANT l'affectation</span>
+    T[1:-1] = T[1:-1] + r * (T[2:] - 2*T[1:-1] + T[:-2])
+    <span class="kw">if</span> n <span class="kw">in</span> (50, 250, 1000, 5000):
+        profils[n * dt] = T.copy()
+
+<span class="kw">for</span> t, prof <span class="kw">in</span> profils.items():
+    plt.plot(x, prof, label=<span class="str">f"t = {t:.0f} s"</span>)
+plt.xlabel(<span class="str">"x (m)"</span>); plt.ylabel(<span class="str">"T (°C)"</span>); plt.legend(); plt.show()</pre>
+  <div class="notice"><strong>Contrôles indispensables</strong> : (1) le profil final doit être le profil affine stationnaire ; (2) la durée du transitoire doit être de l'ordre de \(L^2/a\) (ici \(1{,}6\times10^4\ \text{s}\)) ; (3) relancer avec \(r = 0{,}6\) fait apparaître l'instabilité (dents de scie qui explosent). Les schémas implicites, stables pour tout \(\Delta t\), ne sont pas au programme.</div>
+</div>
+
+</template>
+<template class="pan-tpl" data-panneau="dth-meth">
+<div class="course-section">
+  <div class="sec-num">MÉTHODES · DIFFUSION THERMIQUE</div>
+  <h2>Stratégies pour les exercices</h2>
+
+  <div class="method-box">
+    <strong>Méthode 1 — Établir l'équation de la chaleur par un bilan</strong>
+    <ol style="margin-top:.4rem">
+      <li><span class="step">Géométrie.</span> Repérer de quelle(s) variable(s) dépend \(T\) (symétries, invariances) et choisir le système élémentaire adapté : tranche \(S\,\mathrm{d}x\), coquille cylindrique \(2\pi rH\,\mathrm{d}r\), coquille sphérique \(4\pi r^2\mathrm{d}r\).</li>
+      <li><span class="step">Trois termes.</span> Entre \(t\) et \(t+\mathrm{d}t\) : variation d'énergie interne \(\rho c\,\mathrm{d}\tau\,\partial_t T\,\mathrm{d}t\) ; flux entrant moins flux sortant ; production \(p_v\,\mathrm{d}\tau\,\mathrm{d}t\).</li>
+      <li><span class="step">Premier ordre.</span> Écrire \(\Phi(x+\mathrm{d}x) - \Phi(x) = \partial_x\Phi\,\mathrm{d}x\), avec \(\Phi = j_Q\times\)(surface traversée) — en cylindrique, la surface \(2\pi rH\) dépend de \(r\).</li>
+      <li><span class="step">Fermer.</span> Injecter la loi de Fourier, simplifier par \(\mathrm{d}\tau\,\mathrm{d}t\), vérifier l'homogénéité (\(a\) en m²·s⁻¹).</li>
+    </ol>
+    <p><em>Piège</em> : oublier un terme d'échange latéral (barre non calorifugée : il faut ajouter \(-h\,p\,\mathrm{d}x\,(T-T_f)\,\mathrm{d}t\), \(p\) étant le périmètre).</p>
+  </div>
+
+  <div class="method-box">
+    <strong>Méthode 2 — Résoudre en régime stationnaire</strong>
+    <ol style="margin-top:.4rem">
+      <li><span class="step">Équation.</span> Annuler \(\partial_t T\) : \(\lambda\,\Delta T + p_v = 0\) (EDO d'ordre 2 en 1D).</li>
+      <li><span class="step">Raccourci sans source.</span> Utiliser directement la conservation du flux : \(\Phi\) indépendant de \(x\) (ou de \(r\)), puis intégrer \(\mathrm{d}T\) avec Fourier.</li>
+      <li><span class="step">Avec source uniforme.</span> Intégrer deux fois : profil parabolique. Le maximum de \(T\) se trouve là où \(j_Q = 0\) (paroi isolée, plan ou axe de symétrie).</li>
+      <li><span class="step">Constantes.</span> Les fixer avec les deux conditions aux limites ; vérifier le bilan global (puissance produite = puissance sortante).</li>
+    </ol>
+  </div>
+
+  <div class="method-box">
+    <strong>Méthode 3 — Utiliser l'analogie électrique</strong>
+    <ol style="margin-top:.4rem">
+      <li><span class="step">Vérifier.</span> Régime (quasi-)stationnaire, pas de source, surfaces limites isothermes.</li>
+      <li><span class="step">Schématiser.</span> Une résistance par couche (\(e/\lambda S\), \(\ln(r_2/r_1)/2\pi\lambda H\)…) et par échange conducto-convectif (\(1/hS\)) ; série si même flux, parallèle si même écart de température.</li>
+      <li><span class="step">Calculer.</span> \(R_{eq}\), puis \(\Phi = \Delta T/R_{eq}\).</li>
+      <li><span class="step">Températures intermédiaires.</span> « Pont diviseur » : en descendant le circuit, \(T_{k+1} = T_k - R_k\,\Phi\).</li>
+    </ol>
+    <p><em>Repère</em> : la résistance la plus grande impose le flux ; c'est elle qu'il faut améliorer pour isoler.</p>
+  </div>
+
+  <div class="method-box">
+    <strong>Méthode 4 — Traduire correctement les conditions aux limites</strong>
+    <ul style="margin-top:.4rem">
+      <li>Thermostat : \(T\) imposée. Paroi isolée ou plan de symétrie : \(\partial T/\partial n = 0\).</li>
+      <li>Contact parfait : \(T\) continue et \(\lambda\,\partial T/\partial x\) continu.</li>
+      <li>Paroi–fluide : écrire « flux sortant du solide par conduction = flux reçu par le fluide (Newton) », en projetant sur la normale <strong>sortante</strong> : \(-\lambda\,\partial_n T = h(T_s - T_f)\).</li>
+      <li>Contrôle de signe : si \(T_s > T_f\), le solide doit perdre de l'énergie ; sa température doit donc décroître quand on s'approche du fluide (\(\partial_n T \lt 0\) sur la normale sortante).</li>
+    </ul>
+  </div>
+
+  <div class="method-box">
+    <strong>Méthode 5 — Estimer un temps de diffusion et justifier un régime</strong>
+    <ol style="margin-top:.4rem">
+      <li><span class="step">Échelle.</span> Identifier la longueur pertinente \(L\) (épaisseur, rayon, demi-épaisseur si symétrie).</li>
+      <li><span class="step">Estimer.</span> \(\tau_{diff} \sim L^2/a\), avec \(a = \lambda/\rho c\) calculé à partir des données.</li>
+      <li><span class="step">Comparer.</span> Si les conditions extérieures varient lentement devant \(\tau_{diff}\) : régime quasi-stationnaire, résistances thermiques utilisables. Si \(\tau_{diff}\) est grand devant la durée de l'expérience : la chaleur n'a pénétré que sur \(\sqrt{a t}\) (milieu « semi-infini »).</li>
+    </ol>
+    <p><em>Piège</em> : présenter \(L^2/a\) comme une valeur exacte ; c'est un ordre de grandeur.</p>
+  </div>
+
+  <div class="method-box">
+    <strong>Méthode 6 — Régime sinusoïdal forcé (onde thermique)</strong>
+    <ol style="margin-top:.4rem">
+      <li><span class="step">Notation complexe.</span> \(T = T_m + \mathrm{Re}[\underline{\theta}(x)e^{i\omega t}]\) ; l'équation donne \(\underline{\theta}'' = \dfrac{i\omega}{a}\underline{\theta}\).</li>
+      <li><span class="step">Racines.</span> \(\underline{k}^2 = i\omega/a\) ; écrire \(i = e^{i\pi/2}\), d'où \(\underline{k} = \pm(1+i)/\delta\) avec \(\delta = \sqrt{2a/\omega}\).</li>
+      <li><span class="step">Sélection.</span> Garder la solution bornée (décroissante) dans le milieu ; fixer l'amplitude par la condition en surface.</li>
+      <li><span class="step">Lecture.</span> Amplitude \(\theta_0 e^{-x/\delta}\), déphasage \(x/\delta\), retard temporel \(x/(\omega\delta)\).</li>
+    </ol>
+  </div>
+
+  <div class="method-box">
+    <strong>Méthode 7 — Bilan global d'un corps à température uniforme</strong>
+    <ol style="margin-top:.4rem">
+      <li><span class="step">Justifier.</span> Conduction interne rapide devant l'échange (\(\mathrm{Bi} = hL/\lambda \ll 1\)) ou fluide brassé ; paroi d'enveloppe quasi-stationnaire (\(\tau_{diff}\) de la paroi ≪ durée du phénomène).</li>
+      <li><span class="step">Écrire.</span> \(C_{th}\,\mathrm{d}T/\mathrm{d}t = P_{reçue} - (T - T_{ext})/R_{th}\).</li>
+      <li><span class="step">Résoudre.</span> Équation du 1er ordre : \(\tau = R_{th}C_{th}\), régime permanent \(T_\infty = T_{ext} + R_{th}P\).</li>
+    </ol>
+  </div>
+
+  <div class="method-box">
+    <strong>Méthode 8 — Écrire et valider un programme de différences finies</strong>
+    <ol style="margin-top:.4rem">
+      <li><span class="step">Paramètres.</span> Choisir \(N\), en déduire \(\Delta x\), puis \(\Delta t\) tel que \(r = a\Delta t/\Delta x^2 \le 1/2\) (prendre une marge, \(r \approx 0{,}25\) à \(0{,}4\)).</li>
+      <li><span class="step">Mise à jour.</span> Calculer tous les nouveaux \(T_i\) à partir des <em>anciens</em> : tranches numpy <span class="code-inline">T[1:-1] = T[1:-1] + r*(T[2:] - 2*T[1:-1] + T[:-2])</span>, ou un nouveau tableau si l'on écrit une boucle.</li>
+      <li><span class="step">Bords.</span> Réimposer les conditions aux limites à chaque pas.</li>
+      <li><span class="step">Arrêt.</span> Nombre de pas fixé, ou critère \(\max_i |T_i^{n+1}-T_i^n| \lt \varepsilon\) pour détecter le régime permanent.</li>
+      <li><span class="step">Valider.</span> Comparer au profil stationnaire connu et à l'ordre de grandeur \(L^2/a\).</li>
+    </ol>
+    <p><em>Piège</em> : une boucle <span class="code-inline">for i</span> qui écrase \(T_{i-1}\) avant de calculer \(T_i\) mélange deux instants et fausse le schéma.</p>
+  </div>
+</div>
+</template>
+<template class="pan-tpl" data-panneau="dth-exos">
+<div class="exo-wrapper">
+
+<div class="exo">
+  <span class="num">EXO 01</span><span class="diff">★ ☆ ☆</span>
+  <h3>Combien de temps pour que la chaleur traverse ?</h3>
+  <div class="statement">On cherche des ordres de grandeur de durées de diffusion dans des situations courantes. Données (diffusivités) : aluminium \(a = 9{,}0\times10^{-5}\ \text{m}^2\text{·s}^{-1}\) ; verre \(4{,}0\times10^{-7}\) ; pierre calcaire \(1{,}0\times10^{-6}\) ; légumes (assimilés à de l'eau) \(1{,}4\times10^{-7}\).</div>
+  <div class="q"><strong>Q1.</strong> À partir de l'équation de diffusion, vérifier la dimension de \(a\) et établir la relation d'ordre de grandeur entre une longueur \(L\) et la durée \(\tau\) de diffusion associée.</div>
+  <div class="q"><strong>Q2.</strong> Comparer les durées de traversée du fond d'une casserole en aluminium de 4 mm et d'un plat en verre de 6 mm. Commenter du point de vue de la cuisson.</div>
+  <div class="q"><strong>Q3.</strong> Une maison ancienne a des murs de pierre de 40 cm. En combien de temps une variation de température extérieure les traverse-t-elle ? Que deviennent les variations jour/nuit ?</div>
+  <div class="q"><strong>Q4.</strong> Une carotte de 2 cm de diamètre est plongée dans l'eau bouillante. Estimer la durée pour que son cœur chauffe. Même question pour une carotte deux fois plus grosse.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> Dans \(\partial_t T = a\,\partial_{xx}T\), le membre de gauche est en K·s⁻¹ et \(\partial_{xx}T\) en K·m⁻², donc \(a\) est en m²·s⁻¹. En remplaçant les dérivées par \(\Delta T/\tau\) et \(\Delta T/L^2\) : \(\tau \sim L^2/a\), soit \(L \sim \sqrt{a\tau}\).</p>
+    <p><strong>Q2.</strong> Aluminium : \(\tau\) \(\sim (4\times10^{-3})^2/(9{,}0\times10^{-5})\) \(\approx 0{,}2\ \text{s}\). Verre : \(\tau \sim (6\times10^{-3})^2/(4{,}0\times10^{-7}) = 90\ \text{s}\). Le fond métallique transmet quasi instantanément les variations de puissance de la plaque (cuisson très réactive) ; le verre réagit en une à deux minutes et lisse les à-coups, d'où son usage pour les cuissons lentes au four.</p>
+    <p><strong>Q3.</strong> \(\tau \sim (0{,}40)^2/(1{,}0\times10^{-6})\) \(= 1{,}6\times10^{5}\ \text{s}\) \(\approx 44\ \text{h}\), soit près de deux jours. Une oscillation de période 24 h n'a pas le temps de traverser : elle est fortement amortie dans le mur, d'où l'intérieur frais en été des maisons à murs épais (« inertie thermique »).</p>
+    <p><strong>Q4.</strong> La longueur pertinente est le rayon, \(L = 1\ \text{cm}\) : \(\tau \sim (10^{-2})^2/(1{,}4\times10^{-7})\) \(\approx 7\times10^{2}\ \text{s}\) \(\approx 12\ \text{min}\), cohérent avec l'expérience culinaire. Rayon doublé : durée multipliée par 4, soit environ 50 min. C'est pourquoi on coupe les légumes en morceaux.</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 02</span><span class="diff">★ ★ ☆</span>
+  <h3>Simple ou double vitrage ?</h3>
+  <div class="statement">Une fenêtre de surface \(S = 1{,}5\ \text{m}^2\) sépare une pièce à \(T_i = 20\ \text{°C}\) de l'extérieur à \(T_e = 0\ \text{°C}\). Verre : \(\lambda_v = 1{,}0\ \text{W·m}^{-1}\text{·K}^{-1}\). Coefficients conducto-convectifs : \(h_i = 8\ \text{W·m}^{-2}\text{·K}^{-1}\) côté pièce, \(h_e = 20\ \text{W·m}^{-2}\text{·K}^{-1}\) côté extérieur (vent). Régime stationnaire.</div>
+  <div class="q"><strong>Q1.</strong> Simple vitrage d'épaisseur 4 mm : calculer le flux en ne tenant compte que de la conduction dans le verre. Le résultat est-il plausible ?</div>
+  <div class="q"><strong>Q2.</strong> Reprendre le calcul en incluant les échanges conducto-convectifs. Calculer \(\Phi\), le coefficient \(U\) et la température de la face intérieure du verre. Risque de buée ?</div>
+  <div class="q"><strong>Q3.</strong> Double vitrage : deux verres de 4 mm séparés par 16 mm d'argon immobile (\(\lambda_g = 0{,}017\ \text{W·m}^{-1}\text{·K}^{-1}\), convection dans la lame négligée). Mêmes questions.</div>
+  <div class="q"><strong>Q4.</strong> En prenant un écart moyen de 12 K pendant 180 jours de chauffe, estimer l'énergie économisée par le double vitrage sur un hiver.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> \(R_v = \dfrac{e}{\lambda_v S}\) \(= \dfrac{0{,}004}{1{,}5}\) \(\approx 2{,}7\times10^{-3}\ \text{K·W}^{-1}\), d'où \(\Phi = 20/R_v = 7{,}5\ \text{kW}\) : absurde (c'est la puissance de plusieurs radiateurs). La vitre seule n'est presque pas isolante ; ce sont les couches limites d'air qui limitent le transfert.</p>
+    <p><strong>Q2.</strong> Résistances en série : \(R_i = 1/(h_iS) \approx 0{,}083\), \(R_e = 1/(h_eS) \approx 0{,}033\), \(R_v \approx 0{,}003\), total \(R_1 \approx 0{,}119\ \text{K·W}^{-1}\). \(\Phi_1 = 20/0{,}119 \approx 168\ \text{W}\) et \(U_1 = 1/(R_1S) \approx 5{,}6\ \text{W·m}^{-2}\text{·K}^{-1}\). Face intérieure : \(T_{s} = T_i - R_i\Phi_1 \approx 20 - 14 = 6\ \text{°C}\). L'air de la pièce (point de rosée typiquement 8 à 12 °C) condense sur la vitre : buée assurée.</p>
+    <p><strong>Q3.</strong> Lame d'argon : \(R_g = \dfrac{0{,}016}{0{,}017\times1{,}5} \approx 0{,}63\ \text{K·W}^{-1}\). Total \(R_2 = R_i + 2R_v + R_g + R_e\) \(\approx 0{,}75\ \text{K·W}^{-1}\), d'où \(\Phi_2 \approx 27\ \text{W}\) et \(U_2 \approx 0{,}9\ \text{W·m}^{-2}\text{·K}^{-1}\). \(T_s \approx 20 - 0{,}083\times27 \approx 17{,}8\ \text{°C}\) : plus de buée, et paroi plus confortable. (Un double vitrage réel fait moins bien : \(U \approx 2{,}7\) sans traitement, \(U \approx 1{,}1\) avec une couche peu émissive qui limite le rayonnement entre les verres. Ce rayonnement et une faible convection dans la lame, négligés ici, s'ajoutent à la conduction.)</p>
+    <p><strong>Q4.</strong> Flux proportionnel à l'écart : \(\Delta\Phi = 12\left(\dfrac{1}{R_1}-\dfrac{1}{R_2}\right)\) \(\approx 12\times(8{,}38-1{,}33)\) \(\approx 85\ \text{W}\). Sur \(180\times24 = 4320\ \text{h}\) : \(E \approx 85\times4320\) \(\approx 3{,}7\times10^{5}\ \text{Wh}\) \(\approx 365\ \text{kWh}\) pour une seule fenêtre.</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 03</span><span class="diff">★ ★ ☆</span>
+  <h3>Échauffement d'une dalle de béton pendant sa prise</h3>
+  <div class="statement">Une dalle de béton de grande étendue, d'épaisseur \(e = 30\ \text{cm}\), repose en \(x = 0\) sur une couche isolante (face supposée calorifugée) ; sa face supérieure est en \(x = e\). Pendant la prise, l'hydratation du ciment libère une puissance volumique uniforme \(p_v = 500\ \text{W·m}^{-3}\). Béton : conductivité \(\lambda = 1{,}6\ \text{W·m}^{-1}\text{·K}^{-1}\), diffusivité \(a = 7\times10^{-7}\ \text{m}^2\text{·s}^{-1}\). On admet un régime stationnaire et \(T = T(x)\).</div>
+  <div class="q"><strong>Q1.</strong> Par un bilan sur une tranche, établir l'équation différentielle vérifiée par \(T(x)\).</div>
+  <div class="q"><strong>Q2.</strong> La face supérieure est maintenue à \(T_0 = 15\ \text{°C}\) (arrosage). Déterminer \(T(x)\), puis l'écart \(T_{max} - T_0\). Où se situe le point le plus chaud ?</div>
+  <div class="q"><strong>Q3.</strong> Calculer la densité de flux sortant par la face supérieure. Interpréter par un bilan global.</div>
+  <div class="q"><strong>Q4.</strong> On cesse d'arroser : la face supérieure échange avec l'air à \(T_a = 15\ \text{°C}\) selon la loi de Newton, \(h = 10\ \text{W·m}^{-2}\text{·K}^{-1}\). Calculer la nouvelle température de surface et la température maximale.</div>
+  <div class="q"><strong>Q5.</strong> Peut-on définir une résistance thermique de la dalle ? Pourquoi les dalles très épaisses posent-elles problème ?</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> Tranche \(S\,\mathrm{d}x\), stationnaire : \(0 = [j_Q(x) - j_Q(x+\mathrm{d}x)]S + p_vS\,\mathrm{d}x\), soit \(\dfrac{\mathrm{d}j_Q}{\mathrm{d}x} = p_v\). Avec Fourier \(j_Q = -\lambda\,T'\) :</p>
+    <div class="formula">$$\lambda\,\frac{\mathrm{d}^2T}{\mathrm{d}x^2} + p_v = 0$$</div>
+    <p><strong>Q2.</strong> \(T'(x) = -\dfrac{p_v}{\lambda}x + A\) ; la face isolée impose \(T'(0) = 0\), donc \(A = 0\). Puis \(T(e) = T_0\) donne :</p>
+    <div class="formula">$$T(x) = T_0 + \frac{p_v}{2\lambda}\left(e^2 - x^2\right)$$</div>
+    <p>Le maximum est en \(x = 0\) (là où \(j_Q = 0\)) : \(T_{max} - T_0 = \dfrac{p_v e^2}{2\lambda}\) \(= \dfrac{500\times0{,}09}{3{,}2}\) \(\approx 14\ \text{K}\), soit \(T_{max} \approx 29\ \text{°C}\).</p>
+    <p><strong>Q3.</strong> \(j_Q(e) = -\lambda T'(e) = p_v\,e\) \(= 150\ \text{W·m}^{-2}\). Bilan global sur une colonne de section \(S\) : toute la puissance produite \(p_v\,S\,e\) doit sortir par la seule face non isolée, d'où \(j_Q(e)\,S = p_v e S\). Cohérent.</p>
+    <p><strong>Q4.</strong> Continuité du flux en \(x = e\) : \(p_v e = h\,[T(e) - T_a]\), donc \(T(e) = 15 + 150/10 = 30\ \text{°C}\). Le profil interne est inchangé à une constante près (même équation, même condition en \(x=0\)) : \(T_{max} = 30 + 14 = 44\ \text{°C}\).</p>
+    <p><strong>Q5.</strong> Non : avec un terme source, le flux n'est pas conservatif (\(j_Q\) croît de 0 à \(p_v e\)), et le rapport « écart de température / flux » n'a pas de sens intrinsèque. L'écart cœur–surface varie comme \(e^2\) : les dalles épaisses développent de forts gradients thermiques, donc des contraintes de dilatation différentielle et un risque de fissuration (d'où les précautions de cure). Remarque : \(e^2/a \approx 0{,}09/(7\times10^{-7}) \approx 36\ \text{h}\), du même ordre que la durée du dégagement de chaleur ; le régime stationnaire n'est qu'une estimation majorante.</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 04</span><span class="diff">★ ★ ☆</span>
+  <h3>Calorifuger une conduite d'eau chaude</h3>
+  <div class="statement">Un tube de cuivre (rayon intérieur 1,0 cm, rayon extérieur \(r_1 = 1{,}1\ \text{cm}\), \(\lambda_{Cu} = 390\ \text{W·m}^{-1}\text{·K}^{-1}\)) transporte de l'eau à \(T_e = 60\ \text{°C}\) sur \(H = 10\ \text{m}\) dans un garage à \(T_a = 18\ \text{°C}\). On l'entoure d'un manchon de mousse (\(\lambda_m = 0{,}040\ \text{W·m}^{-1}\text{·K}^{-1}\)) de rayon extérieur \(r_2 = 3{,}1\ \text{cm}\). Échange avec l'air : \(h = 8\ \text{W·m}^{-2}\text{·K}^{-1}\). Régime stationnaire, effets d'extrémité négligés, paroi intérieure du tube à la température de l'eau.</div>
+  <div class="q"><strong>Q1.</strong> Montrer que le flux à travers un cylindre coaxial de rayon \(r\) ne dépend pas de \(r\) dans le manchon. En déduire \(T(r)\) et la résistance thermique \(R_m\) du manchon.</div>
+  <div class="q"><strong>Q2.</strong> Calculer la résistance de la paroi de cuivre et justifier qu'on la néglige.</div>
+  <div class="q"><strong>Q3.</strong> Calculer la puissance perdue avec et sans manchon, ainsi que la température de surface du manchon.</div>
+  <div class="q"><strong>Q4.</strong> Exprimer la résistance totale \(R(r_2)\) (manchon + convection) en fonction du rayon extérieur \(r_2\). Montrer qu'elle passe par un minimum pour un rayon critique \(r_c\) à exprimer. Conclure pour ce manchon, puis pour un fil électrique de rayon 1 mm gainé de PVC (\(\lambda = 0{,}16\ \text{W·m}^{-1}\text{·K}^{-1}\)).</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> En stationnaire sans source, le bilan sur la coquille \([r, r+\mathrm{d}r]\) donne \(\Phi(r) = \Phi(r+\mathrm{d}r)\) : \(\Phi = -\lambda_m\,2\pi rH\,\dfrac{\mathrm{d}T}{\mathrm{d}r}\) est constant. Par intégration :</p>
+    <div class="formula">$$T(r) = T_e - \frac{\Phi}{2\pi\lambda_m H}\ln\frac{r}{r_1}, \qquad R_m = \frac{\ln(r_2/r_1)}{2\pi\lambda_m H}$$</div>
+    <p><strong>Q2.</strong> \(R_{Cu} = \dfrac{\ln(1{,}1/1{,}0)}{2\pi\times390\times10}\) \(\approx 3{,}9\times10^{-6}\ \text{K·W}^{-1}\), environ \(10^5\) fois moins que les autres résistances : négligeable.</p>
+    <p><strong>Q3.</strong> \(R_m = \dfrac{\ln(3{,}1/1{,}1)}{2\pi\times0{,}040\times10}\) \(\approx \dfrac{1{,}036}{2{,}51}\) \(\approx 0{,}41\ \text{K·W}^{-1}\) ; \(R_{cc} = \dfrac{1}{h\,2\pi r_2 H} \approx 0{,}064\ \text{K·W}^{-1}\). Avec manchon : \(\Phi = \dfrac{42}{0{,}476} \approx 88\ \text{W}\). Sans manchon : \(R_{cc,0} = \dfrac{1}{h\,2\pi r_1 H} \approx 0{,}18\ \text{K·W}^{-1}\), \(\Phi_0 \approx 232\ \text{W}\) : les pertes sont divisées par environ 2,6. Surface du manchon : \(T_s = T_a + R_{cc}\Phi \approx 18 + 5{,}7 \approx 24\ \text{°C}\).</p>
+    <p><strong>Q4.</strong> \(R(r_2) = \dfrac{1}{2\pi H}\left[\dfrac{\ln(r_2/r_1)}{\lambda_m} + \dfrac{1}{h\,r_2}\right]\), de dérivée \(\dfrac{1}{2\pi H}\left[\dfrac{1}{\lambda_m r_2} - \dfrac{1}{h r_2^2}\right]\), nulle pour :</p>
+    <div class="formula">$$r_c = \frac{\lambda_m}{h}$$</div>
+    <p>La dérivée est négative avant \(r_c\), positive après : \(R\) est minimale en \(r_c\) (l'isolant ajoute de la conduction mais augmente la surface d'échange). Mousse : \(r_c = 0{,}040/8 = 5\ \text{mm} \lt r_1\) : toute épaisseur ajoutée réduit les pertes. Fil gainé : \(r_c = 0{,}16/8 = 2\ \text{cm}\), très supérieur à 1 mm : une gaine fine <strong>augmente</strong> la dissipation par rapport au fil nu — ce qui est favorable au refroidissement du câble.</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 05</span><span class="diff">★ ★ ★</span>
+  <h3>À quelle profondeur creuser une cave ?</h3>
+  <div class="statement">Le sol, homogène, occupe le demi-espace \(x > 0\) (axe vertical descendant) ; sa diffusivité vaut \(a = 6{,}0\times10^{-7}\ \text{m}^2\text{·s}^{-1}\). Sa surface subit une température \(T(0,t) = T_m + \theta_0\cos(\omega t)\). On s'intéresse au régime établi. Valeurs : oscillation annuelle \(T_m = 12\ \text{°C}\), \(\theta_0 = 9\ \text{K}\) ; oscillation journalière d'amplitude 6 K.</div>
+  <div class="q"><strong>Q1.</strong> Chercher \(T(x,t) = T_m + \mathrm{Re}[\underline{\theta}(x)e^{i\omega t}]\). Établir l'équation vérifiée par \(\underline{\theta}\), la résoudre et en déduire \(T(x,t)\) en faisant apparaître une longueur \(\delta\).</div>
+  <div class="q"><strong>Q2.</strong> Calculer \(\delta\) pour l'oscillation journalière et pour l'oscillation annuelle.</div>
+  <div class="q"><strong>Q3.</strong> Une cave est creusée à 5 m. Quelles amplitudes de variation y subsiste-t-il ? Si la surface est la plus froide mi-janvier, quand la cave l'est-elle ?</div>
+  <div class="q"><strong>Q4.</strong> À partir de quelle profondeur l'amplitude annuelle est-elle inférieure à 0,5 K ? À quelle profondeur la cave est-elle en opposition de phase avec la surface ?</div>
+  <div class="q"><strong>Q5.</strong> Calculer la vitesse de phase de l'onde thermique annuelle. En quoi diffère-t-elle d'une onde se propageant sans dispersion ?</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> En reportant dans \(\partial_t T = a\,\partial_{xx}T\) : \(\underline{\theta}'' = \dfrac{i\omega}{a}\underline{\theta}\). Les racines vérifient \(\underline{k}^2 = i\omega/a\) ; comme \((1+i)^2 = 2i\), \(\underline{k} = \pm\dfrac{1+i}{\delta}\) avec \(\delta = \sqrt{2a/\omega}\). La solution en \(e^{+(1+i)x/\delta}\) diverge en profondeur : on l'écarte. La condition en surface donne \(\underline{\theta}(0) = \theta_0\), d'où :</p>
+    <div class="formula">$$T(x,t) = T_m + \theta_0\,e^{-x/\delta}\cos\!\left(\omega t - \frac{x}{\delta}\right)$$</div>
+    <p><strong>Q2.</strong> Journalier : \(\omega_j = 2\pi/86400\) \(\approx 7{,}27\times10^{-5}\ \text{rad·s}^{-1}\), \(\delta_j = \sqrt{2\times6{,}0\times10^{-7}/7{,}27\times10^{-5}}\) \(\approx 0{,}13\ \text{m}\). Annuel : \(\omega_a \approx 1{,}99\times10^{-7}\ \text{rad·s}^{-1}\), \(\delta_a \approx 2{,}5\ \text{m}\) (\(\delta \propto 1/\sqrt{\omega}\) : rapport \(\sqrt{365} \approx 19\)).</p>
+    <p><strong>Q3.</strong> Journalier : \(6\,e^{-5/0{,}13} \approx 6\,e^{-39}\) : rigoureusement rien. Annuel : \(9\,e^{-5/2{,}46} \approx 9\times0{,}13 \approx 1{,}2\ \text{K}\) : la cave reste entre environ 11 et 13 °C. Déphasage \(x/\delta_a \approx 2{,}04\ \text{rad}\), soit un retard \(2{,}04/\omega_a \approx 1{,}0\times10^{7}\ \text{s} \approx 118\) jours : minimum vers la mi-mai.</p>
+    <p><strong>Q4.</strong> \(9\,e^{-x/\delta_a} \lt 0{,}5\) \(\iff x > \delta_a\ln 18\) \(\approx 2{,}46\times2{,}89 \approx 7{,}1\ \text{m}\). Opposition de phase : \(x/\delta_a = \pi\), soit \(x \approx 7{,}7\ \text{m}\) (la cave y est la plus chaude en hiver, mais l'amplitude n'est plus que \(9\,e^{-\pi} \approx 0{,}4\ \text{K}\)).</p>
+    <p><strong>Q5.</strong> La phase \(\omega t - x/\delta\) est constante pour \(x = \omega\delta\,t\) : \(v_\varphi = \omega\delta = \sqrt{2a\omega}\) \(\approx 1{,}99\times10^{-7}\times2{,}46\) \(\approx 4{,}9\times10^{-7}\ \text{m·s}^{-1}\), environ 15 m par an. Elle dépend de \(\omega\) (milieu dispersif) et, sur une seule longueur d'onde \(2\pi\delta_a \approx 15\ \text{m}\), l'amplitude est divisée par \(e^{2\pi} \approx 535\) : ce n'est pas une propagation au sens de d'Alembert, mais la signature d'un phénomène diffusif.</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 06</span><span class="diff">★ ★ ★</span>
+  <h3>Mise en chauffe de la paroi d'un four (Python)</h3>
+  <div class="statement">La paroi plane d'un four, en brique réfractaire d'épaisseur \(e = 12\ \text{cm}\) (\(a = 5{,}0\times10^{-7}\ \text{m}^2\text{·s}^{-1}\)), est initialement à 20 °C. À \(t = 0\), sa face intérieure (\(x = 0\)) est portée et maintenue à 800 °C ; sa face extérieure (\(x = e\)) est supposée maintenue à 20 °C. On discrétise avec \(N = 60\) intervalles.</div>
+  <div class="q"><strong>Q1.</strong> Écrire le schéma explicite donnant \(T_i^{n+1}\) en fonction des valeurs à l'instant \(n\). Quel est le pas \(\Delta x\) ?</div>
+  <div class="q"><strong>Q2.</strong> Quelle valeur maximale de \(\Delta t\) peut-on choisir ? On prend \(\Delta t = 2\ \text{s}\) : que vaut \(r\) ?</div>
+  <div class="q"><strong>Q3.</strong> Écrire une fonction <span class="code-inline">pas(T, r)</span> renvoyant un nouveau tableau après un pas de temps (bords inchangés), puis une boucle qui itère jusqu'à ce que la plus grande variation d'un pas soit inférieure à \(10^{-4}\ \text{K}\), et affiche la durée simulée.</div>
+  <div class="q"><strong>Q4.</strong> Quel profil final attend-on ? Estimer la durée du transitoire par analyse d'échelle et comparer au résultat numérique (environ 3,4 h pour s'approcher à 1 % du profil final, 6,6 h pour le critère de Q3).</div>
+  <div class="q"><strong>Q5.</strong> Que se passe-t-il si l'on choisit \(\Delta t = 5\ \text{s}\) ? Expliquer.</div>
+  <div class="q"><strong>Q6.</strong> On suppose maintenant la face extérieure calorifugée. Modifier le programme. Quel est le nouvel état final ?</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> \(T_i^{n+1} = T_i^n + r\,(T_{i+1}^n - 2T_i^n + T_{i-1}^n)\) pour \(1 \le i \le N-1\), avec \(r = a\Delta t/\Delta x^2\) ; \(T_0^n = 800\) et \(T_N^n = 20\) pour tout \(n\). Pas : \(\Delta x = e/N = 2\ \text{mm}\).</p>
+    <p><strong>Q2.</strong> Stabilité : \(\Delta t \le \Delta x^2/(2a)\) \(= (2\times10^{-3})^2/(10^{-6}) = 4\ \text{s}\). Avec \(\Delta t = 2\ \text{s}\), \(r = 0{,}25\).</p>
+    <p><strong>Q3.</strong> Une solution possible :</p>
+    <pre class="codeblock"><span class="kw">import</span> numpy <span class="kw">as</span> np
+
+e, a, N = 0.12, 5.0e-7, 60
+dx = e / N
+dt = 2.0
+r = a * dt / dx**2            <span class="cmt"># 0,25</span>
+
+T = np.full(N + 1, 20.0)
+T[0] = 800.0
+
+<span class="kw">def</span> pas(T, r):
+    Tn = T.copy()             <span class="cmt"># les bords sont recopiés tels quels</span>
+    Tn[1:-1] = T[1:-1] + r * (T[2:] - 2*T[1:-1] + T[:-2])
+    <span class="kw">return</span> Tn
+
+n, ecart = 0, 1.0
+<span class="kw">while</span> ecart > 1e-4:
+    Tn = pas(T, r)
+    ecart = np.max(np.abs(Tn - T))
+    T, n = Tn, n + 1
+print(n * dt / 3600, <span class="str">"h"</span>)</pre>
+    <p><strong>Q4.</strong> Régime stationnaire sans source : profil affine de 800 °C à 20 °C, \(T(x) = 800 - 780\,x/e\). Analyse d'échelle : \(e^2/a = 0{,}0144/(5\times10^{-7})\) \(\approx 2{,}9\times10^{4}\ \text{s}\) \(\approx 8\ \text{h}\). Le calcul donne quelques heures : c'est bien le même ordre de grandeur. (Le mode le plus lent décroît en \(e^{-t/\tau_1}\) avec \(\tau_1 = e^2/(\pi^2 a) \approx 49\ \text{min}\) ; il faut environ \(4\tau_1\) pour l'approcher à 1 %, d'où les 3,4 h.)</p>
+    <p><strong>Q5.</strong> \(r = 0{,}625 > 1/2\) : le schéma est instable. Le coefficient \(1-2r\) du nœud central est négatif, une petite erreur alternée d'un nœud à l'autre est amplifiée d'un facteur supérieur à 1 à chaque pas ; après quelques centaines de pas, les valeurs atteignent des grandeurs absurdes (\(10^{30}\) °C et plus).</p>
+    <p><strong>Q6.</strong> Après chaque pas, imposer <span class="code-inline">Tn[-1] = Tn[-2]</span> (gradient nul en \(x = e\)). Plus aucune énergie ne sort : l'état final est uniforme à 800 °C. Le transitoire est plus long (domaine « effectivement » deux fois plus épais : mode lent \(\tau_1' = 4e^2/(\pi^2 a) \approx 3{,}2\ \text{h}\)).</p>
+  </div>
+</div>
+
+<div class="exo concours">
+  <span class="num">CONCOURS PT</span><span class="diff">★ ★ ★</span>
+  <h3>Pertes thermiques d'un chauffe-eau électrique</h3>
+  <div class="exo-source">
+    Exercice <strong>original</strong> au format des épreuves PT (thème <em>diffusion thermique, résistances, bilan global</em>). Pour t'entraîner sur les sujets réellement tombés :
+    <a href="https://www.banquept.fr/rubrique38.html" target="_blank" rel="noopener">annales officielles de la Banque PT</a>.
+  </div>
+  <div class="statement">
+    Un chauffe-eau contient \(V = 200\ \text{L}\) d'eau (\(\rho = 1000\ \text{kg·m}^{-3}\), \(c = 4180\ \text{J·kg}^{-1}\text{·K}^{-1}\)) maintenue à \(T_e = 65\ \text{°C}\), dans un local à \(T_a = 15\ \text{°C}\). L'enveloppe, de surface \(S = 2{,}1\ \text{m}^2\), comprend une cuve en acier (\(e_1 = 3\ \text{mm}\), \(\lambda_1 = 50\ \text{W·m}^{-1}\text{·K}^{-1}\)) et une couche de mousse polyuréthane (\(e_2 = 5{,}0\ \text{cm}\), \(\lambda_2 = 0{,}025\ \text{W·m}^{-1}\text{·K}^{-1}\), \(\rho_2 = 35\ \text{kg·m}^{-3}\), \(c_2 = 1400\ \text{J·kg}^{-1}\text{·K}^{-1}\)). Coefficients conducto-convectifs : \(h_i = 300\ \text{W·m}^{-2}\text{·K}^{-1}\) côté eau, \(h_e = 10\ \text{W·m}^{-2}\text{·K}^{-1}\) côté air. Les parois sont traitées comme planes. Prix de l'électricité : 0,25 € le kWh.
+  </div>
+
+  <p class="exo-part">Partie A — Pertes en régime stationnaire</p>
+  <div class="q"><strong>A1.</strong> Représenter le circuit thermique équivalent de l'enveloppe et calculer chaque résistance. Laquelle domine ?</div>
+  <div class="q"><strong>A2.</strong> Calculer la puissance perdue, l'énergie perdue par jour et le coût annuel de ces pertes.</div>
+  <div class="q"><strong>A3.</strong> Déterminer la température de la face extérieure et celle de l'interface acier–mousse. Tracer l'allure du profil de température à travers l'enveloppe.</div>
+
+  <p class="exo-part">Partie B — Refroidissement pendant une absence</p>
+  <div class="q"><strong>B1.</strong> Le chauffage est coupé à \(t = 0\). On suppose l'eau à température uniforme \(T(t)\) et l'enveloppe en régime quasi-stationnaire. Établir l'équation d'évolution de \(T\) et la constante de temps \(\tau\).</div>
+  <div class="q"><strong>B2.</strong> Justifier les deux hypothèses de B1 portant sur l'enveloppe (régime quasi-stationnaire, capacité thermique négligeable).</div>
+  <div class="q"><strong>B3.</strong> Après 7 jours d'absence, quelle est la température de l'eau ? Comparer l'énergie nécessaire pour la réchauffer à celle consommée si le chauffe-eau était resté allumé. Conclure.</div>
+
+  <p class="exo-part">Partie C — Améliorations et défauts</p>
+  <div class="q"><strong>C1.</strong> Quelle épaisseur de mousse faudrait-il pour diviser les pertes par deux (surface supposée inchangée) ? Commenter.</div>
+  <div class="q"><strong>C2.</strong> Sur une zone de \(0{,}10\ \text{m}^2\) (trappe d'accès), la mousse n'a que 1 cm d'épaisseur. Calculer la nouvelle puissance perdue. Quelle association de résistances intervient ?</div>
+
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>A1.</strong> Quatre résistances en série (eau → acier → mousse → air) :</p>
+    <div class="formula">$$R_i = \frac{1}{h_iS} \approx 1{,}6\times10^{-3},\quad R_1 = \frac{e_1}{\lambda_1 S} \approx 2{,}9\times10^{-5},\quad R_2 = \frac{e_2}{\lambda_2 S} \approx 0{,}952,\quad R_e = \frac{1}{h_eS} \approx 0{,}048\ \ \text{(K·W}^{-1}\text{)}$$</div>
+    <p>Total \(R \approx 1{,}00\ \text{K·W}^{-1}\) ; la mousse en représente 95 %. La cuve en acier ne joue aucun rôle thermique.</p>
+    <p><strong>A2.</strong> \(\Phi = (T_e - T_a)/R \approx 50\ \text{W}\). Par jour : \(50\times24 \approx 1{,}2\ \text{kWh}\) (ordre de grandeur des « pertes statiques » affichées par les fabricants). Par an : \(1{,}2\times365\times0{,}25 \approx 110\ \text{€}\).</p>
+    <p><strong>A3.</strong> \(T_{ext} = T_a + R_e\Phi \approx 15 + 2{,}4\) \(\approx 17{,}4\ \text{°C}\) (la paroi est à peine tiède au toucher). \(T_{1/2} = T_e - (R_i + R_1)\Phi \approx 64{,}9\ \text{°C}\). Profil : quasi plat dans l'eau et l'acier, chute affine de 64,9 à 17,4 °C dans la mousse, petite chute de 2,4 K dans la couche limite d'air.</p>
+    <p><strong>B1.</strong> Bilan sur l'eau entre \(t\) et \(t+\mathrm{d}t\) : \(\rho Vc\,\mathrm{d}T = -\dfrac{T - T_a}{R}\,\mathrm{d}t\), soit</p>
+    <div class="formula">$$\frac{\mathrm{d}T}{\mathrm{d}t} + \frac{T - T_a}{\tau} = 0, \qquad \tau = \rho V c\,R \approx 1000\times0{,}2\times4180\times1{,}00 \approx 8{,}4\times10^{5}\ \text{s} \approx 9{,}7\ \text{jours}$$</div>
+    <p>D'où \(T(t) = T_a + (T_e - T_a)\,e^{-t/\tau}\).</p>
+    <p><strong>B2.</strong> Diffusivité de la mousse : \(a_2 = \lambda_2/(\rho_2c_2) \approx 5{,}1\times10^{-7}\ \text{m}^2\text{·s}^{-1}\), temps de diffusion \(e_2^2/a_2 \approx 4{,}9\times10^{3}\ \text{s} \approx 1{,}4\ \text{h} \ll \tau\) : le profil dans la mousse suit quasi instantanément l'évolution lente de \(T\). Capacité de la mousse : \(\rho_2 S e_2 c_2 \approx 5\times10^{3}\ \text{J·K}^{-1}\), contre \(\rho Vc \approx 8{,}4\times10^{5}\ \text{J·K}^{-1}\) pour l'eau : négligeable. Celle de la cuve (environ 50 kg d'acier, soit \(\approx 2\times10^{4}\ \text{J·K}^{-1}\)) ne représente que 3 % de celle de l'eau.</p>
+    <p><strong>B3.</strong> \(T(7\ \text{j}) = 15 + 50\,e^{-7/9{,}7}\) \(\approx 15 + 50\times0{,}49\) \(\approx 39\ \text{°C}\). Réchauffage : \(\rho Vc\,(65 - 39{,}3)\) \(\approx 2{,}1\times10^{7}\ \text{J}\) \(\approx 6{,}0\ \text{kWh}\). Resté allumé : \(1{,}2\times7 \approx 8{,}4\ \text{kWh}\). Couper fait économiser environ 2,4 kWh : l'eau plus froide perd moins (pertes proportionnelles à \(T - T_a\)). On veillera à remonter l'eau au-dessus de 60 °C avant usage (hygiène).</p>
+    <p><strong>C1.</strong> Il faut \(R' = 2R \approx 2{,}00\ \text{K·W}^{-1}\), donc \(R_2' = 2{,}00 - 0{,}049 \approx 1{,}95\ \text{K·W}^{-1}\) et \(e_2' = R_2'\lambda_2 S \approx 10\ \text{cm}\). Les pertes varient à peu près comme \(1/e_2\) : chaque centimètre supplémentaire rapporte de moins en moins, pour un encombrement croissant.</p>
+    <p><strong>C2.</strong> Deux chemins soumis au même écart de température : association en <strong>parallèle</strong>. Zone mince (\(0{,}10\ \text{m}^2\), acier négligé) :</p>
+    <div class="formula">$$R_z = \frac{1}{300\times0{,}1} + \frac{0{,}01}{0{,}025\times0{,}1} + \frac{1}{10\times0{,}1} \approx 5{,}03\ \text{K·W}^{-1}$$</div>
+    <p>Reste de l'enveloppe (\(2{,}0\ \text{m}^2\)) : \(R_r \approx 1{,}05\ \text{K·W}^{-1}\). Les conductances s'ajoutent :</p>
+    <div class="formula">$$\Phi = 50\left(\frac{1}{5{,}03}+\frac{1}{1{,}05}\right) \approx 9{,}9 + 47{,}5 \approx 57\ \text{W}$$</div>
+    <p>Soit +15 % de pertes pour 5 % de la surface : un défaut local d'isolation (« pont thermique ») pèse lourd.</p>
+  </div>
+</div>
+
+</div>
+</template>

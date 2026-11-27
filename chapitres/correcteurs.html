@@ -1,0 +1,919 @@
+<!-- Chapitre « Correction des SLCI — réglage des correcteurs » (correcteurs) : contenu des onglets Cours, Méthodes et Exercices, chargé à l'ouverture du chapitre.
+     On l'édite ici, puis : node tools/chapitres.js (docs/chargement-chapitres.md). -->
+<template class="pan-tpl" data-panneau="corr-cours">
+
+<div class="course-section">
+  <div class="sec-num">AU PROGRAMME · PT</div>
+  <h2>Ce que le programme officiel demande</h2>
+  <div class="intro">Compétences B2 « Simplifier un modèle » (S3), C1 « Proposer une démarche de réglage d'un correcteur » (S3), C2 « Mettre en œuvre une démarche de réglage d'un correcteur » (S4), F2 « Modifier la commande » (S4) et B2 « Modéliser la commande d'un ensemble asservi » (S4). Le chapitre s'appuie sur les chapitres d'automatique de 1ʳᵉ année (schémas-blocs, réponses temporelles, Bode, stabilité, précision), dont les critères du cahier des charges sont des rappels de S2. Les machines commandées au §7 sont étudiées dans « Machines synchrone et asynchrone » ; la version numérique des correcteurs, dans « Systèmes numériques » (§8).</div>
+  <div class="reveal" onclick="this.classList.toggle('open')">
+    <span class="label">Programme officiel</span>
+    <span class="prompt">Les capacités exigibles, dans l'ordre du chapitre</span>
+    <div class="content">
+      <ul>
+        <li><strong>Critères du cahier des charges</strong> (rappel S2) : stabilité (marges, amortissement, dépassement), précision (écart statique, erreur de traînage), rapidité (temps de réponse à 5 %, bande passante) ; leur lecture sur la FTBO (§1).</li>
+        <li><strong>Simplifier un modèle</strong> (S3) : pôles dominants et réduction de l'ordre du modèle — principe, justification, limites (§1).</li>
+        <li><strong>Effets des actions</strong> proportionnelle, intégrale et dérivée sur la précision, la rapidité et la stabilité (§2).</li>
+        <li><strong>Proposer puis mettre en œuvre une démarche de réglage</strong> (S3, S4) : réglage de marges, d'amortissement, de rapidité et de bande passante, compensation de pôles, pour les correcteurs proportionnel (§3), proportionnel intégral (§4) et à avance de phase (§5).</li>
+        <li><strong>Choix et paramètres d'un correcteur</strong> (S4) : vérifier un réglage sur la réponse temporelle, choisir le correcteur adapté au défaut constaté (§6, synthèse au §8).</li>
+        <li><strong>Commande d'une machine en couple et en vitesse</strong> (S4) : boucles imbriquées de courant, de vitesse et de position, réglées de l'intérieur vers l'extérieur (§7).</li>
+      </ul>
+      <p>Hors programme (regroupé en fin de chapitre) : anticipation de consigne et compensation de perturbation, correcteur PID sous forme parallèle, réglage empirique de Ziegler et Nichols. Les critères de Routh et de Nyquist et les diagrammes de Black-Nichols et de Nyquist ne sont pas au programme.</p>
+    </div>
+  </div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§1 · DU CAHIER DES CHARGES À LA FTBO</div>
+  <h2>Traduire les exigences sur la boucle ouverte</h2>
+  <div class="intro">Corriger un asservissement, c'est insérer dans la chaîne directe un correcteur \(C(p)\) et choisir ses quelques paramètres pour que le système bouclé respecte <em>en même temps</em> des exigences de stabilité, d'amortissement, de rapidité et de précision. Tout le réglage se fait sur la <strong>fonction de transfert en boucle ouverte</strong> (FTBO) : chaque bloc en série y ajoute simplement son gain en décibels et sa phase.</div>
+
+  <h3>Structure étudiée</h3>
+<figure class="schema">
+<svg viewBox="0 0 330 130" role="img" aria-label="Asservissement corrigé : consigne, comparateur, correcteur C(p), perturbation additionnée avant le processus H(p), sortie ramenée au comparateur par un retour unitaire">
+  <line x1="12" y1="55" x2="29" y2="55" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+  <circle cx="40" cy="55" r="9" class="sk-ink fl-paper"/>
+  <line x1="49" y1="55" x2="70" y2="55" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+  <rect x="72" y="41" width="46" height="28" class="sk-accent fl-paper"/>
+  <line x1="118" y1="55" x2="149" y2="55" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+  <circle cx="160" cy="55" r="9" class="sk-ink fl-paper"/>
+  <line x1="160" y1="14" x2="160" y2="44" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+  <line x1="169" y1="55" x2="190" y2="55" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+  <rect x="192" y="41" width="50" height="28" class="sk-ink fl-paper"/>
+  <line x1="242" y1="55" x2="316" y2="55" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+  <circle cx="276" cy="55" r="2.6" class="fl-ink"/>
+  <line x1="276" y1="55" x2="276" y2="102" class="sk-ink"/>
+  <line x1="276" y1="102" x2="40" y2="102" class="sk-ink"/>
+  <line x1="40" y1="102" x2="40" y2="66" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+  <text x="6" y="72" class="lab-muted">E(p)</text>
+  <text x="27" y="46" class="lab-muted">+</text>
+  <text x="44" y="77" class="lab-muted">−</text>
+  <text x="52" y="47" class="lab-muted">ε(p)</text>
+  <text x="95" y="59" text-anchor="middle" class="lab-accent">C(p)</text>
+  <text x="124" y="47" class="lab-muted">U(p)</text>
+  <text x="166" y="20" class="lab-muted">perturbation</text>
+  <text x="150" y="44" class="lab-muted">+</text>
+  <text x="217" y="59" text-anchor="middle">H(p)</text>
+  <text x="290" y="47" class="lab-muted">S(p)</text>
+  <text x="158" y="118" class="lab-muted lab-it" text-anchor="middle">retour unitaire (capteur intégré à H)</text>
+</svg>
+<figcaption>Le correcteur C(p) élabore la commande U(p) à partir de l'écart ε(p) ; le processus H(p) (actionneur, transmetteur, capteur ramené en chaîne directe) subit aussi une perturbation. FTBO = C(p)·H(p).</figcaption>
+</figure>
+
+  <div class="def-box">
+    <strong>Notations.</strong> Avec un retour unitaire (capteur et adaptateur de même gain, ramenés dans \(H\)) :
+    <div class="formula">$$H_{BO}(p) = C(p)\,H(p)$$</div>
+    <div class="formula">$$H_{BF}(p) = \frac{H_{BO}(p)}{1+H_{BO}(p)}$$</div>
+    On écrit la FTBO sous forme canonique, avec sa <strong>classe</strong> \(\alpha\) (nombre d'intégrateurs) et son <strong>gain</strong> \(K_{BO}\) :
+    <div class="formula">$$H_{BO}(p) = \frac{K_{BO}}{p^{\alpha}}\cdot\frac{1+b_1p+\cdots}{1+a_1p+\cdots}$$</div>
+    \(\omega_{c0}\) désigne la pulsation de coupure à 0 dB de la FTBO (\(|H_{BO}(j\omega_{c0})| = 1\)) ; \(\omega_\pi\) celle où sa phase vaut \(-180°\).
+  </div>
+
+  <h3>Où lire chaque exigence sur le Bode de la FTBO</h3>
+  <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:.82rem;margin:.5rem 0">
+    <tr style="background:var(--paper-dark)"><th style="padding:.3rem .4rem;border:1px solid var(--grid)">Exigence</th><th style="padding:.3rem .4rem;border:1px solid var(--grid)">Critère du cahier des charges</th><th style="padding:.3rem .4rem;border:1px solid var(--grid)">Lecture sur la FTBO</th></tr>
+    <tr><td style="padding:.3rem .4rem;border:1px solid var(--grid)"><strong>Stabilité</strong></td><td style="padding:.3rem .4rem;border:1px solid var(--grid)">Marges : typiquement \(M_\varphi \geq 45°\), \(M_G \geq 6\) à \(10\ \text{dB}\)</td><td style="padding:.3rem .4rem;border:1px solid var(--grid)">Phase à \(\omega_{c0}\), gain à \(\omega_\pi\)</td></tr>
+    <tr><td style="padding:.3rem .4rem;border:1px solid var(--grid)"><strong>Amortissement</strong></td><td style="padding:.3rem .4rem;border:1px solid var(--grid)">Dépassement \(D\%\) maximal</td><td style="padding:.3rem .4rem;border:1px solid var(--grid)">Marge de phase : \(M_\varphi\) plus grande → dépassement plus faible</td></tr>
+    <tr><td style="padding:.3rem .4rem;border:1px solid var(--grid)"><strong>Rapidité</strong></td><td style="padding:.3rem .4rem;border:1px solid var(--grid)">Temps de réponse \(t_{r5\%}\) maximal</td><td style="padding:.3rem .4rem;border:1px solid var(--grid)">Pulsation \(\omega_{c0}\) : \(t_{r5\%}\) varie comme \(1/\omega_{c0}\)</td></tr>
+    <tr><td style="padding:.3rem .4rem;border:1px solid var(--grid)"><strong>Précision</strong></td><td style="padding:.3rem .4rem;border:1px solid var(--grid)">Écart statique \(\varepsilon_s\), erreur de traînage \(\varepsilon_v\)</td><td style="padding:.3rem .4rem;border:1px solid var(--grid)">Basses pulsations : classe \(\alpha\) et gain \(K_{BO}\)</td></tr>
+    <tr><td style="padding:.3rem .4rem;border:1px solid var(--grid)"><strong>Bruit, effort</strong></td><td style="padding:.3rem .4rem;border:1px solid var(--grid)">Commande non saturée, peu sensible au bruit de mesure</td><td style="padding:.3rem .4rem;border:1px solid var(--grid)">Hautes pulsations : gain du correcteur faible</td></tr>
+  </table></div>
+
+  <div class="prop-box">
+    <strong>Ordres de grandeur (à connaître).</strong> Pour une FTBO du type \(\dfrac{K}{p(1+\tau p)}\), la boucle fermée est un 2ᵉ ordre et les correspondances sont exactes ; pour une FTBO plus complexe (pôles dominants), ce ne sont que des repères.
+    <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:.82rem;margin:.5rem 0;text-align:center">
+      <tr style="background:var(--paper-dark)"><th style="padding:.3rem;border:1px solid var(--grid)">\(M_\varphi\)</th><th style="padding:.3rem;border:1px solid var(--grid)">\(\xi\) de la BF</th><th style="padding:.3rem;border:1px solid var(--grid)">Dépassement</th><th style="padding:.3rem;border:1px solid var(--grid)">\(t_{r5\%}\cdot\omega_{c0}\)</th></tr>
+      <tr><td style="padding:.3rem;border:1px solid var(--grid)">45°</td><td style="border:1px solid var(--grid)">0,42</td><td style="border:1px solid var(--grid)">≈ 23 %</td><td style="border:1px solid var(--grid)">≈ 6</td></tr>
+      <tr><td style="padding:.3rem;border:1px solid var(--grid)">50°</td><td style="border:1px solid var(--grid)">0,48</td><td style="border:1px solid var(--grid)">≈ 18 %</td><td style="border:1px solid var(--grid)">≈ 4</td></tr>
+      <tr><td style="padding:.3rem;border:1px solid var(--grid)">60°</td><td style="border:1px solid var(--grid)">0,61</td><td style="border:1px solid var(--grid)">≈ 9 %</td><td style="border:1px solid var(--grid)">≈ 3,7</td></tr>
+      <tr><td style="padding:.3rem;border:1px solid var(--grid)">70°</td><td style="border:1px solid var(--grid)">0,80</td><td style="border:1px solid var(--grid)">≈ 1,5 %</td><td style="border:1px solid var(--grid)">≈ 2</td></tr>
+    </table></div>
+    Retenir : \(\xi \approx M_\varphi(°)/100\) et, pour un système bien amorti,
+    <div class="formula">$$t_{r5\%} \approx \frac{3}{\omega_{c0}} \quad\text{(à un facteur 2 près)}$$</div>
+    et la bande passante à −3 dB de la boucle fermée est du même ordre que \(\omega_{c0}\).
+  </div>
+
+  <div class="notice"><strong>Lecture en trois zones.</strong> Basses pulsations (\(\omega \ll \omega_{c0}\)) : précision et rejet des perturbations lentes, on veut un gain élevé. Voisinage de \(\omega_{c0}\) : stabilité, amortissement et rapidité, on veut une pente d'environ \(-20\ \text{dB/déc}\) au passage de 0 dB et une phase éloignée de \(-180°\). Hautes pulsations : bruit de mesure, on veut un gain faible. Un correcteur « sculpte » la FTBO zone par zone.</div>
+
+  <div class="reveal" onclick="this.classList.toggle('open')">
+    <span class="label">Application</span>
+    <span class="prompt">Cahier des charges : dépassement ≤ 10 %, \(t_{r5\%} \leq 0{,}2\ \text{s}\). Quelles valeurs viser pour \(M_\varphi\) et \(\omega_{c0}\) ?</span>
+    <div class="content"><p>D ≤ 10 % → \(M_\varphi \approx 60°\). Avec \(t_{r5\%}\,\omega_{c0} \approx 3{,}7\) : \(\omega_{c0} \geq 3{,}7/0{,}2 \approx 19\ \text{rad/s}\). On vise \(M_\varphi = 60°\) à \(\omega_{c0} \approx 20\ \text{rad/s}\), puis on vérifie par simulation.</p></div>
+  </div>
+
+  <h3>Réduire l'ordre du modèle avant de régler : pôles dominants</h3>
+  <p>Les correspondances du tableau ci-dessus sont exactes pour un 2ᵉ ordre. Un processus réel en compte souvent davantage : constante de temps électrique d'un moteur, filtre d'un capteur, souplesse d'une transmission. Avant de régler, on simplifie donc le modèle pour ne garder que ce qui gouverne vraiment la réponse.</p>
+  <div class="def-box">
+    <strong>Pôles dominants.</strong> Les pôles d'une fonction de transfert stable ont une partie réelle négative ; chacun engendre dans la réponse un mode qui décroît comme \(e^{\mathrm{Re}(p_i)\,t}\). Les pôles <strong>dominants</strong> sont ceux dont la partie réelle est la plus proche de zéro : leurs modes s'éteignent le plus lentement et fixent la durée du régime transitoire.<br>
+    <strong>Réduire l'ordre</strong> du modèle, c'est supprimer les autres pôles en <strong>conservant le gain statique</strong> : le facteur canonique d'un pôle rapide, \((1+\tau_r p)\) ou \(\left(1+\frac{2\xi_r}{\omega_r}p+\frac{p^2}{\omega_r^2}\right)\), est remplacé par 1.
+  </div>
+  <div class="prop-box">
+    <strong>Règle pratique.</strong> On néglige un pôle (ou une paire de pôles) dont la partie réelle est, en valeur absolue, au moins <strong>5 fois</strong> (par prudence 10 fois) plus grande que celle des pôles dominants, à condition qu'aucun zéro ne soit voisin des pôles dominants. Le modèle réduit a le même gain statique : valeur finale et écart statique sont exacts, seul le régime transitoire est approché.
+  </div>
+  <div class="reveal" onclick="this.classList.toggle('open')">
+    <span class="label">Justification</span>
+    <span class="prompt">Pourquoi le mode d'un pôle rapide ne pèse presque rien dans la réponse indicielle.</span>
+    <div class="content">
+      <p>Pour une fonction de transfert stable à pôles simples \(p_i\), de gain statique \(K\), la décomposition en éléments simples de \(S(p) = H(p)\,E_0/p\) donne une réponse indicielle de la forme</p>
+      <div class="formula" data-nom="Réponse indicielle par modes">$$s(t) = K E_0\Big(1 + \sum_i A_i\,e^{p_i t}\Big)$$</div>
+      <p>Le terme d'un pôle rapide \(p_r\) est négligeable pour deux raisons.</p>
+      <ul>
+        <li><strong>Il s'éteint vite.</strong> Sa constante de temps \(1/|\mathrm{Re}\,p_r|\) est au moins 5 fois plus courte que celle du mode dominant : à l'instant \(t = 1/|\mathrm{Re}\,p_d|\), où le mode dominant garde encore 37 % de son amplitude, le mode rapide n'en garde plus que \(e^{-5} \approx 0{,}7\ \%\).</li>
+        <li><strong>Son amplitude est faible.</strong> Pour \(\dfrac{K}{(1+\tau_1p)(1+\tau_2p)}\) avec \(\tau_1 \gt \tau_2\), on trouve \(A_1 = -\dfrac{\tau_1}{\tau_1-\tau_2}\) et \(A_2 = \dfrac{\tau_2}{\tau_1-\tau_2}\), d'où \(|A_2/A_1| = \tau_2/\tau_1\) : le mode rapide ne pèse que 20 % du mode lent au départ si \(\tau_1 = 5\tau_2\), 10 % si \(\tau_1 = 10\tau_2\).</li>
+      </ul>
+      <p>Enfin, remplacer \((1+\tau_r p)\) par 1 ne change pas \(H(0)\) : le gain statique est conservé. Vu en fréquentiel, le facteur \(\dfrac{1}{1+\tau_r p}\) vaut presque 1 (0 dB, phase faible) tant que \(\omega \ll 1/\tau_r\), donc dans toute la bande utile du système.</p>
+    </div>
+  </div>
+  <div class="method-box">
+    <strong>Exemple — axe de robot asservi en position</strong>
+    <p>Après correction, la FTBF d'un axe a pour pôles \(-2 \pm 3j\) et \(-15\) (en s⁻¹), et un gain statique de 1 :</p>
+    <div class="formula">$$H_{BF}(p) = \frac{195}{(p+15)(p^2+4p+13)}$$</div>
+    <ol>
+      <li>Rapport des parties réelles : \(15/2 = 7{,}5 \geq 5\), le pôle en \(-15\) est négligeable. En divisant par 15 pour garder la valeur en \(p = 0\), le modèle réduit est</li>
+    </ol>
+    <div class="formula">$$H_r(p) = \frac{13}{p^2+4p+13}$$
+$$\omega_0 = \sqrt{13} \approx 3{,}61\ \text{rad/s}, \qquad \xi = \frac{2}{\sqrt{13}} \approx 0{,}55$$</div>
+    <ol start="2">
+      <li>Prévisions du modèle réduit : dépassement \(e^{-\pi\xi/\sqrt{1-\xi^2}} \approx 12{,}3\ \%\), temps de réponse \(t_{r5\%} \approx 1{,}47\ \text{s}\).</li>
+      <li>Modèle complet (simulation) : dépassement \(\approx 11{,}9\ \%\), \(t_{r5\%} \approx 1{,}54\ \text{s}\). Écarts de 0,4 point et de 5 % : le réglage peut se mener sur le modèle réduit.</li>
+      <li>Si le troisième pôle était en \(-4\) (rapport 2 seulement), le modèle complet donnerait un dépassement de \(6{,}7\ \%\) et \(t_{r5\%} \approx 1{,}62\ \text{s}\) : le modèle réduit surestimerait le dépassement de près du double. La réduction n'est plus légitime.</li>
+    </ol>
+  </div>
+<figure class="schema">
+<svg viewBox="0 0 380 205" role="img" aria-label="Réponses indicielles comparées : modèle complet avec un pôle en −15, modèle réduit au second ordre dominant, et modèle avec un pôle en −4 trop proche des pôles dominants">
+<line x1="40" y1="172" x2="342" y2="172" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<line x1="40" y1="172" x2="40" y2="10" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<text x="344" y="176" class="lab-muted lab-it">t (s)</text>
+<text x="36" y="8" class="lab-muted lab-it" text-anchor="end">s(t)</text>
+<line x1="40" y1="58" x2="330" y2="58" class="sk-dash"/>
+<line x1="40" y1="46" x2="330" y2="46" class="sk-dash"/>
+<line x1="40" y1="52" x2="330" y2="52" class="sk-dash"/>
+<polyline points="40,172 42.4,171.5 44.8,170.2 47.2,168 49.7,165.2 52.1,161.8 54.5,157.8 56.9,153.4 59.3,148.7 61.8,143.6 64.2,138.3 66.6,132.9 69,127.3 71.4,121.7 73.8,116.1 76.2,110.5 78.7,105 81.1,99.7 83.5,94.4 85.9,89.4 88.3,84.5 90.8,79.8 93.2,75.4 95.6,71.2 98,67.3 100.4,63.6 102.8,60.1 105.2,57 107.7,54.1 110.1,51.5 112.5,49.1 114.9,46.9 117.3,45 119.8,43.4 122.2,42 124.6,40.7 127,39.7 129.4,38.9 131.8,38.2 134.2,37.8 136.7,37.5 139.1,37.3 141.5,37.2 143.9,37.3 146.3,37.5 148.8,37.7 151.2,38.1 153.6,38.5 156,39 158.4,39.6 160.8,40.2 163.2,40.8 165.7,41.4 168.1,42.1 170.5,42.8 172.9,43.5 175.3,44.2 177.8,44.9 180.2,45.5 182.6,46.2 185,46.8 187.4,47.5 189.8,48.1 192.2,48.6 194.7,49.2 197.1,49.7 199.5,50.2 201.9,50.6 204.3,51 206.8,51.4 209.2,51.8 211.6,52.1 214,52.4 216.4,52.7 218.8,52.9 221.2,53.1 223.7,53.3 226.1,53.4 228.5,53.5 230.9,53.6 233.3,53.7 235.7,53.8 238.2,53.8 240.6,53.8 243,53.8 245.4,53.8 247.8,53.8 250.3,53.8 252.7,53.7 255.1,53.7 257.5,53.6 259.9,53.5 262.3,53.4 264.8,53.4 267.2,53.3 269.6,53.2 272,53.1 274.4,53 276.8,53 279.2,52.9 281.7,52.8 284.1,52.7 286.5,52.6 288.9,52.5 291.3,52.5 293.8,52.4 296.2,52.3 298.6,52.3 301,52.2 303.4,52.2 305.8,52.1 308.3,52.1 310.7,52 313.1,52 315.5,51.9 317.9,51.9 320.3,51.9 322.8,51.9 325.2,51.8 327.6,51.8 330,51.8" class="sk-accent2"  style="stroke-dasharray:5 3"/>
+<polyline points="40,172 42.4,171.9 44.8,171.6 47.2,170.8 49.7,169.5 52.1,167.6 54.5,165.1 56.9,162.1 59.3,158.6 61.8,154.7 64.2,150.3 66.6,145.7 69,140.8 71.4,135.6 73.8,130.3 76.2,125 78.7,119.5 81.1,114.1 83.5,108.7 85.9,103.4 88.3,98.2 90.8,93.1 93.2,88.2 95.6,83.5 98,79 100.4,74.7 102.8,70.6 105.2,66.8 107.7,63.3 110.1,60 112.5,56.9 114.9,54.1 117.3,51.5 119.8,49.2 122.2,47.2 124.6,45.3 127,43.7 129.4,42.3 131.8,41.1 134.2,40.2 136.7,39.3 139.1,38.7 141.5,38.3 143.9,37.9 146.3,37.8 148.8,37.7 151.2,37.8 153.6,38 156,38.2 158.4,38.6 160.8,39 163.2,39.4 165.7,40 168.1,40.5 170.5,41.2 172.9,41.8 175.3,42.4 177.8,43.1 180.2,43.8 182.6,44.4 185,45.1 187.4,45.7 189.8,46.4 192.2,47 194.7,47.6 197.1,48.2 199.5,48.7 201.9,49.3 204.3,49.8 206.8,50.2 209.2,50.7 211.6,51.1 214,51.4 216.4,51.8 218.8,52.1 221.2,52.4 223.7,52.6 226.1,52.8 228.5,53 230.9,53.2 233.3,53.4 235.7,53.5 238.2,53.6 240.6,53.6 243,53.7 245.4,53.7 247.8,53.8 250.3,53.8 252.7,53.7 255.1,53.7 257.5,53.7 259.9,53.7 262.3,53.6 264.8,53.5 267.2,53.5 269.6,53.4 272,53.3 274.4,53.2 276.8,53.2 279.2,53.1 281.7,53 284.1,52.9 286.5,52.8 288.9,52.8 291.3,52.7 293.8,52.6 296.2,52.5 298.6,52.5 301,52.4 303.4,52.3 305.8,52.3 308.3,52.2 310.7,52.2 313.1,52.1 315.5,52.1 317.9,52 320.3,52 322.8,52 325.2,51.9 327.6,51.9 330,51.9" class="sk-accent"/>
+<polyline points="40,172 42.4,172 44.8,171.9 47.2,171.6 49.7,171.2 52.1,170.4 54.5,169.4 56.9,168.1 59.3,166.5 61.8,164.5 64.2,162.3 66.6,159.8 69,156.9 71.4,153.8 73.8,150.5 76.2,147 78.7,143.2 81.1,139.3 83.5,135.3 85.9,131.2 88.3,127 90.8,122.7 93.2,118.4 95.6,114.1 98,109.8 100.4,105.6 102.8,101.4 105.2,97.3 107.7,93.4 110.1,89.5 112.5,85.8 114.9,82.2 117.3,78.7 119.8,75.4 122.2,72.3 124.6,69.4 127,66.6 129.4,64 131.8,61.6 134.2,59.3 136.7,57.3 139.1,55.4 141.5,53.6 143.9,52.1 146.3,50.7 148.8,49.4 151.2,48.3 153.6,47.4 156,46.6 158.4,45.9 160.8,45.3 163.2,44.8 165.7,44.5 168.1,44.2 170.5,44.1 172.9,44 175.3,44 177.8,44 180.2,44.1 182.6,44.3 185,44.5 187.4,44.8 189.8,45 192.2,45.4 194.7,45.7 197.1,46.1 199.5,46.4 201.9,46.8 204.3,47.2 206.8,47.6 209.2,48 211.6,48.3 214,48.7 216.4,49.1 218.8,49.4 221.2,49.8 223.7,50.1 226.1,50.4 228.5,50.7 230.9,51 233.3,51.2 235.7,51.5 238.2,51.7 240.6,51.9 243,52.1 245.4,52.2 247.8,52.4 250.3,52.5 252.7,52.6 255.1,52.7 257.5,52.8 259.9,52.9 262.3,52.9 264.8,53 267.2,53 269.6,53 272,53.1 274.4,53.1 276.8,53 279.2,53 281.7,53 284.1,53 286.5,53 288.9,52.9 291.3,52.9 293.8,52.8 296.2,52.8 298.6,52.8 301,52.7 303.4,52.7 305.8,52.6 308.3,52.6 310.7,52.5 313.1,52.5 315.5,52.4 317.9,52.4 320.3,52.3 322.8,52.3 325.2,52.2 327.6,52.2 330,52.2" class="sk-green"/>
+<line x1="136.7" y1="172" x2="136.7" y2="175.6" class="sk-ink"/>
+<text x="136.7" y="188" class="lab-muted" text-anchor="middle">1</text>
+<line x1="233.3" y1="172" x2="233.3" y2="175.6" class="sk-ink"/>
+<text x="233.3" y="188" class="lab-muted" text-anchor="middle">2</text>
+<line x1="330" y1="172" x2="330" y2="175.6" class="sk-ink"/>
+<text x="330" y="188" class="lab-muted" text-anchor="middle">3</text>
+<text x="34" y="56" class="lab-muted" text-anchor="end">1</text>
+<text x="34" y="176" class="lab-muted" text-anchor="end">0</text>
+<text x="190" y="97.6" class="lab-accent">complet, pôle en −15</text>
+<text x="190" y="112" class="lab-accent2">réduit (2ᵉ ordre seul)</text>
+<text x="190" y="126.4" class="lab-green">pôle en −4 : rapport 2</text>
+</svg>
+<figcaption>Réponses indicielles des trois modèles de l'exemple (pôles dominants −2 ± 3j, gain statique 1). Le pôle en −15 ne change presque rien ; le pôle en −4, deux fois seulement plus rapide, ralentit nettement le début de la réponse et réduit le dépassement de moitié.</figcaption>
+</figure>
+  <div class="notice"><strong>Limites de la réduction.</strong>
+    <ul style="margin:.3rem 0">
+      <li><strong>Zéro voisin des pôles dominants</strong> : il modifie fortement la réponse sans déplacer les pôles. Dans l'exemple, un zéro en \(-2{,}5\) (numérateur \(195\,(1+p/2{,}5)\)) fait passer le dépassement de 12 % à 37 % : le modèle réduit doit garder ce zéro, sinon il est faux.</li>
+      <li><strong>Dipôle pôle-zéro</strong> : un pôle presque compensé par un zéro voisin a un mode de faible amplitude, mais lent ; il laisse une « traîne » qui allonge le temps de réponse. C'est ce qui arrive quand la compensation d'un PI (§4) est imparfaite. Un PI de constante \(T_i = 0{,}5\ \text{s}\), réglé pour compenser la constante de temps de 0,5 s d'un processus du 1ᵉʳ ordre (gain de boucle \(K_pK = 4{,}7\)), donne un temps de réponse de 0,32 s si la compensation est exacte. Si la constante de temps ne vaut en réalité que 0,25 s, un pôle de la boucle fermée se place en \(-1{,}8\ \text{s}^{-1}\), tout près du zéro du PI en \(-2\ \text{s}^{-1}\), et le temps de réponse passe à 0,47 s.</li>
+      <li><strong>Paire complexe peu amortie</strong> : c'est sa partie réelle \(\xi_r\omega_r\) qui compte, pas \(\omega_r\). Un mode de flexion à pulsation élevée mais très peu amorti (\(\xi_r \approx 0{,}05\)) s'éteint lentement, et sa résonance peut faire repasser le gain de la FTBO au-dessus de 0 dB : on ne le néglige pas.</li>
+      <li><strong>Début de la réponse</strong> : le modèle réduit ignore le léger retard initial dû aux pôles rapides ; il prévoit bien la valeur finale et le temps de réponse, moins bien la pente à l'origine, le temps de montée et, si le rapport des parties réelles est faible, le dépassement.</li>
+      <li><strong>Calcul des marges</strong> : en fréquentiel, un pôle rapide n'est négligeable que bien au-delà de \(\omega_{c0}\). Un pôle seulement 5 fois plus rapide que la coupure y retire encore \(\arctan(1/5) \approx 11°\) de phase : on le garde pour calculer la marge de phase, même si on le néglige pour estimer la réponse temporelle.</li>
+    </ul>
+  </div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§2 · ACTIONS P, I ET D</div>
+  <h2>Effets des trois actions élémentaires</h2>
+  <div class="intro">Les structures des correcteurs P, PI et PID sont présentées dans le chapitre de première année « Performances : précision et rapidité ». On résume ici l'effet de chaque action, en temporel comme en fréquentiel : c'est ce qui guide le choix d'un correcteur.</div>
+  <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:.82rem;margin:.5rem 0">
+    <tr style="background:var(--paper-dark)"><th style="padding:.3rem .4rem;border:1px solid var(--grid)">Action</th><th style="padding:.3rem .4rem;border:1px solid var(--grid)">Signature sur le Bode</th><th style="padding:.3rem .4rem;border:1px solid var(--grid)">Précision</th><th style="padding:.3rem .4rem;border:1px solid var(--grid)">Rapidité</th><th style="padding:.3rem .4rem;border:1px solid var(--grid)">Stabilité</th></tr>
+    <tr><td style="padding:.3rem .4rem;border:1px solid var(--grid)"><strong>P</strong> : \(K_p\)</td><td style="padding:.3rem .4rem;border:1px solid var(--grid)">Gain translaté de \(20\log K_p\), phase inchangée</td><td style="padding:.3rem .4rem;border:1px solid var(--grid)">Meilleure si \(K_p\) ↑ (classe 0 : \(\varepsilon_s\) diminue sans s'annuler)</td><td style="padding:.3rem .4rem;border:1px solid var(--grid)">↑ (\(\omega_{c0}\) augmente)</td><td style="padding:.3rem .4rem;border:1px solid var(--grid)">↓ (marges réduites)</td></tr>
+    <tr><td style="padding:.3rem .4rem;border:1px solid var(--grid)"><strong>I</strong> : \(\dfrac{1}{T_ip}\)</td><td style="padding:.3rem .4rem;border:1px solid var(--grid)">\(-20\ \text{dB/déc}\), phase \(-90°\)</td><td style="padding:.3rem .4rem;border:1px solid var(--grid)">Classe +1 : écart statique annulé</td><td style="padding:.3rem .4rem;border:1px solid var(--grid)">↓ (retard de phase)</td><td style="padding:.3rem .4rem;border:1px solid var(--grid)">↓</td></tr>
+    <tr><td style="padding:.3rem .4rem;border:1px solid var(--grid)"><strong>D</strong> : \(T_dp\)</td><td style="padding:.3rem .4rem;border:1px solid var(--grid)">\(+20\ \text{dB/déc}\), phase \(+90°\)</td><td style="padding:.3rem .4rem;border:1px solid var(--grid)">Seule, classe −1 (dégradée)</td><td style="padding:.3rem .4rem;border:1px solid var(--grid)">↑</td><td style="padding:.3rem .4rem;border:1px solid var(--grid)">↑ (avance de phase), mais bruit amplifié</td></tr>
+  </table></div>
+  <h3>Sur la réponse indicielle</h3>
+  <ul>
+    <li><strong>P plus fort</strong> : montée plus raide, oscillations plus marquées, valeur finale plus proche de la consigne (classe 0) ; au-delà du gain limite, divergence.</li>
+    <li><strong>Ajout de I</strong> : la sortie rejoint exactement la consigne, mais le dépassement augmente et la convergence finale peut être lente.</li>
+    <li><strong>Ajout de D</strong> : réponse plus amortie et plus vive ; commande très « nerveuse » au démarrage.</li>
+  </ul>
+  <div class="prop-box"><strong>Idée directrice.</strong> On ne veut chaque action que là où elle sert : l'intégration seulement en <em>basses</em> pulsations (correcteur PI, cassure placée sous \(\omega_{c0}\)) ; l'action dérivée seulement <em>autour</em> de \(\omega_{c0}\) (correcteur à avance de phase = dérivée filtrée).</div>
+  <div class="notice"><strong>Dérivée pure irréalisable.</strong> Un terme \(T_dp\) seul a un gain qui croît sans limite : il amplifie le bruit de mesure et sature la commande à chaque échelon. On le filtre toujours par un pôle, ce qui conduit à l'avance de phase (§5).</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§3 · CORRECTEUR PROPORTIONNEL</div>
+  <h2>Régler \(K_p\) pour une marge imposée</h2>
+  <div class="intro">Avec \(C(p) = K_p\), la FTBO vaut \(K_p\,H(p)\). Multiplier par \(K_p\) translate la courbe de gain de \(20\log K_p\) <strong>sans modifier la phase</strong> : la phase de \(H\) impose donc où l'on peut couper, et \(K_p\) sert à placer la coupure à cet endroit.</div>
+
+  <h3>Marge de phase imposée</h3>
+  <div class="prop-box">
+    <ol style="margin:.2rem 0 .2rem 1.1rem">
+      <li>Chercher la pulsation \(\omega_\varphi\) où la phase de \(H\) vaut \(-180° + M_\varphi\) (lecture du Bode ou résolution de l'équation de phase).</li>
+      <li>Imposer que la FTBO y coupe 0 dB :</li>
+    </ol>
+    <div class="formula">$$\arg H(j\omega_\varphi) = -180° + M_\varphi$$</div>
+    <div class="formula">$$K_p = \frac{1}{|H(j\omega_\varphi)|}$$</div>
+    soit, en décibels, \(20\log K_p = -G_{dB,H}(\omega_\varphi)\).
+    Exemple classique : pour \(H(p) = \dfrac{K}{p(1+\tau p)}\), \(-90° - \arctan(\tau\omega_\varphi) = -180° + M_\varphi\) donne directement
+    <div class="formula">$$\tau\,\omega_\varphi = \frac{1}{\tan M_\varphi}$$</div>
+  </div>
+
+  <h3>Marge de gain imposée</h3>
+  <div class="prop-box">
+    \(\omega_\pi\) ne dépend pas de \(K_p\) (la phase ne bouge pas). Le gain limite de stabilité et le gain donnant une marge \(M_G\) sont :
+    <div class="formula">$$K_{lim} = \frac{1}{|H(j\omega_\pi)|}$$</div>
+    <div class="formula">$$20\log K_p = -M_G - G_{dB,H}(\omega_\pi)$$</div>
+    Si les deux marges sont imposées, on retient la <strong>plus petite</strong> des deux valeurs de \(K_p\), puis on vérifie l'autre marge.
+  </div>
+
+  <h3>Limites du correcteur P</h3>
+  <div class="notice">Choisir \(K_p\), c'est choisir le seul point de coupure : marges, rapidité et précision en découlent ensemble, sans réglage séparé possible. En classe 0, \(\varepsilon_s = \dfrac{E_0}{1+K_pK}\) réclame un \(K_p\) grand, alors que les marges plafonnent \(K_p\) : si les deux contraintes sont incompatibles, il faut un PI. Et lorsque la marge exigée conduit à un gain inférieur à 1, la coupure recule et la réponse s'alourdit : il vaut mieux relever la phase (avance de phase) que baisser le gain.</div>
+
+  <div class="reveal" onclick="this.classList.toggle('open')">
+    <span class="label">Application</span>
+    <span class="prompt">\(H(p) = \dfrac{5}{p(1+0{,}1p)}\). Quel \(K_p\) donne \(M_\varphi = 45°\) ?</span>
+    <div class="content"><p>\(0{,}1\,\omega_\varphi = 1/\tan 45° = 1\) → \(\omega_\varphi = 10\ \text{rad/s}\). \(|H(j10)| = \dfrac{5}{10\sqrt{2}} \approx 0{,}354\) → \(K_p = 2\sqrt{2} \approx 2{,}83\). La phase n'atteint jamais \(-180°\) : \(M_G\) infinie.</p></div>
+  </div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§4 · CORRECTEUR PROPORTIONNEL INTÉGRAL</div>
+  <h2>Annuler l'écart statique sans ruiner les marges</h2>
+  <div class="def-box">
+    <strong>Correcteur PI.</strong> La commande est la somme d'un terme proportionnel à l'écart et d'un terme proportionnel à son intégrale :
+    <div class="formula">$$u(t) = K_p\left(\varepsilon(t) + \frac{1}{T_i}\int_0^t \varepsilon(\theta)\,\mathrm{d}\theta\right)$$</div>
+    <div class="formula">$$C(p) = K_p\left(1+\frac{1}{T_ip}\right)$$</div>
+    <div class="formula">$$C(p) = K_p\,\frac{1+T_ip}{T_ip}$$</div>
+    \(T_i\) est la constante de temps d'intégration. Variante équivalente : \(C(p) = K_p + \dfrac{K_i}{p}\), avec \(K_i = K_p/T_i\).
+  </div>
+
+  <h3>Diagramme de Bode</h3>
+<figure class="schema">
+<svg viewBox="0 0 340 240" role="img" aria-label="Diagramme de Bode du correcteur PI : gain à pente −20 dB par décade puis plateau 20 log Kp après la cassure 1/Ti, phase passant de −90° à 0° et valant −45° à la cassure">
+  <line x1="50" y1="108" x2="328" y2="108" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+  <line x1="50" y1="108" x2="50" y2="18" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+  <line x1="50" y1="95" x2="320" y2="95" class="sk-dash"/>
+  <polyline points="50,47 185,95 320,95" class="sk-ink" style="opacity:.55"/>
+  <path d="M50,47 L58,50 L65,52 L73,55 L81,58 L89,61 L96,63 L104,66 L112,69 L119,72 L127,74 L135,77 L143,80 L150,82 L158,85 L166,87 L173,89 L181,91 L189,92 L197,93 L204,94 L212,94 L220,95 L227,95 L235,95 L243,95 L251,95 L258,95 L266,95 L274,95 L281,95 L289,95 L297,95 L305,95 L312,95 L320,95" class="sk-accent"/>
+  <circle cx="185" cy="91" r="2.6" class="fl-accent"/>
+  <line x1="50" y1="130" x2="328" y2="130" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+  <line x1="50" y1="218" x2="50" y2="124" class="sk-axis"/>
+  <line x1="50" y1="210" x2="320" y2="210" class="sk-dash"/>
+  <path d="M50,209 L58,209 L65,209 L73,209 L81,209 L89,208 L96,208 L104,207 L112,206 L119,205 L127,203 L135,201 L143,198 L150,195 L158,191 L166,186 L173,180 L181,173 L189,167 L197,160 L204,154 L212,149 L220,145 L227,142 L235,139 L243,137 L251,135 L258,134 L266,133 L274,132 L281,132 L289,131 L297,131 L305,131 L312,131 L320,131" class="sk-accent2"/>
+  <circle cx="185" cy="170" r="2.6" class="fl-accent2"/>
+  <line x1="185" y1="95" x2="185" y2="110" class="sk-dash"/>
+  <line x1="185" y1="127" x2="185" y2="210" class="sk-dash"/>
+  <text x="44" y="22" class="lab-muted" text-anchor="end">G(dB)</text>
+  <text x="44" y="99" class="lab-muted" text-anchor="end" style="font-size:9.5px">20 log K<tspan baseline-shift="sub" style="font-size:7px">p</tspan></text>
+  <text x="104" y="58" class="lab-muted" style="font-size:10px">−20 dB/déc</text>
+  <text x="193" y="87" class="lab-accent" style="font-size:10px">+3 dB</text>
+  <text x="185" y="122" class="lab-muted" text-anchor="middle" style="font-size:10px">1/T<tspan baseline-shift="sub" style="font-size:7.5px">i</tspan></text>
+  <text x="322" y="122" class="lab-muted">ω</text>
+  <text x="44" y="134" class="lab-muted" text-anchor="end">0°</text>
+  <text x="44" y="174" class="lab-muted" text-anchor="end">−45°</text>
+  <text x="44" y="214" class="lab-muted" text-anchor="end">−90°</text>
+  <text x="46" y="122" class="lab-muted" text-anchor="end">φ</text>
+</svg>
+<figcaption>Correcteur PI : en dessous de 1/T<sub>i</sub>, il se comporte comme un intégrateur (−20 dB/déc, −90°) ; au-dessus, comme un simple gain K<sub>p</sub> (phase quasi nulle). À la cassure : +3 dB et −45°.</figcaption>
+</figure>
+  <div class="prop-box">
+    <div class="formula">$$|C(j\omega)| = K_p\sqrt{1+\frac{1}{(T_i\omega)^2}}$$</div>
+    <div class="formula">$$\varphi(\omega) = -\arctan\frac{1}{T_i\omega}$$</div>
+    Le retard de phase apporté à une pulsation \(\omega\) ne dépend que du produit \(T_i\omega\) : \(5{,}7°\) pour \(T_i\omega = 10\), \(11{,}3°\) pour \(T_i\omega = 5\), \(45°\) pour \(T_i\omega = 1\).
+  </div>
+
+  <h3>Effets</h3>
+  <ul>
+    <li><strong>Régime permanent</strong> : la classe de la FTBO augmente de 1 → écart statique nul en réponse à un échelon de consigne (et à un échelon de perturbation entrant en aval du correcteur).</li>
+    <li><strong>Régime transitoire</strong> : retard de phase en basses pulsations → marges réduites si la cassure est trop proche de \(\omega_{c0}\) ; convergence finale souvent lente (« traîne »).</li>
+  </ul>
+
+  <h3>Réglage : deux stratégies, toujours \(T_i\) d'abord, \(K_p\) ensuite</h3>
+  <div class="prop-box">
+    <strong>(a) Cassure loin sous la coupure.</strong> On place \(1/T_i\) entre \(\omega_c/10\) et \(\omega_c/5\) : le PI ne coûte alors que 6° à 11° de phase à la coupure \(\omega_c\) visée.
+    <ol style="margin:.3rem 0 .2rem 1.1rem">
+      <li>Prévoir la perte \(\Delta\varphi\) (≈ 6° pour \(T_i\omega_c = 10\)) ; chercher \(\omega_c\) telle que \(\arg H(j\omega_c) = -180° + M_\varphi + \Delta\varphi\).</li>
+      <li>Poser \(T_i = 10/\omega_c\) (ou \(5/\omega_c\)).</li>
+      <li>Régler \(K_p\) pour \(|C(j\omega_c)H(j\omega_c)| = 1\) : \(K_p = \dfrac{1}{|H(j\omega_c)|\sqrt{1+1/(T_i\omega_c)^2}} \approx \dfrac{1}{|H(j\omega_c)|}\).</li>
+    </ol>
+    <strong>(b) Compensation du pôle dominant.</strong> Si \(H(p) = \dfrac{K}{(1+\tau_1p)(1+\tau_2p)\cdots}\) avec \(\tau_1\) la plus grande constante de temps, on choisit \(T_i = \tau_1\) : le zéro du PI simplifie le pôle lent.
+    <div class="formula">$$H_{BO}(p) = \frac{K_pK}{\tau_1\,p\,(1+\tau_2p)\cdots}$$</div>
+    La FTBO devient de classe 1, sans le pôle lent ; on règle ensuite \(K_p\) comme un correcteur P (§3).
+  </div>
+  <div class="notice"><strong>Limites de la compensation.</strong> Elle suppose un pôle <em>stable</em> et bien identifié : si \(\tau_1\) dérive, il reste un mode lent mal compensé. De plus, le mode simplifié disparaît de la réponse à la consigne mais <em>pas</em> de la réponse à une perturbation entrant entre le correcteur et le processus : son rejet garde la lenteur de \(\tau_1\).</div>
+
+  <div class="reveal" onclick="this.classList.toggle('open')">
+    <span class="label">Application</span>
+    <span class="prompt">On veut couper à \(\omega_c = 15\ \text{rad/s}\) avec une perte de phase du PI d'au plus 10°. Quel \(T_i\) minimal ?</span>
+    <div class="content"><p>\(\arctan\dfrac{1}{T_i\omega_c} \leq 10°\) ⇔ \(T_i\omega_c \geq \dfrac{1}{\tan 10°} \approx 5{,}7\) → \(T_i \geq 0{,}38\ \text{s}\).</p></div>
+  </div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§5 · CORRECTEUR À AVANCE DE PHASE</div>
+  <h2>Remonter la phase là où elle manque</h2>
+  <div class="def-box">
+    <strong>Correcteur à avance de phase.</strong>
+    <div class="formula">$$C(p) = K_p\,\frac{1+aTp}{1+Tp} \qquad\text{avec } a \gt 1$$</div>
+    Il possède un zéro en \(-1/(aT)\) et un pôle plus rapide en \(-1/T\). Loi temporelle : \(u + T\,\dfrac{\mathrm{d}u}{\mathrm{d}t} = K_p\left(\varepsilon + aT\,\dfrac{\mathrm{d}\varepsilon}{\mathrm{d}t}\right)\) : c'est une action dérivée filtrée.
+  </div>
+
+  <h3>Diagramme de Bode</h3>
+<figure class="schema">
+<svg viewBox="0 0 340 240" role="img" aria-label="Diagramme de Bode d'un correcteur à avance de phase : gain passant de 20 log Kp à 20 log aKp avec une pente de +20 dB par décade entre 1/(aT) et 1/T, phase en cloche de maximum φm à ωm">
+  <line x1="50" y1="108" x2="328" y2="108" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+  <line x1="50" y1="108" x2="50" y2="18" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+  <polyline points="50,95 166,95 243,35 320,35" class="sk-ink" style="opacity:.55"/>
+  <path d="M50,95 L58,95 L65,95 L73,95 L81,95 L89,95 L96,95 L104,95 L112,94 L119,94 L127,94 L135,93 L143,92 L150,91 L158,89 L166,86 L173,83 L181,79 L189,75 L197,70 L204,65 L212,60 L220,55 L227,51 L235,47 L243,44 L251,41 L258,39 L266,38 L274,37 L281,36 L289,36 L297,36 L305,35 L312,35 L320,35" class="sk-accent"/>
+  <circle cx="204" cy="65" r="2.6" class="fl-accent"/>
+  <line x1="166" y1="95" x2="166" y2="108" class="sk-dash"/>
+  <line x1="243" y1="35" x2="243" y2="108" class="sk-dash"/>
+  <line x1="50" y1="215" x2="328" y2="215" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+  <line x1="50" y1="215" x2="50" y2="125" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+  <line x1="50" y1="142" x2="204" y2="142" class="sk-dash"/>
+  <path d="M50,213 L58,212 L65,212 L73,211 L81,210 L89,208 L96,206 L104,204 L112,201 L119,198 L127,194 L135,189 L143,183 L150,177 L158,170 L166,163 L173,156 L181,150 L189,146 L197,143 L204,142 L212,143 L220,146 L227,150 L235,156 L243,163 L251,170 L258,177 L266,183 L274,189 L281,194 L289,198 L297,201 L305,204 L312,206 L320,208" class="sk-accent2"/>
+  <circle cx="204" cy="142" r="2.6" class="fl-accent2"/>
+  <line x1="204" y1="65" x2="204" y2="215" class="sk-dash"/>
+  <text x="44" y="22" class="lab-muted" text-anchor="end">G(dB)</text>
+  <text x="56" y="89" class="lab-muted" style="font-size:9.5px">20 log K<tspan baseline-shift="sub" style="font-size:7px">p</tspan></text>
+  <text x="318" y="29" class="lab-muted" text-anchor="end" style="font-size:9.5px">20 log(a·K<tspan baseline-shift="sub" style="font-size:7px">p</tspan>)</text>
+  <text x="222" y="84" class="lab-muted" style="font-size:10px">+20 dB/déc</text>
+  <text x="166" y="120" class="lab-muted" text-anchor="middle" style="font-size:10px">1/(aT)</text>
+  <text x="243" y="120" class="lab-muted" text-anchor="middle" style="font-size:10px">1/T</text>
+  <text x="322" y="122" class="lab-muted">ω</text>
+  <text x="44" y="130" class="lab-muted" text-anchor="end">φ</text>
+  <text x="44" y="219" class="lab-muted" text-anchor="end">0°</text>
+  <text x="44" y="146" class="lab-accent2" text-anchor="end">φ<tspan baseline-shift="sub" style="font-size:9px">m</tspan></text>
+  <text x="204" y="230" class="lab-muted" text-anchor="middle" style="font-size:10px">ω<tspan baseline-shift="sub" style="font-size:7.5px">m</tspan></text>
+</svg>
+<figcaption>Avance de phase (tracé pour a = 10) : la phase est positive entre les deux cassures et maximale, égale à φ<sub>m</sub>, au milieu logarithmique ω<sub>m</sub> ; le gain y vaut 20 log K<sub>p</sub> + 10 log a.</figcaption>
+</figure>
+  <div class="prop-box">
+    <div class="formula">$$|C(j\omega)| = K_p\sqrt{\frac{1+(aT\omega)^2}{1+(T\omega)^2}}$$</div>
+    <div class="formula">$$\varphi = \arctan(aT\omega) - \arctan(T\omega)$$</div>
+    La phase est toujours comprise entre 0° et 90°.
+    Asymptotes : \(20\log K_p\) avant \(1/(aT)\), pente \(+20\ \text{dB/déc}\) entre les cassures, \(20\log(aK_p)\) après \(1/T\).
+  </div>
+
+  <h3>Avance maximale</h3>
+  <div class="prop-box">
+    <div class="formula">$$\omega_m = \frac{1}{T\sqrt{a}}, \qquad |C(j\omega_m)| = K_p\sqrt{a}$$</div>
+    <div class="formula">$$\sin\varphi_m = \frac{a-1}{a+1}$$</div>
+    <div class="formula">$$a = \frac{1+\sin\varphi_m}{1-\sin\varphi_m}$$</div>
+    \(\omega_m\) est la moyenne géométrique des deux cassures (milieu sur l'axe logarithmique) ; la courbe de phase est symétrique autour de \(\omega_m\).
+  </div>
+  <div class="reveal" onclick="this.classList.toggle('open')">
+    <span class="label">Démonstration</span>
+    <span class="prompt">Établir \(\omega_m\) et \(\sin\varphi_m\).</span>
+    <div class="content">
+      <p>Avec \(x = T\omega\), la formule de \(\tan(A-B)\) donne \(\tan\varphi = \dfrac{(a-1)x}{1+ax^2}\). Cette fonction de \(x \gt 0\) a pour dérivée \(\dfrac{(a-1)(1-ax^2)}{(1+ax^2)^2}\), nulle pour \(x = 1/\sqrt{a}\) : c'est le maximum, d'où \(\omega_m = \dfrac{1}{T\sqrt a}\).</p>
+      <p>On y trouve \(\tan\varphi_m = \dfrac{a-1}{2\sqrt a}\). Comme \((a-1)^2 + (2\sqrt a)^2 = (a+1)^2\), le triangle rectangle de côtés \(a-1\) et \(2\sqrt a\) a pour hypoténuse \(a+1\) : \(\sin\varphi_m = \dfrac{a-1}{a+1}\). Enfin \(|C(j\omega_m)| = K_p\sqrt{\dfrac{1+a}{1+1/a}} = K_p\sqrt a\).</p>
+    </div>
+  </div>
+  <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:.82rem;margin:.5rem 0;text-align:center">
+    <tr style="background:var(--paper-dark)"><th style="padding:.3rem;border:1px solid var(--grid)">\(a\)</th><td style="padding:.3rem;border:1px solid var(--grid)">2</td><td style="border:1px solid var(--grid)">3</td><td style="border:1px solid var(--grid)">4</td><td style="border:1px solid var(--grid)">6</td><td style="border:1px solid var(--grid)">10</td><td style="border:1px solid var(--grid)">15</td></tr>
+    <tr><th style="padding:.3rem;border:1px solid var(--grid)">\(\varphi_m\)</th><td style="padding:.3rem;border:1px solid var(--grid)">19,5°</td><td style="border:1px solid var(--grid)">30,0°</td><td style="border:1px solid var(--grid)">36,9°</td><td style="border:1px solid var(--grid)">45,6°</td><td style="border:1px solid var(--grid)">54,9°</td><td style="border:1px solid var(--grid)">61,0°</td></tr>
+  </table></div>
+
+  <h3>Effets</h3>
+  <ul>
+    <li><strong>Stabilité</strong> : la phase de la FTBO est relevée autour de \(\omega_m\) → \(M_\varphi\) augmente si \(\omega_m\) est placée à la coupure.</li>
+    <li><strong>Rapidité</strong> : on peut couper plus haut qu'avec un simple gain → bande passante et rapidité accrues.</li>
+    <li><strong>Précision</strong> : classe inchangée ; en régime permanent le correcteur se réduit au gain \(K_p\).</li>
+    <li><strong>Coûts</strong> : gain haute fréquence multiplié par \(a\) (bruit amplifié) et pic de commande au démarrage : pour un échelon d'écart \(\varepsilon_0\), le théorème de la valeur initiale donne \(u(0^+) = \lim_{p\to\infty} pC(p)\dfrac{\varepsilon_0}{p} = aK_p\,\varepsilon_0\).</li>
+  </ul>
+
+  <h3>Démarche de réglage</h3>
+  <div class="prop-box">
+    <ol style="margin:.2rem 0 .2rem 1.1rem">
+      <li><strong>Choisir la coupure</strong> \(\omega_c\) visée (exigence de rapidité, ou \(\omega_c = \omega_{c0}\) si la rapidité convient déjà).</li>
+      <li><strong>Avance nécessaire</strong> : \(\varphi_m = M_\varphi - 180° - \arg H(j\omega_c)\), augmentée de quelques degrés si la coupure risque de se déplacer.</li>
+      <li><strong>Calculer \(a\)</strong> par \(a = \dfrac{1+\sin\varphi_m}{1-\sin\varphi_m}\) (arrondi par excès).</li>
+      <li><strong>Centrer le correcteur</strong> sur la coupure : \(\omega_m = \omega_c\), soit \(T = \dfrac{1}{\omega_c\sqrt a}\).</li>
+      <li><strong>Régler \(K_p\)</strong> pour que la FTBO corrigée coupe bien en \(\omega_c\), c'est-à-dire \(K_p\sqrt{a}\,|H(j\omega_c)| = 1\) :</li>
+    </ol>
+    <div class="formula">$$K_p = \frac{1}{\sqrt{a}\,|H(j\omega_c)|}$$</div>
+    Cas particulier \(\omega_c = \omega_{c0}\) (coupure conservée, \(|H(j\omega_{c0})| = 1\)) : \(K_p = 1/\sqrt a\), ce qui réduit le gain basses pulsations (précision à recontrôler). Enfin, <strong>vérifier \(M_G\)</strong> : le gain HF a augmenté.
+  </div>
+  <div class="notice">Au-delà de \(\varphi_m \approx 60°\) (soit \(a \gt 14\) environ), le gain HF \(aK_p\) devient prohibitif : on préfère deux cellules d'avance en série, chacune apportant la moitié de la phase.</div>
+  <div class="reveal" onclick="this.classList.toggle('open')">
+    <span class="label">Application</span>
+    <span class="prompt">Il manque 35° de phase à \(\omega_c = 20\ \text{rad/s}\). Calculer \(a\) et \(T\).</span>
+    <div class="content"><p>\(a = \dfrac{1+\sin 35°}{1-\sin 35°} = \dfrac{1{,}574}{0{,}426} \approx 3{,}7\) ; \(T = \dfrac{1}{20\sqrt{3{,}7}} \approx 26\ \text{ms}\). Cassures : \(1/(aT) = \omega_c/\sqrt a \approx 10{,}4\ \text{rad/s}\) et \(1/T = \omega_c\sqrt a \approx 38{,}5\ \text{rad/s}\).</p></div>
+  </div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§6 · VÉRIFIER ET CHOISIR</div>
+  <h2>Valider sur la réponse indicielle, puis arbitrer</h2>
+  <div class="intro">Les règles fréquentielles reposent sur des approximations (2ᵉ ordre dominant, modèle linéaire). Le réglage n'est validé qu'après une <strong>simulation temporelle</strong> (logiciel de simulation) ou un essai, en confrontant chaque critère au cahier des charges.</div>
+  <h3>Liste de vérification</h3>
+  <ul>
+    <li><strong>Marges</strong> recalculées sur la FTBO <em>corrigée</em> (\(M_G\) surtout, après une avance de phase).</li>
+    <li><strong>Dépassement</strong> \(D\%\) : premier maximum rapporté à la valeur finale.</li>
+    <li><strong>Temps de réponse</strong> \(t_{r5\%}\) : dernier instant où la sortie entre dans la bande \(\pm 5\%\) de la valeur finale.</li>
+    <li><strong>Écart statique</strong> : valeur finale comparée à la consigne (et à la perturbation, si elle est modélisée).</li>
+    <li><strong>Commande</strong> \(u(t)\) : son maximum reste-t-il sous la saturation de l'actionneur ? (\(u(0^+) = K_p\varepsilon_0\) pour P et PI, \(aK_p\varepsilon_0\) pour l'avance de phase.)</li>
+  </ul>
+  <h3>Choisir le correcteur</h3>
+  <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:.82rem;margin:.5rem 0">
+    <tr style="background:var(--paper-dark)"><th style="padding:.3rem .4rem;border:1px solid var(--grid)">Défaut constaté sur le système non corrigé</th><th style="padding:.3rem .4rem;border:1px solid var(--grid)">Correcteur adapté</th></tr>
+    <tr><td style="padding:.3rem .4rem;border:1px solid var(--grid)">Marges larges, un peu lent, précision suffisante</td><td style="padding:.3rem .4rem;border:1px solid var(--grid)">P : augmenter \(K_p\)</td></tr>
+    <tr><td style="padding:.3rem .4rem;border:1px solid var(--grid)">Trop oscillant, aucune exigence de rapidité</td><td style="padding:.3rem .4rem;border:1px solid var(--grid)">P : diminuer \(K_p\) (précision à recontrôler)</td></tr>
+    <tr><td style="padding:.3rem .4rem;border:1px solid var(--grid)">Écart statique non nul (classe 0), dynamique correcte</td><td style="padding:.3rem .4rem;border:1px solid var(--grid)">PI, cassure sous la coupure</td></tr>
+    <tr><td style="padding:.3rem .4rem;border:1px solid var(--grid)">Précision correcte, \(M_\varphi\) trop faible et/ou trop lent</td><td style="padding:.3rem .4rem;border:1px solid var(--grid)">Avance de phase</td></tr>
+    <tr><td style="padding:.3rem .4rem;border:1px solid var(--grid)">Imprécis <em>et</em> marges ou rapidité insuffisantes</td><td style="padding:.3rem .4rem;border:1px solid var(--grid)">PI + avance de phase en série (ou PID filtré)</td></tr>
+  </table></div>
+  <div class="prop-box"><strong>Compromis incontournables.</strong> Précision ↔ stabilité (gain basses pulsations élevé contre marges) ; rapidité ↔ bruit et effort de commande (couper haut exige du gain haute fréquence et une commande forte) ; le PI gagne la précision au prix d'une convergence plus lente, l'avance de phase gagne la rapidité au prix du bruit.</div>
+  <div class="notice"><strong>Pièges.</strong> (1) Ne pas conclure sur la seule \(M_\varphi\) : une FTBO d'ordre élevé peut avoir une marge de phase correcte et une marge de gain faible, ou un dépassement supérieur à la règle du §1. (2) Une simulation linéaire ignore les saturations : un réglage « parfait » sur le papier est inapplicable si \(u(t)\) dépasse les limites de l'actionneur.</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§7 · BOUCLES IMBRIQUÉES</div>
+  <h2>Commande en cascade : courant, vitesse, position</h2>
+  <div class="intro">Sur un axe motorisé (moteur à courant continu ou machine synchrone autopilotée), on asservit rarement la position avec un seul correcteur : on emboîte trois boucles, la sortie de chaque correcteur servant de consigne à la boucle intérieure.</div>
+<figure class="schema">
+<svg viewBox="0 0 400 155" role="img" aria-label="Trois boucles imbriquées : la boucle de position fournit la consigne de vitesse, la boucle de vitesse fournit la consigne de courant, la boucle de courant commande le convertisseur et le moteur">
+  <line x1="8" y1="50" x2="21" y2="50" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+  <circle cx="32" cy="50" r="9" class="sk-ink fl-paper"/>
+  <line x1="41" y1="50" x2="52" y2="50" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+  <rect x="54" y="38" width="34" height="24" class="sk-accent fl-paper"/>
+  <line x1="88" y1="50" x2="99" y2="50" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+  <circle cx="110" cy="50" r="9" class="sk-ink fl-paper"/>
+  <line x1="119" y1="50" x2="130" y2="50" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+  <rect x="132" y="38" width="34" height="24" class="sk-accent fl-paper"/>
+  <line x1="166" y1="50" x2="177" y2="50" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+  <circle cx="188" cy="50" r="9" class="sk-ink fl-paper"/>
+  <line x1="197" y1="50" x2="208" y2="50" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+  <rect x="210" y="38" width="30" height="24" class="sk-accent fl-paper"/>
+  <line x1="240" y1="50" x2="252" y2="50" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+  <rect x="254" y="34" width="86" height="32" class="sk-ink fl-paper"/>
+  <line x1="340" y1="50" x2="352" y2="50" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+  <rect x="354" y="38" width="26" height="24" class="sk-ink fl-paper"/>
+  <line x1="380" y1="50" x2="398" y2="50" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+  <line x1="282" y1="66" x2="282" y2="82" class="sk-ink"/>
+  <line x1="282" y1="82" x2="188" y2="82" class="sk-green"/>
+  <line x1="188" y1="82" x2="188" y2="61" class="sk-green" marker-end="url(#sk-arrow-green)"/>
+  <circle cx="346" cy="50" r="2.4" class="fl-ink"/>
+  <line x1="346" y1="50" x2="346" y2="108" class="sk-accent2"/>
+  <line x1="346" y1="108" x2="110" y2="108" class="sk-accent2"/>
+  <line x1="110" y1="108" x2="110" y2="61" class="sk-accent2" marker-end="url(#sk-arrow-accent2)"/>
+  <circle cx="389" cy="50" r="2.4" class="fl-ink"/>
+  <line x1="389" y1="50" x2="389" y2="134" class="sk-ink"/>
+  <line x1="389" y1="134" x2="32" y2="134" class="sk-ink"/>
+  <line x1="32" y1="134" x2="32" y2="61" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+  <text x="71" y="54" text-anchor="middle" class="lab-accent" style="font-size:11px">Cθ</text>
+  <text x="149" y="54" text-anchor="middle" class="lab-accent" style="font-size:11px">CΩ</text>
+  <text x="225" y="54" text-anchor="middle" class="lab-accent" style="font-size:11px">Ci</text>
+  <text x="297" y="47" text-anchor="middle" style="font-size:9.5px">convertisseur</text>
+  <text x="297" y="59" text-anchor="middle" style="font-size:9.5px">+ moteur</text>
+  <text x="367" y="54" text-anchor="middle" style="font-size:11px">1/p</text>
+  <text x="6" y="43" class="lab-muted" style="font-size:10px">θc</text>
+  <text x="90" y="42" class="lab-muted" style="font-size:10px">Ωc</text>
+  <text x="168" y="42" class="lab-muted" style="font-size:10px">ic</text>
+  <text x="243" y="42" class="lab-muted" style="font-size:10px">u</text>
+  <text x="340" y="42" class="lab-muted" style="font-size:10px">Ω</text>
+  <text x="390" y="42" class="lab-muted" style="font-size:10px">θ</text>
+  <text x="290" y="80" class="lab-muted" style="font-size:10px">i</text>
+  <text x="235" y="94" text-anchor="middle" class="lab-green" style="font-size:9.5px">boucle de courant (la plus rapide)</text>
+  <text x="228" y="120" text-anchor="middle" class="lab-accent2" style="font-size:9.5px">boucle de vitesse</text>
+  <text x="210" y="147" text-anchor="middle" class="lab-muted" style="font-size:9.5px">boucle de position (la plus lente)</text>
+</svg>
+<figcaption>Commande en cascade d'un axe : chaque correcteur fournit la consigne de la boucle intérieure. Capteurs supposés de gain unitaire (courant : capteur à effet Hall ; vitesse : codeur ou génératrice tachymétrique ; position : codeur).</figcaption>
+</figure>
+  <div class="prop-box">
+    <strong>Réglage de l'intérieur vers l'extérieur.</strong>
+    <ol style="margin:.3rem 0 .2rem 1.1rem">
+      <li>Régler la boucle de <strong>courant</strong> (souvent un PI qui compense la constante de temps électrique \(L/R\)).</li>
+      <li>La remplacer par sa FTBF : un 1ᵉʳ ordre rapide, voire un simple gain.</li>
+      <li>Régler la boucle de <strong>vitesse</strong> sur ce modèle (P ou PI), puis la remplacer à son tour par sa FTBF.</li>
+      <li>Régler la boucle de <strong>position</strong> : un P suffit souvent, l'intégration vitesse → position donnant déjà la classe 1 vis-à-vis de la consigne.</li>
+    </ol>
+    Règle de découplage : chaque boucle intérieure doit être <strong>5 à 10 fois plus rapide</strong> (bande passante) que celle qui l'entoure ; vue de l'extérieur, elle se comporte alors presque comme un gain.
+  </div>
+  <div class="prop-box">
+    <strong>Intérêts.</strong>
+    <ul style="margin:.3rem 0">
+      <li>Perturbations (couple résistant, variation de la tension d'alimentation) corrigées près de leur point d'entrée, donc plus vite.</li>
+      <li>Grandeurs internes limitables : saturer la consigne de courant protège le moteur et le convertisseur ; saturer la consigne de vitesse borne la vitesse.</li>
+      <li>Réglage boucle par boucle, plus simple et plus robuste ; la boucle interne rend le « processus vu de l'extérieur » plus rapide.</li>
+    </ul>
+  </div>
+  <div class="reveal" onclick="this.classList.toggle('open')">
+    <span class="label">Propriété utile</span>
+    <span class="prompt">Boucle interne : correcteur P de gain \(K_c\) sur un 1ᵉʳ ordre \(\dfrac{K}{1+\tau p}\), retour unitaire. Que devient la constante de temps ?</span>
+    <div class="content">
+      <div class="formula">$$H_{BF}(p) = \frac{K_cK}{1+K_cK+\tau p}$$</div>
+      <p>En divisant par \(1+K_cK\) : \(H_{BF}(p) = \dfrac{K'}{1+\tau' p}\), avec</p>
+      <div class="formula">$$K' = \frac{K_cK}{1+K_cK}$$</div>
+      <div class="formula">$$\tau' = \frac{\tau}{1+K_cK}$$</div>
+      <p>La constante de temps est divisée par \(1+K_cK\) (le gain statique tend vers 1) : la boucle interne est d'autant plus rapide que son gain de boucle est grand.</p>
+    </div>
+  </div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§8 · SYNTHÈSE</div>
+  <h2>Les trois correcteurs au programme</h2>
+  <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:.82rem;margin:.5rem 0">
+    <tr style="background:var(--paper-dark)"><th style="padding:.3rem .4rem;border:1px solid var(--grid)"></th><th style="padding:.3rem .4rem;border:1px solid var(--grid)">P</th><th style="padding:.3rem .4rem;border:1px solid var(--grid)">PI</th><th style="padding:.3rem .4rem;border:1px solid var(--grid)">Avance de phase</th></tr>
+    <tr><th style="padding:.3rem .4rem;border:1px solid var(--grid)">\(C(p)\)</th><td style="padding:.3rem .4rem;border:1px solid var(--grid)">\(K_p\)</td><td style="padding:.3rem .4rem;border:1px solid var(--grid)">\(K_p\dfrac{1+T_ip}{T_ip}\)</td><td style="padding:.3rem .4rem;border:1px solid var(--grid)">\(K_p\dfrac{1+aTp}{1+Tp}\), \(a \gt 1\)</td></tr>
+    <tr><th style="padding:.3rem .4rem;border:1px solid var(--grid)">Bode</th><td style="padding:.3rem .4rem;border:1px solid var(--grid)">Translation verticale</td><td style="padding:.3rem .4rem;border:1px solid var(--grid)">Intégrateur sous \(1/T_i\), gain \(K_p\) au-dessus</td><td style="padding:.3rem .4rem;border:1px solid var(--grid)">Bosse de phase \(\varphi_m\) en \(\omega_m = \dfrac{1}{T\sqrt a}\)</td></tr>
+    <tr><th style="padding:.3rem .4rem;border:1px solid var(--grid)">Apporte</th><td style="padding:.3rem .4rem;border:1px solid var(--grid)">Précision (classe 0), rapidité</td><td style="padding:.3rem .4rem;border:1px solid var(--grid)">Classe +1 : écart statique nul</td><td style="padding:.3rem .4rem;border:1px solid var(--grid)">Marge de phase, rapidité</td></tr>
+    <tr><th style="padding:.3rem .4rem;border:1px solid var(--grid)">Coûte</th><td style="padding:.3rem .4rem;border:1px solid var(--grid)">Marges</td><td style="padding:.3rem .4rem;border:1px solid var(--grid)">Phase en BF, convergence lente</td><td style="padding:.3rem .4rem;border:1px solid var(--grid)">Bruit HF, pic de commande \(aK_p\varepsilon_0\)</td></tr>
+    <tr><th style="padding:.3rem .4rem;border:1px solid var(--grid)">Réglage</th><td style="padding:.3rem .4rem;border:1px solid var(--grid)">\(\omega_\varphi\) puis \(K_p = 1/|H(j\omega_\varphi)|\)</td><td style="padding:.3rem .4rem;border:1px solid var(--grid)">\(T_i\) (\(10/\omega_c\) ou \(\tau\) dominant), puis \(K_p\)</td><td style="padding:.3rem .4rem;border:1px solid var(--grid)">\(\varphi_m\) → \(a\) → \(T\) → \(K_p\)</td></tr>
+  </table></div>
+  <div class="notice">Ordre de réflexion à l'écrit : (1) analyser le système non corrigé (classe, marges, \(\omega_{c0}\)) ; (2) identifier le ou les critères non satisfaits ; (3) choisir le correcteur ; (4) le dimensionner sur le Bode ; (5) vérifier toutes les exigences, y compris celles qui l'étaient avant correction.</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">POUR ALLER PLUS LOIN · ANTICIPATION ET CORRECTEUR PID (HORS PROGRAMME)</div>
+  <h2>Agir avant l'écart, cumuler les actions</h2>
+  <div class="intro">Ces compléments ne sont pas au programme, qui ne retient que les correcteurs P, PI et à avance de phase : un sujet qui les utilise les présente. Un correcteur placé dans la boucle ne réagit qu'à un écart déjà apparu. Quand la consigne est connue à l'avance (trajectoire d'un robot, profil de vitesse d'un convoyeur), on peut ajouter à la commande un terme calculé directement à partir d'elle : c'est l'<strong>anticipation</strong>. Et quand ni le PI ni l'avance de phase ne suffisent seuls, on les associe : c'est le <strong>PID</strong>.</div>
+  <h3>Anticipation de la consigne</h3>
+  <div class="prop-box">
+    On ajoute à la sortie du correcteur \(C\) un terme \(F(p)\,E(p)\), calculé hors de la boucle, devant le processus \(G\) (retour unitaire). Alors
+    <div class="formula" data-nom="Écart avec anticipation">$$S = \frac{(C + F)\,G}{1 + C\,G}\,E,\qquad \varepsilon = E - S = \frac{1 - F\,G}{1 + C\,G}\,E.$$</div>
+    <ul>
+      <li>Le dénominateur \(1 + CG\) est <strong>inchangé</strong> : l'anticipation ne modifie ni les pôles de la boucle fermée ni les marges ; elle améliore le suivi sans toucher à la stabilité.</li>
+      <li>L'anticipation idéale \(F = 1/G\) annulerait l'écart à tout instant, mais elle n'est pas réalisable (gain infini en hautes pulsations, commande saturée). On se contente d'annuler le terme dominant : anticipation <strong>statique</strong> \(F = 1/G(0)\) pour une classe 0, anticipation <strong>de vitesse</strong> pour une consigne en rampe.</li>
+    </ul>
+  </div>
+  <div class="method-box">
+    <strong>Exemple — supprimer l'écart de traînage d'un axe</strong>
+    <p>Axe \(G(p) = \dfrac{K}{p\,(1 + \tau p)}\), correcteur proportionnel \(C = K_c\), consigne en rampe \(a\,t\). Sans anticipation, l'écart de traînage vaut \(\dfrac{a}{K_cK}\).</p>
+    <ol>
+      <li>Anticipation de vitesse \(F(p) = \dfrac{p}{K}\) (une dérivation de la consigne, réalisable puisque la consigne est calculée) : \(1 - FG = 1 - \dfrac{1}{1 + \tau p} = \dfrac{\tau p}{1 + \tau p}\).</li>
+      <li>\(\varepsilon(p) = \dfrac{\tau p}{(1 + \tau p)(1 + K_cG(p))}\cdot\dfrac{a}{p^2}\), et \(\varepsilon_\infty = \lim_{p \to 0} \dfrac{a\tau}{(1 + \tau p)(1 + K_cG(p))} = 0\), car \(K_cG(p) \to \infty\).</li>
+      <li>L'écart de traînage est annulé sans changer \(K_c\) : la marge de phase reste celle du réglage proportionnel.</li>
+    </ol>
+  </div>
+  <div class="notice"><strong>Compensation de perturbation.</strong> Le même principe s'applique à une perturbation <em>mesurable</em> (température extérieure d'un bâtiment, couple de charge estimé) : on ajoute à la commande un terme qui la contre avant qu'elle n'ait créé d'écart. La boucle fermée corrige ensuite ce que la compensation a laissé passer.</div>
+
+  <h3>Le correcteur PID</h3>
+  <div class="prop-box">
+    Forme théorique (parallèle) et forme réalisée (série, avec filtrage de la dérivée) :
+    <div class="formula" data-nom="Correcteur PID">$$C(p) = K_p\Big(1 + \frac{1}{T_ip} + T_dp\Big),\qquad C(p) = K_p\,\frac{1 + T_ip}{T_ip}\cdot\frac{1 + aTp}{1 + Tp}\ \ (a \gt 1).$$</div>
+    La forme série est un <strong>PI suivi d'une avance de phase</strong>. Son Bode a une allure « en baignoire » : pente \(-20\) dB/décade sous \(1/T_i\) (précision), palier, puis remontée bornée autour de \(\omega_{c0}\) (avance de phase), et palier en hautes pulsations (bruit limité).
+  </div>
+  <div class="method-box">
+    <strong>Démarche de réglage</strong>
+    <ol>
+      <li>Choisir \(\omega_{c0}\) visée (rapidité) et la phase à apporter en \(\omega_{c0}\) pour obtenir la marge de phase, en comptant la petite perte du PI (environ \(-6°\) avec \(T_i = 10/\omega_{c0}\)).</li>
+      <li>Dimensionner l'avance de phase : \(a\) par l'avance maximale \(\sin\varphi_m = \dfrac{a - 1}{a + 1}\), puis \(T\) pour que \(\omega_m = \dfrac{1}{T\sqrt a} = \omega_{c0}\).</li>
+      <li>Placer la cassure du PI une décade sous \(\omega_{c0}\), puis choisir \(K_p\) pour que la FTBO corrigée coupe 0 dB en \(\omega_{c0}\).</li>
+      <li>Vérifier en simulation : marges, dépassement, temps de réponse, et surtout pic de commande (l'action dérivée amplifie les variations brusques de consigne).</li>
+    </ol>
+  </div>
+  <div class="notice"><strong>Réglage empirique de Ziegler et Nichols.</strong> Sans modèle, on règle d'abord le système en proportionnel seul jusqu'à l'oscillation entretenue (gain \(K_{lim}\), période \(T_{osc}\)), puis l'on prend \(K_p = 0{,}6\,K_{lim}\), \(T_i = T_{osc}/2\) et \(T_d = T_{osc}/8\). Le résultat est un point de départ, souvent trop peu amorti (dépassement de l'ordre de 25 à 40 %), que l'on affine ensuite.</div>
+</div>
+</template>
+<template class="pan-tpl" data-panneau="corr-meth">
+<div class="course-section">
+  <div class="sec-num">MÉTHODES · RÉGLAGE DES CORRECTEURS</div>
+  <h2>Savoir-faire pour les écrits et les oraux</h2>
+
+  <div class="method-box">
+    <strong>Méthode 1 — Traduire le cahier des charges en objectifs sur la FTBO</strong>
+    <ol style="margin-top:.4rem">
+      <li><span class="step">Précision.</span> Écart statique nul exigé → FTBO de classe ≥ 1 (et intégrateur en amont de la perturbation si elle doit aussi être rejetée) ; écart borné → condition sur \(K_{BO}\) (\(\varepsilon_s = E_0/(1+K_{BO})\) en classe 0, \(\varepsilon_v = V/K_{BO}\) en classe 1).</li>
+      <li><span class="step">Amortissement.</span> Dépassement maximal → marge de phase cible (≈ 45° pour 20-25 %, ≈ 60° pour 10 %, ≥ 70° pour un dépassement quasi nul).</li>
+      <li><span class="step">Rapidité.</span> \(t_{r5\%}\) maximal → \(\omega_c\) minimale, avec \(t_{r5\%}\,\omega_c\) de 2 à 6 selon l'amortissement visé (≈ 3,7 pour \(M_\varphi = 60°\)).</li>
+      <li><span class="step">Stabilité.</span> Noter les marges minimales imposées ; elles serviront de vérification finale.</li>
+    </ol>
+  </div>
+
+  <div class="method-box">
+    <strong>Méthode 2 — Réduire l'ordre du modèle avant de régler (pôles dominants)</strong>
+    <ol style="margin-top:.4rem">
+      <li><span class="step">Pôles.</span> Calculer les pôles (racines du dénominateur) et repérer les pôles dominants : ceux dont la partie réelle est la plus proche de zéro.</li>
+      <li><span class="step">Rapport.</span> Un pôle (ou une paire) dont la partie réelle est, en valeur absolue, au moins 5 fois (par prudence 10 fois) celle des pôles dominants est négligeable pour la réponse temporelle.</li>
+      <li><span class="step">Zéros.</span> Vérifier qu'aucun zéro n'est voisin des pôles dominants ; sinon, le garder dans le modèle réduit.</li>
+      <li><span class="step">Réduire.</span> Remplacer par 1 le facteur canonique du pôle rapide, \((1+\tau_r p)\) ou \(\left(1+\frac{2\xi_r}{\omega_r}p+\frac{p^2}{\omega_r^2}\right)\) : le gain statique est conservé.</li>
+      <li><span class="step">Limites.</span> Paire complexe peu amortie : comparer \(\xi_r\omega_r\), pas \(\omega_r\). Pour les marges, garder un pôle qui n'est que 5 à 10 fois plus rapide que la coupure (il y retire encore 6° à 11° de phase).</li>
+    </ol>
+    <p><em>Exemple éclair :</em> \(H_{BF}(p) = \dfrac{90}{(p+10)(p^2+2p+9)}\) a pour pôles \(-1 \pm 2{,}83j\) et \(-10\) : rapport 10. Le facteur \((p+10)\) devient 10, d'où \(H_r(p) = \dfrac{9}{p^2+2p+9}\) : \(\omega_0 = 3\ \text{rad/s}\), \(\xi = 1/3\), dépassement prévu ≈ 33 % (modèle complet : ≈ 31 %).</p>
+  </div>
+
+  <div class="method-box">
+    <strong>Méthode 3 — Régler un correcteur proportionnel</strong>
+    <ol style="margin-top:.4rem">
+      <li><span class="step">Phase cible.</span> Écrire \(\arg H(j\omega) = -180° + M_\varphi\) et la résoudre : graphiquement sur le Bode, ou analytiquement (somme d'arctangentes ; pour deux termes, prendre la tangente des deux membres).</li>
+      <li><span class="step">Gain.</span> Calculer \(|H(j\omega_\varphi)|\) puis \(K_p = 1/|H(j\omega_\varphi)|\) (ou lire \(G_{dB}\) et poser \(20\log K_p = -G_{dB}\)).</li>
+      <li><span class="step">Marge de gain.</span> Si elle est imposée : \(\omega_\pi\) (pour une FTBO à numérateur constant, partie imaginaire du dénominateur nulle), puis \(20\log K_p \leq -M_G - G_{dB,H}(\omega_\pi)\). Garder le plus petit \(K_p\).</li>
+      <li><span class="step">Conclure.</span> Recalculer précision et rapidité avec ce \(K_p\) : si un critère échoue, le P ne suffit pas (justifier le choix d'un PI ou d'une avance).</li>
+    </ol>
+  </div>
+
+  <div class="method-box">
+    <strong>Méthode 4 — Régler un correcteur PI</strong>
+    <ol style="margin-top:.4rem">
+      <li><span class="step">Choisir la stratégie.</span> Pôle dominant net, stable et bien connu → compensation (\(T_i = \tau_1\)) ; sinon → cassure une décade sous la coupure.</li>
+      <li><span class="step">Compensation.</span> Simplifier la FTBO (classe 1), puis régler \(K_p\) comme en méthode 3.</li>
+      <li><span class="step">Cassure sous la coupure.</span> Réserver ≈ 6° (\(T_i\omega_c = 10\)) ; trouver \(\omega_c\) où \(\arg H = -180° + M_\varphi + 6°\) ; poser \(T_i = 10/\omega_c\) ; \(K_p \approx 1/|H(j\omega_c)|\).</li>
+      <li><span class="step">Tracer.</span> Asymptotes du PI : \(-20\ \text{dB/déc}\) jusqu'à \(1/T_i\), puis plateau à \(20\log K_p\).</li>
+      <li><span class="step">Piège.</span> Ne pas oublier que le PI retire de la phase à \(\omega_c\) : régler \(K_p\) sur la phase de \(H\) seule surestime \(M_\varphi\).</li>
+    </ol>
+  </div>
+
+  <div class="method-box">
+    <strong>Méthode 5 — Dimensionner une avance de phase</strong>
+    <ol style="margin-top:.4rem">
+      <li><span class="step">Coupure.</span> Fixer \(\omega_c\) (rapidité exigée, ou \(\omega_{c0}\) conservée).</li>
+      <li><span class="step">Phase manquante.</span> \(\varphi_m = M_\varphi - \big(180° + \arg H(j\omega_c)\big)\), plus 3 à 5° de sécurité si \(\omega_c\) n'est pas imposée exactement.</li>
+      <li><span class="step">Paramètres.</span> \(a = \dfrac{1+\sin\varphi_m}{1-\sin\varphi_m}\) arrondi par excès ; \(T = \dfrac{1}{\omega_c\sqrt a}\) ; \(K_p = \dfrac{1}{\sqrt a\,|H(j\omega_c)|}\).</li>
+      <li><span class="step">Contrôles.</span> \(\varphi_m\) ≤ 60° environ (sinon deux cellules) ; \(M_G\) de la FTBO corrigée ; pic de commande \(aK_p\varepsilon_0\) face à la saturation ; précision (le gain BF vaut \(K_p\)).</li>
+    </ol>
+  </div>
+
+  <div class="method-box">
+    <strong>Méthode 6 — Tracer le Bode asymptotique d'une FTBO corrigée</strong>
+    <ol style="margin-top:.4rem">
+      <li><span class="step">Forme canonique.</span> Écrire \(C(p)H(p)\) comme produit de briques : gain, \(1/p^\alpha\), \((1+\tau p)^{\pm1}\), 2ᵉ ordre.</li>
+      <li><span class="step">Cassures.</span> Ranger les pulsations de cassure par ordre croissant.</li>
+      <li><span class="step">Gain.</span> Départ en basses pulsations : pente \(-20\alpha\ \text{dB/déc}\), passant par \(20\log K_{BO}\) à \(\omega = 1\) ; à chaque cassure, la pente change de \(\pm 20\) dB/déc (zéro : +20, pôle : −20).</li>
+      <li><span class="step">Phase.</span> Départ à \(-90°\alpha\) ; chaque pôle retire 90° (−45° à sa cassure), chaque zéro en ajoute 90°. Tracer la courbe réelle en sommant les arctangentes en quelques points.</li>
+      <li><span class="step">Contrôle.</span> Pente finale = −20 × (degré du dénominateur − degré du numérateur) dB/déc.</li>
+    </ol>
+  </div>
+
+  <div class="method-box">
+    <strong>Méthode 7 — Valider sur une réponse indicielle simulée</strong>
+    <ol style="margin-top:.4rem">
+      <li><span class="step">Valeur finale.</span> La lire et la comparer à la consigne → écart statique.</li>
+      <li><span class="step">Dépassement.</span> \(D\% = \dfrac{s_{max} - s_\infty}{s_\infty}\times 100\).</li>
+      <li><span class="step">Temps de réponse.</span> Tracer la bande \(s_\infty \pm 5\%\) ; \(t_{r5\%}\) = instant de la <em>dernière</em> entrée dans la bande.</li>
+      <li><span class="step">Commande.</span> Relever le maximum de \(u(t)\) (souvent \(u(0^+)\)) et le comparer à la saturation.</li>
+      <li><span class="step">Conclure</span> critère par critère, sous forme de tableau « exigé / obtenu / validé ? ».</li>
+    </ol>
+  </div>
+
+  <div class="method-box">
+    <strong>Méthode 8 — Régler des boucles imbriquées</strong>
+    <ol style="margin-top:.4rem">
+      <li><span class="step">Boucle interne.</span> La régler seule, puis calculer sa FTBF (gain statique et constante de temps).</li>
+      <li><span class="step">Substitution.</span> Remplacer, dans la boucle externe, tout le bloc interne par cette FTBF.</li>
+      <li><span class="step">Boucle externe.</span> La régler sur ce modèle ; vérifier que sa coupure est 5 à 10 fois plus basse que la bande passante interne.</li>
+      <li><span class="step">Perturbation.</span> Pour l'écart dû à une perturbation constante, regarder si un intégrateur se trouve <em>en amont</em> du point d'entrée de la perturbation.</li>
+    </ol>
+  </div>
+
+  <div class="method-box">
+    <strong>Pièges classiques</strong>
+    <ul style="margin-top:.4rem">
+      <li>Chercher \(M_\varphi\) et \(M_G\) sur le Bode de la FTBF : ces marges n'ont de sens que sur la FTBO.</li>
+      <li>Confondre \(\omega_{c0}\) (gain de la FTBO égal à 0 dB) et la pulsation de cassure d'un bloc.</li>
+      <li>Oublier le gain \(\sqrt a\) apporté par l'avance de phase en \(\omega_m\) en réglant \(K_p\).</li>
+      <li>Utiliser la formule de \(\varphi_m\) avec la convention \(\frac{1+Tp}{1+aTp}\), \(a \lt 1\) : vérifier toujours quel terme a la plus grande constante de temps (celle du numérateur pour une avance).</li>
+      <li>Annoncer un écart nul vis-à-vis d'une perturbation constante en s'appuyant sur un intégrateur situé <em>en aval</em> de son point d'entrée (par exemple l'intégration vitesse → position du processus) : seul un intégrateur placé entre l'écart et la perturbation, comme celui d'un PI, l'annule.</li>
+    </ul>
+  </div>
+</div>
+</template>
+<template class="pan-tpl" data-panneau="corr-exos">
+<div class="exo-wrapper">
+
+<div class="exo">
+  <span class="num">EXO 01</span><span class="diff">★ ☆ ☆</span>
+  <h3>Gain proportionnel d'un volet motorisé</h3>
+  <div class="statement">La position angulaire d'un volet d'aération est asservie avec un retour unitaire. Le processus a pour fonction de transfert \(H(p) = \dfrac{2}{p(1+0{,}25p)}\) (temps en secondes) et le correcteur est proportionnel : \(C(p) = K_p\). On impose \(M_\varphi = 60°\).</div>
+  <div class="q"><strong>Q1.</strong> Donner la classe de la FTBO. Que vaut l'écart statique pour un échelon de consigne ? Que dire de la marge de gain ?</div>
+  <div class="q"><strong>Q2.</strong> Déterminer \(K_p\).</div>
+  <div class="q"><strong>Q3.</strong> La consigne devient une rampe de pente \(0{,}5\ \text{rad/s}\). Calculer l'erreur de traînage.</div>
+  <div class="q"><strong>Q4.</strong> Estimer le dépassement et le temps de réponse à 5 %.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> Un intégrateur : classe 1, donc écart statique nul pour un échelon. Phase \(-90° - \arctan(0{,}25\omega)\), strictement supérieure à \(-180°\) : elle n'atteint jamais \(-180°\), \(M_G\) est infinie quel que soit \(K_p\).</p>
+    <p><strong>Q2.</strong> \(-90° - \arctan(0{,}25\,\omega_\varphi) = -120°\) → \(0{,}25\,\omega_\varphi = \tan 30°\) → \(\omega_\varphi \approx 2{,}31\ \text{rad/s}\). Alors \(|H(j\omega_\varphi)| = \dfrac{2}{2{,}31\sqrt{1+1/3}} = 0{,}75\), d'où \(K_p = 1/0{,}75 \approx 1{,}33\).</p>
+    <p><strong>Q3.</strong> \(K_{BO} = 2K_p \approx 2{,}67\ \text{s}^{-1}\) ; \(\varepsilon_v = \dfrac{0{,}5}{2{,}67} \approx 0{,}19\ \text{rad}\) (environ 11°).</p>
+    <p><strong>Q4.</strong> Ici la FTBO est exactement du type \(K/(p(1+\tau p))\) : \(M_\varphi = 60°\) correspond à \(\xi \approx 0{,}61\), \(D \approx 9\%\), et \(t_{r5\%} \approx 3{,}7/\omega_{c0} \approx 1{,}6\ \text{s}\). Vérification : la FTBF a pour pulsation propre \(\omega_0 = \sqrt{2K_p/0{,}25} \approx 3{,}27\ \text{rad/s}\) et \(\xi = \dfrac{1}{2\sqrt{0{,}25 \times 2K_p}} \approx 0{,}61\).</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 02</span><span class="diff">★ ☆ ☆</span>
+  <h3>Lecture d'un correcteur à avance de phase</h3>
+  <div class="statement">Un correcteur a pour fonction de transfert \(C(p) = K_p\,\dfrac{1+aTp}{1+Tp}\) avec \(K_p = 2\), \(a = 4\) et \(T = 25\ \text{ms}\).</div>
+  <div class="q"><strong>Q1.</strong> Calculer les pulsations de cassure et tracer les asymptotes du diagramme de gain (niveaux en dB).</div>
+  <div class="q"><strong>Q2.</strong> Calculer \(\omega_m\), \(\varphi_m\) et le gain en \(\omega_m\).</div>
+  <div class="q"><strong>Q3.</strong> Calculer la phase à \(10\ \text{rad/s}\) puis à \(40\ \text{rad/s}\). Commenter.</div>
+  <div class="q"><strong>Q4.</strong> L'écart passe brusquement de 0 à \(0{,}5\ \text{V}\) et y reste. Que vaut la commande juste après le saut, puis en régime permanent ?</div>
+  <div class="q"><strong>Q5.</strong> Quelle valeur de \(a\) faudrait-il pour une avance maximale de 55° ?</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> \(1/(aT) = 1/0{,}1 = 10\ \text{rad/s}\) et \(1/T = 40\ \text{rad/s}\). Asymptotes : \(20\log 2 \approx 6{,}0\ \text{dB}\) jusqu'à 10 rad/s, pente \(+20\ \text{dB/déc}\) jusqu'à 40 rad/s, puis \(20\log(aK_p) = 20\log 8 \approx 18{,}1\ \text{dB}\) (on monte bien de \(20\log 4 \approx 12\ \text{dB}\) sur \(\log 4 \approx 0{,}6\) décade).</p>
+    <p><strong>Q2.</strong> \(\omega_m = \dfrac{1}{T\sqrt a} = \dfrac{1}{0{,}025 \times 2} = 20\ \text{rad/s}\) ; \(\sin\varphi_m = \dfrac{3}{5}\) → \(\varphi_m \approx 36{,}9°\) ; enfin, à mi-chemin des deux plateaux :</p>
+    <div class="formula">$$G_{dB}(\omega_m) = 20\log(K_p\sqrt a) = 20\log 4 \approx 12{,}0\ \text{dB}$$</div>
+    <p><strong>Q3.</strong> À 10 rad/s puis à 40 rad/s :</p>
+    <div class="formula">$$\arctan 1 - \arctan 0{,}25 = 45° - 14{,}0° \approx 31{,}0°$$</div>
+    <div class="formula">$$\arctan 4 - \arctan 1 = 76{,}0° - 45° \approx 31{,}0°$$</div>
+    <p>Mêmes valeurs : 10 et 40 rad/s sont symétriques de \(\omega_m = 20\) en échelle logarithmique (rapport 2 de part et d'autre), la cloche de phase est symétrique.</p>
+    <p><strong>Q4.</strong> Valeur initiale : \(u(0^+) = aK_p \times 0{,}5 = 4\ \text{V}\). Valeur finale (\(p \to 0\)) : \(K_p \times 0{,}5 = 1\ \text{V}\). Le pic initial est 4 fois la valeur finale : c'est le prix de l'action dérivée.</p>
+    <p><strong>Q5.</strong> \(a = \dfrac{1+\sin 55°}{1-\sin 55°} = \dfrac{1{,}819}{0{,}181} \approx 10\).</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 03</span><span class="diff">★ ★ ☆</span>
+  <h3>Conflit précision–stabilité en correction proportionnelle</h3>
+  <div class="statement">Une régulation de pression est modélisée, retour unitaire, par \(H(p) = \dfrac{4}{(1+5p)(1+p)(1+0{,}2p)}\). Correcteur : \(C(p) = K_p\). Cahier des charges : \(M_\varphi \geq 45°\), \(M_G \geq 10\ \text{dB}\), écart statique ≤ 2 % pour un échelon.</div>
+  <div class="q"><strong>Q1.</strong> Calculer l'écart statique relatif pour \(K_p = 1\).</div>
+  <div class="q"><strong>Q2.</strong> Développer le dénominateur, en déduire \(\omega_\pi\) et le gain limite \(K_{lim}\).</div>
+  <div class="q"><strong>Q3.</strong> Quelle condition sur \(K_p\) garantit \(M_G \geq 10\ \text{dB}\) ?</div>
+  <div class="q"><strong>Q4.</strong> Vérifier que la phase de \(H\) vaut \(-135°\) en \(\omega = 1\ \text{rad/s}\) ; en déduire le \(K_p\) donnant \(M_\varphi = 45°\).</div>
+  <div class="q"><strong>Q5.</strong> Quel \(K_p\) retenir ? Le critère de précision est-il satisfait ? Conclure.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> Classe 0 : \(\varepsilon_s = \dfrac{1}{1+4K_p} = \dfrac{1}{5} = 20\ \%\).</p>
+    <p><strong>Q2.</strong> En développant, le dénominateur vaut</p>
+    <div class="formula">$$D(p) = 1 + 6{,}2p + 6{,}2p^2 + p^3$$</div>
+    <p>En \(p = j\omega\) : partie réelle \(1 - 6{,}2\omega^2\), partie imaginaire \(\omega(6{,}2 - \omega^2)\). La phase vaut \(-180°\) quand la partie imaginaire s'annule (avec partie réelle négative) : \(\omega_\pi = \sqrt{6{,}2} \approx 2{,}49\ \text{rad/s}\). Le dénominateur y vaut \(1 - 6{,}2^2 = -37{,}44\), donc \(|H(j\omega_\pi)| = 4/37{,}44 \approx 0{,}107\) et \(K_{lim} = 9{,}36\).</p>
+    <p><strong>Q3.</strong> \(M_G = 20\log\dfrac{K_{lim}}{K_p} \geq 10\) ⇔ \(K_p \leq \dfrac{9{,}36}{\sqrt{10}} \approx 2{,}96\).</p>
+    <p><strong>Q4.</strong> \(\arctan 5 + \arctan 0{,}2 = 90°\) (arguments inverses) et \(\arctan 1 = 45°\) : la phase vaut bien \(-135°\). \(|H(j1)| = \dfrac{4}{\sqrt{26 \times 2 \times 1{,}04}} = \dfrac{4}{7{,}35} \approx 0{,}544\), d'où \(K_p \approx 1{,}84\).</p>
+    <p><strong>Q5.</strong> On garde le plus petit : \(K_p = 1{,}84\), qui donne \(M_\varphi = 45°\) et \(M_G = 20\log(9{,}36/1{,}84) \approx 14\ \text{dB}\). L'écart vaut alors \(\dfrac{1}{1+7{,}35} \approx 12\ \%\) : critère non satisfait. Pour 2 %, il faudrait \(4K_p \geq 49\), soit \(K_p \geq 12{,}25 \gt K_{lim}\) : impossible avec un P, le système serait instable. Il faut augmenter la classe : correcteur PI. <em>Remarque :</em> une simulation avec \(K_p = 1{,}84\) donne un dépassement voisin de 30 %, au-dessus de la règle « 45° ↔ 23 % » : pour une FTBO d'ordre 3 de classe 0, cette règle n'est qu'indicative.</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 04</span><span class="diff">★ ★ ☆</span>
+  <h3>PI par compensation du pôle dominant</h3>
+  <div class="statement">Un tapis de convoyage est asservi en vitesse (retour unitaire, grandeurs normalisées en volts) : \(H(p) = \dfrac{8}{(1+1{,}2p)(1+0{,}04p)}\). On souhaite un écart statique nul et \(M_\varphi = 60°\). La commande est limitée à \(\pm 12\ \text{V}\).</div>
+  <div class="q"><strong>Q1.</strong> Pourquoi un correcteur proportionnel ne peut-il pas satisfaire l'exigence de précision ?</div>
+  <div class="q"><strong>Q2.</strong> On choisit \(C(p) = K_p\dfrac{1+T_ip}{T_ip}\) avec \(T_i = 1{,}2\ \text{s}\). Écrire la FTBO corrigée.</div>
+  <div class="q"><strong>Q3.</strong> Déterminer \(K_p\) pour \(M_\varphi = 60°\).</div>
+  <div class="q"><strong>Q4.</strong> Montrer que la FTBF est un 2ᵉ ordre ; calculer \(\omega_0\), \(\xi\) et le dépassement.</div>
+  <div class="q"><strong>Q5.</strong> Pour un échelon de consigne de 4 V, calculer \(u(0^+)\). La saturation est-elle atteinte ?</div>
+  <div class="q"><strong>Q6.</strong> Un couple résistant s'ajoute entre le correcteur et le processus. Pourquoi son rejet sera-t-il lent ?</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> La FTBO \(8K_p/((1+1{,}2p)(1+0{,}04p))\) est de classe 0 : \(\varepsilon_s = \dfrac{E_0}{1+8K_p}\), jamais nul pour un gain fini.</p>
+    <p><strong>Q2.</strong> Dans le produit \(C(p)H(p)\), le facteur \((1+1{,}2p)\) apparaît au numérateur (zéro du PI) et au dénominateur (pôle lent) : il se simplifie, et \(8/1{,}2 = 20/3 \approx 6{,}67\ \text{s}^{-1}\).</p>
+    <div class="formula">$$H_{BO}(p) = \frac{20K_p/3}{p(1+0{,}04p)}$$</div>
+    <p><strong>Q3.</strong> \(-90° - \arctan(0{,}04\,\omega) = -120°\) → \(0{,}04\,\omega_c = \tan 30°\) → \(\omega_c = 25/\sqrt3 \approx 14{,}4\ \text{rad/s}\). Alors \(\omega_c\sqrt{1+1/3} = 50/3\), et \(\dfrac{20K_p/3}{50/3} = 1\) → \(K_p = 2{,}5\).</p>
+    <p><strong>Q4.</strong> Avec \(K_{BO} = 20K_p/3 \approx 16{,}7\ \text{s}^{-1}\) : \(H_{BF} = \dfrac{1}{1 + \dfrac{p}{K_{BO}} + \dfrac{0{,}04}{K_{BO}}p^2}\), 2ᵉ ordre de gain 1 (écart nul). \(\omega_0 = \sqrt{K_{BO}/0{,}04} \approx 20{,}4\ \text{rad/s}\) ; \(\dfrac{2\xi}{\omega_0} = \dfrac{1}{K_{BO}}\) → \(\xi = \dfrac{\omega_0}{2K_{BO}} \approx 0{,}61\) ; \(D = e^{-\pi\xi/\sqrt{1-\xi^2}} \approx 9\ \%\). L'abaque (\(t_{r5\%}\,\omega_0 \approx 5{,}2\) pour \(\xi = 0{,}61\)) donne \(t_{r5\%} \approx 0{,}25\ \text{s}\), cohérent avec \(3{,}7/\omega_c \approx 0{,}26\ \text{s}\).</p>
+    <p><strong>Q5.</strong> \(\varepsilon(0^+) = 4\ \text{V}\) et, au démarrage, le PI agit comme le gain \(K_p\) : \(u(0^+) = K_p \times 4 = 10\ \text{V} \lt 12\ \text{V}\). Pas de saturation ; la commande redescend ensuite vers sa valeur finale \(4/8 = 0{,}5\ \text{V}\).</p>
+    <p><strong>Q6.</strong> La simplification n'a lieu que dans la réponse à la consigne. Pour la perturbation, la fonction de transfert contient encore le pôle en \(-1/1{,}2\) : l'intégrateur finit par annuler l'écart, mais avec un mode de constante de temps de l'ordre de 1,2 s, bien plus lent que les 0,25 s de la réponse à la consigne.</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 05</span><span class="diff">★ ★ ☆</span>
+  <h3>PI placé une décade sous la coupure</h3>
+  <div class="statement">On a relevé le diagramme de Bode d'un processus de classe 0 et de gain statique 20 (retour unitaire) :
+  <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:.82rem;margin:.5rem 0;text-align:center">
+    <tr style="background:var(--paper-dark)"><th style="padding:.3rem;border:1px solid var(--grid)">\(\omega\) (rad/s)</th><td style="padding:.3rem;border:1px solid var(--grid)">2</td><td style="border:1px solid var(--grid)">5</td><td style="border:1px solid var(--grid)">8</td><td style="border:1px solid var(--grid)">10</td><td style="border:1px solid var(--grid)">15</td><td style="border:1px solid var(--grid)">20</td><td style="border:1px solid var(--grid)">25</td></tr>
+    <tr><th style="padding:.3rem;border:1px solid var(--grid)">\(G_{dB}\)</th><td style="padding:.3rem;border:1px solid var(--grid)">22,8</td><td style="border:1px solid var(--grid)">16,4</td><td style="border:1px solid var(--grid)">11,5</td><td style="border:1px solid var(--grid)">8,7</td><td style="border:1px solid var(--grid)">3,0</td><td style="border:1px solid var(--grid)">−1,7</td><td style="border:1px solid var(--grid)">−5,5</td></tr>
+    <tr><th style="padding:.3rem;border:1px solid var(--grid)">\(\varphi\) (°)</th><td style="padding:.3rem;border:1px solid var(--grid)">−58,6</td><td style="border:1px solid var(--grid)">−100,5</td><td style="border:1px solid var(--grid)">−123,7</td><td style="border:1px solid var(--grid)">−135,0</td><td style="border:1px solid var(--grid)">−155,4</td><td style="border:1px solid var(--grid)">−169,5</td><td style="border:1px solid var(--grid)">−180,2</td></tr>
+  </table></div>
+  Cahier des charges : écart statique nul, \(M_\varphi \geq 50°\), \(M_G \geq 10\ \text{dB}\). On utilise un PI dont la cassure est placée une décade sous la coupure : \(T_i\,\omega_c = 10\).</div>
+  <div class="q"><strong>Q1.</strong> Sans correction (\(C = 1\)) : estimer \(\omega_{c0}\), \(M_\varphi\), \(M_G\) et l'écart statique. Conclure.</div>
+  <div class="q"><strong>Q2.</strong> Quel retard de phase le PI apporte-t-il en \(\omega_c\) ? En déduire \(\omega_c\) puis \(T_i\).</div>
+  <div class="q"><strong>Q3.</strong> Calculer \(K_p\).</div>
+  <div class="q"><strong>Q4.</strong> Donner les asymptotes du diagramme de gain du PI.</div>
+  <div class="q"><strong>Q5.</strong> On admet que la phase de la FTBO corrigée atteint \(-180°\) vers 24 rad/s, où le gain de \(H\) vaut \(-4{,}8\ \text{dB}\). Vérifier \(M_G\).</div>
+  <div class="q"><strong>Q6.</strong> La simulation donne \(D \approx 13\ \%\) et \(t_{r5\%} \approx 0{,}9\ \text{s}\), avec une approche finale très lente. Interpréter.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> Le gain s'annule entre 15 et 20 rad/s : par interpolation \(\omega_{c0} \approx 18\ \text{rad/s}\), où \(\varphi \approx -165°\), soit \(M_\varphi \approx 15°\). À 25 rad/s la phase vaut ≈ −180° et le gain −5,5 dB : \(M_G \approx 5{,}5\ \text{dB}\). Écart statique : \(1/(1+20) \approx 4{,}8\ \%\). Les trois critères échouent.</p>
+    <p><strong>Q2.</strong> \(\Delta\varphi = \arctan\dfrac{1}{T_i\omega_c} = \arctan 0{,}1 \approx 5{,}7°\). On cherche \(\arg H(j\omega_c) = -180° + 50° + 5{,}7° \approx -124°\) : le tableau donne \(\omega_c = 8\ \text{rad/s}\). Donc \(T_i = 10/8 = 1{,}25\ \text{s}\) (cassure à 0,8 rad/s).</p>
+    <p><strong>Q3.</strong> En \(\omega_c\) : \(|C| = K_p\sqrt{1+0{,}01} \approx 1{,}005\,K_p\). Il faut \(20\log K_p + 0{,}04 + 11{,}5 = 0\) → \(20\log K_p \approx -11{,}5\ \text{dB}\) → \(K_p \approx 0{,}27\).</p>
+    <p><strong>Q4.</strong> Pente \(-20\ \text{dB/déc}\) jusqu'à \(1/T_i = 0{,}8\ \text{rad/s}\), puis plateau à \(20\log K_p \approx -11{,}5\ \text{dB}\).</p>
+    <p><strong>Q5.</strong> En 24 rad/s, le PI vaut quasiment \(K_p\) (\(T_i\omega = 30\)) : gain de la FTBO \(\approx -4{,}8 - 11{,}5 = -16{,}3\ \text{dB}\), donc \(M_G \approx 16\ \text{dB} \geq 10\ \text{dB}\). Et \(M_\varphi = 180° - 123{,}7° - 5{,}7° \approx 50{,}6°\). Cahier des charges respecté.</p>
+    <p><strong>Q6.</strong> Le PI a ramené la coupure de 18 à 8 rad/s : la réponse est plus lente mais bien amortie. L'approche finale lente vient d'un pôle de la boucle fermée très proche du zéro du PI (\(-1/T_i = -0{,}8\)) : leur effet ne se compense pas exactement et laisse une petite composante lente, la « traîne » typique du PI. Rapprocher \(1/T_i\) de \(\omega_c\) accélérerait cette traîne, mais coûterait de la phase en \(\omega_c\) : c'est le compromis du réglage.</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 06</span><span class="diff">★ ★ ★</span>
+  <h3>Avance de phase contre simple gain</h3>
+  <div class="statement">L'axe linéaire d'une machine de découpe a pour FTBO non corrigée (retour unitaire) \(H(p) = \dfrac{100}{p(1+0{,}05p)}\). Cahier des charges : \(M_\varphi \geq 45°\), pulsation de coupure \(\omega_c = 60\ \text{rad/s}\), gain de boucle \(K_{BO} \geq 100\ \text{s}^{-1}\) (erreur de traînage).</div>
+  <div class="q"><strong>Q1.</strong> Calculer \(\omega_{c0}\) et \(M_\varphi\) sans correction.</div>
+  <div class="q"><strong>Q2.</strong> On essaie \(C(p) = K_p\). Quel \(K_p\) donne \(M_\varphi = 45°\) ? Quelles conséquences sur la rapidité et sur \(K_{BO}\) ?</div>
+  <div class="q"><strong>Q3.</strong> On choisit \(C(p) = K_p\dfrac{1+aTp}{1+Tp}\) centré sur 60 rad/s. Calculer l'avance nécessaire, puis choisir \(a\) entier, \(T\) et \(K_p\).</div>
+  <div class="q"><strong>Q4.</strong> Vérifier \(M_\varphi\), \(K_{BO}\) et justifier que \(M_G\) reste infinie.</div>
+  <div class="q"><strong>Q5.</strong> La simulation donne : avec le P, \(D \approx 23\ \%\) et \(t_{r5\%} \approx 0{,}31\ \text{s}\) ; avec l'avance, \(D \approx 22\ \%\) et \(t_{r5\%} \approx 0{,}08\ \text{s}\). Commenter, et citer une contrepartie de l'avance de phase.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> \(|H(j\omega)| = 1\) ⇔ \(\omega^2(1+0{,}0025\,\omega^2) = 10^4\) ⇔ \(0{,}0025\,\omega^4 + \omega^2 - 10^4 = 0\) → \(\omega^2 = \dfrac{-1+\sqrt{101}}{0{,}005} \approx 1810\) → \(\omega_{c0} \approx 42{,}5\ \text{rad/s}\). Phase : \(-90° - \arctan 2{,}13 \approx -154{,}8°\), donc \(M_\varphi \approx 25°\) : trop faible.</p>
+    <p><strong>Q2.</strong> \(0{,}05\,\omega_\varphi = 1/\tan 45°\) → \(\omega_\varphi = 20\ \text{rad/s}\) ; \(|H(j20)| = \dfrac{100}{20\sqrt 2} \approx 3{,}54\) → \(K_p \approx 0{,}28\). La coupure tombe à 20 rad/s (plus de deux fois plus lent qu'avant) et \(K_{BO} = 28\ \text{s}^{-1}\) : l'erreur de traînage est multipliée par 3,5. Échec sur deux critères.</p>
+    <p><strong>Q3.</strong> \(\arg H(j60) = -90° - \arctan 3 \approx -161{,}6°\) : marge « naturelle » de 18,4° à cette pulsation, il manque \(45° - 18{,}4° = 26{,}6°\). Il faut \(a \geq \dfrac{1+\sin 26{,}6°}{1-\sin 26{,}6°} \approx 2{,}62\) : on prend \(a = 3\) (\(\varphi_m = 30°\)). \(T = \dfrac{1}{60\sqrt3} \approx 9{,}6\ \text{ms}\). \(|H(j60)| = \dfrac{100}{60\sqrt{10}} \approx 0{,}527\) → \(K_p = \dfrac{1}{\sqrt3 \times 0{,}527} \approx 1{,}10\).</p>
+    <p><strong>Q4.</strong> \(M_\varphi = 18{,}4° + 30° \approx 48{,}4° \geq 45°\) ; \(K_{BO} = 100K_p \approx 110\ \text{s}^{-1} \geq 100\). Phase de la FTBO corrigée : \(-90° - \arctan(0{,}05\omega) + \varphi_C(\omega)\) avec \(\arctan(0{,}05\omega) \lt 90°\) et \(\varphi_C \gt 0\) : elle reste au-dessus de \(-180°\), \(M_G\) infinie.</p>
+    <p><strong>Q5.</strong> Amortissement équivalent (\(M_\varphi\) voisines), mais une réponse près de 4 fois plus rapide et une précision de traînage 4 fois meilleure avec l'avance : elle seule satisfait le cahier des charges. Contreparties : gain haute fréquence \(aK_p \approx 3{,}3\) (bruit de mesure amplifié) et pic de commande \(u(0^+) = aK_p\,\varepsilon_0\), à comparer à la saturation de l'amplificateur.</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 07</span><span class="diff">★ ★ ☆</span>
+  <h3>Boucle de vitesse dans une boucle de position</h3>
+  <div class="statement">Un axe de robot est entraîné par un moteur dont la vitesse vérifie \(\Omega(p) = \dfrac{K_m\,U(p) - K_r\,C_r(p)}{1+\tau_mp}\), avec \(K_m = 2\ \text{rad·s}^{-1}\text{/V}\), \(\tau_m = 0{,}2\ \text{s}\) ; \(C_r\) est un couple résistant. Une boucle interne de vitesse (correcteur \(K_v\), capteur unitaire) reçoit la consigne \(\Omega_c\) ; une boucle externe de position (\(\theta = \Omega/p\), correcteur \(K_\theta\), capteur unitaire) fournit \(\Omega_c = K_\theta(\theta_c - \theta)\).</div>
+  <div class="q"><strong>Q1.</strong> Pour \(C_r = 0\), exprimer la FTBF \(\Omega/\Omega_c\) de la boucle interne sous forme canonique.</div>
+  <div class="q"><strong>Q2.</strong> Choisir \(K_v\) pour que la constante de temps interne soit divisée par 10.</div>
+  <div class="q"><strong>Q3.</strong> Régler \(K_\theta\) pour \(M_\varphi = 60°\) sur la boucle externe.</div>
+  <div class="q"><strong>Q4.</strong> Même question sans boucle interne (\(U = K'_\theta(\theta_c - \theta)\)). Comparer les rapidités.</div>
+  <div class="q"><strong>Q5.</strong> \(C_r\) est un échelon d'amplitude \(C_0\). Montrer que l'écart de position permanent vaut \(\dfrac{K_rC_0}{K_mK_vK_\theta}\). Comment l'annuler ?</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> Propriété du 1ᵉʳ ordre bouclé :</p>
+    <div class="formula">$$\frac{\Omega}{\Omega_c} = \frac{K_i}{1+\tau_i\,p}$$</div>
+    <div class="formula">$$K_i = \frac{K_mK_v}{1+K_mK_v}, \qquad \tau_i = \frac{\tau_m}{1+K_mK_v}$$</div>
+    <p><strong>Q2.</strong> \(1 + K_mK_v = 10\) → \(K_v = 4{,}5\ \text{V·s/rad}\). Gain statique interne \(K_i = 0{,}9\), constante de temps \(\tau_i = 0{,}02\ \text{s}\).</p>
+    <p><strong>Q3.</strong> FTBO externe : \(\dfrac{0{,}9\,K_\theta}{p(1+0{,}02p)}\). \(0{,}02\,\omega_\varphi = 1/\tan 60°\) → \(\omega_\varphi \approx 28{,}9\ \text{rad/s}\). \(K_\theta = \dfrac{28{,}9\sqrt{1+1/3}}{0{,}9} \approx 37\ \text{s}^{-1}\).</p>
+    <p><strong>Q4.</strong> FTBO : \(\dfrac{2K'_\theta}{p(1+0{,}2p)}\) → \(\omega_\varphi \approx 2{,}89\ \text{rad/s}\) et \(K'_\theta \approx 1{,}67\). Même amortissement (\(M_\varphi = 60°\), \(D \approx 9\ \%\)) mais coupure dix fois plus basse : \(t_{r5\%} \approx 3{,}7/\omega_c\) passe de ≈ 0,13 s (cascade) à ≈ 1,3 s. La boucle interne a rendu le moteur « vu de l'extérieur » dix fois plus rapide.</p>
+    <p><strong>Q5.</strong> En régime permanent la position est constante, donc \(\Omega = 0\). La relation du moteur donne alors \(K_mU = K_rC_0\), avec \(U = K_v(\Omega_c - 0) = K_vK_\theta(\theta_c - \theta)\). D'où \(\theta_c - \theta = \dfrac{K_rC_0}{K_mK_vK_\theta}\) : non nul car aucun intégrateur ne se trouve en amont du point d'entrée de \(C_r\) (l'intégration \(\theta = \Omega/p\) est en aval). Remède : un PI dans la boucle de vitesse, qui place un intégrateur avant la perturbation. Avec les réglages précédents, cet écart vaut \(\dfrac{K_rC_0}{K_m \times 167}\) en cascade (\(K_vK_\theta \approx 167\ \text{V/rad}\)), contre \(\dfrac{K_rC_0}{K_m \times 1{,}67}\) en correction directe : cent fois moins.</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 08</span><span class="diff">★ ★ ☆</span>
+  <h3>Table tournante : peut-on réduire le modèle aux pôles dominants ?</h3>
+  <div class="statement">Après réglage de son correcteur, l'asservissement en position d'une table tournante a pour fonction de transfert en boucle fermée (temps en secondes)
+    <div class="formula">$$H_{BF}(p) = \frac{1200}{(p+30)(p^2+6p+40)}$$</div>
+    On donne, pour un 2ᵉ ordre de gain statique 1 : \(D = e^{-\pi\xi/\sqrt{1-\xi^2}}\) et, lu sur l'abaque du temps de réponse, \(t_{r5\%}\,\omega_0 \approx 5{,}3\) pour \(\xi \approx 0{,}47\).</div>
+  <div class="q"><strong>Q1.</strong> Calculer les pôles et le gain statique de \(H_{BF}\).</div>
+  <div class="q"><strong>Q2.</strong> Justifier la réduction du modèle aux pôles dominants et écrire le modèle réduit \(H_r(p)\), avec le même gain statique. Calculer \(\omega_0\) et \(\xi\).</div>
+  <div class="q"><strong>Q3.</strong> Prévoir le dépassement et le temps de réponse à 5 % avec \(H_r\). La simulation du modèle complet donne \(D \approx 18{,}0\ \%\) et \(t_{r5\%} \approx 0{,}87\ \text{s}\). Conclure.</div>
+  <div class="q"><strong>Q4.</strong> Un filtre de mesure plus lourd déplace le troisième pôle en \(-6\) (numérateur 240, pour garder le gain statique). La simulation donne alors \(D \approx 8{,}8\ \%\) et \(t_{r5\%} \approx 0{,}95\ \text{s}\). Le modèle réduit de Q2 est-il encore acceptable ?</div>
+  <div class="q"><strong>Q5.</strong> On revient au pôle en \(-30\), mais le correcteur ajoute un zéro : le numérateur devient \(1200\,(1 + p/4)\). La simulation donne \(D \approx 54\ \%\). Quel modèle réduit faut-il écrire ? (Sa simulation donne \(D \approx 55\ \%\).)</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> Le trinôme \(p^2+6p+40\) a pour discriminant \(36 - 160 = -124\) : pôles \(-3 \pm j\sqrt{31} \approx -3 \pm 5{,}57j\), auxquels s'ajoute le pôle réel \(-30\). Gain statique : \(H_{BF}(0) = \dfrac{1200}{30 \times 40} = 1\) (écart statique nul).</p>
+    <p><strong>Q2.</strong> Les pôles dominants sont \(-3 \pm 5{,}57j\) (partie réelle la plus proche de zéro). Rapport des parties réelles : \(30/3 = 10\), au-delà du seuil de 5 et même du seuil prudent de 10 ; aucun zéro ne perturbe. On écrit \(p + 30 = 30\,(1 + p/30)\) et l'on remplace le facteur canonique \((1 + p/30)\) par 1, ce qui conserve \(H(0)\) :</p>
+    <div class="formula">$$H_r(p) = \frac{40}{p^2+6p+40}$$</div>
+    <p>Par identification avec \(\dfrac{1}{1 + \frac{2\xi}{\omega_0}p + \frac{p^2}{\omega_0^2}}\) : \(\omega_0 = \sqrt{40} \approx 6{,}32\ \text{rad/s}\) et \(2\xi\omega_0 = 6\), soit \(\xi = 3/\sqrt{40} \approx 0{,}47\).</p>
+    <p><strong>Q3.</strong> \(D = e^{-\pi \times 0{,}474/\sqrt{1 - 0{,}225}} \approx 18{,}4\ \%\) et \(t_{r5\%} \approx 5{,}3/6{,}32 \approx 0{,}84\ \text{s}\). Écarts avec le modèle complet : 0,4 point sur le dépassement et 4 % sur le temps de réponse. Le pôle rapide se contente de retarder très légèrement le début de la réponse : le modèle réduit suffit pour régler ou vérifier les performances temporelles.</p>
+    <p><strong>Q4.</strong> Le rapport des parties réelles tombe à \(6/3 = 2\), bien sous 5 : le troisième pôle n'est plus négligeable. Le modèle réduit prévoirait toujours 18 % de dépassement, plus du double des 8,8 % du modèle complet, et un temps de réponse trop court (0,84 s au lieu de 0,95 s). La réduction n'est plus légitime : on garde le modèle d'ordre 3.</p>
+    <p><strong>Q5.</strong> Le zéro en \(-4\) est voisin des pôles dominants (partie réelle \(-3\), module 6,3) : il modifie fortement la réponse sans déplacer les pôles, et le modèle réduit doit le garder. On néglige seulement le pôle en \(-30\) :</p>
+    <div class="formula">$$H_r(p) = \frac{40\,(1 + p/4)}{p^2+6p+40}$$</div>
+    <p>Il prévoit 55 % de dépassement pour 54 % sur le modèle complet, alors que le modèle de Q2, sans le zéro, annoncerait 18 % : une erreur grossière. La règle du rapport des pôles ne suffit donc pas : il faut toujours regarder aussi les zéros.</p>
+  </div>
+</div>
+
+<div class="exo concours">
+  <span class="num">CONCOURS PT</span><span class="diff">★ ★ ★</span>
+  <h3>Nacelle gyrostabilisée d'une caméra embarquée</h3>
+  <div class="exo-source">
+    Exercice <strong>original</strong> au format des épreuves de Sciences industrielles PT (thème <em>réglage des correcteurs</em>). Pour t'entraîner sur les sujets réellement tombés :
+    <a href="https://www.banquept.fr/rubrique38.html" target="_blank" rel="noopener">annales officielles de la Banque PT</a>.
+  </div>
+  <div class="statement">
+    L'axe de tangage d'une nacelle de caméra embarquée sur un drone est asservi en position angulaire. Le capteur et l'adaptateur ont le même gain (1 V/rad) ; la FTBO non corrigée, capteur compris, est
+    <div class="formula">$$H(p) = \frac{20}{p\,(1+0{,}1p)(1+0{,}01p)}$$</div>
+    Le correcteur \(C(p)\) délivre une tension de commande \(u\), limitée à \(\pm 10\ \text{V}\). Extrait du cahier des charges :
+    <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:.82rem;margin:.5rem 0">
+      <tr style="background:var(--paper-dark)"><th style="padding:.3rem .4rem;border:1px solid var(--grid)">Critère</th><th style="padding:.3rem .4rem;border:1px solid var(--grid)">Niveau</th></tr>
+      <tr><td style="padding:.3rem .4rem;border:1px solid var(--grid)">Stabilité</td><td style="padding:.3rem .4rem;border:1px solid var(--grid)">\(M_\varphi \geq 45°\), \(M_G \geq 10\ \text{dB}\)</td></tr>
+      <tr><td style="padding:.3rem .4rem;border:1px solid var(--grid)">Rapidité</td><td style="padding:.3rem .4rem;border:1px solid var(--grid)">\(t_{r5\%} \leq 0{,}2\ \text{s}\)</td></tr>
+      <tr><td style="padding:.3rem .4rem;border:1px solid var(--grid)">Amortissement</td><td style="padding:.3rem .4rem;border:1px solid var(--grid)">Dépassement ≤ 25 %</td></tr>
+      <tr><td style="padding:.3rem .4rem;border:1px solid var(--grid)">Précision</td><td style="padding:.3rem .4rem;border:1px solid var(--grid)">Écart statique nul pour un échelon de consigne</td></tr>
+      <tr><td style="padding:.3rem .4rem;border:1px solid var(--grid)">Commande</td><td style="padding:.3rem .4rem;border:1px solid var(--grid)">\(|u(t)| \leq 10\ \text{V}\) pour un échelon de consigne de 1 rad</td></tr>
+    </table></div>
+  </div>
+
+  <p class="exo-part">Partie A — Analyse du système non corrigé (\(C = 1\))</p>
+  <div class="q"><strong>A1.</strong> Le critère de précision est-il satisfait ? Le restera-t-il avec un correcteur P ou à avance de phase ?</div>
+  <div class="q"><strong>A2.</strong> Décrire le diagramme asymptotique de gain de \(H\) (pentes, niveau à 10 rad/s) et en déduire une estimation asymptotique de \(\omega_{c0}\).</div>
+  <div class="q"><strong>A3.</strong> Calculer \(\omega_\pi\) et la marge de gain. Sachant que la coupure réelle est à 12,4 rad/s, calculer \(M_\varphi\).</div>
+  <div class="q"><strong>A4.</strong> D'après les ordres de grandeur du cours, quelle pulsation de coupure minimale faut-il viser pour \(t_{r5\%} \leq 0{,}2\ \text{s}\) avec \(M_\varphi \approx 50°\) ?</div>
+
+  <p class="exo-part">Partie B — Correction proportionnelle</p>
+  <div class="q"><strong>B1.</strong> Montrer que la pulsation où la phase de \(H\) vaut \(-135°\) vérifie \(0{,}001\,\omega^2 + 0{,}11\,\omega - 1 = 0\) ; la calculer et en déduire \(K_p\) pour \(M_\varphi = 45°\).</div>
+  <div class="q"><strong>B2.</strong> La simulation donne alors \(t_{r5\%} \approx 0{,}71\ \text{s}\). Conclure.</div>
+
+  <p class="exo-part">Partie C — Correction à avance de phase</p>
+  <div class="q"><strong>C1.</strong> On vise \(\omega_c = 25\ \text{rad/s}\). Calculer la phase de \(H\) à cette pulsation et l'avance nécessaire pour \(M_\varphi = 45°\).</div>
+  <div class="q"><strong>C2.</strong> Choisir \(a\) entier, puis calculer \(T\) et \(K_p\) (\(|H(j25)| \approx 0{,}288\)).</div>
+  <div class="q"><strong>C3.</strong> En déduire \(M_\varphi\). On admet que la phase de la FTBO corrigée atteint \(-180°\) à 73,5 rad/s, où \(|H| \approx 0{,}0295\). Calculer \(M_G\).</div>
+
+  <p class="exo-part">Partie D — Validation</p>
+  <div class="q"><strong>D1.</strong> La simulation du système corrigé donne \(D \approx 19\ \%\) et \(t_{r5\%} \approx 0{,}16\ \text{s}\). Calculer \(u(0^+)\) pour un échelon de 1 rad et dresser le bilan du cahier des charges.</div>
+  <div class="q"><strong>D2.</strong> Un collègue propose de viser \(\omega_c = 30\ \text{rad/s}\) avec \(a = 7\) (\(K_p \approx 1{,}87\)) pour gagner en rapidité. Qu'en penser ?</div>
+
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>A1.</strong> La FTBO contient un intégrateur (classe 1) : écart statique nul pour un échelon. Un correcteur P ou à avance de phase ne change pas la classe (pas de zéro à l'origine) : le critère reste satisfait.</p>
+    <p><strong>A2.</strong> Pente \(-20\ \text{dB/déc}\) (asymptote \(20/\omega\)) jusqu'à 10 rad/s, où le niveau vaut \(20\log 2 \approx 6\ \text{dB}\) ; puis \(-40\ \text{dB/déc}\) jusqu'à 100 rad/s ; puis \(-60\ \text{dB/déc}\). Sur le tronçon à −40 : \(\dfrac{20}{\omega}\cdot\dfrac{10}{\omega} = 1\) → \(\omega_{c0} \approx \sqrt{200} \approx 14\ \text{rad/s}\) (asymptotique).</p>
+    <p><strong>A3.</strong> On développe le dénominateur :</p>
+    <div class="formula">$$p(1+0{,}1p)(1+0{,}01p) = p + 0{,}11p^2 + 0{,}001p^3$$</div>
+    <p>En \(j\omega\) : \(-0{,}11\,\omega^2 + j\omega(1 - 0{,}001\,\omega^2)\). Partie imaginaire nulle : \(\omega_\pi = \sqrt{1000} \approx 31{,}6\ \text{rad/s}\), où le dénominateur vaut \(-110\) : \(|H(j\omega_\pi)| = 20/110 \approx 0{,}18\), \(M_G = 20\log 5{,}5 \approx 14{,}8\ \text{dB}\). À 12,4 rad/s : \(\arctan 1{,}24 \approx 51{,}1°\) et \(\arctan 0{,}124 \approx 7{,}1°\), donc \(\varphi \approx -148{,}2°\) et \(M_\varphi \approx 32°\) (insuffisante).</p>
+    <p><strong>A4.</strong> Pour \(M_\varphi \approx 50°\), \(t_{r5\%}\,\omega_c \approx 4\) : il faut \(\omega_c \geq 4/0{,}2 = 20\ \text{rad/s}\). On visera 25 rad/s pour garder de la marge.</p>
+    <p><strong>B1.</strong> \(\arctan(0{,}1\omega) + \arctan(0{,}01\omega) = 45°\) ; en prenant la tangente : \(\dfrac{0{,}11\,\omega}{1 - 0{,}001\,\omega^2} = 1\), d'où l'équation. Racine positive :</p>
+    <div class="formula">$$\omega_\varphi = \frac{-0{,}11 + \sqrt{0{,}0121 + 0{,}004}}{0{,}002} \approx 8{,}44\ \text{rad/s}$$</div>
+    <p>Puis \(|H(j8{,}44)| = \dfrac{20}{8{,}44 \times 1{,}309 \times 1{,}004} \approx 1{,}80\) → \(K_p \approx 0{,}55\).</p>
+    <p><strong>B2.</strong> Coupure à 8,4 rad/s, bien en dessous des 20 rad/s requis : \(t_{r5\%} \approx 0{,}71\ \text{s} \gt 0{,}2\ \text{s}\). Le correcteur P assure la stabilité mais en ralentissant le système : il faut relever la phase autour de la coupure → avance de phase.</p>
+    <p><strong>C1.</strong> \(\arctan 2{,}5 \approx 68{,}2°\) et \(\arctan 0{,}25 \approx 14{,}0°\), donc \(\arg H(j25) \approx -172{,}2°\). Marge « naturelle » 7,8° ; avance nécessaire \(\varphi_m = 45° - 7{,}8° \approx 37{,}2°\).</p>
+    <p><strong>C2.</strong> \(a \geq \dfrac{1+\sin 37{,}2°}{1-\sin 37{,}2°} \approx 4{,}06\) : \(a = 4\) ne donnerait que \(\varphi_m \approx 36{,}9°\), soit \(M_\varphi \approx 44{,}6° \lt 45°\). On prend donc \(a = 5\) (arrondi par excès, \(\varphi_m \approx 41{,}8°\)), ce qui laisse en plus quelques degrés de réserve. \(T = \dfrac{1}{25\sqrt5} \approx 17{,}9\ \text{ms}\) (cassures à 11,2 et 55,9 rad/s). \(K_p = \dfrac{1}{\sqrt5 \times 0{,}288} \approx 1{,}55\).</p>
+    <p><strong>C3.</strong> \(M_\varphi = 7{,}8° + 41{,}8° \approx 49{,}6°\). À 73,5 rad/s, \(aT\omega \approx 6{,}58\) et \(T\omega \approx 1{,}32\) :</p>
+    <div class="formula">$$|C| = 1{,}55\sqrt{\frac{1+6{,}58^2}{1+1{,}32^2}} \approx 6{,}24$$</div>
+    <p>\(|C\,H| \approx 6{,}24 \times 0{,}0295 \approx 0{,}184\) → \(M_G \approx 14{,}7\ \text{dB}\). L'avance a fait passer \(\omega_\pi\) de 31,6 à 73,5 rad/s ; la marge de gain reste confortable.</p>
+    <p><strong>D1.</strong> \(u(0^+) = aK_p \times 1 \approx 7{,}8\ \text{V} \leq 10\ \text{V}\). Bilan : précision (classe 1) ✓ ; \(M_\varphi \approx 50° \geq 45°\) ✓ ; \(M_G \approx 14{,}7\ \text{dB} \geq 10\) ✓ ; \(D \approx 19\ \% \leq 25\ \%\) ✓ ; \(t_{r5\%} \approx 0{,}16\ \text{s} \leq 0{,}2\) ✓ ; commande ✓. Le cahier des charges est validé.</p>
+    <p><strong>D2.</strong> Calcul analogue : à 30 rad/s la phase de \(H\) vaut ≈ −178°, il manque ≈ 43° (\(a \geq 5{,}4\)) et \(a = 7\) garde une réserve. Mais \(u(0^+) = 7 \times 1{,}87 \approx 13{,}1\ \text{V} \gt 10\ \text{V}\) (et même \(a = 6\), avec \(K_p \approx 2{,}02\), donnerait ≈ 12,1 V) : l'amplificateur sature, le modèle linéaire n'est plus valable (réponse réelle plus lente et plus oscillante que prévu). De plus le gain haute fréquence \(aK_p\) passe de 7,8 à 13,1 : bruit de mesure davantage amplifié. Gagner quelques centièmes de seconde ne justifie pas ces risques : on conserve le réglage à 25 rad/s.</p>
+  </div>
+</div>
+
+</div>
+</template>

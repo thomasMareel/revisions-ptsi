@@ -1,0 +1,798 @@
+<!-- Chapitre « Stabilité des systèmes asservis » (stabilite) : contenu des onglets Cours, Méthodes et Exercices, chargé à l'ouverture du chapitre.
+     On l'édite ici, puis : node tools/chapitres.js (docs/chargement-chapitres.md). -->
+<template class="pan-tpl" data-panneau="stab-cours">
+<!-- ============ STABILITÉ : COURS ============ -->
+<div class="course-section">
+  <div class="sec-num">AU PROGRAMME · PTSI</div>
+  <h2>Ce que le programme officiel demande</h2>
+  <div class="intro">Ce chapitre couvre la <strong>stabilité des systèmes asservis</strong>, au programme du semestre S2 de sciences industrielles (compétences C2 « Déterminer les performances d'un système asservi » et C1 « Proposer une démarche permettant d'évaluer les performances »). <strong>Tout y est exigible en 1ʳᵉ année</strong>, sauf ce qui est signalé et la dernière section. Il s'appuie sur <a href="#schblocs/cours">« Schéma-blocs et systèmes asservis »</a> (FTBO, FTBF), <a href="#sys2/cours">« Systèmes du 2e ordre »</a> (amortissement, dépassement) et <a href="#bode/cours">« Réponse fréquentielle et diagrammes de Bode »</a>, sur lequel se lisent les marges. Il prépare <a href="#precision/cours">« Performances : précision et rapidité »</a> et, en 2ᵉ année, <a href="#correcteurs/cours">« Correction des SLCI »</a>.</div>
+  <div class="reveal" onclick="this.classList.toggle('open')">
+    <span class="label">Programme officiel</span>
+    <span class="prompt">Les capacités exigibles, dans l'ordre du chapitre</span>
+    <div class="content">
+      <ul>
+        <li><strong>Stabilité d'un système asservi : définition</strong> (C2, S2) ; stabilité d'une boucle fermée et équation caractéristique (§1).</li>
+        <li><strong>Position des pôles dans le plan complexe</strong> (C2, S2) : condition de stabilité (§1), conditions sur les coefficients et pôles imaginaires purs à la limite de stabilité (§2), position des pôles et allure de la réponse (§6).</li>
+        <li><strong>Marges de stabilité</strong> (C2, S2) : point critique et critère du revers sur le Bode de la boucle ouverte (§3), marges de phase et de gain (§4), influence du gain et d'un retard (§5), structures types de boucle ouverte et gain limite (§7).</li>
+        <li><strong>Amortissement</strong> (C2, S2) : lien entre pôles, amortissement et dépassement, lien entre marge de phase et amortissement (§4, §6).</li>
+        <li><strong>Proposer une démarche permettant d'évaluer les performances</strong> (C1, S2) : critères de stabilité du cahier des charges (marges, amortissement, dépassement relatif) ; démarche complète sur un axe asservi (§8).</li>
+      </ul>
+      <p>Hors programme des deux années (dernière section) : les critères de Routh et de Nyquist, les lieux de Black-Nichols et de Nyquist. La condition sur les coefficients d'un polynôme de degré 3 (§2) est un cas particulier du critère de Routh : elle n'est pas exigible et n'est utilisable que si l'énoncé la rappelle. Le réglage des correcteurs relève de la 2ᵉ année.</p>
+    </div>
+  </div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§1 · LA NOTION DE STABILITÉ</div>
+  <h2>Revenir à l'équilibre</h2>
+  <div class="intro">Boucler un système le rend plus rapide et plus précis, mais un bouclage trop énergique le fait osciller, puis diverger : une perceuse à colonne qui vibre, un drone qui se met à tanguer, un régulateur de chauffage qui alterne surchauffe et refroidissement. La stabilité est la première exigence d'un cahier des charges : un système instable est inutilisable, et souvent dangereux.</div>
+  <div class="def-box">
+    Un système est <strong>stable</strong> si à toute entrée bornée correspond une sortie bornée. Pour un SLCI, c'est équivalent à : sa réponse impulsionnelle tend vers 0, ou encore, écarté de son équilibre puis laissé libre, il y revient.
+  </div>
+  <div class="prop-box">
+    <strong>Condition sur les pôles.</strong> Un SLCI est stable si et seulement si <strong>tous les pôles de sa fonction de transfert sont à partie réelle strictement négative</strong>. Un pôle à partie réelle positive suffit à le rendre instable ; une paire de pôles imaginaires purs (et aucun pôle à droite) donne une oscillation entretenue : c'est la <strong>limite de stabilité</strong>, que l'on range avec les systèmes instables.
+  </div>
+  <div class="prop-box">
+    <strong>Pour un système bouclé</strong>, ce sont les pôles de la FTBF qui comptent. Avec un retour unitaire et \(H_{BO} = N_{BO}/D_{BO}\), ce sont les racines de l'<strong>équation caractéristique</strong>
+    <div class="formula" data-nom="Équation caractéristique">$$1 + H_{BO}(p) = 0 \iff D_{BO}(p) + N_{BO}(p) = 0.$$</div>
+    Une boucle ouverte stable peut donner une boucle fermée instable, et inversement.
+  </div>
+  <figure class="schema">
+<svg viewBox="0 0 420 190" role="img" aria-label="Réponses indicielles en boucle fermée pour trois gains : stable, limite et instable">
+<line x1="46" y1="146.7" x2="398" y2="146.7" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<line x1="46" y1="168" x2="46" y2="28" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<text x="400" y="150.7" class="lab-muted lab-it">t (s)</text>
+<text x="42" y="26" class="lab-muted lab-it" text-anchor="end">s(t)</text>
+<polyline points="46,146.7 47.3,146.7 48.6,146.6 49.9,146.6 51.3,146.4 52.6,146.3 53.9,146 55.2,145.6 56.5,145.2 57.8,144.6 59.1,144 60.4,143.3 61.8,142.5 63.1,141.6 64.4,140.6 65.7,139.6 67,138.4 68.3,137.3 69.6,136 70.9,134.7 72.3,133.3 73.6,132 74.9,130.5 76.2,129.1 77.5,127.6 78.8,126.2 80.1,124.7 81.4,123.2 82.8,121.7 84.1,120.3 85.4,118.9 86.7,117.5 88,116.1 89.3,114.8 90.6,113.5 91.9,112.3 93.3,111.1 94.6,110 95.9,108.9 97.2,107.9 98.5,106.9 99.8,106 101.1,105.2 102.4,104.5 103.8,103.8 105.1,103.1 106.4,102.6 107.7,102.1 109,101.7 110.3,101.3 111.6,101 112.9,100.8 114.3,100.7 115.6,100.5 116.9,100.5 118.2,100.5 119.5,100.6 120.8,100.7 122.1,100.8 123.5,101 124.8,101.3 126.1,101.5 127.4,101.9 128.7,102.2 130,102.6 131.3,103 132.6,103.4 134,103.8 135.3,104.3 136.6,104.8 137.9,105.2 139.2,105.7 140.5,106.2 141.8,106.7 143.1,107.2 144.5,107.7 145.8,108.2 147.1,108.7 148.4,109.1 149.7,109.6 151,110.1 152.3,110.5 153.6,110.9 155,111.3 156.3,111.7 157.6,112 158.9,112.4 160.2,112.7 161.5,113 162.8,113.3 164.1,113.5 165.5,113.7 166.8,113.9 168.1,114.1 169.4,114.3 170.7,114.4 172,114.5 173.3,114.6 174.6,114.7 176,114.7 177.3,114.8 178.6,114.8 179.9,114.8 181.2,114.7 182.5,114.7 183.8,114.6 185.2,114.6 186.5,114.5 187.8,114.4 189.1,114.3 190.4,114.1 191.7,114 193,113.9 194.3,113.7 195.7,113.6 197,113.4 198.3,113.2 199.6,113.1 200.9,112.9 202.2,112.7 203.5,112.6 204.8,112.4 206.2,112.2 207.5,112.1 208.8,111.9 210.1,111.7 211.4,111.6 212.7,111.4 214,111.3 215.3,111.1 216.7,111 218,110.9 219.3,110.7 220.6,110.6 221.9,110.5 223.2,110.4 224.5,110.3 225.8,110.3 227.2,110.2 228.5,110.1 229.8,110.1 231.1,110 232.4,110 233.7,109.9 235,109.9 236.3,109.9 237.7,109.9 239,109.9 240.3,109.9 241.6,109.9 242.9,109.9 244.2,109.9 245.5,109.9 246.8,109.9 248.2,110 249.5,110 250.8,110 252.1,110.1 253.4,110.1 254.7,110.2 256,110.2 257.4,110.3 258.7,110.3 260,110.4 261.3,110.5 262.6,110.5 263.9,110.6 265.2,110.6 266.5,110.7 267.9,110.8 269.2,110.8 270.5,110.9 271.8,110.9 273.1,111 274.4,111 275.7,111.1 277,111.1 278.4,111.2 279.7,111.2 281,111.3 282.3,111.3 283.6,111.3 284.9,111.4 286.2,111.4 287.5,111.4 288.9,111.4 290.2,111.5 291.5,111.5 292.8,111.5 294.1,111.5 295.4,111.5 296.7,111.5 298,111.5 299.4,111.5 300.7,111.5 302,111.5 303.3,111.5 304.6,111.5 305.9,111.5 307.2,111.5 308.5,111.5 309.9,111.5 311.2,111.5 312.5,111.5 313.8,111.5 315.1,111.4 316.4,111.4 317.7,111.4 319.1,111.4 320.4,111.4 321.7,111.3 323,111.3 324.3,111.3 325.6,111.3 326.9,111.3 328.2,111.2 329.6,111.2 330.9,111.2 332.2,111.2 333.5,111.2 334.8,111.2 336.1,111.1 337.4,111.1 338.7,111.1 340.1,111.1 341.4,111.1 342.7,111.1 344,111 345.3,111 346.6,111 347.9,111 349.2,111 350.6,111 351.9,111 353.2,111 354.5,111 355.8,111 357.1,111 358.4,111 359.7,111 361.1,111 362.4,111 363.7,111 365,111 366.3,111 367.6,111 368.9,111 370.2,111 371.6,111 372.9,111 374.2,111 375.5,111 376.8,111 378.1,111 379.4,111 380.7,111 382.1,111 383.4,111 384.7,111 386,111" class="sk-green"/>
+<line x1="50" y1="14" x2="68" y2="14" class="sk-green"/>
+<text x="74" y="18" class="lab-green">K = 2 : stable</text>
+<polyline points="46,146.7 47.3,146.7 48.6,146.5 49.9,146.3 51.3,145.8 52.6,145 53.9,143.9 55.2,142.5 56.5,140.8 57.8,138.7 59.1,136.2 60.4,133.4 61.8,130.3 63.1,126.9 64.4,123.2 65.7,119.3 67,115.2 68.3,110.9 69.6,106.6 70.9,102.1 72.3,97.7 73.6,93.3 74.9,88.9 76.2,84.7 77.5,80.7 78.8,76.9 80.1,73.3 81.4,70 82.8,67.1 84.1,64.6 85.4,62.4 86.7,60.7 88,59.4 89.3,58.6 90.6,58.2 91.9,58.4 93.3,58.9 94.6,60 95.9,61.5 97.2,63.4 98.5,65.7 99.8,68.4 101.1,71.5 102.4,74.9 103.8,78.6 105.1,82.5 106.4,86.6 107.7,90.8 109,95.2 110.3,99.5 111.6,103.9 112.9,108.3 114.3,112.5 115.6,116.6 116.9,120.4 118.2,124.1 119.5,127.4 120.8,130.5 122.1,133.1 123.5,135.4 124.8,137.3 126.1,138.7 127.4,139.7 128.7,140.2 130,140.3 131.3,139.9 132.6,139 134,137.7 135.3,135.9 136.6,133.7 137.9,131.1 139.2,128.2 140.5,124.9 141.8,121.3 143.1,117.5 144.5,113.4 145.8,109.2 147.1,104.9 148.4,100.6 149.7,96.2 151,91.8 152.3,87.5 153.6,83.4 155,79.5 156.3,75.7 157.6,72.3 158.9,69.1 160.2,66.3 161.5,63.9 162.8,61.9 164.1,60.3 165.5,59.1 166.8,58.4 168.1,58.2 169.4,58.4 170.7,59.2 172,60.3 173.3,62 174.6,64 176,66.4 177.3,69.3 178.6,72.4 179.9,75.9 181.2,79.6 182.5,83.6 183.8,87.7 185.2,92 186.5,96.4 187.8,100.8 189.1,105.1 190.4,109.4 191.7,113.6 193,117.7 194.3,121.5 195.7,125 197,128.3 198.3,131.2 199.6,133.8 200.9,136 202.2,137.7 203.5,139 204.8,139.9 206.2,140.3 207.5,140.2 208.8,139.7 210.1,138.7 211.4,137.2 212.7,135.3 214,133 215.3,130.3 216.7,127.3 218,123.9 219.3,120.3 220.6,116.4 221.9,112.3 223.2,108.1 224.5,103.7 225.8,99.3 227.2,95 228.5,90.6 229.8,86.4 231.1,82.3 232.4,78.4 233.7,74.7 235,71.4 236.3,68.3 237.7,65.6 239,63.3 240.3,61.4 241.6,59.9 242.9,58.9 244.2,58.3 245.5,58.2 246.8,58.6 248.2,59.4 249.5,60.7 250.8,62.5 252.1,64.6 253.4,67.2 254.7,70.1 256,73.4 257.4,76.9 258.7,80.7 260,84.7 261.3,88.9 262.6,93.2 263.9,97.6 265.2,102 266.5,106.3 267.9,110.6 269.2,114.8 270.5,118.7 271.8,122.5 273.1,126 274.4,129.2 275.7,132 277,134.4 278.4,136.5 279.7,138.1 281,139.3 282.3,140.1 283.6,140.3 284.9,140.1 286.2,139.4 287.5,138.3 288.9,136.7 290.2,134.7 291.5,132.3 292.8,129.5 294.1,126.4 295.4,122.9 296.7,119.2 298,115.3 299.4,111.1 300.7,106.9 302,102.5 303.3,98.1 304.6,93.7 305.9,89.4 307.2,85.2 308.5,81.2 309.9,77.3 311.2,73.8 312.5,70.5 313.8,67.5 315.1,64.9 316.4,62.7 317.7,60.9 319.1,59.6 320.4,58.7 321.7,58.2 323,58.3 324.3,58.8 325.6,59.8 326.9,61.2 328.2,63 329.6,65.3 330.9,68 332.2,71 333.5,74.3 334.8,78 336.1,81.8 337.4,85.9 338.7,90.1 340.1,94.4 341.4,98.8 342.7,103.2 344,107.5 345.3,111.8 346.6,115.9 347.9,119.8 349.2,123.5 350.6,126.9 351.9,130 353.2,132.7 354.5,135.1 355.8,137 357.1,138.5 358.4,139.6 359.7,140.2 361.1,140.3 362.4,140 363.7,139.2 365,137.9 366.3,136.2 367.6,134.1 368.9,131.6 370.2,128.7 371.6,125.4 372.9,121.9 374.2,118.1 375.5,114.1 376.8,109.9 378.1,105.7 379.4,101.3 380.7,96.9 382.1,92.5 383.4,88.2 384.7,84.1 386,80.1" class="sk-amber"/>
+<line x1="170" y1="14" x2="188" y2="14" class="sk-amber"/>
+<text x="194" y="18" class="lab-amber">K = 8 : limite</text>
+<polyline points="46,146.7 47.3,146.6 48.6,146.5 49.9,146.2 51.3,145.6 52.6,144.6 53.9,143.2 55.2,141.5 56.5,139.3 57.8,136.7 59.1,133.6 60.4,130.2 61.8,126.3 63.1,122.1 64.4,117.6 65.7,112.9 67,107.9 68.3,102.8 69.6,97.6 70.9,92.4 72.3,87.2 73.6,82.1 74.9,77.2 76.2,72.5 77.5,68.2 78.8,64.2 80.1,60.7 81.4,57.6 82.8,55 84.1,53 85.4,51.5 86.7,50.7 88,50.5 89.3,51 90.6,52 91.9,53.7 93.3,56.1 94.6,59 95.9,62.4 97.2,66.4 98.5,70.8 99.8,75.6 101.1,80.8 102.4,86.3 103.8,92 105.1,97.8 106.4,103.7 107.7,109.5 109,115.3 110.3,120.9 111.6,126.2 112.9,131.2 114.3,135.9 115.6,140 116.9,143.7 118.2,146.7 119.5,149.2 120.8,151 122.1,152.1 123.5,152.5 124.8,152.2 126.1,151.1 127.4,149.4 128.7,146.9 130,143.8 131.3,140 132.6,135.6 134,130.7 135.3,125.3 136.6,119.5 137.9,113.3 139.2,106.9 140.5,100.3 141.8,93.7 143.1,87 144.5,80.4 145.8,73.9 147.1,67.8 148.4,62 149.7,56.6 151,51.7 152.3,47.4 153.6,43.7 155,40.7" class="sk-accent"/>
+<polyline points="164.1,41.9 165.5,45.3 166.8,49.4 168.1,54.2 169.4,59.7 170.7,65.7 172,72.2 173.3,79.1 174.6,86.3 176,93.8 177.3,101.4 178.6,109 179.9,116.5 181.2,123.9 182.5,131 183.8,137.8 185.2,144 186.5,149.8 187.8,154.8 189.1,159.2 190.4,162.8 191.7,165.6 193,167.5" class="sk-accent"/>
+<polyline points="197,167.7 198.3,165.9 199.6,163.1 200.9,159.5 202.2,155 203.5,149.7 204.8,143.7 206.2,137 207.5,129.7 208.8,122 210.1,113.8 211.4,105.4 212.7,96.8 214,88.1 215.3,79.5 216.7,71 218,62.8 219.3,55 220.6,47.7 221.9,41" class="sk-accent"/>
+<polyline points="240.3,44.5 241.6,51.9 242.9,60.1 244.2,68.8 245.5,77.9 246.8,87.5 248.2,97.3 249.5,107.1 250.8,117 252.1,126.7 253.4,136.1 254.7,145.1 256,153.6 257.4,161.4" class="sk-accent"/>
+<polyline points="275.7,161.3 277,153.1 278.4,144 279.7,134.3 281,124 282.3,113.2 283.6,102.1 284.9,90.9 286.2,79.6 287.5,68.5 288.9,57.7 290.2,47.3" class="sk-accent"/>
+<polyline points="313.8,43.2 315.1,54.1 316.4,65.8 317.7,77.9 319.1,90.5 320.4,103.2 321.7,116.1 323,128.8 324.3,141.2 325.6,153.2 326.9,164.5" class="sk-accent"/>
+<polyline points="349.2,163.8 350.6,151.6 351.9,138.6 353.2,124.9 354.5,110.7 355.8,96.2 357.1,81.6 358.4,67 359.7,52.8" class="sk-accent"/>
+<line x1="290" y1="14" x2="308" y2="14" class="sk-accent"/>
+<text x="314" y="18" class="lab-accent">K = 10 : instable</text>
+<text x="131" y="184" class="lab-muted" text-anchor="middle">4</text>
+<text x="216" y="184" class="lab-muted" text-anchor="middle">8</text>
+<text x="301" y="184" class="lab-muted" text-anchor="middle">12</text>
+<text x="386" y="184" class="lab-muted" text-anchor="middle">16</text>
+</svg>
+<figcaption>Boucle à retour unitaire de FTBO \(\dfrac{K}{(1 + p)^3}\), réponses à un échelon unité. Pour \(K = 2\), la réponse s'amortit ; pour \(K = 8\), l'oscillation est entretenue (limite de stabilité) ; pour \(K = 10\), elle croît : la boucle est instable.</figcaption>
+</figure>
+  <div class="method-box">
+    <strong>Exemple — lire la stabilité sur les pôles</strong>
+    <ol>
+      <li>\(H_{BF}(p) = \dfrac{5}{(p + 1)(p^2 + 2p + 5)}\) : pôles \(-1\) et \(-1 \pm 2j\), tous à partie réelle négative : stable. Sa réponse impulsionnelle contient \(e^{-t}\) et \(e^{-t}\sin(2t)\), qui tendent vers 0.</li>
+      <li>Une boucle ouverte instable peut être stabilisée par le bouclage : pour un processus \(\dfrac{2}{p - 1}\) (pôle \(+1\), comme un pendule inversé linéarisé), la boucle à retour unitaire donne \(H_{BF} = \dfrac{2}{p - 1 + 2} = \dfrac{2}{p + 1}\), de pôle \(-1\) : stable.</li>
+    </ol>
+  </div>
+  <div class="notice"><strong>Erreur classique</strong> : conclure sur les pôles de la FTBO. Ils disent si la boucle <em>ouverte</em> est stable, pas la boucle fermée : sur la figure, la FTBO \(\dfrac{K}{(1 + p)^3}\) a un pôle triple stable en \(-1\) quel que soit \(K\), mais la boucle fermée est instable pour \(K = 10\).</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§2 · LES CRITÈRES ALGÉBRIQUES</div>
+  <h2>Conclure sans calculer les pôles</h2>
+  <div class="intro">Le polynôme caractéristique d'une boucle d'ordre 3 ou plus n'a pas de racines simples à calculer. Deux outils permettent pourtant de conclure : une condition nécessaire sur les coefficients, et la recherche des pôles imaginaires purs, qui marquent la limite de stabilité.</div>
+  <div class="prop-box">
+    Soit le polynôme caractéristique \(a_n p^n + \cdots + a_1 p + a_0\), avec \(a_n \gt 0\).
+    <ul>
+      <li><strong>Condition nécessaire</strong> : tous les coefficients sont strictement positifs. Un coefficient nul ou négatif suffit à conclure à l'instabilité.</li>
+      <li>Pour \(n = 1\) et \(n = 2\), cette condition est aussi <strong>suffisante</strong>.</li>
+    </ul>
+  </div>
+  <div class="reveal" onclick="this.classList.toggle('open')">
+    <span class="label">Démonstration</span>
+    <span class="prompt">Pourquoi les coefficients d'un polynôme stable sont positifs, et pourquoi cela suffit au degré 2.</span>
+    <div class="content"><p>Un polynôme réel se factorise en facteurs \((p + a)\) (racine réelle \(-a\)) et \((p^2 + bp + c)\) (racines complexes conjuguées, de somme \(-b\) et de produit \(c\)). Si toutes les racines sont à partie réelle négative, alors \(a \gt 0\), \(b \gt 0\) et \(c \gt 0\) : le produit de ces facteurs n'a que des coefficients positifs. Au degré 2, \(a_2p^2 + a_1p + a_0\) a des racines de somme \(-a_1/a_2 \lt 0\) et de produit \(a_0/a_2 \gt 0\) : deux racines réelles de même signe, négatives, ou deux racines complexes conjuguées de partie réelle \(-a_1/(2a_2) \lt 0\).</p></div>
+  </div>
+  <div class="prop-box">
+    <strong>Limite de stabilité.</strong> Quand un paramètre (le gain \(K\) le plus souvent) varie, les pôles se déplacent continûment ; la boucle passe de stable à instable quand des pôles traversent l'axe imaginaire. On trouve ce gain limite en cherchant les pôles <strong>imaginaires purs</strong> : on remplace \(p\) par \(j\omega\) dans l'équation caractéristique et on annule séparément sa partie réelle et sa partie imaginaire. La pulsation \(\omega\) trouvée est celle de l'oscillation entretenue.
+  </div>
+  <div class="method-box">
+    <strong>Exemple — le gain limite d'une boucle d'ordre 3</strong>
+    <p>FTBO \(\dfrac{K}{(1 + p)^3}\), retour unitaire, \(K \gt 0\).</p>
+    <ol>
+      <li>Équation caractéristique : \((1 + p)^3 + K = 0\), soit \(p^3 + 3p^2 + 3p + (1 + K) = 0\). Tous les coefficients sont positifs, mais au degré 3 cela ne suffit pas.</li>
+      <li>Pôles imaginaires purs \(p = j\omega\) : \(-j\omega^3 - 3\omega^2 + 3j\omega + 1 + K = 0\). Partie imaginaire : \(3\omega - \omega^3 = 0\), donc \(\omega = \sqrt3 \approx 1{,}73\ \text{rad/s}\). Partie réelle : \(1 + K - 3\omega^2 = 0\), donc \(K = 8\).</li>
+      <li>Pour \(K\) proche de 0, les pôles sont proches de \(-1\) : stable. Ils ne franchissent l'axe imaginaire qu'en \(K = 8\) : la boucle est stable pour \(K \lt 8\), à la limite pour \(K = 8\) (oscillation de période \(2\pi/\sqrt3 \approx 3{,}6\ \text{s}\), celle de la figure du §1), instable au-delà.</li>
+    </ol>
+  </div>
+  <div class="method-box">
+    <strong>Exemple — une boucle d'ordre 2 toujours stable</strong>
+    <p>FTBO \(\dfrac{K}{p\,(1 + 0{,}5p)}\) : équation caractéristique \(0{,}5p^2 + p + K = 0\). Pour \(K \gt 0\), les trois coefficients sont positifs et le degré est 2 : la boucle fermée est stable pour tout gain positif, de moins en moins amortie quand \(K\) augmente (\(\xi = 1/\sqrt{2K}\)).</p>
+  </div>
+  <div class="notice"><strong>Hors programme en PTSI</strong> (cas particulier du critère de Routh, à n'utiliser que si l'énoncé le rappelle) : au degré 3, \(a_3p^3 + a_2p^2 + a_1p + a_0\) est stable si et seulement si tous les coefficients sont positifs <strong>et</strong> \(a_2a_1 \gt a_3a_0\). Sur l'exemple : \(3 \times 3 \gt 1 \times (1 + K)\), soit \(K \lt 8\), le même résultat que par les pôles imaginaires purs.</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§3 · LE CRITÈRE DU REVERS</div>
+  <h2>Lire la stabilité sur la boucle ouverte</h2>
+  <div class="intro">Les critères algébriques demandent la fonction de transfert. Le critère du revers se lit sur le diagramme de Bode de la <strong>boucle ouverte</strong>, éventuellement mesuré. Il repose sur le <strong>point critique</strong> \(H_{BO}(j\omega) = -1\), soit un gain de 0 dB et une phase de \(-180°\) : à cette pulsation, \(1 + H_{BO} = 0\) et la boucle fermée a des pôles imaginaires purs.</div>
+  <div class="prop-box">
+    <strong>Critère du revers</strong> (boucle ouverte stable, sans retour positif). La boucle fermée à retour unitaire est stable si et seulement si, à la pulsation \(\omega_{c0}\) où le gain de la FTBO vaut 0 dB, sa phase est <strong>au-dessus</strong> de \(-180°\). De façon équivalente, à la pulsation \(\omega_\pi\) où la phase vaut \(-180°\), le gain doit être <strong>négatif</strong> (en dB).
+  </div>
+  <div class="notice"><strong>Pourquoi ?</strong> Un déphasage de \(-180°\) ajouté au signe moins du comparateur fait un tour complet : à cette pulsation, un signal qui parcourt la boucle revient <em>dans le même sens</em>. Si son amplitude a été amplifiée (gain supérieur à 0 dB), il se renforce à chaque tour et l'oscillation croît ; s'il a été atténué, elle s'éteint.</div>
+  <div class="method-box">
+    <strong>Exemple — le critère du revers sur la boucle du §1</strong>
+    <p>FTBO \(\dfrac{K}{(1 + p)^3}\) : gain \(\dfrac{K}{(1 + \omega^2)^{3/2}}\), phase \(-3\arctan\omega\), indépendante de \(K\).</p>
+    <ol>
+      <li>\(K = 2\) : le gain vaut 1 pour \(1 + \omega^2 = 2^{2/3}\), soit \(\omega_{c0} \approx 0{,}77\ \text{rad/s}\), où la phase vaut \(-3 \times 37{,}5° \approx -112°\), au-dessus de \(-180°\) : stable.</li>
+      <li>\(K = 10\) : \(1 + \omega^2 = 10^{2/3}\), soit \(\omega_{c0} \approx 1{,}91\ \text{rad/s}\), où la phase vaut \(-3 \times 62{,}3° \approx -187°\), en dessous : instable.</li>
+      <li>Lecture équivalente : la phase vaut \(-180°\) en \(\omega_\pi = \tan 60° = \sqrt3\), où le gain vaut \(K/8\) ; il est inférieur à 1 (négatif en dB) si et seulement si \(K \lt 8\). On retrouve le gain limite du §2.</li>
+    </ol>
+  </div>
+  <figure class="schema">
+<svg viewBox="0 0 410 308" role="img" aria-label="Diagrammes de Bode de K sur un plus p au cube pour K égal 2, 8 et 10 : la phase, commune, vaut moins 180 degrés en racine de 3 ; le gain y est négatif pour K égal 2, nul pour 8, positif pour 10">
+<line x1="58" y1="30.5" x2="388" y2="30.5" class="sk-axis" style="opacity:.35"/>
+<text x="52" y="34.5" class="lab-muted" text-anchor="end">20</text>
+<line x1="58" y1="58.6" x2="388" y2="58.6" class="sk-axis" style="opacity:.35"/>
+<text x="52" y="62.6" class="lab-muted" text-anchor="end">0</text>
+<line x1="58" y1="86.8" x2="388" y2="86.8" class="sk-axis" style="opacity:.35"/>
+<text x="52" y="90.8" class="lab-muted" text-anchor="end">−20</text>
+<line x1="58" y1="115" x2="388" y2="115" class="sk-axis" style="opacity:.35"/>
+<text x="52" y="119" class="lab-muted" text-anchor="end">−40</text>
+<line x1="58" y1="143.2" x2="388" y2="143.2" class="sk-axis" style="opacity:.35"/>
+<text x="52" y="147.2" class="lab-muted" text-anchor="end">−60</text>
+<line x1="96.2" y1="146" x2="96.2" y2="22" class="sk-axis" style="opacity:.35"/>
+<line x1="223" y1="146" x2="223" y2="22" class="sk-axis" style="opacity:.35"/>
+<line x1="253.3" y1="146" x2="253.3" y2="22" class="sk-axis" style="opacity:.35"/>
+<line x1="349.8" y1="146" x2="349.8" y2="22" class="sk-axis" style="opacity:.35"/>
+<rect x="58" y="22" width="330" height="124" class="sk-axis" style="fill:none"/>
+<text x="52" y="14" class="lab-muted" text-anchor="end">G (dB)</text>
+<polyline points="58,50.2 59.8,50.2 61.7,50.2 63.5,50.2 65.4,50.2 67.2,50.2 69.1,50.2 70.9,50.2 72.7,50.2 74.6,50.2 76.4,50.2 78.3,50.2 80.1,50.3 82,50.3 83.8,50.3 85.7,50.3 87.5,50.3 89.3,50.3 91.2,50.3 93,50.3 94.9,50.3 96.7,50.3 98.6,50.4 100.4,50.4 102.2,50.4 104.1,50.4 105.9,50.4 107.8,50.4 109.6,50.4 111.5,50.5 113.3,50.5 115.2,50.5 117,50.5 118.8,50.6 120.7,50.6 122.5,50.6 124.4,50.7 126.2,50.7 128.1,50.7 129.9,50.8 131.7,50.8 133.6,50.9 135.4,50.9 137.3,51 139.1,51 141,51.1 142.8,51.1 144.6,51.2 146.5,51.3 148.3,51.3 150.2,51.4 152,51.5 153.9,51.6 155.7,51.7 157.6,51.8 159.4,51.9 161.2,52 163.1,52.1 164.9,52.3 166.8,52.4 168.6,52.5 170.5,52.7 172.3,52.9 174.1,53 176,53.2 177.8,53.4 179.7,53.6 181.5,53.8 183.4,54.1 185.2,54.3 187.1,54.6 188.9,54.8 190.7,55.1 192.6,55.4 194.4,55.7 196.3,56.1 198.1,56.4 200,56.8 201.8,57.1 203.6,57.5 205.5,58 207.3,58.4 209.2,58.8 211,59.3 212.9,59.8 214.7,60.3 216.5,60.9 218.4,61.4 220.2,62 222.1,62.6 223.9,63.2 225.8,63.8 227.6,64.5 229.5,65.2 231.3,65.9 233.1,66.6 235,67.3 236.8,68.1 238.7,68.8 240.5,69.6 242.4,70.4 244.2,71.3 246,72.1 247.9,73 249.7,73.9 251.6,74.8 253.4,75.7 255.3,76.6 257.1,77.6 258.9,78.5 260.8,79.5 262.6,80.5 264.5,81.5 266.3,82.5 268.2,83.5 270,84.6 271.9,85.6 273.7,86.7 275.5,87.7 277.4,88.8 279.2,89.9 281.1,91 282.9,92.1 284.8,93.2 286.6,94.3 288.4,95.4 290.3,96.5 292.1,97.7 294,98.8 295.8,100 297.7,101.1 299.5,102.3 301.4,103.4 303.2,104.6 305,105.8 306.9,106.9 308.7,108.1 310.6,109.3 312.4,110.5 314.3,111.6 316.1,112.8 317.9,114 319.8,115.2 321.6,116.4 323.5,117.6 325.3,118.8 327.2,120 329,121.2 330.8,122.4 332.7,123.6 334.5,124.8 336.4,126 338.2,127.2 340.1,128.5 341.9,129.7 343.8,130.9 345.6,132.1 347.4,133.3 349.3,134.5 351.1,135.7 353,137 354.8,138.2 356.7,139.4 358.5,140.6 360.3,141.8 362.2,143.1 364,144.3 365.9,145.5" class="sk-green"/>
+<polyline points="58,33.2 59.8,33.2 61.7,33.2 63.5,33.2 65.4,33.2 67.2,33.2 69.1,33.3 70.9,33.3 72.7,33.3 74.6,33.3 76.4,33.3 78.3,33.3 80.1,33.3 82,33.3 83.8,33.3 85.7,33.3 87.5,33.3 89.3,33.3 91.2,33.3 93,33.3 94.9,33.4 96.7,33.4 98.6,33.4 100.4,33.4 102.2,33.4 104.1,33.4 105.9,33.4 107.8,33.5 109.6,33.5 111.5,33.5 113.3,33.5 115.2,33.5 117,33.6 118.8,33.6 120.7,33.6 122.5,33.7 124.4,33.7 126.2,33.7 128.1,33.8 129.9,33.8 131.7,33.8 133.6,33.9 135.4,33.9 137.3,34 139.1,34 141,34.1 142.8,34.2 144.6,34.2 146.5,34.3 148.3,34.4 150.2,34.4 152,34.5 153.9,34.6 155.7,34.7 157.6,34.8 159.4,34.9 161.2,35 163.1,35.2 164.9,35.3 166.8,35.4 168.6,35.6 170.5,35.7 172.3,35.9 174.1,36.1 176,36.2 177.8,36.4 179.7,36.6 181.5,36.9 183.4,37.1 185.2,37.3 187.1,37.6 188.9,37.9 190.7,38.1 192.6,38.4 194.4,38.8 196.3,39.1 198.1,39.4 200,39.8 201.8,40.2 203.6,40.6 205.5,41 207.3,41.4 209.2,41.9 211,42.3 212.9,42.8 214.7,43.4 216.5,43.9 218.4,44.4 220.2,45 222.1,45.6 223.9,46.2 225.8,46.9 227.6,47.5 229.5,48.2 231.3,48.9 233.1,49.6 235,50.3 236.8,51.1 238.7,51.9 240.5,52.7 242.4,53.5 244.2,54.3 246,55.2 247.9,56 249.7,56.9 251.6,57.8 253.4,58.7 255.3,59.6 257.1,60.6 258.9,61.6 260.8,62.5 262.6,63.5 264.5,64.5 266.3,65.5 268.2,66.6 270,67.6 271.9,68.6 273.7,69.7 275.5,70.8 277.4,71.8 279.2,72.9 281.1,74 282.9,75.1 284.8,76.2 286.6,77.3 288.4,78.4 290.3,79.6 292.1,80.7 294,81.8 295.8,83 297.7,84.1 299.5,85.3 301.4,86.5 303.2,87.6 305,88.8 306.9,90 308.7,91.1 310.6,92.3 312.4,93.5 314.3,94.7 316.1,95.9 317.9,97.1 319.8,98.2 321.6,99.4 323.5,100.6 325.3,101.8 327.2,103 329,104.2 330.8,105.4 332.7,106.7 334.5,107.9 336.4,109.1 338.2,110.3 340.1,111.5 341.9,112.7 343.8,113.9 345.6,115.1 347.4,116.3 349.3,117.6 351.1,118.8 353,120 354.8,121.2 356.7,122.4 358.5,123.7 360.3,124.9 362.2,126.1 364,127.3 365.9,128.5 367.7,129.8 369.6,131 371.4,132.2 373.3,133.4 375.1,134.7 376.9,135.9 378.8,137.1 380.6,138.3 382.5,139.6 384.3,140.8 386.2,142 388,143.2" class="sk-amber"/>
+<polyline points="58,30.5 59.8,30.5 61.7,30.5 63.5,30.5 65.4,30.5 67.2,30.5 69.1,30.5 70.9,30.5 72.7,30.5 74.6,30.5 76.4,30.5 78.3,30.6 80.1,30.6 82,30.6 83.8,30.6 85.7,30.6 87.5,30.6 89.3,30.6 91.2,30.6 93,30.6 94.9,30.6 96.7,30.6 98.6,30.7 100.4,30.7 102.2,30.7 104.1,30.7 105.9,30.7 107.8,30.7 109.6,30.8 111.5,30.8 113.3,30.8 115.2,30.8 117,30.8 118.8,30.9 120.7,30.9 122.5,30.9 124.4,31 126.2,31 128.1,31 129.9,31.1 131.7,31.1 133.6,31.2 135.4,31.2 137.3,31.3 139.1,31.3 141,31.4 142.8,31.4 144.6,31.5 146.5,31.6 148.3,31.6 150.2,31.7 152,31.8 153.9,31.9 155.7,32 157.6,32.1 159.4,32.2 161.2,32.3 163.1,32.4 164.9,32.6 166.8,32.7 168.6,32.8 170.5,33 172.3,33.2 174.1,33.3 176,33.5 177.8,33.7 179.7,33.9 181.5,34.1 183.4,34.4 185.2,34.6 187.1,34.9 188.9,35.1 190.7,35.4 192.6,35.7 194.4,36 196.3,36.4 198.1,36.7 200,37.1 201.8,37.4 203.6,37.8 205.5,38.3 207.3,38.7 209.2,39.1 211,39.6 212.9,40.1 214.7,40.6 216.5,41.2 218.4,41.7 220.2,42.3 222.1,42.9 223.9,43.5 225.8,44.1 227.6,44.8 229.5,45.5 231.3,46.2 233.1,46.9 235,47.6 236.8,48.4 238.7,49.1 240.5,49.9 242.4,50.7 244.2,51.6 246,52.4 247.9,53.3 249.7,54.2 251.6,55.1 253.4,56 255.3,56.9 257.1,57.9 258.9,58.8 260.8,59.8 262.6,60.8 264.5,61.8 266.3,62.8 268.2,63.8 270,64.9 271.9,65.9 273.7,67 275.5,68 277.4,69.1 279.2,70.2 281.1,71.3 282.9,72.4 284.8,73.5 286.6,74.6 288.4,75.7 290.3,76.8 292.1,78 294,79.1 295.8,80.3 297.7,81.4 299.5,82.6 301.4,83.7 303.2,84.9 305,86.1 306.9,87.2 308.7,88.4 310.6,89.6 312.4,90.8 314.3,91.9 316.1,93.1 317.9,94.3 319.8,95.5 321.6,96.7 323.5,97.9 325.3,99.1 327.2,100.3 329,101.5 330.8,102.7 332.7,103.9 334.5,105.1 336.4,106.3 338.2,107.5 340.1,108.8 341.9,110 343.8,111.2 345.6,112.4 347.4,113.6 349.3,114.8 351.1,116 353,117.3 354.8,118.5 356.7,119.7 358.5,120.9 360.3,122.1 362.2,123.4 364,124.6 365.9,125.8 367.7,127 369.6,128.3 371.4,129.5 373.3,130.7 375.1,131.9 376.9,133.1 378.8,134.4 380.6,135.6 382.5,136.8 384.3,138 386.2,139.3 388,140.5" class="sk-accent"/>
+<line x1="58" y1="58.6" x2="388" y2="58.6" class="sk-ink" style="opacity:.6"/>
+<circle cx="253.3" cy="75.6" r="3" class="fl-ink"/>
+<circle cx="253.3" cy="58.6" r="3" class="fl-ink"/>
+<circle cx="253.3" cy="55.9" r="3" class="fl-ink"/>
+<text x="246.3" y="91.6" class="lab-green" text-anchor="end">−12 dB</text>
+<text x="260.3" y="49.9" class="lab-accent">+1,9 dB</text>
+<line x1="58" y1="179.1" x2="388" y2="179.1" class="sk-axis" style="opacity:.35"/>
+<text x="52" y="183.1" class="lab-muted" text-anchor="end">0</text>
+<line x1="58" y1="207" x2="388" y2="207" class="sk-axis" style="opacity:.35"/>
+<text x="52" y="211" class="lab-muted" text-anchor="end">−90</text>
+<line x1="58" y1="235" x2="388" y2="235" class="sk-axis" style="opacity:.35"/>
+<text x="52" y="239" class="lab-muted" text-anchor="end">−180</text>
+<line x1="58" y1="262.9" x2="388" y2="262.9" class="sk-axis" style="opacity:.35"/>
+<text x="52" y="266.9" class="lab-muted" text-anchor="end">−270</text>
+<line x1="96.2" y1="266" x2="96.2" y2="176" class="sk-axis" style="opacity:.35"/>
+<line x1="223" y1="266" x2="223" y2="176" class="sk-axis" style="opacity:.35"/>
+<line x1="253.3" y1="266" x2="253.3" y2="176" class="sk-axis" style="opacity:.35"/>
+<line x1="349.8" y1="266" x2="349.8" y2="176" class="sk-axis" style="opacity:.35"/>
+<rect x="58" y="176" width="330" height="90" class="sk-axis" style="fill:none"/>
+<text x="52" y="168" class="lab-muted" text-anchor="end">φ (°)</text>
+<polyline points="58,181.8 59.8,181.9 61.7,182 63.5,182 65.4,182.1 67.2,182.3 69.1,182.4 70.9,182.5 72.7,182.6 74.6,182.7 76.4,182.8 78.3,183 80.1,183.1 82,183.2 83.8,183.4 85.7,183.5 87.5,183.6 89.3,183.8 91.2,184 93,184.1 94.9,184.3 96.7,184.5 98.6,184.7 100.4,184.8 102.2,185 104.1,185.2 105.9,185.4 107.8,185.7 109.6,185.9 111.5,186.1 113.3,186.3 115.2,186.6 117,186.8 118.8,187.1 120.7,187.4 122.5,187.6 124.4,187.9 126.2,188.2 128.1,188.5 129.9,188.8 131.7,189.2 133.6,189.5 135.4,189.8 137.3,190.2 139.1,190.6 141,190.9 142.8,191.3 144.6,191.7 146.5,192.1 148.3,192.6 150.2,193 152,193.5 153.9,193.9 155.7,194.4 157.6,194.9 159.4,195.4 161.2,195.9 163.1,196.4 164.9,197 166.8,197.5 168.6,198.1 170.5,198.7 172.3,199.3 174.1,199.9 176,200.6 177.8,201.2 179.7,201.9 181.5,202.6 183.4,203.3 185.2,204 187.1,204.7 188.9,205.4 190.7,206.2 192.6,207 194.4,207.7 196.3,208.5 198.1,209.3 200,210.2 201.8,211 203.6,211.8 205.5,212.7 207.3,213.5 209.2,214.4 211,215.2 212.9,216.1 214.7,217 216.5,217.9 218.4,218.8 220.2,219.7 222.1,220.6 223.9,221.4 225.8,222.3 227.6,223.2 229.5,224.1 231.3,225 233.1,225.9 235,226.8 236.8,227.6 238.7,228.5 240.5,229.3 242.4,230.2 244.2,231 246,231.8 247.9,232.7 249.7,233.5 251.6,234.3 253.4,235 255.3,235.8 257.1,236.6 258.9,237.3 260.8,238 262.6,238.7 264.5,239.4 266.3,240.1 268.2,240.8 270,241.4 271.9,242.1 273.7,242.7 275.5,243.3 277.4,243.9 279.2,244.5 281.1,245 282.9,245.6 284.8,246.1 286.6,246.6 288.4,247.1 290.3,247.6 292.1,248.1 294,248.5 295.8,249 297.7,249.4 299.5,249.9 301.4,250.3 303.2,250.7 305,251.1 306.9,251.4 308.7,251.8 310.6,252.2 312.4,252.5 314.3,252.8 316.1,253.2 317.9,253.5 319.8,253.8 321.6,254.1 323.5,254.4 325.3,254.6 327.2,254.9 329,255.2 330.8,255.4 332.7,255.7 334.5,255.9 336.4,256.1 338.2,256.3 340.1,256.6 341.9,256.8 343.8,257 345.6,257.2 347.4,257.3 349.3,257.5 351.1,257.7 353,257.9 354.8,258 356.7,258.2 358.5,258.4 360.3,258.5 362.2,258.6 364,258.8 365.9,258.9 367.7,259 369.6,259.2 371.4,259.3 373.3,259.4 375.1,259.5 376.9,259.6 378.8,259.7 380.6,259.9 382.5,260 384.3,260 386.2,260.1 388,260.2" class="sk-ink"/>
+<line x1="58" y1="235" x2="388" y2="235" class="sk-ink" style="opacity:.6"/>
+<circle cx="253.3" cy="235" r="3" class="fl-accent"/>
+<text x="259.3" y="227" class="lab-accent">ω<tspan dy="4" font-size="12">π</tspan><tspan dy="-4"> = √3</tspan></text>
+<text x="96.2" y="282" class="lab-muted" text-anchor="middle">0,1</text>
+<text x="223" y="282" class="lab-muted" text-anchor="middle">1</text>
+<text x="253.3" y="282" class="lab-muted" text-anchor="middle">√3</text>
+<text x="349.8" y="282" class="lab-muted" text-anchor="middle">10</text>
+<text x="388" y="300" class="lab-muted" text-anchor="end">ω (rad/s, échelle log)</text>
+<line x1="150" y1="10" x2="168" y2="10" class="sk-green"/><text x="174" y="14" class="lab-green">K = 2</text><line x1="230" y1="10" x2="248" y2="10" class="sk-amber"/><text x="254" y="14" class="lab-amber">K = 8</text><line x1="310" y1="10" x2="328" y2="10" class="sk-accent"/><text x="334" y="14" class="lab-accent">K = 10</text>
+</svg>
+<figcaption>Critère du revers sur la FTBO \(\dfrac{K}{(1 + p)^3}\) de la figure du §1. La phase ne dépend pas de \(K\) et vaut \(-180°\) en \(\omega_\pi = \sqrt3\) rad/s ; le gain y vaut \(20\log(K/8)\) : \(-12\) dB pour \(K = 2\) (stable), 0 dB pour \(K = 8\) (limite), \(+1{,}9\) dB pour \(K = 10\) (instable).</figcaption>
+</figure>
+  <div class="notice"><strong>Conditions d'emploi</strong> : la boucle ouverte doit être stable (aucun pôle à partie réelle positive ; des intégrateurs sont admis) et son gain ne doit couper 0 dB qu'une fois. Pour une boucle ouverte instable, on revient aux pôles de la FTBF (§1, §2). C'est le cas de presque toutes les boucles rencontrées en PTSI.</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§4 · LES MARGES DE STABILITÉ</div>
+  <h2>Mesurer la distance au point critique</h2>
+  <div class="def-box">
+    <ul>
+      <li>La <strong>marge de phase</strong> est l'écart de la phase de la FTBO à \(-180°\), à la pulsation de coupure à 0 dB : \(M_\varphi = 180° + \arg H_{BO}(j\omega_{c0})\), avec \(|H_{BO}(j\omega_{c0})| = 1\).</li>
+      <li>La <strong>marge de gain</strong> est l'écart du gain à 0 dB, à la pulsation où la phase vaut \(-180°\) : \(M_G = -20\log|H_{BO}(j\omega_\pi)|\), avec \(\arg H_{BO}(j\omega_\pi) = -180°\).</li>
+    </ul>
+    <div class="formula" data-nom="Marges de stabilité">$$M_\varphi = 180° + \arg H_{BO}(j\omega_{c0}),\qquad M_G = -20\log\big|H_{BO}(j\omega_\pi)\big|.$$</div>
+    La boucle fermée est stable si les deux marges sont positives. Si la phase n'atteint jamais \(-180°\), la marge de gain est infinie.
+  </div>
+  <figure class="schema">
+<svg viewBox="0 0 410 306" role="img" aria-label="Lecture des marges de phase et de gain sur le diagramme de Bode d'une boucle ouverte">
+<line x1="58" y1="22" x2="388" y2="22" class="sk-axis" style="opacity:.35"/>
+<text x="52" y="26" class="lab-muted" text-anchor="end">40</text>
+<line x1="58" y1="42.7" x2="388" y2="42.7" class="sk-axis" style="opacity:.35"/>
+<text x="52" y="46.7" class="lab-muted" text-anchor="end">20</text>
+<line x1="58" y1="63.3" x2="388" y2="63.3" class="sk-axis" style="opacity:.35"/>
+<text x="52" y="67.3" class="lab-muted" text-anchor="end">0</text>
+<line x1="58" y1="84" x2="388" y2="84" class="sk-axis" style="opacity:.35"/>
+<text x="52" y="88" class="lab-muted" text-anchor="end">−20</text>
+<line x1="58" y1="104.7" x2="388" y2="104.7" class="sk-axis" style="opacity:.35"/>
+<text x="52" y="108.7" class="lab-muted" text-anchor="end">−40</text>
+<line x1="58" y1="125.3" x2="388" y2="125.3" class="sk-axis" style="opacity:.35"/>
+<text x="52" y="129.3" class="lab-muted" text-anchor="end">−60</text>
+<line x1="58" y1="146" x2="388" y2="146" class="sk-axis" style="opacity:.35"/>
+<text x="52" y="150" class="lab-muted" text-anchor="end">−80</text>
+<line x1="58" y1="146" x2="58" y2="22" class="sk-axis" style="opacity:.35"/>
+<line x1="168" y1="146" x2="168" y2="22" class="sk-axis" style="opacity:.35"/>
+<line x1="278" y1="146" x2="278" y2="22" class="sk-axis" style="opacity:.35"/>
+<line x1="388" y1="146" x2="388" y2="22" class="sk-axis" style="opacity:.35"/>
+<rect x="58" y="22" width="330" height="124" class="sk-axis" style="fill:none"/>
+<text x="52" y="14" class="lab-muted" text-anchor="end">G (dB)</text>
+<polyline points="58,30.2 60.1,30.6 62.2,31 64.2,31.4 66.3,31.8 68.4,32.2 70.5,32.6 72.5,33 74.6,33.4 76.7,33.8 78.8,34.2 80.8,34.5 82.9,34.9 85,35.3 87.1,35.7 89.1,36.1 91.2,36.5 93.3,36.9 95.4,37.3 97.4,37.7 99.5,38.1 101.6,38.5 103.7,38.9 105.7,39.3 107.8,39.7 109.9,40.1 112,40.5 114,40.9 116.1,41.3 118.2,41.7 120.3,42.1 122.3,42.5 124.4,42.9 126.5,43.3 128.6,43.7 130.6,44.1 132.7,44.5 134.8,44.9 136.9,45.3 138.9,45.8 141,46.2 143.1,46.6 145.2,47 147.2,47.4 149.3,47.9 151.4,48.3 153.5,48.7 155.5,49.2 157.6,49.6 159.7,50.1 161.8,50.5 163.8,51 165.9,51.4 168,51.9 170.1,52.4 172.2,52.9 174.2,53.3 176.3,53.8 178.4,54.3 180.5,54.8 182.5,55.3 184.6,55.9 186.7,56.4 188.8,56.9 190.8,57.5 192.9,58 195,58.6 197.1,59.1 199.1,59.7 201.2,60.3 203.3,60.9 205.4,61.5 207.4,62.1 209.5,62.7 211.6,63.3 213.7,64 215.7,64.6 217.8,65.3 219.9,65.9 222,66.6 224,67.3 226.1,68 228.2,68.7 230.3,69.4 232.3,70.1 234.4,70.8 236.5,71.5 238.6,72.2 240.6,73 242.7,73.7 244.8,74.5 246.9,75.2 248.9,76 251,76.7 253.1,77.5 255.2,78.3 257.2,79.1 259.3,79.8 261.4,80.6 263.5,81.4 265.5,82.2 267.6,83 269.7,83.9 271.8,84.7 273.8,85.5 275.9,86.3 278,87.2 280.1,88 282.2,88.9 284.2,89.7 286.3,90.6 288.4,91.5 290.5,92.4 292.5,93.3 294.6,94.2 296.7,95.1 298.8,96 300.8,96.9 302.9,97.8 305,98.8 307.1,99.7 309.1,100.7 311.2,101.6 313.3,102.6 315.4,103.6 317.4,104.6 319.5,105.6 321.6,106.6 323.7,107.6 325.7,108.7 327.8,109.7 329.9,110.7 332,111.8 334,112.8 336.1,113.9 338.2,115 340.3,116 342.3,117.1 344.4,118.2 346.5,119.3 348.6,120.4 350.6,121.5 352.7,122.6 354.8,123.7 356.9,124.9 358.9,126 361,127.1 363.1,128.2 365.2,129.4 367.2,130.5 369.3,131.6 371.4,132.8 373.5,133.9 375.5,135.1 377.6,136.2 379.7,137.4 381.8,138.5 383.8,139.7 385.9,140.8 388,142" class="sk-accent"/>
+<line x1="58" y1="63.3" x2="388" y2="63.3" class="sk-ink" style="opacity:.7"/>
+<line x1="58" y1="181" x2="388" y2="181" class="sk-axis" style="opacity:.35"/>
+<text x="52" y="185" class="lab-muted" text-anchor="end">−90</text>
+<line x1="58" y1="226" x2="388" y2="226" class="sk-axis" style="opacity:.35"/>
+<text x="52" y="230" class="lab-muted" text-anchor="end">−180</text>
+<line x1="58" y1="271" x2="388" y2="271" class="sk-axis" style="opacity:.35"/>
+<text x="52" y="275" class="lab-muted" text-anchor="end">−270</text>
+<line x1="58" y1="266" x2="58" y2="176" class="sk-axis" style="opacity:.35"/>
+<line x1="168" y1="266" x2="168" y2="176" class="sk-axis" style="opacity:.35"/>
+<line x1="278" y1="266" x2="278" y2="176" class="sk-axis" style="opacity:.35"/>
+<line x1="388" y1="266" x2="388" y2="176" class="sk-axis" style="opacity:.35"/>
+<rect x="58" y="176" width="330" height="90" class="sk-axis" style="fill:none"/>
+<text x="52" y="168" class="lab-muted" text-anchor="end">φ (°)</text>
+<polyline points="58,182.6 60.1,182.6 62.2,182.7 64.2,182.8 66.3,182.9 68.4,183 70.5,183 72.5,183.1 74.6,183.2 76.7,183.3 78.8,183.4 80.8,183.5 82.9,183.6 85,183.8 87.1,183.9 89.1,184 91.2,184.1 93.3,184.3 95.4,184.4 97.4,184.6 99.5,184.7 101.6,184.9 103.7,185.1 105.7,185.3 107.8,185.4 109.9,185.6 112,185.8 114,186.1 116.1,186.3 118.2,186.5 120.3,186.7 122.3,187 124.4,187.3 126.5,187.5 128.6,187.8 130.6,188.1 132.7,188.4 134.8,188.7 136.9,189 138.9,189.4 141,189.7 143.1,190.1 145.2,190.5 147.2,190.9 149.3,191.3 151.4,191.7 153.5,192.2 155.5,192.6 157.6,193.1 159.7,193.6 161.8,194.1 163.8,194.6 165.9,195.2 168,195.7 170.1,196.3 172.2,196.9 174.2,197.5 176.3,198.1 178.4,198.7 180.5,199.3 182.5,200 184.6,200.7 186.7,201.4 188.8,202 190.8,202.7 192.9,203.5 195,204.2 197.1,204.9 199.1,205.6 201.2,206.4 203.3,207.1 205.4,207.9 207.4,208.6 209.5,209.4 211.6,210.2 213.7,210.9 215.7,211.7 217.8,212.4 219.9,213.2 222,214 224,214.7 226.1,215.5 228.2,216.2 230.3,217 232.3,217.7 234.4,218.4 236.5,219.2 238.6,219.9 240.6,220.6 242.7,221.4 244.8,222.1 246.9,222.8 248.9,223.5 251,224.2 253.1,225 255.2,225.7 257.2,226.4 259.3,227.1 261.4,227.8 263.5,228.5 265.5,229.3 267.6,230 269.7,230.7 271.8,231.4 273.8,232.2 275.9,232.9 278,233.6 280.1,234.4 282.2,235.1 284.2,235.9 286.3,236.6 288.4,237.4 290.5,238.1 292.5,238.9 294.6,239.6 296.7,240.4 298.8,241.1 300.8,241.9 302.9,242.7 305,243.4 307.1,244.2 309.1,244.9 311.2,245.7 313.3,246.4 315.4,247.2 317.4,247.9 319.5,248.6 321.6,249.3 323.7,250 325.7,250.7 327.8,251.4 329.9,252.1 332,252.7 334,253.4 336.1,254 338.2,254.6 340.3,255.2 342.3,255.8 344.4,256.3 346.5,256.9 348.6,257.4 350.6,257.9 352.7,258.4 354.8,258.9 356.9,259.4 358.9,259.9 361,260.3 363.1,260.7 365.2,261.1 367.2,261.5 369.3,261.9 371.4,262.3 373.5,262.6 375.5,263 377.6,263.3 379.7,263.6 381.8,263.9 383.8,264.2 385.9,264.5 388,264.8" class="sk-accent"/>
+<line x1="58" y1="226" x2="388" y2="226" class="sk-ink" style="opacity:.7"/>
+<line x1="211.5" y1="63.3" x2="211.5" y2="210.1" class="sk-dash"/>
+<line x1="256.1" y1="78.6" x2="256.1" y2="226" class="sk-dash"/>
+<line x1="211.5" y1="226" x2="211.5" y2="210.1" class="sk-green" marker-end="url(#sk-arrow-green)"/>
+<line x1="256.1" y1="78.6" x2="256.1" y2="63.3" class="sk-green" marker-end="url(#sk-arrow-green)"/>
+<circle cx="211.5" cy="63.3" r="3" class="fl-accent"/>
+<circle cx="256.1" cy="226" r="3" class="fl-accent"/>
+<text x="205.5" y="219" class="lab-green lab-b" text-anchor="end">M<tspan dy="4" font-size="12">φ</tspan></text>
+<text x="262.1" y="75" class="lab-green lab-b">M<tspan dy="4" font-size="12">G</tspan></text>
+<text x="205.5" y="79.3" class="lab-accent" text-anchor="end">ω<tspan dy="4" font-size="12">c0</tspan></text>
+<text x="262.1" y="216" class="lab-accent">ω<tspan dy="4" font-size="12">π</tspan></text>
+<text x="58" y="282" class="lab-muted" text-anchor="middle">0,1</text>
+<text x="168" y="282" class="lab-muted" text-anchor="middle">1</text>
+<text x="278" y="282" class="lab-muted" text-anchor="middle">10</text>
+<text x="388" y="282" class="lab-muted" text-anchor="middle">100</text>
+<text x="388" y="300" class="lab-muted" text-anchor="end">ω (rad/s, échelle log)</text>
+</svg>
+<figcaption>Marges de \(H_{BO}(p) = \dfrac{4}{p\,(1 + 0{,}5p)(1 + 0{,}05p)}\). À \(\omega_{c0} \approx 2{,}5\) rad/s (gain nul), la phase vaut \(-148°\) : \(M_\varphi \approx 32°\). À \(\omega_\pi \approx 6{,}3\) rad/s (phase \(-180°\)), le gain vaut \(-14{,}8\) dB : \(M_G \approx 15\) dB.</figcaption>
+</figure>
+  <div class="method-box">
+    <strong>Exemple — calculer les marges pas à pas</strong>
+    <p>FTBO de la figure : \(H_{BO}(p) = \dfrac{4}{p\,(1 + 0{,}5p)(1 + 0{,}05p)}\) (classe 1, cassures en 2 et 20 rad/s).</p>
+    <ol>
+      <li>Estimation de \(\omega_{c0}\) sur les asymptotes : 12 dB en \(\omega = 1\), 6 dB en 2 rad/s, puis pente \(-40\) : 0 dB en \(2 \times 10^{6/40} \approx 2{,}8\ \text{rad/s}\). La courbe réelle, plus basse près de la cassure, coupe en fait 0 dB en \(\omega_{c0} \approx 2{,}49\ \text{rad/s}\) (résolution de \(|H_{BO}(j\omega)| = 1\)).</li>
+      <li>Phase exacte : \(-90° - \arctan 1{,}24 - \arctan 0{,}124\), soit \(-148{,}3°\), d'où \(M_\varphi \approx 32°\).</li>
+      <li>\(\omega_\pi\) : \(\arctan(0{,}5\omega) + \arctan(0{,}05\omega) = 90°\) équivaut à \(0{,}5\omega \times 0{,}05\omega = 1\), d'où \(\omega_\pi = \sqrt{40} \approx 6{,}3\ \text{rad/s}\). Gain : \(\dfrac{4}{6{,}32\,\sqrt{11}\,\sqrt{1{,}1}} = \dfrac{4}{22} \approx 0{,}18\), soit \(-14{,}8\) dB : \(M_G \approx 15\) dB.</li>
+      <li>Conclusion : stable, marge de gain confortable, mais marge de phase trop faible pour un cahier des charges usuel ; la réponse indicielle dépasse d'environ 40 %.</li>
+    </ol>
+  </div>
+  <div class="prop-box">
+    <strong>Valeurs usuelles d'un cahier des charges</strong> : \(M_\varphi \geq 45°\) et \(M_G \geq 6\) à 10 dB. Les marges sont des <strong>garanties de robustesse</strong> : la marge de gain dit de combien le gain peut augmenter (vieillissement, charge, erreur de modèle) avant l'instabilité ; la marge de phase, quel déphasage supplémentaire (retard, constante de temps négligée) la boucle peut supporter.
+  </div>
+  <div class="prop-box">
+    <strong>Marge de phase et amortissement.</strong> Quand la boucle fermée se comporte comme un deuxième ordre, \(\xi \approx M_\varphi(°)/100\) : \(M_\varphi = 45°\) donne un dépassement d'environ 20 %, \(M_\varphi = 60°\) environ 10 %, \(M_\varphi = 70°\) presque aucun (valeurs exactes au §6). Une marge de phase faible, même positive, se traduit par une réponse très oscillante.
+  </div>
+  <div class="notice"><strong>Erreurs classiques</strong> : lire les marges sur la FTBF (elles se lisent sur la FTBO) ; calculer la marge de phase à la pulsation de coupure asymptotique ou avec la phase asymptotique ; oublier le \(-90°\) d'un intégrateur ; écrire \(M_G = 20\log|H_{BO}(j\omega_\pi)|\) (le signe moins rend la marge positive quand le gain est négatif).</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§5 · L'INFLUENCE DU GAIN ET DU RETARD</div>
+  <h2>Ce qui rapproche du point critique</h2>
+  <div class="prop-box">
+    <strong>Augmenter le gain</strong> \(K\) de la FTBO translate la courbe de gain vers le haut sans changer la phase :
+    <ul>
+      <li>\(\omega_\pi\) ne change pas et \(M_G\) diminue de \(20\log(K'/K)\) ;</li>
+      <li>\(\omega_{c0}\) augmente : la boucle est plus rapide, mais la phase y est plus basse et \(M_\varphi\) diminue ;</li>
+      <li>le <strong>gain limite</strong> \(K_{lim} = K\cdot 10^{M_G/20}\) rend la boucle juste oscillante.</li>
+    </ul>
+  </div>
+  <div class="method-box">
+    <strong>Exemple — régler un gain pour une marge de phase</strong>
+    <p>FTBO \(\dfrac{K}{p\,(1 + 0{,}5p)}\) : on veut \(M_\varphi = 45°\).</p>
+    <ol>
+      <li>Il faut \(-90° - \arctan(0{,}5\,\omega_{c0}) = -135°\), donc \(0{,}5\,\omega_{c0} = 1\) et \(\omega_{c0} = 2\ \text{rad/s}\).</li>
+      <li>On impose 0 dB en cette pulsation : \(\dfrac{K}{2\sqrt{1 + 1}} = 1\), d'où \(K = 2\sqrt2 \approx 2{,}8\ \text{s}^{-1}\).</li>
+      <li>La phase de cette FTBO ne descend jamais sous \(-180°\) : la marge de gain est infinie, la boucle est stable pour tout \(K\), mais de moins en moins amortie quand \(K\) croît.</li>
+    </ol>
+  </div>
+  <div class="method-box">
+    <strong>Exemple — gain limite tiré de la marge de gain</strong>
+    <p>Pour la FTBO du §4 (\(K = 4\), \(M_G \approx 14{,}8\) dB) : \(K_{lim} = 4 \times 10^{14{,}8/20} \approx 22\). Doubler le gain (\(K = 8\)) retire 6 dB de marge de gain, qui tombe à 8,8 dB, et fait encore baisser la marge de phase.</p>
+  </div>
+  <div class="prop-box">
+    <strong>Un retard rogne la marge de phase.</strong> Un retard \(T\) dans la boucle ne change pas le gain mais ajoute \(-\omega T\) à la phase : en \(\omega_{c0}\), la marge de phase perd \(\omega_{c0}T\) radians. Le plus grand retard tolérable est
+    <div class="formula" data-nom="Retard maximal tolérable">$$T_{max} = \frac{M_\varphi\ (\text{en rad})}{\omega_{c0}}.$$</div>
+    Avec \(M_\varphi = 45°\) et \(\omega_{c0} = 10\ \text{rad/s}\) : \(T_{max} = 0{,}785/10 \approx 79\ \text{ms}\). Plus une boucle est rapide, moins elle tolère de retard : c'est la limite des commandes à distance et des réseaux lents.
+  </div>
+  <div class="method-box">
+    <strong>Exemple — un retard de mesure</strong>
+    <p>La boucle du §4 (\(\omega_{c0} \approx 2{,}49\ \text{rad/s}\), \(M_\varphi \approx 31{,}7°\)) reçoit sa mesure avec un retard de 0,1 s.</p>
+    <ol>
+      <li>Le gain ne change pas : \(\omega_{c0}\) reste 2,49 rad/s.</li>
+      <li>Perte de phase : \(\omega_{c0}T = 0{,}249\ \text{rad} \approx 14{,}3°\) ; la marge de phase tombe à \(17{,}4°\).</li>
+      <li>Retard maximal : la marge vaut \(31{,}7° = 0{,}553\ \text{rad}\), d'où \(T_{max} = 0{,}553/2{,}49 \approx 0{,}22\ \text{s}\).</li>
+    </ol>
+  </div>
+  <div class="notice">Une FTBO du premier ou du deuxième ordre sans retard n'atteint jamais \(-180°\) : la boucle fermée est stable pour tout gain positif. Dès que la FTBO est d'ordre 3 ou contient un retard, il existe un gain limite. Les constantes de temps négligées dans un modèle (capteur, inductance, filtre) sont donc à garder en tête : ce sont elles qui fixent la stabilité réelle.</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§6 · PÔLES, AMORTISSEMENT ET DÉPASSEMENT</div>
+  <h2>Ce que la position des pôles dit de la réponse</h2>
+  <div class="intro">Être stable ne suffit pas : une réponse qui oscille longtemps est inacceptable. La position des pôles de la FTBF dans le plan complexe dit à la fois si la réponse s'éteint, à quelle vitesse, et avec quelles oscillations ; c'est ce qu'exige un cahier des charges sous la forme d'un amortissement ou d'un dépassement relatif maximal.</div>
+  <div class="prop-box">
+    Un pôle \(p_k = \sigma \pm j\omega_d\) engendre dans la réponse un mode \(e^{\sigma t}\cos(\omega_d t + \phi)\) :
+    <ul>
+      <li>la partie réelle \(\sigma\) fixe l'évolution de l'enveloppe : décroissante si \(\sigma \lt 0\), en \(1/|\sigma|\) secondes à 37 % ; plus le pôle est loin à gauche de l'axe imaginaire, plus son mode s'éteint vite ;</li>
+      <li>la partie imaginaire \(\omega_d\) est la pulsation des oscillations (aucune pour un pôle réel) ;</li>
+      <li>pour un deuxième ordre, les pôles valent \(-\xi\omega_0 \pm j\omega_0\sqrt{1 - \xi^2}\) : leur module est \(\omega_0\) et l'angle \(\theta\) qu'ils font avec le demi-axe réel négatif vérifie \(\cos\theta = \xi\). Des pôles sur une même demi-droite issue de l'origine ont le même amortissement, donc le même dépassement.</li>
+    </ul>
+  </div>
+  <figure class="schema">
+<svg viewBox="0 0 420 300" role="img" aria-label="Plan complexe : pôles stables à gauche de l'axe imaginaire, instables à droite, et réponses impulsionnelles correspondantes">
+<rect x="60" y="28" width="216.7" height="150" class="fl-green-soft"/>
+<text x="68.3" y="20" class="lab-green">stable : Re(p) &lt; 0</text>
+<text x="355.8" y="20" class="lab-accent" text-anchor="end">instable</text>
+<line x1="60" y1="103" x2="370" y2="103" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<line x1="276.7" y1="178" x2="276.7" y2="18" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<text x="372" y="119" class="lab-muted lab-it" text-anchor="end">Re</text>
+<text x="282.7" y="26" class="lab-muted lab-it">Im</text>
+<line x1="276.7" y1="103" x2="81.7" y2="34.1" class="sk-dash"/>
+<line x1="276.7" y1="103" x2="81.7" y2="171.9" class="sk-dash"/>
+<text x="68.3" y="59.7" class="lab-muted">ξ = 0,7</text>
+<line x1="231" y1="41.3" x2="239" y2="49.3" class="sk-ink"/><line x1="231" y1="49.3" x2="239" y2="41.3" class="sk-ink"/>
+<line x1="231" y1="156.7" x2="239" y2="164.7" class="sk-ink"/><line x1="231" y1="164.7" x2="239" y2="156.7" class="sk-ink"/>
+<text x="242" y="38.3" class="lab-b">A</text>
+<line x1="147.7" y1="55.7" x2="155.7" y2="63.7" class="sk-ink"/><line x1="147.7" y1="63.7" x2="155.7" y2="55.7" class="sk-ink"/>
+<line x1="147.7" y1="142.3" x2="155.7" y2="150.3" class="sk-ink"/><line x1="147.7" y1="150.3" x2="155.7" y2="142.3" class="sk-ink"/>
+<text x="158.7" y="52.7" class="lab-b">B</text>
+<line x1="106" y1="99" x2="114" y2="107" class="sk-ink"/><line x1="106" y1="107" x2="114" y2="99" class="sk-ink"/>
+<text x="117" y="96" class="lab-b">C</text>
+<line x1="272.7" y1="64.4" x2="280.7" y2="72.4" class="sk-ink"/><line x1="272.7" y1="72.4" x2="280.7" y2="64.4" class="sk-ink"/>
+<line x1="272.7" y1="133.6" x2="280.7" y2="141.6" class="sk-ink"/><line x1="272.7" y1="141.6" x2="280.7" y2="133.6" class="sk-ink"/>
+<text x="283.7" y="61.4" class="lab-amber">D</text>
+<line x1="314.3" y1="41.3" x2="322.3" y2="49.3" class="sk-ink"/><line x1="314.3" y1="49.3" x2="322.3" y2="41.3" class="sk-ink"/>
+<line x1="314.3" y1="156.7" x2="322.3" y2="164.7" class="sk-ink"/><line x1="314.3" y1="164.7" x2="322.3" y2="156.7" class="sk-ink"/>
+<text x="325.3" y="38.3" class="lab-accent">E</text>
+<line x1="18" y1="246" x2="84" y2="246" class="sk-axis" style="opacity:.5"/>
+<line x1="18" y1="274" x2="18" y2="218" class="sk-axis" style="opacity:.5"/>
+<polyline points="18,246 18.4,243 18.8,240.1 19.2,237.5 19.7,235 20.1,232.8 20.5,230.9 20.9,229.2 21.3,227.8 21.7,226.6 22.2,225.7 22.6,225 23,224.6 23.4,224.5 23.8,224.5 24.2,224.8 24.6,225.3 25.1,226 25.5,226.9 25.9,227.9 26.3,229.1 26.7,230.4 27.1,231.8 27.5,233.2 28,234.8 28.4,236.3 28.8,237.9 29.2,239.5 29.6,241.1 30,242.7 30.5,244.2 30.9,245.7 31.3,247.1 31.7,248.4 32.1,249.6 32.5,250.8 32.9,251.8 33.4,252.7 33.8,253.5 34.2,254.2 34.6,254.7 35,255.2 35.4,255.5 35.8,255.7 36.3,255.8 36.7,255.8 37.1,255.7 37.5,255.5 37.9,255.2 38.3,254.8 38.8,254.3 39.2,253.8 39.6,253.3 40,252.6 40.4,252 40.8,251.3 41.2,250.6 41.7,249.8 42.1,249.1 42.5,248.4 42.9,247.7 43.3,247 43.7,246.3 44.2,245.6 44.6,245 45,244.5 45.4,243.9 45.8,243.5 46.2,243 46.6,242.7 47.1,242.3 47.5,242.1 47.9,241.9 48.3,241.7 48.7,241.6 49.1,241.5 49.5,241.5 50,241.6 50.4,241.7 50.8,241.8 51.2,241.9 51.6,242.1 52,242.4 52.5,242.6 52.9,242.9 53.3,243.2 53.7,243.5 54.1,243.8 54.5,244.2 54.9,244.5 55.4,244.8 55.8,245.2 56.2,245.5 56.6,245.8 57,246.1 57.4,246.4 57.8,246.6 58.3,246.9 58.7,247.1 59.1,247.3 59.5,247.5 59.9,247.6 60.3,247.8 60.8,247.9 61.2,247.9 61.6,248 62,248 62.4,248 62.8,248 63.2,248 63.7,247.9 64.1,247.9 64.5,247.8 64.9,247.7 65.3,247.6 65.7,247.4 66.2,247.3 66.6,247.2 67,247 67.4,246.9 67.8,246.7 68.2,246.6 68.6,246.4 69.1,246.3 69.5,246.1 69.9,246 70.3,245.9 70.7,245.7 71.1,245.6 71.5,245.5 72,245.4 72.4,245.3 72.8,245.3 73.2,245.2 73.6,245.2 74,245.1 74.5,245.1 74.9,245.1 75.3,245.1 75.7,245.1 76.1,245.1 76.5,245.1 76.9,245.1 77.4,245.2 77.8,245.2 78.2,245.3 78.6,245.3 79,245.4 79.4,245.5 79.8,245.5 80.3,245.6 80.7,245.7 81.1,245.7 81.5,245.8 81.9,245.9 82.3,245.9 82.8,246 83.2,246.1 83.6,246.1 84,246.2" class="sk-ink"/>
+<text x="51" y="290" class="lab-b" text-anchor="middle">A</text>
+<line x1="96" y1="246" x2="162" y2="246" class="sk-axis" style="opacity:.5"/>
+<line x1="96" y1="274" x2="96" y2="218" class="sk-axis" style="opacity:.5"/>
+<polyline points="96,246 96.4,241.3 96.8,237.4 97.2,234 97.7,231.3 98.1,229.1 98.5,227.4 98.9,226.1 99.3,225.2 99.7,224.7 100.2,224.5 100.6,224.5 101,224.7 101.4,225.2 101.8,225.8 102.2,226.5 102.6,227.3 103.1,228.2 103.5,229.2 103.9,230.2 104.3,231.2 104.7,232.3 105.1,233.3 105.5,234.4 106,235.4 106.4,236.4 106.8,237.3 107.2,238.2 107.6,239.1 108,239.9 108.5,240.7 108.9,241.4 109.3,242 109.7,242.6 110.1,243.2 110.5,243.7 110.9,244.2 111.4,244.6 111.8,245 112.2,245.3 112.6,245.6 113,245.9 113.4,246.1 113.8,246.3 114.3,246.4 114.7,246.6 115.1,246.7 115.5,246.8 115.9,246.8 116.3,246.9 116.8,246.9 117.2,246.9 117.6,246.9 118,246.9 118.4,246.9 118.8,246.9 119.2,246.9 119.7,246.8 120.1,246.8 120.5,246.8 120.9,246.7 121.3,246.7 121.7,246.6 122.2,246.6 122.6,246.5 123,246.5 123.4,246.4 123.8,246.4 124.2,246.4 124.6,246.3 125.1,246.3 125.5,246.3 125.9,246.2 126.3,246.2 126.7,246.2 127.1,246.1 127.5,246.1 128,246.1 128.4,246.1 128.8,246.1 129.2,246 129.6,246 130,246 130.5,246 130.9,246 131.3,246 131.7,246 132.1,246 132.5,246 132.9,246 133.4,246 133.8,246 134.2,246 134.6,246 135,246 135.4,246 135.8,246 136.3,246 136.7,246 137.1,246 137.5,246 137.9,246 138.3,246 138.8,246 139.2,246 139.6,246 140,246 140.4,246 140.8,246 141.2,246 141.7,246 142.1,246 142.5,246 142.9,246 143.3,246 143.7,246 144.2,246 144.6,246 145,246 145.4,246 145.8,246 146.2,246 146.6,246 147.1,246 147.5,246 147.9,246 148.3,246 148.7,246 149.1,246 149.5,246 150,246 150.4,246 150.8,246 151.2,246 151.6,246 152,246 152.5,246 152.9,246 153.3,246 153.7,246 154.1,246 154.5,246 154.9,246 155.4,246 155.8,246 156.2,246 156.6,246 157,246 157.4,246 157.8,246 158.3,246 158.7,246 159.1,246 159.5,246 159.9,246 160.3,246 160.8,246 161.2,246 161.6,246 162,246" class="sk-ink"/>
+<text x="129" y="290" class="lab-b" text-anchor="middle">B</text>
+<line x1="174" y1="246" x2="240" y2="246" class="sk-axis" style="opacity:.5"/>
+<line x1="174" y1="274" x2="174" y2="218" class="sk-axis" style="opacity:.5"/>
+<polyline points="174,224.5 174.4,226.5 174.8,228.4 175.2,230.1 175.7,231.6 176.1,233 176.5,234.2 176.9,235.4 177.3,236.4 177.7,237.3 178.2,238.1 178.6,238.9 179,239.6 179.4,240.2 179.8,240.7 180.2,241.2 180.6,241.7 181.1,242.1 181.5,242.5 181.9,242.8 182.3,243.1 182.7,243.4 183.1,243.6 183.5,243.9 184,244.1 184.4,244.3 184.8,244.4 185.2,244.6 185.6,244.7 186,244.8 186.5,244.9 186.9,245 187.3,245.1 187.7,245.2 188.1,245.3 188.5,245.4 188.9,245.4 189.4,245.5 189.8,245.5 190.2,245.6 190.6,245.6 191,245.7 191.4,245.7 191.8,245.7 192.3,245.7 192.7,245.8 193.1,245.8 193.5,245.8 193.9,245.8 194.3,245.8 194.8,245.9 195.2,245.9 195.6,245.9 196,245.9 196.4,245.9 196.8,245.9 197.2,245.9 197.7,245.9 198.1,245.9 198.5,245.9 198.9,245.9 199.3,246 199.7,246 200.2,246 200.6,246 201,246 201.4,246 201.8,246 202.2,246 202.6,246 203.1,246 203.5,246 203.9,246 204.3,246 204.7,246 205.1,246 205.5,246 206,246 206.4,246 206.8,246 207.2,246 207.6,246 208,246 208.5,246 208.9,246 209.3,246 209.7,246 210.1,246 210.5,246 210.9,246 211.4,246 211.8,246 212.2,246 212.6,246 213,246 213.4,246 213.8,246 214.3,246 214.7,246 215.1,246 215.5,246 215.9,246 216.3,246 216.8,246 217.2,246 217.6,246 218,246 218.4,246 218.8,246 219.2,246 219.7,246 220.1,246 220.5,246 220.9,246 221.3,246 221.7,246 222.2,246 222.6,246 223,246 223.4,246 223.8,246 224.2,246 224.6,246 225.1,246 225.5,246 225.9,246 226.3,246 226.7,246 227.1,246 227.5,246 228,246 228.4,246 228.8,246 229.2,246 229.6,246 230,246 230.5,246 230.9,246 231.3,246 231.7,246 232.1,246 232.5,246 232.9,246 233.4,246 233.8,246 234.2,246 234.6,246 235,246 235.4,246 235.8,246 236.3,246 236.7,246 237.1,246 237.5,246 237.9,246 238.3,246 238.8,246 239.2,246 239.6,246 240,246" class="sk-ink"/>
+<text x="207" y="290" class="lab-b" text-anchor="middle">C</text>
+<line x1="252" y1="246" x2="318" y2="246" class="sk-axis" style="opacity:.5"/>
+<line x1="252" y1="274" x2="252" y2="218" class="sk-axis" style="opacity:.5"/>
+<polyline points="252,246 252.4,244.7 252.8,243.4 253.2,242.1 253.7,240.8 254.1,239.6 254.5,238.4 254.9,237.2 255.3,236 255.7,234.9 256.2,233.8 256.6,232.7 257,231.7 257.4,230.8 257.8,229.9 258.2,229.1 258.6,228.3 259.1,227.6 259.5,226.9 259.9,226.4 260.3,225.9 260.7,225.4 261.1,225.1 261.5,224.8 262,224.6 262.4,224.5 262.8,224.5 263.2,224.5 263.6,224.6 264,224.8 264.5,225.1 264.9,225.4 265.3,225.9 265.7,226.3 266.1,226.9 266.5,227.6 266.9,228.3 267.4,229 267.8,229.9 268.2,230.7 268.6,231.7 269,232.7 269.4,233.7 269.8,234.8 270.3,236 270.7,237.1 271.1,238.3 271.5,239.6 271.9,240.8 272.3,242.1 272.8,243.4 273.2,244.7 273.6,246 274,247.3 274.4,248.6 274.8,249.8 275.2,251.1 275.7,252.4 276.1,253.6 276.5,254.8 276.9,256 277.3,257.1 277.7,258.2 278.2,259.2 278.6,260.2 279,261.2 279.4,262.1 279.8,262.9 280.2,263.7 280.6,264.4 281.1,265 281.5,265.6 281.9,266.1 282.3,266.5 282.7,266.9 283.1,267.2 283.5,267.4 284,267.5 284.4,267.5 284.8,267.5 285.2,267.4 285.6,267.2 286,266.9 286.5,266.6 286.9,266.2 287.3,265.7 287.7,265.1 288.1,264.5 288.5,263.8 288.9,263 289.4,262.2 289.8,261.3 290.2,260.3 290.6,259.3 291,258.3 291.4,257.2 291.8,256.1 292.3,254.9 292.7,253.7 293.1,252.5 293.5,251.2 293.9,250 294.3,248.7 294.8,247.4 295.2,246.1 295.6,244.8 296,243.5 296.4,242.2 296.8,240.9 297.2,239.7 297.7,238.4 298.1,237.2 298.5,236.1 298.9,234.9 299.3,233.8 299.7,232.8 300.2,231.8 300.6,230.8 301,229.9 301.4,229.1 301.8,228.3 302.2,227.6 302.6,227 303.1,226.4 303.5,225.9 303.9,225.5 304.3,225.1 304.7,224.8 305.1,224.6 305.5,224.5 306,224.5 306.4,224.5 306.8,224.6 307.2,224.8 307.6,225.1 308,225.4 308.5,225.8 308.9,226.3 309.3,226.9 309.7,227.5 310.1,228.2 310.5,229 310.9,229.8 311.4,230.7 311.8,231.6 312.2,232.6 312.6,233.7 313,234.8 313.4,235.9 313.8,237 314.3,238.2 314.7,239.5 315.1,240.7 315.5,242 315.9,243.3 316.3,244.6 316.8,245.9 317.2,247.2 317.6,248.5 318,249.8" class="sk-amber"/>
+<text x="285" y="290" class="lab-b" text-anchor="middle">D</text>
+<line x1="330" y1="246" x2="396" y2="246" class="sk-axis" style="opacity:.5"/>
+<line x1="330" y1="274" x2="330" y2="218" class="sk-axis" style="opacity:.5"/>
+<polyline points="330,246 330.4,245.9 330.8,245.9 331.2,245.8 331.7,245.7 332.1,245.7 332.5,245.6 332.9,245.5 333.3,245.5 333.7,245.4 334.2,245.3 334.6,245.3 335,245.2 335.4,245.2 335.8,245.1 336.2,245.1 336.6,245.1 337.1,245.1 337.5,245.1 337.9,245.1 338.3,245.1 338.7,245.1 339.1,245.2 339.5,245.2 340,245.3 340.4,245.3 340.8,245.4 341.2,245.5 341.6,245.6 342,245.7 342.5,245.8 342.9,246 343.3,246.1 343.7,246.2 344.1,246.4 344.5,246.5 344.9,246.7 345.4,246.8 345.8,247 346.2,247.1 346.6,247.3 347,247.4 347.4,247.5 347.8,247.7 348.3,247.8 348.7,247.9 349.1,247.9 349.5,248 349.9,248 350.3,248 350.8,248 351.2,248 351.6,248 352,247.9 352.4,247.8 352.8,247.7 353.2,247.5 353.7,247.3 354.1,247.1 354.5,246.9 354.9,246.7 355.3,246.4 355.7,246.1 356.2,245.8 356.6,245.5 357,245.2 357.4,244.9 357.8,244.5 358.2,244.2 358.6,243.9 359.1,243.6 359.5,243.2 359.9,242.9 360.3,242.7 360.7,242.4 361.1,242.2 361.5,242 362,241.8 362.4,241.7 362.8,241.6 363.2,241.5 363.6,241.5 364,241.6 364.5,241.7 364.9,241.8 365.3,242 365.7,242.3 366.1,242.6 366.5,243 366.9,243.4 367.4,243.9 367.8,244.4 368.2,245 368.6,245.6 369,246.2 369.4,246.9 369.8,247.6 370.3,248.3 370.7,249 371.1,249.8 371.5,250.5 371.9,251.2 372.3,251.9 372.8,252.6 373.2,253.2 373.6,253.8 374,254.3 374.4,254.8 374.8,255.1 375.2,255.5 375.7,255.7 376.1,255.8 376.5,255.8 376.9,255.7 377.3,255.5 377.7,255.2 378.2,254.8 378.6,254.2 379,253.6 379.4,252.8 379.8,251.9 380.2,250.9 380.6,249.7 381.1,248.5 381.5,247.2 381.9,245.8 382.3,244.4 382.7,242.8 383.1,241.3 383.5,239.7 384,238.1 384.4,236.5 384.8,234.9 385.2,233.4 385.6,231.9 386,230.5 386.5,229.2 386.9,228 387.3,227 387.7,226.1 388.1,225.4 388.5,224.9 388.9,224.6 389.4,224.5 389.8,224.6 390.2,225 390.6,225.6 391,226.5 391.4,227.6 391.8,229.1 392.3,230.7 392.7,232.6 393.1,234.8 393.5,237.2 393.9,239.9 394.3,242.7 394.8,245.7 395.2,248.9 395.6,252.2 396,255.6" class="sk-accent"/>
+<text x="363" y="290" class="lab-b" text-anchor="middle">E</text>
+<text x="210" y="206" class="lab-muted" text-anchor="middle">réponses impulsionnelles (t de 0 à 8 s)</text>
+</svg>
+<figcaption>Position des pôles et réponse impulsionnelle (chaque courbe est mise à l'échelle de sa fenêtre). A (\(-0{,}5 \pm 2j\)) : oscillation lentement amortie (\(\xi \approx 0{,}24\)). B (\(-1{,}5 \pm 1{,}5j\)) : bien amortie (\(\xi \approx 0{,}71\), sur la droite en tirets). C (\(-2\)) : décroissance sans oscillation. D (\(\pm 1{,}2j\)) : oscillation entretenue, limite de stabilité. E (\(0{,}5 \pm 2j\)) : oscillation croissante, instable. La distance à l'axe imaginaire fixe la vitesse d'extinction, l'angle avec l'axe réel l'amortissement.</figcaption>
+</figure>
+  <div class="prop-box">
+    <strong>Dépassement relatif</strong> d'un deuxième ordre (voir <a href="#sys2/cours">« Systèmes du 2e ordre »</a>, §2) :
+    <div class="formula" data-nom="Dépassement relatif">$$D_1 = \frac{s_{\max} - s_\infty}{s_\infty} = \exp\!\left(-\frac{\pi\xi}{\sqrt{1 - \xi^2}}\right).$$</div>
+    Pour une FTBO \(\dfrac{K}{p\,(1 + \tau p)}\), la FTBF est un deuxième ordre et la marge de phase donne \(\xi\) exactement :
+    <div style="overflow-x:auto"><table>
+      <tr><th>\(M_\varphi\)</th><th>30°</th><th>45°</th><th>60°</th><th>70°</th></tr>
+      <tr><td>\(\xi\) de la boucle fermée</td><td>0,27</td><td>0,42</td><td>0,61</td><td>0,80</td></tr>
+      <tr><td>Dépassement \(D_1\)</td><td>42 %</td><td>23 %</td><td>9 %</td><td>1,4 %</td></tr>
+    </table></div>
+    D'où la règle \(\xi \approx M_\varphi(°)/100\), qui reste un bon repère quand la boucle fermée a deux pôles dominants.
+  </div>
+  <div class="method-box">
+    <strong>Exemple — de la position des pôles aux performances</strong>
+    <p>La FTBF d'un asservissement a deux pôles dominants \(-2 \pm 3j\) (en s⁻¹) et un gain statique de 1.</p>
+    <ol>
+      <li>\(\omega_0 = |p| = \sqrt{4 + 9} \approx 3{,}61\ \text{rad/s}\) et \(\xi = 2/3{,}61 \approx 0{,}55\) (angle \(\theta \approx 56°\)).</li>
+      <li>Dépassement :<div class="formula">$$D_1 = \exp\big(-\pi \times 0{,}55/\sqrt{1 - 0{,}31}\big) = e^{-2\pi/3} \approx 12\ \%.$$</div></li>
+      <li>Pseudo-période \(2\pi/3 \approx 2{,}1\ \text{s}\) ; l'enveloppe décroît comme \(e^{-2t}\), et le temps de réponse à 5 % vaut environ \(3/2 = 1{,}5\ \text{s}\) (1,47 s exactement).</li>
+    </ol>
+  </div>
+  <div class="notice"><strong>Erreur classique</strong> : juger la rapidité sur la partie imaginaire des pôles. Ce sont les parties réelles qui fixent la durée du régime transitoire : un pôle peu amorti proche de l'axe imaginaire, même à haute pulsation, laisse une oscillation qui s'éteint lentement. La réduction d'un modèle à ses pôles dominants est au programme de 2ᵉ année (<a href="#correcteurs/cours">« Correction des SLCI »</a>, §1).</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§7 · LES CAS TYPES DE BOUCLE OUVERTE</div>
+  <h2>Reconnaître d'un coup d'œil le risque d'instabilité</h2>
+  <div class="intro">La forme de la FTBO suffit souvent à savoir si un gain limite existe : tout dépend de la phase vers laquelle elle tend. Si la phase n'atteint jamais \(-180°\), aucun gain ne déstabilise la boucle ; si elle la franchit, il existe un gain limite ; si elle reste en dessous, aucun gain ne la stabilise.</div>
+  <div style="overflow-x:auto"><table>
+    <tr><th>FTBO (\(K \gt 0\), constantes de temps positives)</th><th>Phase</th><th>Boucle fermée</th></tr>
+    <tr><td>\(\dfrac{K}{1 + \tau p}\)</td><td>de 0° à \(-90°\)</td><td>stable pour tout \(K\)</td></tr>
+    <tr><td>\(\dfrac{K}{(1 + \tau_1 p)(1 + \tau_2 p)}\), \(\dfrac{K}{p\,(1 + \tau p)}\)</td><td>tend vers \(-180°\) sans l'atteindre</td><td>stable pour tout \(K\), de moins en moins amortie</td></tr>
+    <tr><td>\(\dfrac{K}{p\,(1 + \tau_1 p)(1 + \tau_2 p)}\)</td><td>de \(-90°\) à \(-270°\)</td><td>stable si \(K \lt \dfrac{1}{\tau_1} + \dfrac{1}{\tau_2}\)</td></tr>
+    <tr><td>\(\dfrac{K}{(1 + \tau p)^3}\)</td><td>de 0° à \(-270°\)</td><td>stable si \(K \lt 8\)</td></tr>
+    <tr><td>\(\dfrac{K}{p^2}\)</td><td>\(-180°\) constante</td><td>oscillation entretenue pour tout \(K\)</td></tr>
+    <tr><td>\(\dfrac{K}{p^2\,(1 + \tau p)}\)</td><td>sous \(-180°\)</td><td>instable pour tout \(K\)</td></tr>
+    <tr><td>\(\dfrac{K\,(1 + \tau_a p)}{p^2\,(1 + \tau p)}\)</td><td>\(-180° + \arctan(\tau_a\omega) - \arctan(\tau\omega)\)</td><td>stable pour tout \(K\) si \(\tau_a \gt \tau\), instable sinon</td></tr>
+    <tr><td>toute FTBO avec un retard \(e^{-Tp}\)</td><td>tend vers \(-\infty\)</td><td>gain limite</td></tr>
+  </table></div>
+  <div class="reveal" onclick="this.classList.toggle('open')">
+    <span class="label">Démonstration</span>
+    <span class="prompt">Le gain limite d'un intégrateur suivi de deux premiers ordres.</span>
+    <div class="content"><p>La phase \(-90° - \arctan(\tau_1\omega) - \arctan(\tau_2\omega)\) vaut \(-180°\) quand \(\arctan(\tau_1\omega) + \arctan(\tau_2\omega) = 90°\), c'est-à-dire quand \(\tau_1\omega \cdot \tau_2\omega = 1\) : \(\omega_\pi = 1/\sqrt{\tau_1\tau_2}\). Alors</p><div class="formula">$$(1 + \tau_1^2\omega_\pi^2)(1 + \tau_2^2\omega_\pi^2) = \Big(1 + \frac{\tau_1}{\tau_2}\Big)\Big(1 + \frac{\tau_2}{\tau_1}\Big) = \frac{(\tau_1 + \tau_2)^2}{\tau_1\tau_2},$$</div><p>et le gain vaut \(|H_{BO}(j\omega_\pi)| = \dfrac{K\,\tau_1\tau_2}{\tau_1 + \tau_2}\). Il vaut 1 pour \(K_{lim} = \dfrac{\tau_1 + \tau_2}{\tau_1\tau_2} = \dfrac{1}{\tau_1} + \dfrac{1}{\tau_2}\).</p></div>
+  </div>
+  <div class="method-box">
+    <strong>Exemple — gain limite sans calcul de marge</strong>
+    <p>Pour la FTBO \(\dfrac{K}{p\,(1 + 0{,}5p)(1 + 0{,}05p)}\) du §4 : \(K_{lim} = \dfrac{1}{0{,}5} + \dfrac{1}{0{,}05} = 2 + 20 = 22\), comme au §5. Le terme dominant est \(1/\tau_2\) : c'est la plus <strong>petite</strong> constante de temps qui fixe le gain limite. La négliger (FTBO \(\dfrac{K}{p\,(1 + 0{,}5p)}\)) ferait croire la boucle stable pour tout gain.</p>
+  </div>
+  <div class="method-box">
+    <strong>Exemple — stabiliser un double intégrateur</strong>
+    <p>Un satellite (ou un mobile sans frottement) commandé en force est un double intégrateur. Avec la FTBO \(\dfrac{K}{p^2\,(1 + 0{,}1p)}\), la phase est toujours sous \(-180°\) : instable pour tout \(K\). Ajouter un zéro, \(\dfrac{K\,(1 + 0{,}5p)}{p^2\,(1 + 0{,}1p)}\), remonte la phase au-dessus de \(-180°\) puisque \(0{,}5 \gt 0{,}1\) : elle atteint au mieux \(-180° + \arctan 2{,}24 - \arctan 0{,}45\), soit \(-138°\), en \(\omega = 1/\sqrt{0{,}05} \approx 4{,}5\ \text{rad/s}\). En réglant \(K \approx 8{,}9\) pour couper 0 dB à cette pulsation, on obtient \(M_\varphi \approx 42°\). C'est le principe de l'avance de phase, étudiée en 2ᵉ année.</p>
+  </div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§8 · DÉMARCHE COMPLÈTE : RÉGLER LE GAIN D'UN AXE</div>
+  <h2>Du cahier des charges au réglage</h2>
+  <div class="intro">On rassemble ici tout le chapitre sur un cas réaliste : un axe de positionnement (amplificateur, moteur, réducteur, capteur de position), dont la boucle ouverte a une constante de temps mécanique de 50 ms et une constante de temps électrique de 5 ms. Le cahier des charges impose \(M_\varphi \geq 45°\) et \(M_G \geq 10\ \text{dB}\) ; on cherche le plus grand gain qui les respecte, car c'est le plus rapide et le plus précis.</div>
+  <div class="prop-box">
+    <strong>Retour non unitaire.</strong> La FTBO est le produit de <strong>tous</strong> les blocs de la boucle, chaîne de retour (capteur) comprise : \(H_{BO} = A(p)\,B(p)\). La stabilité et les marges ne dépendent que d'elle ; la placer en retour unitaire (adaptateur de même gain que le capteur) ne change ni les pôles de la FTBF ni les marges.
+  </div>
+  <div class="method-box">
+    <strong>Exemple — l'axe asservi</strong>
+    <p>Après réduction du schéma-blocs : \(H_{BO}(p) = \dfrac{K}{p\,(1 + 0{,}05p)(1 + 0{,}005p)}\), \(K\) en s⁻¹ réglé par le gain de l'amplificateur.</p>
+    <ol>
+      <li><strong>Stabilité</strong> (§7) : \(K_{lim} = \dfrac{1}{0{,}05} + \dfrac{1}{0{,}005} = 220\ \text{s}^{-1}\), atteint en \(\omega_\pi = 1/\sqrt{0{,}05 \times 0{,}005} \approx 63\ \text{rad/s}\).</li>
+      <li><strong>Marge de gain</strong> : \(M_G = 20\log(220/K) \geq 10\ \text{dB}\) impose \(K \leq 220/10^{0{,}5} \approx 70\).</li>
+      <li><strong>Marge de phase</strong> : la phase vaut \(-135°\) quand \(\arctan(0{,}05\omega) + \arctan(0{,}005\omega) = 45°\), soit \(\dfrac{0{,}055\,\omega}{1 - 0{,}00025\,\omega^2} = 1\) : \(\omega \approx 16{,}9\ \text{rad/s}\). Le gain y vaut 1 pour<div class="formula">$$K = 16{,}9\,\sqrt{1 + 0{,}845^2}\,\sqrt{1 + 0{,}0845^2} \approx 22{,}2.$$</div>Il faut donc \(K \leq 22\).</li>
+      <li><strong>Réglage</strong> : la marge de phase est la contrainte la plus forte ; avec \(K = 22\ \text{s}^{-1}\) : \(\omega_{c0} \approx 16{,}8\ \text{rad/s}\), \(M_\varphi \approx 45°\), \(M_G = 20\log 10 = 20\ \text{dB}\). Les pôles dominants de la FTBF, \(-8{,}8 \pm 18{,}9j\), donnent \(\xi \approx 0{,}42\) et un dépassement d'environ 23 %.</li>
+      <li><strong>Commande numérique</strong> : si le calculateur ajoute un retard de 10 ms, la marge de phase perd \(16{,}8 \times 0{,}01\ \text{rad} \approx 9{,}6°\) et tombe à 35° : il faut ramener le gain à \(K \approx 16\) (\(\omega_{c0} \approx 13{,}3\ \text{rad/s}\), \(M_G \approx 13\ \text{dB}\)).</li>
+    </ol>
+  </div>
+  <figure class="schema">
+<svg viewBox="0 0 410 308" role="img" aria-label="Diagramme de Bode de la boucle ouverte de l'axe réglée à K égal 22 : marge de phase 45 degrés, marge de gain 20 décibels, et phase dégradée par un retard de 10 millisecondes">
+<line x1="58" y1="33.1" x2="388" y2="33.1" class="sk-axis" style="opacity:.35"/>
+<text x="52" y="37.1" class="lab-muted" text-anchor="end">20</text>
+<line x1="58" y1="55.2" x2="388" y2="55.2" class="sk-axis" style="opacity:.35"/>
+<text x="52" y="59.2" class="lab-muted" text-anchor="end">0</text>
+<line x1="58" y1="77.4" x2="388" y2="77.4" class="sk-axis" style="opacity:.35"/>
+<text x="52" y="81.4" class="lab-muted" text-anchor="end">−20</text>
+<line x1="58" y1="99.5" x2="388" y2="99.5" class="sk-axis" style="opacity:.35"/>
+<text x="52" y="103.5" class="lab-muted" text-anchor="end">−40</text>
+<line x1="58" y1="121.6" x2="388" y2="121.6" class="sk-axis" style="opacity:.35"/>
+<text x="52" y="125.6" class="lab-muted" text-anchor="end">−60</text>
+<line x1="58" y1="143.8" x2="388" y2="143.8" class="sk-axis" style="opacity:.35"/>
+<text x="52" y="147.8" class="lab-muted" text-anchor="end">−80</text>
+<line x1="58" y1="146" x2="58" y2="22" class="sk-axis" style="opacity:.35"/>
+<line x1="168" y1="146" x2="168" y2="22" class="sk-axis" style="opacity:.35"/>
+<line x1="278" y1="146" x2="278" y2="22" class="sk-axis" style="opacity:.35"/>
+<line x1="388" y1="146" x2="388" y2="22" class="sk-axis" style="opacity:.35"/>
+<rect x="58" y="22" width="330" height="124" class="sk-axis" style="fill:none"/>
+<text x="52" y="14" class="lab-muted" text-anchor="end">G (dB)</text>
+<polyline points="58,25.5 59.8,25.9 61.7,26.2 63.5,26.6 65.4,27 67.2,27.4 69.1,27.7 70.9,28.1 72.7,28.5 74.6,28.9 76.4,29.2 78.3,29.6 80.1,30 82,30.3 83.8,30.7 85.7,31.1 87.5,31.5 89.3,31.8 91.2,32.2 93,32.6 94.9,33 96.7,33.3 98.6,33.7 100.4,34.1 102.2,34.5 104.1,34.8 105.9,35.2 107.8,35.6 109.6,36 111.5,36.4 113.3,36.7 115.2,37.1 117,37.5 118.8,37.9 120.7,38.3 122.5,38.7 124.4,39 126.2,39.4 128.1,39.8 129.9,40.2 131.7,40.6 133.6,41 135.4,41.4 137.3,41.8 139.1,42.2 141,42.6 142.8,43 144.6,43.4 146.5,43.8 148.3,44.2 150.2,44.6 152,45 153.9,45.4 155.7,45.8 157.6,46.3 159.4,46.7 161.2,47.1 163.1,47.5 164.9,48 166.8,48.4 168.6,48.9 170.5,49.3 172.3,49.8 174.1,50.2 176,50.7 177.8,51.2 179.7,51.6 181.5,52.1 183.4,52.6 185.2,53.1 187.1,53.6 188.9,54.1 190.7,54.6 192.6,55.2 194.4,55.7 196.3,56.2 198.1,56.8 200,57.3 201.8,57.9 203.6,58.5 205.5,59 207.3,59.6 209.2,60.2 211,60.8 212.9,61.4 214.7,62 216.5,62.6 218.4,63.3 220.2,63.9 222.1,64.5 223.9,65.2 225.8,65.8 227.6,66.5 229.5,67.1 231.3,67.8 233.1,68.5 235,69.2 236.8,69.9 238.7,70.6 240.5,71.2 242.4,72 244.2,72.7 246,73.4 247.9,74.1 249.7,74.8 251.6,75.5 253.4,76.3 255.3,77 257.1,77.8 258.9,78.5 260.8,79.3 262.6,80 264.5,80.8 266.3,81.5 268.2,82.3 270,83.1 271.9,83.9 273.7,84.7 275.5,85.4 277.4,86.2 279.2,87 281.1,87.9 282.9,88.7 284.8,89.5 286.6,90.3 288.4,91.2 290.3,92 292.1,92.8 294,93.7 295.8,94.6 297.7,95.4 299.5,96.3 301.4,97.2 303.2,98.1 305,99 306.9,99.9 308.7,100.8 310.6,101.7 312.4,102.6 314.3,103.6 316.1,104.5 317.9,105.4 319.8,106.4 321.6,107.4 323.5,108.3 325.3,109.3 327.2,110.3 329,111.3 330.8,112.3 332.7,113.3 334.5,114.3 336.4,115.3 338.2,116.3 340.1,117.3 341.9,118.4 343.8,119.4 345.6,120.4 347.4,121.5 349.3,122.5 351.1,123.6 353,124.6 354.8,125.7 356.7,126.8 358.5,127.8 360.3,128.9 362.2,130 364,131 365.9,132.1 367.7,133.2 369.6,134.3 371.4,135.4 373.3,136.5 375.1,137.5 376.9,138.6 378.8,139.7 380.6,140.8 382.5,141.9 384.3,143 386.2,144.1 388,145.2" class="sk-accent"/>
+<line x1="58" y1="55.2" x2="388" y2="55.2" class="sk-ink" style="opacity:.6"/>
+<circle cx="192.8" cy="55.2" r="3" class="fl-accent"/>
+<text x="198.8" y="47.2" class="lab-accent">ω<tspan dy="4" font-size="12">c0</tspan><tspan dy="-4"> ≈ 16,8</tspan></text>
+<line x1="256.1" y1="77.4" x2="256.1" y2="55.2" class="sk-green"/>
+<line x1="251.6" y1="77.4" x2="260.7" y2="77.4" class="sk-green"/>
+<text x="262.1" y="70.3" class="lab-green lab-b">M<tspan dy="4" font-size="12">G</tspan><tspan dy="-4"> = 20 dB</tspan></text>
+<line x1="58" y1="180.6" x2="388" y2="180.6" class="sk-axis" style="opacity:.35"/>
+<text x="52" y="184.6" class="lab-muted" text-anchor="end">−90</text>
+<line x1="58" y1="222.2" x2="388" y2="222.2" class="sk-axis" style="opacity:.35"/>
+<text x="52" y="226.2" class="lab-muted" text-anchor="end">−180</text>
+<line x1="58" y1="263.7" x2="388" y2="263.7" class="sk-axis" style="opacity:.35"/>
+<text x="52" y="267.7" class="lab-muted" text-anchor="end">−270</text>
+<line x1="58" y1="266" x2="58" y2="176" class="sk-axis" style="opacity:.35"/>
+<line x1="168" y1="266" x2="168" y2="176" class="sk-axis" style="opacity:.35"/>
+<line x1="278" y1="266" x2="278" y2="176" class="sk-axis" style="opacity:.35"/>
+<line x1="388" y1="266" x2="388" y2="176" class="sk-axis" style="opacity:.35"/>
+<rect x="58" y="176" width="330" height="90" class="sk-axis" style="fill:none"/>
+<text x="52" y="168" class="lab-muted" text-anchor="end">φ (°)</text>
+<polyline points="58,182.1 59.8,182.1 61.7,182.2 63.5,182.2 65.4,182.3 67.2,182.4 69.1,182.4 70.9,182.5 72.7,182.6 74.6,182.7 76.4,182.8 78.3,182.8 80.1,182.9 82,183 83.8,183.1 85.7,183.2 87.5,183.3 89.3,183.4 91.2,183.5 93,183.6 94.9,183.8 96.7,183.9 98.6,184 100.4,184.1 102.2,184.3 104.1,184.4 105.9,184.6 107.8,184.7 109.6,184.9 111.5,185 113.3,185.2 115.2,185.4 117,185.6 118.8,185.8 120.7,186 122.5,186.2 124.4,186.4 126.2,186.6 128.1,186.8 129.9,187.1 131.7,187.3 133.6,187.6 135.4,187.8 137.3,188.1 139.1,188.4 141,188.7 142.8,189 144.6,189.3 146.5,189.6 148.3,190 150.2,190.3 152,190.6 153.9,191 155.7,191.4 157.6,191.8 159.4,192.2 161.2,192.6 163.1,193 164.9,193.4 166.8,193.9 168.6,194.4 170.5,194.8 172.3,195.3 174.1,195.8 176,196.3 177.8,196.8 179.7,197.3 181.5,197.9 183.4,198.4 185.2,199 187.1,199.5 188.9,200.1 190.7,200.7 192.6,201.2 194.4,201.8 196.3,202.4 198.1,203 200,203.6 201.8,204.2 203.6,204.9 205.5,205.5 207.3,206.1 209.2,206.7 211,207.3 212.9,208 214.7,208.6 216.5,209.2 218.4,209.8 220.2,210.5 222.1,211.1 223.9,211.7 225.8,212.3 227.6,212.9 229.5,213.5 231.3,214.1 233.1,214.8 235,215.4 236.8,216 238.7,216.6 240.5,217.2 242.4,217.8 244.2,218.3 246,218.9 247.9,219.5 249.7,220.1 251.6,220.7 253.4,221.3 255.3,221.9 257.1,222.5 258.9,223.1 260.8,223.6 262.6,224.2 264.5,224.8 266.3,225.4 268.2,226 270,226.6 271.9,227.2 273.7,227.8 275.5,228.4 277.4,229 279.2,229.6 281.1,230.2 282.9,230.8 284.8,231.4 286.6,232 288.4,232.7 290.3,233.3 292.1,233.9 294,234.5 295.8,235.1 297.7,235.8 299.5,236.4 301.4,237 303.2,237.6 305,238.3 306.9,238.9 308.7,239.5 310.6,240.1 312.4,240.7 314.3,241.3 316.1,241.9 317.9,242.5 319.8,243.1 321.6,243.7 323.5,244.3 325.3,244.8 327.2,245.4 329,245.9 330.8,246.5 332.7,247 334.5,247.5 336.4,248.1 338.2,248.6 340.1,249 341.9,249.5 343.8,250 345.6,250.4 347.4,250.9 349.3,251.3 351.1,251.7 353,252.2 354.8,252.6 356.7,252.9 358.5,253.3 360.3,253.7 362.2,254 364,254.4 365.9,254.7 367.7,255 369.6,255.3 371.4,255.6 373.3,255.9 375.1,256.2 376.9,256.5 378.8,256.8 380.6,257 382.5,257.3 384.3,257.5 386.2,257.7 388,257.9" class="sk-accent"/>
+<polyline points="58,182.3 59.8,182.4 61.7,182.5 63.5,182.5 65.4,182.6 67.2,182.7 69.1,182.8 70.9,182.9 72.7,183 74.6,183 76.4,183.1 78.3,183.2 80.1,183.3 82,183.4 83.8,183.6 85.7,183.7 87.5,183.8 89.3,183.9 91.2,184 93,184.2 94.9,184.3 96.7,184.5 98.6,184.6 100.4,184.8 102.2,184.9 104.1,185.1 105.9,185.3 107.8,185.5 109.6,185.7 111.5,185.8 113.3,186.1 115.2,186.3 117,186.5 118.8,186.7 120.7,186.9 122.5,187.2 124.4,187.4 126.2,187.7 128.1,188 129.9,188.3 131.7,188.6 133.6,188.9 135.4,189.2 137.3,189.5 139.1,189.8 141,190.2 142.8,190.5 144.6,190.9 146.5,191.3 148.3,191.7 150.2,192.1 152,192.5 153.9,193 155.7,193.4 157.6,193.9 159.4,194.4 161.2,194.9 163.1,195.4 164.9,195.9 166.8,196.5 168.6,197 170.5,197.6 172.3,198.2 174.1,198.8 176,199.4 177.8,200.1 179.7,200.7 181.5,201.4 183.4,202 185.2,202.7 187.1,203.5 188.9,204.2 190.7,204.9 192.6,205.7 194.4,206.4 196.3,207.2 198.1,208 200,208.8 201.8,209.6 203.6,210.4 205.5,211.3 207.3,212.1 209.2,213 211,213.9 212.9,214.7 214.7,215.6 216.5,216.5 218.4,217.4 220.2,218.4 222.1,219.3 223.9,220.2 225.8,221.2 227.6,222.1 229.5,223.1 231.3,224.1 233.1,225.1 235,226.1 236.8,227.1 238.7,228.2 240.5,229.2 242.4,230.3 244.2,231.4 246,232.5 247.9,233.6 249.7,234.8 251.6,235.9 253.4,237.1 255.3,238.3 257.1,239.5 258.9,240.8 260.8,242.1 262.6,243.4 264.5,244.7 266.3,246.1 268.2,247.5 270,249 271.9,250.4 273.7,252 275.5,253.5 277.4,255.1 279.2,256.7 281.1,258.4 282.9,260.1 284.8,261.9 286.6,263.7 288.4,265.6" class="sk-accent2" style="stroke-dasharray:5 4"/>
+<line x1="58" y1="222.2" x2="388" y2="222.2" class="sk-ink" style="opacity:.6"/>
+<line x1="192.8" y1="222.2" x2="192.8" y2="201.3" class="sk-green"/>
+<line x1="188.2" y1="201.3" x2="197.3" y2="201.3" class="sk-green"/>
+<text x="186.8" y="212" class="lab-green lab-b" text-anchor="end">M<tspan dy="4" font-size="12">φ</tspan><tspan dy="-4"> ≈ 45°</tspan></text>
+<circle cx="256.1" cy="222.2" r="3" class="fl-accent"/>
+<text x="262.1" y="214.2" class="lab-accent">ω<tspan dy="4" font-size="12">π</tspan><tspan dy="-4"> ≈ 63</tspan></text>
+<text x="64.7" y="257.2" class="lab-accent2">en tirets : avec un retard de 10 ms</text>
+<text x="58" y="282" class="lab-muted" text-anchor="middle">1</text>
+<text x="168" y="282" class="lab-muted" text-anchor="middle">10</text>
+<text x="278" y="282" class="lab-muted" text-anchor="middle">100</text>
+<text x="388" y="282" class="lab-muted" text-anchor="middle">1000</text>
+<text x="388" y="300" class="lab-muted" text-anchor="end">ω (rad/s, échelle log)</text>
+</svg>
+<figcaption>FTBO de l'axe, \(\dfrac{22}{p\,(1 + 0{,}05p)(1 + 0{,}005p)}\) : \(\omega_{c0} \approx 16{,}8\) rad/s, \(M_\varphi \approx 45°\) ; \(\omega_\pi \approx 63\) rad/s, \(M_G = 20\) dB. En tirets, la phase avec un retard de 10 ms (commande numérique) : la marge de phase tombe à 35°.</figcaption>
+</figure>
+  <div class="notice">Un gain réglé « au maximum » sur un modèle simplifié est toujours à vérifier sur le système réel : un retard, une constante de temps négligée ou une résonance mécanique (voir <a href="#bode/cours">« Réponse fréquentielle et diagrammes de Bode »</a>, §6) consomment la marge. Quand un simple gain ne permet pas de concilier stabilité, rapidité et précision, on ajoute un correcteur : c'est l'objet du chapitre de 2ᵉ année <a href="#correcteurs/cours">« Correction des SLCI »</a>.</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">POUR ALLER PLUS LOIN · HORS PROGRAMME</div>
+  <h2>Autres critères de stabilité</h2>
+  <div class="intro">Rien de ce qui suit n'est exigible, ni en PTSI ni en PT : le programme exclut explicitement les critères de Routh et de Nyquist et les lieux de Black-Nichols et de Nyquist.</div>
+  <ul>
+    <li><strong>Critère de Routh</strong> : on range les coefficients sur deux lignes (\(a_n, a_{n-2}, \ldots\) puis \(a_{n-1}, a_{n-3}, \ldots\)) et l'on calcule chaque ligne suivante par des déterminants croisés : \(b_1 = \dfrac{a_{n-1}a_{n-2} - a_na_{n-3}}{a_{n-1}}\), etc. Le système est stable si et seulement si tous les termes de la première colonne sont de même signe ; le nombre de changements de signe est le nombre de pôles à partie réelle positive. Pour \(n = 3\), on retrouve la condition \(a_2a_1 \gt a_3a_0\) du §2.</li>
+    <li><strong>Critère de Nyquist</strong> : il généralise le critère du revers aux boucles ouvertes instables et aux gains qui coupent 0 dB plusieurs fois. Sous sa forme simplifiée, le lieu de Nyquist de la FTBO (\(H_{BO}(j\omega)\) dans le plan complexe), parcouru dans le sens des pulsations croissantes, doit laisser le point \(-1\) à sa gauche.</li>
+    <li><strong>Lieu de Black-Nichols</strong> : gain en dB de la FTBO en fonction de sa phase, gradué en pulsations ; les marges s'y lisent aussi, ainsi que la résonance de la boucle fermée grâce à des abaques.</li>
+    <li><strong>Lieu des racines</strong> : trajectoire des pôles de la FTBF dans le plan complexe quand le gain varie ; il visualise le passage à la limite de stabilité étudié au §2.</li>
+  </ul>
+</div>
+</template>
+<template class="pan-tpl" data-panneau="stab-meth">
+<div class="course-section">
+  <div class="sec-num">MÉTHODES · STABILITÉ</div>
+  <h2>Les réflexes du chapitre</h2>
+  <div class="intro">Ces méthodes servent à décider si une boucle fermée est stable, à mesurer sa marge par rapport à l'instabilité et à régler un gain pour respecter les exigences de stabilité d'un cahier des charges.</div>
+  <div class="method-box"><strong>Méthode 1 — Étudier la stabilité par les pôles</strong>
+    <ol>
+      <li>Écrire la FTBF, ou directement l'équation caractéristique \(1 + H_{BO}(p) = 0\), soit \(D_{BO} + N_{BO} = 0\) pour un retour unitaire.</li>
+      <li>Un coefficient nul ou de signe contraire aux autres : instable, sans autre calcul.</li>
+      <li>Ordre 1 ou 2 : stable si et seulement si tous les coefficients sont strictement positifs. Au-delà : pôles imaginaires purs (méthode 2) ou critère du revers (méthode 3).</li>
+    </ol>
+    <p><em>Exemple éclair :</em> équation caractéristique \(2p^3 + 3p^2 - p + 5 = 0\) : le coefficient \(-1\) suffit, la boucle est instable (deux pôles \(0{,}36 \pm 0{,}99j\) à droite).</p>
+  </div>
+  <div class="method-box"><strong>Méthode 2 — Trouver un gain limite par les pôles imaginaires purs</strong>
+    <ol>
+      <li>Écrire l'équation caractéristique en fonction du gain \(K\).</li>
+      <li>Y remplacer \(p\) par \(j\omega\) ; annuler la partie imaginaire (elle donne \(\omega\)) et la partie réelle (elle donne \(K_{lim}\)).</li>
+      <li>Vérifier le sens : stable pour \(K\) petit (pôles de la boucle ouverte stables), instable au-delà de \(K_{lim}\).</li>
+    </ol>
+    <p><em>Exemple éclair :</em> FTBO \(\dfrac{K}{p\,(1 + p)(1 + 0{,}2p)}\) : \(0{,}2p^3 + 1{,}2p^2 + p + K = 0\). Avec \(p = j\omega\) : \(\omega - 0{,}2\omega^3 = 0\), d'où \(\omega = \sqrt5 \approx 2{,}24\ \text{rad/s}\), et \(K - 1{,}2\omega^2 = 0\), d'où \(K_{lim} = 6\) (\(= 1/1 + 1/0{,}2\)).</p>
+  </div>
+  <div class="method-box"><strong>Méthode 3 — Appliquer le critère du revers</strong>
+    <ol>
+      <li>Vérifier que la boucle ouverte est stable (intégrateurs admis) et que son gain ne coupe 0 dB qu'une fois.</li>
+      <li>Trouver \(\omega_{c0}\) (\(|H_{BO}| = 1\)) et y calculer la phase exacte.</li>
+      <li>Stable si cette phase est au-dessus de \(-180°\) ; ou, de façon équivalente, si le gain est négatif (en dB) à la pulsation \(\omega_\pi\) où la phase vaut \(-180°\).</li>
+    </ol>
+    <p><em>Exemple éclair :</em> FTBO \(\dfrac{10\,e^{-0{,}1p}}{1 + p}\) : \(\omega_{c0} = \sqrt{99} \approx 9{,}95\ \text{rad/s}\), phase \(-84{,}3° - 57{,}0° \approx -141°\) : stable.</p>
+  </div>
+  <div class="method-box"><strong>Méthode 4 — Calculer la marge de phase</strong>
+    <ol>
+      <li>Estimer \(\omega_{c0}\) sur les asymptotes, puis la calculer exactement : résoudre \(|H_{BO}(j\omega)| = 1\) (équation bicarrée, essais successifs ou dichotomie).</li>
+      <li>Calculer la phase exacte \(\arg H_{BO}(j\omega_{c0})\) par la somme des arctangentes.</li>
+      <li>\(M_\varphi = 180° + \arg H_{BO}(j\omega_{c0})\).</li>
+    </ol>
+    <p><em>Exemple éclair :</em> FTBO \(\dfrac{10}{p\,(1 + 0{,}1p)}\) : \(0{,}01\,\omega^4 + \omega^2 - 100 = 0\) donne \(\omega_{c0} \approx 7{,}86\ \text{rad/s}\) ; phase \(-90° - \arctan 0{,}786 \approx -128{,}2°\) ; \(M_\varphi \approx 52°\).</p>
+  </div>
+  <div class="method-box"><strong>Méthode 5 — Calculer la marge de gain et le gain limite</strong>
+    <ol>
+      <li>Résoudre \(\arg H_{BO}(j\omega) = -180°\) : avec deux premiers ordres et un intégrateur, \(\arctan(\tau_1\omega) + \arctan(\tau_2\omega) = 90°\) donne \(\tau_1\tau_2\omega_\pi^2 = 1\).</li>
+      <li>\(M_G = -20\log|H_{BO}(j\omega_\pi)|\) ; gain limite \(K_{lim} = K/|H_{BO}(j\omega_\pi)| = K \cdot 10^{M_G/20}\).</li>
+      <li>Si la phase n'atteint pas \(-180°\), la marge de gain est infinie.</li>
+    </ol>
+    <p><em>Exemple éclair :</em> FTBO \(\dfrac{2}{p\,(1 + p)(1 + 0{,}2p)}\) : \(\omega_\pi = \sqrt5\), \(|H_{BO}(j\omega_\pi)| = \dfrac{2 \times 0{,}2}{1{,}2} = \dfrac13\) : \(M_G \approx 9{,}5\) dB et \(K_{lim} = 6\).</p>
+  </div>
+  <div class="method-box"><strong>Méthode 6 — Régler un gain pour une marge de phase imposée</strong>
+    <ol>
+      <li>La phase ne dépend pas du gain : chercher la pulsation \(\omega_\varphi\) où \(\arg H_{BO}(j\omega_\varphi) = -180° + M_\varphi\).</li>
+      <li>Choisir \(K\) pour que le gain y vaille 0 dB : \(K = K_{actuel}/|H_{BO}(j\omega_\varphi)|\).</li>
+      <li>Vérifier ensuite la marge de gain et la rapidité (\(\omega_{c0} = \omega_\varphi\)).</li>
+    </ol>
+    <p><em>Exemple éclair :</em> FTBO \(\dfrac{K}{p\,(1 + 0{,}1p)}\), \(M_\varphi = 60°\) : il faut \(\arctan(0{,}1\omega) = 30°\), soit \(\omega_\varphi \approx 5{,}77\ \text{rad/s}\), et \(K = 5{,}77\sqrt{1 + 0{,}333} \approx 6{,}7\ \text{s}^{-1}\) ; marge de gain infinie.</p>
+  </div>
+  <div class="method-box"><strong>Méthode 7 — Tenir compte d'un retard</strong>
+    <ol>
+      <li>Le gain est inchangé, donc \(\omega_{c0}\) aussi ; retrancher \(\omega T\) (converti en degrés : \(\times 180/\pi\)) à la phase.</li>
+      <li>Nouvelle marge de phase : \(M_\varphi - \omega_{c0}T\) ; retard maximal \(T_{max} = M_\varphi/\omega_{c0}\), la marge en radians.</li>
+      <li>Le retard crée aussi une pulsation \(\omega_\pi\) là où il n'y en avait pas : recalculer la marge de gain.</li>
+    </ol>
+    <p><em>Exemple éclair :</em> \(M_\varphi = 50°\) à \(\omega_{c0} = 20\ \text{rad/s}\), retard de 15 ms : perte \(0{,}3\ \text{rad} \approx 17°\), il reste 33° ; retard maximal \(0{,}873/20 \approx 44\ \text{ms}\).</p>
+  </div>
+  <div class="method-box"><strong>Méthode 8 — Relier pôles, amortissement et dépassement</strong>
+    <ol>
+      <li>Pour une paire \(-\sigma \pm j\omega_d\) : \(\omega_0 = \sqrt{\sigma^2 + \omega_d^2}\) et \(\xi = \sigma/\omega_0\) (cosinus de l'angle avec le demi-axe réel négatif).</li>
+      <li>Dépassement \(D_1 = \exp\big(-\pi\xi/\sqrt{1 - \xi^2}\big)\) ; durée du transitoire de l'ordre de \(3/\sigma\).</li>
+      <li>Depuis la boucle ouverte : \(\xi \approx M_\varphi(°)/100\) (exact pour une FTBO \(\dfrac{K}{p\,(1 + \tau p)}\), voir le tableau du cours).</li>
+    </ol>
+    <p><em>Exemple éclair :</em> pôles \(-3 \pm 4j\) : \(\omega_0 = 5\ \text{rad/s}\), \(\xi = 0{,}6\), \(D_1 = e^{-\pi \times 0{,}6/0{,}8} \approx 9{,}5\ \%\), temps de réponse de l'ordre de 1 s.</p>
+  </div>
+  <div class="method-box"><strong>Méthode 9 — Vérifier les exigences de stabilité d'un cahier des charges</strong>
+    <ol>
+      <li>Écrire la FTBO complète (chaîne directe et chaîne de retour), sans négliger les petites constantes de temps ni les retards.</li>
+      <li>Calculer \(K_{lim}\), puis \(M_G\) et \(M_\varphi\) au gain prévu ; en déduire l'amortissement et le dépassement attendus.</li>
+      <li>Conclure exigence par exigence (valeur obtenue, valeur exigée) ; si un gain ne suffit pas à tout respecter, prévoir un correcteur.</li>
+    </ol>
+    <p><em>Exemple éclair :</em> axe de FTBO \(\dfrac{22}{p\,(1 + 0{,}05p)(1 + 0{,}005p)}\), exigences \(M_\varphi \geq 45°\) et \(M_G \geq 10\) dB : \(M_\varphi \approx 45°\) (juste satisfaite) et \(M_G = 20\log(220/22) = 20\) dB (satisfaite).</p>
+  </div>
+  <div class="notice"><strong>Pièges classiques.</strong> Étudier les pôles de la FTBO au lieu de ceux de la FTBF ; lire les marges sur la FTBF (elles se lisent sur la FTBO) ; utiliser la phase asymptotique ou la pulsation de coupure asymptotique ; oublier le \(-90°\) d'un intégrateur ; conclure « stable » sur la seule positivité des coefficients pour un ordre 3 ; appliquer le critère du revers à une boucle ouverte instable ; compenser un pôle instable par un zéro (la moindre erreur de modèle laisse le pôle instable).</div>
+</div>
+</template>
+<template class="pan-tpl" data-panneau="stab-exos">
+<div class="exo-wrapper">
+<div class="exo">
+  <span class="num">EXO 01</span><span class="diff">★ ☆ ☆</span>
+  <h3>Stabilité par les pôles</h3>
+  <div class="statement">Un système a pour FT en BF : \(H_{BF}(p) = \frac{10}{(p+1)(p+5)(p-2)}\).</div>
+  <div class="q"><strong>Q1.</strong> Lister les pôles et leurs parties réelles.</div>
+  <div class="q"><strong>Q2.</strong> Le système est-il stable ? Justifier.</div>
+  <div class="q"><strong>Q3.</strong> Quelle modification du système le rendrait stable ?</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> Pôles : \(p_1=-1\) (partie réelle négative), \(p_2=-5\) (négative), \(p_3=+2\) (positive).</p>
+    <p><strong>Q2.</strong> Le système est <strong>instable</strong> : le pôle \(p_3=+2\) a une partie réelle positive → la réponse impulsionnelle contient un terme \(e^{2t}\) qui diverge.</p>
+    <p><strong>Q3.</strong> C'est une boucle fermée : il faut changer son réglage (diminuer le gain, ajouter un correcteur, par exemple à avance de phase) jusqu'à ramener les trois pôles de la FTBF dans le demi-plan gauche, ce que l'on vérifie en recalculant ses pôles. Ajouter un zéro en \(p = 2\) pour « compenser » le pôle instable est illusoire : la moindre erreur de modèle laisse le pôle en place, et le mode \(e^{2t}\) diverge toujours à l'intérieur du système.</p>
+  </div>
+</div>
+<div class="exo">
+  <span class="num">EXO 02</span><span class="diff">★ ★ ☆</span>
+  <h3>Marges d'une boucle ouverte « intégrateur et premier ordre »</h3>
+  <div class="statement">\(H_{BO}(p) = \frac{K}{p(1+0{,}1p)}\). On veut \(M_\varphi \geq 45°\).</div>
+  <div class="q"><strong>Q1.</strong> Exprimer \(\arg H_{BO}(j\omega)\).</div>
+  <div class="q"><strong>Q2.</strong> La phase peut-elle atteindre −180° ? En déduire la marge de gain \(M_G\).</div>
+  <div class="q"><strong>Q3.</strong> Trouver la valeur de \(K\) qui donne \(M_\varphi = 45°\).</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> \(\arg H_{BO} = -90° - \arctan(0{,}1\omega)\). La phase varie de −90° (à \(\omega=0\)) à −180° (à \(\omega\to\infty\)).</p>
+    <p><strong>Q2.</strong> La phase atteint −180° seulement à \(\omega\to\infty\), où le gain est nul → \(|H_{BO}(\omega_\pi)| = 0\) → \(M_G = \infty\ \text{dB}\). Ce type de système est toujours stable en gain.</p>
+    <p><strong>Q3.</strong> \(M_\varphi = 45°\) → \(\arg H_{BO}(\omega_{c0}) = -135°\) → \(-90°-\arctan(0{,}1\omega_{c0}) = -135°\) → \(\arctan(0{,}1\omega_{c0}) = 45°\) → \(\omega_{c0} = 10\ \text{rad/s}\). À \(\omega_{c0}=10\) : \(|H_{BO}| = K/(\omega_{c0}\sqrt{1+(0{,}1\omega_{c0})^2})\), soit \(K/(10\sqrt{2}) = 1\). \(K = 10\sqrt{2} \approx 14{,}1\).</p>
+  </div>
+</div>
+<div class="exo">
+  <span class="num">EXO 03</span><span class="diff">★ ★ ☆</span>
+  <h3>Gain limite de stabilité</h3>
+  <div class="statement">\(H_{BO}(p) = \frac{K}{(1+p)(1+0{,}5p)(1+0{,}2p)}\).</div>
+  <div class="q"><strong>Q1.</strong> Trouver \(\omega_\pi\) (phase = −180°).</div>
+  <div class="q"><strong>Q2.</strong> Calculer le gain limite \(K_{lim}\).</div>
+  <div class="q"><strong>Q3.</strong> Pour \(K = K_{lim}/2\), calculer \(M_G\).</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> La phase vaut \(-180°\) quand \(D(j\omega) = (1 + j\omega)(1 + 0{,}5j\omega)(1 + 0{,}2j\omega)\) est réel (négatif). En développant : \(D(j\omega) = 1 - 0{,}8\,\omega^2 + j\,\omega\,(1{,}7 - 0{,}1\,\omega^2)\). La partie imaginaire s'annule pour \(\omega^2 = 17\) : \(\omega_\pi = \sqrt{17} \approx 4{,}12\ \text{rad/s}\).</p>
+    <p><strong>Q2.</strong> En \(\omega_\pi\), \(D(j\omega_\pi) = 1 - 0{,}8 \times 17 = -12{,}6\), donc \(|H_{BO}(j\omega_\pi)| = K/12{,}6\). La boucle devient instable quand ce module atteint 1 : \(K_{lim} = 12{,}6\).</p>
+    <p><strong>Q3.</strong> Pour \(K = K_{lim}/2 = 6{,}3\) : \(|H_{BO}(j\omega_\pi)| = 0{,}5\), soit \(-6\ \text{dB}\) : \(M_G = 6\ \text{dB}\), la marge minimale usuelle.</p>
+  </div>
+</div>
+<div class="exo">
+  <span class="num">EXO 04</span><span class="diff">★ ★ ☆</span>
+  <h3>Gain limite par les pôles imaginaires purs</h3>
+  <div class="statement">Une boucle fermée a pour polynôme caractéristique \(D(p) = p^3 + 3p^2 + 2p + K\), avec \(K\) réglable.</div>
+  <div class="q"><strong>Q1.</strong> Quelle condition nécessaire de stabilité porte sur \(K\) ?</div>
+  <div class="q"><strong>Q2.</strong> Chercher les valeurs de \(K\) pour lesquelles la boucle fermée a des pôles imaginaires purs. En déduire les valeurs de \(K\) qui rendent la boucle stable.</div>
+  <div class="q"><strong>Q3.</strong> Quel est le comportement à la limite (\(K = K_{lim}\)) ?</div>
+  <div class="q"><strong>Q4.</strong> (Hors programme, pour aller plus loin.) Retrouver le résultat par le tableau de Routh.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> Tous les coefficients doivent être strictement positifs : \(K \gt 0\). Au degré 3, cette condition ne suffit pas.</p>
+    <p><strong>Q2.</strong> Avec \(p = j\omega\) : \(-j\omega^3 - 3\omega^2 + 2j\omega + K = 0\). Partie imaginaire : \(2\omega - \omega^3 = 0\), d'où \(\omega = \sqrt2\) ; partie réelle : \(K - 3\omega^2 = 0\), d'où \(K = 6\). Pour \(K\) petit, les pôles sont voisins de ceux de \(p^3 + 3p^2 + 2p = p\,(p + 1)(p + 2)\), et le pôle voisin de 0 vaut environ \(-K/2\) : stable. Les pôles ne traversent l'axe imaginaire qu'en \(K = 6\) : la boucle est stable pour \(0 \lt K \lt 6\).</p>
+    <p><strong>Q3.</strong> À \(K = 6\), deux pôles valent \(\pm j\sqrt2\) : oscillation entretenue de pulsation \(\sqrt2 \approx 1{,}41\ \text{rad/s}\) (période 4,4 s). Au-delà, ces pôles passent à droite de l'axe imaginaire : oscillation croissante, instable.</p>
+    <p><strong>Q4.</strong> Tableau de Routh : lignes \((1,\ 2)\), \((3,\ K)\), puis \(\big((3 \times 2 - 1 \times K)/3,\ 0\big) = \big((6 - K)/3,\ 0\big)\), puis \((K)\). Première colonne : \(1,\ 3,\ (6 - K)/3,\ K\), toute positive si et seulement si \(0 \lt K \lt 6\) : même conclusion. C'est aussi la condition \(a_2a_1 \gt a_3a_0\) du degré 3 : \(3 \times 2 \gt 1 \times K\).</p>
+  </div>
+</div>
+<div class="exo">
+  <span class="num">EXO 05</span><span class="diff">★ ★ ☆</span>
+  <h3>Lecture des marges sur Bode</h3>
+  <div class="statement">La BO d'un asservissement donne : à \(\omega=10\ \text{rad/s}\), le gain est 0 dB et la phase est −120°. À \(\omega=30\ \text{rad/s}\), la phase est −180° et le gain est −10 dB.</div>
+  <div class="q"><strong>Q1.</strong> Calculer \(M_\varphi\) et \(M_G\).</div>
+  <div class="q"><strong>Q2.</strong> Le système est-il stable ? Les marges sont-elles satisfaisantes ?</div>
+  <div class="q"><strong>Q3.</strong> Si on double le gain K, de combien chute la marge de gain ?</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> \(M_\varphi = 180° + (-120°) = 60°\). \(M_G = -(-10) = +10\ \text{dB}\).</p>
+    <p><strong>Q2.</strong> Système stable (les deux marges positives). Marges satisfaisantes : \(M_\varphi = 60° \geq 45°\) ✓ et \(M_G = 10\ \text{dB} \geq 6\ \text{dB}\) ✓.</p>
+    <p><strong>Q3.</strong> Doubler K ajoute \(+6\ \text{dB}\) au gain. La marge de gain diminue de 6 dB : \(M_G = 10-6 = 4\ \text{dB}\). La marge de phase change aussi (le nouveau \(\omega_{c0}\) est différent) mais moins prévisible sans le tracé complet.</p>
+  </div>
+</div>
+<div class="exo">
+  <span class="num">EXO 06</span><span class="diff">★ ★ ★</span>
+  <h3>Marges insuffisantes et avance de phase (Q2-Q3 vues en 2ᵉ année)</h3>
+  <div class="statement">\(H_{BO}(p) = \frac{K}{p(1+p)(1+0{,}1p)}\), \(K = 2\). Le cahier des charges impose \(M_\varphi \geq 45°\) et \(M_G \geq 10\) dB. On envisage un correcteur à avance de phase \(C(p) = \frac{1+\tau p}{1+a\tau p}\) avec \(a \lt 1\).</div>
+  <div class="q"><strong>Q1.</strong> Calculer \(M_\varphi\) et \(M_G\) pour \(K=2\) sans correcteur. Quelle exigence n'est pas satisfaite ?</div>
+  <div class="q"><strong>Q2.</strong> Quel est l'effet qualitatif d'un correcteur à avance de phase sur \(M_\varphi\) ?</div>
+  <div class="q"><strong>Q3.</strong> Avec \(a=0{,}1\), l'avance de phase maximale est \(\varphi_{max} = \arcsin\frac{1-a}{1+a}\). Calculer \(\varphi_{max}\) et le gain du correcteur à la pulsation où elle est atteinte.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> La résolution de \(\dfrac{2}{\omega\sqrt{1 + \omega^2}\sqrt{1 + 0{,}01\omega^2}} = 1\) (essais successifs) donne \(\omega_{c0} \approx 1{,}24\ \text{rad/s}\). Phase : \(-90° - \arctan 1{,}24 - \arctan 0{,}124\), soit \(-148{,}3°\), d'où \(M_\varphi \approx 32°\), insuffisante. La phase vaut \(-180°\) en \(\omega_\pi = 1/\sqrt{0{,}1} \approx 3{,}16\ \text{rad/s}\) ; le gain limite vaut \(1/1 + 1/0{,}1 = 11\), donc \(M_G = 20\log(11/2) \approx 14{,}8\ \text{dB}\), suffisante.</p>
+    <p><strong>Q2.</strong> Un correcteur à avance de phase apporte une phase positive entre ses deux cassures → augmente \(M_\varphi\) s'il est placé autour de \(\omega_{c0}\). Il accélère aussi la réponse. En revanche il amplifie les bruits haute fréquence.</p>
+    <p><strong>Q3.</strong> \(\varphi_{max} = \arcsin\frac{1-0{,}1}{1+0{,}1}\), soit \(\arcsin(0{,}818) \approx 54{,}9°\), atteinte au milieu logarithmique des cassures, où le gain du correcteur vaut \(1/\sqrt a \approx 3{,}16\) (+10 dB). Cette amplification déplace la pulsation de coupure : le réglage complet (choix de \(\tau\) et du gain) est la démarche de 2ᵉ année (<a href="#correcteurs/cours">« Correction des SLCI »</a>, §5).</p>
+  </div>
+</div>
+<div class="exo">
+  <span class="num">EXO 07</span><span class="diff">★ ★ ★</span>
+  <h3>Compenser le pôle du procédé : une fausse bonne idée (Q3-Q4 vues en 2ᵉ année)</h3>
+  <div class="statement">Un procédé a pour fonction de transfert \(G(p) = \dfrac{K}{p(\tau p + 1)}\) avec \(K = 2\ \text{s}^{-1}\) et \(\tau = 0{,}5\ \text{s}\). On ferme une boucle à retour unitaire avec un correcteur \(C(p) = K_c\).</div>
+  <div class="q"><strong>Q1.</strong> Écrire la FTBO \(H_{BO}(p) = C(p)\,G(p)\). Déterminer sa pulsation de coupure à 0 dB \(\omega_{c0}\) pour \(K_c = 1\).</div>
+  <div class="q"><strong>Q2.</strong> Calculer la marge de phase \(M_\varphi\). Le système est-il stable ?</div>
+  <div class="q"><strong>Q3.</strong> Pour annuler l'écart de traînage, on remplace le gain par un correcteur PI \(C(p) = K_c\,\dfrac{1 + \tau_i p}{\tau_i p}\) et l'on choisit \(\tau_i = \tau\), pour que le zéro du correcteur compense le pôle du procédé. Calculer la FTBO, sa marge de phase et la FTBF. Conclure.</div>
+  <div class="q"><strong>Q4.</strong> Proposer un meilleur choix de \(\tau_i\).</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> \(H_{BO}(p) = \dfrac{2K_c}{p\,(1 + 0{,}5p)}\), de module \(\dfrac{2K_c}{\omega\sqrt{1 + 0{,}25\,\omega^2}}\). Pour \(K_c = 1\), il vaut 1 quand \(\omega^2\,(1 + 0{,}25\,\omega^2) = 4\), soit \(0{,}25\,\omega^4 + \omega^2 - 4 = 0\). Avec \(u = \omega^2\) : \(u = \dfrac{-1 + \sqrt{1 + 4}}{0{,}5} \approx 2{,}47\), donc \(\omega_{c0} \approx 1{,}57\ \text{rad/s}\).</p>
+    <p><strong>Q2.</strong> \(\arg H_{BO}(j\omega_{c0}) = -90° - \arctan(0{,}786)\), soit \(-128{,}2°\), d'où \(M_\varphi \approx 51{,}8°\). La phase n'atteint jamais \(-180°\) : la boucle est stable pour tout gain positif, et la marge de phase est confortable (au-dessus de 45°).</p>
+    <p><strong>Q3.</strong> \(H_{BO}(p) = K_c\,\dfrac{1 + \tau p}{\tau p}\cdot\dfrac{K}{p\,(1 + \tau p)} = \dfrac{K_cK}{\tau p^2}\) : un double intégrateur, dont la phase vaut \(-180°\) à toute pulsation. La marge de phase est <strong>nulle</strong>. La FTBF \(\dfrac{K_cK/\tau}{p^2 + K_cK/\tau}\) a des pôles imaginaires purs : la sortie oscille indéfiniment, la boucle est à la limite de stabilité. Compenser le pôle d'un procédé qui contient déjà un intégrateur est désastreux.</p>
+    <p><strong>Q4.</strong> On place la cassure du PI une décade sous la coupure : \(1/\tau_i \approx \omega_{c0}/10 \approx 0{,}16\ \text{rad/s}\), soit \(\tau_i \approx 6\ \text{s}\). En \(\omega_{c0}\), le PI ne retire qu'environ \(\arctan(1/(6 \times 1{,}57)) \approx 6°\) : la marge de phase reste voisine de 46° ; l'écart de traînage s'annule (classe 2), au prix d'une convergence finale lente.</p>
+  </div>
+</div>
+<div class="exo">
+  <span class="num">EXO 08</span><span class="diff">★ ★ ☆</span>
+  <h3>Pôles, amortissement et dépassement</h3>
+  <div class="statement">Un asservissement à retour unitaire a pour FTBO \(H_{BO}(p) = \dfrac{K}{p\,(1 + 0{,}2p)}\), \(K \gt 0\) en s⁻¹.</div>
+  <div class="q"><strong>Q1.</strong> Écrire l'équation caractéristique. La boucle fermée est-elle stable ?</div>
+  <div class="q"><strong>Q2.</strong> Exprimer \(\omega_0\) et \(\xi\) de la FTBF en fonction de \(K\). Pour quelle valeur de \(K\) a-t-on \(\xi = 0{,}5\) ? Placer alors les pôles dans le plan complexe et calculer le dépassement.</div>
+  <div class="q"><strong>Q3.</strong> Le cahier des charges impose un dépassement inférieur à 5 %. Quel gain maximal peut-on choisir ?</div>
+  <div class="q"><strong>Q4.</strong> Pour \(K = 5\), calculer la marge de phase et vérifier la règle \(\xi \approx M_\varphi/100\).</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> \(1 + H_{BO} = 0\) donne \(0{,}2p^2 + p + K = 0\), soit \(p^2 + 5p + 5K = 0\) : degré 2, coefficients positifs, stable pour tout \(K \gt 0\).</p>
+    <p><strong>Q2.</strong> Par identification avec \(p^2 + 2\xi\omega_0 p + \omega_0^2\) : \(\omega_0 = \sqrt{5K}\) et \(\xi = \dfrac{5}{2\sqrt{5K}}\). \(\xi = 0{,}5\) impose \(\sqrt{5K} = 5\), soit \(K = 5\ \text{s}^{-1}\) : \(\omega_0 = 5\ \text{rad/s}\), pôles \(-2{,}5 \pm 4{,}33j\), sur la demi-droite à 60° de l'axe réel négatif (\(\cos 60° = 0{,}5\)). Dépassement : \(e^{-\pi \times 0{,}5/\sqrt{0{,}75}} \approx 16\ \%\) ; temps de réponse à 5 % voisin de \(3/2{,}5 \approx 1{,}2\ \text{s}\) (1,06 s exactement).</p>
+    <p><strong>Q3.</strong> \(D_1 \leq 5\ \%\) demande \(\xi \geq 0{,}69\), soit \(\sqrt{5K} \leq \dfrac{5}{2 \times 0{,}69} \approx 3{,}62\) et \(K \leq 2{,}6\ \text{s}^{-1}\). Moins de gain, c'est un meilleur amortissement mais une boucle plus lente et moins précise en traînage.</p>
+    <p><strong>Q4.</strong> \(\dfrac{5}{\omega\sqrt{1 + 0{,}04\,\omega^2}} = 1\) donne \(0{,}04\,\omega^4 + \omega^2 - 25 = 0\), \(\omega_{c0} \approx 3{,}93\ \text{rad/s}\) ; \(M_\varphi = 90° - \arctan 0{,}786 \approx 52°\). La règle donne \(\xi \approx 0{,}52\), pour une valeur exacte de 0,5 : elle est vérifiée.</p>
+  </div>
+</div>
+<div class="exo">
+  <span class="num">EXO 09</span><span class="diff">★ ★ ☆</span>
+  <h3>Stabiliser un système instable en boucle ouverte</h3>
+  <div class="statement">Un système de lévitation magnétique, linéarisé autour de son point d'équilibre, a pour fonction de transfert \(G(p) = \dfrac{4}{(p - 2)(1 + 0{,}1p)}\) (temps en secondes). On le commande par un correcteur proportionnel \(C(p) = K_c \gt 0\), en retour unitaire.</div>
+  <div class="q"><strong>Q1.</strong> Le processus seul est-il stable ? Peut-on appliquer le critère du revers à cette boucle ?</div>
+  <div class="q"><strong>Q2.</strong> Écrire l'équation caractéristique de la boucle fermée. Pour quelles valeurs de \(K_c\) est-elle stable ?</div>
+  <div class="q"><strong>Q3.</strong> Pour \(K_c = 2\), calculer les pôles de la FTBF, son amortissement et son gain statique.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> Le processus a un pôle \(+2\) à partie réelle positive : il est instable (la bille tombe ou se colle à l'électroaimant). Le critère du revers suppose une boucle ouverte stable : il ne s'applique pas ; on revient aux pôles de la FTBF.</p>
+    <p><strong>Q2.</strong> \(1 + K_c\,G(p) = 0\) donne \((p - 2)(1 + 0{,}1p) + 4K_c = 0\), soit \(0{,}1p^2 + 0{,}8p + (4K_c - 2) = 0\). Degré 2 : stable si et seulement si les trois coefficients sont positifs, c'est-à-dire \(K_c \gt 0{,}5\). Il faut un gain <strong>minimal</strong> pour stabiliser, à l'inverse des boucles ouvertes stables.</p>
+    <p><strong>Q3.</strong> \(0{,}1p^2 + 0{,}8p + 6 = 0\), soit \(p^2 + 8p + 60 = 0\) : pôles \(-4 \pm 6{,}63j\), stables. \(\omega_0 = \sqrt{60} \approx 7{,}75\ \text{rad/s}\), \(\xi = 4/7{,}75 \approx 0{,}52\) (dépassement voisin de 15 %). Gain statique : \(\dfrac{K_c\,G(0)}{1 + K_c\,G(0)}\) avec \(G(0) = -2\), soit \(\dfrac{-4}{1 - 4} \approx 1{,}33\) : la sortie dépasse durablement la consigne d'un tiers, il faudra un correcteur plus riche (ou une consigne corrigée) pour la précision.</p>
+  </div>
+</div>
+<div class="exo">
+  <span class="num">EXO 10</span><span class="diff">★ ★ ★</span>
+  <h3>Commande à distance : l'effet d'un retard</h3>
+  <div class="statement">Un robot d'inspection est piloté à distance. Sa boucle de position a pour FTBO \(H_{BO}(p) = \dfrac{5\,e^{-Tp}}{p\,(1 + 0{,}2p)}\), où \(T\) est le retard de la liaison radio.</div>
+  <div class="q"><strong>Q1.</strong> Sans retard (\(T = 0\)), calculer \(\omega_{c0}\) et \(M_\varphi\). Quelle est la marge de gain ?</div>
+  <div class="q"><strong>Q2.</strong> Le retard modifie-t-il \(\omega_{c0}\) ? Quel retard maximal la boucle tolère-t-elle avant de devenir instable ?</div>
+  <div class="q"><strong>Q3.</strong> Pour \(T = 0{,}1\ \text{s}\) : calculer la marge de phase, puis la pulsation \(\omega_\pi\) (par essais successifs) et la marge de gain.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> \(0{,}04\,\omega^4 + \omega^2 - 25 = 0\) donne \(\omega_{c0} \approx 3{,}93\ \text{rad/s}\) ; \(M_\varphi = 90° - \arctan(0{,}786) \approx 51{,}8°\). Sans retard, la phase n'atteint jamais \(-180°\) : marge de gain infinie.</p>
+    <p><strong>Q2.</strong> \(|e^{-j\omega T}| = 1\) : le gain et donc \(\omega_{c0}\) sont inchangés. Le retard retire \(\omega_{c0}T\) à la marge de phase ; la boucle devient instable quand \(\omega_{c0}T\) atteint \(51{,}8° = 0{,}904\ \text{rad}\), soit \(T_{max} = 0{,}904/3{,}93 \approx 0{,}23\ \text{s}\).</p>
+    <p><strong>Q3.</strong> Perte \(3{,}93 \times 0{,}1 = 0{,}393\ \text{rad} \approx 22{,}5°\) : \(M_\varphi \approx 29°\). La phase vaut \(-180°\) quand \(\arctan(0{,}2\omega) + 5{,}73\,\omega = 90°\) (le terme \(0{,}1\omega\) converti en degrés) : par essais, \(\omega_\pi \approx 6{,}5\ \text{rad/s}\). Le gain y vaut \(\dfrac{5}{6{,}53\sqrt{1 + 0{,}04 \times 6{,}53^2}} \approx 0{,}47\), soit \(M_G \approx 6{,}6\ \text{dB}\) : le retard a fait apparaître un gain limite (environ 10,7 au lieu de l'infini).</p>
+  </div>
+</div>
+
+<div class="exo concours">
+  <span class="num">CONCOURS PT</span><span class="diff">★ ★ ★</span>
+  <h3>Stabilité de l'asservissement d'une antenne</h3>
+  <div class="exo-source">
+    Exercice <strong>original</strong> au format des épreuves de Sciences industrielles PT (thème <em>stabilité et marges</em>). Pour t'entraîner sur les sujets réellement tombés :
+    <a href="https://www.banquept.fr/rubrique38.html" target="_blank" rel="noopener">annales officielles de la Banque PT</a>.
+  </div>
+  <div class="statement">
+    On étudie l'asservissement en position angulaire d'une antenne de télécommunication. Le cahier des charges impose : boucle fermée stable, \(M_\varphi \geq 45°\), \(M_G \geq 10\ \text{dB}\), dépassement inférieur à 25 %.
+  </div>
+  <p class="exo-part">Partie A — Lecture d'un premier relevé</p>
+  <div class="statement">Sur un premier prototype, on relève le diagramme de Bode de la FTBO : à la pulsation de coupure à 0 dB \(\omega_{c0}\), la phase vaut \(-135°\) ; à la pulsation \(\omega_\pi\) où la phase vaut \(-180°\), le gain vaut \(-8\ \text{dB}\).</div>
+  <div class="q"><strong>A1.</strong> Définir et déterminer la marge de phase \(M_\varphi\) et la marge de gain \(M_G\).</div>
+  <div class="q"><strong>A2.</strong> Le prototype est-il stable ? Respecte-t-il le cahier des charges ? Que se passe-t-il si l'on augmente le gain de la FTBO de 8 dB ?</div>
+  <p class="exo-part">Partie B — Modèle de l'antenne</p>
+  <div class="statement">Le modèle retenu pour l'antenne définitive (moteur, réducteur, capteur, amplificateur de gain réglable \(K_c\)) donne, après réduction du schéma-blocs, \(H_{BO}(p) = \dfrac{10\,K_c}{p\,(1 + 0{,}1p)(1 + 0{,}01p)}\) (temps en secondes).</div>
+  <div class="q"><strong>B1.</strong> Écrire l'équation caractéristique. Déterminer, par la recherche des pôles imaginaires purs, le gain \(K_c\) limite et la pulsation des oscillations à la limite.</div>
+  <div class="q"><strong>B2.</strong> Pour \(K_c = 1\), calculer \(\omega_{c0}\) (par essais successifs), \(M_\varphi\) et \(M_G\).</div>
+  <p class="exo-part">Partie C — Réglage du gain</p>
+  <div class="q"><strong>C1.</strong> Déterminer \(K_c\) pour obtenir exactement \(M_\varphi = 45°\). Vérifier la marge de gain.</div>
+  <div class="q"><strong>C2.</strong> Estimer le dépassement de la réponse indicielle. Le cahier des charges est-il respecté ?</div>
+  <div class="q"><strong>C3.</strong> Quel gain faudrait-il pour \(M_\varphi = 60°\) ? Quel en serait l'inconvénient ?</div>
+  <p class="exo-part">Partie D — Télécommande par liaison radio</p>
+  <div class="q"><strong>D1.</strong> La consigne et la mesure transitent par une liaison radio qui ajoute un retard \(T = 30\ \text{ms}\) dans la boucle. Avec le réglage de C1, que devient la marge de phase ?</div>
+  <div class="q"><strong>D2.</strong> Proposer un nouveau gain \(K_c\) qui rétablit \(M_\varphi = 45°\) et vérifier la marge de gain.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>A1.</strong> La marge de phase est l'écart à \(-180°\) de la phase à la pulsation de coupure à 0 dB : \(M_\varphi = 180° + \varphi(\omega_{c0}) = 180° - 135° = 45°\). La marge de gain est l'écart à 0 dB du gain à la pulsation où la phase vaut \(-180°\) : \(M_G = 0 - (-8) = 8\ \text{dB}\).</p>
+    <p><strong>A2.</strong> Les deux marges sont positives : stable. La marge de phase est conforme, mais \(M_G = 8\ \text{dB} \lt 10\ \text{dB}\) : le cahier des charges n'est pas respecté. Augmenter le gain de 8 dB monte la courbe de gain de 8 dB sans changer la phase : en \(\omega_\pi\) le gain atteint 0 dB, \(M_G = 0\), et la boucle est à la limite de stabilité (oscillations entretenues).</p>
+    <p><strong>B1.</strong> \(p\,(1 + 0{,}1p)(1 + 0{,}01p) + 10K_c = 0\), soit \(0{,}001p^3 + 0{,}11p^2 + p + 10K_c = 0\). Avec \(p = j\omega\) : partie imaginaire \(\omega - 0{,}001\,\omega^3 = 0\), donc \(\omega = \sqrt{1000} \approx 31{,}6\ \text{rad/s}\) ; partie réelle \(10K_c - 0{,}11\,\omega^2 = 0\), donc \(10K_c = 110\) et \(K_{c,lim} = 11\). Stable pour \(0 \lt K_c \lt 11\) (on retrouve \(10K_{c,lim} = 1/0{,}1 + 1/0{,}01\)).</p>
+    <p><strong>B2.</strong> \(|H_{BO}(j\omega)| = 1\) donne, par essais, \(\omega_{c0} \approx 7{,}84\ \text{rad/s}\) ; phase \(-90° - \arctan 0{,}784 - \arctan 0{,}0784\), soit \(-132{,}6°\) : \(M_\varphi \approx 47°\). \(M_G = 20\log(K_{c,lim}/K_c)\), soit \(20\log 11 \approx 20{,}8\ \text{dB}\).</p>
+    <p><strong>C1.</strong> La phase vaut \(-135°\) quand \(\arctan(0{,}1\omega) + \arctan(0{,}01\omega) = 45°\), soit \(\dfrac{0{,}11\,\omega}{1 - 0{,}001\,\omega^2} = 1\) : \(\omega \approx 8{,}44\ \text{rad/s}\). On y impose un gain de 1 :</p><div class=\"formula\">$$10K_c = 8{,}44\,\sqrt{1 + 0{,}844^2}\,\sqrt{1 + 0{,}0844^2} \approx 11{,}1,$$</div><p>donc \(K_c \approx 1{,}11\). \(M_G = 20\log(11/1{,}11) \approx 19{,}9\ \text{dB} \geq 10\ \text{dB}\).</p>
+    <p><strong>C2.</strong> Règle \(\xi \approx M_\varphi/100 \approx 0{,}45\), d'où \(D_1 \approx e^{-\pi \times 0{,}45/\sqrt{1 - 0{,}2}} \approx 20\ \%\) ; le calcul des pôles de la FTBF (\(-4{,}4 \pm 9{,}5j\) et \(-101\)) donne \(\xi \approx 0{,}42\) et 23 %. Moins de 25 % : le cahier des charges est respecté, de justesse.</p>
+    <p><strong>C3.</strong> La phase vaut \(-120°\) quand \(\dfrac{0{,}11\,\omega}{1 - 0{,}001\,\omega^2} = \tan 30°\), soit \(\omega \approx 5{,}1\ \text{rad/s}\), d'où \(10K_c \approx 5{,}75\) et \(K_c \approx 0{,}57\). La réponse dépasserait peu (environ 9 %) mais la boucle serait plus lente (\(\omega_{c0}\) de 8,4 à 5,1 rad/s) et moins précise en traînage (gain divisé par 2).</p>
+    <p><strong>D1.</strong> Le retard ne change pas \(\omega_{c0} \approx 8{,}44\ \text{rad/s}\) mais retire \(8{,}44 \times 0{,}03 = 0{,}253\ \text{rad} \approx 14{,}5°\) : \(M_\varphi \approx 30{,}5°\), insuffisant ; dépassement attendu autour de 40 %.</p>
+    <p><strong>D2.</strong> Il faut maintenant</p><div class=\"formula\">$$\arctan(0{,}1\omega) + \arctan(0{,}01\omega) + 0{,}03\,\omega \times \frac{180}{\pi} = 45°\ ;$$</div><p>par essais, \(\omega \approx 6{,}04\ \text{rad/s}\), d'où</p><div class=\"formula\">$$10K_c = 6{,}04\,\sqrt{1 + 0{,}604^2}\,\sqrt{1 + 0{,}0604^2} \approx 7{,}08$$</div><p>et \(K_c \approx 0{,}71\). La phase vaut alors \(-180°\) vers 14,8 rad/s, où \(M_G \approx 11{,}6\ \text{dB}\) : conforme. Le retard coûte environ 30 % de rapidité.</p>
+  </div>
+</div>
+
+</div>
+</template>

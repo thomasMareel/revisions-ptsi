@@ -1,0 +1,1251 @@
+<!-- Chapitre « Recherche séquentielle, dictionnaires et dichotomie » (pydicho) : contenu des onglets Cours, Méthodes et Exercices, chargé à l'ouverture du chapitre.
+     On l'édite ici, puis : node tools/chapitres.js (docs/chargement-chapitres.md). -->
+<template class="pan-tpl" data-panneau="dich-cours">
+<div class="course-section">
+  <div class="sec-num">AU PROGRAMME · INFORMATIQUE</div>
+  <h2>Ce que le programme officiel demande</h2>
+  <div class="intro">Ce chapitre regroupe trois thèmes du premier semestre d'informatique commune : la recherche séquentielle dans un tableau (avec l'usage des dictionnaires), les algorithmes à boucles imbriquées et les algorithmes dichotomiques. C'est aussi là qu'apparaissent les premiers coûts : constant, linéaire, quadratique, logarithmique. Les outils de preuve (invariant, variant) et de test sont utilisés sur chaque exemple ; leur étude systématique est faite au second semestre, dans le chapitre <em>Spécification, correction et complexité</em>.</div>
+  <div class="reveal" onclick="this.classList.toggle('open')">
+    <span class="label">Programme officiel</span>
+    <span class="prompt">Les thèmes et activités couverts, dans l'ordre du chapitre</span>
+    <div class="content">
+      <ul>
+        <li><strong>Coût d'un algorithme</strong> (S1, précisé en S2) : estimation du coût dans le pire cas en ordre de grandeur ; coût constant, linéaire, quadratique, logarithmique (§1, puis dans chaque section).</li>
+        <li><strong>Recherche séquentielle dans un tableau unidimensionnel</strong> (S1) : recherche d'un élément (§2), du maximum et du second maximum (§3) ; manipulations élémentaires d'un tableau.</li>
+        <li><strong>Dictionnaire</strong> (S1) : utilisation en boîte noire ; comptage des éléments d'un tableau à l'aide d'un dictionnaire (§4). Le principe du hachage, qui explique le coût constant, est vu en 2ᵉ année (chapitre <em>Dictionnaires et programmation dynamique</em>).</li>
+        <li><strong>Algorithmes à boucles imbriquées</strong> (S1) : recherche d'un facteur dans un texte (§5), recherche des deux valeurs les plus proches dans un tableau (§6) ; notion de complexité quadratique ; outils pour valider la correction (§6, §9). Le tri à bulles, cité au même endroit du programme, est traité dans le chapitre <em>Algorithmes de tri</em>.</li>
+        <li><strong>Algorithmes dichotomiques</strong> (S1) : recherche dichotomique dans un tableau trié (§7), exponentiation rapide (§8) ; accélération d'un coût linéaire à un coût logarithmique ; jeux de tests et outils de validation (§9). Versions récursives : chapitre <em>Récursivité</em>.</li>
+      </ul>
+      <p>Les exemples d'activités du programme (maximum, second maximum, facteur, valeurs les plus proches…) ne sont pas exigibles en tant que tels : ce qui l'est, c'est de savoir écrire, justifier et évaluer ce type d'algorithme. Le code n'utilise que les éléments de Python de l'annexe du programme ; les rares fonctions extérieures (<span class="code-inline">sorted</span>, le module <span class="code-inline">random</span> pour les tests) sont documentées là où elles servent.</p>
+    </div>
+  </div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§1 · LE COÛT D'UN ALGORITHME</div>
+  <h2>Compter les opérations plutôt que chronométrer</h2>
+  <div class="intro">Deux programmes justes peuvent mettre l'un une seconde, l'autre plusieurs heures sur les mêmes données. Pour les comparer sans dépendre de la machine, on compte les opérations qu'ils effectuent en fonction de la taille \(n\) des données, et l'on ne retient que l'ordre de grandeur, dans le cas le plus défavorable.</div>
+
+  <div class="def-box">
+    Une <strong>opération élémentaire</strong> est une opération dont la durée ne dépend pas de la taille des données : affectation, comparaison de deux nombres, opération arithmétique sur des nombres de taille bornée, accès à <span class="code-inline">t[i]</span>, calcul de <span class="code-inline">len(t)</span>, ajout en fin de liste par <span class="code-inline">append</span>, accès, insertion ou test de présence dans un dictionnaire (en moyenne, voir §4).<br>
+    La <strong>complexité temporelle dans le pire cas</strong> d'un algorithme est le nombre maximal \(C(n)\) d'opérations élémentaires qu'il effectue sur une donnée de taille \(n\). On écrit \(C(n) = O(g(n))\) lorsque \(C(n) \le K\,g(n)\) pour une constante \(K\) et pour \(n\) assez grand.
+  </div>
+
+  <div class="prop-box">
+    <strong>Les ordres de grandeur du chapitre.</strong>
+    <ul>
+      <li><strong>Coût constant</strong>, \(O(1)\) : le nombre d'opérations ne dépend pas de \(n\) (lire <span class="code-inline">t[0]</span>, tester une clé d'un dictionnaire).</li>
+      <li><strong>Coût logarithmique</strong>, \(O(\log n)\) : on divise la taille du problème par deux à chaque étape (dichotomie, §7 ; exponentiation rapide, §8). \(\log_2 n\) est, à une unité près, le nombre de divisions par 2 qui ramènent \(n\) à 1 : \(\log_2 10^6 \approx 20\).</li>
+      <li><strong>Coût linéaire</strong>, \(O(n)\) : on examine chaque élément un nombre borné de fois (recherche séquentielle, maximum, comptage).</li>
+      <li><strong>Coût quadratique</strong>, \(O(n^2)\) : on examine tous les couples d'éléments (deux boucles imbriquées, §5 et §6).</li>
+    </ul>
+  </div>
+
+  <p>Sur une donnée de taille \(n\), un algorithme linéaire qui fait \(3n + 2\) opérations est un \(O(n)\) : la constante 3 dépend de la façon de compter et de la machine, l'ordre de grandeur \(n\) n'en dépend pas. Ce qui compte est la façon dont le coût <em>grandit</em> : si \(n\) double, un coût linéaire double, un coût quadratique quadruple, un coût logarithmique augmente d'une seule opération.</p>
+
+  <div><table>
+    <tr><th>Coût</th><th>\(n = 10^3\)</th><th>\(n = 10^6\)</th><th>\(n = 10^9\)</th></tr>
+    <tr><td>\(\log_2 n\)</td><td>0,1 µs</td><td>0,2 µs</td><td>0,3 µs</td></tr>
+    <tr><td>\(n\)</td><td>10 µs</td><td>10 ms</td><td>10 s</td></tr>
+    <tr><td>\(n \log_2 n\)</td><td>0,1 ms</td><td>0,2 s</td><td>5 min</td></tr>
+    <tr><td>\(n^2\)</td><td>10 ms</td><td>3 h</td><td>300 ans</td></tr>
+  </table></div>
+  <p><em>Durées estimées à raison de \(10^8\) opérations élémentaires par seconde, ordre de grandeur pour Python sur un ordinateur portable (une boucle qui fait une comparaison par tour en effectue environ \(4 \times 10^7\) par seconde).</em></p>
+
+  <div class="method-box">
+    <strong>Exemple — Une boucle, puis deux boucles imbriquées</strong>
+    <p>La fonction <span class="code-inline">somme</span> fait une affectation, puis deux opérations à chacun des \(n\) tours : \(2n + 1\) opérations, coût linéaire.</p>
+<pre class="codeblock"><span class="kw">def</span> somme(t):
+    s = 0              <span class="cmt"># 1 affectation</span>
+    <span class="kw">for</span> x <span class="kw">in</span> t:        <span class="cmt"># n tours de boucle</span>
+        s = s + x      <span class="cmt"># 2 opérations par tour</span>
+    <span class="kw">return</span> s</pre>
+    <p>La fonction suivante compte les couples de cases égales. Pour \(i\) fixé, la boucle intérieure fait \(n - 1 - i\) tours, donc une comparaison par tour :</p>
+<pre class="codeblock"><span class="kw">def</span> nb_paires_egales(t):
+    <span class="cmt"># nombre de couples (i, j), i &lt; j, avec t[i] == t[j]</span>
+    n = len(t)
+    c = 0
+    <span class="kw">for</span> i <span class="kw">in</span> range(n):
+        <span class="kw">for</span> j <span class="kw">in</span> range(i + 1, n):   <span class="cmt"># n - 1 - i tours</span>
+            <span class="kw">if</span> t[i] == t[j]:
+                c = c + 1
+    <span class="kw">return</span> c</pre>
+    <ol>
+      <li>Nombre total de comparaisons : on additionne les tours de la boucle intérieure pour \(i = 0, 1, \dots, n-1\).</li>
+      <li><div class="formula" data-nom="Nombre de couples i &lt; j">$$\sum_{i=0}^{n-1} (n - 1 - i) = (n-1) + (n-2) + \dots + 1 + 0 = \frac{n(n-1)}{2}.$$</div></li>
+      <li>Pour \(n = 6\), cela fait 15 comparaisons, quel que soit le contenu de la liste ; pour \(n = 10^6\), environ \(5 \times 10^{11}\) : le coût est quadratique, \(O(n^2)\).</li>
+    </ol>
+<pre class="codeblock">nb_paires_egales([3, 1, 3, 3, 2, 1])   <span class="cmt"># 4</span></pre>
+  </div>
+
+  <div class="notice"><strong>Erreur classique</strong> : croire qu'une ligne de code coûte une opération. <span class="code-inline">x in t</span> (pour une liste), <span class="code-inline">t[a:b]</span>, <span class="code-inline">t + u</span>, <span class="code-inline">t.copy()</span> ou la comparaison de deux chaînes parcourent leurs données : leur coût est proportionnel à la longueur en jeu. Une boucle qui exécute <span class="code-inline">x in t</span> à chaque tour est donc quadratique, et non linéaire.</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§2 · RECHERCHE SÉQUENTIELLE D'UN ÉLÉMENT</div>
+  <h2>Parcourir jusqu'à trouver</h2>
+  <div class="intro">Chercher une valeur dans une liste quelconque (non triée), c'est l'examiner case après case. On peut s'arrêter dès qu'on l'a trouvée ; en revanche, on ne peut conclure à son absence qu'après avoir tout examiné.</div>
+
+  <div class="def-box">
+    La <strong>recherche séquentielle</strong> (ou linéaire) d'une valeur \(x\) dans une liste \(t\) de longueur \(n\) compare successivement \(t[0], t[1], \dots\) à \(x\), et s'arrête à la première case égale à \(x\) ou à la fin de la liste.
+  </div>
+
+  <p>Avec une boucle <span class="code-inline">for</span>, la sortie anticipée se fait par <span class="code-inline">return</span> dans le corps de la boucle ; le <span class="code-inline">return False</span> placé <em>après</em> la boucle n'est atteint que si aucune case ne convient.</p>
+<pre class="codeblock"><span class="kw">def</span> appartient(x, t):
+    <span class="cmt"># renvoie True si la valeur x est dans la liste t</span>
+    <span class="kw">for</span> y <span class="kw">in</span> t:
+        <span class="kw">if</span> y == x:
+            <span class="kw">return</span> <span class="kw">True</span>   <span class="cmt"># arrêt à la 1re rencontre</span>
+    <span class="kw">return</span> <span class="kw">False</span>          <span class="cmt"># après avoir tout examiné</span></pre>
+  <p>Pour obtenir l'<strong>indice</strong> de la première occurrence, une boucle <span class="code-inline">while</span> exprime directement la condition d'arrêt. Le <span class="code-inline">and</span> est <strong>paresseux</strong> : si <span class="code-inline">i &lt; len(t)</span> est faux, <span class="code-inline">t[i]</span> n'est pas évalué, ce qui évite de lire hors de la liste.</p>
+<pre class="codeblock"><span class="kw">def</span> indice(x, t):
+    <span class="cmt"># indice de la 1re occurrence de x dans t, -1 si absent</span>
+    i = 0
+    <span class="kw">while</span> i &lt; len(t) <span class="kw">and</span> t[i] != x:
+        <span class="cmt"># invariant : x n'est pas dans t[0..i-1]</span>
+        i = i + 1
+    <span class="kw">if</span> i &lt; len(t):
+        <span class="kw">return</span> i
+    <span class="kw">return</span> -1</pre>
+
+  <div class="prop-box">
+    <strong>Correction et coût.</strong> L'invariant « \(x\) n'est dans aucune des cases \(t[0], \dots, t[i-1]\) » est vrai au départ (\(i = 0\) : aucune case) et conservé par chaque tour (on n'avance que si \(t[i] \ne x\)). À la sortie, soit \(i \lt n\) et \(t[i] = x\) : \(i\) est la première occurrence ; soit \(i = n\) et \(x\) est absent. La boucle termine car \(n - i\) est un entier positif qui diminue de 1 à chaque tour (variant).<br>
+    <strong>Pire cas</strong> (\(x\) absent ou en dernière position) : \(n\) comparaisons, coût linéaire \(O(n)\). <strong>Meilleur cas</strong> (\(x\) en tête) : une comparaison, \(O(1)\).
+  </div>
+
+  <div class="method-box">
+    <strong>Exemple — Dérouler la recherche</strong>
+    <p>Avec <span class="code-inline">t = [7, 3, 9, 3, 5]</span> :</p>
+    <ol>
+      <li><span class="code-inline">indice(3, t)</span> : \(i = 0\), \(7 \ne 3\) ; \(i = 1\), \(t[1] = 3\) : la boucle s'arrête, la fonction renvoie 1 après deux comparaisons. La seconde occurrence (indice 3) n'est jamais examinée.</li>
+      <li><span class="code-inline">indice(4, t)</span> : les cinq cases sont comparées à 4 sans succès ; \(i\) atteint 5, le test <span class="code-inline">i &lt; len(t)</span> devient faux et la fonction renvoie \(-1\).</li>
+    </ol>
+<pre class="codeblock">t = [7, 3, 9, 3, 5]
+indice(3, t)       <span class="cmt"># 1   (2 comparaisons)</span>
+indice(4, t)       <span class="cmt"># -1  (5 comparaisons)</span>
+appartient(5, t)   <span class="cmt"># True</span></pre>
+  </div>
+
+  <div class="notice"><strong>Erreur classique</strong> : placer le cas d'échec dans un <span class="code-inline">else</span> à l'intérieur de la boucle. La fonction ci-dessous sort dès le premier tour : elle renvoie <span class="code-inline">False</span> pour <span class="code-inline">appartient_faux(3, [7, 3])</span>.
+<pre class="codeblock"><span class="kw">def</span> appartient_faux(x, t):
+    <span class="kw">for</span> y <span class="kw">in</span> t:
+        <span class="kw">if</span> y == x:
+            <span class="kw">return</span> <span class="kw">True</span>
+        <span class="kw">else</span>:
+            <span class="kw">return</span> <span class="kw">False</span>   <span class="cmt"># ERREUR : sortie au 1er tour</span></pre>
+  Autre piège : \(-1\) n'est pas un indice valide au sens du programme, mais Python accepte <span class="code-inline">t[-1]</span> (la dernière case) sans erreur. On teste donc toujours le résultat avant de s'en servir comme indice.</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§3 · MAXIMUM ET SECOND MAXIMUM</div>
+  <h2>Garder en mémoire le meilleur candidat</h2>
+  <div class="intro">Pour le maximum, il n'y a pas de sortie anticipée possible : la plus grande valeur peut se trouver dans la dernière case. On parcourt donc toute la liste en tenant à jour le meilleur candidat rencontré jusque-là.</div>
+
+<pre class="codeblock"><span class="kw">def</span> maximum(t):
+    <span class="cmt"># t : liste non vide ; renvoie sa plus grande valeur</span>
+    m = t[0]
+    <span class="kw">for</span> i <span class="kw">in</span> range(1, len(t)):
+        <span class="kw">if</span> t[i] &gt; m:
+            m = t[i]
+    <span class="kw">return</span> m
+
+<span class="kw">def</span> indice_max(t):
+    <span class="cmt"># t non vide ; indice de la 1re occurrence du maximum</span>
+    im = 0
+    <span class="kw">for</span> i <span class="kw">in</span> range(1, len(t)):
+        <span class="kw">if</span> t[i] &gt; t[im]:
+            im = i
+    <span class="kw">return</span> im</pre>
+  <p>On initialise avec la première case, et non avec 0 : une liste de températures hivernales peut ne contenir que des valeurs négatives. La précondition « liste non vide » est donc nécessaire, et doit figurer dans la spécification. Le test strict <span class="code-inline">t[i] &gt; t[im]</span> garde la <em>première</em> occurrence du maximum ; avec <span class="code-inline">&gt;=</span>, on obtiendrait la dernière.</p>
+
+  <div class="prop-box">
+    <strong>Invariant du maximum.</strong> Au début du tour d'indice \(i\), \(m\) est le maximum de \(t[0], \dots, t[i-1]\). Après le dernier tour, \(m\) est le maximum de toute la liste. Coût : exactement \(n - 1\) comparaisons, linéaire, dans tous les cas.
+  </div>
+
+  <h3>Le second maximum en un seul passage</h3>
+  <p>On appelle ici <strong>second maximum</strong> le deuxième élément de la liste rangée par ordre décroissant, répétitions comprises : pour <span class="code-inline">[5, 9, 9]</span>, c'est 9. Plutôt que de trier (coût \(O(n \log n)\)) ou de faire deux passages, on tient à jour deux variables \(m_1 \ge m_2\) :</p>
+<pre class="codeblock"><span class="kw">def</span> second_max(t):
+    <span class="cmt"># t : au moins deux nombres ; renvoie le deuxième</span>
+    <span class="cmt"># plus grand élément, répétitions comprises</span>
+    <span class="kw">if</span> t[0] &gt;= t[1]:
+        m1, m2 = t[0], t[1]
+    <span class="kw">else</span>:
+        m1, m2 = t[1], t[0]
+    <span class="kw">for</span> i <span class="kw">in</span> range(2, len(t)):
+        <span class="cmt"># invariant : m1 &gt;= m2 sont les deux plus</span>
+        <span class="cmt"># grands éléments de t[0..i-1]</span>
+        <span class="kw">if</span> t[i] &gt; m1:
+            m1, m2 = t[i], m1   <span class="cmt"># l'ancien max descend</span>
+        <span class="kw">elif</span> t[i] &gt; m2:
+            m2 = t[i]
+    <span class="kw">return</span> m2</pre>
+  <p>Quand une valeur dépasse \(m_1\), l'ancien maximum devient le second : l'affectation simultanée <span class="code-inline">m1, m2 = t[i], m1</span> évalue d'abord les deux membres de droite, puis affecte. Écrire <span class="code-inline">m1 = t[i]</span> puis <span class="code-inline">m2 = m1</span> perdrait l'ancien maximum.</p>
+
+  <div class="method-box">
+    <strong>Exemple — Tableau d'états du second maximum</strong>
+    <p>Avec <span class="code-inline">t = [4, 11, 7, 15, 11, 2]</span> : l'initialisation compare 4 et 11, d'où \(m_1 = 11\), \(m_2 = 4\).</p>
+    <div><table>
+      <tr><th>\(i\)</th><th>\(t[i]\)</th><th>cas</th><th>\(m_1\)</th><th>\(m_2\)</th></tr>
+      <tr><td>2</td><td>7</td><td>\(4 \lt 7 \le 11\)</td><td>11</td><td>7</td></tr>
+      <tr><td>3</td><td>15</td><td>\(15 \gt 11\)</td><td>15</td><td>11</td></tr>
+      <tr><td>4</td><td>11</td><td>\(11 \le 11\)</td><td>15</td><td>11</td></tr>
+      <tr><td>5</td><td>2</td><td>\(2 \le 11\)</td><td>15</td><td>11</td></tr>
+    </table></div>
+    <p>La fonction renvoie 11. Elle fait au plus \(1 + 2(n-2)\) comparaisons : coût linéaire.</p>
+<pre class="codeblock">second_max([4, 11, 7, 15, 11, 2])   <span class="cmt"># 11</span>
+second_max([5, 9, 9])               <span class="cmt"># 9</span>
+second_max([-3, -8, -1])            <span class="cmt"># -3</span></pre>
+  </div>
+
+  <div class="notice"><strong>Erreur classique</strong> : oublier de préciser ce que l'on cherche. « Second maximum » peut aussi désigner la deuxième plus grande valeur <em>distincte</em> (pour <span class="code-inline">[5, 9, 9]</span>, ce serait 5, et la liste <span class="code-inline">[9, 9]</span> n'en aurait pas). La spécification tranche, et les tests doivent contenir des répétitions et des valeurs négatives.</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§4 · DICTIONNAIRES : RETROUVER ET COMPTER</div>
+  <h2>Accéder à une valeur par sa clé, en temps constant</h2>
+  <div class="intro">Une liste associe des valeurs à des indices 0, 1, 2… Un dictionnaire associe des valeurs à des <strong>clés</strong> choisies librement (chaînes, nombres, tuples). On l'utilise ici en boîte noire : on se sert de ses opérations et de leur coût sans savoir encore comment il est construit.</div>
+
+  <div class="def-box">
+    Un <strong>dictionnaire</strong> est un ensemble de couples <em>clé : valeur</em>, les clés étant deux à deux distinctes. On le crée par <span class="code-inline">{c1: v1, c2: v2}</span> (<span class="code-inline">{}</span> pour le dictionnaire vide) ; <span class="code-inline">d[c]</span> donne la valeur associée à la clé <span class="code-inline">c</span> ; <span class="code-inline">d[c] = v</span> associe <span class="code-inline">v</span> à <span class="code-inline">c</span> (en ajoutant la clé si elle est nouvelle, en remplaçant sa valeur sinon) ; <span class="code-inline">c in d</span> teste la présence de la clé ; <span class="code-inline">len(d)</span> est le nombre de clés.
+  </div>
+<pre class="codeblock">stock = {<span class="str">"vis"</span>: 120, <span class="str">"écrou"</span>: 80}
+stock[<span class="str">"vis"</span>]                <span class="cmt"># 120</span>
+stock[<span class="str">"rondelle"</span>] = 200     <span class="cmt"># nouvelle clé</span>
+<span class="str">"écrou"</span> <span class="kw">in</span> stock            <span class="cmt"># True</span>
+<span class="str">"boulon"</span> <span class="kw">in</span> stock           <span class="cmt"># False</span>
+len(stock)                  <span class="cmt"># 3</span>
+stock[<span class="str">"vis"</span>] = stock[<span class="str">"vis"</span>] - 20   <span class="cmt"># modification</span></pre>
+  <p>On parcourt un dictionnaire par ses clés (<span class="code-inline">for c in d.keys():</span>) ou par ses couples (<span class="code-inline">for c, v in d.items():</span>) :</p>
+<pre class="codeblock"><span class="kw">for</span> cle, valeur <span class="kw">in</span> stock.items():
+    print(cle, valeur)
+<span class="cmt"># affiche : vis 100, puis écrou 80, puis rondelle 200</span></pre>
+
+  <div class="prop-box">
+    <strong>Coût des opérations (admis).</strong> L'accès <span class="code-inline">d[c]</span>, l'affectation <span class="code-inline">d[c] = v</span> et le test <span class="code-inline">c in d</span> coûtent <strong>en moyenne un temps constant</strong>, quel que soit le nombre de clés. Pour une liste, le test <span class="code-inline">x in t</span> est une recherche séquentielle, de coût linéaire. Le parcours complet d'un dictionnaire de \(k\) clés coûte \(O(k)\).
+  </div>
+
+  <h3>Compter les occurrences</h3>
+  <p>Le comptage est l'usage le plus courant : une clé par valeur rencontrée, associée à son nombre d'apparitions. Il faut créer la clé à la première rencontre.</p>
+<pre class="codeblock"><span class="kw">def</span> compter(t):
+    <span class="cmt"># dictionnaire {valeur : nombre d'occurrences dans t}</span>
+    d = {}
+    <span class="kw">for</span> x <span class="kw">in</span> t:
+        <span class="kw">if</span> x <span class="kw">in</span> d:
+            d[x] = d[x] + 1
+        <span class="kw">else</span>:
+            d[x] = 1     <span class="cmt"># première rencontre de x</span>
+    <span class="kw">return</span> d</pre>
+  <div class="method-box">
+    <strong>Exemple — État du dictionnaire au fil du comptage</strong>
+    <p>Avec les notes <span class="code-inline">[12, 15, 12, 9, 15, 12]</span> :</p>
+    <ol>
+      <li>12 est nouveau : <span class="code-inline">{12: 1}</span> ; 15 est nouveau : <span class="code-inline">{12: 1, 15: 1}</span>.</li>
+      <li>12 est déjà une clé : <span class="code-inline">{12: 2, 15: 1}</span> ; 9 est nouveau : <span class="code-inline">{12: 2, 15: 1, 9: 1}</span>.</li>
+      <li>15, puis 12 : <span class="code-inline">{12: 3, 15: 2, 9: 1}</span>. Six tours, chacun de coût constant : coût linéaire.</li>
+    </ol>
+<pre class="codeblock">compter([12, 15, 12, 9, 15, 12])
+<span class="cmt"># {12: 3, 15: 2, 9: 1}</span>
+compter(<span class="str">"abracadabra"</span>)
+<span class="cmt"># {'a': 5, 'b': 2, 'r': 2, 'c': 1, 'd': 1}</span></pre>
+  </div>
+  <p>Pour trouver la valeur la plus fréquente, on compte une fois, puis on parcourt le dictionnaire. Sans dictionnaire, il faudrait recompter chaque valeur par une boucle intérieure : \(n^2\) comparaisons au lieu de \(O(n)\) opérations.</p>
+<pre class="codeblock"><span class="kw">def</span> plus_frequent(t):
+    <span class="cmt"># t non vide ; une valeur la plus fréquente de t</span>
+    d = compter(t)
+    meilleur = t[0]
+    <span class="kw">for</span> cle, nb <span class="kw">in</span> d.items():
+        <span class="kw">if</span> nb &gt; d[meilleur]:
+            meilleur = cle
+    <span class="kw">return</span> meilleur</pre>
+<pre class="codeblock"><span class="kw">def</span> plus_frequent_naif(t):
+    <span class="cmt"># même résultat, sans dictionnaire</span>
+    meilleur, nb_meilleur = t[0], 0
+    <span class="kw">for</span> x <span class="kw">in</span> t:
+        nb = 0
+        <span class="kw">for</span> y <span class="kw">in</span> t:     <span class="cmt"># on recompte x : n tours</span>
+            <span class="kw">if</span> y == x:
+                nb = nb + 1
+        <span class="kw">if</span> nb &gt; nb_meilleur:
+            meilleur, nb_meilleur = x, nb
+    <span class="kw">return</span> meilleur</pre>
+<pre class="codeblock">plus_frequent([12, 15, 12, 9, 15, 12])   <span class="cmt"># 12</span></pre>
+
+  <h3>Retrouver vite : un dictionnaire comme index</h3>
+  <p>Si l'on doit chercher de nombreuses valeurs dans la même liste, on construit une fois pour toutes un dictionnaire qui associe à chaque valeur sa position. Construire l'index coûte \(O(n)\), puis chaque recherche coûte un temps constant en moyenne, au lieu de \(O(n)\) par recherche séquentielle.</p>
+<pre class="codeblock"><span class="kw">def</span> premieres_positions(t):
+    <span class="cmt"># {valeur : indice de sa 1re occurrence dans t}</span>
+    pos = {}
+    <span class="kw">for</span> i <span class="kw">in</span> range(len(t)):
+        <span class="kw">if</span> t[i] <span class="kw">not</span> <span class="kw">in</span> pos:
+            pos[t[i]] = i
+    <span class="kw">return</span> pos</pre>
+<pre class="codeblock">pos = premieres_positions([7, 3, 9, 3, 5])
+pos                  <span class="cmt"># {7: 0, 3: 1, 9: 2, 5: 4}</span>
+9 <span class="kw">in</span> pos             <span class="cmt"># True</span>
+pos[9]               <span class="cmt"># 2</span>
+4 <span class="kw">in</span> pos             <span class="cmt"># False</span></pre>
+
+  <div class="notice"><strong>Erreurs classiques</strong> : lire <span class="code-inline">d[c]</span> pour une clé absente provoque une erreur (<span class="code-inline">KeyError</span>) : d'où le test <span class="code-inline">if x in d</span> avant <span class="code-inline">d[x] = d[x] + 1</span>. Une clé doit être <strong>immuable</strong> : un nombre, une chaîne, un tuple conviennent, une liste non (<span class="code-inline">TypeError</span>). Enfin, <span class="code-inline">c in d</span> porte sur les <em>clés</em>, jamais sur les valeurs.</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§5 · BOUCLES IMBRIQUÉES : UN FACTEUR DANS UN TEXTE</div>
+  <h2>Chercher un mot dans un texte</h2>
+  <div class="intro">Trouver un mot dans un document, une séquence dans un brin d'ADN : c'est chercher un <strong>facteur</strong>, c'est-à-dire une suite de caractères consécutifs. L'algorithme naïf essaie toutes les positions possibles, et compare le motif caractère par caractère à chaque position.</div>
+
+  <div class="def-box">
+    Une chaîne \(m\) de longueur \(p\) est un <strong>facteur</strong> de la chaîne \(\textit{texte}\) de longueur \(n\) s'il existe un indice \(i\), avec \(0 \le i \le n - p\), tel que \(\textit{texte}[i + k] = m[k]\) pour tout \(k\) de \(0\) à \(p - 1\). On dit que \(m\) apparaît à la position \(i\).
+  </div>
+<pre class="codeblock"><span class="kw">def</span> position(m, texte):
+    <span class="cmt"># indice de la 1re occurrence du motif m, -1 sinon</span>
+    n, p = len(texte), len(m)
+    <span class="kw">for</span> i <span class="kw">in</span> range(n - p + 1):    <span class="cmt"># positions possibles</span>
+        k = 0
+        <span class="kw">while</span> k &lt; p <span class="kw">and</span> texte[i + k] == m[k]:
+            k = k + 1             <span class="cmt"># m[0..k-1] coïncide</span>
+        <span class="kw">if</span> k == p:                <span class="cmt"># les p caractères coïncident</span>
+            <span class="kw">return</span> i
+    <span class="kw">return</span> -1</pre>
+  <p>La boucle extérieure parcourt les \(n - p + 1\) positions possibles : la dernière est \(n - p\), d'où <span class="code-inline">range(n - p + 1)</span>. La boucle intérieure avance tant que les caractères coïncident ; elle s'arrête au premier désaccord, ou quand les \(p\) caractères ont été vérifiés.</p>
+
+<figure class="schema" style="max-width:420px">
+<svg viewBox="0 0 350 150" role="img" aria-label="Le motif ATTAC glissé le long du texte CAGATTAGATTACA : à la position 3, quatre caractères coïncident puis le cinquième diffère ; à la position 8, les cinq coïncident."><text x="60.5" y="18" class="lab-muted" text-anchor="middle">0</text><text x="81.5" y="18" class="lab-muted" text-anchor="middle">1</text><text x="102.5" y="18" class="lab-muted" text-anchor="middle">2</text><text x="123.5" y="18" class="lab-muted" text-anchor="middle">3</text><text x="144.5" y="18" class="lab-muted" text-anchor="middle">4</text><text x="165.5" y="18" class="lab-muted" text-anchor="middle">5</text><text x="186.5" y="18" class="lab-muted" text-anchor="middle">6</text><text x="207.5" y="18" class="lab-muted" text-anchor="middle">7</text><text x="228.5" y="18" class="lab-muted" text-anchor="middle">8</text><text x="249.5" y="18" class="lab-muted" text-anchor="middle">9</text><text x="270.5" y="18" class="lab-muted" text-anchor="middle">10</text><text x="291.5" y="18" class="lab-muted" text-anchor="middle">11</text><text x="312.5" y="18" class="lab-muted" text-anchor="middle">12</text><text x="333.5" y="18" class="lab-muted" text-anchor="middle">13</text><text x="42" y="42" class="lab-muted" text-anchor="end">texte</text><rect x="50" y="26" width="21" height="24" class="fl-paper sk-ink" style="stroke-width:1"/><text x="60.5" y="42" text-anchor="middle">C</text><rect x="71" y="26" width="21" height="24" class="fl-paper sk-ink" style="stroke-width:1"/><text x="81.5" y="42" text-anchor="middle">A</text><rect x="92" y="26" width="21" height="24" class="fl-paper sk-ink" style="stroke-width:1"/><text x="102.5" y="42" text-anchor="middle">G</text><rect x="113" y="26" width="21" height="24" class="fl-paper sk-ink" style="stroke-width:1"/><text x="123.5" y="42" text-anchor="middle">A</text><rect x="134" y="26" width="21" height="24" class="fl-paper sk-ink" style="stroke-width:1"/><text x="144.5" y="42" text-anchor="middle">T</text><rect x="155" y="26" width="21" height="24" class="fl-paper sk-ink" style="stroke-width:1"/><text x="165.5" y="42" text-anchor="middle">T</text><rect x="176" y="26" width="21" height="24" class="fl-paper sk-ink" style="stroke-width:1"/><text x="186.5" y="42" text-anchor="middle">A</text><rect x="197" y="26" width="21" height="24" class="fl-paper sk-ink" style="stroke-width:1"/><text x="207.5" y="42" text-anchor="middle">G</text><rect x="218" y="26" width="21" height="24" class="fl-paper sk-ink" style="stroke-width:1"/><text x="228.5" y="42" text-anchor="middle">A</text><rect x="239" y="26" width="21" height="24" class="fl-paper sk-ink" style="stroke-width:1"/><text x="249.5" y="42" text-anchor="middle">T</text><rect x="260" y="26" width="21" height="24" class="fl-paper sk-ink" style="stroke-width:1"/><text x="270.5" y="42" text-anchor="middle">T</text><rect x="281" y="26" width="21" height="24" class="fl-paper sk-ink" style="stroke-width:1"/><text x="291.5" y="42" text-anchor="middle">A</text><rect x="302" y="26" width="21" height="24" class="fl-paper sk-ink" style="stroke-width:1"/><text x="312.5" y="42" text-anchor="middle">C</text><rect x="323" y="26" width="21" height="24" class="fl-paper sk-ink" style="stroke-width:1"/><text x="333.5" y="42" text-anchor="middle">A</text><text x="42" y="86" class="lab-it" text-anchor="end">i = 3</text><rect x="113" y="70" width="21" height="24" class="fl-green-soft"/><rect x="113" y="70" width="21" height="24" class="sk-green" style="stroke-width:1.2"/><text x="123.5" y="86" text-anchor="middle">A</text><rect x="134" y="70" width="21" height="24" class="fl-green-soft"/><rect x="134" y="70" width="21" height="24" class="sk-green" style="stroke-width:1.2"/><text x="144.5" y="86" text-anchor="middle">T</text><rect x="155" y="70" width="21" height="24" class="fl-green-soft"/><rect x="155" y="70" width="21" height="24" class="sk-green" style="stroke-width:1.2"/><text x="165.5" y="86" text-anchor="middle">T</text><rect x="176" y="70" width="21" height="24" class="fl-green-soft"/><rect x="176" y="70" width="21" height="24" class="sk-green" style="stroke-width:1.2"/><text x="186.5" y="86" text-anchor="middle">A</text><rect x="197" y="70" width="21" height="24" class="fl-accent-soft"/><rect x="197" y="70" width="21" height="24" class="sk-accent" style="stroke-width:1.2"/><text x="207.5" y="86" text-anchor="middle">C</text><text x="225.5" y="86" class="lab-accent" text-anchor="start">≠</text><text x="42" y="126" class="lab-it" text-anchor="end">i = 8</text><rect x="218" y="110" width="21" height="24" class="fl-green-soft"/><rect x="218" y="110" width="21" height="24" class="sk-green" style="stroke-width:1.2"/><text x="228.5" y="126" text-anchor="middle">A</text><rect x="239" y="110" width="21" height="24" class="fl-green-soft"/><rect x="239" y="110" width="21" height="24" class="sk-green" style="stroke-width:1.2"/><text x="249.5" y="126" text-anchor="middle">T</text><rect x="260" y="110" width="21" height="24" class="fl-green-soft"/><rect x="260" y="110" width="21" height="24" class="sk-green" style="stroke-width:1.2"/><text x="270.5" y="126" text-anchor="middle">T</text><rect x="281" y="110" width="21" height="24" class="fl-green-soft"/><rect x="281" y="110" width="21" height="24" class="sk-green" style="stroke-width:1.2"/><text x="291.5" y="126" text-anchor="middle">A</text><rect x="302" y="110" width="21" height="24" class="fl-green-soft"/><rect x="302" y="110" width="21" height="24" class="sk-green" style="stroke-width:1.2"/><text x="312.5" y="126" text-anchor="middle">C</text></svg>
+<figcaption>Recherche naïve du motif <span class="code-inline">ATTAC</span> : on le fait glisser case par case. À la position 3, les quatre premiers caractères coïncident (en vert) et le cinquième diffère (en rouge) : on passe à la position suivante. À la position 8, les cinq coïncident : la fonction renvoie 8.</figcaption>
+</figure>
+
+  <div class="method-box">
+    <strong>Exemple — Compter les comparaisons</strong>
+    <p>Recherche de <span class="code-inline">"ATTAC"</span> (\(p = 5\)) dans <span class="code-inline">"CAGATTAGATTACA"</span> (\(n = 14\)) : 10 positions possibles, de 0 à 9.</p>
+    <div><table>
+      <tr><th>position \(i\)</th><th>0</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th><th>6</th><th>7</th><th>8</th></tr>
+      <tr><td>comparaisons</td><td>1</td><td>2</td><td>1</td><td>5</td><td>1</td><td>1</td><td>2</td><td>1</td><td>5</td></tr>
+    </table></div>
+    <ol>
+      <li>Aux positions 1 et 6, le A coïncide, puis le G du texte diffère du T du motif (2 comparaisons).</li>
+      <li>À la position 3, quatre caractères coïncident et le cinquième diffère (5 comparaisons).</li>
+      <li>À la position 8, les cinq coïncident : la fonction renvoie 8, après 19 comparaisons au total. La position 9 n'est pas examinée.</li>
+    </ol>
+<pre class="codeblock">adn = <span class="str">"CAGATTAGATTACA"</span>
+position(<span class="str">"ATTAC"</span>, adn)   <span class="cmt"># 8</span>
+position(<span class="str">"TAG"</span>, adn)     <span class="cmt"># 5</span>
+position(<span class="str">"GAG"</span>, adn)     <span class="cmt"># -1</span></pre>
+  </div>
+
+  <div class="prop-box">
+    <strong>Coût dans le pire cas.</strong> Chaque position demande au plus \(p\) comparaisons : au plus \((n - p + 1)\,p\) comparaisons, donc \(O(np)\). Ce maximum est atteint, par exemple pour \(\textit{texte} = \texttt{aa}\dots\texttt{a}\) (\(n\) lettres) et \(m = \texttt{a}\dots\texttt{ab}\) (\(p - 1\) fois a, puis b) : à chaque position, les \(p - 1\) premiers caractères coïncident et le dernier diffère. Pour un motif de longueur \(n/2\), cela fait environ \(n^2/4\) comparaisons : coût quadratique en \(n\).
+  </div>
+
+  <div class="notice"><strong>Erreurs classiques</strong> : écrire <span class="code-inline">range(n - p)</span>, qui oublie la dernière position (le motif en toute fin de texte n'est jamais trouvé) ; inverser l'ordre des tests du <span class="code-inline">while</span> (<span class="code-inline">texte[i + k] == m[k] and k &lt; p</span> lit <span class="code-inline">m[p]</span>, hors du motif). La comparaison de tranches <span class="code-inline">texte[i:i + p] == m</span> est juste, mais elle recopie \(p\) caractères à chaque position : son coût n'est pas constant, il est en \(O(p)\), comme la boucle intérieure.</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§6 · BOUCLES IMBRIQUÉES : LES DEUX VALEURS LES PLUS PROCHES</div>
+  <h2>Examiner tous les couples, puis faire mieux</h2>
+  <div class="intro">Dans une liste de mesures, on cherche les deux valeurs les plus proches l'une de l'autre (deux relevés presque identiques, deux altitudes voisines). La méthode directe examine tous les couples d'indices \(i \lt j\) : c'est l'archétype de l'algorithme quadratique.</div>
+
+<pre class="codeblock"><span class="kw">def</span> ecart(a, b):
+    <span class="cmt"># distance |a - b| (comme abs(a - b))</span>
+    <span class="kw">if</span> a &gt;= b:
+        <span class="kw">return</span> a - b
+    <span class="kw">return</span> b - a
+
+<span class="kw">def</span> plus_proches(t):
+    <span class="cmt"># t : au moins deux nombres ; renvoie (i, j), i &lt; j,</span>
+    <span class="cmt"># avec t[i] et t[j] les plus proches (le premier</span>
+    <span class="cmt"># couple trouvé en cas d'égalité)</span>
+    n = len(t)
+    bi, bj, dmin = 0, 1, ecart(t[0], t[1])
+    <span class="kw">for</span> i <span class="kw">in</span> range(n - 1):
+        <span class="kw">for</span> j <span class="kw">in</span> range(i + 1, n):
+            d = ecart(t[i], t[j])
+            <span class="kw">if</span> d &lt; dmin:
+                bi, bj, dmin = i, j, d
+    <span class="kw">return</span> (bi, bj)</pre>
+  <p>La fonction <span class="code-inline">ecart</span> calcule la valeur absolue de la différence sans recourir à <span class="code-inline">abs</span> (fonction de Python qui fait la même chose, mais ne figure pas dans l'annexe du programme). Le couple de départ \((0, 1)\) est un candidat valable : il fournit un écart minimal provisoire, ce qui évite d'inventer un « infini ».</p>
+
+  <div class="method-box">
+    <strong>Exemple — Six altitudes</strong>
+    <p>Avec <span class="code-inline">t = [142, 98, 175, 103, 210, 171]</span> (\(n = 6\)) :</p>
+    <ol>
+      <li>Départ : couple \((0, 1)\), écart \(|142 - 98| = 44\).</li>
+      <li>Ligne \(i = 0\) : écarts 44, 33, 39, 68, 29 ; le couple \((0, 2)\) (écart 33) puis \((0, 5)\) (écart 29) deviennent les meilleurs.</li>
+      <li>Ligne \(i = 1\) : \(|98 - 103| = 5\), nouveau meilleur \((1, 3)\). Ligne \(i = 2\) : \(|175 - 171| = 4\), nouveau meilleur \((2, 5)\). Aucun écart plus petit ensuite.</li>
+      <li>Résultat \((2, 5)\), après les \(\frac{6 \times 5}{2} = 15\) calculs d'écart de la double boucle.</li>
+    </ol>
+<pre class="codeblock">t = [142, 98, 175, 103, 210, 171]
+plus_proches(t)    <span class="cmt"># (2, 5)</span></pre>
+  </div>
+
+  <div class="prop-box">
+    <strong>Coût.</strong> La boucle intérieure fait \(n - 1 - i\) tours : au total \(\frac{n(n-1)}{2}\) calculs d'écart, quel que soit le contenu de la liste. Le coût est quadratique, \(O(n^2)\), dans tous les cas (il n'y a pas de sortie anticipée : un couple plus proche peut toujours apparaître plus loin).
+  </div>
+
+  <h3>Faire mieux en triant</h3>
+  <p>Si les valeurs sont rangées par ordre croissant, les deux plus proches sont <strong>voisines</strong> : entre \(u_k \le u_{k+1} \le \dots \le u_l\), l'écart \(u_l - u_k\) est au moins égal à \(u_{k+1} - u_k\). Il suffit alors de comparer \(n - 1\) couples de voisines.</p>
+<figure class="schema" style="max-width:440px">
+<svg viewBox="0 0 352 80" role="img" aria-label="Les six valeurs rangées sur un axe : 98, 103, 142, 171, 175, 210. Les écarts entre voisines valent 5, 39, 29, 4 et 35 ; le plus petit, 4, sépare 171 et 175."><line x1="16" y1="48" x2="340" y2="48" class="sk-axis" marker-end="url(#sk-arrow-ink)"/><line x1="49.4" y1="44" x2="49.4" y2="52" class="sk-axis"/><text x="49.3846" y="68" class="lab-muted" text-anchor="middle">100</text><line x1="96.2" y1="44" x2="96.2" y2="52" class="sk-axis"/><text x="96.1538" y="68" class="lab-muted" text-anchor="middle">120</text><line x1="142.9" y1="44" x2="142.9" y2="52" class="sk-axis"/><text x="142.923" y="68" class="lab-muted" text-anchor="middle">140</text><line x1="189.7" y1="44" x2="189.7" y2="52" class="sk-axis"/><text x="189.692" y="68" class="lab-muted" text-anchor="middle">160</text><line x1="236.5" y1="44" x2="236.5" y2="52" class="sk-axis"/><text x="236.462" y="68" class="lab-muted" text-anchor="middle">180</text><line x1="283.2" y1="44" x2="283.2" y2="52" class="sk-axis"/><text x="283.231" y="68" class="lab-muted" text-anchor="middle">200</text><line x1="330.0" y1="44" x2="330.0" y2="52" class="sk-axis"/><text x="330" y="68" class="lab-muted" text-anchor="middle">220</text><path d="M44.7 38 Q50.6 16 56.4 38" class="sk-dash"/><text x="50.5538" y="18" class="lab-muted" text-anchor="middle" style="font-size:12px">5</text><path d="M56.4 38 Q102.0 16 147.6 38" class="sk-dash"/><text x="102" y="18" class="lab-muted" text-anchor="middle" style="font-size:12px">39</text><path d="M147.6 38 Q181.5 16 215.4 38" class="sk-dash"/><text x="181.508" y="18" class="lab-muted" text-anchor="middle" style="font-size:12px">29</text><path d="M215.4 38 Q220.1 16 224.8 38" class="sk-green"/><text x="220.092" y="18" class="lab-green" text-anchor="middle" style="font-size:12px">4</text><path d="M224.8 38 Q265.7 16 306.6 38" class="sk-dash"/><text x="265.692" y="18" class="lab-muted" text-anchor="middle" style="font-size:12px">35</text><circle cx="44.7" cy="48" r="4.5" class="fl-accent2"/><circle cx="56.4" cy="48" r="4.5" class="fl-accent2"/><circle cx="147.6" cy="48" r="4.5" class="fl-accent2"/><circle cx="215.4" cy="48" r="4.5" class="fl-accent2"/><circle cx="224.8" cy="48" r="4.5" class="fl-accent2"/><circle cx="306.6" cy="48" r="4.5" class="fl-accent2"/></svg>
+<figcaption>Une fois les valeurs rangées dans l'ordre, il suffit de comparer chaque valeur à sa voisine : les deux plus proches (171 et 175, écart 4) sont forcément voisines.</figcaption>
+</figure>
+<pre class="codeblock"><span class="kw">def</span> ecart_min_trie(t):
+    <span class="cmt"># écart minimal, en triant d'abord : les deux</span>
+    <span class="cmt"># valeurs les plus proches deviennent voisines</span>
+    u = sorted(t)
+    dmin = u[1] - u[0]
+    <span class="kw">for</span> k <span class="kw">in</span> range(1, len(u) - 1):
+        <span class="kw">if</span> u[k + 1] - u[k] &lt; dmin:
+            dmin = u[k + 1] - u[k]
+    <span class="kw">return</span> dmin</pre>
+  <div class="notice"><strong>Documentation</strong> : <span class="code-inline">sorted(t)</span> renvoie une <em>nouvelle</em> liste contenant les éléments de <span class="code-inline">t</span> dans l'ordre croissant (<span class="code-inline">t</span> n'est pas modifiée). Son coût est en \(O(n \log n)\) (voir le chapitre <em>Algorithmes de tri</em>). Le coût total devient \(O(n \log n) + O(n) = O(n \log n)\) : pour \(n = 10^6\), environ \(2 \times 10^7\) opérations au lieu de \(5 \times 10^{11}\).</div>
+
+  <h3>Valider un algorithme par un autre</h3>
+  <p>Disposer de deux méthodes différentes pour le même problème est un excellent outil de validation : la méthode quadratique, simple et facile à justifier, sert de référence pour tester la méthode rapide sur des centaines de listes tirées au hasard. Les deux couples trouvés peuvent différer (en cas d'égalité d'écart), mais les écarts doivent être égaux.</p>
+<pre class="codeblock"><span class="kw">import</span> random
+
+<span class="kw">def</span> tester_plus_proches(nb_essais):
+    <span class="kw">for</span> essai <span class="kw">in</span> range(nb_essais):
+        n = random.randint(2, 30)
+        t = [random.randint(-50, 50) <span class="kw">for</span> k <span class="kw">in</span> range(n)]
+        i, j = plus_proches(t)
+        <span class="kw">assert</span> i &lt; j
+        <span class="kw">assert</span> ecart(t[i], t[j]) == ecart_min_trie(t)
+    print(<span class="str">"tests réussis"</span>)</pre>
+  <div class="notice"><strong>Documentation</strong> : après <span class="code-inline">import random</span>, <span class="code-inline">random.randint(a, b)</span> renvoie un entier tiré au hasard entre <span class="code-inline">a</span> et <span class="code-inline">b</span> inclus. Une instruction <span class="code-inline">assert condition</span> arrête le programme si la condition est fausse : si le message final s'affiche, tous les essais ont réussi.</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§7 · RECHERCHE DICHOTOMIQUE</div>
+  <h2>Couper en deux à chaque étape</h2>
+  <div class="intro">Pour trouver un mot dans un dictionnaire papier, personne ne lit les pages une à une : on ouvre au milieu, et l'ordre alphabétique dit de quel côté continuer. Dans une liste <strong>triée</strong>, une seule comparaison avec la case du milieu élimine ainsi la moitié des cases restantes.</div>
+
+  <div class="def-box">
+    La <strong>recherche dichotomique</strong> d'une valeur \(x\) dans une liste \(t\) triée par ordre croissant maintient un intervalle d'indices \([g, d]\) qui contient \(x\) s'il est présent. À chaque tour, on compare \(x\) à \(t[m]\), avec \(m = \lfloor (g + d)/2 \rfloor\) : si \(t[m] = x\), c'est fini ; si \(t[m] \lt x\), on continue dans \([m + 1, d]\) ; sinon dans \([g, m - 1]\). On s'arrête sur un intervalle vide (\(g \gt d\)) : \(x\) est absent.
+  </div>
+<pre class="codeblock"><span class="kw">def</span> dicho(x, t):
+    <span class="cmt"># t : liste triée dans l'ordre croissant ; renvoie</span>
+    <span class="cmt"># un indice i tel que t[i] == x, ou -1 si x est absent</span>
+    g, d = 0, len(t) - 1
+    <span class="kw">while</span> g &lt;= d:
+        <span class="cmt"># invariant : si x est dans t, il est dans t[g..d]</span>
+        m = (g + d) // 2
+        <span class="kw">if</span> t[m] == x:
+            <span class="kw">return</span> m
+        <span class="kw">elif</span> t[m] &lt; x:
+            g = m + 1    <span class="cmt"># x ne peut être qu'à droite de m</span>
+        <span class="kw">else</span>:
+            d = m - 1    <span class="cmt"># x ne peut être qu'à gauche de m</span>
+    <span class="kw">return</span> -1</pre>
+
+<figure class="schema" style="max-width:440px">
+<svg viewBox="0 0 354 186" role="img" aria-label="Recherche dichotomique de 52 dans un tableau trié de 16 valeurs : l'intervalle de recherche passe de 16 cases à 8, puis 3, puis 1 ; 52 est trouvé à l'indice 10 au quatrième tour."><text x="55.5" y="18" class="lab-muted" text-anchor="middle">0</text><rect x="46" y="26" width="19" height="24" class="fl-paper sk-ink" style="stroke-width:1"/><text x="55.5" y="42" text-anchor="middle" style="font-size:12px">3</text><text x="74.5" y="18" class="lab-muted" text-anchor="middle">1</text><rect x="65" y="26" width="19" height="24" class="fl-paper sk-ink" style="stroke-width:1"/><text x="74.5" y="42" text-anchor="middle" style="font-size:12px">8</text><text x="93.5" y="18" class="lab-muted" text-anchor="middle">2</text><rect x="84" y="26" width="19" height="24" class="fl-paper sk-ink" style="stroke-width:1"/><text x="93.5" y="42" text-anchor="middle" style="font-size:12px">12</text><text x="112.5" y="18" class="lab-muted" text-anchor="middle">3</text><rect x="103" y="26" width="19" height="24" class="fl-paper sk-ink" style="stroke-width:1"/><text x="112.5" y="42" text-anchor="middle" style="font-size:12px">17</text><text x="131.5" y="18" class="lab-muted" text-anchor="middle">4</text><rect x="122" y="26" width="19" height="24" class="fl-paper sk-ink" style="stroke-width:1"/><text x="131.5" y="42" text-anchor="middle" style="font-size:12px">21</text><text x="150.5" y="18" class="lab-muted" text-anchor="middle">5</text><rect x="141" y="26" width="19" height="24" class="fl-paper sk-ink" style="stroke-width:1"/><text x="150.5" y="42" text-anchor="middle" style="font-size:12px">26</text><text x="169.5" y="18" class="lab-muted" text-anchor="middle">6</text><rect x="160" y="26" width="19" height="24" class="fl-paper sk-ink" style="stroke-width:1"/><text x="169.5" y="42" text-anchor="middle" style="font-size:12px">30</text><text x="188.5" y="18" class="lab-muted" text-anchor="middle">7</text><rect x="179" y="26" width="19" height="24" class="fl-paper sk-ink" style="stroke-width:1"/><text x="188.5" y="42" text-anchor="middle" style="font-size:12px">34</text><text x="207.5" y="18" class="lab-muted" text-anchor="middle">8</text><rect x="198" y="26" width="19" height="24" class="fl-paper sk-ink" style="stroke-width:1"/><text x="207.5" y="42" text-anchor="middle" style="font-size:12px">41</text><text x="226.5" y="18" class="lab-muted" text-anchor="middle">9</text><rect x="217" y="26" width="19" height="24" class="fl-paper sk-ink" style="stroke-width:1"/><text x="226.5" y="42" text-anchor="middle" style="font-size:12px">47</text><text x="245.5" y="18" class="lab-muted" text-anchor="middle">10</text><rect x="236" y="26" width="19" height="24" class="fl-paper sk-ink" style="stroke-width:1"/><text x="245.5" y="42" text-anchor="middle" style="font-size:12px">52</text><text x="264.5" y="18" class="lab-muted" text-anchor="middle">11</text><rect x="255" y="26" width="19" height="24" class="fl-paper sk-ink" style="stroke-width:1"/><text x="264.5" y="42" text-anchor="middle" style="font-size:12px">58</text><text x="283.5" y="18" class="lab-muted" text-anchor="middle">12</text><rect x="274" y="26" width="19" height="24" class="fl-paper sk-ink" style="stroke-width:1"/><text x="283.5" y="42" text-anchor="middle" style="font-size:12px">63</text><text x="302.5" y="18" class="lab-muted" text-anchor="middle">13</text><rect x="293" y="26" width="19" height="24" class="fl-paper sk-ink" style="stroke-width:1"/><text x="302.5" y="42" text-anchor="middle" style="font-size:12px">70</text><text x="321.5" y="18" class="lab-muted" text-anchor="middle">14</text><rect x="312" y="26" width="19" height="24" class="fl-paper sk-ink" style="stroke-width:1"/><text x="321.5" y="42" text-anchor="middle" style="font-size:12px">77</text><text x="340.5" y="18" class="lab-muted" text-anchor="middle">15</text><rect x="331" y="26" width="19" height="24" class="fl-paper sk-ink" style="stroke-width:1"/><text x="340.5" y="42" text-anchor="middle" style="font-size:12px">85</text><text x="38" y="42" class="lab-it" text-anchor="end">t</text><text x="38" y="79" class="lab-muted" text-anchor="end">tour 1</text><rect x="47" y="66" width="302" height="18" rx="4" class="fl-accent2-soft"/><rect x="47" y="66" width="302" height="18" rx="4" class="sk-accent2" style="stroke-width:1.2"/><rect x="182" y="68" width="13" height="14" rx="3" class="fl-accent2"/><text x="206" y="79" class="lab-accent2" text-anchor="start" style="font-size:12px">34 &lt; 52</text><text x="38" y="109" class="lab-muted" text-anchor="end">tour 2</text><rect x="199" y="96" width="150" height="18" rx="4" class="fl-accent2-soft"/><rect x="199" y="96" width="150" height="18" rx="4" class="sk-accent2" style="stroke-width:1.2"/><rect x="258" y="98" width="13" height="14" rx="3" class="fl-accent2"/><text x="192" y="109" class="lab-accent2" text-anchor="end" style="font-size:12px">58 &gt; 52</text><text x="38" y="139" class="lab-muted" text-anchor="end">tour 3</text><rect x="199" y="126" width="55" height="18" rx="4" class="fl-accent2-soft"/><rect x="199" y="126" width="55" height="18" rx="4" class="sk-accent2" style="stroke-width:1.2"/><rect x="220" y="128" width="13" height="14" rx="3" class="fl-accent2"/><text x="261" y="139" class="lab-accent2" text-anchor="start" style="font-size:12px">47 &lt; 52</text><text x="38" y="169" class="lab-muted" text-anchor="end">tour 4</text><rect x="237" y="156" width="17" height="18" rx="4" class="fl-accent2-soft"/><rect x="237" y="156" width="17" height="18" rx="4" class="sk-accent2" style="stroke-width:1.2"/><rect x="239" y="158" width="13" height="14" rx="3" class="fl-accent2"/><text x="261" y="169" class="lab-accent2" text-anchor="start" style="font-size:12px">52 = 52</text></svg>
+<figcaption>Recherche de 52 : à chaque tour, la case du milieu \(m\) (pastille pleine) est comparée à 52 et l'intervalle \([g, d]\) encore possible (bande claire) perd au moins la moitié de ses cases : 16, puis 8, puis 3, puis 1.</figcaption>
+</figure>
+
+  <div class="method-box">
+    <strong>Exemple — Tableau d'états, x présent puis absent</strong>
+    <p>Avec <span class="code-inline">t = [3, 8, 12, 17, 21, 26, 30, 34, 41, 47, 52, 58, 63, 70, 77, 85]</span> (16 valeurs) et \(x = 52\) :</p>
+    <div><table>
+      <tr><th>tour</th><th>\(g\)</th><th>\(d\)</th><th>\(m\)</th><th>\(t[m]\)</th><th>décision</th></tr>
+      <tr><td>1</td><td>0</td><td>15</td><td>7</td><td>34</td><td>\(34 \lt 52\) : \(g = 8\)</td></tr>
+      <tr><td>2</td><td>8</td><td>15</td><td>11</td><td>58</td><td>\(58 \gt 52\) : \(d = 10\)</td></tr>
+      <tr><td>3</td><td>8</td><td>10</td><td>9</td><td>47</td><td>\(47 \lt 52\) : \(g = 10\)</td></tr>
+      <tr><td>4</td><td>10</td><td>10</td><td>10</td><td>52</td><td>trouvé : renvoie 10</td></tr>
+    </table></div>
+    <p>Avec \(x = 50\), les quatre premiers tours sont identiques, sauf que le dernier donne \(50 \lt 52\), d'où \(d = 9\). L'intervalle \([10, 9]\) est vide : la fonction renvoie \(-1\) après 4 comparaisons, là où la recherche séquentielle en aurait fait 16.</p>
+<pre class="codeblock">t = [3, 8, 12, 17, 21, 26, 30, 34,
+     41, 47, 52, 58, 63, 70, 77, 85]
+dicho(52, t)     <span class="cmt"># 10</span>
+dicho(50, t)     <span class="cmt"># -1</span>
+dicho(3, t)      <span class="cmt"># 0</span></pre>
+  </div>
+
+  <div class="prop-box">
+    <strong>Terminaison.</strong> La longueur \(d - g + 1\) de l'intervalle est un entier positif dans la boucle. Comme \(g \le m \le d\), les deux mises à jour excluent \(m\) : la longueur diminue strictement à chaque tour sans succès. C'est un variant : la boucle termine.<br>
+    <strong>Correction.</strong> L'invariant « si \(x\) est dans \(t\), il est dans \(t[g..d]\) » est vrai au départ (\(g = 0\), \(d = n - 1\)). Il est conservé : si \(t[m] \lt x\), toutes les cases d'indice \(\le m\) sont \(\le t[m] \lt x\) (la liste est triée), donc \(x\) ne peut être qu'à droite de \(m\) ; de même dans l'autre cas. Si la fonction renvoie \(m\), alors \(t[m] = x\) ; si elle sort de la boucle, l'intervalle est vide et l'invariant dit que \(x\) est absent.
+  </div>
+
+  <div class="prop-box">
+    <strong>Coût logarithmique.</strong> Un tour sans succès remplace un intervalle de \(L\) cases par un intervalle d'au plus \(\lfloor L/2 \rfloor\) cases. Après \(k\) tours sans succès, il reste au plus \(n/2^k\) cases. Si la boucle fait un \(k\)-ième tour, il restait au moins une case après les \(k - 1\) premiers, donc \(2^{k-1} \le n\). La boucle fait donc au plus
+    <div class="formula" data-nom="Tours d'une dichotomie">$$\lfloor \log_2 n \rfloor + 1 \ \text{tours.}$$</div>
+    La complexité est logarithmique, \(O(\log n)\). Pour \(n = 10^6\) : au plus 20 tours, contre \(10^6\) comparaisons pour la recherche séquentielle ; pour \(n = 10^9\) : 30 tours.
+  </div>
+
+  <div class="reveal" onclick="this.classList.toggle('open')">
+    <span class="label">Démonstration</span>
+    <span class="prompt">Pourquoi l'intervalle perd au moins la moitié de ses cases</span>
+    <div class="content">
+      <p>Soit \(L = d - g + 1\) la longueur de l'intervalle et \(m = \lfloor (g + d)/2 \rfloor\). La partie de gauche \([g, m - 1]\) contient \(m - g\) cases et celle de droite \([m + 1, d]\) en contient \(d - m\). Comme \(m - g = \lfloor (d - g)/2 \rfloor\) et \(d - m = \lceil (d - g)/2 \rceil\), les deux sont au plus \(\lceil (L - 1)/2 \rceil = \lfloor L/2 \rfloor\).</p>
+      <p>Par récurrence, après \(k\) tours sans succès, la longueur est au plus \(\lfloor n/2^k \rfloor\). Si la boucle fait un \((k+1)\)-ième tour, c'est que cette longueur vaut au moins 1, donc \(2^k \le n\), soit \(k \le \log_2 n\). Le nombre total de tours est au plus \(\lfloor \log_2 n \rfloor + 1\), et ce maximum est atteint, par exemple quand \(x\) est plus grand que toutes les valeurs (la longueur passe alors exactement de \(L\) à \(\lfloor L/2 \rfloor\) à chaque tour).</p>
+    </div>
+  </div>
+
+  <div class="notice"><strong>Erreurs classiques</strong> :
+    <ul>
+      <li><span class="code-inline">m = (g + d) / 2</span> donne un flottant, qui n'est pas un indice : utiliser <span class="code-inline">//</span>.</li>
+      <li>Ne pas exclure \(m\) (<span class="code-inline">g = m</span> au lieu de <span class="code-inline">g = m + 1</span>) : la boucle peut ne jamais finir. Avec <span class="code-inline">t = [4, 7]</span> et \(x = 9\) : \(g = 0\), \(d = 1\), \(m = 0\), \(t[0] \lt 9\), \(g = 0\) de nouveau, indéfiniment.</li>
+      <li>Écrire <span class="code-inline">while g &lt; d</span> : l'intervalle d'une seule case n'est jamais examiné (<span class="code-inline">[5]</span> ne « contiendrait » pas 5).</li>
+      <li>Appliquer la dichotomie à une liste non triée : aucune erreur ne s'affiche, mais le résultat est faux. Trier d'abord coûte \(O(n \log n)\) : cela n'est rentable que si l'on fait ensuite de nombreuses recherches.</li>
+    </ul>
+<pre class="codeblock"><span class="kw">def</span> dicho_boucle_infinie(x, t):
+    g, d = 0, len(t) - 1
+    <span class="kw">while</span> g &lt;= d:
+        m = (g + d) // 2
+        <span class="kw">if</span> t[m] == x:
+            <span class="kw">return</span> m
+        <span class="kw">elif</span> t[m] &lt; x:
+            g = m        <span class="cmt"># ERREUR : m n'est pas exclu</span>
+        <span class="kw">else</span>:
+            d = m
+    <span class="kw">return</span> -1</pre>
+  </div>
+  <p>La même idée sert à approcher un zéro d'une fonction continue qui change de signe (chapitre <em>Méthodes numériques</em>) et s'écrit aussi de façon récursive (chapitre <em>Récursivité</em>).</p>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§8 · EXPONENTIATION RAPIDE</div>
+  <h2>Calculer une puissance en divisant l'exposant par deux</h2>
+  <div class="intro">Calculer \(x^n\) en multipliant \(n\) fois par \(x\) coûte \(n\) multiplications. Or \(x^{16} = \big(((x^2)^2)^2\big)^2\) ne demande que quatre élévations au carré. L'exponentiation rapide généralise cette idée à tout exposant, en lisant l'écriture de \(n\) en base 2.</div>
+
+<pre class="codeblock"><span class="kw">def</span> puissance(x, n):
+    <span class="cmt"># x nombre, n entier &gt;= 0 : n multiplications</span>
+    p = 1
+    <span class="kw">for</span> k <span class="kw">in</span> range(n):
+        p = p * x
+    <span class="kw">return</span> p</pre>
+  <div class="prop-box">
+    <strong>Principe.</strong> Pour tout entier \(n \ge 1\), en notant \(q = \lfloor n/2 \rfloor\) :
+    <div class="formula" data-nom="Exponentiation rapide">$$x^n = \begin{cases} (x^2)^{q} & \text{si } n \text{ est pair,} \\ x \cdot (x^2)^{q} & \text{si } n \text{ est impair.} \end{cases}$$</div>
+    On remplace donc le calcul de \(x^n\) par celui d'une puissance d'exposant moitié, au prix d'au plus deux multiplications.
+  </div>
+  <p>Dans la version itérative, \(r\) accumule le résultat, \(a\) prend successivement les valeurs \(x, x^2, x^4, x^8, \dots\) et \(k\) est l'exposant qui reste à traiter :</p>
+<pre class="codeblock"><span class="kw">def</span> puissance_rapide(x, n):
+    <span class="cmt"># x nombre, n entier &gt;= 0 ; renvoie x ** n</span>
+    r, a, k = 1, x, n
+    <span class="kw">while</span> k &gt; 0:
+        <span class="cmt"># invariant : r * a ** k == x ** n ; variant : k</span>
+        <span class="kw">if</span> k % 2 == 1:
+            r = r * a    <span class="cmt"># k impair</span>
+        a = a * a
+        k = k // 2
+    <span class="kw">return</span> r</pre>
+
+  <div class="method-box">
+    <strong>Exemple — Calcul de \(x^{13}\)</strong>
+    <p>\(13 = 8 + 4 + 1\), soit \(1101\) en base 2. On suit les exposants : \(r = x^{e_r}\), \(a = x^{e_a}\).</p>
+    <div><table>
+      <tr><th>tour</th><th>\(k\) au début</th><th>\(k\) impair ?</th><th>\(e_r\) après</th><th>\(e_a\) après</th><th>\(k\) après</th></tr>
+      <tr><td>1</td><td>13</td><td>oui : \(r = r \cdot a\)</td><td>1</td><td>2</td><td>6</td></tr>
+      <tr><td>2</td><td>6</td><td>non</td><td>1</td><td>4</td><td>3</td></tr>
+      <tr><td>3</td><td>3</td><td>oui</td><td>\(1 + 4 = 5\)</td><td>8</td><td>1</td></tr>
+      <tr><td>4</td><td>1</td><td>oui</td><td>\(5 + 8 = 13\)</td><td>16</td><td>0</td></tr>
+    </table></div>
+    <p>On vérifie l'invariant à chaque ligne : \(e_r + k \, e_a = 13\) (par exemple \(1 + 3 \times 4 = 13\) après le tour 2). Il a fallu 7 multiplications au lieu de 13 ; les chiffres 1 de l'écriture binaire de 13 sont exactement les tours où \(r\) est multiplié.</p>
+<pre class="codeblock">puissance_rapide(3, 13)      <span class="cmt"># 1594323</span>
+puissance_rapide(2, 10)      <span class="cmt"># 1024</span>
+puissance_rapide(1.5, 0)     <span class="cmt"># 1</span></pre>
+  </div>
+
+  <div class="prop-box">
+    <strong>Correction, terminaison, coût.</strong> L'invariant \(r \cdot a^k = x^n\) est vrai au départ (\(1 \cdot x^n\)). Si \(k = 2q\) est pair, \(a^k = (a^2)^q\) ; si \(k = 2q + 1\), \(r \cdot a^k = (r \cdot a)(a^2)^q\) : dans les deux cas, les nouvelles valeurs le vérifient encore. Le variant \(k\) est un entier positif qui diminue strictement (\(\lfloor k/2 \rfloor \lt k\) pour \(k \ge 1\)) : la boucle termine, avec \(k = 0\), donc \(r = x^n\). Elle fait autant de tours que \(n\) a de chiffres en base 2, soit \(\lfloor \log_2 n \rfloor + 1\), avec au plus deux multiplications par tour : <strong>coût \(O(\log n)\)</strong> multiplications, contre \(n\) pour la méthode naïve. Pour \(n = 1000\) : 16 multiplications au lieu de 1000.
+  </div>
+
+  <div class="notice"><strong>Coût réel des multiplications</strong> : compter des multiplications n'est un vrai coût que si chaque multiplication coûte un temps constant (flottants, ou entiers modulo \(p\) comme dans l'exercice correspondant). Avec les entiers de Python, sans limite de taille, \(3^{1000}\) a 478 chiffres : les dernières multiplications portent sur de très grands nombres et coûtent bien plus cher que les premières (voir le chapitre <em>Représentation des nombres</em>). Erreur fréquente : écrire <span class="code-inline">k = k / 2</span>. Dès le premier tour, \(k\) devient un flottant (6,5 pour \(n = 13\)) qui n'est plus jamais « impair » au sens attendu : la boucle tourne plus de mille fois, jusqu'à ce que \(k\) s'annule par arrondi, et le résultat est faux ; avec un entier \(x\), les carrés successifs deviennent si grands que le calcul ne finit pratiquement pas. Il faut <span class="code-inline">k = k // 2</span>.</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§9 · VALIDER : JEUX DE TESTS ET MESURE DES GAINS</div>
+  <h2>Tester les cas limites et vérifier l'accélération</h2>
+  <div class="intro">Une recherche dichotomique se trompe facilement d'une case. Avant de lui faire confiance, on la confronte à un jeu de tests écrit à la main, qui couvre les différentes familles d'entrées et leurs limites, puis à une méthode de référence sur des données tirées au hasard.</div>
+
+  <div class="def-box">
+    Un <strong>jeu de tests</strong> est une liste d'entrées accompagnées des sorties attendues. On <strong>partitionne</strong> les entrées en familles qui se comportent de la même façon (valeur présente, absente, plus petite que tout, plus grande que tout…) et l'on choisit au moins un représentant par famille, en insistant sur les <strong>limites</strong> : liste vide, un seul élément, valeur aux extrémités, répétitions.
+  </div>
+<pre class="codeblock"><span class="kw">def</span> tester_dicho():
+    <span class="kw">assert</span> dicho(4, []) == -1      <span class="cmt"># liste vide</span>
+    <span class="kw">assert</span> dicho(4, [4]) == 0      <span class="cmt"># un seul élément</span>
+    <span class="kw">assert</span> dicho(5, [4]) == -1
+    t = [2, 5, 5, 8, 13]
+    <span class="kw">assert</span> dicho(2, t) == 0        <span class="cmt"># extrémités</span>
+    <span class="kw">assert</span> dicho(13, t) == 4
+    <span class="kw">assert</span> dicho(1, t) == -1       <span class="cmt"># hors des bornes</span>
+    <span class="kw">assert</span> dicho(20, t) == -1
+    <span class="kw">assert</span> dicho(6, t) == -1       <span class="cmt"># absent, entre deux</span>
+    <span class="kw">assert</span> t[dicho(5, t)] == 5     <span class="cmt"># doublon : l'un ou l'autre</span>
+    print(<span class="str">"tests réussis"</span>)</pre>
+  <p>Quand la sortie n'est pas unique (ici, l'indice d'une valeur répétée), on teste une <em>propriété</em> de la sortie (« <span class="code-inline">t[i] == 5</span> ») plutôt qu'une valeur précise. La comparaison avec la recherche séquentielle, simple et sûre, complète le jeu :</p>
+<pre class="codeblock"><span class="kw">import</span> random
+
+<span class="kw">def</span> tester_dicho_hasard(nb_essais):
+    <span class="kw">for</span> essai <span class="kw">in</span> range(nb_essais):
+        n = random.randint(0, 50)
+        t = sorted([random.randint(0, 100) <span class="kw">for</span> k <span class="kw">in</span> range(n)])
+        x = random.randint(-5, 105)
+        i = dicho(x, t)
+        <span class="kw">if</span> i == -1:
+            <span class="kw">assert</span> indice(x, t) == -1    <span class="cmt"># absent aussi</span>
+        <span class="kw">else</span>:
+            <span class="kw">assert</span> t[i] == x
+    print(<span class="str">"tests réussis"</span>)</pre>
+
+  <div class="method-box">
+    <strong>Exemple — Mesurer l'accélération en comptant</strong>
+    <p>Plutôt que de chronométrer, on instrumente les deux recherches pour qu'elles renvoient le nombre de comparaisons effectuées :</p>
+<pre class="codeblock"><span class="kw">def</span> tours_sequentielle(x, t):
+    <span class="cmt"># nombre de comparaisons faites par indice(x, t)</span>
+    i = 0
+    <span class="kw">while</span> i &lt; len(t) <span class="kw">and</span> t[i] != x:
+        i = i + 1
+    <span class="kw">if</span> i &lt; len(t):
+        <span class="kw">return</span> i + 1     <span class="cmt"># x trouvé à l'indice i</span>
+    <span class="kw">return</span> len(t)        <span class="cmt"># x absent</span>
+
+<span class="kw">def</span> tours_dicho(x, t):
+    <span class="cmt"># nombre de tours de la boucle de dicho(x, t)</span>
+    g, d, nb = 0, len(t) - 1, 0
+    <span class="kw">while</span> g &lt;= d:
+        nb = nb + 1
+        m = (g + d) // 2
+        <span class="kw">if</span> t[m] == x:
+            <span class="kw">return</span> nb
+        <span class="kw">elif</span> t[m] &lt; x:
+            g = m + 1
+        <span class="kw">else</span>:
+            d = m - 1
+    <span class="kw">return</span> nb</pre>
+    <ol>
+      <li>Sur une liste triée d'un million d'entiers, une valeur absente coûte \(10^6\) comparaisons à la recherche séquentielle.</li>
+      <li>La dichotomie en fait 19 ou 20, conformément à la borne \(\lfloor \log_2 10^6 \rfloor + 1 = 20\).</li>
+    </ol>
+<pre class="codeblock">t = [2 * k <span class="kw">for</span> k <span class="kw">in</span> range(1000000)]   <span class="cmt"># pairs, triés</span>
+tours_sequentielle(-1, t)       <span class="cmt"># 1000000</span>
+tours_dicho(-1, t)              <span class="cmt"># 19</span>
+tours_sequentielle(1999999, t)  <span class="cmt"># 1000000</span>
+tours_dicho(1999999, t)         <span class="cmt"># 20</span></pre>
+  </div>
+
+  <div class="notice"><strong>Erreur classique</strong> : ne tester que des cas « au milieu ». Les erreurs d'indice (<span class="code-inline">range(n - p)</span> au lieu de <span class="code-inline">range(n - p + 1)</span>, <span class="code-inline">g &lt; d</span> au lieu de <span class="code-inline">g &lt;= d</span>) ne se voient qu'aux limites : valeur en dernière position, intervalle d'une case, liste vide. La méthode générale de spécification et de test est développée dans le chapitre <em>Spécification, correction et complexité</em>.</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">POUR ALLER PLUS LOIN · HORS PROGRAMME</div>
+  <h2>Quelques prolongements</h2>
+  <ul>
+    <li><strong>Recherche de motif plus rapide.</strong> Les algorithmes de Knuth, Morris et Pratt, ou de Boyer et Moore, évitent de recomparer des caractères déjà lus et cherchent un motif en temps \(O(n + p)\). Ils ne sont pas au programme.</li>
+    <li><strong>Le module <span class="code-inline">bisect</span></strong> de Python fournit des recherches dichotomiques toutes faites (position d'insertion dans une liste triée). Son usage n'est pas exigible ; savoir écrire la dichotomie l'est.</li>
+    <li><strong>Exponentiation rapide de matrices.</strong> La même méthode s'applique à toute multiplication associative : en élevant la matrice \(\begin{pmatrix} 1 &amp; 1 \\ 1 &amp; 0 \end{pmatrix}\) à la puissance \(n\), on obtient le \(n\)-ième terme de la suite de Fibonacci en \(O(\log n)\) produits de matrices.</li>
+  </ul>
+</div>
+</template>
+<template class="pan-tpl" data-panneau="dich-meth">
+<div class="course-section">
+  <div class="sec-num">MÉTHODES · RECHERCHE ET DICHOTOMIE</div>
+  <h2>Les réflexes du chapitre</h2>
+  <div class="intro">Écrire sans erreur une recherche, un comptage ou une dichotomie, en évaluer le coût et le justifier, choisir la bonne structure de données : les savoir-faire attendus aux écrits comme aux oraux.</div>
+
+  <div class="method-box"><strong>Méthode 1 — Écrire une recherche séquentielle avec sortie anticipée</strong>
+    <ol>
+      <li><span class="step">Spécifier.</span> Ce que renvoie la fonction en cas de succès (booléen, indice, élément) et en cas d'échec (<span class="code-inline">False</span>, \(-1\)).</li>
+      <li><span class="step">Parcourir.</span> <span class="code-inline">for x in t</span> si seule la valeur compte ; <span class="code-inline">for i in range(len(t))</span> si l'on a besoin de l'indice.</li>
+      <li><span class="step">Sortir au succès.</span> <span class="code-inline">return</span> dans le corps de la boucle, dès que la condition est remplie.</li>
+      <li><span class="step">Conclure à l'échec.</span> Le <span class="code-inline">return</span> d'échec se place <em>après</em> la boucle, jamais dans un <span class="code-inline">else</span> du test.</li>
+      <li><span class="step">Coût.</span> Pire cas : tout est parcouru, \(O(n)\) ; meilleur cas : \(O(1)\).</li>
+    </ol>
+    <p><em>Exemple éclair :</em> premier relevé qui dépasse un seuil.</p>
+<pre class="codeblock"><span class="kw">def</span> premier_depassement(t, seuil):
+    <span class="cmt"># indice du 1er relevé &gt; seuil, -1 s'il n'y en a pas</span>
+    <span class="kw">for</span> i <span class="kw">in</span> range(len(t)):
+        <span class="kw">if</span> t[i] &gt; seuil:
+            <span class="kw">return</span> i
+    <span class="kw">return</span> -1</pre>
+<pre class="codeblock">premier_depassement([12, 17, 9, 23, 31], 20)   <span class="cmt"># 3</span>
+premier_depassement([12, 17, 9], 20)           <span class="cmt"># -1</span></pre>
+  </div>
+
+  <div class="method-box"><strong>Méthode 2 — Calculer un extremum ou un second extremum en un seul passage</strong>
+    <ol>
+      <li><span class="step">Initialiser avec les données.</span> Avec <span class="code-inline">t[0]</span> (et <span class="code-inline">t[1]</span> pour un second extremum, les deux rangés dans l'ordre), jamais avec 0 ; la liste doit être non vide (précondition écrite).</li>
+      <li><span class="step">Parcourir la suite.</span> À partir de l'indice 1 (ou 2), en mettant à jour le meilleur candidat.</li>
+      <li><span class="step">Choisir l'inégalité.</span> Stricte pour garder la première occurrence, large pour la dernière.</li>
+      <li><span class="step">Second extremum.</span> Tests en cascade <span class="code-inline">if … elif …</span> ; quand le maximum change, l'ancien devient le second par affectation simultanée <span class="code-inline">m1, m2 = t[i], m1</span>.</li>
+    </ol>
+    <p><em>Exemple éclair :</em> indice du minimum.</p>
+<pre class="codeblock"><span class="kw">def</span> indice_min(t):
+    <span class="cmt"># t non vide ; indice de la 1re occurrence du minimum</span>
+    im = 0
+    <span class="kw">for</span> i <span class="kw">in</span> range(1, len(t)):
+        <span class="kw">if</span> t[i] &lt; t[im]:
+            im = i
+    <span class="kw">return</span> im</pre>
+<pre class="codeblock">indice_min([5, 2, 8, 2])    <span class="cmt"># 1</span></pre>
+  </div>
+  <div class="notice"><strong>Piège</strong> : un maximum initialisé à 0 est faux pour une liste de valeurs toutes négatives ; un « second maximum » mal spécifié (avec ou sans répétitions ?) donne deux réponses différentes pour <span class="code-inline">[5, 9, 9]</span>.</div>
+
+  <div class="method-box"><strong>Méthode 3 — Compter ou repérer avec un dictionnaire</strong>
+    <ol>
+      <li><span class="step">Créer</span> un dictionnaire vide <span class="code-inline">d = {}</span>.</li>
+      <li><span class="step">Parcourir</span> les données ; pour chaque valeur <span class="code-inline">x</span>, tester <span class="code-inline">x in d</span> : si oui, mettre à jour <span class="code-inline">d[x]</span> ; sinon, créer la clé.</li>
+      <li><span class="step">Exploiter</span> le résultat par un parcours de <span class="code-inline">d.items()</span> (valeur la plus fréquente, valeurs uniques…).</li>
+      <li><span class="step">Coût.</span> Chaque opération sur le dictionnaire est en temps constant en moyenne : \(O(n)\) au total, contre \(O(n^2)\) avec deux boucles imbriquées.</li>
+    </ol>
+    <p><em>Exemple éclair :</em> une valeur apparaît-elle deux fois ? Le dictionnaire sert ici d'ensemble des valeurs déjà vues.</p>
+<pre class="codeblock"><span class="kw">def</span> a_un_doublon(t):
+    <span class="cmt"># True si une valeur apparaît au moins deux fois dans t</span>
+    vus = {}
+    <span class="kw">for</span> x <span class="kw">in</span> t:
+        <span class="kw">if</span> x <span class="kw">in</span> vus:
+            <span class="kw">return</span> <span class="kw">True</span>
+        vus[x] = <span class="kw">True</span>
+    <span class="kw">return</span> <span class="kw">False</span></pre>
+<pre class="codeblock">a_un_doublon([4, 1, 7, 1])   <span class="cmt"># True</span>
+a_un_doublon([4, 1, 7])      <span class="cmt"># False</span></pre>
+  </div>
+  <div class="notice"><strong>Piège</strong> : <span class="code-inline">d[x] = d[x] + 1</span> sur une clé absente provoque une erreur <span class="code-inline">KeyError</span> ; une liste ne peut pas servir de clé (utiliser un tuple).</div>
+
+  <div class="method-box"><strong>Méthode 4 — Dénombrer les tours de boucles imbriquées</strong>
+    <ol>
+      <li><span class="step">Boucle intérieure.</span> Exprimer son nombre de tours en fonction de l'indice de la boucle extérieure (\(n\), \(i\), \(n - 1 - i\)…).</li>
+      <li><span class="step">Additionner</span> sur toutes les valeurs de l'indice extérieur, avec les sommes usuelles :
+        <div class="formula" data-nom="Somme des premiers entiers">$$\sum_{i=0}^{n-1} i = \frac{n(n-1)}{2}, \qquad \sum_{i=0}^{n-1} n = n^2.$$</div></li>
+      <li><span class="step">Garder le terme dominant</span> : \(\frac{n(n-1)}{2} = O(n^2)\).</li>
+      <li><span class="step">Sortie anticipée</span> : raisonner sur le pire cas, celui où elle ne se produit pas.</li>
+    </ol>
+    <p><em>Exemple éclair :</em> <span class="code-inline">for j in range(i)</span> dans <span class="code-inline">for i in range(n)</span> fait \(0 + 1 + \dots + (n-1) = \frac{n(n-1)}{2}\) tours ; trois boucles sur \(i \lt j \lt k\) en font \(\frac{n(n-1)(n-2)}{6}\), soit \(O(n^3)\).</p>
+  </div>
+
+  <div class="method-box"><strong>Méthode 5 — Écrire une recherche dichotomique sans erreur d'indice</strong>
+    <ol>
+      <li><span class="step">Précondition.</span> La liste est triée (sinon, le résultat est faux sans message d'erreur).</li>
+      <li><span class="step">Intervalle fermé.</span> <span class="code-inline">g, d = 0, len(t) - 1</span> et <span class="code-inline">while g &lt;= d</span> : on continue tant qu'il reste une case.</li>
+      <li><span class="step">Milieu entier.</span> <span class="code-inline">m = (g + d) // 2</span>.</li>
+      <li><span class="step">Trois cas, \(m\) toujours exclu.</span> Trouvé ; <span class="code-inline">g = m + 1</span> si <span class="code-inline">t[m] &lt; x</span> ; <span class="code-inline">d = m - 1</span> sinon.</li>
+      <li><span class="step">Échec</span> après la boucle : l'intervalle est vide.</li>
+    </ol>
+    <p><em>Exemple éclair :</em> 23 dans <span class="code-inline">[2, 5, 8, 12, 16, 23, 38, 56, 72, 91]</span> : \(m = 4\) (16, à droite : \(g = 5\)), \(m = 7\) (56, à gauche : \(d = 6\)), \(m = 5\) : trouvé en 3 tours.</p>
+  </div>
+  <div class="notice"><strong>Piège</strong> : <span class="code-inline">g = m</span> ou <span class="code-inline">d = m</span> avec un intervalle fermé donne une boucle infinie ; <span class="code-inline">while g &lt; d</span> oublie la dernière case. Si l'on veut un intervalle semi-ouvert \([g, d[\) (recherche de la première position où insérer \(x\)), toute la méthode change : <span class="code-inline">d = len(t)</span>, <span class="code-inline">while g &lt; d</span>, <span class="code-inline">d = m</span> (voir l'exercice sur la première occurrence).</div>
+
+  <div class="method-box"><strong>Méthode 6 — Justifier la terminaison et le coût d'une dichotomie</strong>
+    <ol>
+      <li><span class="step">Variant.</span> La longueur \(d - g + 1\) de l'intervalle est un entier positif qui diminue strictement à chaque tour, puisque \(m\) est exclu.</li>
+      <li><span class="step">Invariant.</span> « Si \(x\) est présent, il est dans \(t[g..d]\) » : il se démontre avec le caractère trié de la liste.</li>
+      <li><span class="step">Division par deux.</span> Chaque tour sans succès laisse au plus \(\lfloor L/2 \rfloor\) cases sur \(L\).</li>
+      <li><span class="step">Conclusion.</span> Au plus \(\lfloor \log_2 n \rfloor + 1\) tours, coût \(O(\log n)\).</li>
+    </ol>
+    <p><em>Exemple éclair :</em> pour \(n = 100\), \(2^6 = 64 \le 100 \lt 128 = 2^7\), donc \(\lfloor \log_2 100 \rfloor = 6\) : au plus 7 tours.</p>
+  </div>
+
+  <div class="method-box"><strong>Méthode 7 — Calculer une puissance par exponentiation rapide</strong>
+    <ol>
+      <li><span class="step">Trois variables</span> : \(r = 1\) (résultat), \(a = x\) (carrés successifs), \(k = n\) (exposant restant).</li>
+      <li><span class="step">À chaque tour</span> : si \(k\) est impair, \(r \leftarrow r \cdot a\) ; puis \(a \leftarrow a^2\) et \(k \leftarrow \lfloor k/2 \rfloor\).</li>
+      <li><span class="step">Invariant</span> \(r \cdot a^k = x^n\) ; variant \(k\) : à la fin, \(k = 0\) et \(r = x^n\).</li>
+      <li><span class="step">Coût.</span> Autant de tours que de chiffres de \(n\) en base 2, au plus deux multiplications par tour : \(O(\log n)\).</li>
+    </ol>
+    <p><em>Exemple éclair :</em> \(x^{10}\), avec \(10 = 1010\) en base 2. \(k = 10\) pair : \(a = x^2\), \(k = 5\) ; impair : \(r = x^2\), \(a = x^4\), \(k = 2\) ; pair : \(a = x^8\), \(k = 1\) ; impair : \(r = x^2 \cdot x^8 = x^{10}\), \(k = 0\). Six multiplications au lieu de dix.</p>
+  </div>
+
+  <div class="method-box"><strong>Méthode 8 — Construire un jeu de tests</strong>
+    <ol>
+      <li><span class="step">Partitionner</span> les entrées en familles de même comportement (valeur présente ou absente, en tête, au milieu, en fin…).</li>
+      <li><span class="step">Ajouter les limites</span> : liste vide (si elle est permise), un ou deux éléments, valeurs répétées, valeurs négatives, extrémités.</li>
+      <li><span class="step">Écrire la sortie attendue à la main</span> pour chaque entrée, et la tester par <span class="code-inline">assert</span>.</li>
+      <li><span class="step">Tester une propriété</span> quand plusieurs sorties sont correctes (« <span class="code-inline">t[i] == x</span> » plutôt que « <span class="code-inline">i == 3</span> »).</li>
+      <li><span class="step">Comparer</span> à une méthode simple et sûre sur des données tirées au hasard.</li>
+    </ol>
+    <p><em>Exemple éclair :</em> un jeu de tests pour le second maximum du cours.</p>
+<pre class="codeblock"><span class="kw">def</span> tester_second_max():
+    <span class="kw">assert</span> second_max([3, 7]) == 3        <span class="cmt"># deux éléments</span>
+    <span class="kw">assert</span> second_max([7, 3]) == 3        <span class="cmt"># autre ordre</span>
+    <span class="kw">assert</span> second_max([9, 9]) == 9        <span class="cmt"># maximum répété</span>
+    <span class="kw">assert</span> second_max([-5, -2, -8]) == -5 <span class="cmt"># que des négatifs</span>
+    <span class="kw">assert</span> second_max([1, 4, 4, 2]) == 4
+    <span class="kw">assert</span> second_max([6, 1, 2, 3]) == 3  <span class="cmt"># maximum en tête</span>
+    print(<span class="str">"tests réussis"</span>)</pre>
+  </div>
+
+  <div class="method-box"><strong>Méthode 9 — Choisir la structure : liste, liste triée ou dictionnaire</strong>
+    <ol>
+      <li><span class="step">Une seule recherche</span> dans une liste quelconque : recherche séquentielle, \(O(n)\). Trier d'abord (\(O(n \log n)\)) serait plus coûteux.</li>
+      <li><span class="step">\(q\) recherches</span> : séquentielle \(O(qn)\) ; trier une fois puis dichotomie \(O(n \log n + q \log n)\) ; dictionnaire construit une fois, \(O(n + q)\) en moyenne.</li>
+      <li><span class="step">Besoin d'ordre</span> (plus proche valeur, valeurs entre \(a\) et \(b\)) : liste triée et dichotomie ; le dictionnaire ne sait que tester une clé exacte.</li>
+      <li><span class="step">Comptages, associations</span> (valeur → effectif, nom → position) : dictionnaire.</li>
+    </ol>
+    <p><em>Exemple éclair :</em> \(n = 10^5\) noms et \(q = 10^4\) requêtes. Séquentiel : \(10^9\) comparaisons (une dizaine de secondes) ; tri puis dichotomie : environ \(1{,}7 \times 10^6 + 1{,}7 \times 10^5\) ; dictionnaire : environ \(1{,}1 \times 10^5\) opérations.</p>
+  </div>
+  <div class="notice"><strong>Piège</strong> : <span class="code-inline">x in t</span> sur une liste ressemble au test d'un dictionnaire mais coûte \(O(n)\). Placé dans une boucle de \(n\) tours, il rend l'algorithme quadratique.</div>
+</div>
+</template>
+<template class="pan-tpl" data-panneau="dich-exos">
+<div class="exo-wrapper">
+
+<div class="exo"><span class="num">EXO 01</span><span class="diff">★ ☆ ☆</span>
+  <h3>Dernière occurrence et nombre d'occurrences</h3>
+  <div class="statement">On considère la liste <span class="code-inline">t = [4, 7, 4, 1, 7, 7, 2]</span>.</div>
+  <div class="q"><strong>Q1.</strong> Écrire une fonction <span class="code-inline">derniere(x, t)</span> qui renvoie l'indice de la <em>dernière</em> occurrence de <span class="code-inline">x</span> dans la liste <span class="code-inline">t</span>, et \(-1\) si <span class="code-inline">x</span> est absent, en effectuant le moins de comparaisons possible. Combien de comparaisons fait l'appel <span class="code-inline">derniere(7, t)</span> ?</div>
+  <div class="q"><strong>Q2.</strong> Écrire une fonction <span class="code-inline">nb_occ(x, t)</span> qui renvoie le nombre d'occurrences de <span class="code-inline">x</span> dans <span class="code-inline">t</span>.</div>
+  <div class="q"><strong>Q3.</strong> Donner le coût de chaque fonction dans le pire et dans le meilleur cas, pour une liste de longueur \(n\).</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution"><h4>Correction</h4>
+    <p><strong>Q1.</strong> On parcourt la liste <em>à rebours</em> : la première occurrence rencontrée est la dernière de la liste, et l'on peut s'arrêter aussitôt. Si <span class="code-inline">x</span> est absent, l'indice descend jusqu'à \(-1\), qui est justement la valeur à renvoyer.</p>
+<pre class="codeblock"><span class="kw">def</span> derniere(x, t):
+    <span class="cmt"># parcours à rebours : on s'arrête à la 1re rencontre</span>
+    i = len(t) - 1
+    <span class="kw">while</span> i &gt;= 0 <span class="kw">and</span> t[i] != x:
+        i = i - 1
+    <span class="kw">return</span> i       <span class="cmt"># vaut -1 si x est absent</span>
+
+<span class="kw">def</span> nb_occ(x, t):
+    c = 0
+    <span class="kw">for</span> y <span class="kw">in</span> t:
+        <span class="kw">if</span> y == x:
+            c = c + 1
+    <span class="kw">return</span> c</pre>
+    <p><span class="code-inline">derniere(7, t)</span> compare <span class="code-inline">t[6] = 2</span>, puis <span class="code-inline">t[5] = 7</span> : 2 comparaisons, résultat 5. Un parcours de gauche à droite qui mémorise le dernier indice trouvé en ferait toujours 7. Le <span class="code-inline">and</span> paresseux évite de lire <span class="code-inline">t[-1]</span> quand \(i = -1\).</p>
+<pre class="codeblock">t = [4, 7, 4, 1, 7, 7, 2]
+derniere(7, t)    <span class="cmt"># 5</span>
+derniere(4, t)    <span class="cmt"># 2</span>
+derniere(9, t)    <span class="cmt"># -1</span>
+nb_occ(7, t)      <span class="cmt"># 3</span></pre>
+    <p><strong>Q2.</strong> Fonction <span class="code-inline">nb_occ</span> ci-dessus : un accumulateur incrémenté à chaque égalité ; ici, 3 occurrences de 7.</p>
+    <p><strong>Q3.</strong> <span class="code-inline">derniere</span> : pire cas \(n\) comparaisons (valeur absente ou seulement en tête), \(O(n)\) ; meilleur cas 1 comparaison (valeur en dernière position), \(O(1)\). <span class="code-inline">nb_occ</span> : exactement \(n\) comparaisons dans tous les cas, \(O(n)\), car toute occurrence peut compter, il n'y a pas de sortie anticipée possible.</p>
+  </div>
+</div>
+
+<div class="exo"><span class="num">EXO 02</span><span class="diff">★ ☆ ☆</span>
+  <h3>Relevés de température</h3>
+  <div class="statement">Une station relève chaque jour la température à midi, en degrés entiers. Les relevés forment une liste non vide <span class="code-inline">T</span>, par exemple <span class="code-inline">T = [3, -2, 5, 8, 6, -1, 4]</span>.</div>
+  <div class="q"><strong>Q1.</strong> Écrire <span class="code-inline">amplitude(T)</span>, qui renvoie l'écart entre la plus haute et la plus basse température, en un seul parcours de la liste.</div>
+  <div class="q"><strong>Q2.</strong> Écrire <span class="code-inline">jours_sous_moyenne(T)</span>, qui renvoie le nombre de jours où la température est strictement inférieure à la moyenne de la période. Peut-on se contenter d'un seul parcours ? Quel est le coût ?</div>
+  <div class="q"><strong>Q3.</strong> Écrire <span class="code-inline">plus_longue_hausse(T)</span>, qui renvoie la longueur de la plus longue suite de jours consécutifs où la température augmente strictement d'un jour au suivant (pour <span class="code-inline">T</span>, c'est 3 : −2, 5, 8). Donner un invariant de la boucle.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution"><h4>Correction</h4>
+<pre class="codeblock"><span class="kw">def</span> amplitude(T):
+    mini, maxi = T[0], T[0]
+    <span class="kw">for</span> i <span class="kw">in</span> range(1, len(T)):
+        <span class="kw">if</span> T[i] &lt; mini:
+            mini = T[i]
+        <span class="kw">elif</span> T[i] &gt; maxi:
+            maxi = T[i]
+    <span class="kw">return</span> maxi - mini
+
+<span class="kw">def</span> jours_sous_moyenne(T):
+    s = 0
+    <span class="kw">for</span> x <span class="kw">in</span> T:          <span class="cmt"># 1er passage : la moyenne</span>
+        s = s + x
+    moy = s / len(T)
+    c = 0
+    <span class="kw">for</span> x <span class="kw">in</span> T:          <span class="cmt"># 2e passage : le comptage</span>
+        <span class="kw">if</span> x &lt; moy:
+            c = c + 1
+    <span class="kw">return</span> c
+
+<span class="kw">def</span> plus_longue_hausse(T):
+    meilleur, courant = 1, 1
+    <span class="kw">for</span> i <span class="kw">in</span> range(1, len(T)):
+        <span class="kw">if</span> T[i] &gt; T[i - 1]:
+            courant = courant + 1
+            <span class="kw">if</span> courant &gt; meilleur:
+                meilleur = courant
+        <span class="kw">else</span>:
+            courant = 1
+    <span class="kw">return</span> meilleur</pre>
+    <p><strong>Q1.</strong> On tient à jour le minimum et le maximum à la fois, initialisés avec <span class="code-inline">T[0]</span> (les températures peuvent être négatives). Le <span class="code-inline">elif</span> est juste : comme <span class="code-inline">mini &lt;= maxi</span>, une valeur ne peut pas être à la fois plus petite que le minimum et plus grande que le maximum. Pour <span class="code-inline">T</span> : \(8 - (-2) = 10\).</p>
+    <p><strong>Q2.</strong> La moyenne doit être connue avant de compter : un premier parcours la calcule, un second compte. Le coût reste linéaire (environ \(2n\) opérations). Pour <span class="code-inline">T</span>, la moyenne vaut \(23/7 \approx 3{,}29\) : les jours à 3, −2 et −1 sont en dessous, d'où 3.</p>
+    <p><strong>Q3.</strong> <span class="code-inline">courant</span> est la longueur de la hausse qui se termine au jour \(i\). Invariant : au début du tour \(i\), <span class="code-inline">courant</span> est la longueur de la plus longue hausse qui se termine au jour \(i - 1\), et <span class="code-inline">meilleur</span> la plus longue hausse contenue dans <span class="code-inline">T[0..i-1]</span>. Une seule boucle de \(n - 1\) tours : coût linéaire.</p>
+<pre class="codeblock">T = [3, -2, 5, 8, 6, -1, 4]
+amplitude(T)             <span class="cmt"># 10</span>
+jours_sous_moyenne(T)    <span class="cmt"># 3</span>
+plus_longue_hausse(T)    <span class="cmt"># 3</span></pre>
+  </div>
+</div>
+
+<div class="exo"><span class="num">EXO 03</span><span class="diff">★ ★ ☆</span>
+  <h3>Un second maximum à corriger</h3>
+  <div class="statement">Spécification : <span class="code-inline">second(t)</span> reçoit une liste d'au moins deux nombres et renvoie son deuxième plus grand élément, répétitions comprises (pour <span class="code-inline">[5, 9, 9]</span>, la réponse est 9). Un élève propose :
+<pre class="codeblock"><span class="kw">def</span> second(t):
+    m1, m2 = t[0], t[0]
+    <span class="kw">for</span> x <span class="kw">in</span> t:
+        <span class="kw">if</span> x &gt; m1:
+            m2 = m1
+            m1 = x
+        <span class="kw">elif</span> x &gt; m2:
+            m2 = x
+    <span class="kw">return</span> m2</pre>
+  </div>
+  <div class="q"><strong>Q1.</strong> Que renvoient <span class="code-inline">second([3, 8, 5])</span>, <span class="code-inline">second([8, 3, 5])</span> et <span class="code-inline">second([8, 3])</span> ? Conclure.</div>
+  <div class="q"><strong>Q2.</strong> Identifier l'erreur et la corriger. Proposer un jeu de tests qui l'aurait détectée.</div>
+  <div class="q"><strong>Q3.</strong> On cherche maintenant la deuxième plus grande valeur <em>distincte</em> (pour <span class="code-inline">[9, 4, 9, 7]</span>, c'est 7). Écrire <span class="code-inline">second_distinct(t)</span>, pour une liste contenant au moins deux valeurs distinctes, et donner son coût.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution"><h4>Correction</h4>
+    <p><strong>Q1.</strong> Exécution pas à pas :</p>
+<pre class="codeblock">second([3, 8, 5])    <span class="cmt"># 5</span>
+second([8, 3, 5])    <span class="cmt"># 8</span>
+second([8, 3])       <span class="cmt"># 8</span></pre>
+    <p>Le premier résultat est juste, les deux autres sont faux (on attendait 5 et 3) : dès que le maximum est en tête, <span class="code-inline">m2</span> vaut ce maximum dès le départ et n'est jamais corrigé. La fonction n'est juste que si le maximum n'est pas en première position.</p>
+    <p><strong>Q2.</strong> L'erreur est l'initialisation <span class="code-inline">m2 = t[0]</span>, qui suppose que <span class="code-inline">t[0]</span> peut être le second maximum alors qu'il est aussi compté comme maximum. On corrige en initialisant avec les deux premières cases rangées dans l'ordre et en parcourant à partir de l'indice 2 : c'est la fonction <span class="code-inline">second_max</span> du cours. (L'ordre des deux affectations <span class="code-inline">m2 = m1</span> puis <span class="code-inline">m1 = x</span> est, lui, correct.) Le jeu de tests doit faire varier la position du maximum : <span class="code-inline">[8, 3]</span> (attendu 3), <span class="code-inline">[3, 8]</span> (3), <span class="code-inline">[8, 3, 5]</span> (5), <span class="code-inline">[9, 9]</span> (9), <span class="code-inline">[-4, -7, -1]</span> (−4). Un jeu qui ne place jamais le maximum en tête laisse passer l'erreur.</p>
+    <p><strong>Q3.</strong> On calcule d'abord le maximum \(m_1\) (fonction <span class="code-inline">maximum</span> du cours), puis le plus grand élément strictement inférieur à \(m_1\). Pour initialiser \(m_2\) avec une vraie valeur de la liste, on avance jusqu'à la première case différente de \(m_1\) : la boucle <span class="code-inline">while</span> s'arrête, car la précondition garantit qu'une telle case existe.</p>
+<pre class="codeblock"><span class="kw">def</span> second_distinct(t):
+    <span class="cmt"># t contient au moins deux valeurs distinctes</span>
+    m1 = maximum(t)
+    i = 0
+    <span class="kw">while</span> t[i] == m1:  <span class="cmt"># s'arrête : une valeur diffère de m1</span>
+        i = i + 1
+    m2 = t[i]          <span class="cmt"># un candidat strictement inférieur à m1</span>
+    <span class="kw">for</span> x <span class="kw">in</span> t:
+        <span class="kw">if</span> x &lt; m1 <span class="kw">and</span> x &gt; m2:
+            m2 = x
+    <span class="kw">return</span> m2</pre>
+<pre class="codeblock">second_distinct([9, 4, 9, 7])   <span class="cmt"># 7</span>
+second_distinct([5, 9, 9])      <span class="cmt"># 5</span>
+second_distinct([-1, -3])       <span class="cmt"># -3</span></pre>
+    <p>Trois parcours au plus (maximum, recherche d'un candidat, dernière boucle), chacun de coût \(O(n)\) : coût linéaire.</p>
+  </div>
+</div>
+
+<div class="exo"><span class="num">EXO 04</span><span class="diff">★ ★ ☆</span>
+  <h3>Anagrammes</h3>
+  <div class="statement">Deux mots sont des <strong>anagrammes</strong> s'ils sont formés des mêmes lettres, chacune répétée le même nombre de fois : « chien » et « niche », « ironique » et « onirique ». On dispose de la fonction <span class="code-inline">compter(t)</span> du cours, qui renvoie le dictionnaire des nombres d'occurrences des éléments d'une liste ou d'une chaîne.</div>
+  <div class="q"><strong>Q1.</strong> Écrire <span class="code-inline">sont_anagrammes(u, v)</span>, de coût linéaire en la longueur des mots, en n'utilisant qu'un seul dictionnaire.</div>
+  <div class="q"><strong>Q2.</strong> Justifier que la fonction renvoie <span class="code-inline">True</span> exactement quand <span class="code-inline">u</span> et <span class="code-inline">v</span> sont des anagrammes.</div>
+  <div class="q"><strong>Q3.</strong> Une méthode sans dictionnaire compte, pour chaque lettre de <span class="code-inline">u</span>, ses occurrences dans <span class="code-inline">u</span> et dans <span class="code-inline">v</span>. Quel est son coût ? Pour tester toutes les paires d'une liste de \(k\) mots de longueur au plus \(L\), combien d'appels à <span class="code-inline">sont_anagrammes</span> faut-il ?</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution"><h4>Correction</h4>
+    <p><strong>Q1.</strong> On compte les lettres de <span class="code-inline">u</span>, puis on « consomme » ces comptes avec les lettres de <span class="code-inline">v</span>.</p>
+<pre class="codeblock"><span class="kw">def</span> sont_anagrammes(u, v):
+    <span class="kw">if</span> len(u) != len(v):
+        <span class="kw">return</span> <span class="kw">False</span>
+    d = compter(u)            <span class="cmt"># fonction du cours (§4)</span>
+    <span class="kw">for</span> c <span class="kw">in</span> v:
+        <span class="kw">if</span> c <span class="kw">not</span> <span class="kw">in</span> d <span class="kw">or</span> d[c] == 0:
+            <span class="kw">return</span> <span class="kw">False</span>    <span class="cmt"># c manque, ou est en excès dans v</span>
+        d[c] = d[c] - 1
+    <span class="kw">return</span> <span class="kw">True</span></pre>
+<pre class="codeblock">sont_anagrammes(<span class="str">"chien"</span>, <span class="str">"niche"</span>)      <span class="cmt"># True</span>
+sont_anagrammes(<span class="str">"ironique"</span>, <span class="str">"onirique"</span>)  <span class="cmt"># True</span>
+sont_anagrammes(<span class="str">"aab"</span>, <span class="str">"abb"</span>)          <span class="cmt"># False</span></pre>
+    <p><strong>Q2.</strong> Si la fonction renvoie <span class="code-inline">True</span>, chaque lettre de <span class="code-inline">v</span> a été prise dans un compte de <span class="code-inline">u</span> encore positif : chaque lettre apparaît dans <span class="code-inline">v</span> au plus autant de fois que dans <span class="code-inline">u</span>. Comme les deux mots ont la même longueur, il ne peut pas y avoir d'inégalité stricte pour une lettre (la somme des écarts est nulle) : les nombres d'occurrences sont égaux. Réciproquement, pour deux anagrammes, aucun compte n'est jamais épuisé trop tôt, et la boucle va jusqu'au bout. Le test de longueur est indispensable : sans lui, <span class="code-inline">"ab"</span> et <span class="code-inline">"a"</span> seraient déclarés anagrammes.</p>
+    <p>Coût : <span class="code-inline">compter(u)</span> fait \(n\) tours, la boucle sur <span class="code-inline">v</span> aussi, chaque opération sur le dictionnaire étant en temps constant en moyenne : \(O(n)\).</p>
+    <p><strong>Q3.</strong> Pour chacune des \(n\) lettres de <span class="code-inline">u</span>, deux parcours complets de longueur \(n\) : \(2n^2\) comparaisons, coût quadratique. Tester toutes les paires de \(k\) mots demande \(\frac{k(k-1)}{2}\) appels, chacun en \(O(L)\) avec la version à dictionnaire : \(O(k^2 L)\) au total.</p>
+  </div>
+</div>
+
+<div class="exo"><span class="num">EXO 05</span><span class="diff">★ ★ ☆</span>
+  <h3>Toutes les occurrences d'un motif</h3>
+  <div class="statement">On reprend la recherche naïve d'un facteur du cours. Dans <span class="code-inline">"BANANAS"</span>, le motif <span class="code-inline">"ANA"</span> apparaît aux positions 1 et 3 : ces deux occurrences se <em>chevauchent</em> (elles partagent le A de la position 3).</div>
+  <div class="q"><strong>Q1.</strong> Écrire <span class="code-inline">occurrences(m, texte)</span>, qui renvoie la liste de toutes les positions du motif <span class="code-inline">m</span> dans <span class="code-inline">texte</span>, chevauchements compris.</div>
+  <div class="q"><strong>Q2.</strong> On note \(n\) la longueur du texte et \(p\) celle du motif. Donner le nombre exact de comparaisons de caractères pour <span class="code-inline">texte</span> formé de \(n\) lettres a et <span class="code-inline">m</span> de \(p\) lettres a. Est-ce le pire cas ?</div>
+  <div class="q"><strong>Q3.</strong> Écrire <span class="code-inline">nb_disjointes(m, texte)</span> (motif non vide), qui compte les occurrences de gauche à droite sans chevauchement : après une occurrence trouvée en \(i\), la recherche reprend en \(i + p\). Justifier la terminaison.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution"><h4>Correction</h4>
+    <p><strong>Q1.</strong> Même double boucle que dans le cours, mais au lieu de renvoyer la première position, on ajoute chaque position trouvée à une liste.</p>
+<pre class="codeblock"><span class="kw">def</span> occurrences(m, texte):
+    <span class="cmt"># positions de m dans texte, chevauchements compris</span>
+    n, p = len(texte), len(m)
+    res = []
+    <span class="kw">for</span> i <span class="kw">in</span> range(n - p + 1):
+        k = 0
+        <span class="kw">while</span> k &lt; p <span class="kw">and</span> texte[i + k] == m[k]:
+            k = k + 1
+        <span class="kw">if</span> k == p:
+            res.append(i)
+    <span class="kw">return</span> res</pre>
+    <p><strong>Q2.</strong> Toutes les positions de 0 à \(n - p\) sont des occurrences, et chacune demande \(p\) comparaisons réussies : \((n - p + 1)\,p\) comparaisons. C'est le maximum possible, puisqu'aucune position ne peut demander plus de \(p\) comparaisons : c'est bien un pire cas (comme le texte « aaa…a » avec le motif « a…ab » du cours). Pour \(p = n/2\), cela fait environ \(n^2/4\) : coût quadratique.</p>
+    <p><strong>Q3.</strong></p>
+<pre class="codeblock"><span class="kw">def</span> nb_disjointes(m, texte):
+    <span class="cmt"># m non vide ; occurrences sans chevauchement</span>
+    n, p = len(texte), len(m)
+    c, i = 0, 0
+    <span class="kw">while</span> i &lt;= n - p:
+        k = 0
+        <span class="kw">while</span> k &lt; p <span class="kw">and</span> texte[i + k] == m[k]:
+            k = k + 1
+        <span class="kw">if</span> k == p:
+            c = c + 1
+            i = i + p     <span class="cmt"># on saute le motif trouvé</span>
+        <span class="kw">else</span>:
+            i = i + 1
+    <span class="kw">return</span> c</pre>
+<pre class="codeblock">occurrences(<span class="str">"ANA"</span>, <span class="str">"BANANAS"</span>)    <span class="cmt"># [1, 3]</span>
+occurrences(<span class="str">"AA"</span>, <span class="str">"AAAA"</span>)        <span class="cmt"># [0, 1, 2]</span>
+nb_disjointes(<span class="str">"AA"</span>, <span class="str">"AAAA"</span>)      <span class="cmt"># 2</span>
+nb_disjointes(<span class="str">"ANA"</span>, <span class="str">"BANANAS"</span>)  <span class="cmt"># 1</span></pre>
+    <p>Terminaison : à chaque tour, \(i\) augmente d'au moins 1 (de \(p \ge 1\) ou de 1). La quantité \(n - p - i\) est un entier qui diminue strictement et la boucle s'arrête dès qu'il devient négatif : c'est un variant. Le motif non vide est indispensable : avec \(p = 0\), \(i\) n'augmenterait jamais après une « occurrence ».</p>
+  </div>
+</div>
+
+<div class="exo"><span class="num">EXO 06</span><span class="diff">★ ★ ☆</span>
+  <h3>Deux éléments de somme donnée</h3>
+  <div class="statement">Étant donnés une liste d'entiers <span class="code-inline">t</span> et un entier <span class="code-inline">s</span>, on veut savoir s'il existe deux indices \(i \lt j\) tels que <span class="code-inline">t[i] + t[j] == s</span>. Exemple : <span class="code-inline">t = [8, 3, 11, 5, 14]</span>.</div>
+  <div class="q"><strong>Q1.</strong> Écrire <span class="code-inline">somme_naive(t, s)</span> avec deux boucles imbriquées. Coût dans le pire cas ?</div>
+  <div class="q"><strong>Q2.</strong> Écrire <span class="code-inline">somme_dico(t, s)</span>, de coût linéaire, à l'aide d'un dictionnaire des valeurs déjà rencontrées. Dérouler l'appel <span class="code-inline">somme_dico(t, 19)</span>.</div>
+  <div class="q"><strong>Q3.</strong> On suppose maintenant <span class="code-inline">t</span> triée. Écrire <span class="code-inline">somme_triee(t, s)</span>, sans dictionnaire, avec deux indices <span class="code-inline">g</span> (parti de la gauche) et <span class="code-inline">d</span> (parti de la droite), de coût linéaire. Justifier sa correction.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution"><h4>Correction</h4>
+<pre class="codeblock"><span class="kw">def</span> somme_naive(t, s):
+    n = len(t)
+    <span class="kw">for</span> i <span class="kw">in</span> range(n):
+        <span class="kw">for</span> j <span class="kw">in</span> range(i + 1, n):
+            <span class="kw">if</span> t[i] + t[j] == s:
+                <span class="kw">return</span> <span class="kw">True</span>
+    <span class="kw">return</span> <span class="kw">False</span>
+
+<span class="kw">def</span> somme_dico(t, s):
+    vus = {}                  <span class="cmt"># valeurs déjà rencontrées</span>
+    <span class="kw">for</span> x <span class="kw">in</span> t:
+        <span class="kw">if</span> s - x <span class="kw">in</span> vus:      <span class="cmt"># un partenaire est déjà passé</span>
+            <span class="kw">return</span> <span class="kw">True</span>
+        vus[x] = <span class="kw">True</span>
+    <span class="kw">return</span> <span class="kw">False</span></pre>
+    <p><strong>Q1.</strong> Dans le pire cas (aucun couple ne convient), les \(\frac{n(n-1)}{2}\) couples sont examinés : \(O(n^2)\).</p>
+    <p><strong>Q2.</strong> Pour chaque valeur \(x\), son partenaire éventuel est \(s - x\) : il suffit de savoir s'il est déjà passé. Pour <span class="code-inline">somme_dico(t, 19)</span> : 8 arrive, 11 n'est pas vu, on retient 8 ; 3 arrive, 16 n'est pas vu, on retient 3 ; 11 arrive, \(19 - 11 = 8\) a été vu : <span class="code-inline">True</span> (couple 8 + 11). Chaque tour est de coût constant en moyenne : \(O(n)\). Une valeur n'est cherchée que parmi les <em>précédentes</em>, ce qui garantit \(i \lt j\) (avec \(s = 6\), le seul 3 de la liste n'est pas apparié avec lui-même).</p>
+<pre class="codeblock">t = [8, 3, 11, 5, 14]
+somme_naive(t, 19), somme_dico(t, 19)    <span class="cmt"># (True, True)</span>
+somme_naive(t, 12), somme_dico(t, 12)    <span class="cmt"># (False, False)</span>
+somme_dico(t, 6)     <span class="cmt"># False  (3 + 3 interdit)</span>
+somme_triee([3, 5, 8, 11, 14], 12)       <span class="cmt"># False</span></pre>
+    <p><strong>Q3.</strong></p>
+<pre class="codeblock"><span class="kw">def</span> somme_triee(t, s):
+    <span class="cmt"># t trié dans l'ordre croissant</span>
+    g, d = 0, len(t) - 1
+    <span class="kw">while</span> g &lt; d:
+        <span class="kw">if</span> t[g] + t[d] == s:
+            <span class="kw">return</span> <span class="kw">True</span>
+        <span class="kw">elif</span> t[g] + t[d] &lt; s:
+            g = g + 1    <span class="cmt"># t[g] trop petit, même avec t[d]</span>
+        <span class="kw">else</span>:
+            d = d - 1    <span class="cmt"># t[d] trop grand, même avec t[g]</span>
+    <span class="kw">return</span> <span class="kw">False</span></pre>
+    <p>Invariant : aucun couple qui convient n'utilise un indice \(i \lt g\) ou \(j \gt d\). Si \(t[g] + t[d] \lt s\), alors pour tout \(j \le d\), \(t[g] + t[j] \le t[g] + t[d] \lt s\) : \(t[g]\) ne fait partie d'aucune solution restante, on peut l'écarter. Symétriquement si la somme est trop grande. Quand \(g = d\), il ne reste aucun couple : la réponse <span class="code-inline">False</span> est juste. Chaque tour diminue \(d - g\) de 1 : au plus \(n - 1\) tours, \(O(n)\). Si la liste n'est pas déjà triée, le tri coûte \(O(n \log n)\) et domine.</p>
+  </div>
+</div>
+
+<div class="exo"><span class="num">EXO 07</span><span class="diff">★ ★ ☆</span>
+  <h3>Première occurrence dans une liste triée</h3>
+  <div class="statement">La liste <span class="code-inline">t = [1, 3, 3, 3, 6, 9, 9, 12]</span> est triée et contient des répétitions. On rappelle que <span class="code-inline">dicho(x, t)</span> (cours, §7) renvoie un indice <em>quelconque</em> de <span class="code-inline">x</span>.</div>
+  <div class="q"><strong>Q1.</strong> Que renvoie <span class="code-inline">dicho(3, t)</span> ? Est-ce la première occurrence ?</div>
+  <div class="q"><strong>Q2.</strong> Écrire <span class="code-inline">premier_indice(x, t)</span>, qui renvoie le plus petit indice \(i\) tel que \(t[i] \ge x\) (et <span class="code-inline">len(t)</span> s'il n'y en a pas), en coût logarithmique. On utilisera un intervalle semi-ouvert \([g, d[\) et l'invariant « \(t[i] \lt x\) pour \(i \lt g\), \(t[i] \ge x\) pour \(i \ge d\) ». Comment en déduire si \(x\) est présent ?</div>
+  <div class="q"><strong>Q3.</strong> En déduire une fonction <span class="code-inline">nb_occ_trie(x, t)</span> de coût \(O(\log n)\), qui compte les occurrences de <span class="code-inline">x</span>.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution"><h4>Correction</h4>
+    <p><strong>Q1.</strong> Premier tour : \(g = 0\), \(d = 7\), \(m = 3\), \(t[3] = 3\) : la fonction renvoie 3, alors que la première occurrence est à l'indice 1. La dichotomie du cours s'arrête au premier 3 qu'elle rencontre, pas forcément le premier de la liste.</p>
+    <p><strong>Q2.</strong> Quand \(t[m] \ge x\), on ne peut pas exclure \(m\) : il est peut-être la réponse. On garde donc \(m\) comme borne droite exclue de la zone inconnue (<span class="code-inline">d = m</span>), ce qui n'est correct qu'avec un intervalle semi-ouvert.</p>
+<pre class="codeblock"><span class="kw">def</span> premier_indice(x, t):
+    <span class="cmt"># t trié ; plus petit i tel que t[i] &gt;= x (len(t) si aucun)</span>
+    g, d = 0, len(t)
+    <span class="kw">while</span> g &lt; d:
+        <span class="cmt"># invariant : t[i] &lt; x si i &lt; g, et t[i] &gt;= x si i &gt;= d</span>
+        m = (g + d) // 2
+        <span class="kw">if</span> t[m] &lt; x:
+            g = m + 1
+        <span class="kw">else</span>:
+            d = m        <span class="cmt"># t[m] &gt;= x : m reste candidat</span>
+    <span class="kw">return</span> g</pre>
+    <p>Au départ, l'invariant est vrai (aucun indice \(i \lt 0\), aucun \(i \ge n\)). Il est conservé : si \(t[m] \lt x\), les cases jusqu'à \(m\) sont \(\lt x\) (liste triée), d'où <span class="code-inline">g = m + 1</span> ; sinon les cases à partir de \(m\) sont \(\ge x\), d'où <span class="code-inline">d = m</span>. Terminaison : \(g \le m \lt d\), donc \(d - g\) diminue strictement. À la sortie, \(g = d\) et l'invariant dit exactement que \(g\) est la réponse. Au plus \(\lfloor \log_2 n \rfloor + 1\) tours. Enfin, \(x\) est présent si et seulement si <span class="code-inline">g &lt; len(t)</span> et <span class="code-inline">t[g] == x</span> (test paresseux, dans cet ordre).</p>
+    <p><strong>Q3.</strong> On écrit de même le plus petit indice où \(t[i] \gt x\) (seul le test change : <span class="code-inline">t[m] &lt;= x</span>). Les occurrences de \(x\) occupent exactement les indices entre ces deux positions.</p>
+<pre class="codeblock"><span class="kw">def</span> premier_strict(x, t):
+    <span class="cmt"># t trié ; plus petit i tel que t[i] &gt; x (len(t) si aucun)</span>
+    g, d = 0, len(t)
+    <span class="kw">while</span> g &lt; d:
+        m = (g + d) // 2
+        <span class="kw">if</span> t[m] &lt;= x:
+            g = m + 1
+        <span class="kw">else</span>:
+            d = m
+    <span class="kw">return</span> g
+
+<span class="kw">def</span> nb_occ_trie(x, t):
+    <span class="kw">return</span> premier_strict(x, t) - premier_indice(x, t)</pre>
+<pre class="codeblock">t = [1, 3, 3, 3, 6, 9, 9, 12]
+dicho(3, t)            <span class="cmt"># 3</span>
+premier_indice(3, t)   <span class="cmt"># 1</span>
+nb_occ_trie(3, t)      <span class="cmt"># 3</span>
+premier_indice(7, t)   <span class="cmt"># 5</span>
+nb_occ_trie(7, t)      <span class="cmt"># 0</span>
+premier_indice(20, t)  <span class="cmt"># 8</span></pre>
+    <p>Deux dichotomies : \(O(\log n)\), au lieu de \(O(n)\) pour un comptage séquentiel.</p>
+  </div>
+</div>
+
+<div class="exo"><span class="num">EXO 08</span><span class="diff">★ ★ ★</span>
+  <h3>Racine carrée entière par dichotomie</h3>
+  <div class="statement">Pour un entier \(n \ge 0\), la <strong>racine carrée entière</strong> de \(n\) est l'unique entier \(r \ge 0\) tel que \(r^2 \le n \lt (r+1)^2\). On veut la calculer avec des entiers seulement.</div>
+  <div class="q"><strong>Q1.</strong> Montrer que \(r\) appartient à \([0, n]\).</div>
+  <div class="q"><strong>Q2.</strong> Écrire <span class="code-inline">racine(n)</span> par dichotomie sur les entiers de \([0, n]\), en maintenant l'invariant \(g^2 \le n \lt (d+1)^2\). Pourquoi faut-il prendre ici le milieu arrondi <em>au-dessus</em>, <span class="code-inline">m = (g + d + 1) // 2</span> ?</div>
+  <div class="q"><strong>Q3.</strong> Majorer le nombre de tours pour \(n = 10^{12}\) et comparer avec la méthode qui essaie \(r = 0, 1, 2, \dots\)</div>
+  <div class="q"><strong>Q4.</strong> Pourquoi ne pas simplement calculer <span class="code-inline">int(n ** 0.5)</span> ? Tester avec \(n = 10^{16} - 1\).</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution"><h4>Correction</h4>
+    <p><strong>Q1.</strong> \(0^2 = 0 \le n\), donc \(r \ge 0\). Si \(n \ge 1\), alors \(n \le n^2 \lt (n+1)^2\), donc \(r \le n\) ; si \(n = 0\), \(r = 0\). Dans tous les cas, \(r \in [0, n]\).</p>
+    <p><strong>Q2.</strong></p>
+<pre class="codeblock"><span class="kw">def</span> racine(n):
+    <span class="cmt"># n entier &gt;= 0 ; renvoie r tel que r*r &lt;= n &lt; (r+1)**2</span>
+    g, d = 0, n
+    <span class="kw">while</span> g &lt; d:
+        <span class="cmt"># invariant : g*g &lt;= n &lt; (d+1)*(d+1)</span>
+        m = (g + d + 1) // 2      <span class="cmt"># milieu arrondi au-dessus</span>
+        <span class="kw">if</span> m * m &lt;= n:
+            g = m
+        <span class="kw">else</span>:
+            d = m - 1
+    <span class="kw">return</span> g</pre>
+    <p>Au départ, \(0 \le n\) et \(n \lt (n+1)^2\) : l'invariant est vrai. Si \(m^2 \le n\), on peut prendre \(g = m\) ; sinon \(n \lt m^2 = ((m-1)+1)^2\), on peut prendre \(d = m - 1\). À la sortie, \(g = d\) et l'invariant donne \(g^2 \le n \lt (g+1)^2\) : \(g = r\).</p>
+    <p>Terminaison : tant que \(g \lt d\), le milieu arrondi au-dessus vérifie \(g \lt m \le d\) ; les deux mises à jour diminuent donc strictement \(d - g\). Avec le milieu arrondi au-dessous, \(m\) peut valoir \(g\) (quand \(d = g + 1\)) et l'affectation <span class="code-inline">g = m</span> ne change rien : boucle infinie, dès <span class="code-inline">racine(1)</span>.</p>
+    <p><strong>Q3.</strong> La longueur \(d - g + 1\) est au moins divisée par deux à chaque tour : au plus \(\lfloor \log_2 n \rfloor + 1\) tours, soit 40 pour \(n = 10^{12}\) (\(\log_2 10^{12} \approx 39{,}9\)). Essayer \(r = 0, 1, 2, \dots\) demande \(r + 1 \approx 10^6\) tours.</p>
+<pre class="codeblock">racine(0), racine(1), racine(15), racine(16)   <span class="cmt"># (0, 1, 3, 4)</span>
+racine(10**12 + 5)                             <span class="cmt"># 1000000</span>
+n = 10**16 - 1
+racine(n)            <span class="cmt"># 99999999</span>
+int(n ** 0.5)        <span class="cmt"># 100000000</span></pre>
+    <p><strong>Q4.</strong> <span class="code-inline">n ** 0.5</span> est un calcul en flottants, avec environ 16 chiffres significatifs. \(10^{16} - 1\) n'est pas représentable exactement : il est arrondi à \(10^{16}\), dont la racine vaut exactement \(10^8\), alors que la bonne réponse est \(10^8 - 1\). La méthode entière, elle, est exacte pour tout \(n\) (voir le chapitre <em>Représentation des nombres</em>).</p>
+  </div>
+</div>
+
+<div class="exo"><span class="num">EXO 09</span><span class="diff">★ ★ ☆</span>
+  <h3>Les trois derniers chiffres de \(7^{2026}\)</h3>
+  <div class="statement">On veut calculer \(7^{2026} \bmod 1000\), c'est-à-dire les trois derniers chiffres de \(7^{2026}\), sans calculer ce nombre en entier. On rappelle que pour des entiers \(a, b \ge 0\) et \(m \ge 1\), <span class="code-inline">a % m</span> est le reste de la division euclidienne de \(a\) par \(m\).</div>
+  <div class="q"><strong>Q1.</strong> Montrer que \((a \times b) \bmod m = \big((a \bmod m) \times (b \bmod m)\big) \bmod m\).</div>
+  <div class="q"><strong>Q2.</strong> Adapter <span class="code-inline">puissance_rapide</span> du cours en une fonction <span class="code-inline">puissance_mod(x, n, m)</span> qui renvoie \(x^n \bmod m\), tous les calculs intermédiaires restant inférieurs à \(m^2\).</div>
+  <div class="q"><strong>Q3.</strong> Combien de multiplications effectue <span class="code-inline">puissance_mod(7, 2026, 1000)</span> ? Combien de chiffres a \(7^{2026}\) ? Pourquoi la réduction modulo \(m\) change-t-elle le coût réel du calcul ?</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution"><h4>Correction</h4>
+    <p><strong>Q1.</strong> Écrivons \(a = q m + r\) et \(b = q' m + r'\) avec \(r = a \bmod m\) et \(r' = b \bmod m\). Alors \(ab = (qq'm + qr' + q'r)\,m + rr'\) : \(ab\) et \(rr'\) diffèrent d'un multiple de \(m\), donc ont le même reste.</p>
+    <p><strong>Q2.</strong> On réduit après chaque multiplication ; l'invariant devient \((r \cdot a^k) \bmod m = x^n \bmod m\), conservé grâce à Q1. Les variables \(r\) et \(a\) restent inférieures à \(m\), leurs produits inférieurs à \(m^2\). (<span class="code-inline">1 % m</span> au départ traite le cas \(m = 1\), où le résultat doit être 0.)</p>
+<pre class="codeblock"><span class="kw">def</span> puissance_mod(x, n, m):
+    <span class="cmt"># x, n entiers &gt;= 0, m entier &gt;= 1 ; renvoie (x ** n) % m</span>
+    r, a, k = 1 % m, x % m, n
+    <span class="kw">while</span> k &gt; 0:
+        <span class="cmt"># invariant : (r * a ** k) % m == (x ** n) % m</span>
+        <span class="kw">if</span> k % 2 == 1:
+            r = (r * a) % m
+        a = (a * a) % m
+        k = k // 2
+    <span class="kw">return</span> r</pre>
+<pre class="codeblock">puissance_mod(7, 2026, 1000)    <span class="cmt"># 649</span>
+puissance_mod(2, 10, 1000)      <span class="cmt"># 24</span></pre>
+    <p><strong>Q3.</strong> \(2026 = 11111101010\) en base 2 : 11 chiffres, dont 8 égaux à 1. La boucle fait 11 tours, avec 11 multiplications pour <span class="code-inline">a</span> et 8 pour <span class="code-inline">r</span> : 19 multiplications, au lieu de 2026. Le nombre \(7^{2026}\) a \(\lfloor 2026 \log_{10} 7 \rfloor + 1 = 1713\) chiffres. Sans réduction, les multiplications porteraient sur des entiers de plus en plus longs, de coût croissant ; avec la réduction, elles portent sur des nombres de moins de 7 chiffres, de coût constant : le coût total est vraiment en \(O(\log n)\). Résultat : les trois derniers chiffres de \(7^{2026}\) sont 649.</p>
+  </div>
+</div>
+
+<div class="exo concours"><span class="num">CONCOURS PT</span><span class="diff">★ ★ ★</span>
+  <h3>Surveillance vibratoire d'un pont</h3>
+  <div class="exo-source">Exercice <strong>original</strong> au format des épreuves d'informatique PT (thème : recherche séquentielle, dictionnaire, recherche dichotomique, jeux de tests).</div>
+  <div class="statement">Un capteur fixé sur le tablier d'un pont enregistre l'amplitude de ses vibrations. Chaque relevé est un couple <span class="code-inline">(instant, amplitude)</span> d'entiers : l'instant en secondes depuis minuit, l'amplitude en micromètres. Une journée de relevés est une liste <span class="code-inline">R</span> de tels couples, rangés par instants <strong>strictement croissants</strong>. On utilisera l'exemple :
+<pre class="codeblock">R = [(5, 12), (17, 40), (31, 18), (3605, 55), (3720, 9),
+     (7300, 61), (7310, 61), (9000, 7)]</pre>
+  Pour un couple <span class="code-inline">c</span>, <span class="code-inline">c[0]</span> est l'instant et <span class="code-inline">c[1]</span> l'amplitude. On note \(n\) la longueur de <span class="code-inline">R</span>. Seuls les éléments du langage Python de l'annexe du programme sont autorisés.</div>
+
+  <p class="exo-part">Partie A — Parcours séquentiels</p>
+  <div class="q"><strong>A1.</strong> Écrire <span class="code-inline">premier_alerte(R: list, seuil: int) -&gt; int</span>, qui renvoie l'indice du premier relevé d'amplitude strictement supérieure à <span class="code-inline">seuil</span>, et \(-1\) s'il n'y en a pas. Que vaut <span class="code-inline">premier_alerte(R, 50)</span> ?</div>
+  <div class="q"><strong>A2.</strong> Écrire <span class="code-inline">instant_max(R: list) -&gt; int</span>, qui renvoie l'instant du premier relevé d'amplitude maximale (\(R\) non vide).</div>
+  <div class="q"><strong>A3.</strong> Un <em>épisode d'alerte</em> est une suite maximale de relevés consécutifs d'amplitude strictement supérieure au seuil. Écrire <span class="code-inline">nb_episodes(R: list, seuil: int) -&gt; int</span>. Combien d'épisodes pour le seuil 50 ? Donner le coût des trois fonctions.</div>
+
+  <p class="exo-part">Partie B — Statistiques horaires</p>
+  <div class="q"><strong>B1.</strong> L'heure d'un relevé est <span class="code-inline">instant // 3600</span>. Écrire <span class="code-inline">releves_par_heure(R: list) -&gt; dict</span>, qui renvoie un dictionnaire associant à chaque heure présente le nombre de relevés de cette heure.</div>
+  <div class="q"><strong>B2.</strong> Écrire <span class="code-inline">heure_la_plus_chargee(R: list) -&gt; int</span>, qui renvoie l'heure ayant le plus de relevés (la plus petite en cas d'égalité). Justifier que la règle d'égalité est respectée.</div>
+  <div class="q"><strong>B3.</strong> Quel est le coût de ces fonctions ? Quel avantage présente un dictionnaire par rapport à une liste de 24 compteurs si l'on étend l'étude à un enregistrement de plusieurs jours ?</div>
+
+  <p class="exo-part">Partie C — Requêtes sur une période</p>
+  <div class="q"><strong>C1.</strong> Écrire <span class="code-inline">premier_apres(R: list, a: int) -&gt; int</span>, qui renvoie le plus petit indice \(i\) tel que <span class="code-inline">R[i][0] &gt;= a</span> (\(n\) s'il n'y en a pas), par dichotomie. Énoncer l'invariant et justifier la terminaison.</div>
+  <div class="q"><strong>C2.</strong> En déduire <span class="code-inline">nb_entre(R: list, a: int, b: int) -&gt; int</span>, nombre de relevés d'instant compris entre \(a\) et \(b\) inclus (\(a \le b\)), en \(O(\log n)\).</div>
+  <div class="q"><strong>C3.</strong> Le capteur fait un relevé par seconde (\(n = 86\,400\)) et les ingénieurs posent \(q = 1\,000\) requêtes par jour. Comparer le nombre de comparaisons avec une méthode séquentielle.</div>
+
+  <p class="exo-part">Partie D — Validation</p>
+  <div class="q"><strong>D1.</strong> Toute la partie C repose sur une précondition. Laquelle ? Écrire <span class="code-inline">est_triee(R: list) -&gt; bool</span> qui la vérifie, et donner son coût.</div>
+  <div class="q"><strong>D2.</strong> Proposer un jeu de tests de <span class="code-inline">nb_entre</span>, en justifiant le choix des cas.</div>
+
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution"><h4>Correction</h4>
+    <p><strong>A1 à A3.</strong></p>
+<pre class="codeblock"><span class="kw">def</span> premier_alerte(R, seuil):
+    <span class="kw">for</span> i <span class="kw">in</span> range(len(R)):
+        <span class="kw">if</span> R[i][1] &gt; seuil:
+            <span class="kw">return</span> i
+    <span class="kw">return</span> -1
+
+<span class="kw">def</span> instant_max(R):
+    im = 0
+    <span class="kw">for</span> i <span class="kw">in</span> range(1, len(R)):
+        <span class="kw">if</span> R[i][1] &gt; R[im][1]:     <span class="cmt"># strict : 1re occurrence</span>
+            im = i
+    <span class="kw">return</span> R[im][0]
+
+<span class="kw">def</span> nb_episodes(R, seuil):
+    nb = 0
+    <span class="kw">for</span> i <span class="kw">in</span> range(len(R)):
+        dessus = R[i][1] &gt; seuil
+        <span class="kw">if</span> dessus <span class="kw">and</span> (i == 0 <span class="kw">or</span> R[i - 1][1] &lt;= seuil):
+            <span class="cmt"># un épisode commence en i</span>
+            nb = nb + 1
+    <span class="kw">return</span> nb</pre>
+    <p>A1 : <span class="code-inline">premier_alerte(R, 50)</span> vaut 3 (relevé <span class="code-inline">(3605, 55)</span>). A2 : test strict pour garder la première occurrence ; ici 7300. A3 : on compte les <em>débuts</em> d'épisode, c'est-à-dire les relevés au-dessus du seuil dont le prédécesseur n'existe pas ou est en dessous ; le <span class="code-inline">or</span> paresseux évite de lire <span class="code-inline">R[-1]</span> quand \(i = 0\). Pour le seuil 50, les relevés 3, 5 et 6 sont au-dessus : épisodes {3} et {5, 6}, soit 2. Les trois fonctions font un parcours : \(O(n)\) dans le pire cas (A1 peut s'arrêter avant).</p>
+<pre class="codeblock">premier_alerte(R, 50)     <span class="cmt"># 3</span>
+instant_max(R)            <span class="cmt"># 7300</span>
+nb_episodes(R, 50)        <span class="cmt"># 2</span>
+nb_episodes(R, 100)       <span class="cmt"># 0</span></pre>
+    <p><strong>B1, B2.</strong></p>
+<pre class="codeblock"><span class="kw">def</span> releves_par_heure(R):
+    d = {}
+    <span class="kw">for</span> (instant, amp) <span class="kw">in</span> R:
+        h = instant // 3600
+        <span class="kw">if</span> h <span class="kw">in</span> d:
+            d[h] = d[h] + 1
+        <span class="kw">else</span>:
+            d[h] = 1
+    <span class="kw">return</span> d
+
+<span class="kw">def</span> heure_la_plus_chargee(R):
+    d = releves_par_heure(R)
+    hmax = R[0][0] // 3600
+    <span class="kw">for</span> h, nb <span class="kw">in</span> d.items():
+        <span class="kw">if</span> nb &gt; d[hmax]:
+            hmax = h
+    <span class="kw">return</span> hmax</pre>
+<pre class="codeblock">releves_par_heure(R)       <span class="cmt"># {0: 3, 1: 2, 2: 3}</span>
+heure_la_plus_chargee(R)   <span class="cmt"># 0</span></pre>
+    <p>Les clés sont insérées dans l'ordre du premier relevé de chaque heure, donc par heures croissantes puisque \(R\) est trié, et le parcours de <span class="code-inline">items()</span> suit l'ordre d'insertion. De plus <span class="code-inline">hmax</span> part de la plus petite heure et ne change que pour un effectif <em>strictement</em> plus grand : en cas d'égalité, la plus petite heure est gardée (ici 0, à égalité avec 2). Pour ne pas dépendre de l'ordre de parcours, on peut aussi remplacer le test par <span class="code-inline">nb &gt; d[hmax] or (nb == d[hmax] and h &lt; hmax)</span>.</p>
+    <p><strong>B3.</strong> <span class="code-inline">releves_par_heure</span> : \(n\) tours de coût constant en moyenne, \(O(n)\) ; <span class="code-inline">heure_la_plus_chargee</span> : \(O(n)\) plus le parcours du dictionnaire, qui a au plus \(n\) clés : \(O(n)\). Sur plusieurs jours, les heures dépassent 23 : une liste de 24 cases ne suffit plus, alors que le dictionnaire accepte toute heure et ne contient que les heures effectivement présentes.</p>
+    <p><strong>C1, C2.</strong></p>
+<pre class="codeblock"><span class="kw">def</span> premier_apres(R, a):
+    <span class="cmt"># plus petit i tel que R[i][0] &gt;= a (len(R) sinon)</span>
+    g, d = 0, len(R)
+    <span class="kw">while</span> g &lt; d:
+        <span class="cmt"># invariant : instants &lt; a avant g, &gt;= a à partir de d</span>
+        m = (g + d) // 2
+        <span class="kw">if</span> R[m][0] &lt; a:
+            g = m + 1
+        <span class="kw">else</span>:
+            d = m
+    <span class="kw">return</span> g
+
+<span class="kw">def</span> nb_entre(R, a, b):
+    <span class="cmt"># nombre de relevés d'instant compris entre a et b inclus</span>
+    <span class="kw">return</span> premier_apres(R, b + 1) - premier_apres(R, a)</pre>
+<pre class="codeblock">premier_apres(R, 3600)    <span class="cmt"># 3</span>
+premier_apres(R, 10000)   <span class="cmt"># 8</span>
+nb_entre(R, 30, 3700)     <span class="cmt"># 2</span>
+nb_entre(R, 7300, 7310)   <span class="cmt"># 2</span>
+nb_entre(R, 100, 200)     <span class="cmt"># 0</span></pre>
+    <p>Invariant : les relevés d'indice \(\lt g\) ont un instant \(\lt a\), ceux d'indice \(\ge d\) un instant \(\ge a\). Vrai au départ ; conservé grâce au tri (si <span class="code-inline">R[m][0] &lt; a</span>, tous les relevés jusqu'à \(m\) sont avant \(a\)) ; à la sortie \(g = d\) est la réponse. Terminaison : \(g \le m \lt d\), donc \(d - g\) diminue strictement. Les instants étant entiers, les relevés entre \(a\) et \(b\) inclus sont ceux d'indice compris entre <span class="code-inline">premier_apres(R, a)</span> (inclus) et <span class="code-inline">premier_apres(R, b + 1)</span> (exclu) : d'où la différence. Deux dichotomies : \(O(\log n)\).</p>
+    <p><strong>C3.</strong> Séquentiellement, chaque requête parcourt la liste : \(q n \approx 8{,}6 \times 10^7\) comparaisons. Par dichotomie : au plus \(2 \times 17\) tours par requête (\(\lfloor \log_2 86\,400 \rfloor + 1 = 17\)), soit environ \(3{,}4 \times 10^4\) comparaisons : 2 500 fois moins.</p>
+    <p><strong>D1.</strong> La liste doit être triée par instants croissants (sinon la dichotomie donne un résultat faux, sans erreur).</p>
+<pre class="codeblock"><span class="kw">def</span> est_triee(R):
+    <span class="cmt"># instants strictement croissants ?</span>
+    <span class="kw">for</span> i <span class="kw">in</span> range(len(R) - 1):
+        <span class="kw">if</span> R[i][0] &gt;= R[i + 1][0]:
+            <span class="kw">return</span> <span class="kw">False</span>
+    <span class="kw">return</span> <span class="kw">True</span></pre>
+    <p>Au plus \(n - 1\) comparaisons : \(O(n)\). Vérifier cette précondition à chaque requête ferait perdre tout le bénéfice de la dichotomie : on la vérifie une fois, après l'enregistrement.</p>
+    <p><strong>D2.</strong> On couvre les familles de requêtes (intervalle vide de relevés, contenant un ou plusieurs relevés, tous les relevés) et leurs limites (bornes égales à un instant, avant le premier, après le dernier, liste vide) :</p>
+<pre class="codeblock"><span class="kw">def</span> tester_nb_entre():
+    <span class="kw">assert</span> nb_entre([], 0, 10) == 0          <span class="cmt"># aucun relevé</span>
+    <span class="kw">assert</span> nb_entre(R, 5, 5) == 1            <span class="cmt"># a = b = un instant</span>
+    <span class="kw">assert</span> nb_entre(R, 0, 4) == 0            <span class="cmt"># avant le 1er</span>
+    <span class="kw">assert</span> nb_entre(R, 9000, 9999) == 1      <span class="cmt"># le dernier</span>
+    <span class="kw">assert</span> nb_entre(R, 9001, 9999) == 0      <span class="cmt"># après le dernier</span>
+    <span class="kw">assert</span> nb_entre(R, 0, 10000) == len(R)   <span class="cmt"># tous</span>
+    <span class="kw">assert</span> nb_entre(R, 6, 16) == 0           <span class="cmt"># entre deux relevés</span>
+    print(<span class="str">"tests réussis"</span>)</pre>
+  </div>
+</div>
+
+</div>
+</template>

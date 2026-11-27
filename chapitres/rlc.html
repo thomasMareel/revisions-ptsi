@@ -1,0 +1,1099 @@
+<!-- Chapitre « Circuit RLC série » (rlc) : contenu des onglets Cours, Méthodes et Exercices, chargé à l'ouverture du chapitre.
+     On l'édite ici, puis : node tools/chapitres.js (docs/chargement-chapitres.md). -->
+<template class="pan-tpl" data-panneau="rlc-cours">
+<div class="course-section">
+  <div class="sec-num">AU PROGRAMME · PTSI</div>
+  <h2>Ce que le programme officiel demande</h2>
+  <div class="intro">Ce chapitre traite, du côté électrique, la partie 1.4 du programme de PTSI, « Oscillateurs libres et forcés ». Le circuit RLC série est l'oscillateur électrique : il obéit à la même équation que la masse-ressort amortie, dont l'exposé de référence est le chapitre <a href="#oscill/cours">« Oscillateurs harmoniques »</a> (pulsation propre \(\omega_0\), facteur de qualité \(Q\), constante de temps \(\tau=2Q/\omega_0\), pseudo-pulsation \(\omega_p\)). On y renvoie pour ce qui est commun, et l'on développe ici ce qui est propre au circuit : continuités, conditions initiales, courant, impédance, surtension, mesures.</div>
+  <div class="reveal" onclick="this.classList.toggle('open')">
+    <span class="label">Programme officiel</span>
+    <span class="prompt">Les notions et capacités exigibles, dans l'ordre du chapitre</span>
+    <div class="content">
+      <ul>
+        <li><strong>Circuit LC</strong>, oscillateur harmonique : établir et reconnaître l'équation différentielle ; la résoudre compte tenu des conditions initiales ; amplitude, phase, période, fréquence, pulsation (§1).</li>
+        <li><strong>Circuit RLC série</strong> : écrire l'équation sous forme canonique afin d'identifier la pulsation propre et le facteur de qualité (§2).</li>
+        <li>Décrire la <strong>nature de la réponse</strong> en fonction de la valeur du facteur de qualité ; déterminer la <strong>réponse détaillée</strong> en régime libre ou pour un échelon, en recherchant les racines du polynôme caractéristique (§3, §4).</li>
+        <li>Déterminer un <strong>ordre de grandeur de la durée du régime transitoire</strong> selon la valeur du facteur de qualité (§4).</li>
+        <li><strong>Impédances complexes</strong> : celle du RLC série ; utiliser la représentation complexe pour étudier le régime forcé (§5). Établir les impédances de R, L, C et associer deux impédances : chapitre <a href="#filtres/cours">« Régime sinusoïdal forcé et filtrage linéaire »</a>, §1 à §3.</li>
+        <li><strong>Résonance</strong> : relier l'acuité d'une résonance au facteur de qualité ; déterminer la pulsation propre et le facteur de qualité à partir de graphes expérimentaux d'amplitude et de phase (§6, §9).</li>
+        <li><strong>Stockage et dissipation d'énergie</strong> : réaliser un bilan énergétique ; prévoir l'évolution du système à partir de considérations énergétiques (§7).</li>
+        <li>Mettre en évidence la <strong>similitude des comportements</strong> des oscillateurs mécanique et électronique (§8).</li>
+        <li>Analyser, sur des <strong>relevés expérimentaux</strong>, l'évolution de la forme des régimes transitoires ; réaliser l'acquisition d'un régime transitoire du deuxième ordre ; mettre en œuvre un dispositif qui caractérise une résonance (§9).</li>
+        <li><strong>Capacité numérique</strong> (annexe « outils numériques ») : transformer une équation d'ordre 2 en système d'ordre 1 et la résoudre avec <code>odeint</code> ou la méthode d'Euler (§10).</li>
+      </ul>
+      <p>Hors programme (regroupé en fin de chapitre) : la valeur exacte de la pulsation de résonance en tension, le circuit RLC parallèle, la puissance moyenne fournie par le générateur et le facteur de puissance. L'onglet « Simulateur » trace les régimes libre et indiciel et la courbe de résonance en tension ; ses réglages par défaut (\(R=20\ \Omega\), \(L=50\ \text{mH}\), \(C=10\ \mu\text{F}\)) servent d'exemple tout au long du chapitre.</p>
+    </div>
+  </div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§1 · DIPÔLES ET OSCILLATEUR LC</div>
+  <h2>Un condensateur qui se décharge dans une bobine</h2>
+  <div class="intro">Le condensateur stocke de l'énergie électrique, la bobine de l'énergie magnétique. Reliés l'un à l'autre, ils se la renvoient indéfiniment si rien ne la dissipe : c'est l'oscillateur électrique le plus simple, le circuit LC, première étape vers le RLC.</div>
+  <p><strong>Rappels.</strong> Les relations des dipôles, les continuités et les énergies sont établies dans le chapitre <a href="#premierordre/cours">« Circuit linéaire du premier ordre »</a> (§1, §2) ; on les utilise ici telles quelles, en convention récepteur :</p>
+  <div class="formula" data-nom="Dipôles R, L, C">$$u_R=Ri\qquad u_L=L\,\frac{\mathrm{d}i}{\mathrm{d}t}\qquad i=C\,\frac{\mathrm{d}u_C}{\mathrm{d}t}\qquad\mathcal E_L=\tfrac12Li^2\qquad\mathcal E_C=\tfrac12Cu_C^2$$</div>
+  <p>La tension \(u_C\) aux bornes d'un condensateur et l'intensité \(i\) qui traverse une bobine sont <strong>continues</strong> : une discontinuité demanderait une puissance infinie. Ce sont ces deux grandeurs qui fixent les conditions initiales d'un circuit RLC.</p>
+  <div class="def-box">
+    <strong>Circuit LC.</strong> Un condensateur chargé sous \(U_0\) est relié à \(t=0\) à une bobine idéale. La loi des mailles \(L\,\dfrac{\mathrm{d}i}{\mathrm{d}t}+u_C=0\), avec \(i=C\,\dfrac{\mathrm{d}u_C}{\mathrm{d}t}\), donne l'équation d'un oscillateur harmonique :
+    <div class="formula" data-nom="Oscillateur LC">$$\frac{\mathrm{d}^2u_C}{\mathrm{d}t^2}+\omega_0^2\,u_C=0\qquad\omega_0=\frac1{\sqrt{LC}}\qquad T_0=2\pi\sqrt{LC}$$</div>
+    Avec \(u_C(0)=U_0\) et \(i(0)=0\) (continuités) : \(u_C=U_0\cos(\omega_0t)\) et \(i=-U_0\sqrt{C/L}\,\sin(\omega_0t)\). Le courant est en quadrature avec la tension, d'amplitude \(I_m=U_0\sqrt{C/L}\).
+  </div>
+  <p><strong>Énergie.</strong> \(\mathcal E=\tfrac12Cu_C^2+\tfrac12Li^2=\tfrac12CU_0^2\) reste constante : l'énergie passe du condensateur (aux instants où \(i=0\)) à la bobine (quand \(u_C=0\)), deux fois par période. C'est exactement l'échange entre énergies potentielle et cinétique de la masse-ressort (<a href="#oscill/cours">« Oscillateurs harmoniques »</a>, §4).</p>
+  <div class="method-box">
+    <strong>Exemple — un circuit LC de travaux pratiques</strong>
+    <ol>
+      <li>\(L=10\ \text{mH}\), \(C=1{,}0\ \mu\text{F}\) : \(\omega_0=1/\sqrt{10^{-2}\times10^{-6}}=1{,}0\times10^4\ \text{rad·s}^{-1}\), \(f_0=\omega_0/(2\pi)\approx1{,}6\ \text{kHz}\), \(T_0\approx0{,}63\ \text{ms}\).</li>
+      <li>Condensateur chargé sous \(U_0=5{,}0\ \text{V}\) : \(\mathcal E=\tfrac12CU_0^2=12{,}5\ \mu\text{J}\) ; amplitude du courant \(I_m=U_0\sqrt{C/L}=50\ \text{mA}\). Contrôle : \(\tfrac12LI_m^2=\tfrac12\times10^{-2}\times0{,}050^2=12{,}5\ \mu\text{J}\).</li>
+      <li>Une bobine réelle a une résistance de l'ordre de \(10\ \Omega\) : le circuit est en fait un RLC, et les oscillations s'amortissent (§3).</li>
+    </ol>
+  </div>
+  <div class="notice"><strong>Erreur classique</strong> : écrire la loi des mailles \(L\,\mathrm{d}i/\mathrm{d}t=u_C\) en oubliant les orientations. Avec \(i\) orienté dans le sens de la maille et \(u_C\), \(u_L\) en convention récepteur, la somme des tensions est nulle : \(u_L+u_C=0\). Contrôle : un signe faux donne \(\ddot u_C-\omega_0^2u_C=0\), dont les solutions divergent.</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§2 · MISE EN ÉQUATION</div>
+  <h2>Forme canonique, pulsation propre et facteur de qualité</h2>
+  <div class="intro">On ajoute une résistance, qui modélise la résistance de la bobine, celle du générateur et celle d'un éventuel conducteur ohmique, et l'on alimente le circuit par une tension \(e(t)\). L'équation obtenue est celle de l'oscillateur amorti : deux paramètres, \(\omega_0\) et \(Q\), suffisent à décrire tout son comportement.</div>
+  <figure class="schema">
+<svg viewBox="0 0 470 232" role="img" aria-label="Circuit RLC série alimenté par une tension e(t), avec ses orientations">
+<polyline points="60,190 60,50 400,50 400,190 60,190" class="sk-ink"/>
+<circle cx="60" cy="120" r="14" class="sk-ink fl-paper"/><line x1="60" y1="106" x2="60" y2="134" class="sk-ink"/>
+<line x1="36" y1="146" x2="36" y2="94" class="sk-accent2" style="stroke-width:1.6" marker-end="url(#sk-arrow-accent2)"/><text x="30" y="124" class="lab-accent2 lab-it" text-anchor="end">e(t)</text>
+<rect x="105" y="47" width="26" height="6" class="fl-paper"/><circle cx="105" cy="50" r="2.4" class="sk-ink fl-paper" style="stroke-width:1.3"/><circle cx="131" cy="50" r="2.4" class="sk-ink fl-paper" style="stroke-width:1.3"/><line x1="105" y1="50" x2="129" y2="38" class="sk-ink"/><text x="118" y="34" class="lab-it" text-anchor="middle">K</text>
+<text x="118" y="72" class="lab-muted" text-anchor="middle">t = 0</text>
+<line x1="152" y1="50" x2="168" y2="50" class="sk-accent" style="stroke-width:2" marker-end="url(#sk-arrow-accent)"/><text x="160" y="41" class="lab-accent lab-it" text-anchor="middle">i</text>
+<rect x="198" y="43.5" width="34" height="13" class="sk-ink fl-paper"/><text x="215" y="76" class="lab-it" text-anchor="middle">R</text>
+<line x1="232" y1="32" x2="198" y2="32" class="sk-accent2" style="stroke-width:1.6" marker-end="url(#sk-arrow-accent2)"/><text x="215" y="25" class="lab-accent2 lab-it" text-anchor="middle">u<tspan dy="4" font-size="12">R</tspan></text>
+<rect x="286" y="48" width="48" height="4" class="fl-paper"/><path d="M 286,50 a 6 6 0 0 1 12 0 a 6 6 0 0 1 12 0 a 6 6 0 0 1 12 0 a 6 6 0 0 1 12 0" class="sk-ink" style="stroke-width:1.8"/><text x="310" y="76" class="lab-it" text-anchor="middle">L</text>
+<line x1="334" y1="32" x2="286" y2="32" class="sk-accent2" style="stroke-width:1.6" marker-end="url(#sk-arrow-accent2)"/><text x="310" y="25" class="lab-accent2 lab-it" text-anchor="middle">u<tspan dy="4" font-size="12">L</tspan></text>
+<rect x="397" y="116" width="6" height="8" class="fl-paper"/><line x1="388" y1="116" x2="412" y2="116" class="sk-ink" style="stroke-width:2.4"/><line x1="388" y1="124" x2="412" y2="124" class="sk-ink" style="stroke-width:2.4"/><text x="380" y="124" class="lab-it" text-anchor="end">C</text>
+<line x1="424" y1="146" x2="424" y2="94" class="sk-accent2" style="stroke-width:1.6" marker-end="url(#sk-arrow-accent2)"/><text x="430" y="124" class="lab-accent2 lab-it">u<tspan dy="4" font-size="12">C</tspan></text>
+<text x="392" y="92" class="lab-muted" text-anchor="end">+ q</text>
+<text x="230" y="216" class="lab-muted" text-anchor="middle">loi des mailles : e = Ri + L di/dt + u<tspan dy="4" font-size="12">C</tspan><tspan dy="-4">,   i = C du</tspan><tspan dy="4" font-size="12">C</tspan><tspan dy="-4">/dt</tspan></text>
+</svg>
+<figcaption>Circuit RLC série. Le courant \(i\) est orienté dans le sens de la maille ; les tensions \(u_R\), \(u_L\), \(u_C\) sont en convention récepteur (flèche opposée au courant), la tension \(e(t)\) du générateur en convention générateur. L'armature du haut du condensateur porte la charge \(q = Cu_C\), et \(i = \mathrm{d}q/\mathrm{d}t\). Réponse à un échelon : \(e = E\) à partir de \(t = 0\) ; régime libre : générateur remplacé par un fil (\(e = 0\)), condensateur chargé à \(t = 0\).</figcaption>
+</figure>
+  <p>La loi des mailles s'écrit \(e=u_R+u_L+u_C=Ri+L\,\dfrac{\mathrm{d}i}{\mathrm{d}t}+u_C\). On choisit pour inconnue la grandeur continue \(u_C\), et l'on remplace \(i\) par \(C\,\mathrm{d}u_C/\mathrm{d}t\) :</p>
+  <div class="formula">$$LC\,\frac{\mathrm{d}^2u_C}{\mathrm{d}t^2}+RC\,\frac{\mathrm{d}u_C}{\mathrm{d}t}+u_C=e(t)$$</div>
+  <div class="prop-box">
+    <strong>Forme canonique.</strong> En divisant par \(LC\) :
+    <div class="formula" data-nom="Équation du RLC série">$$\frac{\mathrm{d}^2u_C}{\mathrm{d}t^2}+\frac{\omega_0}Q\,\frac{\mathrm{d}u_C}{\mathrm{d}t}+\omega_0^2\,u_C=\omega_0^2\,e(t)$$</div>
+    <div class="formula" data-nom="Pulsation propre et facteur de qualité du RLC">$$\omega_0=\frac1{\sqrt{LC}}\qquad Q=\frac1R\sqrt{\frac LC}=\frac{L\omega_0}R=\frac1{RC\omega_0}\qquad\tau=\frac{2Q}{\omega_0}=\frac{2L}R$$</div>
+    \(\omega_0\) est la pulsation propre (en \(\text{rad·s}^{-1}\)), \(Q\) le facteur de qualité (sans dimension) et \(\tau\) la constante de temps de l'amortissement des oscillations (§3), avec les conventions du chapitre <a href="#oscill/cours">« Oscillateurs harmoniques »</a> (§5).
+  </div>
+  <p><strong>Identifier.</strong> On divise par le coefficient de la dérivée seconde, on lit \(\omega_0^2\) devant \(u_C\), puis \(\omega_0/Q\) devant la dérivée première, ici \(R/L\) : \(Q=L\omega_0/R\). Les trois expressions de \(Q\) sont égales, puisque \(L\omega_0=1/(C\omega_0)=\sqrt{L/C}\). Plus \(R\) est petite, plus \(Q\) est grand et plus le circuit oscille longtemps.</p>
+  <p><strong>Autres inconnues.</strong> La charge \(q=Cu_C\) vérifie la même équation (\(L\ddot q+R\dot q+q/C=e\)). L'intensité s'obtient en dérivant la loi des mailles : \(L\,\dfrac{\mathrm{d}^2i}{\mathrm{d}t^2}+R\,\dfrac{\mathrm{d}i}{\mathrm{d}t}+\dfrac iC=\dfrac{\mathrm{d}e}{\mathrm{d}t}\) : même membre de gauche, donc mêmes régimes ; pour un échelon, le second membre est nul après \(t=0\).</p>
+  <div class="method-box">
+    <strong>Exemple — le circuit du simulateur</strong>
+    <p>Réglages par défaut de l'onglet « Simulateur » : \(R=20\ \Omega\), \(L=50\ \text{mH}\), \(C=10\ \mu\text{F}\).</p>
+    <ol>
+      <li>\(LC=5\times10^{-7}\ \text{s}^2\), donc \(\omega_0=1/\sqrt{LC}\approx1\,414\ \text{rad·s}^{-1}\), soit \(f_0\approx225\ \text{Hz}\) et \(T_0\approx4{,}44\ \text{ms}\).</li>
+      <li>\(\sqrt{L/C}=\sqrt{5\,000}\approx70{,}7\ \Omega\), donc \(Q=70{,}7/20\approx3{,}54\) ; \(\tau=2L/R=5{,}0\ \text{ms}\).</li>
+      <li>Contrôle : \(L\omega_0/R=0{,}050\times1\,414/20=3{,}54\) et \(2Q/\omega_0=2\times3{,}54/1\,414=5{,}0\ \text{ms}\).</li>
+    </ol>
+  </div>
+  <p><strong>Ordres de grandeur.</strong> En travaux pratiques, \(L\) va de quelques millihenrys à 1 H (bobines à noyau), \(C\) du nanofarad au millifarad, \(R\) de quelques ohms au kilohm : \(f_0\) va de quelques hertz à quelques centaines de kilohertz, \(Q\) de 0,1 à quelques dizaines. Un circuit d'accord de radio atteint \(Q\approx100\).</p>
+  <div class="notice"><strong>Erreur classique</strong> : écrire \(Q=R\sqrt{C/L}\), à l'envers. Contrôle physique : une résistance plus grande dissipe davantage et doit donner un \(Q\) plus <em>petit</em>. Contrôle d'unités : \(\sqrt{L/C}\) est en ohms (\(L\omega\) et \(1/(C\omega)\) sont des impédances), et \(Q\) est sans dimension.</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§3 · RÉGIME LIBRE</div>
+  <h2>Trois régimes selon le facteur de qualité</h2>
+  <div class="intro">Un condensateur chargé, relié à une bobine et à une résistance, se décharge : on étudie ce régime libre (\(e=0\)). La solution s'obtient comme pour l'oscillateur mécanique ; ce qui est propre au circuit, ce sont les conditions initiales, données par les continuités, et la résistance critique.</div>
+  <div class="prop-box">
+    <strong>Polynôme caractéristique.</strong> \(r^2+\dfrac{\omega_0}Q\,r+\omega_0^2=0\), de discriminant \(\Delta=\omega_0^2\left(\dfrac1{Q^2}-4\right)\).
+    <ul>
+      <li>\(Q\gt\tfrac12\) : <strong>pseudo-périodique</strong>. \(u_C=e^{-t/\tau}\left(A\cos\omega_pt+B\sin\omega_pt\right)\), avec \(\tau=\dfrac{2Q}{\omega_0}\) et la pseudo-pulsation \(\omega_p=\omega_0\sqrt{1-\dfrac1{4Q^2}}\) ; pseudo-période \(T_p=2\pi/\omega_p\).</li>
+      <li>\(Q=\tfrac12\) : <strong>critique</strong>. \(u_C=(A+Bt)\,e^{-\omega_0t}\).</li>
+      <li>\(Q\lt\tfrac12\) : <strong>apériodique</strong>. \(u_C=Ae^{r_1t}+Be^{r_2t}\), avec \(r_{1,2}=-\dfrac{\omega_0}{2Q}\left(1\mp\sqrt{1-4Q^2}\right)\lt0\).</li>
+    </ul>
+    Exposé détaillé, solutions et figure en fonction de \(\omega_0t\) : <a href="#oscill/cours">« Oscillateurs harmoniques »</a>, §6.
+  </div>
+  <div class="def-box">
+    <strong>Résistance critique.</strong> Le régime critique est obtenu pour \(Q=1/2\), c'est-à-dire pour
+    <div class="formula" data-nom="Résistance critique">$$R_c=2\sqrt{\frac LC}$$</div>
+    Le circuit oscille si \(R\lt R_c\), il revient sans osciller si \(R\geq R_c\).
+  </div>
+  <p><strong>Conditions initiales.</strong> Le condensateur est chargé sous \(U_0\) et aucun courant ne circule avant \(t=0\). Les continuités donnent \(u_C(0^+)=U_0\) et \(i(0^+)=0\), d'où \(\dfrac{\mathrm{d}u_C}{\mathrm{d}t}(0^+)=\dfrac{i(0^+)}C=0\) : la courbe part avec une tangente horizontale. La loi des mailles à \(0^+\) donne aussi \(L\,\dfrac{\mathrm{d}i}{\mathrm{d}t}(0^+)=-u_C(0^+)=-U_0\) : le courant, nul, démarre avec une pente \(-U_0/L\).</p>
+  <figure class="schema">
+<svg viewBox="0 0 520 226" role="img" aria-label="Décharge d'un condensateur dans une bobine et une résistance : trois régimes selon R">
+<line x1="58" y1="124.2" x2="500" y2="124.2" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<line x1="58" y1="202" x2="58" y2="10" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<text x="502" y="128.2" class="lab-muted lab-it">t (ms)</text>
+<text x="54" y="12" class="lab-muted lab-it" text-anchor="end">u<tspan dy="4" font-size="12">C</tspan><tspan dy="-4"> / U</tspan><tspan dy="4" font-size="12">0</tspan></text>
+<line x1="144" y1="124.2" x2="144" y2="128.2" class="sk-axis"/>
+<text x="144" y="139.2" class="lab-muted" text-anchor="middle">5</text>
+<line x1="230" y1="124.2" x2="230" y2="128.2" class="sk-axis"/>
+<text x="230" y="139.2" class="lab-muted" text-anchor="middle">10</text>
+<line x1="316" y1="124.2" x2="316" y2="128.2" class="sk-axis"/>
+<text x="316" y="139.2" class="lab-muted" text-anchor="middle">15</text>
+<line x1="402" y1="124.2" x2="402" y2="128.2" class="sk-axis"/>
+<text x="402" y="139.2" class="lab-muted" text-anchor="middle">20</text>
+<line x1="54" y1="172.8" x2="58" y2="172.8" class="sk-axis"/>
+<text x="51" y="176.8" class="lab-muted" text-anchor="end">−0,5</text>
+<line x1="54" y1="75.5" x2="58" y2="75.5" class="sk-axis"/>
+<text x="51" y="79.5" class="lab-muted" text-anchor="end">0,5</text>
+<line x1="54" y1="26.9" x2="58" y2="26.9" class="sk-axis"/>
+<text x="51" y="30.9" class="lab-muted" text-anchor="end">1</text>
+<polyline points="58,25.9 71.8,40.4 86.4,53.5 101.9,65.1 118.4,75.5 135.9,84.4 154.7,92.2 175,98.9 197,104.6 220,109.2 245.3,113 273.3,116.1 304.8,118.6 339.9,120.5 380.7,121.9 488,123.5" class="sk-dash"/>
+<polyline points="78.1,201.9 91.5,190.7 105.8,180.5 121,171.4 136.9,163.4 154,156.4 172.2,150.2 191.8,144.9 213.1,140.3 235.3,136.7 259.8,133.6 286.6,131.1 316.7,129 388.6,126.3 488,124.8" class="sk-dash"/>
+<polyline points="58,26.9 59.5,27.5 61.4,29.3 75.9,47.2 88.1,60.1 100.8,71.3 114.2,80.9 129.7,89.9 146.4,97.5 164.6,103.9 184.6,109.1 205.6,113.2 229.1,116.5 255.6,119 286.2,120.9 321.2,122.2 363.3,123.1 488,124" class="sk-accent2" style="stroke-width:2"/>
+<polyline points="58,26.9 59.2,27.3 60.4,28.5 63.2,33.5 79.5,78.2 85,90.1 90.5,99.5 96.9,107.5 103.9,113.5 112,117.9 121.5,120.9 129.4,122.3 138.8,123.2 167.4,124 488,124.2" class="sk-green" style="stroke-width:2"/>
+<polyline points="58,26.9 60.1,28.2 62.3,32.7 64.5,39.9 66.9,50.4 71.2,74.2 81.4,138.4 86.7,165.4 89.1,174.3 91.4,180.4 93.6,184.4 96,186.2 98.2,185.7 100.5,183.2 102.9,178.5 105.3,172 109.6,157 120.1,114.7 125.4,97.6 127.8,92 130.1,88.1 132.3,85.6 134.5,84.6 136.8,84.8 139,86.4 141.4,89.4 143.8,93.5 148.3,103.5 158.6,130 164,141 168.6,147.1 170.8,148.7 173.1,149.4 176.9,148.7 181,145.4 185.6,139.3 196.3,121.8 201.1,115.1 206.4,110 209,108.6 211.6,108 215.6,108.5 219.7,110.7 224.3,114.6 234.8,125.6 239.6,129.9 245,133.2 250.1,134.5 254.1,134.2 258.2,132.8 262.9,130.3 278.2,120.5 283.5,118.4 288.7,117.6 292.6,117.8 296.9,118.7 316.7,126.5 322,127.8 327,128.3 335.4,127.7 355.2,122.7 365.5,121.5 374.1,121.9 393.4,125 403,125.8 412.3,125.6 432.3,123.6 442.2,123.1 474.8,124.7 488,124.8" class="sk-accent" style="stroke-width:2"/>
+<text x="200.8" y="180.6" class="lab-accent" style="paint-order:stroke;stroke:var(--paper);stroke-width:4px;stroke-linejoin:round">R = 20 Ω : Q = 3,5</text>
+<text x="224.8" y="59.9" class="lab-green" style="paint-order:stroke;stroke:var(--paper);stroke-width:4px;stroke-linejoin:round">R = 141 Ω : critique</text>
+<text x="291.9" y="89.1" class="lab-accent2" style="paint-order:stroke;stroke:var(--paper);stroke-width:4px;stroke-linejoin:round">R = 400 Ω : Q = 0,18</text>
+<text x="376.2" y="108.6" class="lab-muted" style="paint-order:stroke;stroke:var(--paper);stroke-width:4px;stroke-linejoin:round">± e<tspan dy="-5" font-size="12">−t/τ</tspan></text>
+<line x1="135.2" y1="33.7" x2="212.4" y2="33.7" class="sk-ink" marker-start="url(#sk-arrow-ink)" marker-end="url(#sk-arrow-ink)"/>
+<line x1="135.2" y1="84.5" x2="135.2" y2="33.7" class="sk-axis" style="stroke-dasharray:2 3"/>
+<line x1="212.4" y1="108" x2="212.4" y2="33.7" class="sk-axis" style="stroke-dasharray:2 3"/>
+<text x="173.8" y="27.7" class="lab-it" text-anchor="middle" style="paint-order:stroke;stroke:var(--paper);stroke-width:4px;stroke-linejoin:round">T<tspan dy="4" font-size="12">p</tspan><tspan dy="-4"> = 4,5 ms</tspan></text>
+</svg>
+<figcaption>Régime libre du circuit des réglages par défaut du simulateur (\(L = 50\ \text{mH}\), \(C = 10\ \mu\text{F}\), \(\omega_0 = 1\,414\ \text{rad·s}^{-1}\)) : condensateur chargé sous \(U_0\), courant initial nul, pour trois résistances. Avec \(R = 20\ \Omega\) (\(Q = 3{,}5\)), oscillations de pseudo-période \(T_p = 4{,}5\ \text{ms}\) dans l'enveloppe \(\pm e^{-t/\tau}\), \(\tau = 2L/R = 5\ \text{ms}\) (tirets). Avec la résistance critique \(R_c = 2\sqrt{L/C} = 141\ \Omega\), retour à zéro sans oscillation le plus rapide ; avec \(R = 400\ \Omega\), retour sans oscillation, mais lent.</figcaption>
+</figure>
+  <div class="method-box">
+    <strong>Exemple — décharge pseudo-périodique, en détail</strong>
+    <p>\(R=20\ \Omega\), \(L=50\ \text{mH}\), \(C=10\ \mu\text{F}\) (\(Q=3{,}54\), \(\tau=5{,}0\ \text{ms}\)), \(U_0=5{,}0\ \text{V}\).</p>
+    <ol>
+      <li>\(\omega_p=\omega_0\sqrt{1-1/(4Q^2)}=1\,414\times\sqrt{0{,}98}=1\,400\ \text{rad·s}^{-1}\), \(T_p\approx4{,}49\ \text{ms}\), un peu plus que \(T_0=4{,}44\ \text{ms}\).</li>
+      <li>\(u_C(0)=U_0\) donne \(A=U_0\) ; \(\dot u_C(0)=-A/\tau+B\omega_p=0\) donne \(B=U_0/(\omega_p\tau)=U_0/7\) :
+      <div class="formula">$$u_C=U_0\,e^{-t/\tau}\left(\cos\omega_pt+\frac{\sin\omega_pt}{\omega_p\tau}\right)\qquad i=C\frac{\mathrm{d}u_C}{\mathrm{d}t}=-\frac{U_0}{L\omega_p}\,e^{-t/\tau}\sin\omega_pt$$</div></li>
+      <li>Deux maximums successifs de \(u_C\) sont dans le rapport \(e^{T_p/\tau}\approx2{,}45\) ; on compte environ \(Q\approx3\) à 4 oscillations visibles. Le courant atteint \(57{,}7\ \text{mA}\) en valeur absolue, à \(t\approx1{,}0\ \text{ms}\).</li>
+      <li>Avec \(R=R_c=141\ \Omega\), \(u_C=U_0(1+\omega_0t)\,e^{-\omega_0t}\) : retour sans oscillation, à 5 % près en \(4{,}7/\omega_0\approx3{,}4\ \text{ms}\). Avec \(R=400\ \Omega\) (\(Q=0{,}18\)), il faut près de 12 ms.</li>
+    </ol>
+  </div>
+  <div class="notice"><strong>Erreur classique</strong> : prendre \(\mathrm{d}u_C/\mathrm{d}t(0^+)=0\) par réflexe. C'est vrai ici parce que \(i(0^+)=0\) ; si un courant \(I_0\) circulait dans la bobine avant la commutation, on aurait \(\mathrm{d}u_C/\mathrm{d}t(0^+)=I_0/C\). Les conditions initiales portent toujours sur \(u_C\) et \(i\), jamais directement sur une dérivée.</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§4 · RÉPONSE À UN ÉCHELON DE TENSION</div>
+  <h2>Charger le condensateur à travers la bobine</h2>
+  <div class="intro">À \(t=0\), on ferme l'interrupteur : le circuit, au repos, reçoit la tension constante \(E\). C'est l'expérience la plus courante en travaux pratiques (un créneau de GBF est une suite d'échelons, §9) et le scénario le plus fréquent en exercice.</div>
+  <p>Pour \(t\gt0\), l'équation canonique a pour second membre la constante \(\omega_0^2E\). Sa solution est la somme d'une <strong>solution particulière constante</strong>, \(u_C=E\) (en régime permanent, le condensateur chargé bloque le courant : plus de tension aux bornes de \(R\) ni de \(L\)), et de la solution de l'équation homogène (§3). Conditions initiales : \(u_C(0^+)=0\) et \(i(0^+)=0\), donc \(\dot u_C(0^+)=0\).</p>
+  <div class="prop-box">
+    <strong>Réponse indicielle.</strong> Pour un circuit initialement au repos soumis à l'échelon \(E\) :
+    <ul>
+      <li>\(Q\gt\tfrac12\) :
+      <div class="formula" data-nom="Réponse du RLC à un échelon">$$u_C=E\left[1-e^{-t/\tau}\left(\cos\omega_pt+\frac{\sin\omega_pt}{\omega_p\tau}\right)\right]\qquad i=\frac E{L\omega_p}\,e^{-t/\tau}\sin\omega_pt$$</div></li>
+      <li>\(Q=\tfrac12\) : \(u_C=E\left[1-(1+\omega_0t)\,e^{-\omega_0t}\right]\).</li>
+      <li>\(Q\lt\tfrac12\) : \(u_C=E\left[1+\dfrac{r_2e^{r_1t}-r_1e^{r_2t}}{r_1-r_2}\right]\).</li>
+    </ul>
+  </div>
+  <p><strong>Premier dépassement.</strong> En régime pseudo-périodique, le courant s'annule pour la première fois en \(t=T_p/2\) : c'est le premier maximum de \(u_C\). En ce point, \(\cos\omega_pt=-1\) et \(\sin\omega_pt=0\), d'où \(u_C=E(1+D)\) avec</p>
+  <div class="formula" data-nom="Premier dépassement">$$D=e^{-T_p/(2\tau)}=\exp\left(-\frac{\pi}{\sqrt{4Q^2-1}}\right)\approx e^{-\pi/(2Q)}\ \ (Q\gg1)$$</div>
+  <figure class="schema">
+<svg viewBox="0 0 520 330" role="img" aria-label="Réponse d'un circuit RLC série à un échelon de tension : tension du condensateur et courant">
+<line x1="58" y1="172" x2="500" y2="172" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<line x1="58" y1="172" x2="58" y2="10" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<text x="54" y="12" class="lab-muted lab-it" text-anchor="end">u<tspan dy="4" font-size="12">C</tspan><tspan dy="-4"> / E</tspan></text>
+<rect x="58" y="82" width="430" height="8.6" class="fl-muted-soft"/>
+<line x1="58" y1="86.3" x2="488" y2="86.3" class="sk-dash"/>
+<line x1="54" y1="129.1" x2="58" y2="129.1" class="sk-axis"/>
+<text x="51" y="133.1" class="lab-muted" text-anchor="end">0,5</text>
+<line x1="54" y1="86.3" x2="58" y2="86.3" class="sk-axis"/>
+<text x="51" y="90.3" class="lab-muted" text-anchor="end">1</text>
+<line x1="54" y1="43.4" x2="58" y2="43.4" class="sk-axis"/>
+<text x="51" y="47.4" class="lab-muted" text-anchor="end">1,5</text>
+<polyline points="58,172 60.1,170.8 62.3,166.9 64.5,160.5 66.9,151.3 71.2,130.3 81.4,73.7 86.7,50 89.1,42.2 91.4,36.8 93.6,33.3 96,31.6 98.2,32.1 100.5,34.3 102.9,38.4 105.3,44.1 109.6,57.4 120.1,94.6 125.4,109.7 127.8,114.6 130.1,118 132.3,120.2 134.5,121.2 136.8,120.9 139,119.6 141.4,116.9 143.8,113.3 148.3,104.5 158.6,81.1 164,71.4 168.6,66.1 170.8,64.7 173.1,64 176.9,64.7 181,67.6 185.6,72.9 196.3,88.3 201.1,94.3 206.4,98.8 209,100 211.6,100.5 215.6,100.1 219.7,98.2 224.3,94.7 234.8,85 239.6,81.2 245,78.3 250.1,77.2 254.1,77.5 258.2,78.7 278.2,89.5 283.5,91.3 288.7,92.1 296.9,91.1 316.7,84.3 322,83.1 327,82.6 335.4,83.2 355.2,87.6 365.5,88.6 374.1,88.3 393.4,85.5 403,84.8 412.3,85 432.3,86.8 442.2,87.2 474.8,85.8 488,85.7" class="sk-accent" style="stroke-width:2"/>
+<circle cx="96.6" cy="31.6" r="3.2" class="fl-accent"/>
+<text x="104.6" y="28.6" class="lab-accent" style="paint-order:stroke;stroke:var(--paper);stroke-width:4px;stroke-linejoin:round">1 + D = 1,64 à t = T<tspan dy="4" font-size="12">p</tspan><tspan dy="-4">/2</tspan></text>
+<line x1="298.8" y1="172" x2="298.8" y2="82" class="sk-ink" style="stroke-dasharray:2 3"/>
+<text x="303.8" y="144.6" class="lab-muted" style="paint-order:stroke;stroke:var(--paper);stroke-width:4px;stroke-linejoin:round">t<tspan dy="4" font-size="12">5 %</tspan><tspan dy="-4"> ≈ 14 ms ≈ 3τ</tspan></text>
+<text x="481.1" y="76" class="lab-muted" text-anchor="end" style="paint-order:stroke;stroke:var(--paper);stroke-width:4px;stroke-linejoin:round">± 5 %</text>
+<line x1="58" y1="271.1" x2="500" y2="271.1" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<line x1="58" y1="312" x2="58" y2="200" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<text x="502" y="275.1" class="lab-muted lab-it">t (ms)</text>
+<text x="54" y="204" class="lab-muted lab-it" text-anchor="end">i (mA)</text>
+<line x1="54" y1="293.8" x2="58" y2="293.8" class="sk-axis"/>
+<text x="51" y="297.8" class="lab-muted" text-anchor="end">−25</text>
+<line x1="54" y1="248.4" x2="58" y2="248.4" class="sk-axis"/>
+<text x="51" y="252.4" class="lab-muted" text-anchor="end">25</text>
+<line x1="54" y1="225.6" x2="58" y2="225.6" class="sk-axis"/>
+<text x="51" y="229.6" class="lab-muted" text-anchor="end">50</text>
+<line x1="144" y1="271.1" x2="144" y2="275.1" class="sk-axis"/>
+<text x="144" y="286.1" class="lab-muted" text-anchor="middle">5</text>
+<line x1="230" y1="271.1" x2="230" y2="275.1" class="sk-axis"/>
+<text x="230" y="286.1" class="lab-muted" text-anchor="middle">10</text>
+<line x1="316" y1="271.1" x2="316" y2="275.1" class="sk-axis"/>
+<text x="316" y="286.1" class="lab-muted" text-anchor="middle">15</text>
+<line x1="402" y1="271.1" x2="402" y2="275.1" class="sk-axis"/>
+<text x="402" y="286.1" class="lab-muted" text-anchor="middle">20</text>
+<polyline points="58,271.1 63,246.9 67.3,231.1 69.4,225.7 71.4,221.8 73.5,219.5 75.5,218.7 77.6,219.4 79.8,221.8 82.1,225.7 84.5,231.3 88.8,244.1 98.9,278.7 104.3,293.3 108.9,301.4 111.1,303.5 113.6,304.5 115.8,304.3 118,302.9 120.4,300.4 122.8,296.9 127.1,288.8 137.6,266 143,256.8 147.6,251.7 149.8,250.3 152.1,249.8 155.9,250.4 160,253.2 164.6,258.4 175.1,272.9 179.9,278.6 185.5,283.1 188,284.2 190.6,284.7 194.4,284.3 198.5,282.5 203.2,279.3 213.8,269.8 218.6,266.2 224,263.5 229.1,262.4 233.1,262.7 237.2,263.8 257.2,274.2 262.5,275.9 267.7,276.6 275.8,275.7 295.7,269.1 301,268 306.2,267.6 314.5,268.1 334.2,272.3 344.4,273.3 353,273 372.8,270.3 382.9,269.7 391.7,269.9 420.6,272 458.9,270.5 488,271.3" class="sk-accent2" style="stroke-width:2"/>
+<circle cx="75.5" cy="218.7" r="3.2" class="fl-accent2"/>
+<text x="83.5" y="220.7" class="lab-accent2" style="paint-order:stroke;stroke:var(--paper);stroke-width:4px;stroke-linejoin:round">58 mA</text>
+</svg>
+<figcaption>Échelon \(E = 5\ \text{V}\) appliqué à \(t = 0\) au circuit au repos (\(R = 20\ \Omega\), \(L = 50\ \text{mH}\), \(C = 10\ \mu\text{F}\), \(Q = 3{,}5\)). En haut, \(u_C\) part de 0 avec une tangente horizontale (\(i(0^+) = 0\)), dépasse \(E\) de \(D = e^{-\pi/\sqrt{4Q^2-1}} = 64\ \%\) à \(t = T_p/2\), puis oscille autour de \(E\) ; elle reste dans la bande de \(\pm5\ \%\) (grisée) au-delà de 14 ms, soit environ \(3\tau\). En bas, le courant \(i = C\,\mathrm{d}u_C/\mathrm{d}t\) part de 0, passe par un maximum de 58 mA et s'annule à chaque extremum de \(u_C\).</figcaption>
+</figure>
+  <div class="method-box">
+    <strong>Exemple — échelon de 5 V sur le circuit du simulateur</strong>
+    <ol>
+      <li>\(Q=3{,}54\) : \(\sqrt{4Q^2-1}=\sqrt{49}=7\), donc \(D=e^{-\pi/7}\approx0{,}64\) : \(u_C\) monte jusqu'à \(E(1+D)\approx8{,}2\ \text{V}\) à \(t=T_p/2\approx2{,}2\ \text{ms}\). Un condensateur choisi pour 5 V « voit » 8,2 V.</li>
+      <li>Courant : \(E/(L\omega_p)=5/(0{,}050\times1\,400)\approx71\ \text{mA}\) ; son maximum, réduit par l'amortissement, vaut 58 mA, à 1,0 ms.</li>
+      <li>Durée du transitoire : \(u_C\) reste à 5 % près de \(E\) au-delà de 14 ms, soit environ \(3\tau=15\ \text{ms}\) ou trois pseudo-périodes.</li>
+    </ol>
+  </div>
+  <p><strong>Durée du régime transitoire</strong> (étude complète : <a href="#oscill/cours">« Oscillateurs harmoniques »</a>, §7). Pour \(Q\gg1\), quelques \(\tau=2Q/\omega_0\), soit environ \(Q\) pseudo-périodes ; pour \(Q\ll1\), la racine \(r_1\approx-Q\omega_0\) impose une durée de l'ordre de \(3/(Q\omega_0)\) ; la plus courte, quelques \(1/\omega_0\), est obtenue au voisinage du régime critique (\(4{,}7/\omega_0\) pour \(Q=1/2\)).</p>
+  <p><strong>Bilan d'énergie de la charge.</strong> Le générateur fournit \(\displaystyle\int_0^\infty Ei\,\mathrm{d}t=E\,q_\infty=CE^2\), puisque la charge totale qui a circulé est \(q_\infty=CE\). En fin de charge, le condensateur stocke \(\tfrac12CE^2\) et la bobine rien (\(i_\infty=0\)) : la résistance a dissipé \(\tfrac12CE^2\), <strong>quelles que soient \(R\) et \(L\)</strong>. C'est le résultat du circuit RC (<a href="#premierordre/cours">« Circuit linéaire du premier ordre »</a>, §8) : la bobine change la forme du transitoire, pas le bilan. Ici, \(CE^2=250\ \mu\text{J}\), dont 125 µJ stockés et 125 µJ dissipés.</p>
+  <div class="notice"><strong>Erreur classique</strong> : appliquer les conditions initiales à la seule solution homogène, sans y ajouter la solution particulière \(E\) ; on trouve alors \(A=0\) au lieu de \(A=-E\). Autre erreur : prendre \(i(0^+)=E/R\), comme pour un circuit RC ; ici la bobine impose \(i(0^+)=i(0^-)=0\).</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§5 · RÉGIME SINUSOÏDAL FORCÉ</div>
+  <h2>L'impédance du circuit RLC série</h2>
+  <div class="intro">Si le générateur impose \(e(t)=E_m\cos(\omega t)\) en permanence, le transitoire s'éteint en quelques \(\tau\) et le circuit oscille à la pulsation \(\omega\) imposée : c'est le régime sinusoïdal forcé. La notation complexe ramène son étude à de l'algèbre.</div>
+  <p><strong>Outils.</strong> La notation complexe (\(x=X_m\cos(\omega t+\varphi)\) représentée par \(\underline x=\underline X_me^{j\omega t}\), avec \(\underline X_m=X_me^{j\varphi}\) ; dériver revient à multiplier par \(j\omega\)), les impédances \(\underline Z_R=R\), \(\underline Z_L=jL\omega\), \(\underline Z_C=1/(jC\omega)\) et leurs associations sont établies dans le chapitre <a href="#filtres/cours">« Régime sinusoïdal forcé et filtrage linéaire »</a>, §1 à §3. On les applique au RLC série.</p>
+  <div class="prop-box">
+    <strong>Impédance du RLC série.</strong> Les impédances en série s'ajoutent :
+    <div class="formula" data-nom="Impédance du RLC série">$$\underline Z=R+j\left(L\omega-\frac1{C\omega}\right)=R\left[1+jQ\left(x-\frac1x\right)\right]\qquad x=\frac\omega{\omega_0}$$</div>
+    <div class="formula">$$|\underline Z|=\sqrt{R^2+\left(L\omega-\frac1{C\omega}\right)^2}\qquad\arg\underline Z=\arctan\frac{L\omega-1/(C\omega)}R\in\left]-\frac\pi2,\frac\pi2\right[$$</div>
+    La seconde écriture vient de \(L\omega/R=Qx\) et \(1/(RC\omega)=Q/x\). L'arc tangente donne bien l'argument, car la partie réelle \(R\) est positive.
+  </div>
+  <figure class="schema">
+<svg viewBox="0 0 500 322" role="img" aria-label="Module et argument de l'impédance d'un circuit RLC série en fonction de la fréquence">
+<line x1="70" y1="24" x2="70" y2="174" class="sk-axis" style="opacity:.35"/>
+<line x1="218.2" y1="24" x2="218.2" y2="174" class="sk-axis" style="opacity:.35"/>
+<line x1="366.4" y1="24" x2="366.4" y2="174" class="sk-axis" style="opacity:.35"/>
+<line x1="70" y1="174" x2="470" y2="174" class="sk-axis" style="opacity:.35"/>
+<text x="65" y="178" class="lab-muted" text-anchor="end">1 Ω</text>
+<line x1="70" y1="132.4" x2="470" y2="132.4" class="sk-axis" style="opacity:.35"/>
+<text x="65" y="136.4" class="lab-muted" text-anchor="end">10 Ω</text>
+<line x1="70" y1="90.7" x2="470" y2="90.7" class="sk-axis" style="opacity:.35"/>
+<text x="65" y="94.7" class="lab-muted" text-anchor="end">100 Ω</text>
+<line x1="70" y1="49.1" x2="470" y2="49.1" class="sk-axis" style="opacity:.35"/>
+<text x="65" y="53.1" class="lab-muted" text-anchor="end">1 kΩ</text>
+<rect x="70" y="24" width="400" height="150" class="sk-axis" style="fill:none"/>
+<polyline points="70,153.3 470,40.9" class="sk-dash" style="stroke-width:2"/>
+<polyline points="70,40.7 470,153.1" class="sk-dash" style="stroke-width:2"/>
+<polyline points="70,119.8 470,119.8" class="sk-dash" style="stroke-width:2"/>
+<polyline points="70,40.7 167.5,68.8 194.9,77.5 214.9,84.7 230.3,91.4 243,98.4 253,105.7 266.3,118.2 268.3,119.4 270.3,119.8 272.3,119.4 275,117.8 287.7,105.8 297.7,98.5 310.4,91.5 325.8,84.8 345.8,77.5 373.2,68.8 470,40.9" class="sk-accent" style="stroke-width:2"/>
+<circle cx="270.4" cy="119.8" r="3.2" class="fl-accent"/>
+<text x="270.4" y="143.8" class="lab-accent" text-anchor="middle" style="paint-order:stroke;stroke:var(--paper);stroke-width:4px;stroke-linejoin:round">f<tspan dy="4" font-size="12">0</tspan><tspan dy="-4"> = 225 Hz : Z = R</tspan></text>
+<text x="91.7" y="66.8" class="lab-muted lab-it" style="paint-order:stroke;stroke:var(--paper);stroke-width:4px;stroke-linejoin:round">1/(Cω)</text>
+<text x="443.3" y="66.4" class="lab-muted lab-it" text-anchor="end" style="paint-order:stroke;stroke:var(--paper);stroke-width:4px;stroke-linejoin:round">Lω</text>
+<text x="81.7" y="114.8" class="lab-muted lab-it" style="paint-order:stroke;stroke:var(--paper);stroke-width:4px;stroke-linejoin:round">R</text>
+<text x="65" y="15" class="lab-muted lab-it" text-anchor="end">|Z|</text>
+<line x1="70" y1="291.9" x2="470" y2="291.9" class="sk-axis" style="opacity:.35"/>
+<text x="65" y="295.9" class="lab-muted" text-anchor="end">−90°</text>
+<line x1="70" y1="254" x2="470" y2="254" class="sk-axis" style="opacity:.35"/>
+<text x="65" y="258" class="lab-muted" text-anchor="end">0°</text>
+<line x1="70" y1="216.1" x2="470" y2="216.1" class="sk-axis" style="opacity:.35"/>
+<text x="65" y="220.1" class="lab-muted" text-anchor="end">90°</text>
+<line x1="70" y1="214" x2="70" y2="294" class="sk-axis" style="opacity:.35"/>
+<text x="70" y="309" class="lab-muted" text-anchor="middle">10 Hz</text>
+<line x1="218.2" y1="214" x2="218.2" y2="294" class="sk-axis" style="opacity:.35"/>
+<text x="218.2" y="309" class="lab-muted" text-anchor="middle">100 Hz</text>
+<line x1="366.4" y1="214" x2="366.4" y2="294" class="sk-axis" style="opacity:.35"/>
+<text x="366.4" y="309" class="lab-muted" text-anchor="middle">1 kHz</text>
+<rect x="70" y="214" width="400" height="80" class="sk-axis" style="fill:none"/>
+<polyline points="70,291.6 138.8,291 185.5,289.9 216.9,288.3 236.9,285.8 244.3,284 250.3,281.8 255,279.1 259,275.7 262.3,271.6 265,267 274.3,244.2 279,235.7 282.4,231.8 286.4,228.5 291,226 296.4,224 304.4,222.1 315.1,220.6 345.8,218.4 394.5,217.1 470,216.4" class="sk-accent2" style="stroke-width:2"/>
+<text x="65" y="207" class="lab-muted lab-it" text-anchor="end">arg Z</text>
+<text x="114.6" y="279.3" class="lab-accent2" style="paint-order:stroke;stroke:var(--paper);stroke-width:4px;stroke-linejoin:round">capacitif</text>
+<text x="427.9" y="230.8" class="lab-accent2" text-anchor="end" style="paint-order:stroke;stroke:var(--paper);stroke-width:4px;stroke-linejoin:round">inductif</text>
+</svg>
+<figcaption>Impédance du circuit RLC série des réglages par défaut du simulateur (\(R = 20\ \Omega\), \(L = 50\ \text{mH}\), \(C = 10\ \mu\text{F}\)), en échelles logarithmiques. Aux basses fréquences, le condensateur domine : \(|\underline Z| \approx 1/(C\omega)\), argument proche de \(-90^\circ\) (comportement capacitif). Aux hautes fréquences, la bobine domine : \(|\underline Z| \approx L\omega\), argument proche de \(+90^\circ\) (comportement inductif). À \(f_0\), les deux réactances se compensent : \(\underline Z = R\), minimum du module, argument nul.</figcaption>
+</figure>
+  <p><strong>Trois comportements.</strong> Pour \(\omega\lt\omega_0\), \(1/(C\omega)\gt L\omega\) : le circuit est <strong>capacitif</strong> (\(\arg\underline Z\lt0\)). Pour \(\omega\gt\omega_0\), il est <strong>inductif</strong> (\(\arg\underline Z\gt0\)). En \(\omega_0\), les réactances de la bobine et du condensateur se compensent exactement : \(\underline Z=R\), réelle et minimale.</p>
+  <p><strong>Courant.</strong> L'amplitude complexe du courant est \(\underline I_m=\underline E_m/\underline Z\) (avec \(\underline E_m=E_m\), réelle si \(e\) est prise comme origine des phases) : \(I_m=E_m/|\underline Z|\), et le courant est déphasé de \(\varphi=-\arg\underline Z\) par rapport à \(e\), en avance aux basses fréquences, en retard aux hautes.</p>
+  <div class="method-box">
+    <strong>Exemple — trois fréquences, \(E_m=2{,}0\ \text{V}\)</strong>
+    <p>Circuit du simulateur (\(R=20\ \Omega\), \(L=50\ \text{mH}\), \(C=10\ \mu\text{F}\), \(f_0=225\ \text{Hz}\)).</p>
+    <ol>
+      <li>\(f=100\ \text{Hz}\) : \(L\omega=31{,}4\ \Omega\), \(1/(C\omega)=159\ \Omega\), \(\underline Z=20-127{,}7j\ \Omega\) : \(|\underline Z|=129\ \Omega\), \(\arg\underline Z=-81^\circ\). \(I_m=15{,}5\ \text{mA}\), en avance de \(81^\circ\) sur \(e\).</li>
+      <li>\(f=f_0\) : \(L\omega_0=1/(C\omega_0)=70{,}7\ \Omega\), \(\underline Z=20\ \Omega\) : \(I_m=100\ \text{mA}\), en phase avec \(e\).</li>
+      <li>\(f=500\ \text{Hz}\) : \(L\omega=157\ \Omega\), \(1/(C\omega)=31{,}8\ \Omega\), \(|\underline Z|=127\ \Omega\), \(\arg\underline Z=+81^\circ\) : \(I_m=15{,}8\ \text{mA}\), en retard.</li>
+    </ol>
+  </div>
+  <div class="notice"><strong>Erreur classique</strong> : additionner des amplitudes. Les tensions \(u_R\), \(u_L\), \(u_C\) ne sont pas en phase : \(E_m\neq U_{Rm}+U_{Lm}+U_{Cm}\). Ce sont les amplitudes <em>complexes</em> qui s'ajoutent (représentation de Fresnel, chapitre « Régime sinusoïdal forcé et filtrage linéaire », §3). À \(f_0\), par exemple, \(U_{Lm}=U_{Cm}=QE_m=7{,}1\ \text{V}\) alors que \(E_m=2\ \text{V}\).</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§6 · RÉSONANCES</div>
+  <h2>Résonance en intensité, résonance en tension</h2>
+  <div class="intro">Quand on balaie la fréquence du générateur à amplitude constante, l'amplitude du courant passe toujours par un maximum en \(\omega_0\) ; celle de la tension aux bornes du condensateur peut dépasser largement celle du générateur. Le facteur de qualité fixe l'acuité de la résonance et l'ampleur de la surtension.</div>
+  <div class="prop-box">
+    <strong>Résonance en intensité.</strong>
+    <div class="formula" data-nom="Amplitude du courant dans le RLC série">$$I_m(\omega)=\frac{E_m}{\sqrt{R^2+\left(L\omega-\dfrac1{C\omega}\right)^2}}=\frac{E_m/R}{\sqrt{1+Q^2\left(x-\dfrac1x\right)^2}}$$</div>
+    \(I_m\) est maximale pour \(L\omega=1/(C\omega)\), c'est-à-dire en \(\omega=\omega_0\), <strong>quel que soit \(Q\)</strong> ; elle y vaut \(I_{\max}=E_m/R\), et le courant est en phase avec \(e\). La bande passante, intervalle où \(I_m\geq I_{\max}/\sqrt2\), a pour largeur exacte
+    <div class="formula" data-nom="Bande passante du RLC série">$$\Delta\omega=\omega_2-\omega_1=\frac{\omega_0}Q\qquad\omega_1\omega_2=\omega_0^2$$</div>
+    et la phase du courant y vaut \(\pm45^\circ\) à ses bornes. Plus \(Q\) est grand, plus la résonance est aiguë.
+  </div>
+  <p>La tension \(u_R=Ri\) est proportionnelle au courant : la résonance en intensité est celle du passe-bande RLC (sortie sur \(R\)), dont la bande passante est démontrée au §7 du chapitre <a href="#filtres/cours">« Régime sinusoïdal forcé et filtrage linéaire »</a>. C'est aussi l'analogue de la résonance en vitesse d'un oscillateur mécanique (<a href="#oscill/cours">« Oscillateurs harmoniques »</a>, §10).</p>
+  <figure class="schema">
+<svg viewBox="0 0 520 332" role="img" aria-label="Résonance en intensité d'un circuit RLC série : amplitude et phase du courant pour trois facteurs de qualité">
+<line x1="58" y1="172" x2="500" y2="172" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<line x1="58" y1="172" x2="58" y2="10" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<text x="54" y="12" class="lab-muted lab-it" text-anchor="end">I<tspan dy="4" font-size="12">m</tspan><tspan dy="-4"> / I</tspan><tspan dy="4" font-size="12">max</tspan></text>
+<line x1="54" y1="105" x2="58" y2="105" class="sk-axis"/>
+<text x="51" y="109" class="lab-muted" text-anchor="end">0,5</text>
+<line x1="54" y1="38.1" x2="58" y2="38.1" class="sk-axis"/>
+<text x="51" y="42.1" class="lab-muted" text-anchor="end">1</text>
+<line x1="54" y1="77.3" x2="58" y2="77.3" class="sk-axis"/>
+<text x="51" y="81.3" class="lab-muted" text-anchor="end">1/√2</text>
+<line x1="58" y1="77.3" x2="488" y2="77.3" class="sk-dash" style="opacity:.7"/>
+<polyline points="60.9,169.3 86,145.4 105.8,125 122.9,105.7 153.3,69.3 166.2,55.7 174.2,48.6 182.2,43.3 189.7,40 197.7,38.2 203.1,38.1 208.9,38.8 215.4,40.4 222.3,42.8 236.2,49.4 273.6,69.4 292.3,78.4 317.5,88.7 344.7,97.7 374.7,105.7 408.3,112.9 445.8,119.3 488,125" class="sk-accent2" style="stroke-width:2"/>
+<polyline points="60.9,171.2 94,161.9 106.3,157.7 117,153.4 126.6,148.9 135.2,143.9 143.2,138.3 150.1,132.4 155.5,126.9 160.8,120.4 165.6,113.4 169.9,106.1 174.7,96.4 179,86.4 194,46.5 197.7,40.2 199.9,38.4 201.5,38.1 203.1,38.6 204.7,39.8 207.9,44.3 226.1,83.3 232.5,94.2 238.9,103 246.9,111.6 256,119.1 266.1,125.5 277.9,131.2 292.3,136.4 309.4,140.9 329.2,144.8 352.2,148.2 378.9,151.2 410,153.7 488,157.9" class="sk-accent" style="stroke-width:2"/>
+<polyline points="60.9,171.7 106.8,166.8 122.9,164.4 135.7,161.7 146.9,158.6 156,154.9 164,150.4 170.5,145.2 175.8,139.1 180.1,132.3 183.8,124.1 187,114.6 189.7,103.9 192.4,90 198.8,45.9 200.4,39.2 201.5,38.1 202.5,39.9 204.1,47.1 208.9,79 212.2,96.2 215.4,108.8 219.1,119.4 223.9,128.8 230.3,137.1 237.8,143.4 246.9,148.4 259.2,152.8 274.2,156.3 293.4,159.1 316.9,161.3 346.9,163.2 384.3,164.7 488,167" class="sk-green" style="stroke-width:2"/>
+<line x1="182.5" y1="172" x2="182.5" y2="77.3" class="sk-dash"/>
+<line x1="223" y1="172" x2="223" y2="77.3" class="sk-dash"/>
+<line x1="182.5" y1="155.9" x2="223" y2="155.9" class="sk-accent" marker-start="url(#sk-arrow-accent)" marker-end="url(#sk-arrow-accent)"/>
+<text x="229" y="159.9" class="lab-accent" style="paint-order:stroke;stroke:var(--paper);stroke-width:4px;stroke-linejoin:round">Δω = ω<tspan dy="4" font-size="12">0</tspan><tspan dy="-4">/Q</tspan></text>
+<text x="215.7" y="35.4" class="lab-green" style="paint-order:stroke;stroke:var(--paper);stroke-width:4px;stroke-linejoin:round">Q = 10</text>
+<text x="258.7" y="115.8" class="lab-accent" style="paint-order:stroke;stroke:var(--paper);stroke-width:4px;stroke-linejoin:round">Q = 3,5</text>
+<text x="351.8" y="64.9" class="lab-accent2" style="paint-order:stroke;stroke:var(--paper);stroke-width:4px;stroke-linejoin:round">Q = 1</text>
+<line x1="58" y1="257" x2="500" y2="257" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<line x1="58" y1="302" x2="58" y2="200" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<text x="502" y="261" class="lab-muted lab-it">ω/ω<tspan dy="4" font-size="12">0</tspan></text>
+<text x="54" y="204" class="lab-muted lab-it" text-anchor="end">φ</text>
+<line x1="54" y1="299.6" x2="58" y2="299.6" class="sk-axis"/>
+<text x="51" y="303.6" class="lab-muted" text-anchor="end">−90°</text>
+<line x1="54" y1="278.3" x2="58" y2="278.3" class="sk-axis"/>
+<text x="51" y="282.3" class="lab-muted" text-anchor="end">−45°</text>
+<line x1="54" y1="235.7" x2="58" y2="235.7" class="sk-axis"/>
+<text x="51" y="239.7" class="lab-muted" text-anchor="end">45°</text>
+<line x1="54" y1="214.4" x2="58" y2="214.4" class="sk-axis"/>
+<text x="51" y="218.4" class="lab-muted" text-anchor="end">90°</text>
+<line x1="129.7" y1="302" x2="129.7" y2="306" class="sk-axis"/>
+<text x="129.7" y="317" class="lab-muted" text-anchor="middle">0,5</text>
+<line x1="201.3" y1="302" x2="201.3" y2="306" class="sk-axis"/>
+<text x="201.3" y="317" class="lab-muted" text-anchor="middle">1</text>
+<line x1="273" y1="302" x2="273" y2="306" class="sk-axis"/>
+<text x="273" y="317" class="lab-muted" text-anchor="middle">1,5</text>
+<line x1="344.7" y1="302" x2="344.7" y2="306" class="sk-axis"/>
+<text x="344.7" y="317" class="lab-muted" text-anchor="middle">2</text>
+<line x1="416.3" y1="302" x2="416.3" y2="306" class="sk-axis"/>
+<text x="416.3" y="317" class="lab-muted" text-anchor="middle">2,5</text>
+<polyline points="60.9,214.9 100.4,222.9 129.3,230.2 155.5,238.9 198.8,256 218,262.9 241.6,269.6 266.7,274.8 284.9,277.6 304.6,280.1 351.7,284.2 411.6,287.4 488,289.9" class="sk-accent2" style="stroke-width:2"/>
+<polyline points="60.9,214.5 104.2,217.1 132,219.7 152.3,223 160.8,225.1 167.8,227.5 177.9,232.5 186.5,239.1 193.4,246.6 208.9,266.5 213.8,271.5 218.6,275.4 225,279.4 231.9,282.6 240.5,285.4 250.1,287.6 262.9,289.6 279,291.3 322.8,293.9 389.1,295.6 488,296.8" class="sk-accent" style="stroke-width:2"/>
+<polyline points="60.9,214.4 116.5,215.7 148.5,217.2 168.9,219.5 175.8,221.1 181.7,223.2 186,225.6 189.2,228.3 191.8,231.5 194.5,236 198.3,245.9 205.2,270.3 207.9,276.8 210.6,281.3 214.3,285.4 218.6,288.4 224.4,290.9 231.9,292.8 242.1,294.3 255.5,295.5 296.6,297.1 367.2,298 488,298.6" class="sk-green" style="stroke-width:2"/>
+<circle cx="182.5" cy="235.7" r="3" class="fl-accent"/>
+<circle cx="223" cy="278.3" r="3" class="fl-accent"/>
+<text x="65.2" y="253.2" class="lab-muted" style="paint-order:stroke;stroke:var(--paper);stroke-width:4px;stroke-linejoin:round">i en avance</text>
+<text x="480.8" y="275.9" class="lab-muted" text-anchor="end" style="paint-order:stroke;stroke:var(--paper);stroke-width:4px;stroke-linejoin:round">i en retard</text>
+</svg>
+<figcaption>Amplitude du courant rapportée à son maximum \(I_{\max} = E_m/R\), et phase \(\varphi\) du courant par rapport à la tension du générateur, en fonction de \(\omega/\omega_0\), pour \(Q = 1\) ; 3,5 ; 10. La résonance a toujours lieu en \(\omega_0\), où le courant est en phase avec \(e\). La bande passante, où \(I_m \geq I_{\max}/\sqrt2\), a pour largeur exacte \(\Delta\omega = \omega_0/Q\) (marquée pour \(Q = 3{,}5\)) ; à ses bornes, \(\varphi = \pm45^\circ\) (points).</figcaption>
+</figure>
+  <div class="prop-box">
+    <strong>Résonance en tension aux bornes du condensateur.</strong> Diviseur de tension :
+    <div class="formula" data-nom="Tension aux bornes du condensateur en régime forcé">$$\frac{\underline U_{Cm}}{\underline E_m}=\frac{1/(jC\omega)}{R+jL\omega+1/(jC\omega)}=\frac1{1-x^2+j\dfrac xQ}$$</div>
+    <ul>
+      <li>En \(\omega=\omega_0\) (\(x=1\)) : \(\underline U_{Cm}=-jQ\,E_m\), donc \(U_C(\omega_0)=Q\,E_m\) <strong>exactement, pour tout \(Q\)</strong>, avec un retard de \(\pi/2\) sur \(e\).</li>
+      <li>\(U_C(\omega)\) passe par un maximum (supérieur à \(E_m\)) si et seulement si \(Q\gt1/\sqrt2\approx0{,}71\), à une pulsation un peu inférieure à \(\omega_0\) ; pour \(Q\gg1\), ce maximum vaut environ \(QE_m\), atteint pratiquement en \(\omega_0\) : c'est la <strong>surtension</strong>.</li>
+      <li>Pour \(Q\leq1/\sqrt2\), \(U_C\) décroît sans maximum de \(E_m\) (basses fréquences : le condensateur est un interrupteur ouvert, toute la tension est à ses bornes) jusqu'à 0.</li>
+    </ul>
+  </div>
+  <figure class="schema">
+<svg viewBox="0 0 520 250" role="img" aria-label="Amplitude de la tension aux bornes du condensateur en régime forcé pour quatre facteurs de qualité">
+<line x1="58" y1="212" x2="500" y2="212" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<line x1="58" y1="212" x2="58" y2="10" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<text x="502" y="216" class="lab-muted lab-it">ω/ω<tspan dy="4" font-size="12">0</tspan></text>
+<text x="54" y="12" class="lab-muted lab-it" text-anchor="end">U<tspan dy="4" font-size="12">C</tspan><tspan dy="-4"> / E</tspan><tspan dy="4" font-size="12">m</tspan></text>
+<line x1="54" y1="178.1" x2="58" y2="178.1" class="sk-axis"/>
+<text x="51" y="182.1" class="lab-muted" text-anchor="end">1</text>
+<line x1="54" y1="144.1" x2="58" y2="144.1" class="sk-axis"/>
+<text x="51" y="148.1" class="lab-muted" text-anchor="end">2</text>
+<line x1="54" y1="110.2" x2="58" y2="110.2" class="sk-axis"/>
+<text x="51" y="114.2" class="lab-muted" text-anchor="end">3</text>
+<line x1="54" y1="76.3" x2="58" y2="76.3" class="sk-axis"/>
+<text x="51" y="80.3" class="lab-muted" text-anchor="end">4</text>
+<line x1="54" y1="42.4" x2="58" y2="42.4" class="sk-axis"/>
+<text x="51" y="46.4" class="lab-muted" text-anchor="end">5</text>
+<line x1="155.7" y1="212" x2="155.7" y2="216" class="sk-axis"/>
+<text x="155.7" y="227" class="lab-muted" text-anchor="middle">0,5</text>
+<line x1="253.5" y1="212" x2="253.5" y2="216" class="sk-axis"/>
+<text x="253.5" y="227" class="lab-muted" text-anchor="middle">1</text>
+<line x1="351.2" y1="212" x2="351.2" y2="216" class="sk-axis"/>
+<text x="351.2" y="227" class="lab-muted" text-anchor="middle">1,5</text>
+<line x1="448.9" y1="212" x2="448.9" y2="216" class="sk-axis"/>
+<text x="448.9" y="227" class="lab-muted" text-anchor="middle">2</text>
+<line x1="253.5" y1="212" x2="253.5" y2="28.8" class="sk-dash" style="opacity:.6"/>
+<polyline points="59,178.1 85.2,178.7 113.9,180.6 232.7,193.1 303.8,198.9 386.8,203.1 488,206.2" class="sk-accent2" style="stroke-width:2"/>
+<circle cx="253.5" cy="195" r="3" class="fl-ink"/>
+<text x="179.2" y="206.6" class="lab-accent2" style="paint-order:stroke;stroke:var(--paper);stroke-width:4px;stroke-linejoin:round">Q = 0,5</text>
+<polyline points="59,178.1 131,178.4 175.9,180.1 211.7,183.1 297.6,193.2 348.2,198 412.1,202.1 488,205.1" class="sk-green" style="stroke-width:2"/>
+<circle cx="253.5" cy="188" r="3" class="fl-ink"/>
+<text x="93.2" y="167.2" class="lab-green" style="paint-order:stroke;stroke:var(--paper);stroke-width:4px;stroke-linejoin:round">Q = 0,71</text>
+<polyline points="59,178.1 83.8,177.5 107.7,176.1 129.1,173.7 149.2,170.4 166.4,166.5 182.1,161.8 227,144.2 235.5,142.3 243.2,142 251.3,143.5 260.4,147.1 268.5,151.6 293.3,166.8 310.5,175.5 327.2,182 345.8,187.4 372,192.9 403.5,197.3 441.7,200.8 488,203.5" class="sk-amber" style="stroke-width:2"/>
+<circle cx="253.5" cy="144.1" r="3" class="fl-ink"/>
+<text x="273" y="139.1" class="lab-amber" style="paint-order:stroke;stroke:var(--paper);stroke-width:4px;stroke-linejoin:round">Q = 2</text>
+<polyline points="59,178.1 81.4,177.6 102.9,176.2 122.4,174 140.1,171 155.4,167.3 168.7,162.7 180.2,157.4 190.7,151 198.8,144.4 206,137.1 212.6,128.5 218.4,119.2 223.6,108.9 228.9,96.4 245.1,49.6 248.4,43.5 250.3,41.8 251.8,41.5 253.2,42.2 255.1,44.4 258.5,51.6 274.7,105.6 280.4,120.9 286.1,133.3 292.8,144.7 300,154.2 308.1,162.6 317.6,170.1 329.6,177.1 342.9,182.8 358.7,187.8 377.3,192 398.8,195.6 424.1,198.6 453.6,201.1 488,203.2" class="sk-accent" style="stroke-width:2"/>
+<circle cx="253.5" cy="42.4" r="3" class="fl-ink"/>
+<text x="267.1" y="45.7" class="lab-accent" style="paint-order:stroke;stroke:var(--paper);stroke-width:4px;stroke-linejoin:round">Q = 5</text>
+<text x="257.4" y="100" class="lab-muted" style="paint-order:stroke;stroke:var(--paper);stroke-width:4px;stroke-linejoin:round">en ω<tspan dy="4" font-size="12">0</tspan><tspan dy="-4"> : U</tspan><tspan dy="4" font-size="12">C</tspan><tspan dy="-4"> = Q E</tspan><tspan dy="4" font-size="12">m</tspan></text>
+</svg>
+<figcaption>Amplitude de \(u_C\) rapportée à celle du générateur, en fonction de \(\omega/\omega_0\). En \(\omega_0\) (points), elle vaut exactement \(Q\), quel que soit \(Q\). Il y a résonance (maximum supérieur à 1) seulement si \(Q \gt 1/\sqrt2 \approx 0{,}71\), un peu avant \(\omega_0\) ; pour \(Q = 5\), le maximum vaut 5,03 et la tension aux bornes du condensateur est cinq fois celle du générateur : c'est la surtension. Pour \(Q \leq 1/\sqrt2\), l'amplitude décroît sans maximum. Aux hautes fréquences, \(u_C\) tend vers 0.</figcaption>
+</figure>
+  <p>C'est la fonction de transfert du passe-bas d'ordre 2 (sortie sur \(C\)) : son diagramme de Bode est tracé au §7 du chapitre « Régime sinusoïdal forcé et filtrage linéaire ». C'est l'analogue de la résonance en élongation d'un oscillateur mécanique. Le calcul exact de la pulsation du maximum n'est pas exigible (« Pour aller plus loin »).</p>
+  <div class="method-box">
+    <strong>Exemple — résonances du circuit du simulateur, \(E_m=2{,}0\ \text{V}\)</strong>
+    <ol>
+      <li>Intensité : \(I_{\max}=E_m/R=100\ \text{mA}\) à \(f_0=225\ \text{Hz}\) ; \(\Delta f=f_0/Q=63{,}7\ \text{Hz}\), entre \(f_1=f_0\left(\sqrt{1+\tfrac1{4Q^2}}-\tfrac1{2Q}\right)\approx195\ \text{Hz}\) et \(f_2\approx259\ \text{Hz}\) (on vérifie \(f_1f_2=f_0^2\)).</li>
+      <li>Tension : \(U_C(f_0)=QE_m=3{,}54\times2{,}0\approx7{,}1\ \text{V}\) ; le maximum (7,14 V, à \(0{,}98\,f_0\)) en diffère de 1 %.</li>
+      <li>Avec un circuit d'accord de radio (\(Q=100\)) attaqué par 10 mV, le condensateur reçoit 1 V : la résonance sélectionne une station <em>et</em> amplifie son signal.</li>
+    </ol>
+  </div>
+  <p><strong>Déterminer \(\omega_0\) et \(Q\) sur des courbes expérimentales.</strong> La <strong>phase</strong> donne \(\omega_0\) sans ambiguïté : le courant (ou \(u_R\)) est en phase avec \(e\) en \(\omega_0\), et \(u_C\) est alors en quadrature retard. La <strong>largeur</strong> de la résonance en intensité donne \(Q=\omega_0/\Delta\omega=f_0/\Delta f\), les bornes étant repérées par \(I_{\max}/\sqrt2\) ou par une phase de \(\pm45^\circ\). Enfin \(U_C(\omega_0)/E_m=Q\). Mise en œuvre : §9.</p>
+  <div class="notice"><strong>Erreur classique</strong> : dire que la résonance en tension a lieu en \(\omega_0\), ou qu'elle existe toujours. C'est vrai de la résonance en intensité ; pour \(u_C\), le maximum est un peu avant \(\omega_0\) et n'existe que si \(Q\gt1/\sqrt2\). Ce qui vaut toujours en \(\omega_0\), c'est \(U_C=QE_m\). Autre erreur : écrire \(\Delta\omega=\omega_0/Q\) pour la courbe de \(U_C\) ; la bande passante se définit sur l'intensité.</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§7 · ASPECTS ÉNERGÉTIQUES</div>
+  <h2>Stockage dans L et C, dissipation dans R</h2>
+  <div class="intro">Le bilan de puissance du circuit s'écrit en une ligne : il explique l'amortissement du régime libre, l'énergie perdue pendant une charge et le sens énergétique du facteur de qualité.</div>
+  <div class="prop-box">
+    <strong>Bilan de puissance.</strong> On multiplie la loi des mailles \(e=Ri+L\dfrac{\mathrm{d}i}{\mathrm{d}t}+u_C\) par \(i\), en écrivant \(i=C\,\mathrm{d}u_C/\mathrm{d}t\) dans le dernier terme :
+    <div class="formula" data-nom="Bilan de puissance du RLC">$$e\,i=Ri^2+\frac{\mathrm{d}\mathcal E}{\mathrm{d}t}\qquad\mathcal E=\tfrac12Li^2+\tfrac12Cu_C^2$$</div>
+    La puissance fournie par le générateur sert à faire varier l'énergie stockée dans la bobine et le condensateur, et à compenser l'effet Joule \(Ri^2\geq0\).
+  </div>
+  <p><strong>Régime libre.</strong> Avec \(e=0\), \(\dfrac{\mathrm{d}\mathcal E}{\mathrm{d}t}=-Ri^2\leq0\) : l'énergie ne peut que décroître, et ne décroît plus quand le courant s'annule. Le circuit finit donc au repos (\(u_C=0\), \(i=0\)), ce qu'on prévoit sans résoudre l'équation. Pour \(Q\gg1\), l'énergie décroît en moyenne comme \(e^{-2t/\tau}\) et perd à chaque pseudo-période la fraction \(2\pi/Q\) :</p>
+  <div class="formula" data-nom="Interprétation énergétique de Q">$$Q\approx2\pi\,\frac{\mathcal E}{|\Delta\mathcal E|_{\text{une période}}}\qquad(Q\gg1)$$</div>
+  <figure class="schema">
+<svg viewBox="0 0 520 228" role="img" aria-label="Énergies stockées dans le condensateur et dans la bobine au cours d'un régime libre pseudo-périodique">
+<line x1="58" y1="202" x2="500" y2="202" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<line x1="58" y1="202" x2="58" y2="10" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<text x="502" y="206" class="lab-muted lab-it">t (ms)</text>
+<text x="66" y="16" class="lab-muted">énergie (µJ)</text>
+<line x1="54" y1="168.7" x2="58" y2="168.7" class="sk-axis"/>
+<text x="51" y="172.7" class="lab-muted" text-anchor="end">25</text>
+<line x1="54" y1="135.3" x2="58" y2="135.3" class="sk-axis"/>
+<text x="51" y="139.3" class="lab-muted" text-anchor="end">50</text>
+<line x1="54" y1="102" x2="58" y2="102" class="sk-axis"/>
+<text x="51" y="106" class="lab-muted" text-anchor="end">75</text>
+<line x1="54" y1="68.7" x2="58" y2="68.7" class="sk-axis"/>
+<text x="51" y="72.7" class="lab-muted" text-anchor="end">100</text>
+<line x1="54" y1="35.3" x2="58" y2="35.3" class="sk-axis"/>
+<text x="51" y="39.3" class="lab-muted" text-anchor="end">125</text>
+<line x1="119.4" y1="202" x2="119.4" y2="206" class="sk-axis"/>
+<text x="119.4" y="217" class="lab-muted" text-anchor="middle">2</text>
+<line x1="180.9" y1="202" x2="180.9" y2="206" class="sk-axis"/>
+<text x="180.9" y="217" class="lab-muted" text-anchor="middle">4</text>
+<line x1="242.3" y1="202" x2="242.3" y2="206" class="sk-axis"/>
+<text x="242.3" y="217" class="lab-muted" text-anchor="middle">6</text>
+<line x1="303.7" y1="202" x2="303.7" y2="206" class="sk-axis"/>
+<text x="303.7" y="217" class="lab-muted" text-anchor="middle">8</text>
+<line x1="365.1" y1="202" x2="365.1" y2="206" class="sk-axis"/>
+<text x="365.1" y="217" class="lab-muted" text-anchor="middle">10</text>
+<line x1="426.6" y1="202" x2="426.6" y2="206" class="sk-axis"/>
+<text x="426.6" y="217" class="lab-muted" text-anchor="middle">12</text>
+<polyline points="58,35.3 59.8,36.5 62,40.8 64.1,48 66.6,59.3 70.9,85 80.7,152.4 85.6,179.3 88.1,189.2 90.2,195.5 92.4,199.7 94.6,201.8 96.1,201.9 97.9,200.8 101.3,195.5 105.3,185.1 113.9,156.8 117.9,145.6 120.4,140.3 122.5,136.9 124.7,134.8 126.8,134.1 128.9,134.7 131.1,136.5 135.4,143.6 139.7,154 149.5,181.5 154.4,192.5 159.1,199.2 161.2,201 163.4,201.9 166.7,201.6 170.1,199.5 174.1,195.3 183,183.4 187,178.8 191.6,175.4 195.9,174.3 199.9,175.3 204.5,178.3 218.3,193.5 223.2,198 227.8,200.8 232.2,201.9 235.5,201.8 238.9,201 255.8,192.6 260.4,191.2 264.7,190.7 272.1,191.9 290.8,199.9 295.7,201.3 300.6,202 307.7,201.6 324.9,198.1 333.5,197.4 341.2,197.9 359.6,201.1 369.1,202 402.3,200.1 437,202 469.3,201.2 488,201.6" class="sk-accent2" style="stroke-width:1.8"/>
+<polyline points="58,202 59.5,201.2 61.4,198.2 65.1,186.5 68.8,169.3 77.3,123.2 81.7,105 83.8,98.4 85.6,94.4 87.5,92 89.3,91.2 91.2,92 93.3,94.8 95.5,99.6 97.9,107 102.2,124.1 112.1,168.9 117,186.8 119.4,193.4 121.6,197.7 123.7,200.5 125.9,201.8 127.4,202 129.3,201.2 132.6,197.7 136.6,190.8 145.2,172 149.5,164 153.8,158.7 156,157.3 158.1,156.8 160.3,157.2 162.4,158.4 166.7,163.1 171,170 180.9,188.3 185.8,195.7 190.4,200.2 194.7,201.9 198.1,201.7 201.4,200.3 205.4,197.5 218.3,186.6 222.9,184.3 227.2,183.6 231.2,184.2 235.8,186.3 250,196.6 254.9,199.5 259.2,201.2 263.5,202 270.2,201.3 287.1,195.8 296,194.5 303.4,195.3 322.1,200.6 332,202 339,201.7 356.2,199.4 364.8,198.9 372.5,199.3 390.6,201.4 399.9,202 433.3,200.8 466.5,202 488,201.7" class="sk-green" style="stroke-width:1.8"/>
+<polyline points="58,35.3 63.5,35.8 67.5,37.7 71.5,41.5 75.2,47 78.6,53.8 82.3,62.6 94.6,97.1 99.5,109.6 104.7,120.2 109.9,127.6 113.9,131.2 118.2,133.2 122.2,133.9 134.5,134.6 138.8,135.8 142.8,137.9 150.5,144.4 164,159.8 169.2,165.1 174.7,169.4 180.2,172.3 187.6,174 203.6,174.5 211.6,175.9 219.6,178.6 237.7,186.8 247.8,189.7 255.8,190.6 280.7,191.4 314.2,196.8 324,197.3 349.8,197.7 386.9,200 418.3,200.2 454.2,201.2 488,201.3" class="sk-accent" style="stroke-width:2.4"/>
+<polyline points="58,35.3 70.9,61.1 84.7,84.3 99.5,104.9 107.1,114.1 115.1,122.8 123.4,130.9 131.7,138.2 140.6,145.2 149.8,151.6 159.4,157.5 169.5,163 190.7,172.4 213.1,179.9 237.7,185.9 265,190.8 296.3,194.5 331.7,197.3 373.1,199.2 423.5,200.6 488,201.4" class="sk-dash"/>
+<line x1="291.4" y1="44.7" x2="322.1" y2="44.7" class="sk-accent" style="stroke-width:2"/>
+<text x="331.4" y="48.7" class="lab-accent">½ C u<tspan dy="4" font-size="12">C</tspan><tspan dy="-4">² + ½ L i²</tspan></text>
+<line x1="291.4" y1="71.3" x2="322.1" y2="71.3" class="sk-accent2" style="stroke-width:2"/>
+<text x="331.4" y="75.3" class="lab-accent2">½ C u<tspan dy="4" font-size="12">C</tspan><tspan dy="-4">²</tspan></text>
+<line x1="291.4" y1="98" x2="322.1" y2="98" class="sk-green" style="stroke-width:2"/>
+<text x="331.4" y="102" class="lab-green">½ L i²</text>
+<line x1="291.4" y1="124.7" x2="322.1" y2="124.7" class="sk-dash"/>
+<text x="331.4" y="128.7" class="lab-muted">125 e<tspan dy="-5" font-size="12">−2t/τ</tspan></text>
+</svg>
+<figcaption>Régime libre du circuit de la figure du §3 (\(R = 20\ \Omega\), \(Q = 3{,}5\)), condensateur chargé sous \(U_0 = 5\ \text{V}\) : \(\mathcal E_0 = \tfrac12CU_0^2 = 125\ \mu\text{J}\). L'énergie passe du condensateur à la bobine et revient, deux fois par pseudo-période. L'énergie totale ne fait que décroître, puisque \(\mathrm{d}\mathcal E/\mathrm{d}t = -Ri^2\) : vite quand le courant est grand, pas du tout quand il s'annule (paliers). En moyenne, elle suit \(\mathcal E_0\,e^{-2t/\tau}\) (tirets), deux fois plus vite que l'amplitude.</figcaption>
+</figure>
+  <p><strong>Régime forcé.</strong> La puissance moyenne reçue par la résistance vaut \(\langle\mathcal P_J\rangle=\tfrac12RI_m^2=RI_{\text{eff}}^2\). Elle est maximale à la résonance en intensité, où elle vaut \(E_m^2/(2R)\), et tombe à la moitié aux bornes de la bande passante (d'où le nom de bande passante « à demi-puissance »). En \(\omega_0\), l'énergie stockée reste constante, \(\mathcal E=\tfrac12LI_m^2\) (car \(1/(C\omega_0^2)=L\)), et la relation \(Q=2\pi\mathcal E/(\langle\mathcal P_J\rangle T_0)\) est <strong>exacte</strong>.</p>
+  <div class="method-box">
+    <strong>Exemple — pertes par période</strong>
+    <ol>
+      <li>Régime libre du circuit du simulateur (\(Q=3{,}54\)), \(U_0=5\ \text{V}\) : \(\mathcal E_0=\tfrac12CU_0^2=125\ \mu\text{J}\). Après une pseudo-période, il reste la fraction \(e^{-2T_p/\tau}\approx0{,}17\) : 83 % de l'énergie a été dissipée. Pour un \(Q\) aussi modeste, la formule \(2\pi/Q\approx1{,}8\) n'a plus de sens.</li>
+      <li>Circuit d'accord avec \(Q=50\) : la perte par pseudo-période vaut 11,8 %, proche de \(2\pi/Q=12{,}6\ \%\).</li>
+      <li>Régime forcé à \(f_0\), \(E_m=2\ \text{V}\) : \(I_m=0{,}10\ \text{A}\), \(\langle\mathcal P_J\rangle=0{,}10\ \text{W}\), \(\mathcal E=\tfrac12LI_m^2=250\ \mu\text{J}\), et \(2\pi\mathcal E/(\langle\mathcal P_J\rangle T_0)=2\pi\times250/444=3{,}54=Q\).</li>
+    </ol>
+  </div>
+  <div class="notice"><strong>Erreur classique</strong> : croire que l'énergie totale oscille. Ce sont \(\tfrac12Cu_C^2\) et \(\tfrac12Li^2\) qui oscillent, en se l'échangeant ; leur somme, elle, ne fait que décroître en régime libre (figure). Autre erreur : écrire \(\langle Ri^2\rangle=RI_m^2\) ; la moyenne de \(\cos^2\) vaut 1/2.</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§8 · ANALOGIE ÉLECTROMÉCANIQUE</div>
+  <h2>Le même oscillateur sous deux habits</h2>
+  <div class="intro">Le programme présente ensemble les oscillateurs électrique et mécanique : leurs équations sont identiques terme à terme. Le dictionnaire complet est au §8 du chapitre <a href="#oscill/cours">« Oscillateurs harmoniques »</a> ; on en retient l'essentiel, et la correspondance des deux résonances.</div>
+  <div class="formula">$$L\ddot q+R\dot q+\frac qC=e(t)\qquad\longleftrightarrow\qquad m\ddot x+\alpha\dot x+kx=F(t)$$</div>
+  <table>
+    <tr><th>Électricité</th><th>Mécanique</th><th>Rôle</th></tr>
+    <tr><td>charge \(q=Cu_C\)</td><td>position \(x\)</td><td>grandeur qui oscille</td></tr>
+    <tr><td>intensité \(i=\dot q\)</td><td>vitesse \(v=\dot x\)</td><td>sa dérivée, continue</td></tr>
+    <tr><td>\(L\), \(R\), \(1/C\)</td><td>\(m\), \(\alpha\), \(k\)</td><td>inertie, dissipation, rappel</td></tr>
+    <tr><td>\(\tfrac12Li^2\), \(\tfrac12Cu_C^2\)</td><td>\(\tfrac12mv^2\), \(\tfrac12kx^2\)</td><td>énergies stockées</td></tr>
+    <tr><td>\(Q=\tfrac1R\sqrt{L/C}\), \(\tau=2L/R\)</td><td>\(Q=\sqrt{km}/\alpha\), \(\tau=2m/\alpha\)</td><td>amortissement</td></tr>
+    <tr><td>résonance en intensité</td><td>résonance en vitesse</td><td>toujours en \(\omega_0\), \(\Delta\omega=\omega_0/Q\)</td></tr>
+    <tr><td>résonance de \(u_C=q/C\)</td><td>résonance en élongation</td><td>seulement si \(Q\gt1/\sqrt2\)</td></tr>
+  </table>
+  <div class="method-box">
+    <strong>Exemple — jumeaux numériques</strong>
+    <p>Masse \(m=0{,}40\ \text{kg}\), ressort de raideur \(k=1{,}0\times10^3\ \text{N·m}^{-1}\), frottement \(\alpha=4{,}0\ \text{kg·s}^{-1}\) : \(\omega_0=\sqrt{k/m}=50\ \text{rad·s}^{-1}\), \(Q=\sqrt{km}/\alpha=5{,}0\), \(\tau=2m/\alpha=0{,}20\ \text{s}\).</p>
+    <ol>
+      <li>Circuit jumeau : \(L=0{,}40\ \text{H}\), \(C=1/k=1{,}0\ \text{mF}\), \(R=4{,}0\ \Omega\) : \(\omega_0=1/\sqrt{0{,}40\times10^{-3}}=50\ \text{rad·s}^{-1}\), \(Q=\tfrac14\sqrt{400}=5{,}0\), \(\tau=0{,}20\ \text{s}\).</li>
+      <li>Les deux systèmes ont les mêmes régimes libres, à l'échelle près : une courbe mesurée sur l'un prédit l'autre.</li>
+    </ol>
+  </div>
+  <div class="notice"><strong>Erreur classique</strong> : associer \(C\) à la raideur \(k\). Un condensateur de grande capacité se charge sans « résister » : c'est un ressort mou. L'analogue de \(k\) est \(1/C\).</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§9 · EXPLOITER DES RELEVÉS EXPÉRIMENTAUX</div>
+  <h2>Mesurer ω₀ et Q en travaux pratiques</h2>
+  <div class="intro">En TP, on observe le régime transitoire en appliquant un créneau, et la résonance en balayant la fréquence d'un générateur basse fréquence (GBF). Deux pièges reviennent toujours : la résistance du générateur et celle de la bobine, et les masses de l'oscilloscope.</div>
+  <h3>Le régime transitoire</h3>
+  <p><strong>Montage.</strong> Le GBF délivre un créneau entre 0 et \(E\) : chaque front montant est un échelon, chaque front descendant un régime libre. On choisit sa fréquence pour que la demi-période dépasse largement la durée du transitoire (quelques \(\tau\)). L'oscilloscope affiche \(e(t)\) sur une voie et \(u_C(t)\) sur l'autre ; ses deux voies ont une masse commune, reliée à celle du GBF : on place donc le condensateur du côté de la masse. Pour voir le courant, on observe \(u_R=Ri\) en plaçant \(R\) du côté de la masse.</p>
+  <p><strong>Résistances parasites.</strong> La résistance du circuit n'est pas seulement \(R\) : il faut ajouter la résistance de sortie du GBF (souvent \(50\ \Omega\)) et la résistance \(r\) de la bobine (quelques ohms à quelques dizaines d'ohms). Elles diminuent \(Q\), parfois beaucoup.</p>
+  <figure class="schema">
+<svg viewBox="0 0 520 240" role="img" aria-label="Réponse d'un circuit RLC à un créneau de GBF, avec ou sans les résistances parasites">
+<line x1="58" y1="159.8" x2="500" y2="159.8" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<line x1="58" y1="212" x2="58" y2="10" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<text x="502" y="163.8" class="lab-muted lab-it">t (ms)</text>
+<text x="54" y="12" class="lab-muted" text-anchor="end">tension (V)</text>
+<line x1="54" y1="123.5" x2="58" y2="123.5" class="sk-axis"/>
+<text x="51" y="127.5" class="lab-muted" text-anchor="end">2,5</text>
+<line x1="54" y1="87.3" x2="58" y2="87.3" class="sk-axis"/>
+<text x="51" y="91.3" class="lab-muted" text-anchor="end">5</text>
+<line x1="54" y1="51" x2="58" y2="51" class="sk-axis"/>
+<text x="51" y="55" class="lab-muted" text-anchor="end">7,5</text>
+<line x1="144" y1="159.8" x2="144" y2="163.8" class="sk-axis"/>
+<text x="144" y="174.8" class="lab-muted" text-anchor="middle">10</text>
+<line x1="230" y1="159.8" x2="230" y2="163.8" class="sk-axis"/>
+<text x="230" y="174.8" class="lab-muted" text-anchor="middle">20</text>
+<line x1="316" y1="159.8" x2="316" y2="163.8" class="sk-axis"/>
+<text x="316" y="174.8" class="lab-muted" text-anchor="middle">30</text>
+<line x1="402" y1="159.8" x2="402" y2="163.8" class="sk-axis"/>
+<text x="402" y="174.8" class="lab-muted" text-anchor="middle">40</text>
+<polyline points="58,87.3 272.9,87.3 273,159.8 487.9,159.8 488,87.3" class="sk-ink" style="stroke-width:1.2;opacity:.5"/>
+<polyline points="58,159.8 59,158.8 60.1,155.4 62.5,142.3 69.7,76.7 72.4,56.6 74.9,44.8 76.1,41.9 77.3,41 78.3,41.6 79.4,43.7 81.7,52 89,93.9 91.6,106.7 93.9,113.9 95.1,115.9 96.3,116.8 97.4,116.6 98.5,115.4 100.9,110.1 108.3,82.9 111,74.7 113.3,70.2 115.5,68.4 117.4,69 119.5,71.4 129.6,94 132.2,97.8 134.8,99.3 136.8,98.9 138.8,97.3 148.8,83 151.5,80.5 154.1,79.6 156,79.8 158.1,80.8 168.1,90 170.7,91.5 173.3,92.2 177.5,91.4 187.3,85.6 192.5,84.1 196.7,84.6 206.6,88.4 211.8,89.3 216.1,88.9 225.7,86.6 230.6,86 235.2,86.2 250,88.1 266.9,86.8 273.3,86.9 274.3,88.4 275.3,91.9 277.6,105.2 284.6,169.9 287.3,190.3 289.7,202 290.9,205.1 292.1,206.4 293.1,205.9 294.2,204.1 296.7,195.6 304,152.6 306.6,140.1 308.9,132.9 310.1,131 311.3,130.1 312.4,130.3 313.5,131.5 315.9,136.8 323.3,164.3 326,172.5 328.3,177 330.5,178.7 332.4,178.2 334.5,175.7 344.6,152.9 347.2,149.1 349.8,147.7 351.7,148 353.8,149.6 363.8,164.1 366.5,166.6 369.1,167.5 371,167.3 373.1,166.3 383.1,157 385.7,155.5 388.3,154.9 392.5,155.7 402.3,161.5 407.4,162.9 411.6,162.4 421.6,158.7 426.8,157.8 431.1,158.1 440.7,160.4 445.5,161 450.2,160.9 465.1,159 481.4,160.2 488,160.3" class="sk-accent" style="stroke-width:2"/>
+<polyline points="58,159.8 59.5,157.7 61.4,151 68.8,108.5 72.4,92.1 74.4,86.2 76.5,82.1 78.7,79.6 81.1,78.9 84.6,79.9 95.2,86.5 98.9,87.7 102.9,88.2 126,87.2 273.3,87.3 274.8,90.1 276.5,96.9 283.6,137.7 287.1,153.7 289,159.7 291,164.1 293,166.9 295.4,168.1 297.2,168.1 299.2,167.3 306.9,162.3 310.5,160.4 314,159.3 317.9,158.8 340.9,159.9 488,159.8" class="sk-accent2" style="stroke-width:2"/>
+<text x="83.8" y="35.1" class="lab-accent" style="paint-order:stroke;stroke:var(--paper);stroke-width:4px;stroke-linejoin:round">R totale = 20 Ω : Q = 3,5</text>
+<text x="83.8" y="138" class="lab-accent2" style="paint-order:stroke;stroke:var(--paper);stroke-width:4px;stroke-linejoin:round">R totale = 80 Ω : Q = 0,88</text>
+<text x="402" y="72.8" class="lab-muted" text-anchor="middle" style="paint-order:stroke;stroke:var(--paper);stroke-width:4px;stroke-linejoin:round">e(t) du GBF</text>
+</svg>
+<figcaption>Un GBF délivre un créneau de 0 à 5 V à 20 Hz (gris) : chaque front est un échelon, et la demi-période (25 ms) laisse au transitoire le temps de s'éteindre. Avec \(R = 20\ \Omega\) seule (\(L = 50\ \text{mH}\), \(C = 10\ \mu\text{F}\)), \(Q = 3{,}5\) : oscillations bien visibles. En réalité, la résistance de sortie du GBF (\(50\ \Omega\)) et celle de la bobine (environ \(10\ \Omega\)) s'ajoutent : \(R\) totale \(= 80\ \Omega\), \(Q = 0{,}88\) : un seul dépassement visible, de 12 %.</figcaption>
+</figure>
+  <p><strong>Exploitation.</strong> On mesure la pseudo-période \(T_p\) et deux maximums successifs de l'écart à la valeur finale (\(u_C-E\) pour un échelon, \(u_C\) pour un régime libre). Leur rapport vaut \(e^{T_p/\tau}\), d'où le décrément logarithmique et le facteur de qualité (<a href="#oscill/cours">« Oscillateurs harmoniques »</a>, §6) :</p>
+  <div class="formula" data-nom="Facteur de qualité par le décrément">$$\delta=\ln\frac{x_n}{x_{n+1}}=\frac{T_p}\tau\qquad Q=\frac12\sqrt{1+\left(\frac{2\pi}\delta\right)^2}\approx\frac\pi\delta$$</div>
+  <div class="formula">$$\omega_0=\frac{\omega_p}{\sqrt{1-1/(4Q^2)}}\qquad\omega_p=\frac{2\pi}{T_p}$$</div>
+  <div class="method-box">
+    <strong>Exemple — retrouver la résistance cachée</strong>
+    <p>Bobine \(L=0{,}10\ \text{H}\), condensateur \(C=1{,}0\ \mu\text{F}\), sans conducteur ohmique ajouté ; créneau de 0 à \(E=2{,}0\ \text{V}\). Les deux premiers maximums de \(u_C\) valent 3,47 V et 2,79 V, séparés de 2,0 ms.</p>
+    <ol>
+      <li>\(\delta=\ln\dfrac{3{,}47-2{,}0}{2{,}79-2{,}0}=\ln1{,}86\approx0{,}62\), donc \(Q=\tfrac12\sqrt{1+(2\pi/0{,}62)^2}\approx5{,}1\).</li>
+      <li>\(\omega_p=2\pi/T_p\approx3\,140\ \text{rad·s}^{-1}\) et \(\omega_0\approx3\,160\ \text{rad·s}^{-1}\), conforme à \(1/\sqrt{LC}=3\,162\ \text{rad·s}^{-1}\).</li>
+      <li>Résistance totale : \(L\omega_0/Q\approx62\ \Omega\). Elle est due au GBF (\(50\ \Omega\)) et à la bobine (\(r\approx12\ \Omega\)) : sans elles, le circuit n'aurait presque pas d'amortissement.</li>
+    </ol>
+  </div>
+  <h3>La résonance</h3>
+  <p>On alimente le circuit par une tension sinusoïdale d'amplitude constante et l'on balaie la fréquence. L'amplitude de \(u_R\) donne celle du courant ; le déphasage entre \(u_R\) et \(e\) se mesure par le décalage temporel (\(\varphi=2\pi\,\Delta t/T\)) ou par la méthode de Lissajous (mode XY : l'ellipse devient un segment à la résonance). On repère \(f_0\) (phase nulle, amplitude maximale), puis \(f_1\) et \(f_2\) (amplitude divisée par \(\sqrt2\), phase \(\pm45^\circ\)).</p>
+  <div class="method-box">
+    <strong>Exemple — une courbe de résonance mesurée</strong>
+    <ol>
+      <li>On relève \(f_1=2{,}02\ \text{kHz}\) et \(f_2=2{,}51\ \text{kHz}\) : \(f_0=\sqrt{f_1f_2}\approx2{,}25\ \text{kHz}\), \(\Delta f=0{,}49\ \text{kHz}\), \(Q=f_0/\Delta f\approx4{,}6\).</li>
+      <li>Si \(e\) est mesurée aux bornes du générateur (après sa résistance interne) et \(R=100\ \Omega\), l'amplitude de \(u_R\) à la résonance vaut \(E_mR/(R+r)\) : un rapport mesuré de 0,89 donne \(r\approx12\ \Omega\) pour la bobine.</li>
+    </ol>
+  </div>
+  <div class="notice"><strong>Erreur classique</strong> : brancher l'oscilloscope aux bornes d'un composant qui n'est pas relié à la masse. Les masses du GBF et de l'oscilloscope étant reliées (par la terre), on court-circuite alors une partie du montage. Autre erreur : oublier la résistance de sortie du GBF dans le calcul de \(Q\), puis s'étonner de ne voir qu'une oscillation.</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§10 · SIMULATION NUMÉRIQUE</div>
+  <h2>Résoudre l'équation du circuit avec Python</h2>
+  <div class="intro">Pour une tension \(e(t)\) quelconque, ou pour suivre l'établissement d'un régime forcé, on résout l'équation numériquement. Une équation d'ordre 2 devient un système de deux équations d'ordre 1, dont l'inconnue est le couple \((u_C,i)\) des deux grandeurs continues du circuit.</div>
+  <div class="prop-box">
+    <strong>Vecteur d'état.</strong> La loi des mailles et la relation du condensateur s'écrivent
+    <div class="formula" data-nom="Système d'ordre 1 du RLC">$$\frac{\mathrm{d}u_C}{\mathrm{d}t}=\frac iC\qquad\frac{\mathrm{d}i}{\mathrm{d}t}=\frac{e(t)-Ri-u_C}L$$</div>
+    On les résout avec la fonction <code>odeint</code> de <code>scipy.integrate</code> (spécification fournie), ou par la méthode d'Euler appliquée au couple : principe et précautions dans les chapitres <a href="#pynum/cours">« Méthodes numériques »</a> (§6, §7) et <a href="#premierordre/cours">« Circuit linéaire du premier ordre »</a> (§9).
+  </div>
+  <p>Le programme suivant excite le circuit du simulateur, au repos, par \(e=E_m\cos(\omega_0t)\) à partir de \(t=0\), et suit \(u_C\) pendant six constantes de temps ; il refait le calcul par la méthode d'Euler pour trois pas.</p>
+  <pre class="codeblock"><span class="kw">import</span> numpy <span class="kw">as</span> np
+<span class="kw">from</span> scipy.integrate <span class="kw">import</span> odeint
+
+R, L, C = 20.0, 50e-3, 10e-6      <span class="cmt"># ohm, henry, farad</span>
+w0 = 1 / np.sqrt(L * C)           <span class="cmt"># pulsation propre (rad/s)</span>
+Q = np.sqrt(L / C) / R            <span class="cmt"># facteur de qualité</span>
+tau = 2 * L / R                   <span class="cmt"># constante de temps (s)</span>
+Em = 1.0                          <span class="cmt"># amplitude de e(t) (V)</span>
+
+<span class="kw">def</span> e(t):
+    <span class="str">"""Tension du générateur, appliquée à partir de t = 0."""</span>
+    <span class="kw">return</span> Em * np.cos(w0 * t)
+
+<span class="kw">def</span> F(Y, t):
+    <span class="str">"""Dérivée de Y = [uC, i] ; ordre (Y, t) imposé par odeint."""</span>
+    uC, i = Y
+    <span class="kw">return</span> [i / C, (e(t) - R * i - uC) / L]
+
+t = np.linspace(0, 6 * tau, 3001)  <span class="cmt"># six constantes de temps</span>
+sol = odeint(F, [0.0, 0.0], t)     <span class="cmt"># au repos : uC = 0 et i = 0</span>
+uC = sol[:, 0]
+
+<span class="cmt"># valeur attendue Q*Em, amplitude atteinte au-delà de 5 tau</span>
+print(round(Q * Em, 3), round(np.max(np.abs(uC[t &gt; 5 * tau])), 3))
+<span class="cmt"># premier instant où |uC| atteint 95 % de Q*Em, en unités de tau</span>
+k = np.argmax(np.abs(uC) &gt;= 0.95 * Q * Em)
+print(round(t[k] / tau, 2))
+
+<span class="kw">def</span> euler(N):
+    <span class="str">"""uC à t = 6 tau par la méthode d'Euler, pas h = T0/N."""</span>
+    h = 2 * np.pi / w0 / N
+    u, i = 0.0, 0.0
+    <span class="kw">for</span> k <span class="kw">in</span> range(round(6 * tau / h)):
+        <span class="cmt"># affectation multiple : anciennes valeurs à droite</span>
+        u, i = u + h * i / C, i + h * (e(k * h) - R * i - u) / L
+    <span class="kw">return</span> float(u)
+
+print(round(float(uC[-1]), 3))
+print([round(euler(N), 3) <span class="kw">for</span> N <span class="kw">in</span> (200, 2000, 20000)])</pre>
+  <p>Le programme, exécuté tel quel, affiche :</p>
+  <pre class="codeblock">3.536 3.527
+3.31
+-3.527
+[-3.959, -3.566, -3.531]</pre>
+  <ul>
+    <li>Après \(5\tau\), l'amplitude atteinte (3,527 V) ne diffère plus que de 0,3 % de la valeur \(QE_m=3{,}536\ \text{V}\) du régime forcé ; 95 % de cette valeur sont atteints à \(3{,}3\tau\) : le transitoire dure quelques \(\tau\), comme au §4.</li>
+    <li>La méthode d'Euler donne \(-3{,}96\) ; \(-3{,}57\) ; \(-3{,}53\ \text{V}\) au lieu de \(-3{,}527\ \text{V}\) avec 200, 2 000 et 20 000 pas par période : une erreur de 12 %, 1,1 %, 0,1 %, divisée par 10 quand le pas l'est (méthode d'ordre 1). Euler sous-estime l'amortissement : il faut un pas très petit devant \(T_0\) et devant \(\tau\).</li>
+  </ul>
+  <figure class="schema">
+<svg viewBox="0 0 520 238" role="img" aria-label="Établissement du régime forcé à la pulsation propre, calculé avec odeint">
+<line x1="58" y1="123.6" x2="500" y2="123.6" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<line x1="58" y1="212" x2="58" y2="10" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<text x="502" y="127.6" class="lab-muted lab-it">t (ms)</text>
+<text x="54" y="12" class="lab-muted lab-it" text-anchor="end">u<tspan dy="4" font-size="12">C</tspan><tspan dy="-4"> (V)</tspan></text>
+<line x1="54" y1="201.7" x2="58" y2="201.7" class="sk-axis"/>
+<text x="51" y="205.7" class="lab-muted" text-anchor="end">±3,54</text>
+<line x1="54" y1="167.8" x2="58" y2="167.8" class="sk-axis"/>
+<text x="51" y="171.8" class="lab-muted" text-anchor="end">−2</text>
+<line x1="54" y1="79.4" x2="58" y2="79.4" class="sk-axis"/>
+<text x="51" y="83.4" class="lab-muted" text-anchor="end">2</text>
+<line x1="54" y1="45.5" x2="58" y2="45.5" class="sk-axis"/>
+<text x="51" y="49.5" class="lab-muted" text-anchor="end">±3,54</text>
+<line x1="129.7" y1="123.6" x2="129.7" y2="127.6" class="sk-axis"/>
+<text x="129.7" y="138.6" class="lab-muted" text-anchor="middle">5</text>
+<line x1="201.3" y1="123.6" x2="201.3" y2="127.6" class="sk-axis"/>
+<text x="201.3" y="138.6" class="lab-muted" text-anchor="middle">10</text>
+<line x1="273" y1="123.6" x2="273" y2="127.6" class="sk-axis"/>
+<text x="273" y="138.6" class="lab-muted" text-anchor="middle">15</text>
+<line x1="344.7" y1="123.6" x2="344.7" y2="127.6" class="sk-axis"/>
+<text x="344.7" y="138.6" class="lab-muted" text-anchor="middle">20</text>
+<line x1="416.3" y1="123.6" x2="416.3" y2="127.6" class="sk-axis"/>
+<text x="416.3" y="138.6" class="lab-muted" text-anchor="middle">25</text>
+<polyline points="58,123.6 60.4,123 63.1,121.1 71.4,111.1 74.5,108.3 77.6,107.1 80.6,108.2 83.8,111.8 87.2,118.4 97.5,147.3 101.1,155.8 103.1,159 104.9,160.8 106.7,161.4 108.4,160.9 110.2,159 112.1,155.7 116,144.9 119.6,130.9 127.7,95 131.6,81 133.5,76.2 135.4,73 137.2,71.5 139,71.7 140.8,73.6 142.8,77.5 146.8,91.1 150.4,108.7 158.8,154.8 162.8,172.5 164.8,178.6 166.6,182.7 168.5,184.9 170.3,185 172.2,183.1 174.1,178.9 178.2,163.6 181.9,143.5 190.4,91 194.5,70.7 196.4,63.8 198.3,59.1 200.1,56.5 201.9,56.2 203.8,58.2 205.8,62.7 209.9,79.1 213.6,100.8 222,157.1 226.2,179.2 228.1,186.7 230,191.7 231.8,194.4 233.6,194.9 235.5,193 237.5,188.5 241.5,171.5 245.3,148.5 253.9,89.3 258,66.2 259.9,58.7 261.7,53.4 263.5,50.5 265.3,49.9 267.3,51.8 269.2,56.3 273.4,74 277.1,97.1 285.7,158.4 289.8,182.1 291.7,189.8 293.6,195.3 295.4,198.3 297.2,198.9 299.1,197 301,192.5 305.1,174.9 308.9,151 317.5,88.6 321.7,64.5 323.5,56.7 325.4,51.1 327.2,48 329,47.3 330.9,49.2 332.8,53.8 337,71.9 340.8,96.2 349.3,158.7 353.5,183.1 357.2,196.7 359,199.8 360.8,200.6 362.7,198.7 364.7,194.1 368.8,175.9 372.6,151.5 381.1,88.6 385.3,64 389,50.2 390.8,47.1 392.6,46.3 394.5,48.1 396.5,52.7 400.6,70.9 404.4,95.4 413,159.1 417.2,183.7 419.1,191.7 420.9,197.4 422.7,200.5 424.4,201.3 426.4,199.5 428.3,194.9 432.5,176.6 436.3,152.2 444.9,88.2 449,63.6 452.7,49.8 454.5,46.6 456.3,45.8 458.2,47.6 460.1,52.2 464.3,70.4 468.1,94.8 476.7,158.9 480.8,183.7 484.5,197.3 486.3,200.6 488,201.6" class="sk-accent" style="stroke-width:1.6"/>
+<polyline points="58,123.6 70.5,111.2 83.7,100.1 97.8,90.3 112.9,81.8 129.1,74.5 146.6,68.2 165.6,62.9 186.6,58.5 208.3,55.1 232.4,52.4 259.6,50.2 290.6,48.6 368,46.6 488,45.7" class="sk-dash"/>
+<polyline points="58,123.6 70.5,136.1 83.7,147.2 97.8,156.9 112.9,165.4 129.1,172.8 146.6,179 165.6,184.3 186.6,188.7 208.3,192.1 232.4,194.9 259.6,197 290.6,198.7 368,200.7 488,201.5" class="sk-dash"/>
+<line x1="58" y1="45.5" x2="488" y2="45.5" class="sk-axis" style="stroke-dasharray:2 3"/>
+<line x1="58" y1="201.7" x2="488" y2="201.7" class="sk-axis" style="stroke-dasharray:2 3"/>
+<text x="69.5" y="36.4" class="lab-muted" style="paint-order:stroke;stroke:var(--paper);stroke-width:4px;stroke-linejoin:round">± Q E<tspan dy="4" font-size="12">m</tspan><tspan dy="-4"> (1 − e</tspan><tspan dy="-5" font-size="12">−t/τ</tspan><tspan dy="5">)</tspan></text>
+</svg>
+<figcaption>Résultat du programme du §10 : circuit au repos (\(R = 20\ \Omega\), \(L = 50\ \text{mH}\), \(C = 10\ \mu\text{F}\), \(Q = 3{,}54\)), excité à partir de \(t = 0\) par \(e = E_m\cos(\omega_0t)\) avec \(E_m = 1\ \text{V}\). L'amplitude de \(u_C\) croît comme \(QE_m(1 - e^{-t/\tau})\) (tirets) et atteint, après quelques \(\tau\) (\(\tau = 5\ \text{ms}\)), la valeur \(QE_m = 3{,}54\ \text{V}\) du régime forcé. Le transitoire et la résonance sont deux aspects du même oscillateur.</figcaption>
+</figure>
+  <div class="notice"><strong>Erreur classique</strong> : écrire <code>u = u + h*i/C</code> puis <code>i = i + h*(e - R*i - u)/L</code> sur deux lignes : la seconde utilise le nouveau <code>u</code>, et ce n'est plus la méthode d'Euler. L'affectation multiple <code>u, i = …, …</code> calcule tout le membre de droite avec les anciennes valeurs. Autre piège : l'ordre des arguments \((Y,t)\) de la fonction passée à <code>odeint</code>.</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">POUR ALLER PLUS LOIN · HORS PROGRAMME</div>
+  <h2>Maximum de la surtension, circuit bouchon, puissance</h2>
+  <div class="intro">Trois prolongements, utiles pour comprendre et parfois rencontrés en problème, mais non exigibles en PTSI.</div>
+  <p><strong>Pulsation de résonance en tension.</strong> \(U_C\) est maximale quand \((1-x^2)^2+x^2/Q^2\) est minimal, soit pour \(x^2=1-\dfrac1{2Q^2}\) (possible si \(Q\gt1/\sqrt2\)) : \(\omega_r=\omega_0\sqrt{1-\dfrac1{2Q^2}}\), et \(U_{C,\max}=\dfrac{QE_m}{\sqrt{1-1/(4Q^2)}}\). Pour le circuit du simulateur, \(\omega_r=0{,}980\,\omega_0\) et \(U_{C,\max}=7{,}14\ \text{V}\) pour \(E_m=2\ \text{V}\).</p>
+  <p><strong>Circuit RLC parallèle (« bouchon »).</strong> Une bobine et un condensateur en parallèle ont une admittance \(jC\omega+1/(jL\omega)\), nulle en \(\omega_0\) : l'impédance de l'ensemble y devient très grande. Alimenté par une source de courant, ce circuit présente une résonance en tension en \(\omega_0\) ; c'est le circuit d'accord des récepteurs et des oscillateurs radio.</p>
+  <p><strong>Puissance moyenne et facteur de puissance.</strong> Le générateur fournit en moyenne \(\langle ei\rangle=\tfrac12E_mI_m\cos\varphi\), où \(\varphi\) est le déphasage entre \(e\) et \(i\) ; le bilan du §7 montre qu'elle est égale à \(\tfrac12RI_m^2\). Le « facteur de puissance » \(\cos\varphi\) vaut 1 à la résonance. Ces notions sont développées en sciences industrielles (puissances active et réactive).</p>
+</div>
+</template>
+<template class="pan-tpl" data-panneau="rlc-meth">
+<div class="course-section">
+  <div class="sec-num">MÉTHODES · RLC</div>
+  <h2>Les réflexes du chapitre</h2>
+  <div class="intro">Ces méthodes couvrent les savoir-faire exigibles de la partie 1.4 du programme, côté électrique : mettre le circuit en équation, identifier \(\omega_0\) et \(Q\), trouver les conditions initiales, résoudre un régime libre ou un échelon, faire un bilan d'énergie, traiter le régime forcé et la résonance, exploiter des mesures, simuler. Notations : \(\omega_0=1/\sqrt{LC}\), \(Q=\tfrac1R\sqrt{L/C}\), \(\tau=2Q/\omega_0=2L/R\), pseudo-pulsation \(\omega_p\), amplitude complexe \(\underline X_m\).</div>
+
+  <div class="method-box"><strong>Méthode 1 — Établir l'équation et identifier ω₀ et Q</strong>
+    <ol>
+      <li><span class="step">Orientations.</span> Orienter le courant \(i\) dans la maille ; tensions des dipôles en convention récepteur, celle du générateur en convention générateur.</li>
+      <li><span class="step">Loi des mailles.</span> \(e=Ri+L\,\mathrm{d}i/\mathrm{d}t+u_C\), puis \(i=C\,\mathrm{d}u_C/\mathrm{d}t\) pour n'avoir que \(u_C\) (grandeur continue).</li>
+      <li><span class="step">Forme canonique.</span> Diviser par \(LC\) : \(\ddot u_C+\dfrac{\omega_0}Q\dot u_C+\omega_0^2u_C=\omega_0^2e\). Lire \(\omega_0^2\) devant \(u_C\), puis \(\omega_0/Q\) (ici \(R/L\)) devant \(\dot u_C\).</li>
+      <li><span class="step">Contrôle.</span> \(Q\) sans dimension et décroissant avec \(R\) ; \(\sqrt{L/C}\) est en ohms.</li>
+    </ol>
+    <p><em>Exemple éclair :</em> \(R=50\ \Omega\), \(L=0{,}20\ \text{H}\), \(C=2{,}0\ \mu\text{F}\) : \(\omega_0=1/\sqrt{4\times10^{-7}}\approx1\,581\ \text{rad·s}^{-1}\) (\(f_0\approx252\ \text{Hz}\)), \(Q=\sqrt{10^5}/50\approx6{,}3\), \(\tau=2L/R=8{,}0\ \text{ms}\).</p>
+  </div>
+
+  <div class="method-box"><strong>Méthode 2 — Prévoir le régime et la résistance critique</strong>
+    <ol>
+      <li><span class="step">Comparer</span> \(Q\) à 1/2, ou \(R\) à la résistance critique \(R_c=2\sqrt{L/C}\).</li>
+      <li><span class="step">Conclure.</span> \(R\lt R_c\) (\(Q\gt1/2\)) : pseudo-périodique, environ \(Q\) oscillations visibles ; \(R=R_c\) : critique, retour le plus rapide sans dépassement ; \(R\gt R_c\) : apériodique.</li>
+      <li><span class="step">Durée.</span> Quelques \(\tau=2Q/\omega_0\) si \(Q\gg1\) ; \(\approx3/(Q\omega_0)\) si \(Q\ll1\) ; quelques \(1/\omega_0\) au voisinage du critique.</li>
+    </ol>
+    <p><em>Exemple éclair :</em> circuit de la méthode 1 : \(R_c=2\sqrt{10^5}\approx632\ \Omega\). Avec 50 Ω, le circuit oscille (\(Q=6{,}3\)) et se stabilise en \(3\tau\approx24\ \text{ms}\) ; pour un retour sans oscillation, il faut ajouter au moins 580 Ω.</p>
+  </div>
+
+  <div class="method-box"><strong>Méthode 3 — Trouver les conditions initiales à t = 0⁺</strong>
+    <ol>
+      <li><span class="step">Avant.</span> Déterminer \(u_C(0^-)\) et \(i(0^-)\) (régime permanent continu : condensateur ouvert, bobine fil).</li>
+      <li><span class="step">Continuités.</span> \(u_C(0^+)=u_C(0^-)\) et \(i(0^+)=i(0^-)\) (le courant de la bobine est celui de la maille).</li>
+      <li><span class="step">Dérivées.</span> \(\dot u_C(0^+)=i(0^+)/C\) ; \(\mathrm{d}i/\mathrm{d}t(0^+)\) par la loi des mailles écrite à \(0^+\).</li>
+    </ol>
+    <p><em>Exemple éclair :</em> avant \(t=0\), un courant \(I_0=20\ \text{mA}\) traverse la bobine et le condensateur (\(C=10\ \mu\text{F}\)) est déchargé. Alors \(u_C(0^+)=0\), \(i(0^+)=20\ \text{mA}\) et \(\dot u_C(0^+)=I_0/C=2\,000\ \text{V·s}^{-1}\) : la tangente n'est pas horizontale.</p>
+  </div>
+  <div class="notice"><strong>Piège</strong> : écrire \(\dot u_C(0^+)=0\) sans avoir vérifié que \(i(0^+)=0\), ou appliquer la continuité à \(i_C\) dans un circuit RC (le courant d'un condensateur peut sauter). Seules \(u_C\) et le courant des bobines sont continus.</div>
+
+  <div class="method-box"><strong>Méthode 4 — Résoudre un régime libre ou une réponse à un échelon</strong>
+    <ol>
+      <li><span class="step">Solution particulière.</span> Constante, obtenue en annulant les dérivées : \(u_C=E\) pour un échelon, 0 en régime libre.</li>
+      <li><span class="step">Solution homogène</span> selon le régime : \(e^{-t/\tau}(A\cos\omega_pt+B\sin\omega_pt)\), \((A+Bt)e^{-\omega_0t}\) ou \(Ae^{r_1t}+Be^{r_2t}\).</li>
+      <li><span class="step">Constantes</span> \(A\), \(B\) par les deux conditions initiales (méthode 3), appliquées à la solution <em>complète</em>.</li>
+      <li><span class="step">Contrôle.</span> Valeurs en \(t=0\) et limite en \(t\to\infty\) ; courant par \(i=C\,\dot u_C\).</li>
+    </ol>
+    <p><em>Exemple éclair :</em> échelon \(E=10\ \text{V}\), \(R=40\ \Omega\), \(L=0{,}10\ \text{H}\), \(C=10\ \mu\text{F}\) : \(\omega_0=1\,000\ \text{rad·s}^{-1}\), \(Q=2{,}5\), \(\tau=5{,}0\ \text{ms}\), \(\omega_p\approx980\ \text{rad·s}^{-1}\). \(A=-E\), \(B=-E/(\omega_p\tau)\approx-2{,}0\ \text{V}\) ; premier maximum \(E(1+D)\) avec \(D=e^{-\pi/\sqrt{24}}\approx0{,}53\), soit 15,3 V à \(t=T_p/2\approx3{,}2\ \text{ms}\).</p>
+  </div>
+
+  <div class="method-box"><strong>Méthode 5 — Faire un bilan d'énergie</strong>
+    <ol>
+      <li><span class="step">Puissances.</span> Multiplier la loi des mailles par \(i\) : \(ei=Ri^2+\dfrac{\mathrm{d}}{\mathrm{d}t}\left(\tfrac12Li^2+\tfrac12Cu_C^2\right)\).</li>
+      <li><span class="step">Intégrer</span> entre l'état initial et l'état final : énergie fournie = variation de l'énergie stockée + énergie dissipée par effet Joule.</li>
+      <li><span class="step">Utiliser</span> les états initial et final seulement, sans résoudre l'équation : \(\int_0^\infty i\,\mathrm{d}t=\Delta q=C\,\Delta u_C\).</li>
+    </ol>
+    <p><em>Exemple éclair :</em> un condensateur de \(10\ \mu\text{F}\) chargé sous 10 V se décharge dans une bobine et une résistance : toute son énergie, \(\tfrac12CU_0^2=0{,}50\ \text{mJ}\), finit en chaleur dans la résistance, quelle que soit sa valeur et quel que soit le régime.</p>
+  </div>
+
+  <div class="method-box"><strong>Méthode 6 — Calculer l'impédance et l'amplitude du courant en régime forcé</strong>
+    <ol>
+      <li><span class="step">Impédance.</span> \(\underline Z=R+j(L\omega-1/(C\omega))=R\left[1+jQ\left(x-1/x\right)\right]\), \(x=\omega/\omega_0\) (outils : chapitre « Régime sinusoïdal forcé et filtrage linéaire », §1-§3).</li>
+      <li><span class="step">Courant.</span> \(\underline I_m=\underline E_m/\underline Z\) : \(I_m=E_m/|\underline Z|\), déphasage \(\varphi=-\arg\underline Z\) par rapport à \(e\).</li>
+      <li><span class="step">Tensions.</span> \(\underline U_{Rm}=R\underline I_m\), \(\underline U_{Lm}=jL\omega\,\underline I_m\), \(\underline U_{Cm}=\underline I_m/(jC\omega)\).</li>
+    </ol>
+    <p><em>Exemple éclair :</em> circuit de la méthode 1 à \(\omega=2\omega_0\) : \(\underline Z=50\left[1+j\times6{,}32\times1{,}5\right]\), soit \(|\underline Z|\approx477\ \Omega\) et \(\arg\underline Z\approx+84^\circ\) : circuit inductif, courant en retard de 84°, \(I_m\approx2{,}1\ \text{mA}\) pour \(E_m=1\ \text{V}\).</p>
+  </div>
+
+  <div class="method-box"><strong>Méthode 7 — Étudier une résonance</strong>
+    <ol>
+      <li><span class="step">Intensité.</span> Maximum en \(\omega_0\) pour tout \(Q\) : \(I_{\max}=E_m/R\), courant en phase avec \(e\) ; bande passante \(\Delta\omega=\omega_0/Q\), phase \(\pm45^\circ\) à ses bornes.</li>
+      <li><span class="step">Tension \(u_C\).</span> \(\underline U_{Cm}/\underline E_m=1/(1-x^2+jx/Q)\) : \(U_C(\omega_0)=QE_m\) exactement ; maximum seulement si \(Q\gt1/\sqrt2\), un peu avant \(\omega_0\), voisin de \(QE_m\) si \(Q\gg1\).</li>
+      <li><span class="step">Sens physique.</span> Surtension : les composants doivent supporter \(QE_m\).</li>
+    </ol>
+    <p><em>Exemple éclair :</em> circuit de la méthode 1, \(E_m=1{,}0\ \text{V}\) : \(I_{\max}=20\ \text{mA}\) à 252 Hz, \(\Delta f=f_0/Q\approx40\ \text{Hz}\), \(U_C(f_0)\approx6{,}3\ \text{V}\).</p>
+  </div>
+  <div class="notice"><strong>Piège</strong> : confondre les deux résonances. L'intensité résonne toujours, et en \(\omega_0\) ; la tension du condensateur ne résonne que si \(Q\gt1/\sqrt2\), et pas exactement en \(\omega_0\). La bande passante \(\omega_0/Q\) se lit sur la courbe d'intensité.</div>
+
+  <div class="method-box"><strong>Méthode 8 — Déterminer ω₀ et Q à partir de relevés</strong>
+    <ol>
+      <li><span class="step">Transitoire.</span> Mesurer \(T_p\) et deux maximums successifs de l'écart à la valeur finale ; \(\delta=\ln(x_n/x_{n+1})\), \(Q=\tfrac12\sqrt{1+(2\pi/\delta)^2}\approx\pi/\delta\), \(\omega_0=\omega_p/\sqrt{1-1/(4Q^2)}\).</li>
+      <li><span class="step">Résonance.</span> \(f_0\) où le courant est en phase avec \(e\) (Lissajous : segment) ; \(f_1\), \(f_2\) à \(I_{\max}/\sqrt2\) ou à \(\pm45^\circ\) ; \(Q=f_0/(f_2-f_1)\), \(f_0=\sqrt{f_1f_2}\).</li>
+      <li><span class="step">Composants.</span> Connaissant \(L\) ou \(C\), en déduire l'autre par \(\omega_0\), puis la résistance totale \(L\omega_0/Q\).</li>
+    </ol>
+    <p><em>Exemple éclair :</em> régime libre, maximums de 4,0 V puis 1,5 V séparés de 5,0 ms : \(\delta=\ln(4/1{,}5)\approx0{,}98\), \(Q\approx3{,}2\), \(\omega_p=1\,257\ \text{rad·s}^{-1}\), \(\omega_0\approx1\,272\ \text{rad·s}^{-1}\).</p>
+  </div>
+
+  <div class="method-box"><strong>Méthode 9 — Dimensionner un circuit en tenant compte des résistances parasites</strong>
+    <ol>
+      <li><span class="step">Cahier des charges</span> : \(f_0\) et \(Q\) (ou \(\Delta f\)) voulus, \(L\) imposée.</li>
+      <li><span class="step">Capacité</span> \(C=1/(L\omega_0^2)\) ; <span class="step">résistance totale</span> \(R_{\text{tot}}=L\omega_0/Q\).</li>
+      <li><span class="step">Résistance à ajouter</span> : \(R_{\text{tot}}\) moins la résistance de la bobine et celle de sortie du générateur (50 Ω). Si le résultat est négatif, le \(Q\) voulu est impossible avec ce matériel.</li>
+    </ol>
+    <p><em>Exemple éclair :</em> \(f_0=500\ \text{Hz}\), \(Q=5\), \(L=0{,}20\ \text{H}\) (\(r=15\ \Omega\)) : \(C=507\ \text{nF}\), \(R_{\text{tot}}=126\ \Omega\), donc une résistance de 61 Ω avec un GBF de 50 Ω.</p>
+  </div>
+
+  <div class="method-box"><strong>Méthode 10 — Simuler le circuit avec Python</strong>
+    <ol>
+      <li><span class="step">État.</span> Prendre \(Y=[u_C,i]\), les deux grandeurs continues ; écrire \(\dot u_C=i/C\) et \(\dot i=(e(t)-Ri-u_C)/L\).</li>
+      <li><span class="step">odeint.</span> Définir <code>F(Y, t)</code> (dans cet ordre), puis <code>odeint(F, [uC0, i0], t)</code> ; la colonne 0 donne \(u_C\), la colonne 1 donne \(i\).</li>
+      <li><span class="step">Euler.</span> <code>u, i = u + h*i/C, i + h*(e(t) - R*i - u)/L</code>, avec un pas très petit devant \(T_0\) et \(\tau\).</li>
+      <li><span class="step">Valider</span> sur un cas connu (échelon, \(QE_m\) à la résonance), puis diviser le pas par 10 pour vérifier.</li>
+    </ol>
+    <p><em>Exemple éclair :</em> avec 200 pas par période, Euler surestime de 12 % l'amplitude du régime forcé à \(\omega_0\) du circuit du simulateur ; avec 2 000 pas, de 1,1 % (cours, §10).</p>
+  </div>
+
+  <div class="notice"><strong>Pièges classiques</strong> : oublier la résistance du GBF et de la bobine (le \(Q\) mesuré est plus faible que prévu) ; additionner des amplitudes de tensions déphasées ; confondre la pseudo-pulsation \(\omega_p\), la pulsation propre \(\omega_0\) et la pulsation \(\omega\) imposée par le générateur (en régime forcé, le circuit vibre à \(\omega\)) ; prendre une enveloppe en \(e^{-t/(2\tau)}\) : avec \(\tau=2L/R\), l'amplitude décroît en \(e^{-t/\tau}\) et l'énergie en \(e^{-2t/\tau}\).</div>
+</div>
+</template>
+<template class="pan-tpl" data-panneau="rlc-exos">
+<div class="exo-wrapper">
+
+<div class="exo">
+  <span class="num">EXO 01</span><span class="diff">★ ☆ ☆</span>
+  <h3>Identification de régime</h3>
+  <div class="statement">Un circuit RLC série possède \(R=100\ \Omega\), \(L=100\ \text{mH}\), \(C=1{,}0\ \mu\text{F}\). Le condensateur est initialement chargé sous \(U_0=5{,}0\ \text{V}\), aucun courant ne circule ; à \(t=0\), on ferme l'interrupteur (régime libre).</div>
+  <div class="q"><strong>Q1.</strong> Calculer \(\omega_0\) et \(Q\).</div>
+  <div class="q"><strong>Q2.</strong> En déduire le régime, la constante de temps \(\tau\) et la pseudo-période \(T_p\).</div>
+  <div class="q"><strong>Q3.</strong> Donner l'allure de \(u_C(t)\) en précisant les valeurs initiales de \(u_C\) et de sa dérivée.</div>
+  <div class="q"><strong>Q4.</strong> Quelle résistance faudrait-il pour obtenir le régime critique ?</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> \(\omega_0=1/\sqrt{LC}=1/\sqrt{10^{-7}}\approx3\,162\ \text{rad·s}^{-1}\) ; \(Q=\dfrac1R\sqrt{\dfrac LC}=\dfrac{1}{100}\sqrt{10^5}\approx3{,}16\).</p>
+    <p><strong>Q2.</strong> \(Q\gt1/2\) : régime pseudo-périodique. \(\tau=2L/R=2{,}0\ \text{ms}\) ; \(\omega_p=\omega_0\sqrt{1-1/(4Q^2)}\), soit \(\omega_0\sqrt{0{,}975}\approx3\,122\ \text{rad·s}^{-1}\), \(T_p=2\pi/\omega_p\approx2{,}01\ \text{ms}\).</p>
+    <p><strong>Q3.</strong> Continuités : \(u_C(0^+)=U_0=5{,}0\ \text{V}\) et \(i(0^+)=0\), donc \(\dot u_C(0^+)=i(0^+)/C=0\) : tangente horizontale au départ. Ensuite, oscillations de pseudo-période 2,0 ms dans une enveloppe \(\pm U_0e^{-t/\tau}\) ; deux maximums successifs sont dans le rapport \(e^{T_p/\tau}\approx2{,}7\) ; \(u_C\) tend vers 0 en une dizaine de millisecondes (environ \(Q\approx3\) oscillations visibles).</p>
+    <p><strong>Q4.</strong> \(Q=1/2\) pour \(R_c=2\sqrt{L/C}\approx632\ \Omega\).</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 02</span><span class="diff">★ ★ ☆</span>
+  <h3>Résolution complète d'un régime libre</h3>
+  <div class="statement">RLC série avec \(R=20\ \Omega\), \(L=10\ \text{mH}\), \(C=10\ \mu\text{F}\). À \(t=0\), \(u_C=U_0=10\ \text{V}\) et \(i=0\) ; le circuit ne comporte pas de générateur (\(e=0\)).</div>
+  <div class="q"><strong>Q1.</strong> Établir l'équation différentielle vérifiée par \(u_C(t)\).</div>
+  <div class="q"><strong>Q2.</strong> Identifier le régime et donner la forme de la solution.</div>
+  <div class="q"><strong>Q3.</strong> Déterminer les constantes à l'aide des conditions initiales.</div>
+  <div class="q"><strong>Q4.</strong> Calculer la pseudo-période \(T_p\) et comparer à \(T_0\).</div>
+  <div class="q"><strong>Q5.</strong> En déduire l'intensité \(i(t)\).</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> Loi des mailles : \(0=Ri+L\dot i+u_C\) avec \(i=C\dot u_C\), d'où \(\ddot u_C+\dfrac RL\dot u_C+\dfrac1{LC}u_C=0\).</p>
+    <p><strong>Q2.</strong> \(\omega_0=1/\sqrt{10^{-7}}\approx3\,162\ \text{rad·s}^{-1}\) ; \(Q=L\omega_0/R\approx1{,}58\gt1/2\) : pseudo-périodique. \(u_C(t)=e^{-t/\tau}(A\cos\omega_pt+B\sin\omega_pt)\), avec \(\tau=2L/R=1{,}0\ \text{ms}\) et, comme \(Q^2=2{,}5\), \(\omega_p=\omega_0\sqrt{1-1/(4Q^2)}\), soit \(\omega_0\sqrt{0{,}9}=3\,000\ \text{rad·s}^{-1}\).</p>
+    <p><strong>Q3.</strong> \(u_C(0)=U_0\) donne \(A=10\ \text{V}\). \(\dot u_C(0)=-A/\tau+B\omega_p=i(0)/C=0\) donne \(B=\dfrac{A}{\omega_p\tau}=\dfrac{10}{3}\approx3{,}33\ \text{V}\).</p>
+    <p><strong>Q4.</strong> \(T_p=2\pi/\omega_p\approx2{,}09\ \text{ms}\), contre \(T_0=2\pi/\omega_0\approx1{,}99\ \text{ms}\) : avec un \(Q\) aussi modeste, l'écart (5 %) n'est plus négligeable.</p>
+    <p><strong>Q5.</strong> En dérivant (ou par le résultat du cours) : \(i=C\dot u_C=-\dfrac{U_0}{L\omega_p}\,e^{-t/\tau}\sin\omega_pt\), avec \(U_0/(L\omega_p)\approx0{,}33\ \text{A}\). Le signe moins traduit la décharge : le courant circule en sens inverse de l'orientation choisie au début.</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 03</span><span class="diff">★ ★ ☆</span>
+  <h3>Résonance en intensité</h3>
+  <div class="statement">Un GBF délivre \(e(t)=E_m\cos(\omega t)\), avec \(E_m=5{,}0\ \text{V}\), à un circuit RLC série (\(R=50\ \Omega\), \(L=20\ \text{mH}\), \(C=50\ \text{nF}\)). On néglige la résistance du GBF.</div>
+  <div class="q"><strong>Q1.</strong> Donner l'expression de l'amplitude \(I_m\) de l'intensité en fonction de \(\omega\).</div>
+  <div class="q"><strong>Q2.</strong> À quelle pulsation \(I_m\) est-elle maximale ? Calculer cette pulsation, la fréquence correspondante et la valeur maximale.</div>
+  <div class="q"><strong>Q3.</strong> Calculer \(Q\) et la bande passante \(\Delta\omega\). Montrer que \(\Delta\omega=R/L\).</div>
+  <div class="q"><strong>Q4.</strong> Quelle est l'amplitude de \(u_C\) à la résonance en intensité ?</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> \(I_m=E_m/|\underline Z|\), soit \(I_m(\omega)=\dfrac{E_m}{\sqrt{R^2+\left(L\omega-\dfrac1{C\omega}\right)^2}}\).</p>
+    <p><strong>Q2.</strong> Le dénominateur est minimal quand \(L\omega=1/(C\omega)\) : \(LC=10^{-9}\ \text{s}^2\), donc \(\omega_0=1/\sqrt{LC}\approx3{,}16\times10^4\ \text{rad·s}^{-1}\), soit \(f_0\approx5{,}0\ \text{kHz}\). \(I_{\max}=E_m/R=0{,}10\ \text{A}\).</p>
+    <p><strong>Q3.</strong> \(Q=L\omega_0/R\approx12{,}6\) ; \(\Delta\omega=\omega_0/Q=2\,500\ \text{rad·s}^{-1}\) (\(\Delta f\approx400\ \text{Hz}\)). En effet \(\omega_0/Q=\omega_0R/(L\omega_0)=R/L\) : la bande passante ne dépend pas de \(C\).</p>
+    <p><strong>Q4.</strong> \(U_C(\omega_0)=QE_m\approx63\ \text{V}\) : le condensateur doit supporter plus de douze fois la tension du générateur.</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 04</span><span class="diff">★ ★ ☆</span>
+  <h3>Dimensionnement d'un filtre passe-bande</h3>
+  <div class="statement">On souhaite réaliser un filtre passe-bande RLC série centré sur \(f_0=1{,}0\ \text{kHz}\), de bande passante \(\Delta f=100\ \text{Hz}\). On dispose d'une bobine \(L=100\ \text{mH}\).</div>
+  <div class="q"><strong>Q1.</strong> Déterminer la valeur de \(C\) à choisir.</div>
+  <div class="q"><strong>Q2.</strong> Calculer \(Q\), puis la résistance totale du circuit.</div>
+  <div class="q"><strong>Q3.</strong> La bobine a une résistance \(r=5\ \Omega\). Quelle résistance ajouter ?</div>
+  <div class="q"><strong>Q4.</strong> Le circuit est alimenté par un GBF de résistance de sortie \(50\ \Omega\). Que devient la réponse ? Quelle bande passante obtiendrait-on en oubliant ce point avec la résistance de Q3 ?</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> \(\omega_0=2\pi f_0\approx6\,283\ \text{rad·s}^{-1}\) ; \(C=1/(L\omega_0^2)=1/(0{,}1\times6\,283^2)\approx253\ \text{nF}\).</p>
+    <p><strong>Q2.</strong> \(Q=f_0/\Delta f=10\) ; \(R_{\text{tot}}=L\omega_0/Q=0{,}1\times6\,283/10\approx62{,}8\ \Omega\).</p>
+    <p><strong>Q3.</strong> \(R_{\text{ext}}+r=62{,}8\ \Omega\), donc \(R_{\text{ext}}\approx57{,}8\ \Omega\).</p>
+    <p><strong>Q4.</strong> La résistance du GBF est en série : il ne faut plus ajouter que \(62{,}8-5-50\approx7{,}8\ \Omega\). Avec 57,8 Ω, la résistance totale serait \(112{,}8\ \Omega\), \(Q=L\omega_0/R_{\text{tot}}\approx5{,}6\) et \(\Delta f\approx180\ \text{Hz}\) : un filtre presque deux fois moins sélectif que prévu.</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 05</span><span class="diff">★ ★ ☆</span>
+  <h3>Surtension à la résonance</h3>
+  <div class="statement">RLC série avec \(R=10\ \Omega\), \(L=100\ \text{mH}\), \(C=100\ \text{nF}\), alimenté par \(e=E_m\cos(\omega t)\), \(E_m=1{,}0\ \text{V}\).</div>
+  <div class="q"><strong>Q1.</strong> Calculer \(\omega_0\), \(f_0\) et \(Q\).</div>
+  <div class="q"><strong>Q2.</strong> Par un diviseur de tension, écrire \(\underline U_{Cm}/\underline E_m\).</div>
+  <div class="q"><strong>Q3.</strong> Que vaut l'amplitude de \(u_C\) en \(\omega_0\) ? Conclure.</div>
+  <div class="q"><strong>Q4.</strong> Que vaut-elle si la fréquence s'écarte de 1 % de \(f_0\) ? Commenter.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> \(\omega_0=1/\sqrt{10^{-1}\times10^{-7}}=1{,}0\times10^4\ \text{rad·s}^{-1}\), \(f_0\approx1{,}59\ \text{kHz}\), \(Q=L\omega_0/R=100\) : circuit très peu amorti.</p>
+    <p><strong>Q2.</strong> Diviseur de tension :</p>
+    <div class="formula">$$\frac{\underline U_{Cm}}{\underline E_m}=\frac{1/(jC\omega)}{R+j(L\omega-1/(C\omega))}=\frac{1}{1-LC\omega^2+jRC\omega}$$</div>
+    <p><strong>Q3.</strong> En \(\omega_0\), \(1-LC\omega_0^2=0\) : \(U_C=E_m/(RC\omega_0)=QE_m=100\ \text{V}\). Le maximum de \(U_C\), un peu avant \(\omega_0\), n'en diffère que de \(10^{-5}\) en valeur relative. Avec 1 V à l'entrée, le condensateur reçoit 100 V : il faut un composant prévu pour cette tension.</p>
+    <p><strong>Q4.</strong> Pour \(x=1{,}01\) : \(|1-x^2+jx/Q|=|-0{,}0201+0{,}0101j|\), soit 0,0225, donc \(U_C\approx44\ \text{V}\). La résonance est si aiguë (\(\Delta f=f_0/Q\approx16\ \text{Hz}\)) qu'un écart de 16 Hz divise la surtension par plus de deux : à fort \(Q\), le réglage de la fréquence est délicat.</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 06</span><span class="diff">★ ★ ☆</span>
+  <h3>Réponse à un échelon : cas pseudo-périodique</h3>
+  <div class="statement">À \(t=0\), on bascule un interrupteur qui applique une tension constante \(E=5{,}0\ \text{V}\) à un circuit RLC série (\(R=20\ \Omega\), \(L=50\ \text{mH}\), \(C=5{,}0\ \mu\text{F}\)). Avant la fermeture, le circuit est au repos.</div>
+  <div class="q"><strong>Q1.</strong> Établir l'équation différentielle vérifiée par \(u_C(t)\) pour \(t\gt0\).</div>
+  <div class="q"><strong>Q2.</strong> Calculer \(\omega_0\), \(Q\) et identifier le régime.</div>
+  <div class="q"><strong>Q3.</strong> Donner les conditions initiales sur \(u_C\) et \(\dot u_C\).</div>
+  <div class="q"><strong>Q4.</strong> Déterminer la solution complète \(u_C(t)\).</div>
+  <div class="q"><strong>Q5.</strong> Calculer la valeur maximale de \(u_C\) et l'instant où elle est atteinte.</div>
+  <div class="q"><strong>Q6.</strong> Vers quelle valeur \(u_C\) tend-elle ? Au bout de combien de temps peut-on considérer le régime permanent atteint ?</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> Loi des mailles : \(E=Ri+L\dot i+u_C\) avec \(i=C\dot u_C\) : \(\ddot u_C+\dfrac RL\dot u_C+\dfrac1{LC}u_C=\dfrac E{LC}\).</p>
+    <p><strong>Q2.</strong> \(\omega_0=1/\sqrt{2{,}5\times10^{-7}}=2\,000\ \text{rad·s}^{-1}\) ; \(Q=L\omega_0/R=5{,}0\gt1/2\) : pseudo-périodique.</p>
+    <p><strong>Q3.</strong> Circuit au repos : \(u_C(0^-)=0\) et \(i(0^-)=0\). Par continuité, \(u_C(0^+)=0\) et \(i(0^+)=0\), donc \(\dot u_C(0^+)=i(0^+)/C=0\).</p>
+    <p><strong>Q4.</strong> Solution particulière \(E\) ; \(\tau=2Q/\omega_0=5{,}0\ \text{ms}\) et \(\omega_p=2\,000\sqrt{1-1/100}\approx1\,990\ \text{rad·s}^{-1}\). \(u_C=E+e^{-t/\tau}(A\cos\omega_pt+B\sin\omega_pt)\) ; \(u_C(0)=0\) donne \(A=-E\) ; \(\dot u_C(0)=-A/\tau+B\omega_p=0\) donne \(B=A/(\omega_p\tau)\approx-0{,}503\ \text{V}\) :</p>
+    <div class="formula">$$u_C(t)=5{,}0-e^{-t/(5\ \text{ms})}\left(5{,}0\cos(1\,990\,t)+0{,}503\sin(1\,990\,t)\right)\ \text{(V)}$$</div>
+    <p><strong>Q5.</strong> Le premier maximum est en \(t=T_p/2=\pi/\omega_p\approx1{,}58\ \text{ms}\) (le courant s'y annule), et vaut \(E(1+D)\) avec \(D=e^{-\pi/\sqrt{4Q^2-1}}=e^{-\pi/\sqrt{99}}\approx0{,}73\) : \(u_{C,\max}\approx8{,}6\ \text{V}\).</p>
+    <p><strong>Q6.</strong> \(u_C\to E=5{,}0\ \text{V}\) : en régime permanent, le condensateur est chargé et plus aucun courant ne circule. L'écart à \(E\) reste inférieur à 5 % après 14,5 ms (environ \(3\tau\)), à 1 % après 22 ms (moins de \(5\tau=25\ \text{ms}\)).</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 07</span><span class="diff">★ ★ ☆</span>
+  <h3>Bilan énergétique de la charge d'un condensateur</h3>
+  <div class="statement">On reprend un circuit RLC série au repos, sur lequel on applique à \(t=0\) une tension constante \(E\).</div>
+  <div class="q"><strong>Q1.</strong> Quelle énergie le condensateur stocke-t-il en régime permanent ?</div>
+  <div class="q"><strong>Q2.</strong> Quelle énergie le générateur fournit-il entre \(t=0\) et \(t\to\infty\) ? On utilisera \(W_{\text{gén}}=\int_0^\infty Ei\,\mathrm{d}t\), en remarquant que \(\int_0^\infty i\,\mathrm{d}t\) est la charge totale qui a traversé le circuit.</div>
+  <div class="q"><strong>Q3.</strong> En déduire l'énergie dissipée par effet Joule dans la résistance. Commenter.</div>
+  <div class="q"><strong>Q4.</strong> On décharge ensuite le condensateur dans le même circuit (générateur remplacé par un fil). Quelle énergie est dissipée ? Quel bilan global pour un cycle charge-décharge ?</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> En régime permanent \(u_C=E\), donc \(\mathcal E_C=\tfrac12CE^2\).</p>
+    <p><strong>Q2.</strong> \(W_{\text{gén}}=E\displaystyle\int_0^\infty i\,\mathrm{d}t=E\,q_{\text{tot}}\), avec</p>
+    <div class="formula">$$q_{\text{tot}}=\int_0^\infty C\dot u_C\,\mathrm{d}t=C\left[u_C(\infty)-u_C(0)\right]=CE$$</div>
+    <p>Donc \(W_{\text{gén}}=CE^2\).</p>
+    <p><strong>Q3.</strong> Bilan intégré : \(W_{\text{gén}}=\Delta\mathcal E_C+\Delta\mathcal E_L+W_J\), avec \(\Delta\mathcal E_L=0\) (courant nul au début et à la fin). \(W_J=CE^2-\tfrac12CE^2=\tfrac12CE^2\) : exactement la moitié de l'énergie fournie est dissipée, quelles que soient \(R\) et \(L\) (si \(R\gt0\)). On l'obtient sans calculer \(i(t)\) : seuls les états initial et final interviennent.</p>
+    <p><strong>Q4.</strong> En régime libre, \(\mathrm{d}\mathcal E/\mathrm{d}t=-Ri^2\) : toute l'énergie stockée, \(\tfrac12CE^2\), finit en chaleur. Sur un cycle, le générateur a fourni \(CE^2\), entièrement dissipé dans la résistance.</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 08</span><span class="diff">★ ★ ★</span>
+  <h3>Transitoire, résonance et surtension : synthèse</h3>
+  <div class="statement">Un circuit RLC série comporte \(R=20\ \Omega\), \(L=0{,}10\ \text{H}\), \(C=1{,}0\ \mu\text{F}\).</div>
+  <p class="exo-part">Partie A — Régime transitoire</p>
+  <div class="q"><strong>A1.</strong> Calculer la pulsation propre \(\omega_0\), la fréquence propre \(f_0\) et le facteur de qualité \(Q\).</div>
+  <div class="q"><strong>A2.</strong> À \(t=0\), on applique un échelon \(E=5{,}0\ \text{V}\) au circuit au repos. Identifier le régime et décrire l'allure de \(u_C(t)\).</div>
+  <div class="q"><strong>A3.</strong> Calculer la valeur du premier maximum de \(u_C\) et la durée du régime transitoire.</div>
+  <p class="exo-part">Partie B — Régime sinusoïdal forcé</p>
+  <div class="q"><strong>B1.</strong> Le circuit est alimenté par \(e(t)=E_m\cos(\omega t)\), \(E_m=5{,}0\ \text{V}\). Donner l'amplitude \(I_m(\omega)\) du courant. À quelle pulsation est-elle maximale ?</div>
+  <div class="q"><strong>B2.</strong> Calculer la bande passante \(\Delta f\), et les fréquences \(f_1\), \(f_2\) qui la limitent.</div>
+  <div class="q"><strong>B3.</strong> Calculer l'amplitude de la tension aux bornes du condensateur en \(f_0\). Conclure.</div>
+  <div class="q"><strong>B4.</strong> Quelle puissance moyenne la résistance reçoit-elle en \(f_0\) ? et en \(f_1\) ?</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>A1.</strong> \(\omega_0=1/\sqrt{0{,}10\times10^{-6}}\approx3{,}16\times10^3\ \text{rad·s}^{-1}\), \(f_0\approx503\ \text{Hz}\) ; \(Q=\dfrac1{20}\sqrt{\dfrac{0{,}10}{10^{-6}}}=\dfrac{316}{20}\approx15{,}8\).</p>
+    <p><strong>A2.</strong> \(Q\gt1/2\) : régime pseudo-périodique. \(u_C\) part de 0 avec une tangente horizontale (\(i(0^+)=0\)), dépasse largement \(E\), puis oscille autour de \(E\) en s'amortissant, avec une pseudo-période \(T_p\approx T_0\approx2{,}0\ \text{ms}\).</p>
+    <p><strong>A3.</strong> \(D=e^{-\pi/\sqrt{4Q^2-1}}=e^{-\pi/31{,}6}\approx0{,}91\) : \(u_{C,\max}\approx9{,}5\ \text{V}\), presque \(2E\), à \(t\approx1{,}0\ \text{ms}\). \(\tau=2L/R=10\ \text{ms}\) : le transitoire dure environ \(3\tau=30\ \text{ms}\), soit une quinzaine d'oscillations (environ \(Q\)).</p>
+    <p><strong>B1.</strong> \(I_m(\omega)=\dfrac{E_m}{\sqrt{R^2+(L\omega-1/(C\omega))^2}}\), maximale en \(\omega_0\) (résonance en intensité), où \(I_{\max}=E_m/R=0{,}25\ \text{A}\).</p>
+    <p><strong>B2.</strong> \(\Delta f=f_0/Q\approx31{,}8\ \text{Hz}\) ; \(f_{1,2}=f_0\left(\sqrt{1+\tfrac1{4Q^2}}\mp\tfrac1{2Q}\right)\), soit \(f_1\approx488\ \text{Hz}\) et \(f_2\approx519\ \text{Hz}\).</p>
+    <p><strong>B3.</strong> \(U_C(f_0)=QE_m\approx79\ \text{V}\) : la tension aux bornes du condensateur vaut près de seize fois celle du générateur. C'est la surtension, à prendre en compte pour choisir le condensateur (tension de claquage).</p>
+    <p><strong>B4.</strong> \(\langle\mathcal P_J\rangle=\tfrac12RI_m^2\) : \(\tfrac12\times20\times0{,}25^2\approx0{,}63\ \text{W}\) en \(f_0\) ; en \(f_1\), \(I_m=I_{\max}/\sqrt2\) et la puissance est divisée par deux : 0,31 W.</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 09</span><span class="diff">★ ★ ☆</span>
+  <h3>Exploiter un enregistrement de travaux pratiques</h3>
+  <div class="statement">Un GBF, de résistance de sortie \(50\ \Omega\), délivre un créneau de 0 à \(E=4{,}0\ \text{V}\) à un circuit formé d'une bobine (inductance \(L\) inconnue, résistance \(r\) inconnue) et d'un condensateur \(C=0{,}47\ \mu\text{F}\) en série. L'oscilloscope montre, après un front montant, des maximums successifs de \(u_C\) de 6,99 V puis 5,67 V, séparés de 1,06 ms.</div>
+  <div class="q"><strong>Q1.</strong> Comment brancher l'oscilloscope ? Pourquoi choisir un créneau de fréquence assez basse, et laquelle convient ici ?</div>
+  <div class="q"><strong>Q2.</strong> Calculer le décrément logarithmique, puis le facteur de qualité.</div>
+  <div class="q"><strong>Q3.</strong> En déduire \(\omega_0\), puis l'inductance \(L\).</div>
+  <div class="q"><strong>Q4.</strong> Calculer la résistance totale du circuit, puis \(r\).</div>
+  <div class="q"><strong>Q5.</strong> Quel facteur de qualité aurait le circuit sans la résistance du GBF ? Comment l'observer ?</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> Voie 1 sur la sortie du GBF, voie 2 aux bornes du condensateur, placé du côté de la masse (masses communes du GBF et de l'oscilloscope). Chaque front est un échelon : il faut que la demi-période dépasse la durée du transitoire, ici quelques \(\tau\), de l'ordre de 5 à 6 ms (Q4). Un créneau de 50 Hz (demi-période 10 ms) convient.</p>
+    <p><strong>Q2.</strong> Les écarts à la valeur finale \(E\) sont 2,99 V et 1,67 V : \(\delta=\ln(2{,}99/1{,}67)\approx0{,}58\), et \(Q=\tfrac12\sqrt{1+(2\pi/\delta)^2}\approx5{,}4\) (l'approximation \(\pi/\delta\) donne la même valeur). Diviser les maximums eux-mêmes, \(6{,}99/5{,}67\), serait faux : c'est l'écart à \(E\) qui décroît en \(e^{-t/\tau}\).</p>
+    <p><strong>Q3.</strong> \(\omega_p=2\pi/T_p\approx5\,930\ \text{rad·s}^{-1}\), \(\omega_0=\omega_p/\sqrt{1-1/(4Q^2)}\approx5\,950\ \text{rad·s}^{-1}\) ; \(L=1/(C\omega_0^2)\approx60\ \text{mH}\).</p>
+    <p><strong>Q4.</strong> \(R_{\text{tot}}=L\omega_0/Q\approx66\ \Omega\), dont 50 Ω pour le GBF : \(r\approx16\ \Omega\). Contrôle : \(\tau=2L/R_{\text{tot}}\approx1{,}8\ \text{ms}\) et \(T_p/\tau\approx0{,}58=\delta\).</p>
+    <p><strong>Q5.</strong> Avec \(r\) seule, \(Q=\tfrac1r\sqrt{L/C}\approx22\). On s'en approche en chargeant le condensateur, puis en le déchargeant dans la bobine par un interrupteur, GBF débranché : le régime libre n'est alors amorti que par la bobine.</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 10</span><span class="diff">★ ★ ☆</span>
+  <h3>Lire une courbe de résonance mesurée</h3>
+  <div class="statement">Un circuit RLC série comprend une résistance \(R=100\ \Omega\), une bobine \((L,r)\) et un condensateur inconnus. On le soumet à une tension sinusoïdale d'amplitude \(E_m=1{,}00\ \text{V}\), mesurée aux bornes du GBF, et l'on observe \(u_R\) et \(e\). On relève : \(u_R\) en phase avec \(e\) à 2 321 Hz, où son amplitude vaut 0,833 V ; \(u_R\) en avance de \(45^\circ\) sur \(e\) à 2 228 Hz, en retard de \(45^\circ\) à 2 419 Hz.</div>
+  <div class="q"><strong>Q1.</strong> Justifier que 2 321 Hz est la fréquence propre. Que vaut la phase de \(u_C\) par rapport à \(e\) à cette fréquence ?</div>
+  <div class="q"><strong>Q2.</strong> Que représentent 2 228 Hz et 2 419 Hz ? En déduire \(Q\). Vérifier la relation \(f_1f_2=f_0^2\).</div>
+  <div class="q"><strong>Q3.</strong> Déduire de l'amplitude de \(u_R\) à la résonance la résistance totale du circuit, puis \(r\).</div>
+  <div class="q"><strong>Q4.</strong> Calculer \(L\) et \(C\).</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> \(u_R=Ri\) est en phase avec \(e\) quand \(\underline Z\) est réelle, c'est-à-dire en \(\omega_0\) : \(f_0=2\,321\ \text{Hz}\). Alors \(\underline U_{Cm}=\underline I_m/(jC\omega_0)\) : \(u_C\) est en quadrature retard (\(-90^\circ\)) sur \(e\).</p>
+    <p><strong>Q2.</strong> Ce sont les bornes de la bande passante : la phase \(\pm45^\circ\) correspond à \(Q(x-1/x)=\mp1\), où \(I_m=I_{\max}/\sqrt2\). \(\Delta f=191\ \text{Hz}\), \(Q=f_0/\Delta f\approx12{,}2\). \(\sqrt{2\,228\times2\,419}\approx2\,322\ \text{Hz}\) : relation vérifiée.</p>
+    <p><strong>Q3.</strong> À la résonance, \(\underline Z=R+r\) et \(U_{Rm}=E_m\dfrac{R}{R+r}\), d'où \(R+r=100/0{,}833\approx120\ \Omega\) et \(r\approx20\ \Omega\). (La résistance interne du GBF n'intervient pas, puisque \(e\) est mesurée à ses bornes.)</p>
+    <p><strong>Q4.</strong> \(Q=L\omega_0/(R+r)\) donne \(L=Q(R+r)/\omega_0\approx0{,}10\ \text{H}\) ; \(C=1/(L\omega_0^2)\approx47\ \text{nF}\).</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 11</span><span class="diff">★ ★ ☆</span>
+  <h3>Simuler la réponse à un échelon avec Python</h3>
+  <div class="statement">On veut retrouver numériquement le premier maximum de la réponse indicielle du circuit \(L=0{,}10\ \text{H}\), \(C=1{,}0\ \mu\text{F}\), résistance totale \(R=62\ \Omega\), soumis à \(E=2{,}0\ \text{V}\) à partir de \(t=0\) (circuit au repos). On dispose de la fonction <code>odeint(F, Y0, t)</code> de <code>scipy.integrate</code>, qui renvoie un tableau dont la ligne \(k\) est l'état à l'instant <code>t[k]</code>, pour un système \(Y'=F(Y,t)\).</div>
+  <div class="q"><strong>Q1.</strong> Écrire le système d'ordre 1 vérifié par \(Y=[u_C,i]\).</div>
+  <div class="q"><strong>Q2.</strong> Écrire la fonction <code>F</code>, puis les instructions qui calculent \(u_C\) sur 10 ms et affichent l'instant et la valeur de son maximum.</div>
+  <div class="q"><strong>Q3.</strong> Quelles valeurs le programme doit-il afficher ? Les prévoir par le cours.</div>
+  <div class="q"><strong>Q4.</strong> On remplace <code>odeint</code> par la méthode d'Euler. Écrire la boucle. Comment choisir le pas ?</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> \(\dot u_C=i/C\) (relation du condensateur) et \(\dot i=(E-Ri-u_C)/L\) (loi des mailles).</p>
+    <p><strong>Q2.</strong></p>
+    <pre class="codeblock"><span class="kw">import</span> numpy <span class="kw">as</span> np
+<span class="kw">from</span> scipy.integrate <span class="kw">import</span> odeint
+
+L, C, R, E = 0.10, 1.0e-6, 62.0, 2.0
+
+<span class="kw">def</span> F(Y, t):
+    uC, i = Y
+    <span class="kw">return</span> [i / C, (E - R * i - uC) / L]
+
+t = np.linspace(0, 0.010, 10001)          <span class="cmt"># pas d'affichage de 1 µs</span>
+uC = odeint(F, [0.0, 0.0], t)[:, 0]       <span class="cmt"># colonne 0 : uC</span>
+k = np.argmax(uC)                         <span class="cmt"># indice du maximum</span>
+print(round(t[k] * 1e3, 3), round(uC[k], 3))</pre>
+    <p><strong>Q3.</strong> \(Q=\tfrac1{62}\sqrt{10^5}\approx5{,}1\) ; le maximum est \(E(1+e^{-\pi/\sqrt{4Q^2-1}})\approx3{,}47\ \text{V}\), atteint à \(T_p/2\approx1{,}00\ \text{ms}\). Le programme affiche <code>0.998 3.468</code>.</p>
+    <p><strong>Q4.</strong> Avec \(N\) pas de durée \(h\) :</p>
+    <pre class="codeblock">u, i = 0.0, 0.0
+<span class="kw">for</span> k <span class="kw">in</span> range(N):
+    u, i = u + h * i / C, i + h * (E - R * i - u) / L</pre>
+    <p>Le pas doit être très petit devant \(T_0\approx2\ \text{ms}\) et devant \(\tau\approx3\ \text{ms}\) : par exemple \(h=1\ \mu\text{s}\). On valide en divisant \(h\) par 10 : le résultat ne doit plus changer au chiffre près (Euler est d'ordre 1, l'erreur est proportionnelle au pas).</p>
+  </div>
+</div>
+
+<div class="exo concours">
+  <span class="num">CONCOURS PT</span><span class="diff">★ ★ ★</span>
+  <h3>Le circuit de décharge d'un défibrillateur</h3>
+  <div class="exo-source">
+    Exercice <strong>original</strong> au format des épreuves PT (thème <em>circuit RLC, régimes libres, résistance critique, bilan d'énergie, simulation numérique</em>). Pour t'entraîner sur les sujets réellement tombés :
+    <a href="https://www.banquept.fr/rubrique38.html" target="_blank" rel="noopener">annales officielles de la Banque PT</a>.
+  </div>
+  <div class="statement">
+    Un défibrillateur externe rétablit le rythme cardiaque en faisant traverser le thorax par une impulsion de courant de quelques dizaines d'ampères pendant quelques millisecondes. Dans un modèle classique, un condensateur \(C=40\ \mu\text{F}\), chargé sous \(U_0=4{,}0\ \text{kV}\), se décharge à travers une bobine d'inductance \(L=40\ \text{mH}\) et de résistance \(r=10\ \Omega\), et à travers le patient, modélisé par une résistance \(R\) qui dépend de sa morphologie (de 25 à 150 Ω environ ; valeur typique 50 Ω). On oriente le courant \(i\) dans le sens de la décharge (figure).
+  </div>
+  <figure class="schema">
+<svg viewBox="0 0 420 178" role="img" aria-label="Circuit de décharge d'un défibrillateur : condensateur, bobine et patient">
+<polyline points="50,160 50,40 330,40 330,160 50,160" class="sk-ink"/>
+<rect x="47" y="96" width="6" height="8" class="fl-paper"/><line x1="38" y1="96" x2="62" y2="96" class="sk-ink" style="stroke-width:2.4"/><line x1="38" y1="104" x2="62" y2="104" class="sk-ink" style="stroke-width:2.4"/><text x="30" y="104" class="lab-it" text-anchor="end">C</text>
+<line x1="76" y1="126" x2="76" y2="74" class="sk-accent2" style="stroke-width:1.6" marker-end="url(#sk-arrow-accent2)"/><text x="82" y="104" class="lab-accent2 lab-it">u<tspan dy="4" font-size="12">C</tspan></text>
+<rect x="97" y="37" width="26" height="6" class="fl-paper"/><circle cx="97" cy="40" r="2.4" class="sk-ink fl-paper" style="stroke-width:1.3"/><circle cx="123" cy="40" r="2.4" class="sk-ink fl-paper" style="stroke-width:1.3"/><line x1="97" y1="40" x2="121" y2="28" class="sk-ink"/><text x="110" y="24" class="lab-it" text-anchor="middle">K</text>
+<rect x="161" y="38" width="48" height="4" class="fl-paper"/><path d="M 161,40 a 6 6 0 0 1 12 0 a 6 6 0 0 1 12 0 a 6 6 0 0 1 12 0 a 6 6 0 0 1 12 0" class="sk-ink" style="stroke-width:1.8"/><text x="185" y="26" class="lab-it" text-anchor="middle">(L, r)</text>
+<line x1="232" y1="40" x2="248" y2="40" class="sk-accent" style="stroke-width:2" marker-end="url(#sk-arrow-accent)"/><text x="240" y="31" class="lab-accent lab-it" text-anchor="middle">i</text>
+<rect x="296" y="62" width="68" height="76" rx="4" class="sk-dash"/>
+<rect x="323.5" y="83" width="13" height="34" class="sk-ink fl-paper"/><text x="316" y="104" class="lab-it" text-anchor="end">R</text>
+<text x="370" y="104" class="lab-muted">patient</text>
+</svg>
+<figcaption>Le condensateur, chargé sous \(U_0\), se décharge à la fermeture de \(K\) à travers la bobine (inductance \(L\), résistance \(r\)) et le thorax du patient, modélisé par une résistance \(R\).</figcaption>
+</figure>
+  <p class="exo-part">Partie A — L'énergie stockée</p>
+  <div class="q"><strong>A1.</strong> Calculer l'énergie stockée dans le condensateur chargé.</div>
+  <div class="q"><strong>A2.</strong> Le condensateur est chargé par une alimentation de 4,0 kV à travers une résistance de 25 kΩ. Combien de temps faut-il attendre ? Quelle énergie l'alimentation doit-elle fournir ?</div>
+  <p class="exo-part">Partie B — La décharge</p>
+  <div class="q"><strong>B1.</strong> Établir l'équation différentielle vérifiée par \(u_C\) pendant la décharge, avec \(R_{\text{tot}}=R+r\). Exprimer et calculer \(\omega_0\), puis la résistance critique.</div>
+  <div class="q"><strong>B2.</strong> Calculer \(Q\) pour \(R=50\ \Omega\). Le régime est-il oscillant en pratique ? Calculer le premier dépassement \(D\).</div>
+  <div class="q"><strong>B3.</strong> On se place au régime critique. Avec les conditions initiales, montrer que \(u_C=U_0(1+\omega_0t)e^{-\omega_0t}\) et \(i=\dfrac{U_0}L\,t\,e^{-\omega_0t}\). Calculer le courant maximal et l'instant où il est atteint.</div>
+  <p class="exo-part">Partie C — L'énergie reçue par le patient</p>
+  <div class="q"><strong>C1.</strong> Quelle énergie est dissipée au total pendant la décharge ? Montrer que le patient en reçoit la fraction \(R/(R+r)\), quel que soit le régime. Calculer cette énergie pour \(R=50\ \Omega\).</div>
+  <div class="q"><strong>C2.</strong> Sans bobine, le condensateur se déchargerait directement dans le patient (\(R=50\ \Omega\), \(r=0\)). Calculer le courant initial et la durée caractéristique. Quel est le rôle de la bobine ?</div>
+  <p class="exo-part">Partie D — Influence du patient, simulation</p>
+  <div class="q"><strong>D1.</strong> Écrire la fonction <code>F(Y, t)</code> qui permet de simuler la décharge avec <code>odeint</code>, pour \(Y=[u_C,i]\), en respectant l'orientation de la figure.</div>
+  <div class="q"><strong>D2.</strong> La simulation donne le tableau suivant. Commenter l'influence de \(R\) sur la forme de l'impulsion, sur le courant maximal et sur l'énergie reçue par le patient. Que se passe-t-il pour \(R=25\ \Omega\) ?</div>
+  <table>
+    <tr><th>\(R\) (Ω)</th><th>\(Q\)</th><th>\(i_{\max}\) (A)</th><th>instant de \(i_{\max}\) (ms)</th><th>90 % de l'énergie délivrée à (ms)</th><th>énergie reçue par le patient (J)</th></tr>
+    <tr><td>25</td><td>0,90</td><td>65,8</td><td>1,49</td><td>2,95</td><td>229</td></tr>
+    <tr><td>50</td><td>0,53</td><td>48,2</td><td>1,29</td><td>3,27</td><td>267</td></tr>
+    <tr><td>100</td><td>0,29</td><td>31,0</td><td>1,02</td><td>5,22</td><td>291</td></tr>
+    <tr><td>150</td><td>0,20</td><td>22,7</td><td>0,86</td><td>7,46</td><td>300</td></tr>
+  </table>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>A1.</strong> \(\mathcal E_0=\tfrac12CU_0^2\), soit \(\tfrac12\times40\times10^{-6}\times(4{,}0\times10^3)^2=320\ \text{J}\).</p>
+    <p><strong>A2.</strong> Circuit RC : \(\tau_{\text{ch}}=R_{\text{ch}}C=25\times10^3\times40\times10^{-6}=1{,}0\ \text{s}\) ; charge à 95 % en \(3\tau_{\text{ch}}=3\ \text{s}\), à 99 % en 5 s. L'alimentation fournit \(CU_0^2=640\ \text{J}\) : la moitié est perdue dans la résistance de charge (résultat du §4 du cours, valable aussi en RC).</p>
+    <p><strong>B1.</strong> Avec l'orientation de la figure, le courant sort de l'armature positive : \(i=-C\,\dot u_C\), et la loi des mailles s'écrit \(u_C=L\,\dot i+R_{\text{tot}}\,i\). D'où \(LC\ddot u_C+R_{\text{tot}}C\dot u_C+u_C=0\), soit \(\ddot u_C+\dfrac{\omega_0}Q\dot u_C+\omega_0^2u_C=0\), avec \(\omega_0=1/\sqrt{LC}=1/\sqrt{1{,}6\times10^{-6}}\approx791\ \text{rad·s}^{-1}\) et \(Q=\dfrac1{R_{\text{tot}}}\sqrt{\dfrac LC}\). Régime critique pour \(R_{\text{tot}}=2\sqrt{L/C}=2\sqrt{1\,000}\approx63\ \Omega\), soit un patient de 53 Ω.</p>
+    <p><strong>B2.</strong> \(R_{\text{tot}}=60\ \Omega\) : \(Q=31{,}6/60\approx0{,}53\), juste au-dessus de 1/2 : régime pseudo-périodique en théorie. Mais \(4Q^2-1\approx0{,}11\), \(\sqrt{0{,}11}\approx0{,}33\), et \(D=e^{-\pi/0{,}33}\approx e^{-9{,}4}\approx8\times10^{-5}\) : le courant ne s'inverse pas de façon mesurable. Le circuit est pratiquement au régime critique.</p>
+    <p><strong>B3.</strong> Au critique, \(u_C=(A+Bt)e^{-\omega_0t}\). \(u_C(0)=U_0\) donne \(A=U_0\) ; \(i(0^+)=0\) (continuité dans la bobine) donne \(\dot u_C(0)=0\), soit \(B-\omega_0A=0\), \(B=\omega_0U_0\). Donc \(u_C=U_0(1+\omega_0t)e^{-\omega_0t}\), et \(i=-C\dot u_C=CU_0\omega_0^2\,t\,e^{-\omega_0t}=\dfrac{U_0}L\,t\,e^{-\omega_0t}\). Maximum quand \(\mathrm{d}i/\mathrm{d}t=0\) : \(t=1/\omega_0\approx1{,}26\ \text{ms}\), où \(i_{\max}=\dfrac{U_0}{L\omega_0e}=\dfrac{U_0}e\sqrt{\dfrac CL}\approx47\ \text{A}\).</p>
+    <p><strong>C1.</strong> Bilan d'énergie (\(\mathrm{d}\mathcal E/\mathrm{d}t=-(R+r)i^2\)) : toute l'énergie stockée, 320 J, est dissipée. Le même courant traverse \(R\) et \(r\) : à chaque instant, les puissances sont dans le rapport \(R/r\), donc le patient reçoit la fraction \(R/(R+r)\) de 320 J, quelle que soit la forme de \(i(t)\). Pour \(R=50\ \Omega\) : \(\tfrac{50}{60}\times320\approx267\ \text{J}\), et 53 J chauffent la bobine.</p>
+    <p><strong>C2.</strong> Circuit RC : le courant saute à \(U_0/R=80\ \text{A}\) dès la fermeture, puis décroît avec \(\tau=RC=2{,}0\ \text{ms}\). La bobine, dont le courant est continu, impose \(i(0^+)=0\) : elle étale l'impulsion et limite le courant maximal (48 A au lieu de 80 A), ce qui réduit le risque de brûlure des tissus.</p>
+    <p><strong>D1.</strong> D'après B1 : \(\dot u_C=-i/C\) et \(\dot i=(u_C-(R+r)i)/L\).</p>
+    <pre class="codeblock"><span class="kw">def</span> F(Y, t):
+    uC, i = Y
+    <span class="kw">return</span> [-i / C, (uC - (R + r) * i) / L]</pre>
+    <p>avec l'état initial <code>[U0, 0.0]</code>.</p>
+    <p><strong>D2.</strong> Plus \(R\) est grande, plus \(Q\) est petit : l'impulsion devient apériodique, plus basse et plus longue (90 % de l'énergie délivrée en 7,5 ms pour 150 Ω, contre 3,3 ms pour 50 Ω), mais le patient reçoit une plus grande part des 320 J (300 J contre 267 J), la bobine en dissipant une part plus petite. Pour \(R=25\ \Omega\), \(Q=0{,}90\) : le régime est franchement pseudo-périodique ; le courant culmine à 66 A, puis s'inverse (premier dépassement \(D\approx0{,}12\), courant négatif de 8 A environ) : l'impulsion devient « biphasique », ce que le modèle simple ne contrôle pas. Les appareils modernes mesurent l'impédance du thorax avant le choc et adaptent l'impulsion.</p>
+  </div>
+</div>
+
+</div>
+</template>

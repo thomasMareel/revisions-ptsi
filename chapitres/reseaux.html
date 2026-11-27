@@ -1,0 +1,782 @@
+<!-- Chapitre « Réseaux de communication » (reseaux) : contenu des onglets Cours, Méthodes et Exercices, chargé à l'ouverture du chapitre.
+     On l'édite ici, puis : node tools/chapitres.js (docs/chargement-chapitres.md). -->
+<template class="pan-tpl" data-panneau="rsx-cours">
+<div class="course-section">
+  <div class="sec-num">AU PROGRAMME · PTSI</div>
+  <h2>Ce que le programme officiel demande</h2>
+  <div class="intro">Ce chapitre étudie la fonction <strong>communiquer</strong> de la chaîne d'information : comment capteurs, cartes de commande, variateurs et interfaces échangent des données. Il couvre deux capacités du semestre 2 (A3) et prépare le dimensionnement du débit de communication (F3, S4), repris en 2ᵉ année dans « Chaînes fonctionnelles : choisir et dimensionner les composants » (§9). Il prolonge « Capteurs et chaîne de mesure » (signal numérique) et « Ingénierie système : besoin, exigences, architecture » (fonctions acquérir, traiter, communiquer).</div>
+  <div class="reveal" onclick="this.classList.toggle('open')">
+    <span class="label">Programme officiel</span>
+    <span class="prompt">Les capacités exigibles, dans l'ordre du chapitre</span>
+    <div class="content">
+      <ul>
+        <li><strong>Identifier les architectures matérielles et fonctionnelles d'un réseau de communication</strong> : caractéristiques d'un réseau, débit, dimension, robustesse et topologie (A3, S2) (§1, §2) ; supports de l'information et caractéristiques d'un canal de transmission (§3) ; multiplexage temporel et fréquentiel (§5).</li>
+        <li><strong>Décoder une trame en vue d'analyser les différents champs et les données échangées</strong> : protocole, trame et champs, rôle des champs dans une trame (A3, S2) (§4, §6) ; adressage physique et logique d'un constituant (§7).</li>
+        <li><strong>Identifier la nature des flux échangés</strong> : flux d'information, nature et codage (A2, S2) (§4, §6).</li>
+        <li><strong>Dimensionner un composant des chaînes fonctionnelles à partir d'une documentation technique</strong> : débit de communication (F3, S4) (§8).</li>
+      </ul>
+      <p>L'étude porte sur les concepts communs aux protocoles usuels : aucun protocole n'est à apprendre par cœur. Le format d'une trame (liaison série, I²C, CAN, Modbus, Ethernet…) est toujours fourni ; il faut savoir le lire et l'exploiter. Hors programme, en fin de chapitre : modèle en couches détaillé, routage, calcul d'un CRC, capacité d'un canal bruité, modulations.</p>
+    </div>
+  </div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§1 · LA FONCTION COMMUNIQUER</div>
+  <h2>Pourquoi un réseau dans un système</h2>
+  <div class="intro">Dans un système automatisé, l'information circule entre des constituants parfois éloignés de plusieurs mètres : capteur et carte de commande, carte et variateur, système et opérateur. Un réseau remplace un faisceau de fils dédiés par un support partagé et des règles d'échange communes.</div>
+  <p>La chaîne d'information <em>acquiert</em>, <em>traite</em> et <em>communique</em> : ordres vers la chaîne de puissance (consigne d'un variateur), informations vers l'utilisateur (afficheur, application), données vers d'autres systèmes (supervision d'une usine).</p>
+  <div class="def-box">
+    <strong>Réseau de communication</strong> : ensemble de constituants, les <strong>nœuds</strong> (ou stations), reliés par un ou plusieurs <strong>supports</strong> de transmission et qui échangent des <strong>messages</strong> selon des règles communes, le <strong>protocole</strong>. Une <strong>liaison point à point</strong> relie exactement deux nœuds ; un <strong>bus</strong> est un support partagé auquel se raccordent plusieurs nœuds.
+  </div>
+  <div class="method-box">
+    <strong>Exemple — Relier les calculateurs d'une voiture</strong>
+    <p>Une voiture récente embarque plusieurs dizaines de calculateurs. On en retient 10 (moteur, boîte de vitesses, freinage, direction, airbags, tableau de bord…), chacun utilisant des informations produites par les autres : la vitesse du véhicule sert au freinage, à la direction, à la boîte et au tableau de bord.</p>
+    <ol>
+      <li><span class="step">Point à point.</span> Relier chaque couple demande \(10\times9/2 = 45\) liaisons, et 9 connecteurs par calculateur. Un 11ᵉ calculateur exigerait 10 liaisons de plus.</li>
+      <li><span class="step">Bus.</span> Une seule paire de fils passe d'un calculateur à l'autre ; chacun n'a qu'un raccordement, et un calculateur de plus n'en ajoute qu'un. Une information émise une fois est reçue par tous ceux qui en ont besoin.</li>
+      <li><span class="step">Contrepartie.</span> Le support est partagé : il faut décider qui émet (§5), désigner le destinataire (§6, §7) et vérifier que le message arrive intact (§6).</li>
+    </ol>
+  </div>
+  <h3>Quelques réseaux courants</h3>
+  <table>
+    <tr><th>Liaison ou réseau</th><th>Support et topologie</th><th>Débit, étendue</th><th>Usage typique</th></tr>
+    <tr><td>Liaison série asynchrone (UART)</td><td>2 fils (émission, réception) et masse ; point à point</td><td>9 600 à 115 200 bit/s ; quelques mètres</td><td>module GPS, console de mise au point</td></tr>
+    <tr><td>I²C</td><td>2 fils (données SDA, horloge SCL) et masse ; bus</td><td>100 à 400 kbit/s ; une carte (moins de 1 m)</td><td>capteurs, afficheurs d'une même carte</td></tr>
+    <tr><td>SPI</td><td>4 fils (horloge, 2 de données, sélection) ; un maître, des esclaves</td><td>1 à quelques dizaines de Mbit/s ; quelques centimètres</td><td>convertisseurs, mémoires, écrans</td></tr>
+    <tr><td>CAN</td><td>paire torsadée différentielle ; bus</td><td>de 125 kbit/s sur 500 m à 1 Mbit/s sur 40 m</td><td>automobile, robots, vélos électriques</td></tr>
+    <tr><td>Modbus sur RS-485</td><td>paire torsadée différentielle ; bus maître-esclaves</td><td>9 600 à 115 200 bit/s ; jusqu'à 1 200 m</td><td>automates, variateurs, compteurs d'énergie</td></tr>
+    <tr><td>Ethernet</td><td>paire torsadée ou fibre ; étoile autour de commutateurs</td><td>100 Mbit/s à 10 Gbit/s ; 100 m par câble en cuivre</td><td>automates, supervision, caméras</td></tr>
+    <tr><td>Wi-Fi, Bluetooth, LoRa</td><td>ondes radio</td><td>de quelques kbit/s sur des km (LoRa) à des centaines de Mbit/s sur des dizaines de m (Wi-Fi)</td><td>objets connectés, capteurs isolés</td></tr>
+  </table>
+  <div class="notice"><strong>Erreur classique</strong> : confondre « série » et « bus ». « Série » décrit la façon d'émettre les bits, un à la fois (§4) ; « bus » décrit la façon de relier les nœuds, par un support partagé (§2). CAN est un bus série ; une UART est une liaison série point à point.</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§2 · CARACTÉRISTIQUES ET TOPOLOGIES</div>
+  <h2>Débit, dimension, robustesse, topologie</h2>
+  <div class="intro">Quatre caractéristiques, celles que cite le programme, décrivent un réseau et guident son choix.</div>
+  <div class="def-box">
+    <ul>
+      <li><strong>Débit</strong> \(D\) : nombre de bits transmis par seconde (bit/s ; 1 kbit/s = 10³ bit/s, 1 Mbit/s = 10⁶ bit/s). C'est le débit brut sur le support ; le débit utile, plus faible, est l'objet du §8.</li>
+      <li><strong>Dimension</strong> : étendue (longueur de câble, portée radio) et nombre maximal de nœuds : réseau d'une carte, bus de terrain d'une machine ou d'un atelier (quelques mètres à 1 km), réseau local d'un site, réseau étendu (internet).</li>
+      <li><strong>Robustesse</strong> : aptitude à fonctionner malgré les perturbations électromagnétiques (§3), les erreurs de transmission (§6) et la panne d'un nœud ou d'une liaison (topologie). Une commande exige souvent aussi un réseau <strong>déterministe</strong>, où la durée d'un échange est bornée et garantie.</li>
+      <li><strong>Topologie</strong> : organisation des liaisons entre les nœuds (figure 1).</li>
+    </ul>
+  </div>
+<figure class="schema">
+<svg viewBox="0 0 340 280" text-anchor="middle" role="img" aria-label="Topologies bus, étoile autour d'un commutateur, anneau et maillage complet">
+<text x="85" y="16" class="lab-b">Bus</text>
+<text x="85" y="131" class="lab-muted">un support partagé</text>
+<line x1="14" y1="70" x2="156" y2="70" class="sk-accent2"/>
+<g class="fl-ink"><rect x="10" y="63" width="4" height="14"/><rect x="156" y="63" width="4" height="14"/></g>
+<g class="sk-ink"><line x1="30" y1="40" x2="30" y2="70"/><line x1="57.5" y1="100" x2="57.5" y2="70"/><line x1="85" y1="40" x2="85" y2="70"/><line x1="112.5" y1="100" x2="112.5" y2="70"/><line x1="140" y1="40" x2="140" y2="70"/></g>
+<g class="sk-ink fl-paper"><circle cx="30" cy="40" r="8.5"/><circle cx="57.5" cy="100" r="8.5"/><circle cx="85" cy="40" r="8.5"/><circle cx="112.5" cy="100" r="8.5"/><circle cx="140" cy="40" r="8.5"/></g>
+<text x="255" y="16" class="lab-b">Étoile</text>
+<text x="255" y="131" class="lab-muted">n liaisons, 1 commutateur</text>
+<g class="sk-ink"><line x1="255" y1="72" x2="255" y2="32"/><line x1="255" y1="72" x2="293" y2="59.6"/><line x1="255" y1="72" x2="278.5" y2="104.4"/><line x1="255" y1="72" x2="231.5" y2="104.4"/><line x1="255" y1="72" x2="217" y2="59.6"/></g>
+<g class="sk-ink fl-paper"><circle cx="255" cy="32" r="8.5"/><circle cx="293" cy="59.6" r="8.5"/><circle cx="278.5" cy="104.4" r="8.5"/><circle cx="231.5" cy="104.4" r="8.5"/><circle cx="217" cy="59.6" r="8.5"/></g>
+<rect x="244" y="61" width="22" height="22" rx="3" class="sk-accent2 fl-paper"/>
+<text x="85" y="156" class="lab-b">Anneau</text>
+<text x="85" y="271" class="lab-muted">n liaisons</text>
+<circle cx="85" cy="212" r="40" class="sk-accent2"/>
+<g class="sk-ink fl-paper"><circle cx="85" cy="172" r="8.5"/><circle cx="119.6" cy="192" r="8.5"/><circle cx="119.6" cy="232" r="8.5"/><circle cx="85" cy="252" r="8.5"/><circle cx="50.4" cy="232" r="8.5"/><circle cx="50.4" cy="192" r="8.5"/></g>
+<text x="255" y="156" class="lab-b">Maillage complet</text>
+<text x="255" y="271" class="lab-muted">n(n − 1)/2 liaisons</text>
+<g class="sk-ink"><line x1="255" y1="172" x2="293" y2="199.6"/><line x1="255" y1="172" x2="278.5" y2="244.4"/><line x1="255" y1="172" x2="231.5" y2="244.4"/><line x1="255" y1="172" x2="217" y2="199.6"/><line x1="293" y1="199.6" x2="278.5" y2="244.4"/><line x1="293" y1="199.6" x2="231.5" y2="244.4"/><line x1="293" y1="199.6" x2="217" y2="199.6"/><line x1="278.5" y1="244.4" x2="231.5" y2="244.4"/><line x1="278.5" y1="244.4" x2="217" y2="199.6"/><line x1="231.5" y1="244.4" x2="217" y2="199.6"/></g>
+<g class="sk-ink fl-paper"><circle cx="255" cy="172" r="8.5"/><circle cx="293" cy="199.6" r="8.5"/><circle cx="278.5" cy="244.4" r="8.5"/><circle cx="231.5" cy="244.4" r="8.5"/><circle cx="217" cy="199.6" r="8.5"/></g>
+<g class="sk-axis"><line x1="10" y1="138" x2="330" y2="138"/><line x1="170" y1="8" x2="170" y2="272"/></g>
+</svg>
+<figcaption>Figure 1 — Les quatre topologies de base (n nœuds). En couleur, les supports partagés et le commutateur de l'étoile ; le bus est fermé à ses extrémités par des bouchons, qui évitent les réflexions du signal.</figcaption>
+</figure>
+  <table>
+    <tr><th>Topologie</th><th>Liaisons pour \(n\) nœuds</th><th>Coupure d'une liaison</th><th>Panne d'un nœud</th><th>Exemples</th></tr>
+    <tr><td>Bus</td><td>1 support, \(n\) raccordements</td><td>support principal coupé : réseau scindé en deux</td><td>les autres continuent, sauf s'il bloque le support</td><td>CAN, I²C, RS-485</td></tr>
+    <tr><td>Étoile</td><td>\(n\), vers un nœud central</td><td>un seul nœud isolé</td><td>nœud central : tout s'arrête ; autre nœud : lui seul</td><td>Ethernet (commutateur)</td></tr>
+    <tr><td>Anneau</td><td>\(n\)</td><td>à sens unique : tout s'arrête ; à double sens : les messages font le tour par l'autre côté</td><td>ses voisins doivent le court-circuiter</td><td>réseaux industriels redondants</td></tr>
+    <tr><td>Maillage</td><td>\(n(n-1)/2\) s'il est complet</td><td>d'autres chemins existent</td><td>les autres restent joignables</td><td>cœur d'internet (maillage partiel), réseaux radio maillés</td></tr>
+  </table>
+  <div class="prop-box"><strong>Point unique de défaillance.</strong> Élément dont la panne seule arrête tout le réseau : le support d'un bus, le nœud central d'une étoile, n'importe quelle liaison d'un anneau à sens unique. Pour rendre un réseau robuste, on supprime ces points par redondance (anneau à double sens, commutateur doublé, maillage), au prix de câbles et d'équipements supplémentaires.</div>
+  <div class="method-box">
+    <strong>Exemple — Relier les six stations d'une ligne de conditionnement</strong>
+    <p>Six stations sont alignées tous les 16 m le long d'un convoyeur de 80 m. L'automate se trouve à la première station (abscisse 0) ; les câbles suivent le convoyeur.</p>
+    <ol>
+      <li><span class="step">Étoile centrée sur l'automate.</span> Un câble par station : \(16 + 32 + 48 + 64 + 80 = 240\) m.</li>
+      <li><span class="step">Bus.</span> Un câble de 80 m longe la ligne ; chaque station s'y raccorde au passage.</li>
+      <li><span class="step">Anneau.</span> On ajoute le retour de la dernière station vers l'automate : 160 m. Après une coupure en un point quelconque, chaque station reste joignable par l'autre côté.</li>
+      <li><span class="step">Choix.</span> Le bus est le plus économique. L'anneau à double sens double la longueur mais tolère une coupure : il se justifie si un arrêt de la ligne coûte cher. L'étoile, la plus longue, ne vaut ici que pour un débit élevé par station (câbles non partagés).</li>
+    </ol>
+  </div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§3 · SUPPORTS ET CANAL DE TRANSMISSION</div>
+  <h2>Transporter physiquement les bits</h2>
+  <div class="intro">Le support porte l'information sous forme de tension ou de courant dans un conducteur, de lumière dans une fibre, ou d'onde électromagnétique dans l'air. Avec l'émetteur et le récepteur, il forme un canal qui atténue, déforme, retarde et bruite le signal.</div>
+  <table>
+    <tr><th>Support</th><th>Principe</th><th>Atouts</th><th>Limites</th><th>Usages</th></tr>
+    <tr><td>Paire torsadée</td><td>deux conducteurs torsadés, signal différentiel ; blindée ou non</td><td>peu coûteuse, souple, facile à raccorder</td><td>atténuation qui croît avec la fréquence</td><td>Ethernet (100 m), CAN, RS-485</td></tr>
+    <tr><td>Câble coaxial</td><td>âme centrale entourée d'un blindage cylindrique</td><td>bonne immunité aux perturbations, large bande passante</td><td>rigide, plus coûteux</td><td>antennes, vidéo, instrumentation</td></tr>
+    <tr><td>Fibre optique</td><td>lumière guidée dans un cœur de verre</td><td>atténuation très faible (0,2 à 3 dB/km), insensible aux perturbations, isolation électrique, très haut débit</td><td>raccordement délicat, interfaces coûteuses</td><td>longues distances, milieux perturbés</td></tr>
+    <tr><td>Radio</td><td>onde électromagnétique (bandes de 868 MHz, 2,4 GHz, 5 GHz)</td><td>aucun câble, mobilité</td><td>support partagé, obstacles, portée, confidentialité, autonomie</td><td>Wi-Fi, Bluetooth, réseaux de capteurs</td></tr>
+  </table>
+  <div class="prop-box"><strong>Transmission différentielle.</strong> L'information est portée par la différence de potentiel \(u_d = v_A - v_B\) entre les deux conducteurs d'une paire, et non par le potentiel d'un fil par rapport à la masse. Une perturbation (moteur, convertisseur) induit presque la même tension parasite \(e\) dans les deux conducteurs, d'autant mieux qu'ils sont torsadés, et elle disparaît de la différence :
+    <div class="formula" data-nom="Rejet d'une perturbation en différentiel">$$u_d = \left(v_A + e\right) - \left(v_B + e\right) = v_A - v_B$$</div>
+    Les liaisons longues ou perturbées (CAN, RS-485, Ethernet) sont donc différentielles ; celles référencées à la masse (I²C, SPI) ne sortent guère d'une carte.
+  </div>
+  <h3>Caractéristiques d'un canal</h3>
+  <div class="def-box">
+    <ul>
+      <li><strong>Bande passante</strong> \(B\) : plage de fréquences que le canal transmet sans affaiblissement notable (à −3 dB, comme pour un filtre : « Réponse fréquentielle et diagrammes de Bode »).</li>
+      <li><strong>Atténuation</strong> (ou affaiblissement) : rapport, en décibels, des puissances émise et reçue. Proportionnelle à la longueur, elle s'exprime en dB/km ou en dB/100 m, à une fréquence donnée.</li>
+      <li><strong>Bruit</strong> : signal parasite aléatoire (agitation thermique, perturbations des moteurs et convertisseurs, autres émetteurs), comparé au signal par le rapport signal sur bruit \(\text{RSB} = 10\log\left(P_s/P_b\right)\), en dB.</li>
+      <li><strong>Temps de propagation</strong> : \(t_p = L/v\) pour une longueur \(L\), avec \(v \approx 2\times10^8\ \text{m/s}\) dans un câble ou une fibre, soit 5 ns par mètre.</li>
+    </ul>
+  </div>
+  <div class="formula" data-nom="Atténuation en décibels">$$A_{\text{dB}} = 10\log\frac{P_e}{P_r} = 20\log\frac{U_e}{U_r}$$</div>
+  <p>La seconde forme vaut pour des tensions prises sur une même résistance. Les atténuations en dB s'ajoutent le long d'une liaison ; 20 dB divisent la tension par 10, 6 dB environ par 2.</p>
+  <h3>Débit binaire et rapidité de modulation</h3>
+  <div class="def-box">Le signal est une suite de <strong>symboles</strong> : états (niveaux de tension, fréquences, phases) maintenus chacun pendant une durée \(T_s\). La <strong>rapidité de modulation</strong> \(R = 1/T_s\) est le nombre de symboles par seconde, en <strong>bauds</strong> (Bd). La <strong>valence</strong> \(V\) est le nombre d'états possibles d'un symbole, qui porte alors \(\log_2 V\) bits :
+    <div class="formula" data-nom="Débit et rapidité de modulation">$$D = R\,\log_2 V$$</div>
+    Avec deux niveaux (\(V = 2\)), un symbole porte un bit : \(D = R\), et les valeurs en bit/s et en bauds coïncident, bien que ce ne soient pas les mêmes grandeurs.
+  </div>
+  <div class="prop-box"><strong>Limite due à la bande passante.</strong> Un canal de bande passante \(B\) ne transmet pas plus de \(2B\) symboles par seconde sans que les symboles successifs se mélangent (critère de Nyquist, admis) : \(R \le 2B\). Pour augmenter le débit sur un canal donné, on augmente la valence ; mais les états se rapprochent, et le bruit provoque alors davantage d'erreurs.</div>
+<figure class="schema">
+<svg viewBox="0 0 350 196" text-anchor="middle" role="img" aria-label="Signal binaire émis, puis reçu à travers un canal de bande passante B = R (créneaux arrondis) et B = R/10 (bits mélangés)">
+<text x="2" y="46.5" class="lab-muted" text-anchor="start">émis</text>
+<line x1="66" y1="58" x2="346" y2="58" class="sk-axis"/>
+<polyline points="66,58 66,58 86,58 86,26 106,26 106,26 126,26 126,58 146,58 146,26 166,26 166,26 186,26 186,26 206,26 206,58 226,58 226,58 246,58 246,58 266,58 266,26 286,26 286,58 306,58 306,58 326,58 326,58 346,58" class="sk-ink"/>
+<text x="76" y="12" class="lab-muted">0</text>
+<text x="96" y="12" class="lab-muted">1</text>
+<text x="116" y="12" class="lab-muted">1</text>
+<text x="136" y="12" class="lab-muted">0</text>
+<text x="156" y="12" class="lab-muted">1</text>
+<text x="176" y="12" class="lab-muted">1</text>
+<text x="196" y="12" class="lab-muted">1</text>
+<text x="216" y="12" class="lab-muted">0</text>
+<text x="236" y="12" class="lab-muted">0</text>
+<text x="256" y="12" class="lab-muted">0</text>
+<text x="276" y="12" class="lab-muted">1</text>
+<text x="296" y="12" class="lab-muted">0</text>
+<text x="316" y="12" class="lab-muted">0</text>
+<text x="336" y="12" class="lab-muted">0</text>
+<text x="2" y="95" class="lab-muted" text-anchor="start">reçu</text>
+<text x="2" y="111" class="lab-it" text-anchor="start">B = R</text>
+<line x1="66" y1="114" x2="346" y2="114" class="sk-axis"/>
+<line x1="66" y1="98" x2="346" y2="98" class="sk-dash"/>
+<polyline points="66,114 69,114 73,114 76,114 79,114 83,114 86,114 89,93 93,86 96,83 99,82 103,82 106,82 109,82 113,82 116,82 119,82 123,82 126,82 129,103 133,110 136,113 139,114 143,114 146,114 149,93 153,86 156,83 159,82 163,82 166,82 169,82 173,82 176,82 179,82 183,82 186,82 189,82 193,82 196,82 199,82 203,82 206,82 209,103 213,110 216,113 219,114 223,114 226,114 229,114 233,114 236,114 239,114 243,114 246,114 249,114 253,114 256,114 259,114 263,114 266,114 269,93 273,86 276,83 279,82 283,82 286,82 289,103 293,110 296,113 299,114 303,114 306,114 309,114 313,114 316,114 319,114 323,114 326,114 329,114 333,114 336,114 339,114 343,114 346,114" class="sk-accent2"/>
+<text x="2" y="151" class="lab-muted" text-anchor="start">reçu</text>
+<text x="2" y="167" class="lab-it" text-anchor="start">B = R/10</text>
+<line x1="66" y1="170" x2="346" y2="170" class="sk-axis"/>
+<line x1="66" y1="154" x2="346" y2="154" class="sk-dash"/>
+<polyline points="66,170 69,170 73,170 76,170 79,170 83,170 86,170 89,167 93,164 96,161 99,159 103,157 106,155 109,153 113,152 116,150 119,149 123,148 126,147 129,149 133,151 136,153 139,155 143,156 146,158 149,156 153,154 156,152 159,151 163,150 166,149 169,148 173,147 176,146 179,145 183,144 186,144 189,143 193,143 196,142 199,142 203,141 206,141 209,144 213,146 216,149 219,151 223,153 226,155 229,156 233,157 236,159 239,160 243,161 246,162 249,163 253,163 256,164 259,165 263,165 266,166 269,163 273,160 276,158 279,156 283,154 286,153 289,154 293,156 296,157 299,159 303,160 306,161 309,162 313,163 316,163 319,164 323,165 326,165 329,166 333,166 336,166 339,167 343,167 346,167" class="sk-accent"/>
+<text x="346" y="192" class="lab-muted" text-anchor="end">tirets : seuil de décision</text>
+</svg>
+<figcaption>Figure 2 — Effet de la bande passante (canal modélisé par un passe-bas du premier ordre). Avec B = R, les fronts s'arrondissent mais chaque bit franchit le seuil. Avec B = R/10, chaque bit déborde sur les suivants : lus en leur milieu, 4 bits sur 14 seraient faux, dont le 0 isolé (4ᵉ bit) et le 1 isolé (11ᵉ bit).</figcaption>
+</figure>
+  <div class="method-box">
+    <strong>Exemple — Deux liaisons d'un réseau de capteurs</strong>
+    <ol>
+      <li><span class="step">Canal radio.</span> Un module radio dispose d'un canal de 12,5 kHz : \(R \le 2B = 25\ \text{kBd}\). Avec 4 fréquences possibles (\(V = 4\), 2 bits par symbole), \(D \le 50\ \text{kbit/s}\) ; avec 2 fréquences, 25 kbit/s.</li>
+      <li><span class="step">Câble.</span> Une liaison RS-485 de 400 m utilise une paire qui atténue de 3 dB/100 m à la fréquence du signal : \(A = 12\) dB. Pour 2 V émis, le récepteur reçoit \(U_r = 2\times10^{-12/20} \approx 0{,}50\ \text{V}\), au-dessus de son seuil de 0,2 V : la liaison fonctionne.</li>
+      <li><span class="step">Propagation.</span> \(t_p = 400/(2\times10^8) = 2\ \text{µs}\), négligeable devant la durée d'un bit à 9 600 bit/s (104 µs).</li>
+    </ol>
+  </div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§4 · ÉMETTRE LES BITS</div>
+  <h2>Série ou parallèle, synchrone ou asynchrone</h2>
+  <div class="intro">Avant d'être regroupés en trames, les bits doivent être émis et relus au bon rythme. Le codage le plus simple, dit NRZ, représente un 1 par un niveau haut et un 0 par un niveau bas pendant toute la durée d'un bit \(T_b = 1/D\).</div>
+  <div class="def-box">
+    <ul>
+      <li><strong>Transmission parallèle</strong> : \(n\) fils transmettent \(n\) bits en même temps. Rapide sur quelques centimètres, elle devient coûteuse et peu fiable au-delà : beaucoup de fils, bits d'un même mot décalés à l'arrivée, fils voisins qui se perturbent (diaphonie).</li>
+      <li><strong>Transmission série</strong> : les bits se suivent sur un seul support. C'est la règle dès que l'on sort d'un composant (USB, Ethernet, CAN).</li>
+      <li><strong>Sens des échanges</strong> : <em>simplex</em> (un seul sens : capteur radio vers récepteur), <em>half-duplex</em> (deux sens à tour de rôle : I²C, RS-485 sur une paire), <em>full-duplex</em> (deux sens en même temps : UART avec ses deux fils, SPI, Ethernet).</li>
+      <li><strong>Transmission synchrone</strong> : une horloge commune cadence l'émission et la lecture des bits, transmise sur un fil dédié (SCL en I²C, horloge du SPI) ou incluse dans le signal (codage Manchester : une transition au milieu de chaque bit). <strong>Transmission asynchrone</strong> : aucune horloge n'est transmise ; émetteur et récepteur ont chacun la leur, réglée sur le même débit nominal, et le récepteur se recale à chaque caractère (UART) ou sur les fronts du signal (CAN).</li>
+    </ul>
+  </div>
+  <h3>La liaison série asynchrone (UART)</h3>
+  <p>Au repos, la ligne est à 1. Chaque caractère est encadré : un <strong>bit de start</strong> à 0, dont le front descendant déclenche la lecture ; 5 à 9 bits de données, du <strong>poids faible au poids fort</strong> ; un <strong>bit de parité</strong> facultatif (§6) ; un ou deux <strong>bits de stop</strong> à 1, qui ramènent la ligne au repos. Le format se note « 8N1 » (8 bits, pas de parité, 1 stop), « 7E1 » (7 bits, parité paire, <em>even</em>) ou « 8O1 » (parité impaire, <em>odd</em>).</p>
+<figure class="schema">
+<svg viewBox="0 0 350 156" text-anchor="middle" role="img" aria-label="Chronogramme de la trame 8N1 du caractère S : start à 0, données 1 1 0 0 1 0 1 0 du poids faible au poids fort, stop à 1">
+<text x="18" y="62.5" class="lab-it" text-anchor="end">1</text>
+<text x="18" y="92.5" class="lab-it" text-anchor="end">0</text>
+<g class="sk-axis"><line x1="44" y1="50" x2="44" y2="92"/><line x1="72" y1="50" x2="72" y2="92"/><line x1="100" y1="50" x2="100" y2="92"/><line x1="128" y1="50" x2="128" y2="92"/><line x1="156" y1="50" x2="156" y2="92"/><line x1="184" y1="50" x2="184" y2="92"/><line x1="212" y1="50" x2="212" y2="92"/><line x1="240" y1="50" x2="240" y2="92"/><line x1="268" y1="50" x2="268" y2="92"/><line x1="296" y1="50" x2="296" y2="92"/><line x1="324" y1="50" x2="324" y2="92"/></g>
+<polyline points="26,58 44,58 44,88 72,88 72,58 100,58 100,58 128,58 128,88 156,88 156,88 184,88 184,58 212,58 212,88 240,88 240,58 268,58 268,88 296,88 296,58 324,58 324,58 342,58" class="sk-accent2"/>
+<g class="fl-accent"><circle cx="58" cy="88" r="2.6"/><circle cx="86" cy="58" r="2.6"/><circle cx="114" cy="58" r="2.6"/><circle cx="142" cy="88" r="2.6"/><circle cx="170" cy="88" r="2.6"/><circle cx="198" cy="58" r="2.6"/><circle cx="226" cy="88" r="2.6"/><circle cx="254" cy="58" r="2.6"/><circle cx="282" cy="88" r="2.6"/><circle cx="310" cy="58" r="2.6"/></g>
+<text x="58" y="46">0</text>
+<text x="58" y="108" class="lab-muted">start</text>
+<text x="86" y="46" class="lab-b">1</text>
+<text x="86" y="108" class="lab-it">b₀</text>
+<text x="114" y="46" class="lab-b">1</text>
+<text x="114" y="108" class="lab-it">b₁</text>
+<text x="142" y="46" class="lab-b">0</text>
+<text x="142" y="108" class="lab-it">b₂</text>
+<text x="170" y="46" class="lab-b">0</text>
+<text x="170" y="108" class="lab-it">b₃</text>
+<text x="198" y="46" class="lab-b">1</text>
+<text x="198" y="108" class="lab-it">b₄</text>
+<text x="226" y="46" class="lab-b">0</text>
+<text x="226" y="108" class="lab-it">b₅</text>
+<text x="254" y="46" class="lab-b">1</text>
+<text x="254" y="108" class="lab-it">b₆</text>
+<text x="282" y="46" class="lab-b">0</text>
+<text x="282" y="108" class="lab-it">b₇</text>
+<text x="310" y="46">1</text>
+<text x="310" y="108" class="lab-muted">stop</text>
+<polyline points="72,30 72,24 296,24 296,30" class="sk-ink"/>
+<text x="184" y="17" class="lab-muted">8 bits de données, poids faible d'abord</text>
+<line x1="72" y1="124" x2="100" y2="124" class="sk-ink" marker-start="url(#sk-arrow-ink)" marker-end="url(#sk-arrow-ink)"/>
+<text x="106" y="128.5" text-anchor="start">un bit dure 1/D (104 µs à 9 600 bit/s)</text>
+<text x="346" y="150" class="lab-muted" text-anchor="end">temps →</text>
+</svg>
+<figcaption>Figure 3 — Trame 8N1 du caractère « S » (0x53 = 0101 0011) sur une liaison série asynchrone : repos à 1, start à 0, données du poids faible b₀ au poids fort b₇, stop à 1. Le récepteur lit chaque bit en son milieu (points).</figcaption>
+</figure>
+  <div class="method-box">
+    <strong>Exemple — Décoder la trame de la figure 3</strong>
+    <ol>
+      <li><span class="step">Début.</span> La ligne au repos passe de 1 à 0 : c'est le start ; le récepteur lit ensuite au milieu de chaque durée de bit.</li>
+      <li><span class="step">Durée d'un bit.</span> Le plus court palier dure 104 µs, d'où \(D = 1/T_b \approx 9\,600\ \text{bit/s}\).</li>
+      <li><span class="step">Données.</span> Les 8 bits lus valent, de \(b_0\) à \(b_7\) : 1, 1, 0, 0, 1, 0, 1, 0. Réécrits poids fort à gauche : 0101 0011, soit 0x53 = 83, le caractère « S » du code ASCII.</li>
+      <li><span class="step">Fin.</span> Le 10ᵉ bit est à 1 : le stop est correct. À 0, le récepteur signalerait une erreur de format.</li>
+      <li><span class="step">Bilan.</span> 10 bits émis pour 8 utiles, en \(10/9\,600 \approx 1{,}04\ \text{ms}\).</li>
+    </ol>
+  </div>
+  <div class="prop-box"><strong>Tolérance sur les horloges.</strong> Le récepteur se cale sur le front du start et lit le bit de rang \(k\) (start compris, \(k = 0\)) à la date \((k + 1/2)\,T_b\) : le stop, 10ᵉ bit d'une trame 8N1, est lu à \(9{,}5\,T_b\). Si son horloge diffère de celle de l'émetteur de l'écart relatif \(\varepsilon\), la lecture se décale de \(9{,}5\,\varepsilon\,T_b\) ; elle reste dans le bon bit tant que ce décalage est inférieur à \(T_b/2\), soit \(\varepsilon \lt 1/19 \approx 5\ \%\). En pratique, on vise ±2 % sur chaque horloge ; sans le recalage à chaque caractère, la dérive s'accumulerait sur tout le message.</div>
+  <div class="notice"><strong>Erreur classique</strong> : lire les bits d'une UART dans leur ordre d'arrivée comme s'ils commençaient par le poids fort. Le premier bit de données reçu est \(b_0\), le poids faible : il faut retourner la suite avant de l'écrire en binaire.</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§5 · MULTIPLEXAGE ET ACCÈS AU SUPPORT</div>
+  <h2>Partager un support entre plusieurs communications</h2>
+  <div class="intro">Un bus, une fibre ou une bande de fréquences radio servent à plusieurs communications. Le multiplexage répartit le support entre elles, dans le temps ou en fréquence.</div>
+  <div class="def-box"><strong>Multiplexage</strong> : transmission de plusieurs <strong>voies</strong> (communications indépendantes) sur un même support. Le multiplexeur les combine à l'émission, le démultiplexeur les sépare à la réception.</div>
+<figure class="schema">
+<svg viewBox="0 0 340 188" text-anchor="middle" role="img" aria-label="Plan temps-fréquence : en multiplexage temporel, les voies occupent toute la bande à tour de rôle ; en fréquentiel, chacune occupe sa bande en permanence">
+<text x="96" y="14" class="lab-b">Multiplexage temporel</text>
+<g class="sk-ink"><line x1="26" y1="150" x2="174" y2="150" marker-end="url(#sk-arrow-ink)"/><line x1="26" y1="150" x2="26" y2="30" marker-end="url(#sk-arrow-ink)"/></g>
+<text x="172" y="165" class="lab-it" text-anchor="end">t</text>
+<text x="20" y="40" class="lab-it" text-anchor="end">f</text>
+<text x="96" y="182" class="lab-muted">à tour de rôle</text>
+<rect x="28" y="48" width="22.7" height="98" class="fl-accent-soft"/>
+<rect x="28" y="48" width="22.7" height="98" class="sk-axis"/>
+<text x="39.3" y="101.5">V₁</text>
+<rect x="50.7" y="48" width="22.7" height="98" class="fl-accent2-soft"/>
+<rect x="50.7" y="48" width="22.7" height="98" class="sk-axis"/>
+<text x="62" y="101.5">V₂</text>
+<rect x="73.3" y="48" width="22.7" height="98" class="fl-green-soft"/>
+<rect x="73.3" y="48" width="22.7" height="98" class="sk-axis"/>
+<text x="84.7" y="101.5">V₃</text>
+<rect x="96" y="48" width="22.7" height="98" class="fl-accent-soft"/>
+<rect x="96" y="48" width="22.7" height="98" class="sk-axis"/>
+<text x="107.3" y="101.5">V₁</text>
+<rect x="118.7" y="48" width="22.7" height="98" class="fl-accent2-soft"/>
+<rect x="118.7" y="48" width="22.7" height="98" class="sk-axis"/>
+<text x="130" y="101.5">V₂</text>
+<rect x="141.3" y="48" width="22.7" height="98" class="fl-green-soft"/>
+<rect x="141.3" y="48" width="22.7" height="98" class="sk-axis"/>
+<text x="152.7" y="101.5">V₃</text>
+<polyline points="30,44 30,40 94,40 94,44" class="sk-ink"/>
+<text x="62" y="35" class="lab-muted">un cycle</text>
+<text x="266" y="14" class="lab-b">Multiplexage fréquentiel</text>
+<g class="sk-ink"><line x1="196" y1="150" x2="344" y2="150" marker-end="url(#sk-arrow-ink)"/><line x1="196" y1="150" x2="196" y2="30" marker-end="url(#sk-arrow-ink)"/></g>
+<text x="342" y="165" class="lab-it" text-anchor="end">t</text>
+<text x="190" y="40" class="lab-it" text-anchor="end">f</text>
+<text x="266" y="182" class="lab-muted">en même temps</text>
+<rect x="200" y="118.7" width="136" height="27.3" class="fl-accent-soft"/>
+<rect x="200" y="118.7" width="136" height="27.3" class="sk-axis"/>
+<text x="266" y="136.8">V₁</text>
+<rect x="200" y="83.3" width="136" height="27.3" class="fl-accent2-soft"/>
+<rect x="200" y="83.3" width="136" height="27.3" class="sk-axis"/>
+<text x="266" y="101.5">V₂</text>
+<rect x="200" y="48" width="136" height="27.3" class="fl-green-soft"/>
+<rect x="200" y="48" width="136" height="27.3" class="sk-axis"/>
+<text x="266" y="66.2">V₃</text>
+</svg>
+<figcaption>Figure 4 — Trois voies se partagent un support (plan temps-fréquence). À gauche, chacune a toute la bande pendant son intervalle de temps, cycle après cycle. À droite, chacune a sa bande de fréquences en permanence, séparée des autres par une bande de garde.</figcaption>
+</figure>
+  <div class="prop-box"><strong>Multiplexage temporel.</strong> Chaque voie dispose de tout le support pendant un <strong>intervalle de temps</strong>, à tour de rôle ; un cycle donne la parole à chaque voie. Le débit du support doit couvrir la somme des débits des voies :
+    <div class="formula" data-nom="Condition du multiplexage temporel">$$D \ge \sum_i D_i$$</div>
+    <strong>Multiplexage fréquentiel.</strong> Chaque voie dispose en permanence d'une <strong>bande de fréquences</strong> autour de sa porteuse, séparée de ses voisines par une bande de garde ; la bande passante du support doit couvrir la somme des bandes des voies et des bandes de garde.
+  </div>
+  <p>Temporel : tout bus, où un seul nœud émet à la fois. Fréquentiel : radio FM, canaux Wi-Fi, voix et internet sur une même ligne téléphonique, plusieurs longueurs d'onde dans une fibre.</p>
+  <div class="method-box">
+    <strong>Exemple — Canaux Wi-Fi dans la bande des 2,4 GHz</strong>
+    <p>La bande s'étend de 2 400 à 2 483,5 MHz. Le canal \(n\) (de 1 à 13) est centré sur \(2\,407 + 5n\) MHz et occupe environ 20 MHz.</p>
+    <ol>
+      <li><span class="step">Recouvrement.</span> Deux canaux ne se chevauchent pas si leurs centres sont écartés d'au moins 20 MHz, soit au moins 4 numéros d'écart.</li>
+      <li><span class="step">Plan de fréquences.</span> Les canaux 1, 6 et 11 (centres 2 412, 2 437 et 2 462 MHz, écartés de 25 MHz) accueillent trois points d'accès voisins sans brouillage, avec 5 MHz de garde.</li>
+      <li><span class="step">Mauvais choix.</span> Sur les canaux 1 et 3 (10 MHz d'écart), deux points d'accès se recouvrent à moitié et se brouillent.</li>
+    </ol>
+  </div>
+  <h3>Qui émet sur un bus ?</h3>
+  <p>Un bus est multiplexé dans le temps, mais sans intervalles fixés d'avance : une <strong>méthode d'accès</strong>, fixée par le protocole, décide qui émet.</p>
+  <ul>
+    <li><strong>Maître-esclaves</strong> (scrutation) : le maître interroge les esclaves à tour de rôle ; un esclave n'émet que pour répondre (Modbus, SPI). Simple et déterministe, mais tout passe par le maître.</li>
+    <li><strong>Jeton</strong> : une autorisation d'émettre circule de nœud en nœud ; seul son détenteur émet.</li>
+    <li><strong>Accès à la demande</strong> : un nœud émet dès que le support est libre ; si deux nœuds commencent ensemble, il faut arbitrer, ou détecter la collision et réémettre.</li>
+    <li><strong>Intervalles réservés</strong> : chaque nœud émet dans son intervalle d'un cycle fixe ; déterministe, mais un intervalle inutilisé est perdu.</li>
+  </ul>
+  <div class="method-box">
+    <strong>Exemple — Arbitrage sur un bus CAN</strong>
+    <p>Sur CAN, un bit 0 imposé par un nœud l'emporte sur un bit 1 (0 est « dominant »). Chaque nœud relit le bus pendant qu'il émet l'identifiant de son message, poids fort d'abord, et se retire dès qu'il lit 0 alors qu'il émettait 1. Deux nœuds commencent ensemble, avec les identifiants 0x1A4 et 0x1B2.</p>
+    <ol>
+      <li><span class="step">En binaire, sur 11 bits.</span> 0x1A4 = 001 1010 0100 et 0x1B2 = 001 1011 0010.</li>
+      <li><span class="step">Comparaison.</span> Les six premiers bits sont identiques ; au septième, le premier nœud émet 0 et le second 1. Le second lit 0 : il se retire et réessaiera après la trame.</li>
+      <li><span class="step">Conclusion.</span> L'identifiant le plus petit gagne, sans que son message soit retardé ni altéré : l'identifiant fixe la <strong>priorité</strong> du message.</li>
+    </ol>
+  </div>
+  <div class="notice"><strong>Erreur classique</strong> : croire que le multiplexage augmente le débit. Il partage le support : la somme des débits des voies ne peut pas dépasser la capacité du support.</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§6 · PROTOCOLE, TRAME ET CHAMPS</div>
+  <h2>Lire une trame champ par champ</h2>
+  <div class="intro">Pour se comprendre, deux constituants doivent appliquer les mêmes règles et découper la suite de bits de la même façon.</div>
+  <div class="def-box"><strong>Protocole</strong> : ensemble des règles d'un échange : niveaux électriques et débit, format des trames, adressage, méthode d'accès, détection des erreurs, déroulement (requête, réponse, acquittement, délais). <strong>Trame</strong> : suite de bits émise d'un seul tenant et découpée en <strong>champs</strong> dont la taille, l'ordre et le rôle sont fixés par le protocole.</div>
+<figure class="schema">
+<svg viewBox="0 0 350 152" text-anchor="middle" role="img" aria-label="Champs d'une trame : début, adresse, commande, données, vérification, fin ; nombre de bits de chaque champ d'une trame CAN standard">
+<rect x="2" y="30" width="46" height="42" class="sk-ink fl-paper"/>
+<text x="25" y="48">Début</text>
+<text x="25" y="64" class="lab-muted">synchro</text>
+<rect x="2" y="120" width="46" height="24" class="sk-ink fl-paper"/>
+<text x="25" y="136.5">1</text>
+<rect x="48" y="30" width="54" height="42" class="sk-ink fl-paper"/>
+<text x="75" y="48">Adresse</text>
+<text x="75" y="64" class="lab-muted">qui ?</text>
+<rect x="48" y="120" width="54" height="24" class="sk-ink fl-paper"/>
+<text x="75" y="136.5">12</text>
+<rect x="102" y="30" width="70" height="42" class="sk-ink fl-paper"/>
+<text x="137" y="48">Commande</text>
+<text x="137" y="64" class="lab-muted">quoi ?</text>
+<rect x="102" y="120" width="70" height="24" class="sk-ink fl-paper"/>
+<text x="137" y="136.5">6</text>
+<rect x="172" y="30" width="66" height="42" class="sk-ink fl-paper"/>
+<rect x="172" y="30" width="66" height="42" class="fl-accent2-soft"/>
+<text x="205" y="48">Données</text>
+<text x="205" y="64" class="lab-muted">valeurs</text>
+<rect x="172" y="120" width="66" height="24" class="sk-ink fl-paper"/>
+<text x="205" y="136.5">0 à 64</text>
+<rect x="238" y="30" width="80" height="42" class="sk-ink fl-paper"/>
+<text x="278" y="48">Vérification</text>
+<text x="278" y="64" class="lab-muted">intégrité</text>
+<rect x="238" y="120" width="80" height="24" class="sk-ink fl-paper"/>
+<text x="278" y="136.5">16</text>
+<rect x="318" y="30" width="30" height="42" class="sk-ink fl-paper"/>
+<text x="333" y="48">Fin</text>
+<rect x="318" y="120" width="30" height="24" class="sk-ink fl-paper"/>
+<text x="333" y="136.5">9</text>
+<line x1="2" y1="16" x2="348" y2="16" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<text x="175" y="11" class="lab-muted">sens d'émission</text>
+<polyline points="4,78 4,83 170,83 170,78" class="sk-ink"/>
+<text x="87" y="98" class="lab-muted">en-tête</text>
+<polyline points="174,78 174,83 236,83 236,78" class="sk-ink"/>
+<text x="205" y="98" class="lab-muted">charge utile</text>
+<polyline points="240,78 240,83 346,83 346,78" class="sk-ink"/>
+<text x="293" y="98" class="lab-muted">queue de trame</text>
+<text x="2" y="114" class="lab-muted" text-anchor="start">exemple : trame CAN standard, nombre de bits par champ</text>
+</svg>
+<figcaption>Figure 5 — Structure générale d'une trame : en-tête, charge utile, queue. En bas, la trame CAN standard : 44 bits de service pour 0 à 8 octets de données, plus 3 bits de silence entre deux trames.</figcaption>
+</figure>
+  <table>
+    <tr><th>Champ</th><th>Rôle</th></tr>
+    <tr><td>Début (préambule, start, condition de départ)</td><td>signaler le début de la trame et caler l'horloge du récepteur</td></tr>
+    <tr><td>Adresse ou identifiant</td><td>désigner le destinataire, souvent aussi l'émetteur ; sur CAN, la nature du message et sa priorité (chaque nœud garde ce qui l'intéresse)</td></tr>
+    <tr><td>Commande (ou contrôle)</td><td>préciser la demande (lecture, écriture, code de fonction) et souvent le nombre d'octets de données</td></tr>
+    <tr><td>Données</td><td>la charge utile : mesures, consignes, états</td></tr>
+    <tr><td>Vérification</td><td>permettre au récepteur de détecter une trame altérée (parité, somme de contrôle, CRC)</td></tr>
+    <tr><td>Acquittement, fin</td><td>confirmer la bonne réception, séparer les trames</td></tr>
+  </table>
+  <h3>Codage des données</h3>
+  <p>Les bits sont groupés par 8 en <strong>octets</strong>. Un octet s'écrit en <strong>hexadécimal</strong> avec deux chiffres de 0 à F, un par groupe de 4 bits : 0x3A = 0011 1010 = \(3\times16 + 10 = 58\). Un nombre de \(n\) bits \(b_{n-1}\dots b_1 b_0\) vaut</p>
+  <div class="formula" data-nom="Valeur d'un nombre binaire">$$N = \sum_{k=0}^{n-1} b_k\,2^k$$</div>
+  <ul>
+    <li><strong>Mot de 16 bits</strong> : deux octets, de poids fort et de poids faible ; le protocole fixe celui qui est émis en premier.</li>
+    <li><strong>Entier signé</strong> (complément à deux) : sur 16 bits, de −32 768 à 32 767 ; un mot dont le bit de poids fort vaut 1 représente \(N - 65\,536\). Ainsi 0xFF38 = 65 336 code −200.</li>
+    <li><strong>Grandeur physique</strong> : valeur = nombre codé × résolution (+ décalage éventuel), dans l'unité donnée par la documentation.</li>
+    <li><strong>Caractère</strong> : code ASCII sur 7 bits (« 0 » = 0x30, « A » = 0x41).</li>
+  </ul>
+  <h3>Détecter les erreurs</h3>
+  <div class="def-box">
+    <ul>
+      <li><strong>Bit de parité</strong> : bit ajouté pour que le nombre total de 1 (données et parité) soit pair (parité paire) ou impair (parité impaire). Il détecte un nombre impair de bits faux, mais ni deux erreurs, ni la position du bit faux.</li>
+      <li><strong>Somme de contrôle</strong> : l'émetteur ajoute la somme des octets (modulo 256, ou son complément) ; le récepteur refait la somme et compare.</li>
+      <li><strong>CRC</strong> (contrôle de redondance cyclique) : 8 à 32 bits calculés sur toute la trame par une division binaire fixée par le protocole ; il détecte toutes les erreurs qui touchent un bit ou quelques bits voisins, et la quasi-totalité des autres. Son calcul, fait par un circuit ou une bibliothèque, est hors programme.</li>
+    </ul>
+  </div>
+  <p>Une trame dont la vérification échoue est ignorée ; selon le protocole, elle n'est pas acquittée et l'émetteur la répète. Une vérification réussie ne prouve pas que la trame est juste, seulement qu'elle ne contient pas d'erreur détectable.</p>
+  <p>Ainsi, « C » = 0x43 = 100 0011 compte trois 1 : sa parité paire vaut 1. Si le récepteur lit 100 0111 avec la parité 1, il compte cinq 1 et détecte l'erreur ; s'il lit 100 0101 (deux bits faux), il en compte quatre et l'erreur passe inaperçue.</p>
+  <h3>Une trame décodée : lecture d'un capteur sur un bus I²C</h3>
+  <p>Sur un bus I²C, le maître impose l'horloge (SCL) et ouvre chaque échange par une condition de départ (S) ; les octets sont émis poids fort d'abord, chacun suivi d'un bit d'<strong>acquittement</strong> émis par le récepteur (A, à 0 ; N, non-acquittement, à 1) ; une condition d'arrêt (P) libère le bus. Le premier octet contient l'adresse de l'esclave sur 7 bits, suivie d'un bit de sens (1 : lecture, 0 : écriture).</p>
+  <div class="method-box">
+    <strong>Exemple — Lire une température</strong>
+    <p>Un capteur de température d'adresse 0x4A rend sa mesure sur 12 bits en complément à deux, cadrée à gauche dans deux octets (les 4 bits de droite sont inutilisés), avec une résolution de 0,0625 °C. Un analyseur logique affiche l'échange : <code>S 95 A 1B A 70 N P</code>.</p>
+    <ol>
+      <li><span class="step">Adresse.</span> 0x95 = 1001 0101 : les 7 bits de gauche, 100 1010, valent 0x4A, l'adresse du capteur ; le dernier bit, 1, demande une lecture. Le capteur acquitte.</li>
+      <li><span class="step">Données.</span> Le capteur émet 0x1B puis 0x70 ; le maître acquitte le premier octet mais pas le second (N : il n'en veut pas d'autre), puis libère le bus.</li>
+      <li><span class="step">Mesure.</span> Le mot 0x1B70 = 0001 1011 0111 0000, privé de ses 4 bits de droite, donne 0x1B7 = 439. Son bit de poids fort est 0 : la valeur est positive, \(\theta = 439\times0{,}0625 = 27{,}4375\) °C, soit 27,4 °C.</li>
+      <li><span class="step">Bilan.</span> L'échange dure environ \(1 + 3\times9 + 1 = 29\) périodes d'horloge, soit 290 µs à 100 kHz, pour 12 bits utiles.</li>
+    </ol>
+  </div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§7 · ADRESSAGE PHYSIQUE ET LOGIQUE</div>
+  <h2>Désigner un constituant</h2>
+  <div class="intro">Sur un support partagé, chaque trame doit indiquer à qui elle est destinée. Deux sortes d'adresses coexistent, qui ne jouent pas le même rôle.</div>
+  <div class="def-box"><strong>Adresse physique</strong> : liée à l'interface matérielle, fixée à la fabrication ou par un réglage matériel (micro-interrupteurs, broches) ; elle sert à livrer la trame sur le support local. <strong>Adresse logique</strong> : attribuée par configuration selon l'organisation du réseau, indépendamment du matériel ; elle situe le constituant dans le réseau et permet de joindre d'autres réseaux.</div>
+  <ul>
+    <li><strong>Adresse MAC</strong> (Ethernet, Wi-Fi, Bluetooth) : adresse physique de 48 bits, écrite en six octets hexadécimaux (00:1A:2B:3C:4D:5E) ; les trois premiers identifient le fabricant, les trois autres l'interface. L'adresse FF:FF:FF:FF:FF:FF désigne tous les nœuds (diffusion).</li>
+    <li><strong>Bus de terrain</strong> : adresse d'esclave réglée sur l'appareil (Modbus : 1 à 247, 0 pour la diffusion) ; adresse I²C sur 7 bits, fixée en partie par le fabricant du composant, en partie par des broches.</li>
+    <li><strong>Adresse IP</strong> (version 4) : adresse logique de 32 bits, écrite en quatre octets décimaux séparés par des points (192.168.1.20). La version 6 utilise 128 bits.</li>
+  </ul>
+  <h3>Adresse IP et masque de sous-réseau</h3>
+  <div class="prop-box"><strong>Partie réseau et partie hôte.</strong> Un masque de \(n\) bits (noté /n) a ses \(n\) premiers bits à 1 et les autres à 0 : /24 s'écrit 255.255.255.0. Le ET bit à bit entre l'adresse et le masque donne l'<strong>adresse du réseau</strong> ; les \(32 - n\) bits restants forment la partie hôte. Deux constituants de même adresse de réseau échangent directement ; sinon, ils passent par une passerelle (routeur). La partie hôte tout à 0 désigne le réseau lui-même, tout à 1 la diffusion à tous ses hôtes, d'où le nombre d'adresses attribuables :
+    <div class="formula" data-nom="Nombre d'hôtes d'un réseau IP">$$N_h = 2^{32-n} - 2$$</div>
+  </div>
+  <div class="method-box">
+    <strong>Exemple — Un automate en 192.168.10.37/26</strong>
+    <ol>
+      <li><span class="step">Masque.</span> 26 bits à 1 : trois octets à 255, puis 1100 0000 = 192, soit 255.255.255.192.</li>
+      <li><span class="step">Réseau.</span> Seul le dernier octet est concerné : 37 = 0010 0101, ET 1100 0000, donne 0. Réseau 192.168.10.0/26.</li>
+      <li><span class="step">Plage.</span> Partie hôte de 6 bits : diffusion en 192.168.10.63, hôtes de .1 à .62, soit \(2^6 - 2 = 62\).</li>
+      <li><span class="step">Une caméra en 192.168.10.70.</span> 70 = 0100 0110, ET 1100 0000, donne 64 : réseau 192.168.10.64, différent. L'automate ne la joint pas directement : il faut une passerelle, ou un plan d'adressage revu.</li>
+    </ol>
+  </div>
+  <div class="notice"><strong>Erreur classique</strong> : croire que l'adresse IP désigne le matériel. Un automate remplacé change d'adresse MAC, mais on lui donne l'ancienne adresse IP : les autres constituants le retrouvent sans modification (la correspondance IP – MAC est établie automatiquement).</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§8 · DÉBIT UTILE ET DIMENSIONNEMENT</div>
+  <h2>Le réseau suit-il le rythme des mesures ?</h2>
+  <div class="intro">Dimensionner une communication, c'est vérifier que tous les messages nécessaires passent dans le temps imparti, avec une marge. Ces comptes reviennent en 2ᵉ année pour choisir une liaison sur documentation.</div>
+  <div class="prop-box"><strong>Durées.</strong> Un bit dure \(T_b = 1/D\) ; une trame de \(n_t\) bits, tous champs compris (start, stop, en-tête, vérification, silence imposé entre trames), dure
+    <div class="formula" data-nom="Durée d'une trame">$$t_t = \frac{n_t}{D}$$</div>
+    Un échange complet (requête et réponse) ajoute le temps de réponse du destinataire et la propagation, souvent négligeable sur un bus de terrain.
+  </div>
+  <div class="def-box"><strong>Efficacité</strong> d'une trame : \(\eta = n_u/n_t\), rapport des bits utiles (données) aux bits transmis. <strong>Débit utile</strong> : nombre de bits de données transmis par seconde ; pour des trames émises sans interruption,
+    <div class="formula" data-nom="Débit utile">$$D_u = \eta\,D = \frac{n_u}{n_t}\,D$$</div>
+  </div>
+  <div class="prop-box"><strong>Condition de débit.</strong> Si le message \(i\), de \(n_{t,i}\) bits, est émis \(f_i\) fois par seconde, le taux d'occupation du support
+    <div class="formula" data-nom="Taux d'occupation d'un support">$$U = \frac{1}{D}\sum_i f_i\,n_{t,i}$$</div>
+    doit rester inférieur à 1, et en pratique à 50 ou 70 %, pour absorber les répétitions et les attentes d'accès. Dans une boucle de commande de période d'échantillonnage \(T_e\), tous les échanges d'une période doivent tenir dans \(T_e\) ; leur durée s'ajoute au retard de la boucle et réduit sa marge de phase (« Stabilité des systèmes asservis »).
+  </div>
+  <div class="method-box">
+    <strong>Exemple — Bus CAN d'un robot cartésien à quatre axes</strong>
+    <p>Un calculateur central commande quatre axes par un bus CAN à 1 Mbit/s, avec une période d'échantillonnage \(T_e = 1\) ms. Chaque axe renvoie position et courant dans une trame de 8 octets de données ; le central envoie une consigne de 16 bits par axe. Une trame CAN standard de \(k\) octets de données occupe \(47 + 8k\) bits, silence entre trames compris (figure 5).</p>
+    <ol>
+      <li><span class="step">Mesures.</span> \(4\times(47 + 64) = 444\) bits par période.</li>
+      <li><span class="step">Consignes dans quatre trames de 2 octets.</span> \(4\times(47 + 16) = 252\) bits, soit 696 bits par milliseconde : \(U \approx 70\ \%\), à la limite.</li>
+      <li><span class="step">Consignes regroupées dans une trame de 8 octets.</span> 111 bits, soit 555 bits par milliseconde : \(U \approx 56\ \%\). L'efficacité passe de \(320/696 = 46\ \%\) à \(320/555 = 58\ \%\).</li>
+      <li><span class="step">Marge.</span> Les bits de bourrage que CAN insère pour garder des fronts (jusqu'à 20 % de plus environ) et les éventuelles répétitions consomment la marge : on retient le regroupement, ou un débit plus élevé.</li>
+    </ol>
+  </div>
+  <div class="notice"><strong>Erreur classique</strong> : oublier les bits de service. 8 octets utiles occupent 111 bits sur CAN, 80 sur une UART 8N1 et 672 sur Ethernet (au moins 84 octets par trame, préambule et silence compris). Penser aussi aux octets (×8) et au préfixe k = 1 000 des débits.</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">POUR ALLER PLUS LOIN · HORS PROGRAMME</div>
+  <h2>Couches, internet et limites théoriques</h2>
+  <div class="intro">Ces notions éclairent le chapitre mais ne sont pas exigibles.</div>
+  <ul>
+    <li><strong>Modèle en couches.</strong> Le modèle OSI range les fonctions d'un réseau en 7 couches : physique (supports, codage des bits : §3, §4), liaison (trames, adresses physiques, détection d'erreurs : §6, §7), réseau (adresses logiques, routage), transport (fiabilité de bout en bout : TCP, UDP), session, présentation et application (Modbus, HTTP). Chaque couche ajoute son en-tête (encapsulation).</li>
+    <li><strong>Routage et services de l'internet</strong> : choix du chemin par les routeurs, correspondance entre adresses IP et MAC (ARP), attribution automatique des adresses (DHCP), traduction d'adresses (NAT).</li>
+    <li><strong>Calcul d'un CRC</strong> (division de polynômes à coefficients binaires) et <strong>codes correcteurs</strong> (code de Hamming), qui localisent et corrigent un bit faux au lieu de seulement détecter l'erreur.</li>
+    <li><strong>Capacité d'un canal bruité</strong> (Shannon) : \(C = B\log_2\left(1 + P_s/P_b\right)\) borne le débit de tout codage. Pour \(B = 1\ \text{MHz}\) et un RSB de 30 dB (\(P_s/P_b = 1\,000\)), \(C \approx 10\ \text{Mbit/s}\).</li>
+    <li><strong>Modulations numériques</strong> (amplitude, fréquence, phase) ; sécurité des échanges (chiffrement, authentification).</li>
+  </ul>
+</div>
+</template>
+<template class="pan-tpl" data-panneau="rsx-meth">
+<div class="course-section">
+  <div class="sec-num">MÉTHODES · RÉSEAUX DE COMMUNICATION</div>
+  <h2>Les réflexes du chapitre</h2>
+  <div class="intro">Décoder une trame, chiffrer un débit, choisir une architecture et situer un constituant dans un réseau : les savoir-faire attendus, chacun avec un exemple court.</div>
+
+  <div class="method-box">
+    <strong>Méthode 1 — Décoder une trame à partir de sa documentation</strong>
+    <ol style="margin-top:.4rem">
+      <li><span class="step">Lire le format.</span> Dans la documentation : liste des champs, taille de chacun (en bits ou en octets), ordre d'émission (poids fort ou poids faible d'abord), codage des données (signé ou non, résolution, unité), règle de vérification.</li>
+      <li><span class="step">Découper.</span> Repérer le début de la trame, puis compter les octets (ou les bits) champ par champ ; écrire les octets en binaire dès qu'un champ ne fait pas un nombre entier d'octets.</li>
+      <li><span class="step">Identifier.</span> Adresse ou identifiant : qui émet, pour qui ; commande : quelle demande ; longueur : combien d'octets de données suivent.</li>
+      <li><span class="step">Convertir les données.</span> Assembler les octets d'un mot dans le bon ordre, appliquer le signe (complément à deux), multiplier par la résolution, ajouter l'unité.</li>
+      <li><span class="step">Vérifier.</span> Refaire le contrôle d'erreur, puis juger la vraisemblance physique de la valeur obtenue.</li>
+    </ol>
+    <p><em>Exemple éclair :</em> un capteur de pression répond <code>07 04 01 2C 38</code> ; format : adresse, fonction, mesure sur 2 octets (poids fort d'abord, 0,01 bar par unité), somme des octets précédents modulo 256. Adresse 7, fonction 4, mesure 0x012C = 300, soit 3,00 bar ; somme 0x07 + 0x04 + 0x01 + 0x2C = 0x38 : trame cohérente.</p>
+  </div>
+
+  <div class="method-box">
+    <strong>Méthode 2 — Lire le chronogramme d'une liaison série asynchrone</strong>
+    <ol style="margin-top:.4rem">
+      <li><span class="step">Format et débit.</span> Relever le format (8N1, 7E1…) et le débit, ou mesurer la durée d'un bit sur le plus court palier : \(D = 1/T_b\).</li>
+      <li><span class="step">Découper.</span> Partir du premier front descendant (start) et découper le signal en durées de bit ; lire chaque bit en son milieu.</li>
+      <li><span class="step">Remettre dans l'ordre.</span> Les bits de données arrivent poids faible d'abord : réécrire la suite à l'envers, poids fort à gauche, puis convertir (hexadécimal, décimal, ASCII).</li>
+      <li><span class="step">Contrôler.</span> Parité si le format en prévoit une, stop à 1 ; le caractère suivant commence au front descendant suivant.</li>
+    </ol>
+    <p><em>Exemple éclair :</em> en 8E1, après le start on lit 0, 1, 1, 0, 1, 1, 0, 0, puis la parité 0 et le stop 1. Poids fort à gauche : 0011 0110 = 0x36, le caractère « 6 » ; quatre 1 dans les données, parité paire 0 : correct.</p>
+  </div>
+
+  <div class="method-box">
+    <strong>Méthode 3 — Calculer un bit de parité ou une somme de contrôle</strong>
+    <ol style="margin-top:.4rem">
+      <li><span class="step">Parité.</span> Compter les 1 des données. Parité paire : le bit vaut 1 si ce nombre est impair (le total devient pair), 0 sinon ; parité impaire : l'inverse.</li>
+      <li><span class="step">Somme de contrôle.</span> Additionner les octets (en décimal si l'on préfère) et garder le reste de la division par 256, c'est-à-dire les deux derniers chiffres hexadécimaux ; prendre le complément si la documentation le demande.</li>
+      <li><span class="step">À la réception.</span> Refaire le même calcul sur ce qui est reçu et le comparer au champ de vérification.</li>
+      <li><span class="step">Conclure avec prudence.</span> Un désaccord prouve une erreur ; un accord ne prouve pas l'absence d'erreur (deux bits faux échappent à la parité).</li>
+    </ol>
+    <p><em>Exemple éclair :</em> 0xA7 = 1010 0111 compte cinq 1 : sa parité impaire vaut 0. Somme de 0x9C, 0x81 et 0x4F : \(156 + 129 + 79 = 364 = 256 + 108\), d'où 108 = 0x6C.</p>
+  </div>
+
+  <div class="method-box">
+    <strong>Méthode 4 — Calculer la durée d'une trame, son efficacité et le débit utile</strong>
+    <ol style="margin-top:.4rem">
+      <li><span class="step">Bits transmis.</span> \(n_t\) : tous les champs, plus les bits ajoutés à chaque octet (start, parité, stop : 10 ou 11 bits par octet sur une UART) et le silence imposé entre trames.</li>
+      <li><span class="step">Bits utiles.</span> \(n_u\) : les seules données (nombre d'octets × 8).</li>
+      <li><span class="step">Calculer.</span> \(t_t = n_t/D\), \(\eta = n_u/n_t\), \(D_u = \eta\,D\).</li>
+      <li><span class="step">Unités.</span> Bit et octet ; k = 10³ et M = 10⁶ pour les débits ; ms et µs pour les durées.</li>
+    </ol>
+    <p><em>Exemple éclair :</em> 4 octets utiles envoyés par Ethernet à 100 Mbit/s : la trame minimale, complétée, occupe 84 octets sur le câble (préambule et silence compris), soit 672 bits, en 6,72 µs ; efficacité \(32/672 \approx 4{,}8\ \%\). Pour de petits messages, les champs de service l'emportent sur le débit nominal.</p>
+  </div>
+
+  <div class="method-box">
+    <strong>Méthode 5 — Vérifier qu'un réseau permet une période d'échantillonnage</strong>
+    <ol style="margin-top:.4rem">
+      <li><span class="step">Inventaire.</span> Sur une période \(T_e\) : quels messages (requêtes et réponses), de combien de bits, combien de fois.</li>
+      <li><span class="step">Durée d'un échange.</span> Durées des trames, plus le temps de réponse du destinataire et les silences imposés.</li>
+      <li><span class="step">Bilan.</span> Somme des échanges sur une période (durée du cycle \(T_c\)), ou taux d'occupation \(U\) (cours, §8).</li>
+      <li><span class="step">Décision.</span> Il faut \(T_c \le T_e\) avec une marge (\(U\) de 50 à 70 % au plus). Sinon : augmenter le débit, regrouper les données en moins de trames, interroger moins souvent les grandeurs lentes, changer de réseau.</li>
+    </ol>
+    <p><em>Exemple éclair :</em> un maître interroge 6 capteurs à tour de rôle à 38 400 bit/s, en 8N1 ; requête de 8 octets, réponse de 7, temps de réponse de 1 ms. Échange : \(150/38\,400\ \text{s} + 1\ \text{ms} \approx 4{,}91\ \text{ms}\) ; cycle complet \(\approx 29{,}4\ \text{ms}\). Chaque capteur est lu au mieux 34 fois par seconde : une période de 20 ms est impossible.</p>
+  </div>
+
+  <div class="method-box">
+    <strong>Méthode 6 — Choisir une topologie et un support</strong>
+    <ol style="margin-top:.4rem">
+      <li><span class="step">Géométrie.</span> Nœuds alignés (convoyeur, véhicule) : bus ou anneau ; nœuds regroupés autour d'un centre : étoile. Estimer les longueurs de câble.</li>
+      <li><span class="step">Robustesse.</span> Repérer les points uniques de défaillance ; si une coupure doit être tolérée, prévoir un anneau à double sens ou une redondance.</li>
+      <li><span class="step">Environnement.</span> Perturbations électromagnétiques : paire torsadée différentielle, blindage ou fibre ; grande distance : fibre ; mobilité ou câblage impossible : radio.</li>
+      <li><span class="step">Performances et coût.</span> Débit nécessaire (méthode 5), déterminisme, nombre de nœuds et évolutions prévues, coût du câble et des équipements.</li>
+    </ol>
+    <p><em>Exemple éclair :</em> un capteur placé dans un poste électrique à haute tension, à 2 km de la salle de commande : la fibre optique s'impose (insensible aux champs intenses, isolante, 0,8 dB d'atténuation seulement sur 2 km à 0,4 dB/km) ; une paire de cuivre serait exposée aux surtensions.</p>
+  </div>
+
+  <div class="method-box">
+    <strong>Méthode 7 — Trouver le réseau d'une adresse IP</strong>
+    <ol style="margin-top:.4rem">
+      <li><span class="step">Masque.</span> /n : \(n\) bits à 1. Octets pleins : 255 ; octet partagé avec \(k\) bits à 1 : \(256 - 2^{8-k}\) (128, 192, 224, 240, 248, 252 ou 254) ; octets suivants : 0.</li>
+      <li><span class="step">Adresse du réseau.</span> Recopier les octets où le masque vaut 255, mettre 0 là où il vaut 0, et faire le ET bit à bit sur l'octet partagé seulement, écrit en binaire.</li>
+      <li><span class="step">Diffusion et plage.</span> Partie hôte toute à 1 pour la diffusion ; les hôtes entre les deux ; \(2^{32-n} - 2\) adresses attribuables.</li>
+      <li><span class="step">Même réseau ?</span> Deux constituants échangent directement si leurs adresses de réseau, calculées avec le même masque, coïncident.</li>
+    </ol>
+    <p><em>Exemple éclair :</em> 10.4.17.130/27 : masque 255.255.255.224 ; 130 = 1000 0010, ET 1110 0000, donne 1000 0000 = 128. Réseau 10.4.17.128, diffusion 10.4.17.159, 30 hôtes de .129 à .158.</p>
+  </div>
+
+  <div class="method-box">
+    <strong>Méthode 8 — Relier débit, rapidité de modulation, bande passante et atténuation</strong>
+    <ol style="margin-top:.4rem">
+      <li><span class="step">Symboles.</span> \(R = 1/T_s\) en bauds ; \(D = R\log_2 V\) ; pour \(V = 2\), \(D = R\).</li>
+      <li><span class="step">Bande passante.</span> \(R \le 2B\) : un débit visé impose une bande passante minimale \(B \ge R/2\), ou une valence plus grande.</li>
+      <li><span class="step">Atténuation.</span> Additionner les dB (dB/km × longueur, connecteurs) ; tension reçue \(U_r = U_e\,10^{-A/20}\), puissance \(P_r = P_e\,10^{-A/10}\) ; comparer au seuil du récepteur et au bruit.</li>
+      <li><span class="step">Propagation.</span> \(t_p = L/v\) avec \(v \approx 2\times10^8\ \text{m/s}\), à comparer à la durée d'un bit et au temps de réponse attendu.</li>
+    </ol>
+    <p><em>Exemple éclair :</em> symboles de 2 µs à 8 états : \(R = 500\ \text{kBd}\), \(D = 500\times\log_2 8 = 1\,500\ \text{kbit/s}\), bande passante d'au moins 250 kHz. Une atténuation de 30 dB divise la puissance par 1 000 et la tension par 31,6.</p>
+  </div>
+
+  <div class="notice"><strong>Piège</strong> : bit et octet. « 1 Mo/s » vaut 8 Mbit/s ; et sur une UART 8N1, un octet occupe 10 bits : 115 200 bit/s ne transmettent que 11 520 octets par seconde.</div>
+  <div class="notice"><strong>Piège</strong> : l'ordre des bits. Sur une UART, le premier bit de données reçu est le poids faible ; sur I²C et CAN, octets et identifiants sont émis poids fort d'abord. Seule la documentation tranche.</div>
+  <div class="notice"><strong>Piège</strong> : le masque se combine par un ET bit à bit, jamais par une soustraction ou une division décimale ; écrire l'octet partagé en binaire.</div>
+</div>
+</template>
+<template class="pan-tpl" data-panneau="rsx-exos">
+<div class="exo-wrapper">
+
+<div class="exo">
+  <span class="num">EXO 01</span><span class="diff">★ ☆ ☆</span>
+  <h3>Données d'une station météo</h3>
+  <div class="statement">Une station météo émet toutes les 10 s une trame dont le champ de données compte 6 octets, dans cet ordre : température (2 octets, poids fort d'abord, entier signé en complément à deux, 0,01 °C par unité) ; humidité relative (1 octet non signé, 0,5 % par unité) ; vitesse du vent (2 octets, poids fort d'abord, non signée, 0,1 km/h par unité) ; direction d'où vient le vent (1 octet non signé, 2° par unité, 0 pour le nord, sens horaire). Un relevé donne : <code>FE 0C 9B 01 2D 5A</code>.</div>
+  <div class="q"><strong>Q1.</strong> Écrire chaque octet en binaire et en décimal.</div>
+  <div class="q"><strong>Q2.</strong> Déterminer la température. Entre quelles valeurs extrêmes ce format peut-il coder une température ?</div>
+  <div class="q"><strong>Q3.</strong> Déterminer l'humidité, la vitesse et la direction du vent.</div>
+  <div class="q"><strong>Q4.</strong> On veut coder des vents jusqu'à 250 km/h avec la même résolution. Combien de bits faut-il au minimum ? Les 2 octets prévus suffisent-ils ?</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> FE = 1111 1110 = 254 ; 0C = 0000 1100 = 12 ; 9B = 1001 1011 = 155 ; 01 = 0000 0001 = 1 ; 2D = 0010 1101 = 45 ; 5A = 0101 1010 = 90. Chaque chiffre hexadécimal donne un groupe de 4 bits (F = 1111, E = 1110…), et un octet vaut \(16\,h + l\) pour les chiffres \(h\) et \(l\).</p>
+    <p><strong>Q2.</strong> Le mot 0xFE0C vaut \(254\times256 + 12 = 65\,036\). Son bit de poids fort est à 1 : le nombre est négatif et vaut \(65\,036 - 65\,536 = -500\), d'où \(\theta = -500\times0{,}01 = -5{,}00\) °C. Sur 16 bits signés, les nombres vont de −32 768 à 32 767 : de −327,68 °C à 327,67 °C, bien plus que nécessaire (la résolution de 0,01 °C dépasse d'ailleurs la précision d'un capteur courant).</p>
+    <p><strong>Q3.</strong> Humidité : \(155\times0{,}5 = 77{,}5\) %. Vent : 0x012D = \(256 + 45 = 301\), soit 30,1 km/h. Direction : \(90\times2 = 180°\), le vent vient du sud.</p>
+    <p><strong>Q4.</strong> De 0 à 250 km/h par pas de 0,1 km/h, il faut 2 501 valeurs. Or \(2^{11} = 2\,048 \lt 2\,501 \le 2^{12} = 4\,096\) : 12 bits au minimum. Les 16 bits prévus suffisent (jusqu'à 6 553,5 km/h) ; 4 bits restent libres, par exemple pour un indicateur d'état du capteur.</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 02</span><span class="diff">★ ☆ ☆</span>
+  <h3>Câbler un atelier : topologie, longueur, robustesse</h3>
+  <div class="statement">Un atelier rectangulaire mesure 40 m (murs sud et nord) sur 30 m (murs est et ouest). Quatre machines occupent les coins : A (sud-ouest), B (sud-est), C (nord-est) et D (nord-ouest). L'automate O est contre le mur sud, à mi-distance de A et de B. Les câbles courent le long des murs. Trois solutions sont étudiées : une <strong>étoile</strong> centrée sur un commutateur placé dans l'armoire de O ; un <strong>bus</strong> qui passe par D, A, O, B puis C ; un <strong>anneau</strong> à double sens O, B, C, D, A, O.</div>
+  <div class="q"><strong>Q1.</strong> Calculer la longueur de câble de chaque solution.</div>
+  <div class="q"><strong>Q2.</strong> Le câble est sectionné entre O et B (un seul câble touché). Quelles machines peuvent encore communiquer avec O, dans chaque solution ?</div>
+  <div class="q"><strong>Q3.</strong> Le commutateur de l'étoile tombe en panne : conséquence ? Quel est le point unique de défaillance de chaque solution, en dehors de l'automate lui-même ?</div>
+  <div class="q"><strong>Q4.</strong> Combien de liaisons faudrait-il pour un maillage complet des cinq nœuds ? Pourquoi ne le retient-on pas ici ?</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> Étoile : OA = OB = 20 m, OC = OD = 20 + 30 = 50 m (le long du mur sud puis d'un mur latéral), soit 140 m en quatre câbles. Bus : DA + AO + OB + BC = 30 + 20 + 20 + 30 = 100 m. Anneau : OB + BC + CD + DA + AO = 20 + 30 + 40 + 30 + 20 = 140 m.</p>
+    <p><strong>Q2.</strong> Étoile : seul le câble de B est coupé ; A, C et D communiquent toujours avec O. Bus : le tronçon O–B portait toute la communication vers B et C, qui sont séparées de O ; de plus, le bus coupé n'est plus terminé à cet endroit, et les réflexions peuvent perturber la partie D–A–O. Anneau à double sens : les messages vers B font le tour par A, D et C ; toutes les machines restent joignables.</p>
+    <p><strong>Q3.</strong> Sans commutateur, plus aucun échange n'est possible : c'est le point unique de défaillance de l'étoile. Pour le bus, c'est le câble principal (et tout nœud défaillant qui bloquerait le support). L'anneau à double sens n'en a pas parmi ses liaisons : il tolère une coupure, au prix de la même longueur de câble que l'étoile. Remarque : si l'accident coupe toute la goulotte entre O et B, le câble de C, qui y passe aussi, est coupé dans l'étoile ; dans l'anneau, B et C restent joignables par l'autre côté.</p>
+    <p><strong>Q4.</strong> \(5\times4/2 = 10\) liaisons, avec 4 ports par nœud. Inutile ici : tous les échanges vont de l'automate aux machines, jamais d'une machine à l'autre, et l'anneau suffit déjà à tolérer une coupure.</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 03</span><span class="diff">★ ★ ☆</span>
+  <h3>Décoder une liaison série 7E1</h3>
+  <div class="statement">Un afficheur reçoit des caractères ASCII par une liaison série asynchrone au format 7E1 (7 bits de données, parité paire, 1 stop). À l'analyseur logique, le plus court palier dure 208 µs. Depuis le premier front descendant, on relève un niveau par durée de bit (la barre sépare deux groupes de 10 bits) :
+    <p><code>0 0 0 1 0 1 1 0 1 1 | 0 0 1 0 1 1 1 0 1 1</code>, puis la ligne reste à 1.</p>
+    Codes ASCII : « 0 » = 0x30, « 1 » = 0x31, …, « 9 » = 0x39, « : » = 0x3A.</div>
+  <div class="q"><strong>Q1.</strong> Calculer le débit, la durée d'un caractère, le nombre maximal de caractères par seconde et l'efficacité de la liaison.</div>
+  <div class="q"><strong>Q2.</strong> Décoder le premier caractère : données, parité, stop.</div>
+  <div class="q"><strong>Q3.</strong> Décoder le second caractère. Que conclut le récepteur ? L'émetteur envoyait le nombre « 42 » : quel bit a été altéré ? Deux bits faux auraient-ils été détectés ?</div>
+  <div class="q"><strong>Q4.</strong> L'horloge du récepteur est 3 % trop lente par rapport à celle de l'émetteur. Le stop est-il lu au bon endroit ? Et avec un écart de 6 % ?</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> \(D = 1/T_b = 1/(208\ \text{µs}) \approx 4\,800\ \text{bit/s}\). Un caractère compte 1 start, 7 données, 1 parité et 1 stop, soit 10 bits : 2,08 ms. Au plus 480 caractères par seconde ; efficacité \(7/10 = 70\ \%\).</p>
+    <p><strong>Q2.</strong> Start 0 ; données \(b_0\) à \(b_6\) : 0, 0, 1, 0, 1, 1, 0 ; parité 1 ; stop 1. Poids fort à gauche : 011 0100 = 0x34, le caractère « 4 ». Les données comptent trois 1 ; avec la parité, quatre : nombre pair, correct ; stop à 1, correct.</p>
+    <p><strong>Q3.</strong> Données : 0, 1, 0, 1, 1, 1, 0, soit 011 1010 = 0x3A, « : » ; parité 1. Quatre 1 dans les données, cinq avec la parité : nombre impair, le récepteur détecte une erreur et rejette le caractère. On attendait « 2 » = 0x32 = 011 0010, c'est-à-dire 0, 1, 0, 0, 1, 1, 0 de \(b_0\) à \(b_6\) : c'est \(b_3\), 5ᵉ bit de la trame, qui est passé de 0 à 1. Le récepteur, lui, ne peut pas savoir lequel : la parité détecte, elle ne localise pas. Deux bits faux laissent le nombre de 1 pair : erreur non détectée.</p>
+    <p><strong>Q4.</strong> Le stop (10ᵉ bit) est lu à \(9{,}5\,T_b\) selon l'horloge du récepteur. Avec 3 % d'écart, le décalage vaut \(9{,}5\times0{,}03 = 0{,}285\,T_b \lt 0{,}5\,T_b\) : la lecture reste dans le stop. Avec 6 %, \(9{,}5\times0{,}06 = 0{,}57\,T_b \gt 0{,}5\,T_b\) : le récepteur lent lit à \(10{,}07\,T_b\), au-delà du stop ; si un caractère suit aussitôt, il lit son start (0) et signale une erreur de format. Un récepteur 6 % trop rapide lirait à \(8{,}93\,T_b\), dans le bit de parité.</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 04</span><span class="diff">★ ★ ☆</span>
+  <h3>Caractériser deux canaux de transmission</h3>
+  <div class="statement">Dans un réseau de capteurs agricoles, un modem radio dispose d'un canal de 25 kHz de large ; il émet des symboles de 104,2 µs, chacun pouvant prendre 4 fréquences différentes. La passerelle radio est reliée au bâtiment par une liaison RS-485 de 600 m, sur une paire torsadée qui atténue de 2,5 dB/100 m à la fréquence du signal ; l'émetteur fournit une tension différentielle de 2,5 V, le récepteur exige au moins 0,2 V, et le bruit induit sur la ligne atteint 30 mV. Vitesse de propagation dans le câble : \(2\times10^8\ \text{m/s}\).</div>
+  <div class="q"><strong>Q1.</strong> Calculer la rapidité de modulation et le débit binaire du modem. La bande passante du canal est-elle suffisante ?</div>
+  <div class="q"><strong>Q2.</strong> On voudrait 48 kbit/s sans changer la durée des symboles : quelle valence faut-il ? Pourquoi est-ce délicat ? Quel débit maximal le canal permettrait-il avec 4 états ?</div>
+  <div class="q"><strong>Q3.</strong> Calculer l'atténuation de la liaison filaire, la tension reçue et le rapport signal sur bruit \(20\log\left(U_r/U_b\right)\). Quelle longueur maximale pourrait-on atteindre ?</div>
+  <div class="q"><strong>Q4.</strong> Calculer le temps de propagation sur 600 m et le comparer à la durée d'un bit à 19 200 bit/s puis à 1 Mbit/s. Conclure.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> \(R = 1/(104{,}2\ \text{µs}) \approx 9\,600\ \text{Bd}\) ; valence \(V = 4\), donc 2 bits par symbole : \(D = 9\,600\times\log_2 4 = 19\,200\ \text{bit/s}\). Il faut \(B \ge R/2 = 4{,}8\ \text{kHz}\) : les 25 kHz suffisent largement.</p>
+    <p><strong>Q2.</strong> \(\log_2 V = 48\,000/9\,600 = 5\), soit \(V = 32\) états. Les 32 fréquences doivent tenir dans le même canal : plus rapprochées, elles sont plus difficiles à distinguer malgré le bruit et les dérives, et les erreurs se multiplient. Le canal accepte au plus \(R = 2B = 50\ \text{kBd}\) : avec 4 états, \(D \le 100\ \text{kbit/s}\), en théorie.</p>
+    <p><strong>Q3.</strong> \(A = 6\times2{,}5 = 15\ \text{dB}\) ; \(U_r = 2{,}5\times10^{-15/20} \approx 0{,}445\ \text{V}\), supérieur au seuil de 0,2 V. \(\text{RSB} = 20\log(0{,}445/0{,}030) \approx 23{,}4\ \text{dB}\). Longueur maximale : \(A_{\max} = 20\log(2{,}5/0{,}2) \approx 21{,}9\ \text{dB}\), soit \(L_{\max} \approx 21{,}9/2{,}5\times100 \approx 880\ \text{m}\), sans marge pour le bruit.</p>
+    <p><strong>Q4.</strong> \(t_p = 600/(2\times10^8) = 3\ \text{µs}\). À 19 200 bit/s, un bit dure 52 µs : le retard en représente 6 %, sans effet sur la lecture au milieu des bits. À 1 Mbit/s, un bit dure 1 µs : trois bits sont « en route » à la fois sur le câble. Ce n'est pas gênant pour une liaison point à point, mais c'est rédhibitoire pour un bus où chaque nœud doit entendre les autres pendant le même bit (arbitrage CAN) : d'où la longueur limitée des bus rapides.</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 05</span><span class="diff">★ ★ ☆</span>
+  <h3>Multiplexage d'un réseau de capteurs sans fil</h3>
+  <div class="statement">Des capteurs d'humidité du sol envoient leurs mesures à une passerelle. Sur un canal radio, le débit est de 250 kbit/s ; le temps est découpé en cycles de 100 ms, divisés en intervalles de 2,5 ms ; les deux premiers intervalles de chaque cycle sont réservés à la passerelle (synchronisation, acquittements). Chaque capteur émet une fois par cycle, dans son intervalle, une trame de 40 octets dont 32 de données, et doit laisser 0,5 ms de garde avant la fin de l'intervalle pour absorber la dérive des horloges.</div>
+  <div class="q"><strong>Q1.</strong> De quel multiplexage s'agit-il ? Combien de bits un intervalle peut-il contenir ? La trame et la garde y tiennent-elles ?</div>
+  <div class="q"><strong>Q2.</strong> Combien de capteurs un canal accueille-t-il ? À quelle fréquence chacun transmet-il une mesure ? Calculer le débit utile par capteur et le taux d'occupation du canal.</div>
+  <div class="q"><strong>Q3.</strong> La sous-bande disponible s'étend de 868,0 à 868,6 MHz. Chaque canal occupe 125 kHz ; on impose 25 kHz de garde entre deux canaux et aux deux bords de la sous-bande. De quel multiplexage s'agit-il ? Combien de canaux, et combien de capteurs au total ?</div>
+  <div class="q"><strong>Q4.</strong> Pourquoi ne pas laisser chaque capteur émettre quand il le souhaite ?</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> Multiplexage temporel à intervalles réservés. Un intervalle contient \(2{,}5\times10^{-3}\times250\,000 = 625\) bits. La trame compte \(40\times8 = 320\) bits, émis en \(320/250\,000 = 1{,}28\ \text{ms}\) ; avec la garde, 1,78 ms, inférieur à 2,5 ms : elle tient.</p>
+    <p><strong>Q2.</strong> \(100/2{,}5 = 40\) intervalles, dont 2 pour la passerelle : 38 capteurs par canal. Chacun transmet une mesure toutes les 100 ms, soit 10 par seconde ; débit utile \(32\times8\times10 = 2\,560\ \text{bit/s}\). Les capteurs émettent \(38\times320 = 12\,160\) bits par cycle, soit 121 600 bit/s : taux d'occupation de 49 %. Le reste est perdu dans les gardes et la fin des intervalles : c'est le prix du déterminisme.</p>
+    <p><strong>Q3.</strong> Multiplexage fréquentiel. Avec \(n\) canaux et \(n + 1\) bandes de garde : \(125\,n + 25\,(n + 1) \le 600\), soit \(n \le 3{,}83\) : 3 canaux, qui occupent 475 kHz (4 canaux en demanderaient 625). Au total, \(3\times38 = 114\) capteurs. Les deux multiplexages se combinent : fréquentiel entre canaux, temporel dans chaque canal.</p>
+    <p><strong>Q4.</strong> Deux capteurs qui émettent en même temps sur le même canal brouillent leurs trames (collision), et il faudrait les réémettre. Avec des intervalles réservés, il n'y a jamais de collision, la durée d'acheminement est garantie, et chaque capteur peut dormir en dehors de son intervalle, ce qui ménage sa pile.</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 06</span><span class="diff">★ ★ ☆</span>
+  <h3>Plan d'adressage d'un atelier</h3>
+  <div class="statement">Dans un atelier, des constituants sont reliés par Ethernet, tous configurés avec le masque /22 : automate 172.16.9.200, poste de supervision 172.16.10.5, variateur 172.16.11.254, caméra de contrôle 172.16.12.3. Une trame relevée sur le réseau a pour adresse de destination FF:FF:FF:FF:FF:FF et pour adresse source AC:DE:48:00:11:22.</div>
+  <div class="q"><strong>Q1.</strong> Écrire le masque /22 en décimal pointé.</div>
+  <div class="q"><strong>Q2.</strong> Calculer l'adresse de réseau de chaque constituant. Lesquels communiquent directement ?</div>
+  <div class="q"><strong>Q3.</strong> Pour le réseau de l'automate, donner l'adresse de diffusion, la plage et le nombre d'hôtes. L'adresse du variateur est-elle valide ?</div>
+  <div class="q"><strong>Q4.</strong> Quel masque permettrait à la caméra de rejoindre les trois autres sans changer leurs adresses ? Combien d'hôtes ce réseau aurait-il ?</div>
+  <div class="q"><strong>Q5.</strong> Que désigne l'adresse de destination de la trame relevée ? Combien d'adresses MAC différentes existe-t-il ? Le variateur, en panne, est remplacé par un appareil identique : que deviennent ses deux adresses ?</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> 22 bits à 1 : deux octets pleins, puis 6 bits, 1111 1100 = 252 : 255.255.252.0.</p>
+    <p><strong>Q2.</strong> On fait le ET sur le 3ᵉ octet ; le 4ᵉ devient 0. 9 = 0000 1001 donne 0000 1000 = 8 ; 10 = 0000 1010 donne 8 ; 11 = 0000 1011 donne 8 ; 12 = 0000 1100 donne 12. Automate, supervision et variateur sont dans le réseau 172.16.8.0/22 et échangent directement ; la caméra est dans 172.16.12.0/22 : il lui faut une passerelle.</p>
+    <p><strong>Q3.</strong> La partie hôte compte \(32 - 22 = 10\) bits (2 du 3ᵉ octet, 8 du 4ᵉ). Diffusion : ces 10 bits à 1, soit 172.16.11.255. Hôtes de 172.16.8.1 à 172.16.11.254, au nombre de \(2^{10} - 2 = 1\,022\). Le variateur a la dernière adresse d'hôte : elle est valide.</p>
+    <p><strong>Q4.</strong> Avec /21 (255.255.248.0) : 12 = 0000 1100, ET 1111 1000, donne 0000 1000 = 8, comme 9, 10 et 11. Les quatre constituants sont alors dans 172.16.8.0/21, qui compte \(2^{11} - 2 = 2\,046\) hôtes. Il faut configurer le nouveau masque sur les quatre appareils.</p>
+    <p><strong>Q5.</strong> FF:FF:FF:FF:FF:FF est l'adresse de diffusion : tous les nœuds du réseau local reçoivent la trame. Une adresse MAC compte 48 bits : \(2^{48} \approx 2{,}8\times10^{14}\) adresses. Le variateur neuf a une autre adresse MAC, liée à sa carte réseau et fixée par le fabricant ; on lui donne l'adresse IP de l'ancien, 172.16.11.254, et la supervision le retrouve sans modification.</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 07</span><span class="diff">★ ★ ★</span>
+  <h3>Scrutation Modbus de capteurs de niveau</h3>
+  <div class="statement">Une station de pompage surveille ses cuves par des capteurs reliés en RS-485 à un automate maître (protocole Modbus, 19 200 bit/s, format 8E1, soit 11 bits par octet). Extrait de la documentation :
+    <ul>
+      <li>Requête de lecture : adresse de l'esclave (1 octet), code de fonction 0x03 (1 octet), numéro du premier registre (2 octets), nombre de registres (2 octets), CRC (2 octets, poids faible d'abord).</li>
+      <li>Réponse normale : adresse (1 octet), code de fonction (1 octet), nombre d'octets de données (1 octet), données (2 octets par registre, poids fort d'abord), CRC (2 octets).</li>
+      <li>Réponse d'exception : adresse, code de fonction augmenté de 0x80, code d'erreur (1 octet ; 0x02 : registre inexistant), CRC.</li>
+      <li>Registres du capteur : 0x0020, niveau d'eau en mm (non signé) ; 0x0021, température extérieure en 0,1 °C (signée, complément à deux).</li>
+      <li>Deux trames sont séparées par un silence d'au moins 3,5 durées de caractère.</li>
+    </ul>
+    Échange relevé : requête <code>0C 03 00 20 00 02 C4 DC</code>, réponse <code>0C 03 04 01 F7 FF 9C D7 64</code>.</div>
+  <div class="q"><strong>Q1.</strong> Décoder la requête champ par champ : quel esclave, quelle demande ?</div>
+  <div class="q"><strong>Q2.</strong> Décoder la réponse : niveau et température.</div>
+  <div class="q"><strong>Q3.</strong> Une autre fois, l'esclave répond <code>0C 83 02 51 32</code>. Interpréter. Quelle erreur de programmation du maître peut l'expliquer ?</div>
+  <div class="q"><strong>Q4.</strong> Calculer les durées de la requête, de la réponse et du silence. L'esclave répond 4 ms après la fin de la requête. Quelle est la durée d'un échange complet (requête, attente, réponse, silence) ? Quelle est l'efficacité de l'échange (bits de mesure sur bits transmis) ?</div>
+  <div class="q"><strong>Q5.</strong> Le maître interroge 10 capteurs à tour de rôle. Toutes les combien de temps chaque mesure est-elle rafraîchie ? On veut chaque niveau toutes les 100 ms : combien de capteurs au plus ? Proposer des solutions pour les 10 capteurs.</div>
+  <div class="q"><strong>Q6.</strong> Pourquoi n'a-t-on pas vérifié le CRC à la main ? Que fait l'esclave si le CRC reçu ne correspond pas à celui qu'il calcule ?</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> 0C : esclave 12 ; 03 : lecture de registres ; 00 20 : premier registre 0x0020 ; 00 02 : deux registres ; C4 DC : CRC (0xDCC4, émis poids faible d'abord). Le maître demande les registres 0x0020 et 0x0021 de l'esclave 12, c'est-à-dire niveau et température.</p>
+    <p><strong>Q2.</strong> 0C 03 : réponse de l'esclave 12 à la lecture ; 04 : 4 octets de données. 01 F7 : 0x01F7 = \(256 + 247 = 503\), niveau de 503 mm. FF 9C : 0xFF9C = 65 436, bit de poids fort à 1, donc \(65\,436 - 65\,536 = -100\), température de −10,0 °C. D7 64 : CRC.</p>
+    <p><strong>Q3.</strong> 0x83 = 0x03 + 0x80 : réponse d'exception à une lecture ; code 02 : registre inexistant. Le maître a demandé des registres hors de la plage du capteur : adresse mal écrite (0x0200 au lieu de 0x0020, ou numéro décalé d'une unité selon la convention de numérotation), ou nombre de registres trop grand.</p>
+    <p><strong>Q4.</strong> Requête : \(8\times11 = 88\) bits, soit 4,58 ms ; réponse : \(9\times11 = 99\) bits, 5,16 ms ; silence : \(3{,}5\times11 = 38{,}5\) bits, 2,01 ms. Échange : \(4{,}58 + 4 + 5{,}16 + 2{,}01 \approx 15{,}7\ \text{ms}\). Efficacité : 32 bits de mesure pour \(88 + 99 = 187\) bits transmis, soit 17 % ; en temps, 32 bits en 15,7 ms, environ 2 kbit/s utiles sur une liaison à 19,2 kbit/s.</p>
+    <p><strong>Q5.</strong> Cycle de \(10\times15{,}7 \approx 157\ \text{ms}\) : chaque mesure est rafraîchie toutes les 157 ms environ (6,4 fois par seconde). En 100 ms, \(100/15{,}7 \approx 6{,}4\) : 6 capteurs au plus. Solutions : deux bus RS-485 de 5 capteurs, scrutés en parallèle par deux ports du maître (79 ms) ; ou passer à 38 400 bit/s, ce qui ramène l'échange à environ 9,9 ms et le cycle à 99 ms, sans marge (l'attente de 4 ms ne diminue pas) ; ou réduire le temps de réponse des esclaves s'il est réglable.</p>
+    <p><strong>Q6.</strong> Le calcul du CRC est hors programme : il est fait par le circuit de communication ou par une bibliothèque. Un esclave qui reçoit un CRC incorrect ignore la trame et ne répond pas ; le maître, sans réponse au bout d'un délai fixé, répète sa requête ou signale le capteur en défaut.</p>
+  </div>
+</div>
+
+<div class="exo concours">
+  <span class="num">CONCOURS PT</span><span class="diff">★ ★ ★</span>
+  <h3>Navette autonome de transport de bacs</h3>
+  <div class="exo-source">Exercice <strong>original</strong> au format des épreuves PT (thème : réseau embarqué et supervision d'une flotte de navettes).</div>
+  <div class="statement">Dans un entrepôt, des navettes autonomes transportent des bacs entre les postes de préparation. Chaque navette embarque un calculateur central, deux variateurs qui pilotent les roues motrices (diamètre 200 mm, une de chaque côté du châssis), une centrale inertielle, quatre télémètres à ultrasons et un système de gestion de la batterie. Ces constituants sont reliés par un bus CAN à 500 kbit/s, long de 6 m, fermé à chaque extrémité par une résistance de 120 Ω. Chaque navette communique avec le serveur de supervision par Wi-Fi. Vitesse de propagation dans les câbles : \(2\times10^8\ \text{m/s}\).</div>
+
+  <div class="exo-part">Partie A — Architecture</div>
+  <div class="q"><strong>Q1.</strong> Quelle est la topologie du réseau embarqué ? Quel est l'intérêt d'une paire torsadée différentielle dans un véhicule à moteurs électriques ? À quoi servent les deux résistances d'extrémité ?</div>
+  <div class="q"><strong>Q2.</strong> Calculer le temps de propagation d'un bout à l'autre du bus et le comparer à la durée d'un bit. Conclure.</div>
+  <div class="q"><strong>Q3.</strong> Un télémètre tombe en panne et n'émet plus. Conséquence ? Dans un autre scénario, le câble du bus est sectionné entre le calculateur et les variateurs : conséquence ? Proposer une amélioration de la robustesse.</div>
+  <div class="q"><strong>Q4.</strong> L'entrepôt est couvert par trois points d'accès Wi-Fi dans la bande des 2,4 GHz (canal \(n\) centré sur \(2\,407 + 5n\) MHz, de largeur 20 MHz). Quel multiplexage permet de les faire cohabiter ? Proposer des canaux.</div>
+
+  <div class="exo-part">Partie B — Décodage d'une trame</div>
+  <div class="statement">Trame CAN standard : début (1 bit à 0), identifiant (11 bits, poids fort d'abord), RTR (1 bit, 0 pour une trame de données), IDE (1 bit, 0 pour le format standard), r0 (1 bit, 0), DLC (4 bits : nombre d'octets de données), données (0 à 8 octets), CRC (15 bits et un délimiteur), acquittement (2 bits), fin (7 bits à 1). Identifiants de la navette : 0x010 arrêt d'urgence ; 0x0A0 consignes des roues ; 0x0A3 vitesses mesurées des roues (4 octets : roue gauche puis roue droite, chacune sur 16 bits signés, poids fort d'abord, 0,1 tr/min par unité) ; 0x120 à 0x123 télémètres ; 0x300 batterie. L'analyseur logique, qui retire les bits de bourrage, affiche le début d'une trame :
+    <p><code>0 00010100011 0 0 0 0100 00000011 11101000 11111100 00011000 …</code></p></div>
+  <div class="q"><strong>Q5.</strong> Découper la trame et décoder l'identifiant, le DLC et les données. Calculer les vitesses de rotation des deux roues. Que fait la navette ? Quelle est la vitesse d'un point de la bande de roulement de chaque roue ?</div>
+  <div class="q"><strong>Q6.</strong> Le message 0x0A3 et un message du télémètre 0x120 commencent ensemble. Lequel est transmis ? Au bout de combien de bits d'identifiant l'arbitrage est-il tranché ? Justifier l'identifiant 0x010 choisi pour l'arrêt d'urgence.</div>
+
+  <div class="exo-part">Partie C — Charge du bus et échantillonnage</div>
+  <div class="statement">Messages périodiques : consignes (8 octets, toutes les 5 ms) ; vitesses (4 octets, toutes les 5 ms) ; centrale inertielle (deux trames de 8 octets toutes les 10 ms) ; chaque télémètre (2 octets, toutes les 50 ms) ; batterie (8 octets, toutes les secondes). Une trame de \(k\) octets de données occupe \(47 + 8k\) bits, silence entre trames compris, sans compter les bits de bourrage (jusqu'à 20 % de plus environ).</div>
+  <div class="q"><strong>Q7.</strong> Calculer le taux d'occupation du bus. Conclure, en retenant une occupation maximale de 50 %.</div>
+  <div class="q"><strong>Q8.</strong> La boucle de vitesse des roues est échantillonnée à \(T_e = 5\ \text{ms}\). Quelle part de la période la transmission de la trame des vitesses occupe-t-elle ?</div>
+  <div class="q"><strong>Q9.</strong> On envisage d'ajouter un scrutateur laser : 720 distances codées sur 16 bits par tour, 10 tours par seconde, transmises en trames de 8 octets de données. Calculer le nouveau taux d'occupation, avec et sans bourrage. Conclure et proposer une solution.</div>
+
+  <div class="exo-part">Partie D — Supervision</div>
+  <div class="statement">Le réseau Wi-Fi de la flotte est 10.12.4.0/23. Navette n° 7 : 10.12.5.37 ; serveur : 10.12.5.200 ; borne de recharge : 10.12.6.15.</div>
+  <div class="q"><strong>Q10.</strong> Donner le masque en décimal pointé, l'adresse de diffusion et le nombre d'hôtes. Le serveur et la borne sont-ils dans le réseau de la navette ?</div>
+  <div class="q"><strong>Q11.</strong> La flotte ne comptera jamais plus de 60 constituants : quel est le masque le plus long qui convient ? Le module Wi-Fi d'une navette est remplacé : pourquoi son adresse MAC change-t-elle, et pourquoi lui donne-t-on l'adresse IP de l'ancien ?</div>
+
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> Topologie en bus : un support partagé, auquel chaque constituant se raccorde en dérivation. La paire torsadée différentielle rejette les perturbations rayonnées par les variateurs, qui commutent de forts courants très rapidement : la tension parasite induite est presque la même sur les deux fils et disparaît de leur différence. Les résistances d'extrémité (bouchons) absorbent le signal en bout de ligne et évitent ses réflexions, qui brouilleraient les bits suivants.</p>
+    <p><strong>Q2.</strong> \(t_p = 6/(2\times10^8) = 30\ \text{ns}\), pour un bit de \(1/500\,000 = 2\ \text{µs}\) : 1,5 %. Tous les nœuds voient pratiquement le même bit au même instant, ce qu'exige l'arbitrage (Q6) ; la longueur du bus n'est pas limitante.</p>
+    <p><strong>Q3.</strong> Télémètre en panne : les autres constituants continuent d'échanger (bus) ; le calculateur constate l'absence des messages attendus et passe en mode dégradé (vitesse réduite, arrêt). Câble sectionné : le bus est scindé en deux ; le calculateur ne reçoit plus les vitesses et ne peut plus envoyer de consignes : la navette doit s'arrêter, les variateurs privés de consignes freinant d'eux-mêmes par sécurité. Améliorations : doubler le bus par un second bus CAN câblé par un autre chemin, ou relier les éléments critiques (calculateur, variateurs, arrêt d'urgence) par une liaison redondante.</p>
+    <p><strong>Q4.</strong> Multiplexage fréquentiel : chaque point d'accès émet sur son canal. Canaux 1, 6 et 11 (2 412, 2 437 et 2 462 MHz) : écarts de 25 MHz, supérieurs à la largeur de 20 MHz, donc aucun recouvrement.</p>
+    <p><strong>Q5.</strong> Début 0 ; identifiant 000 1010 0011 = 0x0A3 : vitesses mesurées ; RTR, IDE, r0 à 0 : trame de données au format standard ; DLC 0100 = 4 octets ; données 0000 0011 = 0x03, 1110 1000 = 0xE8, 1111 1100 = 0xFC, 0001 1000 = 0x18. Roue gauche : 0x03E8 = 1 000, soit 100,0 tr/min. Roue droite : 0xFC18 = 64 536, bit de poids fort à 1, donc \(64\,536 - 65\,536 = -1\,000\), soit −100,0 tr/min. Les roues tournent à la même vitesse en sens opposés : la navette pivote sur place autour du milieu de l'essieu. \(\omega = 100\times2\pi/60 \approx 10{,}5\ \text{rad/s}\), d'où \(v = \omega R = 10{,}5\times0{,}1 \approx 1{,}05\ \text{m/s}\) pour chaque roue, en sens opposés.</p>
+    <p><strong>Q6.</strong> 0x0A3 = 000 1010 0011 et 0x120 = 001 0010 0000. Les deux premiers bits sont égaux ; au troisième, 0x0A3 émet 0 (dominant) et 0x120 émet 1 : le télémètre lit 0, se retire et réessaie après la trame. Le message des vitesses passe, l'arbitrage est tranché au 3ᵉ bit. L'identifiant le plus petit l'emporte sur tous les autres : 0x010 = 000 0001 0000 est inférieur à tous les identifiants utilisés, si bien que l'arrêt d'urgence gagne tout arbitrage et attend au plus la fin de la trame en cours.</p>
+    <p><strong>Q7.</strong> Consignes : 111 bits × 200 par seconde = 22 200 bit/s ; vitesses : 79 × 200 = 15 800 bit/s ; centrale : 2 × 111 × 100 = 22 200 bit/s ; télémètres : 4 × 63 × 20 = 5 040 bit/s ; batterie : 111 bit/s. Total 65 351 bit/s, soit \(U \approx 13\ \%\) (16 % avec le bourrage maximal) : large marge.</p>
+    <p><strong>Q8.</strong> \(79/500\,000 = 158\ \text{µs}\), soit 3,2 % de \(T_e\) : le retard ajouté à la boucle est faible.</p>
+    <p><strong>Q9.</strong> Données : \(720\times16\times10 = 115\,200\ \text{bit/s}\), soit \(115\,200/64 = 1\,800\) trames de 8 octets par seconde, ou \(1\,800\times111 = 199\,800\ \text{bit/s}\) sur le bus. Total : 265 151 bit/s, \(U \approx 53\ \%\) (64 % avec bourrage) : au-delà de la marge retenue, et les messages de faible priorité seraient retardés. Solutions : relier le scrutateur au calculateur par une liaison dédiée (Ethernet à 100 Mbit/s) ; ou passer le bus à 1 Mbit/s, possible sur 6 m, qui ramène l'occupation à 27 % (32 % avec bourrage).</p>
+    <p><strong>Q10.</strong> /23 : 255.255.254.0. Partie hôte de 9 bits : diffusion 10.12.5.255 ; \(2^9 - 2 = 510\) hôtes, de 10.12.4.1 à 10.12.5.254. Serveur : 5 = 0000 0101, ET 1111 1110, donne 4 : réseau 10.12.4.0, le même que la navette. Borne : 6 = 0000 0110 donne 6 : réseau 10.12.6.0, différent ; elle n'est joignable que par une passerelle.</p>
+    <p><strong>Q11.</strong> Il faut \(2^{32-n} - 2 \ge 60\), soit \(32 - n \ge 6\) : /26 (255.255.255.192, 62 hôtes). L'adresse MAC est physique : fixée par le fabricant du module, elle change avec lui. L'adresse IP est logique : le serveur de supervision désigne la navette par elle, et en la conservant on évite de reconfigurer la supervision.</p>
+  </div>
+</div>
+
+</div>
+</template>

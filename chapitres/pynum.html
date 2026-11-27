@@ -1,0 +1,1366 @@
+<!-- Chapitre « Méthodes numériques » (pynum) : contenu des onglets Cours, Méthodes et Exercices, chargé à l'ouverture du chapitre.
+     On l'édite ici, puis : node tools/chapitres.js (docs/chargement-chapitres.md). -->
+<template class="pan-tpl" data-panneau="numr-cours">
+<div class="course-section">
+  <div class="sec-num">AU PROGRAMME · INFORMATIQUE</div>
+  <h2>Ce que le programme officiel demande</h2>
+  <div class="intro">Le programme d'informatique commune de 2021 n'a pas de partie « méthodes numériques » : ces algorithmes appartiennent aux capacités numériques des programmes de physique-chimie, de mathématiques et de sciences de l'ingénieur. Ce chapitre les étudie du point de vue de l'informaticien : les programmer proprement, prouver qu'ils s'arrêtent, estimer leur coût, comprendre leurs erreurs et les tester. Les sujets d'informatique des concours y puisent souvent leurs problèmes, en rappelant les formules utiles dans l'énoncé.</div>
+  <div class="reveal" onclick="this.classList.toggle('open')">
+    <span class="label">Programme officiel</span>
+    <span class="prompt">Ce qui relève de l'informatique, et ce qui relève des autres disciplines</span>
+    <div class="content">
+      <p><strong>Programme d'informatique</strong> (exigible) :</p>
+      <ul>
+        <li><strong>Algorithmes dichotomiques</strong> (1ᵉʳ semestre) : appliqués à la recherche d'un zéro (§2), comme la recherche dans un tableau trié du chapitre « Recherche séquentielle, dictionnaires et dichotomie ».</li>
+        <li><strong>Méthodes de programmation et analyse des algorithmes</strong> (2ᵉ semestre) : spécification, variant et invariant, complexité, jeux de tests (§2, §4, §8), avec les notations du chapitre « Spécification, correction et complexité ».</li>
+        <li><strong>Représentation des nombres, précision des calculs en flottants</strong> (2ᵉ semestre) : ces notions « permettent d'expliquer certaines difficultés rencontrées et précautions à prendre lors de l'utilisation d'algorithmes de calcul numérique » (§1, §2, §5, §8 ; chapitre « Représentation des nombres »).</li>
+        <li><strong>Fonctions</strong> passées en argument d'autres fonctions (annexe Python : <span class="code-inline">def</span>, <span class="code-inline">return</span>) (§1).</li>
+      </ul>
+      <p><strong>Capacités numériques des autres disciplines</strong> (exigibles dans ces disciplines, non en informatique) :</p>
+      <ul>
+        <li><strong>Physique-chimie PTSI</strong> (annexe « outils numériques ») : déterminer un intervalle adapté et mettre en œuvre une dichotomie avec une précision donnée, utiliser <span class="code-inline">bisect</span> (§1, §2) ; méthode des rectangles (§4) ; valeur approchée d'un nombre dérivé (§5) ; méthode d'Euler explicite pour une équation d'ordre 1 (§6) ; transformer une équation d'ordre \(n\) en système d'ordre 1, utiliser <span class="code-inline">odeint</span> (§7) ; tracés avec <span class="code-inline">matplotlib</span> (§1). En PT, la méthode des différences finies pour la diffusion est traitée dans le chapitre « Diffusion thermique ».</li>
+        <li><strong>Mathématiques PTSI</strong> : dichotomie et théorème des valeurs intermédiaires (§2) ; sommes de Riemann, comparaison des rectangles et des trapèzes (§4 ; chapitre « Intégration (approfondissements) ») ; méthode de Newton, suggérée pour illustrer la vitesse de convergence des suites récurrentes (§3 ; chapitre « Suites numériques (approfondissements) ») ; méthode d'Euler comme exemple de discrétisation (§6).</li>
+        <li><strong>Sciences de l'ingénieur PT</strong> : dichotomie et Newton, systèmes linéaires, schéma d'Euler, simulation, intégration et dérivation de mesures, validation des résultats : chapitre « Résolution numérique en sciences de l'ingénieur ».</li>
+      </ul>
+      <p>Hors programme (en fin de chapitre) : méthodes d'ordre élevé (Simpson, Runge-Kutta), stabilité et convergence des schémas, méthode de la sécante. Les modules <span class="code-inline">math</span>, <span class="code-inline">matplotlib</span> et <span class="code-inline">scipy</span> ne sont pas exigibles : un énoncé qui s'en sert les documente.</p>
+    </div>
+  </div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§1 · CALCULER UNE VALEUR APPROCHÉE</div>
+  <h2>Méthodes numériques, fonctions en argument, deux sources d'erreur</h2>
+  <div class="intro">Les <strong>méthodes numériques</strong> calculent une valeur <strong>approchée</strong> quand le calcul exact est impossible ou trop coûteux : zéro d'une fonction, intégrale, solution d'équation différentielle. L'équation \(x^3 - 2x - 5 = 0\) n'a pas de solution qu'on sache écrire simplement ; l'équation \(\theta'' = -\frac{g}{\ell} \sin\theta\) du pendule n'a pas de solution exprimable avec les fonctions usuelles. On veut pourtant des nombres.</div>
+
+  <h3>La fonction comme donnée</h3>
+  <p>Une méthode numérique s'applique à <em>n'importe quelle</em> fonction : on la programme une fois, et l'on passe la fonction étudiée en <strong>argument</strong>. En Python, une fonction est une valeur comme une autre : écrire <span class="code-inline">f</span> sans parenthèses désigne la fonction, <span class="code-inline">f(x)</span> l'appelle.</p>
+  <pre class="codeblock"><span class="kw">def</span> f(x):
+    <span class="kw">return</span> x ** 3 - 2 * x - 5</pre>
+  <pre class="codeblock"><span class="kw">def</span> tableau_valeurs(f, a, b, n):
+    <span class="str">"""Abscisses x_k = a + k*h (k = 0, …, n, avec h = (b - a)/n) et valeurs f(x_k)."""</span>
+    h = (b - a) / n
+    xs, ys = [], []
+    <span class="kw">for</span> k <span class="kw">in</span> range(n + 1):
+        x = a + k * h          <span class="cmt"># calculé à partir de k : pas d'erreur qui s'accumule</span>
+        xs.append(x)
+        ys.append(f(x))
+    <span class="kw">return</span> xs, ys</pre>
+  <p>Les abscisses sont calculées à partir de l'entier <span class="code-inline">k</span> : écrire <span class="code-inline">x = x + h</span> à chaque tour accumulerait les erreurs d'arrondi et pourrait même faire un point de trop ou de moins (chapitre « Représentation des nombres », §9). La fonction <span class="code-inline">tabuler</span> du chapitre « Fonctions » ne renvoyait que les valeurs ; celle-ci renvoie aussi les abscisses, utiles pour tracer.</p>
+
+  <div class="method-box"><strong>Exemple — localiser le zéro de \(f(x) = x^3 - 2x - 5\)</strong>
+    <div><table>
+<tr><th>\(x_k\)</th><th>\(f(x_k)\)</th><th>signe</th></tr>
+<tr><td>\(0{,}0\)</td><td>\(-5{,}000\)</td><td>\(-\)</td></tr>
+<tr><td>\(0{,}5\)</td><td>\(-5{,}875\)</td><td>\(-\)</td></tr>
+<tr><td>\(1{,}0\)</td><td>\(-6{,}000\)</td><td>\(-\)</td></tr>
+<tr><td>\(1{,}5\)</td><td>\(-4{,}625\)</td><td>\(-\)</td></tr>
+<tr><td>\(2{,}0\)</td><td>\(-1{,}000\)</td><td>\(-\)</td></tr>
+<tr><td>\(2{,}5\)</td><td>\(5{,}625\)</td><td>\(+\)</td></tr>
+<tr><td>\(3{,}0\)</td><td>\(16{,}000\)</td><td>\(+\)</td></tr>
+</table></div>
+    <ol>
+      <li>On tabule \(f\) sur \([0, 3]\) avec un pas de 0,5.</li>
+      <li>\(f(2) = -1 \lt 0\) et \(f(2{,}5) = 5{,}625 \gt 0\) : \(f\) étant continue, elle s'annule sur \([2 ;\ 2{,}5]\) (théorème des valeurs intermédiaires).</li>
+      <li>\(f'(x) = 3x^2 - 2\) est positive pour \(x \ge 1\) ; sur \([0, 1]\), \(f\) reste négative. Le zéro est donc unique : c'est \(c \approx 2{,}0946\).</li>
+    </ol>
+    <pre class="codeblock"><span class="kw">def</span> changements_de_signe(f, a, b, n):
+    <span class="str">"""Liste des intervalles [x_k, x_(k+1)] de la subdivision où f change de signe."""</span>
+    xs, ys = tableau_valeurs(f, a, b, n)
+    res = []
+    <span class="kw">for</span> k <span class="kw">in</span> range(n):
+        <span class="kw">if</span> ys[k] * ys[k + 1] &lt;= 0:
+            res.append((xs[k], xs[k + 1]))
+    <span class="kw">return</span> res</pre>
+    <pre class="codeblock">&gt;&gt;&gt; changements_de_signe(f, 0, 3, 6)     <span class="cmt"># pas de 0,5</span>
+[(2.0, 2.5)]</pre>
+  </div>
+  <figure class="schema" style="max-width:380px">
+<svg viewBox="0 0 340 204" role="img" aria-label="Courbe de f(x) = x³ − 2x − 5 entre 0 et 3, avec ses valeurs aux points 0 ; 0,5 ; … ; 3. Les points d'abscisse 0 à 2 sont sous l'axe, ceux d'abscisse 2,5 et 3 au-dessus : la bande verticale entre 2 et 2,5 contient le zéro de f.">
+<rect x="218.7" y="16" width="43.7" height="158" class="fl-green-soft"/>
+<line x1="44" y1="115.5" x2="316" y2="115.5" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<line x1="44" y1="174" x2="44" y2="6" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<text x="318" y="119.5" class="lab-it">x</text>
+<text x="50" y="12" class="lab-it">y</text>
+<line x1="131.3" y1="112.5" x2="131.3" y2="118.5" class="sk-axis"/>
+<text x="131.3" y="132.5" class="lab-muted" text-anchor="middle">1</text>
+<line x1="218.7" y1="112.5" x2="218.7" y2="118.5" class="sk-axis"/>
+<text x="218.7" y="132.5" class="lab-muted" text-anchor="middle">2</text>
+<line x1="306" y1="112.5" x2="306" y2="118.5" class="sk-axis"/>
+<text x="306" y="132.5" class="lab-muted" text-anchor="middle">3</text>
+<line x1="41" y1="144.7" x2="47" y2="144.7" class="sk-axis"/>
+<text x="38" y="148.7" class="lab-muted" text-anchor="end">−5</text>
+<line x1="41" y1="86.2" x2="47" y2="86.2" class="sk-axis"/>
+<text x="38" y="90.2" class="lab-muted" text-anchor="end">5</text>
+<line x1="41" y1="57" x2="47" y2="57" class="sk-axis"/>
+<text x="38" y="61" class="lab-muted" text-anchor="end">10</text>
+<line x1="41" y1="27.7" x2="47" y2="27.7" class="sk-axis"/>
+<text x="38" y="31.7" class="lab-muted" text-anchor="end">15</text>
+<polyline points="44,144.7 45.3,144.9 46.6,145.1 47.9,145.3 49.2,145.4 50.5,145.6 51.9,145.8 53.2,146 54.5,146.1 55.8,146.3 57.1,146.5 58.4,146.6 59.7,146.8 61,147 62.3,147.1 63.6,147.3 65,147.5 66.3,147.6 67.6,147.8 68.9,147.9 70.2,148.1 71.5,148.2 72.8,148.4 74.1,148.5 75.4,148.7 76.8,148.8 78.1,149 79.4,149.1 80.7,149.2 82,149.4 83.3,149.5 84.6,149.6 85.9,149.7 87.2,149.8 88.5,149.9 89.8,150 91.2,150.1 92.5,150.2 93.8,150.3 95.1,150.4 96.4,150.5 97.7,150.6 99,150.7 100.3,150.7 101.6,150.8 103,150.8 104.3,150.9 105.6,150.9 106.9,151 108.2,151 109.5,151 110.8,151.1 112.1,151.1 113.4,151.1 114.7,151.1 116,151.1 117.4,151.1 118.7,151.1 120,151.1 121.3,151 122.6,151 123.9,151 125.2,150.9 126.5,150.9 127.8,150.8 129.2,150.7 130.5,150.6 131.8,150.6 133.1,150.5 134.4,150.4 135.7,150.3 137,150.1 138.3,150 139.6,149.9 140.9,149.7 142.2,149.6 143.6,149.4 144.9,149.2 146.2,149.1 147.5,148.9 148.8,148.7 150.1,148.5 151.4,148.2 152.7,148 154,147.8 155.3,147.5 156.7,147.3 158,147 159.3,146.7 160.6,146.4 161.9,146.1 163.2,145.8 164.5,145.5 165.8,145.2 167.1,144.8 168.4,144.5 169.8,144.1 171.1,143.7 172.4,143.4 173.7,143 175,142.5 176.3,142.1 177.6,141.7 178.9,141.2 180.2,140.8 181.6,140.3 182.9,139.8 184.2,139.3 185.5,138.8 186.8,138.3 188.1,137.8 189.4,137.2 190.7,136.7 192,136.1 193.3,135.5 194.7,134.9 196,134.3 197.3,133.6 198.6,133 199.9,132.3 201.2,131.7 202.5,131 203.8,130.3 205.1,129.6 206.4,128.9 207.8,128.1 209.1,127.4 210.4,126.6 211.7,125.8 213,125 214.3,124.2 215.6,123.3 216.9,122.5 218.2,121.6 219.5,120.7 220.8,119.8 222.2,118.9 223.5,118 224.8,117.1 226.1,116.1 227.4,115.1 228.7,114.1 230,113.1 231.3,112.1 232.6,111 233.9,110 235.3,108.9 236.6,107.8 237.9,106.7 239.2,105.6 240.5,104.4 241.8,103.3 243.1,102.1 244.4,100.9 245.7,99.6 247.1,98.4 248.4,97.1 249.7,95.9 251,94.6 252.3,93.3 253.6,91.9 254.9,90.6 256.2,89.2 257.5,87.8 258.8,86.4 260.1,85 261.5,83.5 262.8,82.1 264.1,80.6 265.4,79.1 266.7,77.6 268,76 269.3,74.4 270.6,72.9 271.9,71.2 273.2,69.6 274.6,68 275.9,66.3 277.2,64.6 278.5,62.9 279.8,61.2 281.1,59.4 282.4,57.6 283.7,55.8 285,54 286.4,52.2 287.7,50.3 289,48.4 290.3,46.5 291.6,44.6 292.9,42.6 294.2,40.7 295.5,38.7 296.8,36.6 298.1,34.6 299.4,32.5 300.8,30.4 302.1,28.3 303.4,26.2 304.7,24 306,21.9" class="sk-ink"/>
+<circle cx="44" cy="144.7" r="3.5" class="fl-accent2"/>
+<circle cx="87.7" cy="149.9" r="3.5" class="fl-accent2"/>
+<circle cx="131.3" cy="150.6" r="3.5" class="fl-accent2"/>
+<circle cx="175" cy="142.5" r="3.5" class="fl-accent2"/>
+<circle cx="218.7" cy="121.3" r="3.5" class="fl-accent2"/>
+<circle cx="262.3" cy="82.6" r="3.5" class="fl-accent"/>
+<circle cx="306" cy="21.9" r="3.5" class="fl-accent"/>
+<text x="240.5" y="28" class="lab-green" text-anchor="middle">changement</text>
+<text x="240.5" y="43" class="lab-green" text-anchor="middle">de signe</text>
+<text x="131.3" y="169.3" class="lab-accent2" text-anchor="middle">f(x) &lt; 0</text>
+<text x="307.7" y="153.5" class="lab-accent" text-anchor="end">f(x) &gt; 0</text>
+</svg>
+<figcaption>Tabuler \(f(x) = x^3 - 2x - 5\) avec un pas de 0,5 : \(f(2) = -1 \lt 0\) et \(f(2{,}5) = 5{,}625 \gt 0\). La fonction est continue, elle s'annule donc sur \([2 ;\ 2{,}5]\) (théorème des valeurs intermédiaires) : c'est l'intervalle de départ d'une dichotomie.</figcaption>
+</figure>
+  <p>En physique, on repère l'intervalle sur un graphe (capacité « déterminer, en s'appuyant sur une représentation graphique, un intervalle adapté »). La bibliothèque <span class="code-inline">matplotlib</span>, hors annexe, trace une ligne brisée passant par les points :</p>
+  <pre class="codeblock"><span class="kw">import</span> matplotlib.pyplot <span class="kw">as</span> plt    <span class="cmt"># bibliothèque hors annexe, documentée par l'énoncé</span>
+xs, ys = tableau_valeurs(f, 0, 3, 300)
+plt.plot(xs, ys)                   <span class="cmt"># ligne brisée qui joint les points (xs[k], ys[k])</span>
+plt.axhline(0)                     <span class="cmt"># droite horizontale y = 0</span>
+plt.grid()
+plt.show()</pre>
+
+  <h3>Deux erreurs à ne pas confondre</h3>
+  <div class="def-box">
+    <ul>
+      <li>L'<strong>erreur de méthode</strong> (ou de troncature, de discrétisation) vient de la méthode mathématique : un intervalle de largeur non nulle, des rectangles au lieu de l'aire exacte, un pas \(h\) non nul. Elle dépend du paramètre de la méthode (précision \(\varepsilon\), nombre de sous-intervalles \(n\), pas \(h\)) et tend vers 0 quand on le raffine.</li>
+      <li>L'<strong>erreur d'arrondi</strong> vient de la représentation des réels par des flottants : chaque opération commet une erreur relative d'au plus \(1{,}1 \times 10^{-16}\) environ. Elle s'accumule avec le nombre d'opérations et peut être amplifiée par une soustraction de nombres voisins.</li>
+    </ul>
+  </div>
+  <div class="prop-box"><strong>Le compromis.</strong> Raffiner la méthode diminue l'erreur de méthode mais multiplie les calculs : le coût augmente, et l'erreur d'arrondi finit par dominer. Pour chaque méthode, on cherche donc à connaître son <strong>coût</strong> (nombre d'évaluations de la fonction) et la façon dont son erreur de méthode décroît.</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§2 · RÉSOUDRE f(x) = 0 PAR DICHOTOMIE</div>
+  <h2>Diviser par deux l'intervalle qui contient le zéro</h2>
+  <div class="intro">Si une fonction continue change de signe entre \(a\) et \(b\), elle s'annule entre les deux. En coupant l'intervalle en son milieu et en gardant la moitié où le changement de signe persiste, on enferme un zéro dans des intervalles deux fois plus petits à chaque étape. C'est l'idée de la recherche dichotomique dans un tableau trié (chapitre « Recherche séquentielle, dictionnaires et dichotomie », §7), appliquée à un intervalle de réels.</div>
+
+  <div class="def-box"><strong>Dichotomie.</strong> On part de \(a \lt b\) tels que \(f\) est continue sur \([a, b]\) et \(f(a) f(b) \le 0\). Tant que \(b - a \gt \varepsilon\), on calcule le milieu \(m = \dfrac{a + b}2\) ; si \(f(a) f(m) \le 0\), on remplace \(b\) par \(m\), sinon on remplace \(a\) par \(m\). On renvoie le milieu du dernier intervalle.</div>
+  <pre class="codeblock"><span class="kw">def</span> zero_dicho(f, a, b, eps):
+    <span class="str">"""Précondition : a &lt; b, f continue sur [a, b], f(a) * f(b) &lt;= 0, eps &gt; 0.</span>
+<span class="str">    Postcondition : renvoie x à distance au plus eps / 2 d'un zéro de f dans [a, b]."""</span>
+    fa = f(a)
+    <span class="kw">assert</span> a &lt; b <span class="kw">and</span> fa * f(b) &lt;= 0 <span class="kw">and</span> eps &gt; 0
+    <span class="kw">while</span> b - a &gt; eps:
+        <span class="cmt"># invariant : a &lt; b, fa == f(a) et f(a) * f(b) &lt;= 0</span>
+        m = (a + b) / 2
+        fm = f(m)
+        <span class="kw">if</span> fa * fm &lt;= 0:       <span class="cmt"># f change de signe sur [a, m]</span>
+            b = m
+        <span class="kw">else</span>:                  <span class="cmt"># f(m) a le signe de f(a) : changement sur [m, b]</span>
+            a, fa = m, fm
+    <span class="kw">return</span> (a + b) / 2</pre>
+  <p>La valeur <span class="code-inline">fa</span> est gardée en mémoire : chaque étape ne calcule \(f\) qu'une fois, au milieu. Le parallèle avec la fonction <span class="code-inline">dicho</span> du chapitre « Recherche séquentielle, dictionnaires et dichotomie » est direct : l'intervalle d'indices \([g, d]\) y devient un intervalle de réels \([a, b]\), et le test \(t[m] = x\) un test de signe.</p>
+
+  <div class="prop-box"><strong>Correction, terminaison, coût.</strong>
+    <ul>
+      <li><strong>Invariant</strong> : \(a \lt b\) et \(f(a) f(b) \le 0\). Il est vrai au départ (précondition) et conservé : si \(f(a) f(m) \le 0\), le nouvel intervalle \([a, m]\) le vérifie ; sinon \(f(m)\) est non nul et du signe de \(f(a)\), donc \(f(m) f(b)\) a le signe de \(f(a) f(b)\), négatif ou nul. Par le théorème des valeurs intermédiaires, \([a, b]\) contient toujours un zéro \(c\) de \(f\).</li>
+      <li><strong>Correction</strong> : à la sortie, \(b - a \le \varepsilon\), et le milieu de \([a, b]\) est à distance au plus \(\dfrac{\varepsilon}2\) de \(c\).</li>
+      <li><strong>Terminaison</strong> (en calcul exact) : après \(k\) étapes, la largeur vaut \(\dfrac{b_0 - a_0}{2^k}\). L'entier \(N - k\), où \(N\) est le plus petit entier tel que \(\dfrac{b_0 - a_0}{2^N} \le \varepsilon\), est un variant.</li>
+      <li><strong>Coût</strong> : la boucle fait exactement
+      $$N = \left\lceil \log_2 \frac{b_0 - a_0}{\varepsilon} \right\rceil$$
+      tours, avec une évaluation de \(f\) par tour : \(O\big(\log((b_0 - a_0)/\varepsilon)\big)\). Chaque chiffre décimal de plus coûte environ \(\log_2 10 \approx 3{,}3\) étapes.</li>
+    </ul>
+  </div>
+
+  <div class="method-box"><strong>Exemple — approcher \(\sqrt 2\) à 0,01 près</strong>
+    <p>On cherche le zéro de \(g(x) = x^2 - 2\) sur \([1, 2]\) : \(g(1) = -1 \lt 0\) et \(g(2) = 2 \gt 0\). Avec \(\varepsilon = 0{,}01\), il faut \(N = \lceil \log_2 100 \rceil = 7\) étapes (\(2^7 = 128\)).</p>
+    <div><table>
+<tr><th>étape</th><th>\(a\)</th><th>\(b\)</th><th>\(m\)</th><th>\(g(m)\)</th><th>décision</th></tr>
+<tr><td>1</td><td>\(1{,}00000\)</td><td>\(2{,}00000\)</td><td>\(1{,}50000\)</td><td>\(0{,}25000\)</td><td>\(b \leftarrow m\)</td></tr>
+<tr><td>2</td><td>\(1{,}00000\)</td><td>\(1{,}50000\)</td><td>\(1{,}25000\)</td><td>\(-0{,}43750\)</td><td>\(a \leftarrow m\)</td></tr>
+<tr><td>3</td><td>\(1{,}25000\)</td><td>\(1{,}50000\)</td><td>\(1{,}37500\)</td><td>\(-0{,}10938\)</td><td>\(a \leftarrow m\)</td></tr>
+<tr><td>4</td><td>\(1{,}37500\)</td><td>\(1{,}50000\)</td><td>\(1{,}43750\)</td><td>\(0{,}06641\)</td><td>\(b \leftarrow m\)</td></tr>
+<tr><td>5</td><td>\(1{,}37500\)</td><td>\(1{,}43750\)</td><td>\(1{,}40625\)</td><td>\(-0{,}02246\)</td><td>\(a \leftarrow m\)</td></tr>
+<tr><td>6</td><td>\(1{,}40625\)</td><td>\(1{,}43750\)</td><td>\(1{,}42188\)</td><td>\(0{,}02173\)</td><td>\(b \leftarrow m\)</td></tr>
+<tr><td>7</td><td>\(1{,}40625\)</td><td>\(1{,}42188\)</td><td>\(1{,}41406\)</td><td>\(-0{,}00043\)</td><td>\(a \leftarrow m\)</td></tr>
+</table></div>
+    <ol>
+      <li>À chaque ligne, on évalue \(g\) au milieu ; si \(g(m)\) est du signe de \(g(a)\) (négatif), le zéro est à droite de \(m\).</li>
+      <li>Après 7 étapes, l'intervalle est \([1{,}41406 ;\ 1{,}42188]\), de largeur \(\dfrac1{128} \approx 0{,}0078\) ; son milieu 1,41797 est à moins de 0,004 de \(\sqrt 2 \approx 1{,}41421\).</li>
+    </ol>
+  </div>
+  <figure class="schema" style="max-width:380px">
+<svg viewBox="0 0 340 256" role="img" aria-label="En haut, la parabole y = x² − 2, qui coupe l'axe en √2. En bas, cinq bandes horizontales empilées : les intervalles [a, b] des étapes 0 à 4 de la dichotomie, [1 ; 2], [1 ; 1,5], [1,25 ; 1,5], [1,375 ; 1,5] et [1,375 ; 1,4375], chacun avec son milieu marqué d'un point. Leur longueur est divisée par deux à chaque étape et ils contiennent tous √2.">
+<line x1="40" y1="74" x2="320" y2="74" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<line x1="40" y1="110" x2="40" y2="4" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<text x="322" y="78" class="lab-it">x</text>
+<polyline points="40,102.6 41.4,102.3 42.7,102 44.1,101.8 45.4,101.5 46.8,101.2 48.1,101 49.5,100.7 50.8,100.4 52.2,100.2 53.5,99.9 54.9,99.6 56.2,99.3 57.5,99 58.9,98.8 60.2,98.5 61.6,98.2 62.9,97.9 64.3,97.6 65.6,97.3 67,97 68.3,96.7 69.7,96.4 71,96.1 72.4,95.8 73.8,95.5 75.1,95.2 76.5,94.9 77.8,94.6 79.2,94.3 80.5,94 81.9,93.7 83.2,93.4 84.6,93.1 85.9,92.7 87.3,92.4 88.6,92.1 90,91.8 91.3,91.5 92.7,91.1 94,90.8 95.4,90.5 96.7,90.1 98.1,89.8 99.4,89.5 100.7,89.1 102.1,88.8 103.4,88.5 104.8,88.1 106.1,87.8 107.5,87.4 108.8,87.1 110.2,86.7 111.5,86.4 112.9,86 114.2,85.7 115.6,85.3 116.9,85 118.3,84.6 119.6,84.3 121,83.9 122.3,83.5 123.7,83.2 125,82.8 126.4,82.4 127.7,82.1 129.1,81.7 130.4,81.3 131.8,80.9 133.1,80.6 134.5,80.2 135.8,79.8 137.2,79.4 138.6,79 139.9,78.6 141.2,78.3 142.6,77.9 143.9,77.5 145.3,77.1 146.7,76.7 148,76.3 149.4,75.9 150.7,75.5 152.1,75.1 153.4,74.7 154.8,74.3 156.1,73.9 157.5,73.5 158.8,73.1 160.2,72.6 161.5,72.2 162.9,71.8 164.2,71.4 165.6,71 166.9,70.6 168.3,70.1 169.6,69.7 171,69.3 172.3,68.9 173.7,68.4 175,68 176.4,67.6 177.7,67.1 179.1,66.7 180.4,66.3 181.8,65.8 183.1,65.4 184.4,64.9 185.8,64.5 187.1,64 188.5,63.6 189.8,63.1 191.2,62.7 192.6,62.2 193.9,61.8 195.3,61.3 196.6,60.9 198,60.4 199.3,59.9 200.7,59.5 202,59 203.3,58.5 204.7,58.1 206.1,57.6 207.4,57.1 208.8,56.7 210.1,56.2 211.4,55.7 212.8,55.2 214.1,54.7 215.5,54.3 216.8,53.8 218.2,53.3 219.6,52.8 220.9,52.3 222.2,51.8 223.6,51.3 225,50.8 226.3,50.3 227.6,49.8 229,49.3 230.3,48.8 231.7,48.3 233,47.8 234.4,47.3 235.7,46.8 237.1,46.3 238.4,45.8 239.8,45.3 241.2,44.8 242.5,44.2 243.8,43.7 245.2,43.2 246.5,42.7 247.9,42.2 249.2,41.6 250.6,41.1 251.9,40.6 253.3,40 254.6,39.5 256,39 257.4,38.4 258.7,37.9 260,37.4 261.4,36.8 262.8,36.3 264.1,35.7 265.5,35.2 266.8,34.6 268.2,34.1 269.5,33.5 270.9,33 272.2,32.4 273.6,31.9 274.9,31.3 276.2,30.7 277.6,30.2 279,29.6 280.3,29 281.7,28.5 283,27.9 284.4,27.3 285.7,26.8 287.1,26.2 288.4,25.6 289.8,25 291.1,24.5 292.5,23.9 293.8,23.3 295.2,22.7 296.5,22.1 297.9,21.5 299.2,20.9 300.6,20.4 301.9,19.8 303.3,19.2 304.6,18.6 306,18 307.3,17.4 308.7,16.8 310,16.2" class="sk-ink"/>
+<line x1="155.7" y1="74" x2="155.7" y2="222" class="sk-dash"/>
+<text x="159.7" y="66" class="lab-b">√2</text>
+<rect x="62.5" y="134" width="225" height="12" class="sk-accent2 fl-accent2-soft"/>
+<circle cx="175" cy="140" r="3.2" class="fl-ink"/>
+<text x="42" y="144.5" class="lab-muted">k = 0</text>
+<rect x="62.5" y="153" width="112.5" height="12" class="sk-accent2 fl-accent2-soft"/>
+<circle cx="118.7" cy="159" r="3.2" class="fl-ink"/>
+<text x="42" y="163.5" class="lab-muted">k = 1</text>
+<rect x="118.7" y="172" width="56.2" height="12" class="sk-accent2 fl-accent2-soft"/>
+<circle cx="146.9" cy="178" r="3.2" class="fl-ink"/>
+<text x="42" y="182.5" class="lab-muted">k = 2</text>
+<rect x="146.9" y="191" width="28.1" height="12" class="sk-accent2 fl-accent2-soft"/>
+<circle cx="160.9" cy="197" r="3.2" class="fl-ink"/>
+<text x="42" y="201.5" class="lab-muted">k = 3</text>
+<rect x="146.9" y="210" width="14.1" height="12" class="sk-accent2 fl-accent2-soft"/>
+<circle cx="153.9" cy="216" r="3.2" class="fl-ink"/>
+<text x="42" y="220.5" class="lab-muted">k = 4</text>
+<line x1="62.5" y1="229" x2="62.5" y2="235" class="sk-axis"/>
+<text x="62.5" y="249" class="lab-muted" text-anchor="middle">1</text>
+<line x1="175" y1="229" x2="175" y2="235" class="sk-axis"/>
+<text x="175" y="249" class="lab-muted" text-anchor="middle">1,5</text>
+<line x1="287.5" y1="229" x2="287.5" y2="235" class="sk-axis"/>
+<text x="287.5" y="249" class="lab-muted" text-anchor="middle">2</text>
+</svg>
+<figcaption>Dichotomie pour \(x^2 - 2 = 0\) sur \([1, 2]\) : à chaque étape, on calcule \(f\) au milieu (point) et l'on garde la moitié où \(f\) change de signe. La longueur de l'intervalle est divisée par 2 à chaque étape, et \(\sqrt 2\) (pointillés) y reste toujours.</figcaption>
+</figure>
+  <pre class="codeblock"><span class="kw">def</span> g(x):
+    <span class="kw">return</span> x * x - 2</pre>
+  <pre class="codeblock">&gt;&gt;&gt; zero_dicho(g, 1, 2, 1e-6)
+1.4142136573791504
+&gt;&gt;&gt; 2 ** 0.5                   <span class="cmt"># valeur de référence</span>
+1.4142135623730951</pre>
+  <p>Avec \(\varepsilon = 10^{-6}\), il faut 20 étapes ; le résultat est à moins de \(5 \times 10^{-7}\) de \(\sqrt 2\), comme prévu. On peut aussi fixer d'avance le nombre d'étapes avec une boucle <span class="code-inline">for</span>, ce qui garantit la terminaison sans raisonnement supplémentaire :</p>
+  <pre class="codeblock"><span class="kw">def</span> nb_etapes(a, b, eps):
+    <span class="str">"""Plus petit entier N tel que (b - a) / 2**N &lt;= eps."""</span>
+    N = 0
+    <span class="kw">while</span> (b - a) / 2 ** N &gt; eps:
+        N = N + 1
+    <span class="kw">return</span> N</pre>
+  <pre class="codeblock"><span class="kw">def</span> zero_dicho_n(f, a, b, n):
+    <span class="str">"""Même précondition que zero_dicho ; fait exactement n étapes et renvoie le</span>
+<span class="str">    milieu du dernier intervalle, à distance au plus (b - a) / 2**(n+1) d'un zéro."""</span>
+    fa = f(a)
+    <span class="kw">for</span> k <span class="kw">in</span> range(n):
+        m = (a + b) / 2
+        fm = f(m)
+        <span class="kw">if</span> fa * fm &lt;= 0:
+            b = m
+        <span class="kw">else</span>:
+            a, fa = m, fm
+    <span class="kw">return</span> (a + b) / 2</pre>
+  <pre class="codeblock">&gt;&gt;&gt; nb_etapes(1, 2, 1e-6)
+20
+&gt;&gt;&gt; zero_dicho_n(g, 1, 2, 20)
+1.4142136573791504</pre>
+
+  <div class="notice"><strong>Piège : une précision plus fine que les flottants.</strong> La terminaison ci-dessus suppose un calcul exact. Près de \(10^6\), deux flottants voisins sont espacés de \(1{,}16 \times 10^{-10}\) : avec \(\varepsilon = 10^{-12}\), l'intervalle finit par avoir pour bornes deux flottants consécutifs ; leur milieu, arrondi, est égal à l'une des bornes, et \(b - a\) ne diminue plus.
+  <pre class="codeblock"><span class="kw">def</span> h(x):
+    <span class="kw">return</span> x - 1000000.3          <span class="cmt"># zéro : 1000000.3</span>
+
+zero_dicho(h, 1e6, 1e6 + 1, 1e-12)   <span class="cmt"># ne s'arrête jamais</span></pre>
+  Remèdes : demander une précision compatible avec la grandeur de la racine (quelques \(10^{-16}\) en valeur <em>relative</em>), fixer le nombre d'étapes par une boucle <span class="code-inline">for</span>, ou s'arrêter aussi quand \(m\) est égal à \(a\) ou à \(b\).</div>
+
+  <div class="notice"><strong>Erreurs classiques</strong> :
+    <ul>
+      <li>lancer la dichotomie sans vérifier \(f(a) f(b) \le 0\) : avec \(f(x) = x^2 + 1\), elle renvoie un nombre qui n'est le zéro de rien ;</li>
+      <li>appliquer la méthode à une fonction discontinue : avec \(f(x) = \dfrac1x\) sur \([-1, 1]\), il y a changement de signe mais pas de zéro, et la dichotomie converge vers la discontinuité 0 ;</li>
+      <li>croire que la méthode trouve « le » zéro : s'il y en a plusieurs dans \([a, b]\), elle en trouve un, sans dire lequel.</li>
+    </ul>
+  </div>
+  <p>En physique, le programme demande aussi de savoir utiliser la fonction <span class="code-inline">bisect</span> de la bibliothèque <span class="code-inline">scipy.optimize</span>, qui met en œuvre la même méthode :</p>
+  <pre class="codeblock">&gt;&gt;&gt; <span class="kw">from</span> scipy.optimize <span class="kw">import</span> bisect    <span class="cmt"># bibliothèque hors annexe</span>
+&gt;&gt;&gt; bisect(g, 1, 2, xtol=1e-12)          <span class="cmt"># xtol : précision demandée sur x</span>
+1.4142135623724243</pre>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§3 · LA MÉTHODE DE NEWTON</div>
+  <h2>Suivre la tangente : rapide, mais sans garantie</h2>
+  <div class="intro">La méthode de Newton n'est pas au programme d'informatique : c'est un exemple du programme de mathématiques (vitesse de convergence d'une suite récurrente) et une capacité de sciences de l'ingénieur (chapitre « Résolution numérique en sciences de l'ingénieur », §4). Les sujets d'informatique la proposent souvent, formule donnée, pour comparer sa vitesse à celle de la dichotomie.</div>
+
+  <div class="def-box"><strong>Méthode de Newton.</strong> Pour \(f\) dérivable, on part d'un point \(x_0\) et l'on remplace la courbe par sa tangente au point courant : \(x_{k+1}\) est l'abscisse où la tangente en \(x_k\) coupe l'axe,
+  $$x_{k+1} = x_k - \frac{f(x_k)}{f'(x_k)} \qquad (f'(x_k) \ne 0).$$</div>
+  <figure class="schema" style="max-width:380px">
+<svg viewBox="0 0 340 206" role="img" aria-label="La parabole y = x² − 2 et deux tangentes. Depuis x₀ = 2,5, la tangente au point de la courbe coupe l'axe en x₁ = 1,65 ; la tangente en x₁ coupe l'axe en x₂ ≈ 1,431, déjà proche de √2 ≈ 1,414.">
+<line x1="40" y1="130.7" x2="320" y2="130.7" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<line x1="40" y1="172" x2="40" y2="2" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<text x="322" y="134.7" class="lab-it">x</text>
+<text x="46" y="8" class="lab-it">y</text>
+<polyline points="40,161.4 41.3,161 42.6,160.6 43.8,160.2 45.1,159.8 46.4,159.3 47.7,158.9 48.9,158.5 50.2,158 51.5,157.6 52.8,157.2 54,156.7 55.3,156.3 56.6,155.8 57.9,155.3 59.2,154.9 60.4,154.4 61.7,153.9 63,153.5 64.3,153 65.5,152.5 66.8,152 68.1,151.5 69.4,151 70.6,150.5 71.9,150 73.2,149.5 74.5,149 75.8,148.5 77,148 78.3,147.4 79.6,146.9 80.9,146.4 82.1,145.9 83.4,145.3 84.7,144.8 86,144.2 87.2,143.7 88.5,143.1 89.8,142.6 91.1,142 92.4,141.4 93.6,140.9 94.9,140.3 96.2,139.7 97.5,139.1 98.7,138.5 100,138 101.3,137.4 102.6,136.8 103.9,136.2 105.1,135.6 106.4,134.9 107.7,134.3 109,133.7 110.2,133.1 111.5,132.5 112.8,131.8 114.1,131.2 115.3,130.6 116.6,129.9 117.9,129.3 119.2,128.6 120.5,128 121.7,127.3 123,126.7 124.3,126 125.6,125.3 126.8,124.6 128.1,124 129.4,123.3 130.7,122.6 131.9,121.9 133.2,121.2 134.5,120.5 135.8,119.8 137.1,119.1 138.3,118.4 139.6,117.7 140.9,117 142.2,116.3 143.4,115.5 144.7,114.8 146,114.1 147.3,113.3 148.5,112.6 149.8,111.9 151.1,111.1 152.4,110.4 153.7,109.6 154.9,108.8 156.2,108.1 157.5,107.3 158.8,106.5 160,105.8 161.3,105 162.6,104.2 163.9,103.4 165.1,102.6 166.4,101.8 167.7,101 169,100.2 170.3,99.4 171.5,98.6 172.8,97.8 174.1,97 175.4,96.1 176.6,95.3 177.9,94.5 179.2,93.6 180.5,92.8 181.7,92 183,91.1 184.3,90.3 185.6,89.4 186.9,88.5 188.1,87.7 189.4,86.8 190.7,85.9 192,85.1 193.2,84.2 194.5,83.3 195.8,82.4 197.1,81.5 198.4,80.6 199.6,79.7 200.9,78.8 202.2,77.9 203.5,77 204.7,76.1 206,75.2 207.3,74.3 208.6,73.3 209.8,72.4 211.1,71.5 212.4,70.5 213.7,69.6 215,68.7 216.2,67.7 217.5,66.7 218.8,65.8 220.1,64.8 221.3,63.9 222.6,62.9 223.9,61.9 225.2,60.9 226.4,60 227.7,59 229,58 230.3,57 231.6,56 232.8,55 234.1,54 235.4,53 236.7,52 237.9,51 239.2,49.9 240.5,48.9 241.8,47.9 243,46.8 244.3,45.8 245.6,44.8 246.9,43.7 248.2,42.7 249.4,41.6 250.7,40.6 252,39.5 253.3,38.4 254.5,37.4 255.8,36.3 257.1,35.2 258.4,34.1 259.6,33.1 260.9,32 262.2,30.9 263.5,29.8 264.8,28.7 266,27.6 267.3,26.5 268.6,25.4 269.9,24.2 271.1,23.1 272.4,22 273.7,20.9 275,19.7 276.2,18.6 277.5,17.5 278.8,16.3 280.1,15.2 281.4,14 282.6,12.9 283.9,11.7 285.2,10.5 286.5,9.4 287.7,8.2 289,7 290.3,5.9 291.6,4.7 292.9,3.5 294.1,2.3 295.4,1.1" class="sk-ink"/>
+<line x1="273.5" y1="130.7" x2="273.5" y2="21" class="sk-dash"/>
+<line x1="273.5" y1="21" x2="149.5" y2="130.7" class="sk-accent"/>
+<circle cx="273.5" cy="21" r="3.5" class="fl-accent"/>
+<line x1="149.5" y1="130.7" x2="149.5" y2="112.1" class="sk-dash"/>
+<line x1="149.5" y1="112.1" x2="117.5" y2="130.7" class="sk-accent"/>
+<circle cx="149.5" cy="112.1" r="3.5" class="fl-accent"/>
+<circle cx="273.5" cy="130.7" r="3" class="fl-ink"/>
+<text x="273.5" y="148.7" class="lab-it" text-anchor="middle">x<tspan dy="4">0</tspan></text>
+<circle cx="149.5" cy="130.7" r="3" class="fl-ink"/>
+<text x="149.5" y="148.7" class="lab-it" text-anchor="middle">x<tspan dy="4">1</tspan></text>
+<circle cx="117.5" cy="130.7" r="3" class="fl-ink"/>
+<text x="117.5" y="148.7" class="lab-it" text-anchor="middle">x<tspan dy="4">2</tspan></text>
+<text x="111" y="122.7" class="lab-b" text-anchor="end">√2</text>
+</svg>
+<figcaption>Méthode de Newton pour \(x^2 - 2 = 0\) depuis \(x_0 = 2{,}5\) : chaque nouveau terme est l'abscisse où la tangente au point courant coupe l'axe. \(x_1 = 1{,}65\), \(x_2 \approx 1{,}431\), \(x_3 \approx 1{,}414\,24\).</figcaption>
+</figure>
+  <pre class="codeblock"><span class="kw">def</span> newton(f, df, x0, eps, nmax):
+    <span class="str">"""Méthode de Newton pour f(x) = 0, de dérivée df, depuis x0. S'arrête quand</span>
+<span class="str">    deux termes consécutifs diffèrent d'au plus eps, ou après nmax itérations."""</span>
+    x = x0
+    <span class="kw">for</span> k <span class="kw">in</span> range(nmax):
+        d = df(x)
+        <span class="kw">assert</span> d != 0             <span class="cmt"># tangente horizontale : la méthode échoue</span>
+        x_suiv = x - f(x) / d
+        <span class="kw">if</span> abs(x_suiv - x) &lt;= eps:
+            <span class="kw">return</span> x_suiv
+        x = x_suiv
+    <span class="kw">return</span> x</pre>
+  <p>La boucle <span class="code-inline">for</span> borne le nombre d'itérations : la terminaison est assurée même si la suite ne converge pas (variant : \(n_{\max} - k\)). Le critère d'arrêt « deux termes consécutifs proches » est l'usage, mais il ne prouve pas que \(x\) est proche d'un zéro : on vérifie après coup que \(f(x)\) est petit.</p>
+
+  <div class="method-box"><strong>Exemple — \(\sqrt 2\) en cinq itérations</strong>
+    <p>Pour \(g(x) = x^2 - 2\), la formule devient \(x_{k+1} = x_k - \dfrac{x_k^2 - 2}{2x_k} = \dfrac12\left(x_k + \dfrac{2}{x_k}\right)\). Depuis \(x_0 = 2\) :</p>
+    <div><table>
+<tr><th>\(k\)</th><th>\(x_k\)</th><th>erreur \(|x_k - \sqrt 2|\)</th></tr>
+<tr><td>0</td><td><span class="code-inline">2.0</span></td><td>\(5{,}9 \times 10^{-1}\)</td></tr>
+<tr><td>1</td><td><span class="code-inline">1.5</span></td><td>\(8{,}6 \times 10^{-2}\)</td></tr>
+<tr><td>2</td><td><span class="code-inline">1.4166666666666667</span></td><td>\(2{,}5 \times 10^{-3}\)</td></tr>
+<tr><td>3</td><td><span class="code-inline">1.4142156862745099</span></td><td>\(2{,}1 \times 10^{-6}\)</td></tr>
+<tr><td>4</td><td><span class="code-inline">1.4142135623746899</span></td><td>\(1{,}6 \times 10^{-12}\)</td></tr>
+<tr><td>5</td><td><span class="code-inline">1.4142135623730951</span></td><td>\(0\)</td></tr>
+</table></div>
+    <ol>
+      <li>Le nombre de chiffres significatifs exacts double à peu près à chaque itération (convergence <strong>quadratique</strong>, résultat de mathématiques admis ici) : 1, 3, 6, puis 12 chiffres.</li>
+      <li>Dès la cinquième itération, on obtient le flottant le plus proche de \(\sqrt 2\) : on ne peut pas faire mieux en flottants. Les itérations suivantes oscillent d'un écart de flottant, et la fonction s'arrête sur le voisin <span class="code-inline">1.414213562373095</span>.</li>
+      <li>La dichotomie sur \([1, 2]\) demande 20 étapes pour une précision de \(10^{-6}\) et une cinquantaine pour la précision maximale des flottants.</li>
+    </ol>
+    <pre class="codeblock"><span class="kw">def</span> dg(x):
+    <span class="kw">return</span> 2 * x</pre>
+    <pre class="codeblock">&gt;&gt;&gt; newton(g, dg, 2.0, 1e-12, 50)
+1.414213562373095
+&gt;&gt;&gt; 2 ** 0.5                   <span class="cmt"># flottant voisin : écart de 2.2e-16</span>
+1.4142135623730951</pre>
+  </div>
+
+  <div class="notice"><strong>Les risques de Newton</strong> :
+    <ul>
+      <li>une dérivée nulle ou très petite en un \(x_k\) : division par zéro, ou saut très loin ;</li>
+      <li>un mauvais point de départ : la suite peut diverger ou tourner en rond. Pour \(p(x) = x^3 - 2x + 2\), depuis \(x_0 = 0\), on obtient \(x_1 = 1\), puis \(x_2 = 0\), et ainsi de suite indéfiniment ;</li>
+      <li>il faut connaître la dérivée \(f'\).</li>
+    </ul>
+  </div>
+  <pre class="codeblock"><span class="kw">def</span> p(x):
+    <span class="kw">return</span> x ** 3 - 2 * x + 2
+
+<span class="kw">def</span> dp(x):
+    <span class="kw">return</span> 3 * x ** 2 - 2</pre>
+  <pre class="codeblock">&gt;&gt;&gt; newton(p, dp, 0.0, 1e-12, 5)    <span class="cmt"># 0 -&gt; 1 -&gt; 0 -&gt; 1 -&gt; 0 -&gt; 1 : un cycle</span>
+1.0
+&gt;&gt;&gt; newton(p, dp, -2.0, 1e-12, 50)  <span class="cmt"># d'un meilleur point de départ : la racine</span>
+-1.7692923542386314</pre>
+  <div class="prop-box"><strong>Dichotomie ou Newton ?</strong> La dichotomie est <strong>sûre</strong> (un changement de signe suffit, le nombre d'étapes est connu d'avance) mais lente : un bit de précision par étape. Newton est <strong>rapide</strong> près d'un zéro simple, mais demande la dérivée et un bon point de départ, sans garantie de convergence. En pratique, on combine : quelques étapes de dichotomie pour s'approcher, puis Newton pour conclure.</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§4 · INTÉGRALE APPROCHÉE : RECTANGLES ET TRAPÈZES</div>
+  <h2>Remplacer l'aire sous la courbe par des aires simples</h2>
+  <div class="intro">Pour approcher \(\displaystyle\int_a^b f(x)\,\mathrm{d}x\), on découpe \([a, b]\) en \(n\) sous-intervalles de même largeur et l'on remplace, sur chacun, l'aire sous la courbe par celle d'un rectangle ou d'un trapèze. Les notations sont celles du chapitre de mathématiques « Intégration (approfondissements) », §2.</div>
+
+  <div class="def-box">Soit \(n \ge 1\), le <strong>pas</strong> \(h = \dfrac{b - a}{n}\) et les points \(x_k = a + kh\) pour \(k = 0, \dots, n\) (\(x_0 = a\), \(x_n = b\)).
+    <ul>
+      <li><strong>Méthode des rectangles</strong> (à gauche) : sur \([x_k, x_{k+1}]\), on prend la hauteur \(f(x_k)\) :
+      $$R_n = h \sum_{k=0}^{n-1} f(x_k).$$</li>
+      <li><strong>Méthode des trapèzes</strong> : sur \([x_k, x_{k+1}]\), on prend le trapèze qui joint les points \(\big(x_k, f(x_k)\big)\) et \(\big(x_{k+1}, f(x_{k+1})\big)\), d'aire \(h \dfrac{f(x_k) + f(x_{k+1})}2\) :
+      $$T_n = h \left( \frac{f(a) + f(b)}{2} + \sum_{k=1}^{n-1} f(x_k) \right).$$</li>
+    </ul>
+  </div>
+  <figure class="schema" style="max-width:380px">
+<svg viewBox="0 0 340 222" role="img" aria-label="Deux graphiques de la courbe y = eˣ entre 0 et 2, découpée en 4 bandes de largeur 0,5. À gauche, quatre rectangles dont la hauteur est la valeur de la fonction au bord gauche : ils restent sous la courbe, total 4,92. À droite, quatre trapèzes qui joignent les points de la courbe : ils la suivent de près, total 6,52.">
+<line x1="22" y1="168" x2="158" y2="168" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<line x1="22" y1="168" x2="22" y2="12" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<polygon points="22,168 22,148.8 54,148.8 54,168" class="sk-accent2 fl-accent2-soft"/>
+<polygon points="54,168 54,136.3 86,136.3 86,168" class="sk-accent2 fl-accent2-soft"/>
+<polygon points="86,168 86,115.7 118,115.7 118,168" class="sk-accent2 fl-accent2-soft"/>
+<polygon points="118,168 118,81.8 150,81.8 150,168" class="sk-accent2 fl-accent2-soft"/>
+<polyline points="22,148.8 22.6,148.6 23.3,148.4 23.9,148.2 24.6,148 25.2,147.8 25.8,147.6 26.5,147.4 27.1,147.2 27.8,147 28.4,146.7 29,146.5 29.7,146.3 30.3,146.1 31,145.9 31.6,145.7 32.2,145.4 32.9,145.2 33.5,145 34.2,144.7 34.8,144.5 35.4,144.3 36.1,144 36.7,143.8 37.4,143.6 38,143.3 38.6,143.1 39.3,142.8 39.9,142.6 40.6,142.3 41.2,142 41.8,141.8 42.5,141.5 43.1,141.3 43.8,141 44.4,140.7 45,140.4 45.7,140.2 46.3,139.9 47,139.6 47.6,139.3 48.2,139 48.9,138.7 49.5,138.4 50.2,138.1 50.8,137.8 51.4,137.5 52.1,137.2 52.7,136.9 53.4,136.6 54,136.3 54.6,136 55.3,135.7 55.9,135.3 56.6,135 57.2,134.7 57.8,134.3 58.5,134 59.1,133.7 59.8,133.3 60.4,133 61,132.6 61.7,132.3 62.3,131.9 63,131.5 63.6,131.2 64.2,130.8 64.9,130.4 65.5,130 66.2,129.7 66.8,129.3 67.4,128.9 68.1,128.5 68.7,128.1 69.4,127.7 70,127.3 70.6,126.9 71.3,126.5 71.9,126 72.6,125.6 73.2,125.2 73.8,124.8 74.5,124.3 75.1,123.9 75.8,123.5 76.4,123 77,122.6 77.7,122.1 78.3,121.6 79,121.2 79.6,120.7 80.2,120.2 80.9,119.7 81.5,119.3 82.2,118.8 82.8,118.3 83.4,117.8 84.1,117.3 84.7,116.8 85.4,116.2 86,115.7 86.6,115.2 87.3,114.7 87.9,114.1 88.6,113.6 89.2,113 89.8,112.5 90.5,111.9 91.1,111.4 91.8,110.8 92.4,110.2 93,109.6 93.7,109.1 94.3,108.5 95,107.9 95.6,107.3 96.2,106.7 96.9,106 97.5,105.4 98.2,104.8 98.8,104.2 99.4,103.5 100.1,102.9 100.7,102.2 101.4,101.5 102,100.9 102.6,100.2 103.3,99.5 103.9,98.8 104.6,98.1 105.2,97.4 105.8,96.7 106.5,96 107.1,95.3 107.8,94.6 108.4,93.8 109,93.1 109.7,92.3 110.3,91.6 111,90.8 111.6,90 112.2,89.2 112.9,88.4 113.5,87.6 114.2,86.8 114.8,86 115.4,85.2 116.1,84.4 116.7,83.5 117.4,82.7 118,81.8 118.6,80.9 119.3,80.1 119.9,79.2 120.6,78.3 121.2,77.4 121.8,76.5 122.5,75.6 123.1,74.6 123.8,73.7 124.4,72.7 125,71.8 125.7,70.8 126.3,69.8 127,68.9 127.6,67.9 128.2,66.9 128.9,65.8 129.5,64.8 130.2,63.8 130.8,62.7 131.4,61.7 132.1,60.6 132.7,59.5 133.4,58.4 134,57.3 134.6,56.2 135.3,55.1 135.9,54 136.6,52.8 137.2,51.7 137.8,50.5 138.5,49.3 139.1,48.1 139.8,46.9 140.4,45.7 141,44.5 141.7,43.2 142.3,42 143,40.7 143.6,39.4 144.2,38.1 144.9,36.8 145.5,35.5 146.2,34.2 146.8,32.8 147.4,31.5 148.1,30.1 148.7,28.7 149.4,27.3 150,25.9" class="sk-ink"/>
+<text x="22" y="184" class="lab-muted" text-anchor="middle">0</text>
+<text x="86" y="184" class="lab-muted" text-anchor="middle">1</text>
+<text x="150" y="184" class="lab-muted" text-anchor="middle">2</text>
+<line x1="186" y1="168" x2="322" y2="168" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<line x1="186" y1="168" x2="186" y2="12" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<polygon points="186,168 186,148.8 218,136.3 218,168" class="sk-green fl-green-soft"/>
+<polygon points="218,168 218,136.3 250,115.7 250,168" class="sk-green fl-green-soft"/>
+<polygon points="250,168 250,115.7 282,81.8 282,168" class="sk-green fl-green-soft"/>
+<polygon points="282,168 282,81.8 314,25.9 314,168" class="sk-green fl-green-soft"/>
+<polyline points="186,148.8 186.6,148.6 187.3,148.4 187.9,148.2 188.6,148 189.2,147.8 189.8,147.6 190.5,147.4 191.1,147.2 191.8,147 192.4,146.7 193,146.5 193.7,146.3 194.3,146.1 195,145.9 195.6,145.7 196.2,145.4 196.9,145.2 197.5,145 198.2,144.7 198.8,144.5 199.4,144.3 200.1,144 200.7,143.8 201.4,143.6 202,143.3 202.6,143.1 203.3,142.8 203.9,142.6 204.6,142.3 205.2,142 205.8,141.8 206.5,141.5 207.1,141.3 207.8,141 208.4,140.7 209,140.4 209.7,140.2 210.3,139.9 211,139.6 211.6,139.3 212.2,139 212.9,138.7 213.5,138.4 214.2,138.1 214.8,137.8 215.4,137.5 216.1,137.2 216.7,136.9 217.4,136.6 218,136.3 218.6,136 219.3,135.7 219.9,135.3 220.6,135 221.2,134.7 221.8,134.3 222.5,134 223.1,133.7 223.8,133.3 224.4,133 225,132.6 225.7,132.3 226.3,131.9 227,131.5 227.6,131.2 228.2,130.8 228.9,130.4 229.5,130 230.2,129.7 230.8,129.3 231.4,128.9 232.1,128.5 232.7,128.1 233.4,127.7 234,127.3 234.6,126.9 235.3,126.5 235.9,126 236.6,125.6 237.2,125.2 237.8,124.8 238.5,124.3 239.1,123.9 239.8,123.5 240.4,123 241,122.6 241.7,122.1 242.3,121.6 243,121.2 243.6,120.7 244.2,120.2 244.9,119.7 245.5,119.3 246.2,118.8 246.8,118.3 247.4,117.8 248.1,117.3 248.7,116.8 249.4,116.2 250,115.7 250.6,115.2 251.3,114.7 251.9,114.1 252.6,113.6 253.2,113 253.8,112.5 254.5,111.9 255.1,111.4 255.8,110.8 256.4,110.2 257,109.6 257.7,109.1 258.3,108.5 259,107.9 259.6,107.3 260.2,106.7 260.9,106 261.5,105.4 262.2,104.8 262.8,104.2 263.4,103.5 264.1,102.9 264.7,102.2 265.4,101.5 266,100.9 266.6,100.2 267.3,99.5 267.9,98.8 268.6,98.1 269.2,97.4 269.8,96.7 270.5,96 271.1,95.3 271.8,94.6 272.4,93.8 273,93.1 273.7,92.3 274.3,91.6 275,90.8 275.6,90 276.2,89.2 276.9,88.4 277.5,87.6 278.2,86.8 278.8,86 279.4,85.2 280.1,84.4 280.7,83.5 281.4,82.7 282,81.8 282.6,80.9 283.3,80.1 283.9,79.2 284.6,78.3 285.2,77.4 285.8,76.5 286.5,75.6 287.1,74.6 287.8,73.7 288.4,72.7 289,71.8 289.7,70.8 290.3,69.8 291,68.9 291.6,67.9 292.2,66.9 292.9,65.8 293.5,64.8 294.2,63.8 294.8,62.7 295.4,61.7 296.1,60.6 296.7,59.5 297.4,58.4 298,57.3 298.6,56.2 299.3,55.1 299.9,54 300.6,52.8 301.2,51.7 301.8,50.5 302.5,49.3 303.1,48.1 303.8,46.9 304.4,45.7 305,44.5 305.7,43.2 306.3,42 307,40.7 307.6,39.4 308.2,38.1 308.9,36.8 309.5,35.5 310.2,34.2 310.8,32.8 311.4,31.5 312.1,30.1 312.7,28.7 313.4,27.3 314,25.9" class="sk-ink"/>
+<text x="186" y="184" class="lab-muted" text-anchor="middle">0</text>
+<text x="250" y="184" class="lab-muted" text-anchor="middle">1</text>
+<text x="314" y="184" class="lab-muted" text-anchor="middle">2</text>
+<text x="86" y="212" class="lab-accent2" text-anchor="middle">rectangles : 4,92</text>
+<text x="250" y="212" class="lab-green" text-anchor="middle">trapèzes : 6,52</text>
+</svg>
+<figcaption>Approcher \(\displaystyle\int_0^2 \mathrm{e}^x\,\mathrm{d}x = \mathrm{e}^2 - 1 \approx 6{,}39\) avec \(n = 4\) sous-intervalles. Rectangles à gauche : la fonction croît, chaque rectangle manque un morceau d'aire. Trapèzes : la corde est au-dessus de la courbe (fonction convexe), l'erreur est bien plus petite.</figcaption>
+</figure>
+  <pre class="codeblock"><span class="kw">def</span> rectangles(f, a, b, n):
+    <span class="str">"""Méthode des rectangles à gauche : h * (f(x_0) + … + f(x_(n-1)))."""</span>
+    h = (b - a) / n
+    s = 0
+    <span class="kw">for</span> k <span class="kw">in</span> range(n):
+        s = s + f(a + k * h)      <span class="cmt"># hauteur prise au bord gauche de [x_k, x_(k+1)]</span>
+    <span class="kw">return</span> h * s</pre>
+  <pre class="codeblock"><span class="kw">def</span> trapezes(f, a, b, n):
+    <span class="str">"""Méthode des trapèzes : h * ((f(a) + f(b)) / 2 + f(x_1) + … + f(x_(n-1)))."""</span>
+    h = (b - a) / n
+    s = (f(a) + f(b)) / 2
+    <span class="kw">for</span> k <span class="kw">in</span> range(1, n):
+        s = s + f(a + k * h)
+    <span class="kw">return</span> h * s</pre>
+  <p><strong>Coût</strong> : \(n\) évaluations de \(f\) pour les rectangles, \(n + 1\) pour les trapèzes, plus \(O(n)\) additions : la complexité est linéaire en \(n\), \(O(n)\), si une évaluation de \(f\) coûte un temps constant. Dans les sommes, les points intérieurs comptent une fois et les extrémités une demi-fois : c'est ce qui distingue les deux formules. Les variantes « rectangles à droite » (hauteur \(f(x_{k+1})\)) et « point milieu » (hauteur \(f\big(\frac{x_k + x_{k+1}}2\big)\)) se programment de la même façon.</p>
+
+  <div class="method-box"><strong>Exemple — \(\displaystyle\int_0^1 \mathrm{e}^x\,\mathrm{d}x = \mathrm{e} - 1 \approx 1{,}718\,282\)</strong>
+    <pre class="codeblock">&gt;&gt;&gt; <span class="kw">from</span> math <span class="kw">import</span> exp, e
+&gt;&gt;&gt; rectangles(exp, 0, 1, 100), trapezes(exp, 0, 1, 100)
+(1.7097047383081219, 1.718296147450417)
+&gt;&gt;&gt; e - 1                                <span class="cmt"># valeur exacte de l'intégrale</span>
+1.718281828459045</pre>
+    <div><table>
+<tr><th>\(n\)</th><th>\(R_n\)</th><th>erreur</th><th>\(T_n\)</th><th>erreur</th></tr>
+<tr><td>10</td><td>\(1{,}633799\)</td><td>\(8{,}4 \times 10^{-2}\)</td><td>\(1{,}71971349\)</td><td>\(1{,}4 \times 10^{-3}\)</td></tr>
+<tr><td>100</td><td>\(1{,}709705\)</td><td>\(8{,}6 \times 10^{-3}\)</td><td>\(1{,}71829615\)</td><td>\(1{,}4 \times 10^{-5}\)</td></tr>
+<tr><td>1000</td><td>\(1{,}717423\)</td><td>\(8{,}6 \times 10^{-4}\)</td><td>\(1{,}71828197\)</td><td>\(1{,}4 \times 10^{-7}\)</td></tr>
+</table></div>
+    <ol>
+      <li>Quand \(n\) est multiplié par 10, l'erreur des rectangles est divisée par 10 environ, celle des trapèzes par 100.</li>
+      <li>Les rectangles à gauche sous-estiment l'intégrale d'une fonction croissante ; les trapèzes surestiment celle d'une fonction convexe (la corde est au-dessus de la courbe).</li>
+    </ol>
+  </div>
+  <div class="prop-box"><strong>Erreurs de méthode</strong> (résultats de mathématiques). Si \(|f'| \le M_1\) sur \([a, b]\), l'erreur de la méthode des rectangles est au plus \(\dfrac{M_1 (b - a)^2}{2n}\). Si \(|f''| \le M_2\), celle de la méthode des trapèzes est au plus \(\dfrac{M_2 (b - a)^3}{12\, n^2}\).
+  $$\left| \int_a^b f - R_n \right| \le \frac{M_1 (b-a)^2}{2n}, \qquad \left| \int_a^b f - T_n \right| \le \frac{M_2 (b-a)^3}{12\,n^2}.$$
+  On dit que la méthode des rectangles est d'<strong>ordre 1</strong> (erreur en \(\frac1n\)) et celle des trapèzes d'<strong>ordre 2</strong> (erreur en \(\frac1{n^2}\)).</div>
+  <div class="method-box"><strong>Exemple — choisir \(n\) pour une précision donnée</strong>
+    <ol>
+      <li>Pour \(\int_0^1 \mathrm{e}^x\,\mathrm{d}x\) à \(10^{-6}\) près par les trapèzes : \(M_2 = \mathrm{e}\), il suffit que \(\dfrac{\mathrm{e}}{12\,n^2} \le 10^{-6}\), soit \(n \ge \sqrt{\mathrm{e} \times 10^6 / 12} \approx 475{,}9\) : \(n = 476\).</li>
+      <li>Par les rectangles, \(\dfrac{\mathrm{e}}{2n} \le 10^{-6}\) demande \(n \ge 1{,}36 \times 10^6\) : près de 3 000 fois plus d'évaluations.</li>
+    </ol>
+  </div>
+  <div class="notice"><strong>Erreurs classiques</strong> : confondre le nombre \(n\) de sous-intervalles et le nombre \(n + 1\) de points ; calculer le pas par <span class="code-inline">(b - a) // n</span> (division entière : pas nul si \(b - a \lt n\)) ; dans les trapèzes, compter les extrémités en entier ou oublier de les compter ; faire varier <span class="code-inline">k</span> de 0 à <span class="code-inline">n</span> dans les rectangles (un rectangle de trop).</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§5 · MESURES ET DÉRIVÉE APPROCHÉE</div>
+  <h2>Quand on ne dispose que de valeurs, et le choix du pas</h2>
+  <div class="intro">En physique et en sciences de l'ingénieur, la fonction est souvent inconnue : on dispose de mesures \(y_k\) prises aux instants \(t_k\), parfois irrégulièrement espacés. On intègre (une puissance pour obtenir une énergie, une vitesse pour obtenir une distance) et l'on dérive (une position pour obtenir une vitesse) directement sur ces listes. La dérivée approchée est aussi l'occasion de voir l'erreur d'arrondi l'emporter sur l'erreur de méthode.</div>
+
+  <h3>Intégrer une liste de mesures</h3>
+  <p>La méthode des trapèzes s'adapte à des pas variables : sur \([t_k, t_{k+1}]\), l'aire du trapèze vaut \((t_{k+1} - t_k) \dfrac{y_k + y_{k+1}}2\).</p>
+  <pre class="codeblock"><span class="kw">def</span> trapezes_mesures(t, y):
+    <span class="str">"""Valeur approchée de l'intégrale de la grandeur y entre t[0] et t[n-1] (n = len(t)),</span>
+<span class="str">    les mesures y[k] étant prises aux instants croissants t[k] (pas éventuellement variable)."""</span>
+    s = 0
+    <span class="kw">for</span> k <span class="kw">in</span> range(len(t) - 1):
+        s = s + (t[k + 1] - t[k]) * (y[k] + y[k + 1]) / 2
+    <span class="kw">return</span> s</pre>
+  <div class="method-box"><strong>Exemple — énergie consommée par un moteur</strong>
+    <pre class="codeblock">&gt;&gt;&gt; t = [0, 2, 4, 5, 6, 8, 10]                <span class="cmt"># instants (s)</span>
+&gt;&gt;&gt; P = [0, 150, 380, 520, 600, 610, 600]     <span class="cmt"># puissance mesurée (W)</span>
+&gt;&gt;&gt; trapezes_mesures(t, P)                     <span class="cmt"># énergie (J)</span>
+4110.0</pre>
+    <ol>
+      <li>Les pas valent 2, 2, 1, 1, 2 et 2 s : la formule à pas constant de §4 ne s'applique pas.</li>
+      <li>Somme des six trapèzes : \(150 + 530 + 450 + 560 + 1210 + 1210 = 4110\) J.</li>
+      <li>Coût : un passage sur les listes, \(O(n)\) pour \(n\) mesures.</li>
+    </ol>
+  </div>
+
+  <h3>Approcher un nombre dérivé</h3>
+  <div class="def-box">Pour \(h \gt 0\) petit, le nombre dérivé \(f'(x)\) est approché par la <strong>différence avant</strong> (taux d'accroissement à droite) ou par la <strong>différence centrée</strong> :
+  $$f'(x) \approx \frac{f(x + h) - f(x)}{h}, \qquad f'(x) \approx \frac{f(x + h) - f(x - h)}{2h}.$$
+  D'après la formule de Taylor, l'erreur de méthode est au plus \(\dfrac{M_2}{2}\,h\) pour la première (si \(|f''| \le M_2\)) et \(\dfrac{M_3}{6}\,h^2\) pour la seconde (si \(|f'''| \le M_3\)).</div>
+  <pre class="codeblock"><span class="kw">def</span> derivee_avant(f, x, h):
+    <span class="str">"""Approximation de f'(x) par le taux d'accroissement à droite."""</span>
+    <span class="kw">return</span> (f(x + h) - f(x)) / h
+
+<span class="kw">def</span> derivee_centree(f, x, h):
+    <span class="str">"""Approximation de f'(x) par le taux d'accroissement centré."""</span>
+    <span class="kw">return</span> (f(x + h) - f(x - h)) / (2 * h)</pre>
+  <pre class="codeblock">&gt;&gt;&gt; <span class="kw">from</span> math <span class="kw">import</span> exp
+&gt;&gt;&gt; derivee_avant(exp, 1, 1e-4), derivee_centree(exp, 1, 1e-4)
+(2.718417747082924, 2.718281832989611)
+&gt;&gt;&gt; exp(1)
+2.718281828459045</pre>
+  <p>Sur une liste de mesures, on calcule de même les taux d'accroissement entre mesures successives (schéma « avant ») ; la liste obtenue a un élément de moins.</p>
+  <pre class="codeblock"><span class="kw">def</span> derivee_mesures(t, y):
+    <span class="str">"""Listes des instants t[k] et des dérivées approchées (y[k+1] - y[k]) / (t[k+1] - t[k])</span>
+<span class="str">    pour k = 0, …, n - 2 (différences avant)."""</span>
+    ts, ds = [], []
+    <span class="kw">for</span> k <span class="kw">in</span> range(len(t) - 1):
+        ts.append(t[k])
+        ds.append((y[k + 1] - y[k]) / (t[k + 1] - t[k]))
+    <span class="kw">return</span> ts, ds</pre>
+
+  <h3>Le choix du pas : erreur de méthode contre erreur d'arrondi</h3>
+  <p>On pourrait croire qu'il suffit de prendre \(h\) aussi petit que possible. C'est faux : \(f(x + h)\) et \(f(x)\) deviennent très proches, et leur différence subit une <strong>cancellation</strong> (chapitre « Représentation des nombres », §8). Chaque valeur de \(f\) est arrondie avec une erreur absolue de l'ordre de \(\epsilon\,|f(x)|\), où \(\epsilon \approx 2{,}2 \times 10^{-16}\) ; divisée par \(h\), cette erreur devient de l'ordre de \(\dfrac{\epsilon\,|f(x)|}{h}\).</p>
+  <figure class="schema" style="max-width:380px">
+<svg viewBox="0 0 340 196" role="img" aria-label="Graphique en échelles logarithmiques de l'erreur commise sur la dérivée de exp en 1, en fonction du pas h, de 1e-15 à 1e-1. La courbe de la différence avant descend en ligne droite quand h diminue jusqu'à 1e-8 environ, où l'erreur vaut quelques 1e-9, puis remonte de façon irrégulière. La courbe de la différence centrée descend deux fois plus vite, atteint environ 1e-11 vers h = 1e-5, puis remonte.">
+<line x1="52" y1="164" x2="310" y2="164" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<line x1="52" y1="164" x2="52" y2="8" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<line x1="52" y1="161" x2="52" y2="167" class="sk-axis"/>
+<text x="52" y="181" class="lab-muted" text-anchor="middle">1e-15</text>
+<line x1="141.3" y1="161" x2="141.3" y2="167" class="sk-axis"/>
+<text x="141.3" y="181" class="lab-muted" text-anchor="middle">1e-10</text>
+<line x1="230.6" y1="161" x2="230.6" y2="167" class="sk-axis"/>
+<text x="230.6" y="181" class="lab-muted" text-anchor="middle">1e-5</text>
+<line x1="302" y1="161" x2="302" y2="167" class="sk-axis"/>
+<text x="302" y="181" class="lab-muted" text-anchor="middle">1e-1</text>
+<line x1="49" y1="164" x2="55" y2="164" class="sk-axis"/>
+<text x="46" y="168" class="lab-muted" text-anchor="end">1e-12</text>
+<line x1="49" y1="114" x2="55" y2="114" class="sk-axis"/>
+<text x="46" y="118" class="lab-muted" text-anchor="end">1e-8</text>
+<line x1="49" y1="64" x2="55" y2="64" class="sk-axis"/>
+<text x="46" y="68" class="lab-muted" text-anchor="end">1e-4</text>
+<line x1="49" y1="14" x2="55" y2="14" class="sk-axis"/>
+<text x="46" y="18" class="lab-muted" text-anchor="end">1</text>
+<polyline points="302,24.7 297.5,27.9 293.1,31 288.6,34.2 284.1,37.3 279.7,40.4 275.2,43.6 270.8,46.7 266.3,49.8 261.8,53 257.4,56.1 252.9,59.2 248.4,62.3 244,65.5 239.5,68.6 235,71.7 230.6,74.8 226.1,78 221.6,81.1 217.2,84.2 212.7,87.3 208.2,90.5 203.8,93.6 199.3,96.7 194.9,99.7 190.4,102.9 185.9,104.7 181.5,105.8 177,116.3 172.5,108 168.1,104.6 163.6,101.2 159.1,97.3 154.7,100.2 150.2,91.4 145.8,88.3 141.3,86.6 136.8,83 132.4,85.1 127.9,71.3 123.4,70.1 119,65.6 114.5,64.8 110,58.5 105.6,56.1 101.1,53.4 96.6,55.2 92.2,50.2 87.7,55.8 83.2,48.7 78.8,40.3 74.3,44.3 69.9,39.4 65.4,32.5 60.9,30.3 56.5,33.3 52,19.1" class="sk-accent"/>
+<polyline points="302,43.3 297.5,49.5 293.1,55.8 288.6,62 284.1,68.3 279.7,74.5 275.2,80.8 270.8,87 266.3,93.3 261.8,99.5 257.4,105.8 252.9,112 248.4,118.3 244,124.5 239.5,130.7 235,137.2 230.6,141.9 226.1,143.6 221.6,145 217.2,143 212.7,136.3 208.2,130.5 203.8,144.4 199.3,140.4 194.9,141.9 190.4,121.6 185.9,116.5 181.5,115.5 177,116.3 172.5,114.3 168.1,104.6 163.6,101.2 159.1,116.3 154.7,100.2 150.2,104.6 145.8,101.2 141.3,91.2 136.8,89.5 132.4,85.1 127.9,74.8 123.4,76.3 119,69.8 114.5,73.9 110,71.3 105.6,60 101.1,57.8 96.6,60.4 92.2,71.3 87.7,55.8 83.2,48.7 78.8,40.3 74.3,39.7 69.9,39.4 65.4,32.5 60.9,30.3 56.5,33.3 52,23.7" class="sk-accent2"/>
+<text x="284.1" y="41.7" class="lab-accent" text-anchor="end">avant</text>
+<text x="288.1" y="94.3" class="lab-accent2">centrée</text>
+<text x="69.9" y="24.5" class="lab-muted">arrondis</text>
+<text x="271.7" y="24.5" class="lab-muted">méthode</text>
+<text x="306" y="158" class="lab-it" text-anchor="end">h</text>
+</svg>
+<figcaption>Erreur sur \(\exp'(1) = \mathrm{e}\) en fonction du pas \(h\) (échelles logarithmiques). À droite, l'erreur de méthode domine : elle est proportionnelle à \(h\) pour la différence avant, à \(h^2\) pour la différence centrée. À gauche, la cancellation dans \(f(x + h) - f(x)\) fait exploser l'erreur d'arrondi, de l'ordre de \(10^{-16}/h\). Le meilleur pas est vers \(10^{-8}\) (avant) ou \(10^{-5}\) (centrée).</figcaption>
+</figure>
+  <div class="prop-box"><strong>Pas optimal.</strong> L'erreur totale de la différence avant est de l'ordre de
+  $$\frac{M_2}{2}\,h + \frac{\epsilon\,|f(x)|}{h},$$
+  somme d'un terme qui décroît et d'un terme qui croît quand \(h\) diminue. Elle est minimale pour \(h\) de l'ordre de \(\sqrt{\epsilon} \approx 10^{-8}\) (si \(f\) et ses dérivées sont de l'ordre de 1), et vaut alors environ \(10^{-8}\) : on ne gagne que la moitié des chiffres significatifs. Pour la différence centrée, le meilleur pas est de l'ordre de \(\epsilon^{1/3} \approx 10^{-5}\), pour une erreur de l'ordre de \(10^{-11}\).</div>
+  <div class="notice"><strong>Pour des mesures</strong>, le problème est plus marqué encore : chaque mesure porte une incertitude bien supérieure à \(10^{-16}\), et dériver des mesures trop rapprochées amplifie leur bruit. On lisse les données ou l'on choisit un pas plus grand.</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§6 · ÉQUATIONS DIFFÉRENTIELLES : LA MÉTHODE D'EULER</div>
+  <h2>Avancer pas à pas en suivant la pente</h2>
+  <div class="intro">Une équation différentielle d'ordre 1, \(y' = F(t, y)\), donne en chaque point la pente de la solution. Avec une condition initiale \(y(t_0) = y_0\) (problème de Cauchy), on peut avancer par petits pas en suivant la pente du point où l'on se trouve : c'est la <strong>méthode d'Euler explicite</strong>. En physique, c'est la capacité « mettre en œuvre la méthode d'Euler explicite afin de résoudre une équation différentielle d'ordre 1 », par exemple pour un circuit du premier ordre soumis à une tension quelconque (le circuit est étudié dans le chapitre « Circuit linéaire du premier ordre » ; l'exercice 09 en fait la simulation).</div>
+
+  <div class="def-box"><strong>Méthode d'Euler.</strong> Pour le problème \(y' = F(t, y)\), \(y(t_0) = y_0\), avec un pas \(h \gt 0\), on pose \(t_k = t_0 + kh\) et l'on calcule les approximations \(y_k \approx y(t_k)\) par
+  $$y_{k+1} = y_k + h\, F(t_k, y_k).$$
+  C'est la différence avant de §5 lue à l'envers : \(\dfrac{y(t_{k+1}) - y(t_k)}{h} \approx y'(t_k) = F\big(t_k, y(t_k)\big)\).</div>
+  <pre class="codeblock"><span class="kw">def</span> euler(F, t0, y0, h, n):
+    <span class="str">"""Méthode d'Euler pour y' = F(t, y), y(t0) = y0 : renvoie les listes</span>
+<span class="str">    des instants t_k = t0 + k*h et des approximations y_k de y(t_k), k = 0, …, n."""</span>
+    ts, ys = [t0], [y0]
+    y = y0
+    <span class="kw">for</span> k <span class="kw">in</span> range(n):
+        y = y + h * F(t0 + k * h, y)      <span class="cmt"># pente au point (t_k, y_k)</span>
+        ts.append(t0 + (k + 1) * h)
+        ys.append(y)
+    <span class="kw">return</span> ts, ys</pre>
+  <p>Coût : \(n\) évaluations de \(F\), donc \(O(n)\) en temps ; les deux listes occupent \(O(n)\) en mémoire (complexité en espace, chapitre « Spécification, correction et complexité », §8). Si seule la valeur finale importe, on ne garde que <span class="code-inline">y</span> : l'espace devient \(O(1)\).</p>
+
+  <div class="method-box"><strong>Exemple — \(y' = y\), \(y(0) = 1\), avec \(h = 0{,}25\)</strong>
+    <p>Ici \(F(t, y) = y\), donc \(y_{k+1} = y_k + 0{,}25\, y_k = 1{,}25\, y_k\) et \(y_k = 1{,}25^k\). La solution exacte est \(y(t) = \mathrm{e}^t\).</p>
+    <div><table>
+<tr><th>\(k\)</th><th>\(t_k\)</th><th>\(y_k\)</th><th>\(\mathrm{e}^{t_k}\)</th></tr>
+<tr><td>0</td><td>\(0{,}00\)</td><td>\(1{,}00000\)</td><td>\(1{,}00000\)</td></tr>
+<tr><td>1</td><td>\(0{,}25\)</td><td>\(1{,}25000\)</td><td>\(1{,}28403\)</td></tr>
+<tr><td>2</td><td>\(0{,}50\)</td><td>\(1{,}56250\)</td><td>\(1{,}64872\)</td></tr>
+<tr><td>3</td><td>\(0{,}75\)</td><td>\(1{,}95312\)</td><td>\(2{,}11700\)</td></tr>
+<tr><td>4</td><td>\(1{,}00\)</td><td>\(2{,}44141\)</td><td>\(2{,}71828\)</td></tr>
+</table></div>
+    <pre class="codeblock"><span class="kw">def</span> F(t, y):
+    <span class="kw">return</span> y                  <span class="cmt"># équation y' = y, solution exacte e^t si y(0) = 1</span></pre>
+    <pre class="codeblock">&gt;&gt;&gt; ts, ys = euler(F, 0, 1, 0.25, 4)
+&gt;&gt;&gt; ys
+[1, 1.25, 1.5625, 1.953125, 2.44140625]</pre>
+  </div>
+  <figure class="schema" style="max-width:380px">
+<svg viewBox="0 0 340 204" role="img" aria-label="La courbe y = eᵗ entre 0 et 1, et la ligne brisée de la méthode d'Euler avec un pas de 0,25 : 1 ; 1,25 ; 1,5625 ; 1,953 ; 2,441. Chaque segment suit la pente au point de départ du pas ; la ligne brisée reste sous la courbe, et l'écart à t = 1 vaut environ 0,28.">
+<line x1="44" y1="174" x2="316" y2="174" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<line x1="44" y1="174" x2="44" y2="4" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<text x="318" y="178" class="lab-it">t</text>
+<text x="50" y="10" class="lab-it">y</text>
+<polyline points="44,158.8 45.3,158.4 46.5,158 47.8,157.6 49.1,157.1 50.4,156.7 51.6,156.3 52.9,155.9 54.2,155.5 55.5,155.1 56.7,154.7 58,154.2 59.3,153.8 60.6,153.4 61.8,153 63.1,152.5 64.4,152.1 65.7,151.6 66.9,151.2 68.2,150.8 69.5,150.3 70.7,149.9 72,149.4 73.3,149 74.6,148.5 75.8,148.1 77.1,147.6 78.4,147.2 79.7,146.7 80.9,146.2 82.2,145.8 83.5,145.3 84.8,144.8 86,144.3 87.3,143.9 88.6,143.4 89.8,142.9 91.1,142.4 92.4,141.9 93.7,141.5 94.9,141 96.2,140.5 97.5,140 98.8,139.5 100,139 101.3,138.5 102.6,137.9 103.9,137.4 105.1,136.9 106.4,136.4 107.7,135.9 109,135.4 110.2,134.8 111.5,134.3 112.8,133.8 114,133.3 115.3,132.7 116.6,132.2 117.9,131.6 119.1,131.1 120.4,130.6 121.7,130 123,129.4 124.2,128.9 125.5,128.3 126.8,127.8 128.1,127.2 129.3,126.6 130.6,126.1 131.9,125.5 133.2,124.9 134.4,124.3 135.7,123.8 137,123.2 138.2,122.6 139.5,122 140.8,121.4 142.1,120.8 143.3,120.2 144.6,119.6 145.9,119 147.2,118.4 148.4,117.8 149.7,117.2 151,116.5 152.3,115.9 153.5,115.3 154.8,114.7 156.1,114 157.4,113.4 158.6,112.7 159.9,112.1 161.2,111.5 162.4,110.8 163.7,110.1 165,109.5 166.3,108.8 167.5,108.2 168.8,107.5 170.1,106.8 171.4,106.2 172.6,105.5 173.9,104.8 175.2,104.1 176.5,103.4 177.7,102.7 179,102 180.3,101.3 181.6,100.6 182.8,99.9 184.1,99.2 185.4,98.5 186.6,97.8 187.9,97.1 189.2,96.3 190.5,95.6 191.7,94.9 193,94.1 194.3,93.4 195.6,92.6 196.8,91.9 198.1,91.1 199.4,90.4 200.7,89.6 201.9,88.9 203.2,88.1 204.5,87.3 205.7,86.5 207,85.8 208.3,85 209.6,84.2 210.8,83.4 212.1,82.6 213.4,81.8 214.7,81 215.9,80.2 217.2,79.4 218.5,78.5 219.8,77.7 221,76.9 222.3,76.1 223.6,75.2 224.9,74.4 226.1,73.5 227.4,72.7 228.7,71.8 229.9,71 231.2,70.1 232.5,69.2 233.8,68.4 235,67.5 236.3,66.6 237.6,65.7 238.9,64.8 240.1,63.9 241.4,63 242.7,62.1 244,61.2 245.2,60.3 246.5,59.4 247.8,58.5 249.1,57.5 250.3,56.6 251.6,55.7 252.9,54.7 254.1,53.8 255.4,52.8 256.7,51.9 258,50.9 259.2,49.9 260.5,49 261.8,48 263.1,47 264.3,46 265.6,45 266.9,44 268.2,43 269.4,42 270.7,41 272,40 273.2,38.9 274.5,37.9 275.8,36.9 277.1,35.8 278.3,34.8 279.6,33.7 280.9,32.7 282.2,31.6 283.4,30.5 284.7,29.4 286,28.4 287.3,27.3 288.5,26.2 289.8,25.1 291.1,24 292.4,22.9 293.6,21.8 294.9,20.6 296.2,19.5 297.4,18.4 298.7,17.2" class="sk-ink"/>
+<polyline points="44,158.8 104.6,139.7 165.3,115.9 225.9,86.1 286.6,48.9" class="sk-accent"/>
+<circle cx="44" cy="158.8" r="3.4" class="fl-accent"/>
+<circle cx="104.6" cy="139.7" r="3.4" class="fl-accent"/>
+<circle cx="165.3" cy="115.9" r="3.4" class="fl-accent"/>
+<circle cx="225.9" cy="86.1" r="3.4" class="fl-accent"/>
+<circle cx="286.6" cy="48.9" r="3.4" class="fl-accent"/>
+<line x1="286.6" y1="27.8" x2="286.6" y2="48.9" class="sk-dash"/>
+<text x="292.6" y="42.4" class="lab-muted">erreur</text>
+<text x="194.4" y="78.8" class="lab-it" text-anchor="middle">y = e<tspan dy="-6" style="font-size:12px">t</tspan></text>
+<text x="225.9" y="132.1" class="lab-accent">Euler</text>
+<line x1="104.6" y1="171" x2="104.6" y2="177" class="sk-axis"/>
+<text x="104.6" y="191" class="lab-muted" text-anchor="middle">0,25</text>
+<line x1="165.3" y1="171" x2="165.3" y2="177" class="sk-axis"/>
+<text x="165.3" y="191" class="lab-muted" text-anchor="middle">0,5</text>
+<line x1="225.9" y1="171" x2="225.9" y2="177" class="sk-axis"/>
+<text x="225.9" y="191" class="lab-muted" text-anchor="middle">0,75</text>
+<line x1="286.6" y1="171" x2="286.6" y2="177" class="sk-axis"/>
+<text x="286.6" y="191" class="lab-muted" text-anchor="middle">1</text>
+<line x1="41" y1="158.8" x2="47" y2="158.8" class="sk-axis"/>
+<text x="38" y="162.8" class="lab-muted" text-anchor="end">1</text>
+<line x1="41" y1="82.6" x2="47" y2="82.6" class="sk-axis"/>
+<text x="38" y="86.6" class="lab-muted" text-anchor="end">2</text>
+</svg>
+<figcaption>Méthode d'Euler pour \(y' = y\), \(y(0) = 1\), avec \(h = 0{,}25\) : chaque segment a la pente \(y_k\) calculée au début du pas. La solution exacte \(\mathrm{e}^t\) est convexe et la ligne brisée reste en dessous ; à \(t = 1\), \(y_4 \approx 2{,}441\) au lieu de \(\mathrm{e} \approx 2{,}718\).</figcaption>
+</figure>
+
+  <div class="prop-box"><strong>Ordre 1.</strong> Pour une fonction \(F\) régulière, l'erreur commise sur un intervalle de temps fixé est proportionnelle au pas \(h\) (résultat admis) : diviser le pas par 10 divise l'erreur par 10, mais multiplie par 10 le nombre de pas.</div>
+  <div><table>
+<tr><th>pas \(h\)</th><th>nombre de pas</th><th>\(y_n \approx y(1)\)</th><th>erreur \(\mathrm{e} - y_n\)</th></tr>
+<tr><td>\(0{,}100\)</td><td>10</td><td>\(2{,}593742\)</td><td>\(1{,}25 \times 10^{-1}\)</td></tr>
+<tr><td>\(0{,}010\)</td><td>100</td><td>\(2{,}704814\)</td><td>\(1{,}35 \times 10^{-2}\)</td></tr>
+<tr><td>\(0{,}001\)</td><td>1000</td><td>\(2{,}716924\)</td><td>\(1{,}36 \times 10^{-3}\)</td></tr>
+</table></div>
+
+  <div class="notice"><strong>Un pas trop grand.</strong> Pour la décharge d'un condensateur, \(u' = -\dfrac{u}{\tau}\), la méthode donne \(u_{k+1} = \left(1 - \dfrac h\tau\right) u_k\). Si \(h \gt 2\tau\), le facteur \(1 - \dfrac h\tau\) est inférieur à \(-1\) : la solution numérique oscille et explose, alors que la vraie solution décroît vers 0. Le pas doit être petit devant les temps caractéristiques du système (constante de temps, période).
+  <pre class="codeblock">&gt;&gt;&gt; tau = 1.0
+&gt;&gt;&gt; <span class="kw">def</span> F_rc(t, u):
+...     <span class="kw">return</span> -u / tau           <span class="cmt"># décharge : u' = -u/tau</span>
+&gt;&gt;&gt; euler(F_rc, 0, 1.0, 0.5, 4)[1]       <span class="cmt"># h = tau/2 : décroissance</span>
+[1.0, 0.5, 0.25, 0.125, 0.0625]
+&gt;&gt;&gt; euler(F_rc, 0, 1.0, 2.5, 4)[1]       <span class="cmt"># h = 2,5 tau : oscillations qui explosent</span>
+[1.0, -1.5, 2.25, -3.375, 5.0625]</pre></div>
+  <div class="notice"><strong>Erreurs classiques</strong> : évaluer la pente au point d'arrivée au lieu du point de départ ; calculer les instants par <span class="code-inline">t = t + h</span> sur des milliers de pas (erreur cumulée, voir §1) ; confondre le nombre de pas \(n\) et la durée simulée \(nh\) ; oublier que <span class="code-inline">euler</span> renvoie \(n + 1\) valeurs.</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§7 · ÉQUATIONS D'ORDRE 2 ET SYSTÈMES</div>
+  <h2>Le vecteur d'état</h2>
+  <div class="intro">La mécanique conduit à des équations d'ordre 2, comme \(\theta'' = -\frac{g}{\ell}\sin\theta\) pour le pendule simple, qu'on ne sait pas résoudre exactement. On se ramène à l'ordre 1 en suivant ensemble la position et la vitesse : le couple \((y, y')\) est l'<strong>état</strong> du système, et la méthode d'Euler s'applique à ce couple.</div>
+
+  <div class="def-box">L'équation \(y'' = G(t, y, y')\) équivaut, en posant \(v = y'\), au <strong>système d'ordre 1</strong>
+  $$\begin{cases} y' = v \\ v' = G(t, y, v) \end{cases}$$
+  d'inconnue le couple \((y, v)\). La méthode d'Euler s'écrit alors \(y_{k+1} = y_k + h\, v_k\) et \(v_{k+1} = v_k + h\, G(t_k, y_k, v_k)\). Plus généralement, une équation d'ordre \(n\) devient un système de \(n\) équations d'ordre 1, d'inconnues \(y, y', \dots, y^{(n-1)}\).</div>
+  <pre class="codeblock"><span class="kw">def</span> euler_ordre2(G, t0, y0, v0, h, n):
+    <span class="str">"""y'' = G(t, y, y') avec y(t0) = y0 et y'(t0) = v0 : méthode d'Euler appliquée</span>
+<span class="str">    au couple (y, v) où v = y'. Renvoie les listes des t_k, y_k et v_k."""</span>
+    ts, ys, vs = [t0], [y0], [v0]
+    y, v = y0, v0
+    <span class="kw">for</span> k <span class="kw">in</span> range(n):
+        t = t0 + k * h
+        y, v = y + h * v, v + h * G(t, y, v)   <span class="cmt"># les deux avec les anciennes valeurs</span>
+        ts.append(t0 + (k + 1) * h)
+        ys.append(y)
+        vs.append(v)
+    <span class="kw">return</span> ts, ys, vs</pre>
+  <p>Les deux nouvelles valeurs sont calculées avec les <strong>anciennes</strong> valeurs grâce à l'affectation multiple <span class="code-inline">y, v = …</span> : Python évalue tout le membre de droite avant d'affecter. Écrire <span class="code-inline">y = y + h * v</span> puis <span class="code-inline">v = v + h * G(t, y, v)</span> utiliserait le nouveau <span class="code-inline">y</span> dans le calcul de <span class="code-inline">v</span> : ce serait une autre méthode.</p>
+
+  <div class="method-box"><strong>Exemple — la période du pendule dépend de l'amplitude</strong>
+    <p>Pour les petites oscillations, \(\sin\theta \approx \theta\) et la période vaut \(T_0 = 2\pi\sqrt{\ell/g}\), soit \(2{,}0061\) s pour \(\ell = 1\) m et \(g = 9{,}81\ \text{m·s}^{-2}\), quelle que soit l'amplitude. Le terme non linéaire \(\sin\theta\) change cela (capacité numérique de physique : « mettre en évidence le non-isochronisme des oscillations »).</p>
+    <pre class="codeblock"><span class="kw">from</span> math <span class="kw">import</span> sin, pi, sqrt
+g0, L = 9.81, 1.0                 <span class="cmt"># m/s², m</span>
+
+<span class="kw">def</span> G_pendule(t, theta, omega):
+    <span class="kw">return</span> -g0 / L * sin(theta)</pre>
+    <pre class="codeblock"><span class="kw">def</span> periode(theta0, h):
+    <span class="str">"""Période du pendule lâché sans vitesse depuis theta0 &gt; 0 (en radians) :</span>
+<span class="str">    quatre fois l'instant du premier passage par theta = 0."""</span>
+    ts, th, om = euler_ordre2(G_pendule, 0, theta0, 0.0, h, round(10 / h))
+    <span class="kw">for</span> k <span class="kw">in</span> range(len(th) - 1):
+        <span class="kw">if</span> th[k] &gt; 0 <span class="kw">and</span> th[k + 1] &lt;= 0:
+            <span class="cmt"># interpolation linéaire entre t_k et t_(k+1)</span>
+            t0 = ts[k] + h * th[k] / (th[k] - th[k + 1])
+            <span class="kw">return</span> 4 * t0
+    <span class="kw">return</span> <span class="kw">None</span></pre>
+    <ol>
+      <li>Lâché sans vitesse depuis \(\theta_0 \gt 0\), le pendule repasse par \(\theta = 0\) pour la première fois au quart de la période.</li>
+      <li>On repère le premier \(k\) tel que \(\theta_k \gt 0 \ge \theta_{k+1}\), et l'on interpole linéairement entre \(t_k\) et \(t_{k+1}\).</li>
+      <li>On compare à la valeur exacte, qu'on sait calculer par une autre méthode (une intégrale, hors programme).</li>
+    </ol>
+    <div><table>
+<tr><th>amplitude \(\theta_0\)</th><th>période (Euler, \(h = 10^{-4}\) s)</th><th>période exacte</th><th>rapport à \(T_0\)</th></tr>
+<tr><td>10°</td><td>\(2{,}0099\)</td><td>\(2{,}0099\)</td><td>\(1{,}002\)</td></tr>
+<tr><td>45°</td><td>\(2{,}0863\)</td><td>\(2{,}0863\)</td><td>\(1{,}040\)</td></tr>
+<tr><td>90°</td><td>\(2{,}3679\)</td><td>\(2{,}3678\)</td><td>\(1{,}180\)</td></tr>
+<tr><td>150°</td><td>\(3{,}5354\)</td><td>\(3{,}5351\)</td><td>\(1{,}762\)</td></tr>
+</table></div>
+    <p>La période augmente avec l'amplitude : 18 % de plus à 90°, 76 % de plus à 150°.</p>
+  </div>
+  <figure class="schema" style="max-width:380px">
+<svg viewBox="0 0 340 222" role="img" aria-label="Angle du pendule, en degrés, de 0 à 10 secondes, lâché à 30 degrés. La courbe calculée avec un pas de 0,1 milliseconde oscille entre −30 et 30 degrés. Celle calculée avec un pas de 10 millisecondes oscille de plus en plus fort et dépasse 45 degrés à la fin.">
+<line x1="44" y1="99" x2="316" y2="99" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<line x1="44" y1="184" x2="44" y2="4" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<text x="318" y="103" class="lab-it">t</text>
+<text x="50" y="10" class="lab-it">θ</text>
+<polyline points="44,50 44.3,50 44.5,50.1 44.8,50.2 45,50.3 45.3,50.5 45.6,50.8 45.8,51.1 46.1,51.4 46.4,51.8 46.6,52.2 46.9,52.7 47.1,53.2 47.4,53.8 47.7,54.4 47.9,55 48.2,55.7 48.5,56.5 48.7,57.2 49,58 49.2,58.9 49.5,59.8 49.8,60.7 50,61.7 50.3,62.6 50.5,63.7 50.8,64.7 51.1,65.8 51.3,67 51.6,68.1 51.9,69.3 52.1,70.5 52.4,71.8 52.6,73.1 52.9,74.3 53.2,75.7 53.4,77 53.7,78.4 54,79.8 54.2,81.2 54.5,82.6 54.7,84 55,85.5 55.3,86.9 55.5,88.4 55.8,89.9 56.1,91.4 56.3,92.9 56.6,94.4 56.8,95.9 57.1,97.4 57.4,99 57.6,100.5 57.9,102 58.1,103.5 58.4,105 58.7,106.5 58.9,108 59.2,109.5 59.5,111 59.7,112.5 60,113.9 60.2,115.3 60.5,116.8 60.8,118.2 61,119.6 61.3,120.9 61.6,122.3 61.8,123.6 62.1,124.9 62.3,126.2 62.6,127.4 62.9,128.6 63.1,129.8 63.4,131 63.6,132.1 63.9,133.2 64.2,134.3 64.4,135.3 64.7,136.3 65,137.3 65.2,138.2 65.5,139.1 65.7,139.9 66,140.7 66.3,141.5 66.5,142.2 66.8,142.9 67.1,143.6 67.3,144.2 67.6,144.8 67.8,145.3 68.1,145.8 68.4,146.2 68.6,146.6 68.9,146.9 69.2,147.2 69.4,147.5 69.7,147.7 69.9,147.8 70.2,148 70.5,148 70.7,148.1 71,148 71.2,148 71.5,147.9 71.8,147.7 72,147.5 72.3,147.3 72.6,147 72.8,146.6 73.1,146.2 73.3,145.8 73.6,145.3 73.9,144.8 74.1,144.3 74.4,143.7 74.7,143 74.9,142.3 75.2,141.6 75.4,140.8 75.7,140 76,139.2 76.2,138.3 76.5,137.4 76.8,136.4 77,135.4 77.3,134.4 77.5,133.3 77.8,132.2 78.1,131.1 78.3,129.9 78.6,128.8 78.8,127.5 79.1,126.3 79.4,125 79.6,123.7 79.9,122.4 80.2,121.1 80.4,119.7 80.7,118.3 80.9,116.9 81.2,115.5 81.5,114.1 81.7,112.6 82,111.1 82.3,109.7 82.5,108.2 82.8,106.7 83,105.2 83.3,103.7 83.6,102.2 83.8,100.6 84.1,99.1 84.3,97.6 84.6,96.1 84.9,94.6 85.1,93.1 85.4,91.5 85.7,90 85.9,88.6 86.2,87.1 86.4,85.6 86.7,84.2 87,82.7 87.2,81.3 87.5,79.9 87.8,78.5 88,77.1 88.3,75.8 88.5,74.5 88.8,73.2 89.1,71.9 89.3,70.6 89.6,69.4 89.8,68.2 90.1,67.1 90.4,65.9 90.6,64.8 90.9,63.8 91.2,62.7 91.4,61.7 91.7,60.8 91.9,59.8 92.2,58.9 92.5,58.1 92.7,57.3 93,56.5 93.3,55.8 93.5,55.1 93.8,54.4 94,53.8 94.3,53.2 94.6,52.7 94.8,52.2 95.1,51.8 95.4,51.4 95.6,51.1 95.9,50.8 96.1,50.5 96.4,50.3 96.7,50.1 96.9,50 97.2,49.9 97.4,49.9 97.7,49.9 98,50 98.2,50.1 98.5,50.3 98.8,50.5 99,50.7 99.3,51 99.5,51.3 99.8,51.7 100.1,52.1 100.3,52.6 100.6,53.1 100.9,53.7 101.1,54.3 101.4,54.9 101.6,55.6 101.9,56.3 102.2,57.1 102.4,57.9 102.7,58.8 103,59.6 103.2,60.6 103.5,61.5 103.7,62.5 104,63.5 104.3,64.6 104.5,65.7 104.8,66.8 105,68 105.3,69.2 105.6,70.4 105.8,71.6 106.1,72.9 106.4,74.2 106.6,75.5 106.9,76.8 107.1,78.2 107.4,79.6 107.7,81 107.9,82.4 108.2,83.9 108.5,85.3 108.7,86.8 109,88.3 109.2,89.7 109.5,91.2 109.8,92.7 110,94.3 110.3,95.8 110.5,97.3 110.8,98.8 111.1,100.3 111.3,101.8 111.6,103.4 111.9,104.9 112.1,106.4 112.4,107.9 112.6,109.4 112.9,110.8 113.2,112.3 113.4,113.8 113.7,115.2 114,116.6 114.2,118 114.5,119.4 114.7,120.8 115,122.2 115.3,123.5 115.5,124.8 115.8,126.1 116.1,127.3 116.3,128.5 116.6,129.7 116.8,130.9 117.1,132 117.4,133.1 117.6,134.2 117.9,135.2 118.1,136.2 118.4,137.2 118.7,138.1 118.9,139 119.2,139.9 119.5,140.7 119.7,141.5 120,142.2 120.2,142.9 120.5,143.6 120.8,144.2 121,144.7 121.3,145.3 121.6,145.8 121.8,146.2 122.1,146.6 122.3,146.9 122.6,147.2 122.9,147.5 123.1,147.7 123.4,147.9 123.6,148 123.9,148.1 124.2,148.1 124.4,148.1 124.7,148 125,147.9 125.2,147.8 125.5,147.6 125.7,147.3 126,147 126.3,146.7 126.5,146.3 126.8,145.9 127.1,145.4 127.3,144.9 127.6,144.4 127.8,143.8 128.1,143.1 128.4,142.4 128.6,141.7 128.9,141 129.2,140.2 129.4,139.3 129.7,138.4 129.9,137.5 130.2,136.6 130.5,135.6 130.7,134.5 131,133.5 131.2,132.4 131.5,131.3 131.8,130.1 132,128.9 132.3,127.7 132.6,126.5 132.8,125.2 133.1,123.9 133.3,122.6 133.6,121.2 133.9,119.9 134.1,118.5 134.4,117.1 134.7,115.7 134.9,114.2 135.2,112.8 135.4,111.3 135.7,109.8 136,108.3 136.2,106.8 136.5,105.3 136.7,103.8 137,102.3 137.3,100.8 137.5,99.3 137.8,97.8 138.1,96.2 138.3,94.7 138.6,93.2 138.8,91.7 139.1,90.2 139.4,88.7 139.6,87.2 139.9,85.8 140.2,84.3 140.4,82.9 140.7,81.4 140.9,80 141.2,78.6 141.5,77.3 141.7,75.9 142,74.6 142.2,73.3 142.5,72 142.8,70.7 143,69.5 143.3,68.3 143.6,67.2 143.8,66 144.1,64.9 144.3,63.8 144.6,62.8 144.9,61.8 145.1,60.8 145.4,59.9 145.7,59 145.9,58.1 146.2,57.3 146.4,56.5 146.7,55.8 147,55.1 147.2,54.4 147.5,53.8 147.8,53.3 148,52.7 148.3,52.2 148.5,51.8 148.8,51.4 149.1,51.1 149.3,50.8 149.6,50.5 149.8,50.3 150.1,50.1 150.4,50 150.6,49.9 150.9,49.9 151.2,49.9 151.4,49.9 151.7,50 151.9,50.2 152.2,50.4 152.5,50.6 152.7,50.9 153,51.3 153.3,51.6 153.5,52.1 153.8,52.5 154,53 154.3,53.6 154.6,54.2 154.8,54.8 155.1,55.5 155.3,56.2 155.6,57 155.9,57.8 156.1,58.6 156.4,59.5 156.7,60.4 156.9,61.4 157.2,62.4 157.4,63.4 157.7,64.4 158,65.5 158.2,66.7 158.5,67.8 158.8,69 159,70.2 159.3,71.5 159.5,72.7 159.8,74 160.1,75.3 160.3,76.7 160.6,78 160.9,79.4 161.1,80.8 161.4,82.2 161.6,83.7 161.9,85.1 162.2,86.6 162.4,88.1 162.7,89.6 162.9,91.1 163.2,92.6 163.5,94.1 163.7,95.6 164,97.1 164.3,98.6 164.5,100.2 164.8,101.7 165,103.2 165.3,104.7 165.6,106.2 165.8,107.7 166.1,109.2 166.4,110.7 166.6,112.2 166.9,113.6 167.1,115.1 167.4,116.5 167.7,117.9 167.9,119.3 168.2,120.7 168.4,122 168.7,123.4 169,124.7 169.2,125.9 169.5,127.2 169.8,128.4 170,129.6 170.3,130.8 170.5,131.9 170.8,133 171.1,134.1 171.3,135.2 171.6,136.2 171.9,137.1 172.1,138.1 172.4,139 172.6,139.8 172.9,140.7 173.2,141.4 173.4,142.2 173.7,142.9 174,143.5 174.2,144.2 174.5,144.7 174.7,145.3 175,145.7 175.3,146.2 175.5,146.6 175.8,146.9 176,147.3 176.3,147.5 176.6,147.7 176.8,147.9 177.1,148 177.4,148.1 177.6,148.2 177.9,148.1 178.1,148.1 178.4,148 178.7,147.8 178.9,147.6 179.2,147.4 179.5,147.1 179.7,146.8 180,146.4 180.2,146 180.5,145.5 180.8,145 181,144.5 181.3,143.9 181.6,143.2 181.8,142.6 182.1,141.8 182.3,141.1 182.6,140.3 182.9,139.4 183.1,138.6 183.4,137.7 183.6,136.7 183.9,135.7 184.2,134.7 184.4,133.6 184.7,132.5 185,131.4 185.2,130.3 185.5,129.1 185.7,127.9 186,126.6 186.3,125.4 186.5,124.1 186.8,122.8 187.1,121.4 187.3,120 187.6,118.7 187.8,117.3 188.1,115.8 188.4,114.4 188.6,113 188.9,111.5 189.1,110 189.4,108.5 189.7,107 189.9,105.5 190.2,104 190.5,102.5 190.7,101 191,99.5 191.2,97.9 191.5,96.4 191.8,94.9 192,93.4 192.3,91.9 192.6,90.4 192.8,88.9 193.1,87.4 193.3,85.9 193.6,84.5 193.9,83 194.1,81.6 194.4,80.2 194.6,78.8 194.9,77.4 195.2,76 195.4,74.7 195.7,73.4 196,72.1 196.2,70.9 196.5,69.6 196.7,68.4 197,67.3 197.3,66.1 197.5,65 197.8,63.9 198.1,62.9 198.3,61.9 198.6,60.9 198.8,60 199.1,59.1 199.4,58.2 199.6,57.4 199.9,56.6 200.2,55.8 200.4,55.1 200.7,54.5 200.9,53.9 201.2,53.3 201.5,52.7 201.7,52.3 202,51.8 202.2,51.4 202.5,51.1 202.8,50.7 203,50.5 203.3,50.2 203.6,50.1 203.8,49.9 204.1,49.9 204.3,49.8 204.6,49.8 204.9,49.9 205.1,50 205.4,50.1 205.7,50.3 205.9,50.6 206.2,50.8 206.4,51.2 206.7,51.5 207,52 207.2,52.4 207.5,52.9 207.8,53.5 208,54.1 208.3,54.7 208.5,55.4 208.8,56.1 209.1,56.8 209.3,57.6 209.6,58.5 209.8,59.4 210.1,60.3 210.4,61.2 210.6,62.2 210.9,63.2 211.2,64.3 211.4,65.4 211.7,66.5 211.9,67.6 212.2,68.8 212.5,70 212.7,71.3 213,72.5 213.3,73.8 213.5,75.2 213.8,76.5 214,77.9 214.3,79.2 214.6,80.6 214.8,82.1 215.1,83.5 215.3,84.9 215.6,86.4 215.9,87.9 216.1,89.4 216.4,90.9 216.7,92.4 216.9,93.9 217.2,95.4 217.4,96.9 217.7,98.5 218,100 218.2,101.5 218.5,103 218.8,104.5 219,106 219.3,107.5 219.5,109 219.8,110.5 220.1,112 220.3,113.5 220.6,114.9 220.9,116.3 221.1,117.8 221.4,119.2 221.6,120.5 221.9,121.9 222.2,123.2 222.4,124.5 222.7,125.8 222.9,127.1 223.2,128.3 223.5,129.5 223.7,130.7 224,131.8 224.3,132.9 224.5,134 224.8,135.1 225,136.1 225.3,137.1 225.6,138 225.8,138.9 226.1,139.8 226.4,140.6 226.6,141.4 226.9,142.1 227.1,142.8 227.4,143.5 227.7,144.1 227.9,144.7 228.2,145.2 228.4,145.7 228.7,146.2 229,146.6 229.2,147 229.5,147.3 229.8,147.5 230,147.8 230.3,147.9 230.5,148.1 230.8,148.2 231.1,148.2 231.3,148.2 231.6,148.1 231.9,148.1 232.1,147.9 232.4,147.7 232.6,147.5 232.9,147.2 233.2,146.9 233.4,146.5 233.7,146.1 233.9,145.6 234.2,145.1 234.5,144.6 234.7,144 235,143.4 235.3,142.7 235.5,142 235.8,141.2 236,140.4 236.3,139.6 236.6,138.7 236.8,137.8 237.1,136.9 237.4,135.9 237.6,134.9 237.9,133.8 238.1,132.7 238.4,131.6 238.7,130.4 238.9,129.3 239.2,128 239.5,126.8 239.7,125.5 240,124.3 240.2,122.9 240.5,121.6 240.8,120.2 241,118.9 241.3,117.5 241.5,116 241.8,114.6 242.1,113.1 242.3,111.7 242.6,110.2 242.9,108.7 243.1,107.2 243.4,105.7 243.6,104.2 243.9,102.7 244.2,101.2 244.4,99.6 244.7,98.1 245,96.6 245.2,95.1 245.5,93.6 245.7,92 246,90.5 246.3,89 246.5,87.6 246.8,86.1 247.1,84.6 247.3,83.2 247.6,81.7 247.8,80.3 248.1,78.9 248.4,77.5 248.6,76.2 248.9,74.8 249.1,73.5 249.4,72.2 249.7,71 249.9,69.8 250.2,68.5 250.5,67.4 250.7,66.2 251,65.1 251.2,64 251.5,63 251.8,62 252,61 252.3,60 252.6,59.1 252.8,58.3 253.1,57.4 253.3,56.6 253.6,55.9 253.9,55.2 254.1,54.5 254.4,53.9 254.6,53.3 254.9,52.8 255.2,52.3 255.4,51.8 255.7,51.4 256,51 256.2,50.7 256.5,50.5 256.7,50.2 257,50 257.3,49.9 257.5,49.8 257.8,49.8 258.1,49.8 258.3,49.8 258.6,49.9 258.8,50.1 259.1,50.2 259.4,50.5 259.6,50.8 259.9,51.1 260.1,51.4 260.4,51.9 260.7,52.3 260.9,52.8 261.2,53.4 261.5,53.9 261.7,54.6 262,55.2 262.2,56 262.5,56.7 262.8,57.5 263,58.3 263.3,59.2 263.6,60.1 263.8,61.1 264.1,62 264.3,63.1 264.6,64.1 264.9,65.2 265.1,66.3 265.4,67.5 265.7,68.7 265.9,69.9 266.2,71.1 266.4,72.4 266.7,73.7 267,75 267.2,76.3 267.5,77.7 267.7,79 268,80.4 268.3,81.9 268.5,83.3 268.8,84.8 269.1,86.2 269.3,87.7 269.6,89.2 269.8,90.7 270.1,92.2 270.4,93.7 270.6,95.2 270.9,96.7 271.2,98.3 271.4,99.8 271.7,101.3 271.9,102.8 272.2,104.4 272.5,105.9 272.7,107.4 273,108.9 273.2,110.4 273.5,111.8 273.8,113.3 274,114.7 274.3,116.2 274.6,117.6 274.8,119 275.1,120.4 275.3,121.7 275.6,123.1 275.9,124.4 276.1,125.7 276.4,126.9 276.7,128.2 276.9,129.4 277.2,130.6 277.4,131.7 277.7,132.8 278,133.9 278.2,135 278.5,136 278.8,137 279,137.9 279.3,138.8 279.5,139.7 279.8,140.5 280.1,141.3 280.3,142.1 280.6,142.8 280.8,143.5 281.1,144.1 281.4,144.7 281.6,145.2 281.9,145.7 282.2,146.2 282.4,146.6 282.7,147 282.9,147.3 283.2,147.6 283.5,147.8 283.7,148 284,148.1 284.3,148.2 284.5,148.2 284.8,148.3 285,148.2 285.3,148.1 285.6,148 285.8,147.8 286.1,147.6 286.4,147.3 286.6,147 286.9,146.6 287.1,146.2 287.4,145.7 287.7,145.2 287.9,144.7 288.2,144.1 288.4,143.5 288.7,142.8 289,142.1 289.2,141.4 289.5,140.6 289.8,139.7 290,138.9 290.3,138 290.5,137 290.8,136 291.1,135 291.3,134 291.6,132.9 291.9,131.8 292.1,130.6 292.4,129.4 292.6,128.2 292.9,127 293.2,125.7 293.4,124.4 293.7,123.1 293.9,121.8 294.2,120.4 294.5,119.1 294.7,117.7 295,116.2 295.3,114.8 295.5,113.3 295.8,111.9 296,110.4 296.3,108.9 296.6,107.4 296.8,105.9 297.1,104.4 297.4,102.9 297.6,101.4 297.9,99.8 298.1,98.3 298.4,96.8 298.7,95.3 298.9,93.7 299.2,92.2 299.4,90.7 299.7,89.2 300,87.7 300.2,86.3 300.5,84.8 300.8,83.3 301,81.9 301.3,80.5 301.5,79.1 301.8,77.7 302.1,76.3 302.3,75 302.6,73.7 302.9,72.4 303.1,71.1 303.4,69.9 303.6,68.7 303.9,67.5 304.2,66.3 304.4,65.2 304.7,64.1 305,63.1 305.2,62.1 305.5,61.1 305.7,60.1 306,59.2" class="sk-ink"/>
+<polyline points="44,50 44.5,50 45,50.2 45.6,50.7 46.1,51.2 46.6,52 47.1,53 47.7,54.1 48.2,55.4 48.7,56.9 49.2,58.5 49.8,60.3 50.3,62.2 50.8,64.3 51.3,66.5 51.9,68.9 52.4,71.3 52.9,73.9 53.4,76.6 54,79.4 54.5,82.2 55,85.2 55.5,88.1 56.1,91.2 56.6,94.3 57.1,97.3 57.6,100.5 58.1,103.6 58.7,106.7 59.2,109.7 59.7,112.8 60.2,115.8 60.8,118.7 61.3,121.6 61.8,124.3 62.3,127 62.9,129.6 63.4,132.1 63.9,134.4 64.4,136.6 65,138.7 65.5,140.6 66,142.4 66.5,144 67.1,145.4 67.6,146.7 68.1,147.8 68.6,148.7 69.2,149.4 69.7,150 70.2,150.3 70.7,150.5 71.2,150.5 71.8,150.2 72.3,149.8 72.8,149.2 73.3,148.4 73.9,147.4 74.4,146.3 74.9,144.9 75.4,143.4 76,141.7 76.5,139.9 77,137.9 77.5,135.7 78.1,133.4 78.6,130.9 79.1,128.4 79.6,125.7 80.2,122.9 80.7,120 81.2,117 81.7,113.9 82.3,110.8 82.8,107.6 83.3,104.4 83.8,101.2 84.3,97.9 84.9,94.6 85.4,91.4 85.9,88.2 86.4,85 87,81.8 87.5,78.7 88,75.7 88.5,72.8 89.1,70 89.6,67.3 90.1,64.7 90.6,62.2 91.2,59.8 91.7,57.6 92.2,55.6 92.7,53.7 93.3,52 93.8,50.5 94.3,49.1 94.8,47.9 95.4,46.9 95.9,46.1 96.4,45.5 96.9,45.1 97.4,44.9 98,44.9 98.5,45.1 99,45.5 99.5,46.1 100.1,46.9 100.6,47.9 101.1,49.1 101.6,50.5 102.2,52 102.7,53.7 103.2,55.7 103.7,57.7 104.3,60 104.8,62.4 105.3,64.9 105.8,67.6 106.4,70.4 106.9,73.3 107.4,76.3 107.9,79.4 108.5,82.6 109,85.9 109.5,89.2 110,92.5 110.5,95.9 111.1,99.4 111.6,102.8 112.1,106.2 112.6,109.6 113.2,112.9 113.7,116.2 114.2,119.5 114.7,122.7 115.3,125.8 115.8,128.8 116.3,131.6 116.8,134.4 117.4,137 117.9,139.5 118.4,141.9 118.9,144 119.5,146.1 120,147.9 120.5,149.6 121,151 121.6,152.3 122.1,153.4 122.6,154.3 123.1,155 123.6,155.5 124.2,155.8 124.7,155.8 125.2,155.7 125.7,155.3 126.3,154.8 126.8,154 127.3,153 127.8,151.8 128.4,150.5 128.9,148.9 129.4,147.1 129.9,145.2 130.5,143.1 131,140.8 131.5,138.3 132,135.7 132.6,133 133.1,130.1 133.6,127.1 134.1,123.9 134.7,120.7 135.2,117.4 135.7,114 136.2,110.5 136.7,107 137.3,103.4 137.8,99.9 138.3,96.3 138.8,92.7 139.4,89.1 139.9,85.6 140.4,82.1 140.9,78.7 141.5,75.3 142,72 142.5,68.9 143,65.8 143.6,62.9 144.1,60.1 144.6,57.4 145.1,54.9 145.7,52.5 146.2,50.3 146.7,48.3 147.2,46.5 147.8,44.9 148.3,43.5 148.8,42.3 149.3,41.3 149.8,40.4 150.4,39.9 150.9,39.5 151.4,39.3 151.9,39.4 152.5,39.7 153,40.2 153.5,40.9 154,41.8 154.6,43 155.1,44.3 155.6,45.9 156.1,47.6 156.7,49.6 157.2,51.7 157.7,54 158.2,56.5 158.8,59.2 159.3,62 159.8,65 160.3,68.1 160.9,71.3 161.4,74.6 161.9,78.1 162.4,81.6 162.9,85.2 163.5,88.9 164,92.6 164.5,96.3 165,100.1 165.6,103.8 166.1,107.6 166.6,111.3 167.1,115 167.7,118.6 168.2,122.2 168.7,125.7 169.2,129 169.8,132.3 170.3,135.5 170.8,138.5 171.3,141.3 171.9,144 172.4,146.6 172.9,149 173.4,151.2 174,153.2 174.5,155 175,156.6 175.5,157.9 176,159.1 176.6,160.1 177.1,160.8 177.6,161.3 178.1,161.6 178.7,161.7 179.2,161.5 179.7,161.1 180.2,160.5 180.8,159.6 181.3,158.5 181.8,157.2 182.3,155.7 182.9,154 183.4,152.1 183.9,150 184.4,147.6 185,145.1 185.5,142.4 186,139.6 186.5,136.6 187.1,133.4 187.6,130.1 188.1,126.7 188.6,123.1 189.1,119.5 189.7,115.8 190.2,112 190.7,108.1 191.2,104.2 191.8,100.3 192.3,96.3 192.8,92.4 193.3,88.5 193.9,84.6 194.4,80.7 194.9,77 195.4,73.3 196,69.6 196.5,66.2 197,62.8 197.5,59.5 198.1,56.4 198.6,53.5 199.1,50.7 199.6,48.1 200.2,45.7 200.7,43.5 201.2,41.4 201.7,39.6 202.2,38 202.8,36.7 203.3,35.5 203.8,34.6 204.3,33.9 204.9,33.4 205.4,33.2 205.9,33.2 206.4,33.5 207,34 207.5,34.7 208,35.7 208.5,36.8 209.1,38.3 209.6,39.9 210.1,41.8 210.6,43.9 211.2,46.1 211.7,48.6 212.2,51.3 212.7,54.2 213.3,57.2 213.8,60.4 214.3,63.8 214.8,67.3 215.3,70.9 215.9,74.6 216.4,78.5 216.9,82.4 217.4,86.4 218,90.4 218.5,94.5 219,98.7 219.5,102.8 220.1,106.9 220.6,111 221.1,115.1 221.6,119.1 222.2,123 222.7,126.9 223.2,130.7 223.7,134.3 224.3,137.8 224.8,141.2 225.3,144.4 225.8,147.4 226.4,150.3 226.9,153 227.4,155.5 227.9,157.8 228.4,159.8 229,161.7 229.5,163.3 230,164.7 230.5,165.9 231.1,166.8 231.6,167.5 232.1,167.9 232.6,168.1 233.2,168.1 233.7,167.8 234.2,167.2 234.7,166.4 235.3,165.4 235.8,164.1 236.3,162.6 236.8,160.8 237.4,158.8 237.9,156.6 238.4,154.2 238.9,151.6 239.5,148.8 240,145.8 240.5,142.6 241,139.2 241.5,135.7 242.1,132 242.6,128.2 243.1,124.3 243.6,120.2 244.2,116.1 244.7,111.9 245.2,107.7 245.7,103.4 246.3,99 246.8,94.7 247.3,90.4 247.8,86.1 248.4,81.8 248.9,77.6 249.4,73.5 249.9,69.5 250.5,65.6 251,61.8 251.5,58.1 252,54.6 252.6,51.2 253.1,48 253.6,45 254.1,42.2 254.6,39.6 255.2,37.2 255.7,35.1 256.2,33.1 256.7,31.4 257.3,30 257.8,28.8 258.3,27.8 258.8,27.1 259.4,26.6 259.9,26.4 260.4,26.5 260.9,26.8 261.5,27.4 262,28.2 262.5,29.2 263,30.6 263.6,32.1 264.1,34 264.6,36 265.1,38.3 265.7,40.8 266.2,43.5 266.7,46.5 267.2,49.6 267.7,53 268.3,56.5 268.8,60.1 269.3,64 269.8,67.9 270.4,72 270.9,76.3 271.4,80.6 271.9,84.9 272.5,89.4 273,93.9 273.5,98.4 274,103 274.6,107.5 275.1,112 275.6,116.5 276.1,120.9 276.7,125.2 277.2,129.4 277.7,133.6 278.2,137.6 278.8,141.4 279.3,145.1 279.8,148.7 280.3,152 280.8,155.2 281.4,158.2 281.9,160.9 282.4,163.4 282.9,165.7 283.5,167.8 284,169.6 284.5,171.2 285,172.5 285.6,173.6 286.1,174.4 286.6,174.9 287.1,175.2 287.7,175.2 288.2,174.9 288.7,174.4 289.2,173.6 289.8,172.5 290.3,171.2 290.8,169.6 291.3,167.8 291.9,165.7 292.4,163.4 292.9,160.8 293.4,158.1 293.9,155 294.5,151.8 295,148.4 295.5,144.8 296,141 296.6,137 297.1,132.9 297.6,128.6 298.1,124.3 298.7,119.8 299.2,115.2 299.7,110.6 300.2,105.9 300.8,101.1 301.3,96.4 301.8,91.6 302.3,86.9 302.9,82.2 303.4,77.6 303.9,73 304.4,68.6 305,64.2 305.5,60 306,55.9" class="sk-accent"/>
+<line x1="96.4" y1="96" x2="96.4" y2="102" class="sk-axis"/>
+<text x="96.4" y="116" class="lab-muted" text-anchor="middle">2</text>
+<line x1="148.8" y1="96" x2="148.8" y2="102" class="sk-axis"/>
+<text x="148.8" y="116" class="lab-muted" text-anchor="middle">4</text>
+<line x1="201.2" y1="96" x2="201.2" y2="102" class="sk-axis"/>
+<text x="201.2" y="116" class="lab-muted" text-anchor="middle">6</text>
+<line x1="253.6" y1="96" x2="253.6" y2="102" class="sk-axis"/>
+<text x="253.6" y="116" class="lab-muted" text-anchor="middle">8</text>
+<line x1="306" y1="96" x2="306" y2="102" class="sk-axis"/>
+<text x="306" y="116" class="lab-muted" text-anchor="middle">10</text>
+<line x1="41" y1="148" x2="47" y2="148" class="sk-axis"/>
+<text x="38" y="152" class="lab-muted" text-anchor="end">−30°</text>
+<line x1="41" y1="50" x2="47" y2="50" class="sk-axis"/>
+<text x="38" y="54" class="lab-muted" text-anchor="end">30°</text>
+<text x="306" y="18" class="lab-accent" text-anchor="end">h = 0,01 s</text>
+</svg>
+<figcaption>Pendule simple (\(\ell = 1\) m) lâché sans vitesse à 30°, simulé par la méthode d'Euler. Avec \(h = 10^{-4}\) s (trait noir), l'amplitude reste de 30°. Avec \(h = 0{,}01\) s (en couleur), elle grandit à chaque oscillation et atteint 47° au bout de 10 s : le schéma d'Euler fait gagner de l'énergie à un oscillateur, d'autant plus que le pas est grand.</figcaption>
+</figure>
+  <div class="notice"><strong>Euler et les oscillateurs.</strong> Pour un oscillateur sans frottement, la méthode d'Euler fait croître l'énergie à chaque pas : l'amplitude calculée augmente, d'autant plus vite que le pas est grand (figure). Il faut un pas très petit devant la période, et contrôler le résultat, par exemple en vérifiant que l'énergie mécanique reste à peu près constante.</div>
+
+  <p>En physique, on utilise la fonction <span class="code-inline">odeint</span> de la bibliothèque <span class="code-inline">scipy.integrate</span>, sa spécification étant fournie : elle prend la fonction qui donne la dérivée du vecteur d'état (attention : arguments dans l'ordre \((Y, t)\)), l'état initial et la liste des instants, et renvoie l'état à chacun de ces instants. Elle utilise une méthode plus précise qu'Euler, avec un pas adapté automatiquement.</p>
+  <pre class="codeblock">&gt;&gt;&gt; <span class="kw">from</span> scipy.integrate <span class="kw">import</span> odeint     <span class="cmt"># bibliothèque hors annexe</span>
+&gt;&gt;&gt; <span class="kw">def</span> F_vect(Y, t):                       <span class="cmt"># attention à l'ordre (Y, t) imposé par odeint</span>
+...     theta, omega = Y
+...     <span class="kw">return</span> [omega, -g0 / L * sin(theta)]
+&gt;&gt;&gt; sol = odeint(F_vect, [pi / 2, 0.0], [0.0, 0.5, 1.0])
+&gt;&gt;&gt; round(float(sol[2][0]), 6)              <span class="cmt"># angle à t = 1 s</span>
+-1.405027</pre>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§8 · VALIDER UN CALCUL NUMÉRIQUE</div>
+  <h2>Tester, mesurer l'ordre, maîtriser le coût</h2>
+  <div class="intro">Un programme de calcul numérique renvoie toujours un nombre, juste ou faux : rien ne signale une erreur de programmation, un pas trop grand ou une perte de précision. Il faut donc le valider, avec les outils du chapitre « Spécification, correction et complexité » (§5 : jeux de tests) adaptés aux flottants.</div>
+
+  <h3>Des cas dont on connaît la réponse</h3>
+  <p>Chaque méthode est exacte (aux arrondis près) sur des cas simples : c'est un excellent jeu de tests. Les comparaisons se font toujours à une tolérance.</p>
+  <pre class="codeblock"><span class="kw">def</span> affine(x):
+    <span class="kw">return</span> 3 * x - 1
+
+<span class="kw">def</span> constante(x):
+    <span class="kw">return</span> 2.0
+
+<span class="kw">def</span> pente2(t, y):
+    <span class="kw">return</span> 2.0                  <span class="cmt"># y' = 2 : solution affine y = y0 + 2t</span>
+
+<span class="kw">assert</span> abs(trapezes(affine, 0, 2, 7) - 4) &lt;= 1e-12        <span class="cmt"># exacte pour les fonctions affines</span>
+<span class="kw">assert</span> abs(rectangles(constante, 1, 4, 5) - 6) &lt;= 1e-12   <span class="cmt"># exacte pour les constantes</span>
+ts, ys = euler(pente2, 0, 1.0, 0.1, 10)
+<span class="kw">assert</span> abs(ys[10] - 3.0) &lt;= 1e-12                          <span class="cmt"># Euler exact si y'' = 0</span></pre>
+  <ul>
+    <li>la méthode des trapèzes est exacte pour les fonctions affines (la corde est la courbe), celle des rectangles pour les constantes ;</li>
+    <li>la méthode d'Euler est exacte quand la solution est affine (\(y' = \) constante) ;</li>
+    <li>la dichotomie appliquée à \(x \mapsto x - c\) doit renvoyer \(c\) à \(\varepsilon / 2\) près ; tester aussi une racine à une extrémité de l'intervalle.</li>
+  </ul>
+
+  <h3>Mesurer l'ordre de convergence</h3>
+  <p>Sur un cas dont on connaît la valeur exacte, on calcule l'erreur \(E(n)\) pour \(n\), \(2n\), \(4n\)… Si la méthode est d'ordre \(p\), \(E(n) \approx \dfrac{C}{n^p}\), donc \(\dfrac{E(n)}{E(2n)} \approx 2^p\).</p>
+  <pre class="codeblock"><span class="kw">from</span> math <span class="kw">import</span> exp, e
+<span class="kw">def</span> erreur(methode, n):
+    <span class="kw">return</span> abs(methode(exp, 0, 1, n) - (e - 1))
+
+<span class="kw">for</span> n <span class="kw">in</span> [10, 20, 40, 80]:
+    print(n, erreur(rectangles, n) / erreur(rectangles, 2 * n),
+          erreur(trapezes, n) / erreur(trapezes, 2 * n))</pre>
+  <div><table>
+<tr><th>\(n\)</th><th>rectangles : \(E(n)/E(2n)\)</th><th>trapèzes : \(E(n)/E(2n)\)</th></tr>
+<tr><td>10</td><td>\(1{,}983\)</td><td>\(4{,}000\)</td></tr>
+<tr><td>20</td><td>\(1{,}992\)</td><td>\(4{,}000\)</td></tr>
+<tr><td>40</td><td>\(1{,}996\)</td><td>\(4{,}000\)</td></tr>
+<tr><td>80</td><td>\(1{,}998\)</td><td>\(4{,}000\)</td></tr>
+</table></div>
+  <p>Les rapports tendent vers 2 et 4 : les ordres 1 et 2 annoncés au §4 sont confirmés. Un rapport inattendu révèle souvent une erreur de programmation (un point oublié, un pas faux).</p>
+  <figure class="schema" style="max-width:380px">
+<svg viewBox="0 0 340 204" role="img" aria-label="Graphique en échelles logarithmiques de l'erreur des méthodes des rectangles et des trapèzes pour l'intégrale de exp entre 0 et 1, en fonction du nombre n de sous-intervalles, de 1 à 8 192. Les points des rectangles s'alignent sur une droite de pente −1 et finissent vers 1e-4 ; ceux des trapèzes sur une droite de pente −2, jusqu'à 1e-9 environ.">
+<line x1="52" y1="174" x2="310" y2="174" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<line x1="52" y1="174" x2="52" y2="8" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<line x1="52" y1="171" x2="52" y2="177" class="sk-axis"/>
+<text x="52" y="191" class="lab-muted" text-anchor="middle">1</text>
+<line x1="114.5" y1="171" x2="114.5" y2="177" class="sk-axis"/>
+<text x="114.5" y="191" class="lab-muted" text-anchor="middle">10</text>
+<line x1="177" y1="171" x2="177" y2="177" class="sk-axis"/>
+<text x="177" y="191" class="lab-muted" text-anchor="middle">100</text>
+<line x1="239.5" y1="171" x2="239.5" y2="177" class="sk-axis"/>
+<text x="239.5" y="191" class="lab-muted" text-anchor="middle">1000</text>
+<line x1="302" y1="171" x2="302" y2="177" class="sk-axis"/>
+<text x="302" y="191" class="lab-muted" text-anchor="middle">10 000</text>
+<line x1="49" y1="174" x2="55" y2="174" class="sk-axis"/>
+<text x="46" y="178" class="lab-muted" text-anchor="end">1e-10</text>
+<line x1="49" y1="142" x2="55" y2="142" class="sk-axis"/>
+<text x="46" y="146" class="lab-muted" text-anchor="end">1e-8</text>
+<line x1="49" y1="110" x2="55" y2="110" class="sk-axis"/>
+<text x="46" y="114" class="lab-muted" text-anchor="end">1e-6</text>
+<line x1="49" y1="78" x2="55" y2="78" class="sk-axis"/>
+<text x="46" y="82" class="lab-muted" text-anchor="end">1e-4</text>
+<line x1="49" y1="46" x2="55" y2="46" class="sk-axis"/>
+<text x="46" y="50" class="lab-muted" text-anchor="end">1e-2</text>
+<line x1="49" y1="14" x2="55" y2="14" class="sk-axis"/>
+<text x="46" y="18" class="lab-muted" text-anchor="end">1</text>
+<polyline points="52,16.3 70.8,20.5 89.6,25 108.4,29.7 127.3,34.4 146.1,39.2 164.9,44 183.7,48.8 202.5,53.6 221.3,58.4 240.1,63.2 259,68 277.8,72.9 296.6,77.7" class="sk-accent2"/>
+<polyline points="52,27.6 70.8,37.2 89.6,46.8 108.4,56.4 127.3,66 146.1,75.7 164.9,85.3 183.7,94.9 202.5,104.6 221.3,114.2 240.1,123.8 259,133.5 277.8,143.1 296.6,152.7" class="sk-green"/>
+<circle cx="52" cy="16.3" r="2.6" class="fl-accent2"/>
+<circle cx="52" cy="27.6" r="2.6" class="fl-green"/>
+<circle cx="70.8" cy="20.5" r="2.6" class="fl-accent2"/>
+<circle cx="70.8" cy="37.2" r="2.6" class="fl-green"/>
+<circle cx="89.6" cy="25" r="2.6" class="fl-accent2"/>
+<circle cx="89.6" cy="46.8" r="2.6" class="fl-green"/>
+<circle cx="108.4" cy="29.7" r="2.6" class="fl-accent2"/>
+<circle cx="108.4" cy="56.4" r="2.6" class="fl-green"/>
+<circle cx="127.3" cy="34.4" r="2.6" class="fl-accent2"/>
+<circle cx="127.3" cy="66" r="2.6" class="fl-green"/>
+<circle cx="146.1" cy="39.2" r="2.6" class="fl-accent2"/>
+<circle cx="146.1" cy="75.7" r="2.6" class="fl-green"/>
+<circle cx="164.9" cy="44" r="2.6" class="fl-accent2"/>
+<circle cx="164.9" cy="85.3" r="2.6" class="fl-green"/>
+<circle cx="183.7" cy="48.8" r="2.6" class="fl-accent2"/>
+<circle cx="183.7" cy="94.9" r="2.6" class="fl-green"/>
+<circle cx="202.5" cy="53.6" r="2.6" class="fl-accent2"/>
+<circle cx="202.5" cy="104.6" r="2.6" class="fl-green"/>
+<circle cx="221.3" cy="58.4" r="2.6" class="fl-accent2"/>
+<circle cx="221.3" cy="114.2" r="2.6" class="fl-green"/>
+<circle cx="240.1" cy="63.2" r="2.6" class="fl-accent2"/>
+<circle cx="240.1" cy="123.8" r="2.6" class="fl-green"/>
+<circle cx="259" cy="68" r="2.6" class="fl-accent2"/>
+<circle cx="259" cy="133.5" r="2.6" class="fl-green"/>
+<circle cx="277.8" cy="72.9" r="2.6" class="fl-accent2"/>
+<circle cx="277.8" cy="143.1" r="2.6" class="fl-green"/>
+<circle cx="296.6" cy="77.7" r="2.6" class="fl-accent2"/>
+<circle cx="296.6" cy="152.7" r="2.6" class="fl-green"/>
+<text x="206.8" y="41.6" class="lab-accent2">rectangles : pente −1</text>
+<text x="144.3" y="97.7" class="lab-green">trapèzes : pente −2</text>
+<text x="306" y="168" class="lab-it" text-anchor="end">n</text>
+</svg>
+<figcaption>Erreur en fonction de \(n\) pour \(\displaystyle\int_0^1 \mathrm{e}^x\,\mathrm{d}x\) (échelles logarithmiques, \(n\) doublé d'un point au suivant). Une erreur en \(C/n^p\) donne une droite de pente \(-p\) : \(p = 1\) pour les rectangles, \(p = 2\) pour les trapèzes. Doubler \(n\) divise l'erreur par 2 ou par 4.</figcaption>
+</figure>
+
+  <h3>Le coût d'une précision</h3>
+  <div class="prop-box"><strong>Comparer les méthodes</strong> par le nombre d'évaluations de la fonction pour une précision \(\varepsilon\) donnée :
+    <ul>
+      <li>dichotomie : \(\log_2 \frac{b - a}{\varepsilon}\) évaluations, soit 20 pour \(10^{-6}\) sur un intervalle de longueur 1 ;</li>
+      <li>Newton, près d'un zéro simple : quelques itérations, mais deux évaluations (\(f\) et \(f'\)) par itération ;</li>
+      <li>méthode d'ordre \(p\) (rectangles, trapèzes, Euler) : erreur en \(\frac{C}{n^p}\), donc \(n\) de l'ordre de \(\left(\frac{C}{\varepsilon}\right)^{1/p}\) : gagner un chiffre multiplie le coût par 10 à l'ordre 1, par \(\sqrt{10} \approx 3{,}2\) à l'ordre 2.</li>
+    </ul>
+  </div>
+  <div class="notice"><strong>Valider aussi le résultat physique</strong> : ordre de grandeur, signe, unité, comportement attendu (la vitesse tend-elle vers une limite ? l'énergie se conserve-t-elle ?), et stabilité du résultat quand on divise le pas par 2. Le chapitre « Résolution numérique en sciences de l'ingénieur » (§9) détaille cette démarche.</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">POUR ALLER PLUS LOIN · HORS PROGRAMME</div>
+  <h2>Méthodes plus précises</h2>
+  <div class="intro">Rien de cette section n'est exigible ; elle explique ce que font les fonctions des bibliothèques.</div>
+  <ul>
+    <li><strong>Méthode de Simpson</strong> : sur chaque paire de sous-intervalles, on remplace la courbe par une parabole. Erreur en \(\frac1{n^4}\) (ordre 4) pour un coût du même ordre que les trapèzes.</li>
+    <li><strong>Méthodes de Runge-Kutta</strong> : pour \(y' = F(t, y)\), on évalue la pente en plusieurs points de chaque pas et l'on fait une moyenne pondérée. La méthode « RK4 » est d'ordre 4 ; <span class="code-inline">odeint</span> utilise des méthodes de ce type, avec un pas variable.</li>
+    <li><strong>Stabilité</strong> : la méthode d'Euler <em>implicite</em>, \(y_{k+1} = y_k + h\,F(t_{k+1}, y_{k+1})\), demande de résoudre une équation à chaque pas, mais ne diverge pas sur \(u' = -u/\tau\) quel que soit le pas. La méthode d'Euler <em>symplectique</em> (calculer \(v\) avec le nouveau \(y\)) conserve bien mieux l'énergie d'un oscillateur.</li>
+    <li><strong>Méthode de la sécante</strong> : la méthode de Newton où la dérivée est remplacée par la pente de la corde entre les deux derniers points ; pas besoin de \(f'\), convergence presque aussi rapide.</li>
+    <li><strong>Systèmes linéaires</strong> : l'algorithme du pivot de Gauss (cours de mathématiques) et son usage en sciences de l'ingénieur (chapitre « Résolution numérique en sciences de l'ingénieur », §5).</li>
+  </ul>
+</div>
+</template>
+<template class="pan-tpl" data-panneau="numr-meth">
+<div class="course-section">
+  <div class="sec-num">MÉTHODES · ALGORITHMES NUMÉRIQUES</div>
+  <h2>Les réflexes du chapitre</h2>
+  <div class="intro">Programmer une méthode numérique, c'est choisir la méthode, écrire une boucle sûre, connaître son coût et son erreur, puis vérifier le résultat. Ces réflexes servent en informatique comme dans les capacités numériques de physique et de sciences de l'ingénieur.</div>
+
+  <div class="method-box"><strong>Méthode 1 — Localiser une racine avant de la calculer</strong>
+    <ol>
+      <li>Tabuler \(f\) sur un intervalle raisonnable (ou la tracer) avec des abscisses <span class="code-inline">a + k * h</span>.</li>
+      <li>Repérer deux points consécutifs où \(f\) change de signe ; vérifier que \(f\) est continue entre les deux.</li>
+      <li>Si possible, montrer l'unicité du zéro dans l'intervalle (signe de \(f'\), monotonie).</li>
+    </ol>
+    <p><em>Exemple éclair :</em> \(f(x) = \mathrm{e}^x - 3x\) : \(f(1) \approx -0{,}28 \lt 0\) et \(f(2) \approx 1{,}39 \gt 0\), et \(f'(x) = \mathrm{e}^x - 3\) s'annule en \(\ln 3 \approx 1{,}10\) : \(f\) décroît sur \([1, \ln 3]\), où elle reste négative, puis croît strictement sur \([\ln 3, 2]\). Un seul zéro dans \([1, 2]\), entre \(\ln 3\) et 2.</p>
+  </div>
+
+  <div class="method-box"><strong>Méthode 2 — Appliquer la dichotomie avec une précision donnée</strong>
+    <ol>
+      <li>Vérifier le <strong>changement de signe</strong> : \(f(a) \cdot f(b) \le 0\), avec \(f\) continue sur \([a, b]\).</li>
+      <li>Boucler tant que l'intervalle est plus large que la précision voulue \(\varepsilon\) ; garder <span class="code-inline">fa = f(a)</span> pour une seule évaluation par tour.</li>
+      <li>À chaque tour, garder la moitié où \(f\) change de signe : si <span class="code-inline">fa * f(m) &lt;= 0</span>, \(b \leftarrow m\) ; sinon \(a \leftarrow m\).</li>
+      <li>Nombre d'étapes : \(N = \left\lceil \log_2 \dfrac{b - a}{\varepsilon} \right\rceil\). Pour une précision très fine (proche de l'écart entre flottants), fixer ce nombre par une boucle <span class="code-inline">for</span>.</li>
+    </ol>
+    <p><em>Exemple éclair :</em> sur \([0, 1]\) à \(10^{-10}\) près : \(2^{33} \approx 8{,}6 \times 10^9 \lt 10^{10} \le 2^{34}\), donc 34 étapes.</p>
+    <pre class="codeblock"><span class="kw">def</span> zero_dicho_n(f, a, b, n):
+    <span class="str">"""Même précondition que zero_dicho ; fait exactement n étapes et renvoie le</span>
+<span class="str">    milieu du dernier intervalle, à distance au plus (b - a) / 2**(n+1) d'un zéro."""</span>
+    fa = f(a)
+    <span class="kw">for</span> k <span class="kw">in</span> range(n):
+        m = (a + b) / 2
+        fm = f(m)
+        <span class="kw">if</span> fa * fm &lt;= 0:
+            b = m
+        <span class="kw">else</span>:
+            a, fa = m, fm
+    <span class="kw">return</span> (a + b) / 2</pre>
+  </div>
+
+  <div class="method-box"><strong>Méthode 3 — Choisir entre dichotomie et Newton</strong>
+    <ol>
+      <li>Pas de dérivée disponible, ou robustesse voulue → <strong>dichotomie</strong> (sûre, lente).</li>
+      <li>Dérivée connue et bon point de départ → <strong>Newton</strong> (rapide, mais peut diverger).</li>
+      <li>Pour Newton : borner le nombre d'itérations, tester \(f'(x_k) \ne 0\), s'arrêter quand deux termes consécutifs sont proches, puis vérifier que \(f(x)\) est petit.</li>
+    </ol>
+    <p><em>Exemple éclair :</em> pour \(\sqrt 2\), Newton depuis 2 atteint la précision maximale en 5 itérations ; la dichotomie sur \([1, 2]\) en demande 52.</p>
+  </div>
+
+  <div class="method-box"><strong>Méthode 4 — Programmer une intégrale approchée</strong>
+    <ol>
+      <li>Poser le pas <span class="code-inline">h = (b - a) / n</span> (division flottante) et les points <span class="code-inline">a + k * h</span>.</li>
+      <li>Rectangles à gauche : \(k\) de 0 à \(n - 1\) (<span class="code-inline">range(n)</span>), puis multiplier la somme par \(h\).</li>
+      <li>Trapèzes : partir de \(\dfrac{f(a) + f(b)}2\), ajouter \(f(x_k)\) pour \(k\) de 1 à \(n - 1\) (<span class="code-inline">range(1, n)</span>), multiplier par \(h\).</li>
+      <li>Choisir \(n\) d'après la majoration de l'erreur : en \(\dfrac{M_1 (b-a)^2}{2n}\) pour les rectangles, \(\dfrac{M_2 (b-a)^3}{12 n^2}\) pour les trapèzes.</li>
+    </ol>
+    <p><em>Exemple éclair :</em> \(\int_0^1 x^2\,\mathrm{d}x\) avec \(n = 4\) : rectangles \(\dfrac14(0 + \frac1{16} + \frac14 + \frac9{16}) = 0{,}218\,75\) ; trapèzes \(0{,}218\,75 + \dfrac14 \cdot \dfrac{1 - 0}{2} = 0{,}343\,75\) ; valeur exacte \(\frac13\).</p>
+  </div>
+  <div class="notice"><strong>Piège</strong> : \(n\) sous-intervalles, mais \(n + 1\) points. Une boucle <span class="code-inline">range(n + 1)</span> dans les rectangles compte un rectangle de trop.</div>
+
+  <div class="method-box"><strong>Méthode 5 — Intégrer ou dériver une liste de mesures</strong>
+    <ol>
+      <li>Vérifier que les listes des instants et des valeurs ont la même longueur et que les instants croissent.</li>
+      <li>Intégrer par les trapèzes avec le pas local \(t_{k+1} - t_k\) : la somme des \((t_{k+1} - t_k)\dfrac{y_k + y_{k+1}}2\).</li>
+      <li>Dériver par les taux d'accroissement \(\dfrac{y_{k+1} - y_k}{t_{k+1} - t_k}\) : la liste obtenue a un élément de moins.</li>
+      <li>Méfiance : dériver amplifie le bruit des mesures ; intégrer le lisse.</li>
+    </ol>
+    <p><em>Exemple éclair :</em> vitesses 0 ; 4 ; 6 m/s aux instants 0 ; 1 ; 3 s : distance \(1 \times \frac{0 + 4}2 + 2 \times \frac{4 + 6}2 = 12\) m ; accélérations 4 puis 1 m/s².</p>
+    <pre class="codeblock"><span class="kw">def</span> trapezes_mesures(t, y):
+    <span class="str">"""Valeur approchée de l'intégrale de la grandeur y entre t[0] et t[n-1] (n = len(t)),</span>
+<span class="str">    les mesures y[k] étant prises aux instants croissants t[k] (pas éventuellement variable)."""</span>
+    s = 0
+    <span class="kw">for</span> k <span class="kw">in</span> range(len(t) - 1):
+        s = s + (t[k + 1] - t[k]) * (y[k] + y[k + 1]) / 2
+    <span class="kw">return</span> s</pre>
+  </div>
+
+  <div class="method-box"><strong>Méthode 6 — Approcher une dérivée et choisir le pas</strong>
+    <ol>
+      <li>Différence avant \(\dfrac{f(x + h) - f(x)}{h}\) (erreur de méthode en \(h\)) ou centrée \(\dfrac{f(x + h) - f(x - h)}{2h}\) (erreur en \(h^2\)), si \(f\) est connue des deux côtés.</li>
+      <li>Ne pas prendre \(h\) trop petit : la cancellation donne une erreur d'arrondi de l'ordre de \(\dfrac{10^{-16}\,|f(x)|}{h}\).</li>
+      <li>Pour des grandeurs de l'ordre de 1 : \(h \approx 10^{-8}\) (avant), \(h \approx 10^{-5}\) (centrée).</li>
+    </ol>
+    <p><em>Exemple éclair :</em> pour \(\sin'(1) = \cos 1\), la différence avant donne une erreur de \(4 \times 10^{-5}\) avec \(h = 10^{-4}\), \(3 \times 10^{-9}\) avec \(h = 10^{-8}\), mais \(4 \times 10^{-5}\) de nouveau avec \(h = 10^{-12}\).</p>
+  </div>
+
+  <div class="method-box"><strong>Méthode 7 — Appliquer la méthode d'Euler à une équation différentielle</strong>
+    <ol>
+      <li>Mettre l'équation sous la forme \(y' = F(t, y)\) : isoler la dérivée (pour \(\tau u' + u = e(t)\) : \(F(t, u) = \dfrac{e(t) - u}{\tau}\)).</li>
+      <li>Pour une équation d'ordre 2, \(y'' = G(t, y, y')\), poser \(v = y'\) et travailler sur le couple \((y, v)\) : \(y' = v\), \(v' = G(t, y, v)\).</li>
+      <li>Écrire la récurrence \(y_{k+1} = y_k + h\,F(t_k, y_k)\), avec \(t_k = t_0 + kh\) ; pour un couple, mettre à jour les deux composantes avec les anciennes valeurs (<span class="code-inline">y, v = y + h * v, v + h * G(t, y, v)</span>).</li>
+      <li>Choisir \(h\) petit devant les temps caractéristiques (constante de temps, période), et vérifier en divisant \(h\) par 2.</li>
+    </ol>
+    <p><em>Exemple éclair :</em> \(y' = -2y\), \(y(0) = 1\), \(h = 0{,}1\) : \(y_{k+1} = 0{,}8\,y_k\), \(y_1 = 0{,}8\), \(y_2 = 0{,}64\) ; exact \(\mathrm{e}^{-0{,}4} \approx 0{,}670\).</p>
+    <pre class="codeblock"><span class="kw">def</span> euler(F, t0, y0, h, n):
+    <span class="str">"""Méthode d'Euler pour y' = F(t, y), y(t0) = y0 : renvoie les listes</span>
+<span class="str">    des instants t_k = t0 + k*h et des approximations y_k de y(t_k), k = 0, …, n."""</span>
+    ts, ys = [t0], [y0]
+    y = y0
+    <span class="kw">for</span> k <span class="kw">in</span> range(n):
+        y = y + h * F(t0 + k * h, y)      <span class="cmt"># pente au point (t_k, y_k)</span>
+        ts.append(t0 + (k + 1) * h)
+        ys.append(y)
+    <span class="kw">return</span> ts, ys</pre>
+  </div>
+  <div class="notice"><strong>Piège</strong> : pour un système, écrire <span class="code-inline">y = y + h * v</span> puis <span class="code-inline">v = v + h * G(t, y, v)</span> utilise le nouveau <span class="code-inline">y</span> : ce n'est plus la méthode d'Euler explicite demandée.</div>
+
+  <div class="method-box"><strong>Méthode 8 — Valider un résultat numérique</strong>
+    <ol>
+      <li>Tester sur des cas dont on connaît la réponse : fonction affine (trapèzes), constante (rectangles), \(y' =\) constante (Euler), \(x - c\) (dichotomie).</li>
+      <li>Comparer les flottants à une tolérance, jamais avec <span class="code-inline">==</span>.</li>
+      <li>Mesurer l'ordre : calculer l'erreur pour \(n\) et \(2n\) ; le rapport doit être proche de \(2^p\) pour une méthode d'ordre \(p\).</li>
+      <li>Vérifier la vraisemblance : ordre de grandeur, unité, comportement attendu, résultat stable quand on divise le pas par 2.</li>
+    </ol>
+    <p><em>Exemple éclair :</em> une « méthode des trapèzes » dont l'erreur n'est divisée que par 2 quand \(n\) double est mal programmée (extrémités comptées en entier, par exemple).</p>
+    <pre class="codeblock"><span class="kw">def</span> affine(x):
+    <span class="kw">return</span> 3 * x - 1
+
+<span class="kw">def</span> constante(x):
+    <span class="kw">return</span> 2.0
+
+<span class="kw">def</span> pente2(t, y):
+    <span class="kw">return</span> 2.0                  <span class="cmt"># y' = 2 : solution affine y = y0 + 2t</span>
+
+<span class="kw">assert</span> abs(trapezes(affine, 0, 2, 7) - 4) &lt;= 1e-12        <span class="cmt"># exacte pour les fonctions affines</span>
+<span class="kw">assert</span> abs(rectangles(constante, 1, 4, 5) - 6) &lt;= 1e-12   <span class="cmt"># exacte pour les constantes</span>
+ts, ys = euler(pente2, 0, 1.0, 0.1, 10)
+<span class="kw">assert</span> abs(ys[10] - 3.0) &lt;= 1e-12                          <span class="cmt"># Euler exact si y'' = 0</span></pre>
+  </div>
+
+  <div class="notice"><strong>Pièges classiques</strong> :
+    <ul>
+      <li>dichotomie sans changement de signe sur \([a, b]\) : aucun zéro garanti ;</li>
+      <li>confondre nombre de sous-intervalles \(n\) et largeur \(h = (b-a)/n\) ;</li>
+      <li>Newton avec \(f'(x) = 0\) : division par zéro ;</li>
+      <li>croire qu'un résultat numérique est exact : c'est une <strong>approximation</strong>, entachée d'une erreur de méthode et d'erreurs d'arrondi ;</li>
+      <li>calculer les abscisses ou les instants par <span class="code-inline">x = x + h</span> sur de nombreux pas.</li>
+    </ul>
+  </div>
+</div>
+</template>
+<template class="pan-tpl" data-panneau="numr-exos">
+<div class="exo-wrapper">
+
+<div class="exo">
+  <span class="num">EXO 01</span><span class="diff">★ ☆ ☆</span>
+  <h3>Racine carrée par dichotomie</h3>
+  <div class="statement">On veut approcher \(\sqrt{2}\), zéro de \(f(x) = x^2 - 2\) sur \([1, 2]\).</div>
+  <div class="q"><strong>Q1.</strong> Vérifier qu'il y a bien un zéro dans \([1,2]\).</div>
+  <div class="q"><strong>Q2.</strong> Donner l'intervalle après 2 étapes de dichotomie.</div>
+  <div class="q"><strong>Q3.</strong> Combien d'étapes faut-il pour obtenir un intervalle de largeur au plus \(10^{-6}\) ?</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> \(f(1) = -1 \lt 0\) et \(f(2) = 2 \gt 0\) : \(f\) est continue et change de signe → un zéro existe dans \([1,2]\) (théorème des valeurs intermédiaires). Il est unique, car \(f\) est strictement croissante sur \([1, 2]\).</p>
+    <p><strong>Q2.</strong> \(m = 1{,}5\), \(f(1{,}5) = 0{,}25 \gt 0\) → on garde \([1 ; 1{,}5]\). Puis \(m = 1{,}25\), \(f(1{,}25) = -0{,}4375 \lt 0\) → on garde \([1{,}25 ; 1{,}5]\). (\(\sqrt{2} \approx 1{,}414\) y est bien.)</p>
+    <p><strong>Q3.</strong> Après \(N\) étapes, la largeur vaut \(\dfrac{1}{2^N}\). Il faut \(2^N \ge 10^6\) : \(2^{19} = 524\,288\) ne suffit pas, \(2^{20} = 1\,048\,576\) suffit. Il faut 20 étapes, donc 20 évaluations de \(f\) au milieu.</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 02</span><span class="diff">★ ☆ ☆</span>
+  <h3>Méthode des rectangles</h3>
+  <div class="statement">Approcher \(\displaystyle\int_0^1 x^2\,dx\) (valeur exacte \(1/3\)) par les rectangles à gauche avec \(n = 2\).</div>
+  <div class="q"><strong>Q1.</strong> Calculer la valeur approchée par les rectangles à gauche.</div>
+  <div class="q"><strong>Q2.</strong> Même question avec la méthode des trapèzes, toujours avec \(n = 2\).</div>
+  <div class="q"><strong>Q3.</strong> Comparer les erreurs. Expliquer leur signe à l'aide du sens de variation et de la convexité de \(x \mapsto x^2\).</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> \(h = 0{,}5\). Bords gauches : \(x = 0\) et \(x = 0{,}5\). Somme \(= h\,(f(0) + f(0{,}5)) = 0{,}5\,(0 + 0{,}25) = 0{,}125\). C'est une sous-estimation grossière (exact \(\approx 0{,}333\)) : il faut un \(n\) plus grand.</p>
+    <p><strong>Q2.</strong> \(T_2 = h\left(\dfrac{f(0) + f(1)}2 + f(0{,}5)\right)\), soit \(T_2 = 0{,}5\,(0{,}5 + 0{,}25) = 0{,}375\).</p>
+    <p><strong>Q3.</strong> Erreurs : \(\frac13 - 0{,}125 \approx 0{,}208\) pour les rectangles, \(0{,}375 - \frac13 \approx 0{,}042\) pour les trapèzes, cinq fois plus petite. La fonction est croissante : chaque rectangle à gauche est sous la courbe (sous-estimation). Elle est convexe : chaque corde est au-dessus de la courbe (surestimation par les trapèzes).</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 03</span><span class="diff">★ ☆ ☆</span>
+  <h3>Un pas d'Euler</h3>
+  <div class="statement">On résout \(y' = y\), \(y(0) = 1\) (solution exacte \(y = e^t\)) par Euler avec \(h = 0{,}1\).</div>
+  <div class="q"><strong>Q1.</strong> Calculer \(y_1\) et \(y_2\).</div>
+  <div class="q"><strong>Q2.</strong> Exprimer \(y_k\) en fonction de \(k\). Quelle valeur approchée de \(y(1) = \mathrm{e}\) obtient-on ? Comment l'améliorer, et à quel prix ?</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> \(y_{n+1} = y_n + h\,y_n = 1{,}1\,y_n\). Donc \(y_1 = 1{,}1\) et \(y_2 = 1{,}21\). (Exact : \(e^{0{,}1} \approx 1{,}105\), \(e^{0{,}2} \approx 1{,}221\) — Euler sous-estime légèrement.)</p>
+    <p><strong>Q2.</strong> La suite est géométrique : \(y_k = 1{,}1^k\), et \(y_{10} = 1{,}1^{10} \approx 2{,}594\) au lieu de \(\mathrm{e} \approx 2{,}718\), soit 4,6 % d'erreur. La méthode d'Euler est d'ordre 1 : avec \(h = 0{,}01\) (100 pas), l'erreur est environ dix fois plus petite (\(1{,}01^{100} \approx 2{,}705\)), mais le calcul demande dix fois plus d'opérations.</p>
+    <pre class="codeblock"><span class="kw">def</span> F1(t, y):
+    <span class="kw">return</span> y
+
+ts, ys = euler(F1, 0, 1, 0.1, 10)
+print(ys[1], ys[2], ys[10])      <span class="cmt"># 1.1 1.2100000000000002 2.5937424601</span></pre>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 04</span><span class="diff">★ ★ ☆</span>
+  <h3>Une dichotomie à précision donnée</h3>
+  <div class="statement">On cherche le réel \(c\) tel que \(\cos c = c\). On pose \(\varphi(x) = \cos x - x\) ; on dispose de <span class="code-inline">cos</span> du module <span class="code-inline">math</span>.</div>
+  <div class="q"><strong>Q1.</strong> Montrer que \(\varphi\) a un unique zéro dans \([0, 1]\).</div>
+  <div class="q"><strong>Q2.</strong> Écrire une fonction <span class="code-inline">zero_dicho_n(f, a, b, n)</span> qui effectue exactement <span class="code-inline">n</span> étapes de dichotomie et renvoie le milieu du dernier intervalle. Donner un invariant de la boucle.</div>
+  <div class="q"><strong>Q3.</strong> Écrire <span class="code-inline">nb_etapes(a, b, eps)</span>, qui renvoie le plus petit entier \(N\) tel que \(\dfrac{b - a}{2^N} \le \varepsilon\). Combien d'étapes faut-il pour une précision de \(10^{-10}\) ? Combien d'évaluations de \(\varphi\) ?</div>
+  <div class="q"><strong>Q4.</strong> Pourquoi la boucle <span class="code-inline">for</span> est-elle ici plus sûre qu'une boucle <span class="code-inline">while b - a &gt; eps</span> ?</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> \(\varphi\) est continue, \(\varphi(0) = 1 \gt 0\) et \(\varphi(1) = \cos 1 - 1 \approx -0{,}46 \lt 0\) : elle s'annule sur \([0, 1]\). Comme \(\varphi'(x) = -\sin x - 1 \lt 0\) sur \([0, 1]\), elle est strictement décroissante : le zéro est unique.</p>
+    <p><strong>Q2.</strong> On garde <span class="code-inline">fa</span> pour n'évaluer \(\varphi\) qu'une fois par tour.</p>
+    <pre class="codeblock"><span class="kw">def</span> zero_dicho_n(f, a, b, n):
+    <span class="str">"""Même précondition que zero_dicho ; fait exactement n étapes et renvoie le</span>
+<span class="str">    milieu du dernier intervalle, à distance au plus (b - a) / 2**(n+1) d'un zéro."""</span>
+    fa = f(a)
+    <span class="kw">for</span> k <span class="kw">in</span> range(n):
+        m = (a + b) / 2
+        fm = f(m)
+        <span class="kw">if</span> fa * fm &lt;= 0:
+            b = m
+        <span class="kw">else</span>:
+            a, fa = m, fm
+    <span class="kw">return</span> (a + b) / 2</pre>
+    <p>Invariant : \(a \lt b\), <span class="code-inline">fa</span> vaut \(f(a)\), \(f(a) f(b) \le 0\), et après \(k\) tours \(b - a = \dfrac{b_0 - a_0}{2^k}\) (en calcul exact). La boucle <span class="code-inline">for</span> fait \(n\) tours : la terminaison est immédiate.</p>
+    <p><strong>Q3.</strong></p>
+    <pre class="codeblock"><span class="kw">def</span> nb_etapes(a, b, eps):
+    <span class="str">"""Plus petit entier N tel que (b - a) / 2**N &lt;= eps."""</span>
+    N = 0
+    <span class="kw">while</span> (b - a) / 2 ** N &gt; eps:
+        N = N + 1
+    <span class="kw">return</span> N</pre>
+    <pre class="codeblock"><span class="kw">from</span> math <span class="kw">import</span> cos
+
+<span class="kw">def</span> phi(x):
+    <span class="kw">return</span> cos(x) - x</pre>
+    <pre class="codeblock">&gt;&gt;&gt; phi(0), phi(1) &lt; 0
+(1.0, <span class="kw">True</span>)
+&gt;&gt;&gt; nb_etapes(0, 1, 1e-10)
+34
+&gt;&gt;&gt; zero_dicho_n(phi, 0, 1, 34)
+0.7390851332165767</pre>
+    <p>\(2^{33} \lt 10^{10} \le 2^{34}\) : 34 étapes, soit 35 évaluations de \(\varphi\) (une en \(a\), puis une par étape). Le résultat, 0,7390851332…, est à moins de \(\dfrac{1}{2^{35}} \approx 3 \times 10^{-11}\) du zéro.</p>
+    <p><strong>Q4.</strong> Le nombre de tours est fixé avant la boucle : elle termine même si la précision demandée est plus fine que l'écart entre deux flottants voisins, cas où le test <span class="code-inline">b - a &gt; eps</span> pourrait rester vrai indéfiniment (exercice suivant).</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 05</span><span class="diff">★ ★ ☆</span>
+  <h3>Une dichotomie qui ne s'arrête pas</h3>
+  <div class="statement">On utilise la fonction <span class="code-inline">zero_dicho(f, a, b, eps)</span> du cours (§2), qui boucle tant que <span class="code-inline">b - a &gt; eps</span>. Le programme suivant ne s'arrête jamais :
+  <pre class="codeblock"><span class="kw">def</span> q(x):
+    <span class="kw">return</span> x * x - 2e12            <span class="cmt"># zéro : racine de 2·10**12, environ 1 414 213,56</span>
+
+r = zero_dicho(q, 1e6, 2e6, 1e-12)</pre></div>
+  <div class="q"><strong>Q1.</strong> Vérifier que les préconditions sont satisfaites. Combien d'étapes faudrait-il en calcul exact ?</div>
+  <div class="q"><strong>Q2.</strong> Près de \(1{,}4 \times 10^6\), deux flottants voisins sont espacés d'environ \(2{,}3 \times 10^{-10}\). Expliquer pourquoi la boucle ne termine pas.</div>
+  <div class="q"><strong>Q3.</strong> Écrire une version <span class="code-inline">zero_dicho_sur</span> qui s'arrête aussi quand l'intervalle ne peut plus être coupé. Quelle précision peut-on espérer au mieux sur cette racine ?</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> \(q\) est continue, \(q(10^6) = 10^{12} - 2 \times 10^{12} \lt 0\) et \(q(2 \times 10^6) = 2 \times 10^{12} \gt 0\) ; \(a \lt b\) et \(\varepsilon \gt 0\). En calcul exact, il faudrait \(\left\lceil \log_2 \dfrac{10^6}{10^{-12}} \right\rceil = \lceil \log_2 10^{18} \rceil = 60\) étapes.</p>
+    <p><strong>Q2.</strong> Après une cinquantaine d'étapes (\(10^6 / 2^{52} \approx 2{,}2 \times 10^{-10}\)), \(a\) et \(b\) sont deux flottants voisins, distants d'environ \(2{,}3 \times 10^{-10}\), largeur encore supérieure à \(10^{-12}\). Leur milieu exact n'est pas un flottant : il est arrondi à \(a\) ou à \(b\). L'intervalle reste alors le même à chaque tour, \(b - a\) ne diminue plus, et la condition <span class="code-inline">b - a &gt; eps</span> reste vraie : la boucle tourne indéfiniment. Le « variant » réel \(b - a\) ne décroît plus, parce que les flottants ne sont pas les réels.</p>
+    <p><strong>Q3.</strong></p>
+    <pre class="codeblock"><span class="kw">def</span> zero_dicho_sur(f, a, b, eps):
+    <span class="str">"""Comme zero_dicho, mais s'arrête aussi quand a et b sont deux flottants voisins."""</span>
+    fa = f(a)
+    <span class="kw">while</span> b - a &gt; eps:
+        m = (a + b) / 2
+        <span class="kw">if</span> m == a <span class="kw">or</span> m == b:       <span class="cmt"># plus aucun flottant entre a et b</span>
+            <span class="kw">return</span> m
+        fm = f(m)
+        <span class="kw">if</span> fa * fm &lt;= 0:
+            b = m
+        <span class="kw">else</span>:
+            a, fa = m, fm
+    <span class="kw">return</span> (a + b) / 2</pre>
+    <pre class="codeblock"><span class="kw">def</span> q(x):
+    <span class="kw">return</span> x * x - 2e12</pre>
+    <pre class="codeblock">&gt;&gt;&gt; zero_dicho_sur(q, 1e6, 2e6, 1e-12)
+1414213.5623730952
+&gt;&gt;&gt; 2e12 ** 0.5
+1414213.562373095</pre>
+    <p>La terminaison est maintenant assurée : tant que <span class="code-inline">m</span> est strictement entre <span class="code-inline">a</span> et <span class="code-inline">b</span>, l'intervalle rétrécit strictement, et il n'y a qu'un nombre fini de flottants entre \(a_0\) et \(b_0\). On ne peut espérer mieux qu'un écart entre flottants voisins, environ \(2{,}3 \times 10^{-10}\), soit une précision relative de \(1{,}6 \times 10^{-16}\) : le résultat est l'un des deux flottants qui encadrent \(\sqrt{2 \times 10^{12}}\). Il faut donc toujours choisir \(\varepsilon\) en tenant compte de la grandeur de la racine (précision relative).</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 06</span><span class="diff">★ ★ ☆</span>
+  <h3>Distance parcourue à partir de mesures</h3>
+  <div class="statement">Un capteur mesure la vitesse d'un chariot à des instants irrégulièrement espacés :
+  <pre class="codeblock">t = [0, 0.5, 1.0, 2.0, 3.0, 4.5, 6.0]      <span class="cmt"># instants (s)</span>
+v = [0, 1.8, 3.2, 5.0, 5.9, 6.2, 6.3]      <span class="cmt"># vitesses mesurées (m/s)</span></pre></div>
+  <div class="q"><strong>Q1.</strong> Pourquoi ne peut-on pas utiliser la fonction <span class="code-inline">trapezes(f, a, b, n)</span> du cours ? Écrire une fonction <span class="code-inline">trapezes_mesures(t, y)</span> qui approche l'intégrale de la grandeur mesurée entre le premier et le dernier instant.</div>
+  <div class="q"><strong>Q2.</strong> Calculer la distance parcourue entre 0 et 6 s, et la vitesse moyenne.</div>
+  <div class="q"><strong>Q3.</strong> Écrire une fonction <span class="code-inline">derivee_mesures(t, y)</span> qui renvoie les listes des instants \(t_k\) et des accélérations approchées \(\dfrac{v_{k+1} - v_k}{t_{k+1} - t_k}\). Quelle est la complexité de ces deux fonctions ?</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> On ne dispose pas d'une fonction <span class="code-inline">f</span> qu'on pourrait évaluer en tout point, seulement de valeurs aux instants mesurés, et le pas n'est pas constant. On somme les trapèzes de largeur locale \(t_{k+1} - t_k\) :</p>
+    <pre class="codeblock"><span class="kw">def</span> trapezes_mesures(t, y):
+    <span class="str">"""Valeur approchée de l'intégrale de la grandeur y entre t[0] et t[n-1] (n = len(t)),</span>
+<span class="str">    les mesures y[k] étant prises aux instants croissants t[k] (pas éventuellement variable)."""</span>
+    s = 0
+    <span class="kw">for</span> k <span class="kw">in</span> range(len(t) - 1):
+        s = s + (t[k + 1] - t[k]) * (y[k] + y[k + 1]) / 2
+    <span class="kw">return</span> s</pre>
+    <p><strong>Q2.</strong> Somme des six trapèzes :</p>
+    <div class="formula">$$\begin{aligned} d &\approx 0{,}5 \times \tfrac{0 + 1{,}8}{2} + 0{,}5 \times \tfrac{1{,}8 + 3{,}2}{2} \\ &\quad + 1 \times \tfrac{3{,}2 + 5{,}0}{2} + 1 \times \tfrac{5{,}0 + 5{,}9}{2} \\ &\quad + 1{,}5 \times \tfrac{5{,}9 + 6{,}2}{2} + 1{,}5 \times \tfrac{6{,}2 + 6{,}3}{2} \\ &= 0{,}45 + 1{,}25 + 4{,}1 + 5{,}45 \\ &\quad + 9{,}075 + 9{,}375 = 29{,}7\ \text{m}. \end{aligned}$$</div>
+    <p>Vitesse moyenne : \(\dfrac{29{,}7}{6} = 4{,}95\ \text{m·s}^{-1}\).</p>
+    <p><strong>Q3.</strong></p>
+    <pre class="codeblock"><span class="kw">def</span> derivee_mesures(t, y):
+    <span class="str">"""Listes des instants t[k] et des dérivées approchées (y[k+1] - y[k]) / (t[k+1] - t[k])</span>
+<span class="str">    pour k = 0, …, n - 2 (différences avant)."""</span>
+    ts, ds = [], []
+    <span class="kw">for</span> k <span class="kw">in</span> range(len(t) - 1):
+        ts.append(t[k])
+        ds.append((y[k + 1] - y[k]) / (t[k + 1] - t[k]))
+    <span class="kw">return</span> ts, ds</pre>
+    <pre class="codeblock">&gt;&gt;&gt; d = trapezes_mesures(t, v)
+&gt;&gt;&gt; round(d, 3), round(d / 6.0, 3)         <span class="cmt"># distance (m) et vitesse moyenne (m/s)</span>
+(29.7, 4.95)
+&gt;&gt;&gt; ts, acc = derivee_mesures(t, v)
+&gt;&gt;&gt; [round(x, 2) <span class="kw">for</span> x <span class="kw">in</span> acc]             <span class="cmt"># accélérations (m/s²)</span>
+[3.6, 2.8, 1.8, 0.9, 0.2, 0.07]</pre>
+    <p>Chaque fonction fait un seul parcours des listes : complexité \(O(n)\) pour \(n\) mesures. L'accélération décroît : le chariot atteint une vitesse limite. Une erreur de mesure de 0,1 m/s sur une vitesse prise à 0,5 s d'intervalle donne une erreur de 0,2 m/s² sur l'accélération : la dérivation amplifie le bruit, l'intégration le lisse.</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 07</span><span class="diff">★ ★ ☆</span>
+  <h3>Dérivée numérique : quel pas choisir ?</h3>
+  <div class="statement">On approche \(\sin'(1) = \cos 1\) par la différence avant \(\dfrac{\sin(1 + h) - \sin 1}{h}\) et par la différence centrée \(\dfrac{\sin(1 + h) - \sin(1 - h)}{2h}\), pour \(h = 10^{-1}, 10^{-2}, \dots, 10^{-12}\). Le programme et ses résultats :
+  <pre class="codeblock"><span class="kw">from</span> math <span class="kw">import</span> sin, cos
+<span class="kw">for</span> p <span class="kw">in</span> range(1, 13):
+    h = 10.0 ** -p
+    e_av = abs(derivee_avant(sin, 1, h) - cos(1))
+    e_ce = abs(derivee_centree(sin, 1, h) - cos(1))
+    print(p, e_av, e_ce)</pre>
+  <div><table>
+<tr><th>pas \(h\)</th><th>erreur, différence avant</th><th>erreur, différence centrée</th></tr>
+<tr><td>\(10^{-1}\)</td><td>\(4{,}3 \times 10^{-2}\)</td><td>\(9{,}0 \times 10^{-4}\)</td></tr>
+<tr><td>\(10^{-2}\)</td><td>\(4{,}2 \times 10^{-3}\)</td><td>\(9{,}0 \times 10^{-6}\)</td></tr>
+<tr><td>\(10^{-3}\)</td><td>\(4{,}2 \times 10^{-4}\)</td><td>\(9{,}0 \times 10^{-8}\)</td></tr>
+<tr><td>\(10^{-4}\)</td><td>\(4{,}2 \times 10^{-5}\)</td><td>\(9{,}0 \times 10^{-10}\)</td></tr>
+<tr><td>\(10^{-5}\)</td><td>\(4{,}2 \times 10^{-6}\)</td><td>\(1{,}1 \times 10^{-11}\)</td></tr>
+<tr><td>\(10^{-6}\)</td><td>\(4{,}2 \times 10^{-7}\)</td><td>\(2{,}8 \times 10^{-11}\)</td></tr>
+<tr><td>\(10^{-7}\)</td><td>\(4{,}2 \times 10^{-8}\)</td><td>\(1{,}9 \times 10^{-10}\)</td></tr>
+<tr><td>\(10^{-8}\)</td><td>\(3{,}0 \times 10^{-9}\)</td><td>\(2{,}6 \times 10^{-9}\)</td></tr>
+<tr><td>\(10^{-9}\)</td><td>\(5{,}3 \times 10^{-8}\)</td><td>\(3{,}0 \times 10^{-9}\)</td></tr>
+<tr><td>\(10^{-10}\)</td><td>\(5{,}8 \times 10^{-8}\)</td><td>\(5{,}8 \times 10^{-8}\)</td></tr>
+<tr><td>\(10^{-11}\)</td><td>\(1{,}2 \times 10^{-6}\)</td><td>\(1{,}2 \times 10^{-6}\)</td></tr>
+<tr><td>\(10^{-12}\)</td><td>\(4{,}3 \times 10^{-5}\)</td><td>\(1{,}2 \times 10^{-5}\)</td></tr>
+</table></div></div>
+  <div class="q"><strong>Q1.</strong> Pour les grands pas, comment l'erreur varie-t-elle quand \(h\) est divisé par 10, pour chaque formule ? Justifier par la formule de Taylor.</div>
+  <div class="q"><strong>Q2.</strong> Pourquoi l'erreur remonte-t-elle pour les petits pas ?</div>
+  <div class="q"><strong>Q3.</strong> En modélisant l'erreur de la différence avant par \(E(h) = \dfrac{h}{2} + \dfrac{\epsilon}{h}\), avec \(\epsilon = 2{,}2 \times 10^{-16}\), déterminer le pas optimal et l'erreur minimale. Comparer au tableau.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> Différence avant : l'erreur est divisée par 10 (ordre 1). Par Taylor, \(\sin(1 + h) = \sin 1 + h \cos 1 - \dfrac{h^2}2 \sin(1 + \theta h)\) avec \(0 \lt \theta \lt 1\), donc l'erreur vaut \(\dfrac h2 |\sin(1 + \theta h)|\), environ \(0{,}42\,h\) : on lit bien \(4{,}2 \times 10^{-2}\) pour \(h = 0{,}1\). Différence centrée : l'erreur est divisée par 100 (ordre 2) ; les termes en \(h^2\) des développements de \(\sin(1 + h)\) et \(\sin(1 - h)\) se compensent, il reste \(\dfrac{h^2}{6}\cos 1 \approx 0{,}09\,h^2\).</p>
+    <p><strong>Q2.</strong> \(\sin(1 + h)\) et \(\sin 1\) deviennent très proches : leur différence subit une cancellation. Chacune est arrondie avec une erreur de l'ordre de \(10^{-16}\), et cette erreur, divisée par \(h\), devient de l'ordre de \(\dfrac{10^{-16}}{h}\) : \(10^{-4}\) pour \(h = 10^{-12}\). L'erreur d'arrondi domine dès que \(h\) est assez petit.</p>
+    <p><strong>Q3.</strong> \(E'(h) = \dfrac12 - \dfrac{\epsilon}{h^2}\) s'annule pour \(h^* = \sqrt{2\epsilon} \approx 2{,}1 \times 10^{-8}\), où \(E(h^*) = \sqrt{2\epsilon} \approx 2{,}1 \times 10^{-8}\). Le tableau donne bien son minimum pour \(h = 10^{-8}\), avec une erreur de \(3 \times 10^{-9}\) (le modèle majore l'erreur d'arrondi). On ne gagne que 8 chiffres environ sur 16. La différence centrée, d'ordre 2, atteint \(10^{-11}\) vers \(h = 10^{-5}\).</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 08</span><span class="diff">★ ★ ★</span>
+  <h3>Racine carrée par la méthode de Newton</h3>
+  <div class="statement">La méthode de Newton relève des programmes de mathématiques et de sciences de l'ingénieur ; on rappelle sa formule : \(x_{k+1} = x_k - \dfrac{f(x_k)}{f'(x_k)}\). Soit \(a \gt 0\) ; on cherche \(\sqrt a\), zéro positif de \(f(x) = x^2 - a\).</div>
+  <div class="q"><strong>Q1.</strong> Montrer que la récurrence s'écrit \(x_{k+1} = \dfrac12\left(x_k + \dfrac{a}{x_k}\right)\) (méthode de Héron).</div>
+  <div class="q"><strong>Q2.</strong> Écrire une fonction <span class="code-inline">racine(a, eps)</span> qui part de \(x_0 = a\), s'arrête dès que \(|x_{k+1} - x_k| \le \varepsilon\, x_{k+1}\) et renvoie la valeur obtenue et le nombre d'itérations. Pourquoi un critère relatif ?</div>
+  <div class="q"><strong>Q3.</strong> Que donnent <span class="code-inline">racine(2, 1e-15)</span> et <span class="code-inline">racine(1e6, 1e-15)</span> ? Comparer au nombre d'étapes d'une dichotomie.</div>
+  <div class="q"><strong>Q4.</strong> Que se passe-t-il si l'on part de \(x_0 = 0\) ? de \(x_0 \lt 0\) ?</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> \(f'(x) = 2x\), donc</p>
+    <div class="formula">$$x_{k+1} = x_k - \frac{x_k^2 - a}{2x_k} = \frac{2x_k^2 - x_k^2 + a}{2x_k} = \frac12\left(x_k + \frac{a}{x_k}\right).$$</div>
+    <p><strong>Q2.</strong> Un critère absolu \(|x_{k+1} - x_k| \le \varepsilon\) ne convient pas à toutes les grandeurs : pour \(a = 10^{12}\), deux flottants voisins près de \(10^6\) sont espacés de \(1{,}2 \times 10^{-10}\), et un seuil absolu de \(10^{-15}\) ne serait jamais atteint (sauf égalité exacte). Le critère relatif demande 15 chiffres significatifs communs, quelle que soit la grandeur.</p>
+    <pre class="codeblock"><span class="kw">def</span> racine(a, eps):
+    <span class="str">"""Racine carrée de a &gt; 0 par la méthode de Newton appliquée à x**2 - a,</span>
+<span class="str">    depuis x0 = a ; renvoie la valeur et le nombre d'itérations."""</span>
+    <span class="kw">assert</span> a &gt; 0
+    x = a
+    k = 0
+    <span class="kw">while</span> <span class="kw">True</span>:
+        x_suiv = (x + a / x) / 2
+        k = k + 1
+        <span class="kw">if</span> abs(x_suiv - x) &lt;= eps * x_suiv:     <span class="cmt"># critère relatif</span>
+            <span class="kw">return</span> x_suiv, k
+        x = x_suiv</pre>
+    <p>Terminaison : elle n'est pas garantie par la boucle <span class="code-inline">while True</span> elle-même ; on admet ici la convergence de la suite (résultat de mathématiques : pour \(x_0 \gt 0\), la suite décroît vers \(\sqrt a\) à partir du rang 1). Par prudence, on peut borner le nombre d'itérations comme dans le cours.</p>
+    <p><strong>Q3.</strong></p>
+    <pre class="codeblock">&gt;&gt;&gt; racine(2, 1e-15)
+(1.414213562373095, 6)
+&gt;&gt;&gt; racine(1e6, 1e-15)
+(1000.0, 16)</pre>
+    <p>6 itérations pour \(\sqrt 2\) (dichotomie sur \([1, 2]\) : une cinquantaine d'étapes pour la même précision). Pour \(a = 10^6\), 16 itérations : depuis \(x_0 = 10^6\), loin de la racine, chaque itération divise d'abord \(x\) par 2 environ (\(x_{k+1} \approx x_k / 2\) quand \(x_k \gg \sqrt a\)) ; la convergence rapide ne commence qu'à proximité de 1 000. Un meilleur point de départ réduirait le nombre d'itérations.</p>
+    <p><strong>Q4.</strong> Avec \(x_0 = 0\), la tangente est horizontale : division par zéro (<span class="code-inline">ZeroDivisionError</span>). Avec \(x_0 \lt 0\), la suite converge vers \(-\sqrt a\), l'autre zéro de \(f\) : la méthode trouve le zéro « proche » du point de départ, pas forcément celui qu'on cherche. Il faut donc imposer \(x_0 \gt 0\).</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 09</span><span class="diff">★ ★ ★</span>
+  <h3>Circuit RC soumis à un créneau</h3>
+  <div class="statement">Un condensateur, initialement déchargé, est alimenté par un générateur de créneaux à travers une résistance. La tension \(u\) à ses bornes vérifie \(\tau\,\dfrac{\mathrm{d}u}{\mathrm{d}t} + u = e(t)\), avec \(\tau = 1\) ms. La tension \(e(t)\) vaut \(E = 5\) V pendant 2 ms, puis 0 V pendant 2 ms, et ainsi de suite (période 4 ms). C'est une capacité numérique du programme de physique : simuler la réponse d'un système du premier ordre à une excitation de forme quelconque. On choisit un pas \(h = 10^{-5}\) s.</div>
+  <div class="q"><strong>Q1.</strong> Mettre l'équation sous la forme \(u' = F(t, u)\) et écrire la relation de récurrence de la méthode d'Euler.</div>
+  <div class="q"><strong>Q2.</strong> Une demi-période compte \(p = 200\) pas. Écrire une fonction <span class="code-inline">e(k)</span> qui renvoie la tension du générateur au pas <span class="code-inline">k</span> (à l'instant \(kh\)), en n'utilisant que des opérations sur les entiers, puis une fonction <span class="code-inline">simulation(n)</span> qui renvoie la liste \([u_0, \dots, u_n]\).</div>
+  <div class="q"><strong>Q3.</strong> À la fin de la première demi-période (\(t = 2\) ms), la solution exacte vaut \(E(1 - \mathrm{e}^{-2}) \approx 4{,}3233\) V. Montrer que \(u_{200} = E\left(1 - 0{,}99^{200}\right)\) et commenter l'écart.</div>
+  <div class="q"><strong>Q4.</strong> En régime établi, la tension oscille entre \(\dfrac{E}{1 + \mathrm{e}^{-2}} \approx 4{,}404\) V et \(\dfrac{E\,\mathrm{e}^{-2}}{1 + \mathrm{e}^{-2}} \approx 0{,}596\) V. Comparer à la simulation de 10 périodes. Pourquoi le pas ne doit-il pas dépasser \(2\tau\) ?</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> \(u' = F(t, u) = \dfrac{e(t) - u}{\tau}\), d'où</p>
+    <div class="formula">$$u_{k+1} = u_k + h\,\frac{e(t_k) - u_k}{\tau} = \left(1 - \frac h\tau\right) u_k + \frac h\tau\, e(t_k).$$</div>
+    <p><strong>Q2.</strong> Le numéro de la demi-période en cours est <span class="code-inline">k // p</span> ; elle est « haute » s'il est pair. Travailler sur l'entier <span class="code-inline">k</span> évite de tester un instant flottant (\(t = 0{,}002\) exactement ? le flottant calculé peut valoir 0,0019999…).</p>
+    <pre class="codeblock">tau, E = 1e-3, 5.0         <span class="cmt"># constante de temps (s), tension haute du créneau (V)</span>
+h = 1e-5                   <span class="cmt"># pas : tau / 100</span>
+p = 200                    <span class="cmt"># nombre de pas par demi-période de 2 ms</span>
+
+<span class="kw">def</span> e(k):
+    <span class="str">"""Tension du générateur au pas k : E pendant p pas, puis 0 pendant p pas, etc."""</span>
+    <span class="kw">if</span> (k // p) % 2 == 0:
+        <span class="kw">return</span> E
+    <span class="kw">return</span> 0.0
+
+<span class="kw">def</span> simulation(n):
+    <span class="str">"""Liste des tensions u_0, …, u_n aux instants k*h (condensateur déchargé au départ)."""</span>
+    u = 0.0
+    us = [u]
+    <span class="kw">for</span> k <span class="kw">in</span> range(n):
+        u = u + h * (e(k) - u) / tau      <span class="cmt"># u' = (e - u) / tau</span>
+        us.append(u)
+    <span class="kw">return</span> us</pre>
+    <pre class="codeblock">&gt;&gt;&gt; us = simulation(4000)                 <span class="cmt"># 10 périodes de 4 ms</span>
+&gt;&gt;&gt; round(us[200], 4)                     <span class="cmt"># fin de la 1re demi-période (t = 2 ms)</span>
+4.3301
+&gt;&gt;&gt; round(max(us[3600:]), 3), round(min(us[3600:]), 3)   <span class="cmt"># régime établi</span>
+(4.409, 0.591)</pre>
+    <p><strong>Q3.</strong> Pendant la première demi-période, \(e = E\) et \(u_{k+1} - E = 0{,}99\,(u_k - E)\) (car \(h/\tau = 0{,}01\)) : la suite \(u_k - E\) est géométrique de premier terme \(-E\), donc \(u_k = E(1 - 0{,}99^k)\) et \(u_{200} = 5\,(1 - 0{,}99^{200}) \approx 4{,}3301\) V. L'écart avec la valeur exacte est de 0,007 V, soit 0,16 % : c'est l'erreur de méthode, proportionnelle à \(h\) (on retrouve \(0{,}99^{200} = (1 - h/\tau)^{2\tau/h} \to \mathrm{e}^{-2}\) quand \(h \to 0\)).</p>
+    <p><strong>Q4.</strong> La simulation donne 4,409 V et 0,591 V, à 0,005 V des valeurs exactes. Le facteur \(1 - \dfrac h\tau\) doit rester dans \(]-1, 1[\) pour que la solution numérique ne diverge pas : il faut \(h \lt 2\tau\). Pour une bonne précision, on prend \(h\) très petit devant \(\tau\) (ici \(h = \tau/100\)) ; le coût est \(O(n)\) avec \(n = 4000\) pas pour 10 périodes.</p>
+  </div>
+</div>
+
+<div class="exo concours">
+  <span class="num">CONCOURS PT</span><span class="diff">★ ★ ★</span>
+  <h3>Chute d'un parachutiste : Euler, trapèzes et dichotomie</h3>
+  <div class="exo-source">Exercice <strong>original</strong> au format des épreuves PT (thème <em>méthode d'Euler, intégration de valeurs calculées, recherche dichotomique, validation et complexité</em>).</div>
+  <div class="statement">Avant l'ouverture de son parachute, un parachutiste de masse \(m = 80\) kg, lâché sans vitesse, est soumis à son poids et à une force de frottement de norme \(k v^2\), avec \(k = 0{,}25\ \text{kg·m}^{-1}\). Sa vitesse verticale \(v(t)\) vérifie
+  $$v' = g - \frac{k}{m}\,v^2, \qquad v(0) = 0, \qquad g = 9{,}81\ \text{m·s}^{-2}.$$
+  On admet que la solution est \(v(t) = v_\ell \tanh\!\left(\dfrac{g t}{v_\ell}\right)\), avec \(v_\ell = \sqrt{mg/k}\) ; elle sert seulement à valider les calculs. Les fonctions <span class="code-inline">sqrt</span>, <span class="code-inline">tanh</span>, <span class="code-inline">log</span> et <span class="code-inline">cosh</span> s'importent du module <span class="code-inline">math</span>.</div>
+
+  <p class="exo-part">Partie A — Méthode d'Euler</p>
+  <div class="q"><strong>A1.</strong> Écrire la fonction <span class="code-inline">F(t: float, v: float) -&gt; float</span> du second membre, puis <span class="code-inline">vitesses(h: float, tmax: float) -&gt; tuple</span> qui renvoie les listes des instants \(t_i = ih\) et des vitesses \(v_i\) calculées par la méthode d'Euler, pour \(i\) de 0 à \(n = \) <span class="code-inline">round(tmax / h)</span>.</div>
+  <div class="q"><strong>A2.</strong> Quelle est la complexité de <span class="code-inline">vitesses</span> en temps et en mémoire ?</div>
+  <div class="q"><strong>A3.</strong> Que vaut \(v_\ell\) ? Interpréter physiquement.</div>
+
+  <p class="exo-part">Partie B — Validation</p>
+  <div class="q"><strong>B1.</strong> On calcule l'erreur \(v_n - v(10)\) à l'instant 10 s pour trois pas. Commenter le tableau obtenu.</div>
+  <pre class="codeblock"><span class="kw">for</span> h <span class="kw">in</span> [0.1, 0.05, 0.025]:
+    ts, vs = vitesses(h, 10)
+    print(h, vs[len(vs) - 1] - v_exacte(10))</pre>
+  <div><table>
+<tr><th>pas \(h\) (s)</th><th>erreur sur \(v(10)\) (m/s)</th><th>rapport à la ligne précédente</th></tr>
+<tr><td>\(0{,}100\)</td><td>\(0{,}1213\)</td><td>—</td></tr>
+<tr><td>\(0{,}050\)</td><td>\(0{,}0606\)</td><td>\(2{,}00\)</td></tr>
+<tr><td>\(0{,}025\)</td><td>\(0{,}0303\)</td><td>\(2{,}00\)</td></tr>
+</table></div>
+  <div class="q"><strong>B2.</strong> Pourquoi ne pas prendre un pas \(h = 10^{-9}\) s ?</div>
+
+  <p class="exo-part">Partie C — Distance parcourue</p>
+  <div class="q"><strong>C1.</strong> La distance parcourue est \(\displaystyle\int_0^{t} v(s)\,\mathrm{d}s\). Expliquer comment l'approcher à partir des listes renvoyées par <span class="code-inline">vitesses</span>, et donner sa valeur pour \(t = 10\) s et \(h = 0{,}1\) s. La valeur exacte est \(\dfrac{v_\ell^2}{g}\ln\cosh\dfrac{g t}{v_\ell} \approx 348{,}0\) m : d'où vient principalement l'écart ?</div>
+
+  <p class="exo-part">Partie D — Instant où la vitesse atteint 99 % de la vitesse limite</p>
+  <div class="q"><strong>D1.</strong> On pose \(c = k/m\) et \(\psi(v) = v + h\,(g - c v^2)\), de sorte que \(v_{i+1} = \psi(v_i)\). Montrer que si \(h \le \dfrac{1}{2 c v_\ell}\), alors \(\psi\) est croissante sur \([0, v_\ell]\), et en déduire que la suite \((v_i)\) est strictement croissante et majorée par \(v_\ell\). Vérifier que c'est le cas pour \(h = 0{,}1\) s.</div>
+  <div class="q"><strong>D2.</strong> Écrire une fonction <span class="code-inline">premier_indice(v: list, seuil: float) -&gt; int</span> qui renvoie, par dichotomie, le plus petit indice \(i\) tel que <span class="code-inline">v[i] &gt;= seuil</span>, pour une liste croissante dont le dernier élément est au moins égal à <span class="code-inline">seuil</span>. Donner un invariant, un variant et la complexité.</div>
+  <div class="q"><strong>D3.</strong> En déduire l'instant cherché avec \(h = 0{,}1\) s et \(t_{\max} = 30\) s, et le comparer à la valeur exacte \(\dfrac{v_\ell}{g}\operatorname{artanh}(0{,}99) \approx 15{,}12\) s. Pourquoi une recherche séquentielle suffirait-elle aussi en pratique ici ?</div>
+
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>A1.</strong></p>
+    <pre class="codeblock">g, m, k = 9.81, 80.0, 0.25          <span class="cmt"># m/s², kg, kg/m</span>
+
+<span class="kw">def</span> F(t, v):
+    <span class="str">"""Second membre de v' = g - (k/m) v² (chute avec frottement quadratique)."""</span>
+    <span class="kw">return</span> g - k / m * v * v</pre>
+    <pre class="codeblock"><span class="kw">def</span> vitesses(h, tmax):
+    <span class="str">"""Méthode d'Euler de 0 à tmax avec le pas h, v(0) = 0 : listes des t_i et des v_i."""</span>
+    n = round(tmax / h)
+    ts, vs = [0.0], [0.0]
+    v = 0.0
+    <span class="kw">for</span> i <span class="kw">in</span> range(n):
+        v = v + h * F(i * h, v)
+        ts.append((i + 1) * h)
+        vs.append(v)
+    <span class="kw">return</span> ts, vs</pre>
+    <p>Les instants sont calculés par <span class="code-inline">(i + 1) * h</span> et non par additions successives, pour éviter le cumul des erreurs d'arrondi.</p>
+    <p><strong>A2.</strong> La boucle fait \(n\) tours de coût constant : temps \(O(n)\), avec \(n = t_{\max}/h\). Les deux listes contiennent \(n + 1\) flottants : mémoire \(O(n)\).</p>
+    <p><strong>A3.</strong></p>
+    <pre class="codeblock"><span class="kw">from</span> math <span class="kw">import</span> sqrt, tanh, log, cosh
+vlim = sqrt(m * g / k)
+
+<span class="kw">def</span> v_exacte(t):
+    <span class="kw">return</span> vlim * tanh(g * t / vlim)</pre>
+    <p>\(v_\ell = \sqrt{80 \times 9{,}81 / 0{,}25} \approx 56{,}03\ \text{m·s}^{-1}\) (environ 200 km/h) : c'est la vitesse pour laquelle le frottement compense le poids (\(v' = 0\)) ; la vitesse tend vers cette limite.</p>
+    <p><strong>B1.</strong> Quand le pas est divisé par 2, l'erreur est divisée par 2 : l'erreur de méthode est proportionnelle à \(h\), ce qui confirme que la méthode d'Euler est d'ordre 1 et que le programme est correct. L'erreur est positive : la méthode surestime la vitesse, la fonction \(v\) étant concave (la pente au début de chaque pas est plus forte que la pente moyenne sur le pas).</p>
+    <p><strong>B2.</strong> Il faudrait \(10^{10}\) pas pour simuler 10 s : des heures de calcul et deux listes de dix milliards d'éléments, qui ne tiennent pas en mémoire. De plus, les erreurs d'arrondi (une par pas) s'accumuleraient et finiraient par dominer l'erreur de méthode. On choisit le pas d'après la précision voulue : ici, \(h = 0{,}01\) s donne déjà une erreur de l'ordre de 0,01 m/s.</p>
+    <p><strong>C1.</strong> On ne connaît la vitesse qu'aux instants \(t_i\) : on applique la méthode des trapèzes à ces valeurs, avec la fonction <span class="code-inline">trapezes_mesures(t, y)</span> du cours (§5), ou directement \(h \left( \frac{v_0 + v_n}2 + \sum_{i=1}^{n-1} v_i \right)\) puisque le pas est constant.</p>
+    <pre class="codeblock"><span class="kw">def</span> premier_indice(v, seuil):
+    <span class="str">"""Précondition : v croissante, non vide, v[len(v) - 1] &gt;= seuil.</span>
+<span class="str">    Renvoie le plus petit indice i tel que v[i] &gt;= seuil."""</span>
+    g, d = 0, len(v) - 1
+    <span class="kw">while</span> g &lt; d:
+        <span class="cmt"># invariant : v[d] &gt;= seuil, et v[i] &lt; seuil pour tout i &lt; g</span>
+        m = (g + d) // 2
+        <span class="kw">if</span> v[m] &gt;= seuil:
+            d = m           <span class="cmt"># m convient : le premier est en m ou avant</span>
+        <span class="kw">else</span>:
+            g = m + 1       <span class="cmt"># m et tout ce qui précède sont trop petits</span>
+    <span class="kw">return</span> g</pre>
+    <pre class="codeblock">&gt;&gt;&gt; ts, vs = vitesses(0.1, 30)
+&gt;&gt;&gt; round(vlim, 2)
+56.03
+&gt;&gt;&gt; i = premier_indice(vs, 0.99 * vlim)
+&gt;&gt;&gt; i, round(ts[i], 2)
+(150, 15.0)
+&gt;&gt;&gt; ts, vs = vitesses(0.1, 10)
+&gt;&gt;&gt; round(trapezes_mesures(ts, vs), 1), round(vlim ** 2 / g * log(cosh(g * 10 / vlim)), 1)
+(349.2, 348.0)</pre>
+    <p>On obtient 349,2 m pour 348,0 m exactement. L'écart vient surtout des vitesses calculées par Euler, trop grandes d'environ 0,1 m/s (partie B) : la méthode des trapèzes, d'ordre 2, est bien plus précise que les valeurs auxquelles on l'applique. Pour améliorer le résultat, il faut diminuer le pas de la simulation.</p>
+    <p><strong>D1.</strong> \(\psi'(v) = 1 - 2hcv \ge 1 - 2hcv_\ell \ge 0\) sur \([0, v_\ell]\) si \(h \le \dfrac{1}{2cv_\ell}\) : \(\psi\) est croissante, et \(\psi(v_\ell) = v_\ell\) car \(g - c v_\ell^2 = 0\). Par récurrence, si \(0 \le v_i \lt v_\ell\), alors \(v_{i+1} = \psi(v_i) \lt \psi(v_\ell) = v_\ell\) (la croissance est même stricte, \(\psi' \gt 0\) sur \([0, v_\ell[\)), et \(v_{i+1} - v_i = h\,(g - c v_i^2) \gt 0\). Ici \(c = 0{,}003\,125\ \text{m}^{-1}\) et \(\dfrac{1}{2 c v_\ell} \approx 2{,}86\) s : la condition est largement vérifiée pour \(h = 0{,}1\) s.</p>
+    <p><strong>D2.</strong> (voir le code ci-dessus) Invariant : <span class="code-inline">v[d] &gt;= seuil</span>, et <span class="code-inline">v[i] &lt; seuil</span> pour tout \(i \lt g\) ; le plus petit indice cherché est donc dans \([g, d]\). Il est vrai au départ (\(g = 0\), \(d = n - 1\), précondition) et conservé : si <span class="code-inline">v[m] &gt;= seuil</span>, \(m\) convient et la réponse est au plus \(m\) ; sinon, la liste étant croissante, tous les indices jusqu'à \(m\) sont trop petits. Variant : \(d - g\), entier positif dans la boucle, qui diminue strictement (car \(g \le m \lt d\)). À la sortie, \(g = d\) est l'indice cherché. Comme pour la recherche dichotomique du chapitre « Recherche séquentielle, dictionnaires et dichotomie », la longueur de l'intervalle est au moins divisée par 2 à chaque tour : complexité \(O(\log n)\).</p>
+    <p><strong>D3.</strong> L'indice trouvé est 150, soit \(t = 15{,}0\) s, pour 15,12 s exactement : la vitesse calculée par Euler, trop grande, atteint le seuil un peu trop tôt, et l'instant n'est connu qu'au pas \(h\) près. Une recherche séquentielle coûterait \(O(n)\) ; comme le calcul des vitesses coûte déjà \(O(n)\), le gain de la dichotomie ne change pas l'ordre de grandeur du coût total. Elle devient intéressante si l'on fait de nombreuses recherches dans la même liste (plusieurs seuils).</p>
+  </div>
+</div>
+
+</div>
+</template>

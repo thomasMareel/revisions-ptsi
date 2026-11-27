@@ -1,0 +1,823 @@
+<!-- Chapitre « Échantillonnage et traitement numérique du signal » (signum) : contenu des onglets Cours, Méthodes et Exercices, chargé à l'ouverture du chapitre.
+     On l'édite ici, puis : node tools/chapitres.js (docs/chargement-chapitres.md). -->
+<template class="pan-tpl" data-panneau="snum-cours">
+
+<div class="course-section">
+  <div class="sec-num">AU PROGRAMME · PT</div>
+  <h2>Ce que le programme officiel demande</h2>
+  <div class="intro">Partie 2.4 « Électronique numérique » du programme de PT, à vocation expérimentale. Le repliement de spectre est expliqué qualitativement (analogie stroboscopique) pour établir la condition de Nyquist-Shannon et réussir une acquisition en vue d'une analyse spectrale.</div>
+  <div class="reveal" onclick="this.classList.toggle('open')">
+    <span class="label">Programme officiel</span>
+    <span class="prompt">Les capacités exigibles, dans l'ordre du chapitre</span>
+    <div class="content">
+      <ul>
+        <li><strong>Échantillonnage</strong> : mettre en évidence l'influence de la fréquence d'échantillonnage (§2, §3).</li>
+        <li><strong>Condition de Nyquist-Shannon</strong> : l'utiliser ; mettre en évidence le repliement avec un oscilloscope numérique ou une carte d'acquisition (§5, §6).</li>
+        <li><strong>Analyse spectrale numérique</strong> : choisir durée, nombre d'échantillons et fréquence d'échantillonnage d'une acquisition (§7).</li>
+        <li><strong>Filtrage numérique</strong> : réaliser en Python un passe-bas d'un signal acquis et mettre en évidence la limitation due à l'échantillonnage ; chaîne CAN, algorithme, CNA (§2, §9).</li>
+      </ul>
+      <p>La quantification et les convertisseurs (§3, §4) et l'analyse spectrale analogique (§8) sont des compléments utiles en TP.</p>
+    </div>
+  </div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§1 · ANALOGIQUE ET NUMÉRIQUE</div>
+  <h2>Signal analogique, signal numérique</h2>
+  <div class="intro">À la sortie d'un microphone, d'un accéléromètre ou d'une jauge de contrainte, la tension suit fidèlement la grandeur mesurée, sans à-coups ni valeurs interdites : c'est un signal <strong>analogique</strong>. Un calculateur, lui, ne manipule que des listes finies de nombres entiers. L'opération qui fait passer de l'un à l'autre, la <strong>numérisation</strong>, a un coût qu'il faut savoir chiffrer.</div>
+
+  <h3>Deux natures de signaux</h3>
+  <div class="def-box">
+    <strong>Signal analogique.</strong> Fonction \(s(t)\) définie à <em>tout</em> instant, dont les valeurs balaient un intervalle continu.<br>
+    <strong>Signal numérique.</strong> Suite <em>finie</em> de nombres \((s_k)_{0\le k\le N-1}\), chacun codé en binaire sur \(n\) bits, associés aux instants régulièrement espacés \(t_k = k\,T_e\).<br>
+    Passer de l'un à l'autre, c'est discrétiser <strong>le temps</strong> (<em>échantillonnage</em>, §3) <strong>et les valeurs</strong> (<em>quantification</em>, §3).
+  </div>
+
+  <h3>Ce que l'on gagne, ce que l'on perd</h3>
+  <ul>
+    <li><strong>Robustesse.</strong> Pour qu'un 0 soit pris pour un 1, il faut une perturbation de l'ordre de la moitié de l'écart entre niveaux logiques : on peut recopier, archiver ou transmettre un fichier mille fois sans l'altérer, et la redondance ajoutée par les codes correcteurs rattrape même les rares bits erronés.</li>
+    <li><strong>Souplesse.</strong> Le traitement est un <em>programme</em> : changer la coupure d'un filtre, c'est éditer une ligne de code, pas ressouder un condensateur. Le résultat est reproductible d'un appareil à l'autre et ne vieillit pas, alors qu'un filtre analogique hérite des tolérances de ses composants et dérive avec la température.</li>
+    <li><strong>Puissance de calcul.</strong> Analyse spectrale (FFT), filtrages élaborés, compression, archivage deviennent accessibles.</li>
+    <li><strong>Contreparties.</strong> L'information située entre deux échantillons et entre deux niveaux est perdue de façon irréversible ; un mauvais choix de cadence crée des artefacts (repliement, §5) ; le calcul prend du temps (latence) ; et il faut des convertisseurs aux deux bouts, car capteurs et actionneurs restent analogiques.</li>
+  </ul>
+
+  <h3>Ordres de grandeur</h3>
+  <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:.82rem;margin:.6rem 0">
+    <tr style="background:var(--paper-dark)"><th style="padding:.35rem;border:1px solid var(--grid);text-align:left">Application</th><th style="padding:.35rem;border:1px solid var(--grid)">Cadence \(f_e\)</th><th style="padding:.35rem;border:1px solid var(--grid)">Bits \(n\)</th></tr>
+    <tr><td style="padding:.35rem;border:1px solid var(--grid)">Station météo, suivi thermique</td><td style="padding:.35rem;border:1px solid var(--grid);text-align:center">0,01 à 1 Hz</td><td style="padding:.35rem;border:1px solid var(--grid);text-align:center">10 à 12</td></tr>
+    <tr><td style="padding:.35rem;border:1px solid var(--grid)">Électrocardiographe</td><td style="padding:.35rem;border:1px solid var(--grid);text-align:center">0,25 à 1 kHz</td><td style="padding:.35rem;border:1px solid var(--grid);text-align:center">12 à 24</td></tr>
+    <tr><td style="padding:.35rem;border:1px solid var(--grid)">Disque compact audio</td><td style="padding:.35rem;border:1px solid var(--grid);text-align:center">44,1 kHz</td><td style="padding:.35rem;border:1px solid var(--grid);text-align:center">16</td></tr>
+    <tr><td style="padding:.35rem;border:1px solid var(--grid)">Carte d'acquisition de TP</td><td style="padding:.35rem;border:1px solid var(--grid);text-align:center">10 kHz à 1 MHz</td><td style="padding:.35rem;border:1px solid var(--grid);text-align:center">12 à 16</td></tr>
+    <tr><td style="padding:.35rem;border:1px solid var(--grid)">Oscilloscope numérique</td><td style="padding:.35rem;border:1px solid var(--grid);text-align:center">0,1 à 10 GHz</td><td style="padding:.35rem;border:1px solid var(--grid);text-align:center">8 à 12</td></tr>
+  </table></div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§2 · CHAÎNE DE TRAITEMENT</div>
+  <h2>Chaîne d'acquisition et de restitution</h2>
+  <div class="intro">Entre le phénomène physique et le calculateur, le signal traverse une succession de blocs dont chacun a un rôle précis ; la chaîne se referme, si besoin, par une conversion inverse vers un actionneur.</div>
+
+<figure class="schema" style="max-width:470px">
+<svg viewBox="0 0 430 262" role="img" aria-label="Chaîne de traitement numérique : capteur, conditionnement, filtre anti-repliement, échantillonneur-bloqueur, convertisseur analogique-numérique, calculateur, convertisseur numérique-analogique, filtre de lissage, actionneur">
+  <!-- rangée 1 : partie analogique -->
+  <rect x="8" y="14" width="116" height="44" rx="4" class="sk-ink fl-paper"/>
+  <text x="66" y="32" text-anchor="middle" class="lab-b" style="font-size:12px">Capteur</text>
+  <text x="66" y="49" text-anchor="middle" class="lab-muted">grandeur → tension</text>
+  <rect x="157" y="14" width="116" height="44" rx="4" class="sk-ink fl-paper"/>
+  <text x="215" y="32" text-anchor="middle" class="lab-b" style="font-size:12px">Conditionnement</text>
+  <text x="215" y="49" text-anchor="middle" class="lab-muted">amplification</text>
+  <rect x="306" y="14" width="116" height="44" rx="4" class="sk-accent fl-paper"/>
+  <text x="364" y="32" text-anchor="middle" class="lab-accent lab-b" style="font-size:12px">Passe-bas</text>
+  <text x="364" y="49" text-anchor="middle" class="lab-muted">anti-repliement</text>
+  <line x1="124" y1="36" x2="155" y2="36" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+  <line x1="273" y1="36" x2="304" y2="36" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+  <path d="M364,58 V82 H66 V106" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+  <text x="215" y="77" text-anchor="middle" class="lab-muted">analogique, bande limitée</text>
+  <!-- rangée 2 : conversion et calcul -->
+  <rect x="8" y="108" width="116" height="44" rx="4" class="sk-accent2 fl-paper"/>
+  <text x="66" y="126" text-anchor="middle" class="lab-accent2 lab-b" style="font-size:12px">Échantillonneur-</text>
+  <text x="66" y="143" text-anchor="middle" class="lab-muted">bloqueur (T<tspan dy="3" style="font-size:8.5px">e</tspan><tspan dy="-3">)</tspan></text>
+  <rect x="157" y="108" width="116" height="44" rx="4" class="fl-accent2-soft"/>
+  <rect x="157" y="108" width="116" height="44" rx="4" class="sk-accent2"/>
+  <text x="215" y="126" text-anchor="middle" class="lab-accent2 lab-b" style="font-size:12px">CAN</text>
+  <text x="215" y="143" text-anchor="middle" class="lab-muted">n bits</text>
+  <rect x="306" y="108" width="116" height="44" rx="4" class="fl-accent2-soft"/>
+  <rect x="306" y="108" width="116" height="44" rx="4" class="sk-accent2"/>
+  <text x="364" y="126" text-anchor="middle" class="lab-accent2 lab-b" style="font-size:12px">Calculateur</text>
+  <text x="364" y="143" text-anchor="middle" class="lab-muted">calcul, stockage</text>
+  <line x1="124" y1="130" x2="155" y2="130" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+  <line x1="273" y1="130" x2="304" y2="130" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+  <path d="M364,152 V176 H66 V200" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+  <text x="215" y="171" text-anchor="middle" class="lab-muted">suite de nombres binaires</text>
+  <!-- rangée 3 : restitution -->
+  <rect x="8" y="202" width="116" height="44" rx="4" class="fl-accent2-soft"/>
+  <rect x="8" y="202" width="116" height="44" rx="4" class="sk-accent2"/>
+  <text x="66" y="220" text-anchor="middle" class="lab-accent2 lab-b" style="font-size:12px">CNA</text>
+  <text x="66" y="237" text-anchor="middle" class="lab-muted">sortie en escalier</text>
+  <rect x="157" y="202" width="116" height="44" rx="4" class="sk-ink fl-paper"/>
+  <text x="215" y="220" text-anchor="middle" class="lab-b" style="font-size:12px">Lissage</text>
+  <text x="215" y="237" text-anchor="middle" class="lab-muted">passe-bas</text>
+  <rect x="306" y="202" width="116" height="44" rx="4" class="sk-ink fl-paper"/>
+  <text x="364" y="220" text-anchor="middle" class="lab-b" style="font-size:12px">Actionneur</text>
+  <text x="364" y="237" text-anchor="middle" class="lab-muted">HP, moteur…</text>
+  <line x1="124" y1="224" x2="155" y2="224" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+  <line x1="273" y1="224" x2="304" y2="224" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+</svg>
+<figcaption>Les blocs bleus manipulent un signal discrétisé ; le passe-bas anti-repliement (rouge) est obligatoirement analogique et placé <em>avant</em> l'échantillonneur.</figcaption>
+</figure>
+
+  <h3>Rôle de chaque bloc</h3>
+  <ul>
+    <li><strong>Capteur et conditionnement</strong> : convertir la grandeur en tension, puis l'amplifier et la décaler pour qu'elle occupe au mieux la plage d'entrée du CAN, sans jamais la dépasser (sinon : écrêtage).</li>
+    <li><strong>Filtre anti-repliement</strong> : passe-bas analogique qui supprime ce qui se trouve au-delà de \(f_e/2\) avant l'échantillonnage (§6).</li>
+    <li><strong>Échantillonneur-bloqueur</strong> : un interrupteur commandé par une horloge de période \(T_e\) relie brièvement un condensateur au signal, puis s'ouvre ; la tension du condensateur reste figée pendant la conversion.</li>
+    <li><strong>CAN</strong> (convertisseur analogique-numérique) : associe à la tension bloquée un entier écrit sur \(n\) bits (§4).</li>
+    <li><strong>Calculateur</strong> (microcontrôleur, processeur de signal, ordinateur) : filtre, analyse, stocke ou transmet.</li>
+    <li><strong>CNA</strong> (convertisseur numérique-analogique) : produit une tension proportionnelle à l'entier reçu et la maintient jusqu'au suivant, d'où une sortie en marches d'escalier.</li>
+    <li><strong>Filtre de lissage</strong> (ou de reconstruction) : passe-bas qui efface les marches, c'est-à-dire les composantes spectrales situées autour de \(f_e\), \(2f_e\)… (§5).</li>
+  </ul>
+
+  <div class="notice"><strong>Pourquoi « bloquer » ?</strong> Un CAN met un certain temps à convertir. Si sa tension d'entrée variait de plus d'un quantum pendant ce temps, le code obtenu n'aurait pas de sens : le bloqueur garantit une entrée constante pendant toute la conversion, dont la durée doit rester inférieure à \(T_e\).</div>
+
+  <div class="reveal" onclick="this.classList.toggle('open')">
+    <span class="label">Application</span>
+    <span class="prompt">Une sinusoïde de 5 V d'amplitude et de fréquence 1 kHz attaque, sans bloqueur, un CAN 12 bits de plage 10 V qui convertit en 10 µs. Ordre de grandeur de l'erreur ?</span>
+    <div class="content"><p>La pente maximale est \(2\pi f A = 2\pi\times10^3\times5 \approx 3{,}1\times10^4\ \text{V/s}\), soit \(0{,}31\ \text{V}\) en 10 µs. Le quantum vaut \(q = 10/2^{12} \approx 2{,}4\ \text{mV}\) : la tension varie de plus de 100 quanta pendant la conversion. Sans bloqueur, les bits de poids faible sont dénués de sens.</p></div>
+  </div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§3 · ÉCHANTILLONNAGE ET QUANTIFICATION</div>
+  <h2>Discrétiser le temps, puis les valeurs</h2>
+  <div class="intro">L'échantillonnage ne retient le signal qu'à des instants régulièrement espacés ; la quantification arrondit chaque valeur retenue au niveau autorisé le plus proche. La première opération est sans perte si la cadence est bien choisie (§6) ; la seconde introduit toujours une erreur, que l'on rend aussi petite que nécessaire.</div>
+
+  <h3>Échantillonnage</h3>
+  <div class="def-box">
+    Échantillonner à la période \(T_e\), c'est ne conserver que les valeurs \(s_k = s(kT_e)\). La <strong>fréquence d'échantillonnage</strong> \(f_e = 1/T_e\) est le nombre d'échantillons par seconde. Une acquisition de \(N\) échantillons dure \(T_a\) (parfois notée \(\tau\)) :
+    $$s_k = s(k\,T_e),\qquad f_e = \frac{1}{T_e},\qquad T_a = N\,T_e = \frac{N}{f_e}$$
+  </div>
+  <p>La relation \(T_a = N/f_e\) ne laisse que deux degrés de liberté, et chacune des trois grandeurs subit sa propre contrainte : le contenu spectral du signal fixe un plancher pour \(f_e\) (§6), la finesse de lecture du spectre fixe un plancher pour \(T_a\) (§7), et la mémoire comme le temps de calcul fixent un plafond pour \(N\).</p>
+
+  <h3>Quantification</h3>
+  <div class="def-box">
+    Un CAN de \(n\) bits dispose de \(2^n\) codes pour couvrir sa <strong>plage d'entrée</strong> (pleine échelle) de largeur \(\Delta U\). L'écart entre deux niveaux voisins est le <strong>quantum</strong> (ou pas de quantification, ou résolution) :
+    $$q = \frac{\Delta U}{2^{\,n}}$$
+    Si le CAN fournit le code entier \(c\), la tension numérisée reconstituée est \(u_N = c\,q\) (l'indice N signifie « numérisée » ; rien à voir avec le nombre \(N\) d'échantillons). Avec une quantification par arrondi, elle diffère de la tension vraie d'une <strong>erreur de quantification</strong> \(\varepsilon\) telle que \(|\varepsilon| \le q/2\).
+  </div>
+  <p>Certains ouvrages écrivent \(q = \Delta U/(2^n - 1)\) : la différence est sans importance dès que \(n\) dépasse quelques unités. Ordres de grandeur : 8 bits → 256 niveaux (0,4 % de la plage) ; 12 bits → 4 096 niveaux (0,02 %) ; 16 bits → 65 536 niveaux (15 millionièmes de la plage).</p>
+
+<figure class="schema" style="max-width:400px">
+<svg viewBox="0 0 360 252" role="img" aria-label="Caractéristique d'un convertisseur 3 bits en marches d'escalier et erreur de quantification en dents de scie comprise entre moins q sur deux et plus q sur deux">
+  <line x1="40" y1="150" x2="340" y2="150" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+  <line x1="40" y1="150" x2="40" y2="20" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+  <line x1="40" y1="150" x2="285" y2="45" class="sk-dash"/>
+  <path d="M40,150 H57.5 V135 H92.5 V120 H127.5 V105 H162.5 V90 H197.5 V75 H232.5 V60 H267.5 V45 H320" class="sk-accent2"/>
+  <text x="46" y="22" class="lab-muted">code</text>
+  <text x="336" y="166" class="lab-it">u</text>
+  <text x="32" y="154" text-anchor="end" class="lab-muted">0</text>
+  <text x="32" y="49" text-anchor="end" class="lab-muted">7</text>
+  <line x1="57.5" y1="158" x2="92.5" y2="158" class="sk-ink" marker-start="url(#sk-arrow-ink)" marker-end="url(#sk-arrow-ink)" style="stroke-width:1"/>
+  <text x="75" y="172" text-anchor="middle" class="lab-it">q</text>
+  <text x="300" y="36" class="lab-muted">saturation</text>
+  <!-- erreur -->
+  <line x1="40" y1="215" x2="340" y2="215" class="sk-axis"/>
+  <line x1="40" y1="200" x2="320" y2="200" class="sk-dash" style="opacity:.4"/>
+  <line x1="40" y1="230" x2="320" y2="230" class="sk-dash" style="opacity:.4"/>
+  <path d="M40,215 L57.5,200 V230 L92.5,200 V230 L127.5,200 V230 L162.5,200 V230 L197.5,200 V230 L232.5,200 V230 L267.5,200 V230 L302.5,200 L320,185" class="sk-accent"/>
+  <text x="34" y="204" text-anchor="end" class="lab-muted">+q/2</text>
+  <text x="34" y="234" text-anchor="end" class="lab-muted">−q/2</text>
+  <text x="330" y="196" class="lab-accent">ε</text>
+</svg>
+<figcaption>Convertisseur 3 bits à arrondi : la caractéristique (bleu) suit la droite idéale (tirets) en marches de hauteur 1 et de largeur \(q\) ; l'erreur \(\varepsilon\) (rouge) reste entre \(\pm q/2\) tant que l'on ne sature pas.</figcaption>
+</figure>
+
+  <h3>Bruit de quantification</h3>
+  <div class="prop-box">
+    Lorsque le signal parcourt de nombreux quanta, l'erreur \(\varepsilon\) prend toutes les valeurs de \([-q/2\,;\,q/2]\) avec la même probabilité. Elle se comporte comme un bruit de moyenne nulle et de valeur efficace
+    $$\varepsilon_{\text{eff}} = \sqrt{\frac{1}{q}\int_{-q/2}^{q/2}\varepsilon^2\,\mathrm d\varepsilon} = \frac{q}{\sqrt{12}}$$
+    Pour une sinusoïde occupant toute la plage, le rapport signal sur bruit vaut environ \(6{,}0\,n + 1{,}8\) dB : <strong>chaque bit supplémentaire gagne environ 6 dB</strong>.
+  </div>
+
+  <div class="reveal" onclick="this.classList.toggle('open')">
+    <span class="label">Démonstration</span>
+    <span class="prompt">Établir le rapport signal sur bruit de quantification d'une sinusoïde pleine échelle.</span>
+    <div class="content">
+      <p>L'amplitude vaut \(\Delta U/2 = 2^{n-1}q\), donc la valeur efficace du signal est \(2^{n-1}q/\sqrt2\). Le rapport des valeurs efficaces vaut</p>
+      <div class="formula">$$\frac{2^{n-1}q/\sqrt2}{q/\sqrt{12}} = 2^{n}\sqrt{\frac32}$$
+      $$\mathrm{RSB}_{\text{dB}} = 20\log 2^{n} + 20\log\sqrt{3/2}$$
+      $$\mathrm{RSB}_{\text{dB}} \approx 6{,}02\,n + 1{,}76$$</div>
+      <p>Un CAN 16 bits offre donc environ 98 dB de dynamique, un CAN 8 bits environ 50 dB.</p>
+    </div>
+  </div>
+
+  <div class="notice"><strong>Exploiter toute la plage.</strong> La résolution annoncée n'est atteinte que si le signal occupe l'essentiel de la plage d'entrée. Un signal de 10 mV d'amplitude numérisé sur une plage de 10 V en 12 bits (\(q \approx 2{,}4\ \text{mV}\)) n'est décrit que par 8 niveaux environ : il faut l'amplifier avant conversion (conditionnement).</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§4 · CONVERTISSEURS</div>
+  <h2>Principes de quelques CAN et CNA</h2>
+  <div class="intro">Plusieurs architectures coexistent ; elles diffèrent par le nombre d'étapes nécessaires à une conversion, donc par leur rapidité, leur précision et leur coût.</div>
+
+  <h3>Convertisseurs analogique-numérique</h3>
+  <ul>
+    <li><strong>CAN parallèle (« flash »).</strong> Un pont diviseur de résistances identiques crée \(2^n - 1\) tensions de seuil régulièrement espacées ; autant de comparateurs confrontent <em>simultanément</em> la tension d'entrée à chaque seuil, et un circuit d'encodage traduit en binaire le nombre de comparateurs basculés. Conversion en une seule étape, donc très rapide (oscilloscopes, vidéo), mais le nombre de comparateurs croît exponentiellement : en pratique \(n \le 8\) environ.</li>
+    <li><strong>CAN à rampe (à comptage).</strong> Au début de la conversion, une tension croissant linéairement démarre en même temps qu'un compteur d'impulsions d'horloge ; un comparateur arrête le comptage lorsque la rampe atteint la tension d'entrée. Le nombre compté est proportionnel à cette tension. Simple mais lent (jusqu'à \(2^n\) périodes d'horloge par conversion), et de précision limitée : le résultat dépend directement de la pente de la rampe (résistance, condensateur, tension de référence) et de la fréquence d'horloge, qui dérivent. La variante <strong>à double rampe</strong> (intégration de l'entrée, puis de la référence en sens inverse) élimine ces paramètres : c'est elle, précise mais lente, qui équipe les voltmètres numériques.</li>
+    <li><strong>CAN à approximations successives.</strong> Recherche par dichotomie : on propose le bit de poids fort à 1, un CNA interne convertit le code proposé, un comparateur indique s'il est trop grand ; on garde ou on annule ce bit, puis on passe au suivant. Une conversion demande \(n\) étapes : bon compromis vitesse-précision (microcontrôleurs, cartes d'acquisition, 10 à 16 bits jusqu'au mégahertz).</li>
+  </ul>
+
+  <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:.82rem;margin:.6rem 0">
+    <tr style="background:var(--paper-dark)"><th style="padding:.35rem;border:1px solid var(--grid);text-align:left">Architecture</th><th style="padding:.35rem;border:1px solid var(--grid)">Étapes par conversion</th><th style="padding:.35rem;border:1px solid var(--grid)">Comparateurs</th><th style="padding:.35rem;border:1px solid var(--grid)">Usage typique</th></tr>
+    <tr><td style="padding:.35rem;border:1px solid var(--grid)">Parallèle (flash)</td><td style="padding:.35rem;border:1px solid var(--grid);text-align:center">1</td><td style="padding:.35rem;border:1px solid var(--grid);text-align:center">\(2^n-1\)</td><td style="padding:.35rem;border:1px solid var(--grid)">très haute fréquence</td></tr>
+    <tr><td style="padding:.35rem;border:1px solid var(--grid)">Approximations successives</td><td style="padding:.35rem;border:1px solid var(--grid);text-align:center">\(n\)</td><td style="padding:.35rem;border:1px solid var(--grid);text-align:center">1</td><td style="padding:.35rem;border:1px solid var(--grid)">usage général</td></tr>
+    <tr><td style="padding:.35rem;border:1px solid var(--grid)">Rampe (comptage)</td><td style="padding:.35rem;border:1px solid var(--grid);text-align:center">jusqu'à \(2^n\)</td><td style="padding:.35rem;border:1px solid var(--grid);text-align:center">1</td><td style="padding:.35rem;border:1px solid var(--grid)">mesures lentes ; précise en version double rampe (voltmètres)</td></tr>
+  </table></div>
+
+  <h3>Convertisseurs numérique-analogique</h3>
+  <div class="prop-box">
+    <strong>CNA à résistances pondérées.</strong> Montage sommateur inverseur à ALI : le bit \(b_k\) (0 ou 1) ferme ou non un interrupteur reliant une tension de référence \(E\) à une résistance \(R_k = R/2^k\) aboutissant à l'entrée inverseuse (masse virtuelle). Les courants \(b_k\,2^kE/R\) s'additionnent et traversent la résistance de contre-réaction \(R'\) :
+    $$u_s = -\frac{R'}{R}\,E\sum_{k=0}^{n-1} b_k\,2^{k}$$
+    La tension de sortie est proportionnelle à l'entier codé. Défaut : les résistances couvrent un rapport \(2^{n-1}\), difficile à réaliser avec précision pour \(n\) grand.
+  </div>
+  <p><strong>Réseau R–2R.</strong> Une échelle n'utilisant que deux valeurs de résistances (\(R\) et \(2R\)) divise le courant par deux à chaque nœud ; les courants de branche, de poids \(1/2, 1/4, \dots, 1/2^n\), sont aiguillés selon les bits vers la masse virtuelle. On obtient encore une sortie proportionnelle à \(\sum b_k 2^k\), avec des composants faciles à apparier : c'est la structure la plus répandue.</p>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§5 · SPECTRE D'UN SIGNAL ÉCHANTILLONNÉ</div>
+  <h2>Périodisation du spectre et repliement</h2>
+  <div class="intro">Une fois échantillonnée, une sinusoïde ne se distingue plus de certaines autres sinusoïdes de fréquences différentes. Cette ambiguïté, purement arithmétique, gouverne tout le choix de la cadence d'échantillonnage.</div>
+
+  <h3>Des sinusoïdes indiscernables</h3>
+  <p>Échantillonnons \(s(t) = A\cos(2\pi f_0 t + \varphi)\) à la période \(T_e = 1/f_e\) : \(s_k = A\cos\theta_k\) avec \(\theta_k = 2\pi f_0\,kT_e + \varphi\). Pour tout entier \(m\), les phases de deux autres sinusoïdes aux mêmes instants valent</p>
+  <div class="formula">$$2\pi (f_0 + m f_e)\,kT_e + \varphi = \theta_k + 2\pi mk$$
+  $$2\pi (m f_e - f_0)\,kT_e - \varphi = 2\pi mk - \theta_k$$</div>
+  <p>Le cosinus étant pair et \(2\pi\)-périodique, et \(2\pi mk\) étant un multiple de \(2\pi\), ces deux sinusoïdes d'amplitude \(A\) prennent elles aussi la valeur \(A\cos\theta_k = s_k\). Les sinusoïdes de fréquences \(f_0\), \(f_0 + m f_e\) et \(m f_e - f_0\) fournissent <strong>exactement les mêmes échantillons</strong> : rien, dans la suite \((s_k)\), ne permet de savoir laquelle a été échantillonnée.</p>
+
+  <div class="prop-box">
+    <strong>Périodisation.</strong> Le spectre d'un signal échantillonné à \(f_e\) est <strong>périodique de période \(f_e\)</strong> (et symétrique) : chaque raie de fréquence \(f_0\) du signal analogique s'accompagne de raies images aux fréquences \(|m f_e \pm f_0|\), \(m\in\mathbb Z\).<br>
+    <strong>D'où vient cette périodicité.</strong> C'est une conséquence directe du calcul ci-dessus : comme \(e^{2i\pi f_e kT_e} = e^{2i\pi k} = 1\), remplacer \(f\) par \(f + f_e\) ne modifie aucun échantillon. Tout ce que l'on calcule à partir des seuls échantillons (spectre du signal échantillonné, gain d'un filtre numérique) est donc une fonction de \(f\) de période \(f_e\) : on le vérifie sur le filtre de l'exercice 6, dont le gain revient à 1 en \(f = f_e\).
+  </div>
+
+<figure class="schema" style="max-width:450px">
+<svg viewBox="0 0 400 172" role="img" aria-label="Spectre d'un signal échantillonné : la raie f zéro et ses images autour de fe et de deux fe">
+  <rect x="40" y="30" width="70" height="100" class="fl-accent2-soft"/>
+  <line x1="30" y1="130" x2="390" y2="130" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+  <line x1="40" y1="130" x2="40" y2="20" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+  <line x1="110" y1="30" x2="110" y2="130" class="sk-dash"/>
+  <line x1="180" y1="40" x2="180" y2="130" class="sk-dash" style="opacity:.35"/>
+  <line x1="320" y1="40" x2="320" y2="130" class="sk-dash" style="opacity:.35"/>
+  <line x1="82" y1="130" x2="82" y2="52" class="sk-accent2" style="stroke-width:3"/>
+  <line x1="138" y1="130" x2="138" y2="52" class="sk-accent" style="stroke-width:3"/>
+  <line x1="222" y1="130" x2="222" y2="52" class="sk-accent" style="stroke-width:3"/>
+  <line x1="278" y1="130" x2="278" y2="52" class="sk-accent" style="stroke-width:3"/>
+  <line x1="362" y1="130" x2="362" y2="52" class="sk-accent" style="stroke-width:3"/>
+  <text x="75" y="44" text-anchor="middle" class="lab-accent2" style="font-size:10.5px">bande utile</text>
+  <text x="110" y="24" text-anchor="middle" class="lab-muted">f<tspan dy="3" style="font-size:8.5px">e</tspan><tspan dy="-3">/2</tspan></text>
+  <text x="82" y="146" text-anchor="middle" class="lab-accent2">f<tspan dy="3" style="font-size:9px">0</tspan></text>
+  <text x="138" y="146" text-anchor="middle" class="lab-accent">f<tspan dy="3" style="font-size:9px">e</tspan><tspan dy="-3">−f</tspan><tspan dy="3" style="font-size:9px">0</tspan></text>
+  <text x="222" y="146" text-anchor="middle" class="lab-accent">f<tspan dy="3" style="font-size:9px">e</tspan><tspan dy="-3">+f</tspan><tspan dy="3" style="font-size:9px">0</tspan></text>
+  <text x="278" y="146" text-anchor="middle" class="lab-accent">2f<tspan dy="3" style="font-size:9px">e</tspan><tspan dy="-3">−f</tspan><tspan dy="3" style="font-size:9px">0</tspan></text>
+  <text x="362" y="146" text-anchor="middle" class="lab-accent">2f<tspan dy="3" style="font-size:9px">e</tspan><tspan dy="-3">+f</tspan><tspan dy="3" style="font-size:9px">0</tspan></text>
+  <text x="180" y="164" text-anchor="middle" class="lab-muted">f<tspan dy="3" style="font-size:8.5px">e</tspan></text>
+  <text x="320" y="164" text-anchor="middle" class="lab-muted">2f<tspan dy="3" style="font-size:8.5px">e</tspan></text>
+  <text x="386" y="122" class="lab-it">f</text>
+</svg>
+<figcaption>Raie vraie \(f_0 \lt f_e/2\) (bleu) et ses images (rouge) : le motif se répète avec la période \(f_e\). Tant que la raie vraie reste dans la bande \([0\,;\,f_e/2]\), aucune image n'y pénètre.</figcaption>
+</figure>
+
+  <h3>Fréquence apparente et repliement</h3>
+  <p>Parmi toutes les fréquences \(|f_0 - m f_e|\) compatibles avec les échantillons, une seule appartient à \([0\,;\,f_e/2]\) : c'est la <strong>fréquence apparente</strong>, celle que « voit » tout traitement ultérieur.</p>
+  <div class="formula">$$f_{\text{app}} = \big|\,f_0 - m\,f_e\,\big|$$</div>
+  <p>où \(m\) est l'entier le plus proche de \(f_0/f_e\) ; on a toujours \(0\le f_{\text{app}}\le f_e/2\).</p>
+  <div class="def-box"><strong>Repliement de spectre</strong> (aliasing). Si \(f_0 \gt f_e/2\), la composante apparaît après échantillonnage à une fréquence \(f_{\text{app}} \neq f_0\), inférieure à \(f_e/2\), indiscernable d'une composante réelle de cette fréquence. Tout se passe comme si l'axe des fréquences était plié en accordéon aux multiples de \(f_e/2\).</div>
+
+<figure class="schema" style="max-width:450px">
+<svg viewBox="0 0 400 178" role="img" aria-label="Fréquence apparente en fonction de la fréquence vraie : courbe en dents de scie symétriques, de maximum fe sur deux">
+  <line x1="40" y1="140" x2="388" y2="140" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+  <line x1="40" y1="140" x2="40" y2="18" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+  <line x1="40" y1="140" x2="120" y2="29" class="sk-dash" style="opacity:.45"/>
+  <line x1="40" y1="140" x2="105" y2="140" class="sk-green" style="stroke-width:4"/>
+  <path d="M40,140 L105,50 L170,140 L235,50 L300,140 L365,50" class="sk-accent"/>
+  <line x1="144" y1="140" x2="144" y2="104" class="sk-dash"/>
+  <line x1="144" y1="104" x2="40" y2="104" class="sk-dash"/>
+  <circle cx="144" cy="104" r="3.5" class="fl-accent"/>
+  <line x1="40" y1="50" x2="365" y2="50" class="sk-dash" style="opacity:.25"/>
+  <text x="46" y="16" class="lab-muted">f<tspan dy="3" style="font-size:9px">app</tspan></text>
+  <text x="34" y="54" text-anchor="end" class="lab-muted">f<tspan dy="3" style="font-size:8.5px">e</tspan><tspan dy="-3">/2</tspan></text>
+  <text x="34" y="108" text-anchor="end" class="lab-accent">0,2f<tspan dy="3" style="font-size:8.5px">e</tspan></text>
+  <text x="105" y="156" text-anchor="middle" class="lab-muted">f<tspan dy="3" style="font-size:8.5px">e</tspan><tspan dy="-3">/2</tspan></text>
+  <text x="144" y="170" text-anchor="middle" class="lab-accent">0,8f<tspan dy="3" style="font-size:8.5px">e</tspan></text>
+  <text x="170" y="156" text-anchor="middle" class="lab-muted">f<tspan dy="3" style="font-size:8.5px">e</tspan></text>
+  <text x="235" y="156" text-anchor="middle" class="lab-muted">3f<tspan dy="3" style="font-size:8.5px">e</tspan><tspan dy="-3">/2</tspan></text>
+  <text x="300" y="156" text-anchor="middle" class="lab-muted">2f<tspan dy="3" style="font-size:8.5px">e</tspan></text>
+  <text x="380" y="156" class="lab-muted">f<tspan dy="3" style="font-size:9px">0</tspan></text>
+  <text x="72" y="132" text-anchor="middle" class="lab-green" style="font-size:10.5px">fidèle</text>
+</svg>
+<figcaption>La fréquence apparente est une fonction « en dents de scie symétriques » de la fréquence vraie. Seule la plage verte \([0\,;\,f_e/2]\) est restituée sans erreur ; par exemple, une composante à \(0{,}8\,f_e\) est lue à \(0{,}2\,f_e\).</figcaption>
+</figure>
+
+  <h3>Effet stroboscopique</h3>
+  <p>Le même phénomène s'observe en mécanique : un disque marqué tournant à la fréquence \(f_{\text{rot}}\), éclairé par des flashs brefs de fréquence \(f_{\text{fl}}\), n'est « vu » qu'aux instants des flashs. Pour une rotation, le sens compte : la fréquence apparente est l'écart <em>signé</em> \(f_{\text{rot}} - m f_{\text{fl}}\) compris entre \(-f_{\text{fl}}/2\) et \(f_{\text{fl}}/2\). Si \(f_{\text{rot}}\) est légèrement inférieure à un multiple de \(f_{\text{fl}}\), le disque semble tourner lentement <strong>à l'envers</strong> ; s'il en est un multiple exact, il paraît immobile. Ce n'est pas qu'une curiosité : c'est ainsi qu'on mesure sans contact la vitesse d'une broche ou qu'on « fige » une pièce vibrante pour l'observer, et c'est aussi un risque en atelier, où une machine éclairée par des lampes qui scintillent à 100 Hz peut sembler arrêtée alors qu'elle tourne.</p>
+
+  <div class="reveal" onclick="this.classList.toggle('open')">
+    <span class="label">Application</span>
+    <span class="prompt">Un disque tourne à 1 490 tr/min sous un stroboscope réglé à 25 Hz. Que voit-on ?</span>
+    <div class="content"><p>\(f_{\text{rot}} = 1490/60 \approx 24{,}83\ \text{Hz}\). Le multiple de 25 Hz le plus proche est 25 Hz : \(f_{\text{app}} = 24{,}83 - 25 \approx -0{,}17\ \text{Hz}\). Le disque semble tourner à l'envers, à environ 10 tr/min.</p></div>
+  </div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§6 · CRITÈRE DE NYQUIST-SHANNON</div>
+  <h2>Choisir la cadence et filtrer avant d'échantillonner</h2>
+  <div class="intro">Pour que les échantillons représentent fidèlement le signal, aucune de ses composantes ne doit se replier : c'est une condition sur la fréquence d'échantillonnage, et, quand elle ne peut être garantie, un filtrage analogique préalable.</div>
+
+  <div class="prop-box">
+    <strong>Théorème d'échantillonnage (Nyquist-Shannon).</strong> Un signal dont le spectre ne contient aucune composante au-delà de \(f_{\max}\) est entièrement déterminé par ses échantillons si
+    $$f_e \gt 2\,f_{\max}$$
+    c'est-à-dire si l'on prélève <strong>plus de deux échantillons par période</strong> de sa composante la plus rapide. La fréquence \(f_e/2\) est appelée <strong>fréquence de Nyquist</strong>.
+  </div>
+  <div class="notice"><strong>Inégalité stricte.</strong> Pour \(f_0 = f_e/2\) exactement, le résultat dépend de la phase : \(\sin(2\pi f_0 t)\) échantillonné à \(f_e = 2f_0\) donne \(s_k = \sin(\pi k) = 0\) pour tout \(k\) — le signal a disparu ! En pratique, on prend une marge confortable : \(f_e\) de 2,5 à 10 fois \(f_{\max}\).</div>
+
+  <h3>Signaux à spectre non borné</h3>
+  <p>Le théorème suppose un \(f_{\max}\) fini. Or toute variation brusque (front raide, choc mécanique, commutation) et tout bruit large bande étalent le spectre sans limite : quelle que soit la cadence, une partie du contenu dépasse \(f_e/2\) et se replie. Les raies ainsi créées ressemblent en tout point à des composantes réelles, de sorte que, <strong>une fois les échantillons pris, le mal est fait</strong> : aucun calcul ne saura distinguer le vrai du replié.</p>
+
+  <h3>Filtre anti-repliement</h3>
+  <div class="def-box">
+    Le <strong>filtre anti-repliement</strong> est un passe-bas <strong>analogique</strong> placé juste avant l'échantillonneur. Il conserve la bande utile \([0\,;\,f_{\max}]\) et atténue suffisamment tout ce qui pourrait se replier dans cette bande. On renonce ainsi délibérément au contenu situé au-delà de sa coupure : mieux vaut une information incomplète qu'une information faussée.
+  </div>
+  <p>Un filtre réel ne coupe pas brutalement : son gain décroît progressivement entre \(f_{\max}\) et la zone à éliminer. La composante la plus dangereuse est celle qui, après repliement, retombe juste sur \(f_{\max}\) : elle se trouve à \(f_e - f_{\max}\). Pour un filtre d'ordre \(p\) de fréquence de coupure \(f_c\), l'asymptote haute fréquence donne la condition</p>
+  <div class="formula">$$G_{\text{dB}}(f)\approx -20\,p\,\log\frac{f}{f_c}\quad (f\gg f_c)$$
+  $$\text{d'où}\quad 20\,p\,\log\frac{f_e - f_{\max}}{f_c}\ \ge\ A_{\min}$$</div>
+  <p>où \(A_{\min}\) (en dB) est l'atténuation exigée ; une valeur naturelle est la dynamique du CAN, environ \(6n\) dB, pour qu'une composante repliée reste sous le quantum.</p>
+
+  <div class="prop-box">
+    <strong>Intérêt du suréchantillonnage.</strong> Augmenter \(f_e\) élargit la zone de transition \([f_{\max}\,;\,f_e - f_{\max}]\) : un filtre d'ordre faible (simple, peu coûteux, peu déphasant) suffit. On peut ensuite filtrer numériquement et ne garder qu'un échantillon sur plusieurs (décimation). Exemple : bande utile 1 kHz, coupure \(f_c = 1\) kHz, 60 dB exigés. À \(f_e = 2{,}5\) kHz, la fréquence critique est 1,5 kHz : \(20\,p\log 1{,}5 \ge 60\) impose \(p \ge 18\), irréaliste. À \(f_e = 10\) kHz, elle passe à 9 kHz et \(p = 4\) suffit. C'est la stratégie de nombreux convertisseurs modernes : échantillonner bien plus vite que nécessaire, puis décimer.
+  </div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§7 · ANALYSE SPECTRALE NUMÉRIQUE</div>
+  <h2>Transformée de Fourier discrète et FFT</h2>
+  <div class="intro">À partir des \(N\) échantillons enregistrés, un calcul donne une estimation du spectre. Sa lecture correcte demande de connaître l'axe des fréquences, la normalisation et les limites liées à la durée finie de l'acquisition.</div>
+
+  <h3>Définition</h3>
+  <div class="def-box">
+    La <strong>transformée de Fourier discrète</strong> (TFD) des échantillons \(s_0,\dots,s_{N-1}\) est la suite de \(N\) nombres complexes
+    $$S_m = \sum_{k=0}^{N-1} s_k\,e^{-2i\pi km/N},\qquad m = 0,\dots,N-1$$
+    associés aux fréquences \(f_m = m\,f_e/N\). La <strong>FFT</strong> (transformée de Fourier rapide) est un algorithme qui la calcule en environ \(N\log_2 N\) opérations au lieu de \(N^2\), particulièrement efficace quand \(N\) est une puissance de 2.
+  </div>
+
+  <div class="prop-box">
+    <strong>Résolution fréquentielle.</strong> Les points du spectre sont espacés de
+    $$\Delta f = \frac{f_e}{N} = \frac{1}{T_a}$$
+    La finesse spectrale ne dépend que de la <strong>durée d'acquisition</strong>. Deux raies distantes de moins de quelques \(\Delta f\) ne peuvent pas être séparées.<br>
+    <strong>Moitié utile.</strong> Le calcul couvre \([0\,;\,f_e[\) ; pour un signal réel, \(S_{N-m} = \overline{S_m}\) : la moitié haute est l'image miroir (repliée) de la moitié basse. Seuls les \(N/2+1\) premiers points, de 0 à \(f_e/2\), sont informatifs.
+  </div>
+
+  <h3>Normalisation</h3>
+  <p>Soit \(s(t) = C + A\cos(2\pi f_0 t + \varphi)\) avec \(f_0 = m_0\,\Delta f\) (un nombre entier de périodes dans \(T_a\)). La somme géométrique \(\sum_k e^{2i\pi(m_0 - m)k/N}\) vaut \(N\) si \(m = m_0\) et 0 sinon (avec \(0 \lt m_0 \lt N/2\)) ; d'où</p>
+  <div class="formula">$$S_0 = N\,C,\qquad |S_{m_0}| = \frac{N A}{2}$$
+  $$A = \frac{2\,|S_{m_0}|}{N},\qquad C = \frac{S_0}{N}$$</div>
+
+  <h3>Durée d'acquisition et fuite spectrale</h3>
+  <p>Si \(T_a\) ne contient pas un nombre entier de périodes, \(f_0\) tombe entre deux points du spectre : l'énergie de la raie se répartit sur les points voisins (<strong>fuite spectrale</strong>), la raie paraît élargie et son amplitude lue est sous-estimée (jusqu'à environ 36 % quand \(f_0\) tombe à mi-chemin). On peut multiplier les échantillons par une <strong>fenêtre</strong> de pondération (Hann, Hamming, fenêtre « à sommet plat ») qui ramène les bords de l'enregistrement en douceur vers zéro : les fuites lointaines s'effondrent, au prix d'un pic un peu plus large. Allonger l'acquisition rend la raie plus étroite en hertz (son lobe mesure environ \(2/T_a\)), ce qui limite la gêne pour les raies voisines, mais ne supprime pas l'erreur d'amplitude possible. Enfin, si l'on maîtrise la fréquence du signal (excitation fournie par un générateur, par exemple), on synchronise l'acquisition pour que \(f_0\,T_a\) soit entier.</p>
+
+  <h3>Le compromis d'acquisition</h3>
+  <div class="prop-box">
+    Les exigences s'additionnent dans \(N = f_e\,T_a\) : \(f_e\) doit dépasser \(2f_{\max}\) (Shannon) et \(T_a\) doit dépasser \(1/\Delta f\) (résolution), donc
+    $$N \ \ge\ \frac{2\,f_{\max}}{\Delta f}$$
+    Exemple : bande 0–5 kHz avec une résolution de 1 Hz → \(N \ge 10\,000\), soit \(2^{14} = 16\,384\) points. Si \(N\) est limité, augmenter \(f_e\) au-delà du nécessaire <strong>dégrade</strong> la résolution.
+  </div>
+
+  <div class="method-box">
+    <strong>Exemple — régler une acquisition pour analyser un signal</strong>
+    <p>On veut le spectre d'un signal dont les composantes utiles vont jusqu'à 2 kHz, en séparant deux raies distantes de 5 Hz.</p>
+    <ol>
+      <li><strong>Fréquence d'échantillonnage</strong> : Nyquist-Shannon impose \(f_e \gt 2\times2\ \text{kHz}\) ; avec une marge (le filtre anti-repliement n'est pas idéal), \(f_e = 10\ \text{kHz}\).</li>
+      <li><strong>Durée d'acquisition</strong> : la résolution spectrale vaut \(1/T_{\text{acq}}\) ; pour séparer des raies distantes de 5 Hz, il faut \(1/T_{\text{acq}} \lt 5\ \text{Hz}\), soit \(T_{\text{acq}} \gt 0{,}2\ \text{s}\) ; on prend 0,5 s (résolution 2 Hz).</li>
+      <li><strong>Nombre d'échantillons</strong> : \(N = f_eT_{\text{acq}} = 5\,000\) points, sans difficulté pour une carte d'acquisition.</li>
+      <li>Contrôle : la plus haute fréquence analysable est \(f_e/2 = 5\ \text{kHz}\), au-delà des 2 kHz utiles ; un bruit au-delà de 5 kHz se replierait, d'où le filtre anti-repliement.</li>
+    </ol>
+  </div>
+
+  <h3>En Python avec numpy</h3>
+<pre class="codeblock"><span class="kw">import</span> numpy <span class="kw">as</span> np
+
+fe = 2000.0                    <span class="cmt"># fréquence d'échantillonnage (Hz)</span>
+N  = 4096                      <span class="cmt"># nombre d'échantillons -> Ta = N/fe = 2,048 s</span>
+t  = np.arange(N) / fe         <span class="cmt"># instants t_k = k*Te</span>
+s  = 1.5 + 2.0*np.cos(2*np.pi*125*t) + 0.5*np.cos(2*np.pi*310*t)
+
+S  = np.fft.rfft(s)                    <span class="cmt"># N//2 + 1 valeurs complexes, de 0 à fe/2</span>
+f  = np.fft.rfftfreq(N, d=1/fe)        <span class="cmt"># fréquences m*fe/N associées</span>
+A  = 2*np.abs(S) / N                   <span class="cmt"># amplitudes des raies</span>
+A[0] = A[0] / 2                        <span class="cmt"># composante continue : |S_0|/N</span></pre>
+  <p>Ici \(\Delta f = 2000/4096 \approx 0{,}49\) Hz : la raie à 125 Hz tombe exactement sur le point \(m = 256\) (amplitude lue : 2,0) ; celle à 310 Hz tombe entre deux points (\(m \approx 634{,}9\)) : elle est légèrement étalée. Avec <span class="code-inline">np.fft.fft</span>, on obtient les \(N\) valeurs, dont la moitié haute est l'image miroir.</p>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§8 · ANALYSE SPECTRALE ANALOGIQUE</div>
+  <h2>Le filtre passe-bande sélectif balayé</h2>
+  <div class="intro">Avant les calculateurs, on obtenait un spectre sans aucun calcul : un filtre très sélectif dont on déplace la fréquence centrale ne laisse passer, à chaque instant, qu'une composante du signal.</div>
+
+  <h3>Principe</h3>
+  <p>Le cœur de l'appareil est un passe-bande du deuxième ordre, de facteur de qualité élevé, dont un élément ajustable permet de déplacer la fréquence centrale \(f_0\) :</p>
+  <div class="formula">$$\underline{H} = \frac{H_0}{1 + jQ\left(\dfrac{f}{f_0} - \dfrac{f_0}{f}\right)}$$
+  $$\Delta f_{-3\,\text{dB}} = \frac{f_0}{Q}$$</div>
+  <p>Envoyons un signal périodique de fondamental \(f_1\) (harmoniques aux fréquences \(p\,f_1\)). Si la bande passante est étroite devant \(f_1\), une seule harmonique au plus traverse le filtre : l'amplitude de sortie vaut \(H_0\) fois celle de l'harmonique voisine de \(f_0\). En balayant \(f_0\) et en relevant l'amplitude de sortie, on trace le spectre.</p>
+
+  <div class="prop-box">
+    <strong>Résolution.</strong> Une composante est détectée dès qu'elle tombe dans la bande passante : la fréquence n'est donc connue qu'à \(\Delta f\) près, soit une incertitude relative \(1/Q\). Pour isoler l'harmonique de rang \(p\) de ses voisines (écart \(f_1\)), il faut \(f_0/Q \ll f_1\) avec \(f_0 = p f_1\), soit \(Q \gg p\). L'harmonique voisine est alors transmise avec un gain relatif d'environ \(p/(2Q)\).<br>
+    <strong>Lenteur.</strong> Les pôles du filtre ont une partie réelle \(-\omega_0/(2Q)\) : le régime transitoire dure quelques
+    $$\tau_f = \frac{2Q}{\omega_0} = \frac{1}{\pi\,\Delta f}$$
+    Plus le filtre est sélectif, plus il est lent : il faut s'attarder quelques \(\tau_f\) sur chaque fréquence, d'où un balayage lent.
+  </div>
+  <div class="notice"><strong>Même compromis qu'en numérique.</strong> Dans les deux cas, distinguer deux fréquences séparées de \(\Delta f\) demande d'observer le signal pendant une durée de l'ordre de \(1/\Delta f\) : c'est une propriété générale de l'analyse de Fourier, indépendante de la technologie.</div>
+  <p><strong>Variante :</strong> un <em>banc</em> de filtres fixes en parallèle (un par bande, comme dans un égaliseur graphique ou un analyseur par bandes d'octave) donne toutes les bandes simultanément, au prix d'une résolution fixée. <strong>Bilan :</strong> l'analyse analogique ignore le repliement et peut fonctionner en temps réel, mais elle est lente quand elle est fine et sensible à la dispersion et à la dérive des composants ; la FFT est rapide, précise et reprogrammable, à condition de respecter le critère de Shannon.</p>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§9 · FILTRAGE NUMÉRIQUE</div>
+  <h2>Filtrer par le calcul</h2>
+  <div class="intro">Un filtre numérique est un algorithme : il calcule chaque échantillon de sortie \(y_k\) à partir des échantillons d'entrée \(x_k, x_{k-1},\dots\) et, éventuellement, des sorties déjà calculées. Ses coefficients se changent par simple modification du programme.</div>
+
+  <div class="def-box">
+    Un filtre est <strong>causal</strong> s'il n'utilise que le présent et le passé (condition du temps réel). Il est <strong>non récursif</strong> si \(y_k\) ne dépend que des entrées : \(y_k = \sum_{j} b_j\,x_{k-j}\) ; il est <strong>récursif</strong> si \(y_k\) dépend aussi des sorties précédentes \(y_{k-1}, y_{k-2},\dots\) (relation de récurrence).
+  </div>
+
+  <h3>Moyenne glissante</h3>
+  <p>Le plus simple des passe-bas remplace chaque échantillon par la moyenne des \(M\) derniers :</p>
+  <div class="formula">$$y_k = \frac{1}{M}\sum_{j=0}^{M-1} x_{k-j}$$</div>
+  <p>Pour obtenir sa réponse harmonique, on injecte \(x_k = e^{2i\pi f kT_e}\) et on cherche \(y_k = \underline H(f)\,x_k\). La somme géométrique donne</p>
+  <div class="formula">$$\underline H(f) = \frac{1}{M}\sum_{j=0}^{M-1} e^{-2i\pi f jT_e}$$
+  $$\underline H(f) = \frac{1}{M}\,\frac{1 - e^{-2i\pi M f T_e}}{1 - e^{-2i\pi f T_e}}$$
+  $$|\underline H(f)| = \frac{\left|\sin\left(\pi M f/f_e\right)\right|}{M\left|\sin\left(\pi f/f_e\right)\right|}$$</div>
+  <div class="prop-box">
+    <ul style="margin:.2rem 0">
+      <li>Gain 1 en continu : c'est un passe-bas ; coupure à \(-3\) dB vers \(0{,}44\,f_e/M\) pour \(M\) grand.</li>
+      <li>Gain <strong>nul</strong> aux multiples de \(f_e/M\) (sauf aux multiples de \(f_e\)) : on peut ainsi éliminer exactement une fréquence parasite et ses harmoniques.</li>
+      <li>Phase linéaire : toutes les composantes subissent le même retard \((M-1)T_e/2\), donc pas de distorsion de phase (le gain, lui, n'est pas plat dans le lobe principal).</li>
+      <li>Gain <strong>périodique de période \(f_e\)</strong> (comme pour tout filtre numérique) : il revaut 1 en \(f_e\).</li>
+    </ul>
+  </div>
+
+<figure class="schema" style="max-width:420px">
+<svg viewBox="0 0 380 186" role="img" aria-label="Gain de la moyenne glissante sur cinq points en fonction de la fréquence : lobe principal, zéros aux multiples de fe sur cinq, retour à un en fe">
+  <rect x="190" y="30" width="150" height="120" class="fl-soft"/>
+  <line x1="40" y1="150" x2="358" y2="150" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+  <line x1="40" y1="150" x2="40" y2="20" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+  <line x1="40" y1="40" x2="340" y2="40" class="sk-dash" style="opacity:.3"/>
+  <line x1="190" y1="30" x2="190" y2="150" class="sk-dash"/>
+  <polyline points="40,40.0 42,40.2 44,40.8 46,41.7 48,43.1 50,44.8 52,46.8 54,49.2 56,52.0 58,55.0 60,58.4 62,62.0 64,65.9 66,70.0 68,74.3 70,78.8 72,83.5 74,88.3 76,93.2 78,98.1 80,103.2 82,108.2 84,113.2 86,118.2 88,123.2 90,128.0 92,132.7 94,137.3 96,141.7 98,146.0 100,150.0 102,146.2 104,142.6 106,139.3 108,136.3 110,133.6 112,131.1 114,129.0 116,127.1 118,125.6 120,124.4 122,123.5 124,122.8 126,122.5 128,122.5 130,122.8 132,123.4 134,124.2 136,125.2 138,126.5 140,128.0 142,129.7 144,131.6 146,133.6 148,135.7 150,138.0 152,140.3 154,142.7 156,145.1 158,147.6 160,150.0 162,147.6 164,145.3 166,143.0 168,140.8 170,138.8 172,136.8 174,135.1 176,133.5 178,132.1 180,130.8 182,129.8 184,129.0 186,128.5 188,128.1 190,128.0 192,128.1 194,128.5 196,129.0 198,129.8 200,130.8 202,132.1 204,133.5 206,135.1 208,136.8 210,138.8 212,140.8 214,143.0 216,145.3 218,147.6 220,150.0 222,147.6 224,145.1 226,142.7 228,140.3 230,138.0 232,135.7 234,133.6 236,131.6 238,129.7 240,128.0 242,126.5 244,125.2 246,124.2 248,123.4 250,122.8 252,122.5 254,122.5 256,122.8 258,123.5 260,124.4 262,125.6 264,127.1 266,129.0 268,131.1 270,133.6 272,136.3 274,139.3 276,142.6 278,146.2 280,150.0 282,146.0 284,141.7 286,137.3 288,132.7 290,128.0 292,123.2 294,118.2 296,113.2 298,108.2 300,103.2 302,98.1 304,93.2 306,88.3 308,83.5 310,78.8 312,74.3 314,70.0 316,65.9 318,62.0 320,58.4 322,55.0 324,52.0 326,49.2 328,46.8 330,44.8 332,43.1 334,41.7 336,40.8 338,40.2 340,40.0" class="sk-accent2"/>
+  <text x="46" y="18" class="lab-muted">|H|</text>
+  <text x="32" y="44" text-anchor="end" class="lab-muted">1</text>
+  <text x="32" y="154" text-anchor="end" class="lab-muted">0</text>
+  <text x="100" y="166" text-anchor="middle" class="lab-muted">f<tspan dy="3" style="font-size:8.5px">e</tspan><tspan dy="-3">/5</tspan></text>
+  <text x="160" y="166" text-anchor="middle" class="lab-muted">2f<tspan dy="3" style="font-size:8.5px">e</tspan><tspan dy="-3">/5</tspan></text>
+  <text x="190" y="24" text-anchor="middle" class="lab-muted">f<tspan dy="3" style="font-size:8.5px">e</tspan><tspan dy="-3">/2</tspan></text>
+  <text x="340" y="166" text-anchor="middle" class="lab-muted">f<tspan dy="3" style="font-size:8.5px">e</tspan></text>
+  <text x="265" y="100" text-anchor="middle" class="lab-muted" style="font-size:10.5px">image miroir</text>
+  <text x="362" y="166" class="lab-it">f</text>
+</svg>
+<figcaption>Moyenne glissante sur \(M = 5\) points : lobe principal passe-bas, zéros en \(f_e/5\) et \(2f_e/5\), puis motif symétrique par rapport à \(f_e/2\) (zone grisée) et retour au gain 1 en \(f_e\).</figcaption>
+</figure>
+
+  <h3>Passe-bas du premier ordre discrétisé</h3>
+  <p>Le filtre RC obéit à \(\tau\,\dfrac{\mathrm dy}{\mathrm dt} + y = x\), avec \(\tau = RC\) et \(f_c = 1/(2\pi\tau)\). On remplace la dérivée à l'instant \(t_k\) par la différence finie <em>arrière</em> \((y_k - y_{k-1})/T_e\) (schéma d'Euler implicite) :</p>
+  <div class="formula">$$\tau\,\frac{y_k - y_{k-1}}{T_e} + y_k = x_k$$
+  $$y_k = \alpha\,x_k + (1-\alpha)\,y_{k-1}$$
+  $$\alpha = \frac{T_e}{\tau + T_e}$$</div>
+  <div class="prop-box">
+    <ul style="margin:.2rem 0">
+      <li>Filtre <strong>récursif</strong> : chaque sortie se déduit de la précédente (« lissage exponentiel »). Il faut une valeur initiale \(y_0\) (par exemple \(x_0\) ou 0).</li>
+      <li>Réponse indicielle (\(y_0 = 0\), puis \(x_k = 1\) pour \(k \ge 1\)) : \(y_k = 1 - (1-\alpha)^k \approx 1 - e^{-kT_e/\tau}\) lorsque \(T_e \ll \tau\) (car \(\ln(1-\alpha) \approx -T_e/\tau\)).</li>
+      <li>Validité : l'imitation du filtre analogique n'est bonne que si \(T_e \ll \tau\), c'est-à-dire \(f_c \ll f_e\). Près de \(f_e/2\), la réponse numérique \(\underline H = \alpha/\big(1 - (1-\alpha)e^{-2i\pi fT_e}\big)\) s'écarte de celle du filtre RC, et elle est périodique de période \(f_e\).</li>
+      <li>Le schéma d'Euler <em>explicite</em> \(y_{k+1} = y_k + \frac{T_e}{\tau}(x_k - y_k)\) n'est stable que si \(T_e \lt 2\tau\) ; le schéma implicite ci-dessus l'est toujours.</li>
+    </ul>
+  </div>
+
+<pre class="codeblock"><span class="kw">def</span> passe_bas(x, fe, fc):
+    <span class="str">"""Passe-bas du 1er ordre discrétisé (différence arrière)."""</span>
+    tau = 1/(2*np.pi*fc)
+    Te = 1/fe
+    a = Te/(tau + Te)                  <span class="cmt"># coefficient alpha</span>
+    y = np.zeros(len(x))
+    y[0] = x[0]                        <span class="cmt"># on part du régime établi</span>
+    <span class="kw">for</span> k <span class="kw">in</span> range(1, len(x)):
+        y[k] = a*x[k] + (1 - a)*y[k-1]
+    <span class="kw">return</span> y</pre>
+
+  <div class="reveal" onclick="this.classList.toggle('open')">
+    <span class="label">Et le passe-haut ?</span>
+    <span class="prompt">Discrétiser le passe-haut du premier ordre \(\tau\,\dot y + y = \tau\,\dot x\).</span>
+    <div class="content"><p>Même différence arrière pour les deux dérivées : \(\tau(y_k - y_{k-1}) + T_e\,y_k = \tau(x_k - x_{k-1})\), soit \(y_k = \dfrac{\tau}{\tau + T_e}\big(y_{k-1} + x_k - x_{k-1}\big)\). Une entrée constante donne bien une sortie qui tend vers 0.</p></div>
+  </div>
+
+  <div class="notice"><strong>Le numérique ne rattrape pas le repliement.</strong> Un filtre numérique agit sur des échantillons déjà acquis : une raie repliée dans la bande utile y est indiscernable d'une vraie raie et traverse le filtre comme elle. Le filtrage numérique complète le filtre anti-repliement analogique, il ne le remplace jamais.</div>
+</div>
+
+</template>
+<template class="pan-tpl" data-panneau="snum-meth">
+<div class="course-section">
+  <div class="sec-num">MÉTHODES · SIGNAL NUMÉRIQUE</div>
+  <h2>Stratégies pour les exercices</h2>
+
+  <div class="method-box">
+    <strong>Méthode 1 — Choisir \(f_e\), \(N\) et \(T_a\) pour une acquisition</strong>
+    <ol style="margin-top:.4rem">
+      <li><span class="step">Bande utile.</span> Identifier la plus haute fréquence \(f_{\max}\) à conserver (harmonique significative la plus élevée, ou coupure du filtre anti-repliement).</li>
+      <li><span class="step">Cadence.</span> Imposer \(f_e \gt 2f_{\max}\), avec une marge (facteur 2,5 à 10 selon la raideur du filtre).</li>
+      <li><span class="step">Durée.</span> Traduire la résolution voulue en durée : \(T_a \ge 1/\Delta f\). Pour séparer nettement deux raies distantes de \(\delta f\), viser un écart d'au moins trois pas de fréquence entre elles, soit \(\Delta f \le \delta f/3\) environ. Si une raie précise doit être mesurée en amplitude, ajuster \(T_a\) pour que \(f_0 T_a\) soit entier (méthode 3).</li>
+      <li><span class="step">Nombre de points.</span> En déduire \(N = f_e T_a\), arrondi en général à la puissance de 2 supérieure ; vérifier la mémoire disponible (\(N\) × nombre d'octets par échantillon × nombre de voies).</li>
+      <li><span class="step">Compromis.</span> Si \(N\) est plafonné, réduire \(f_e\) au strict nécessaire (filtre anti-repliement plus raide) plutôt que \(T_a\).</li>
+    </ol>
+    <p style="margin:.4rem 0 0"><em>Piège :</em> augmenter \(f_e\) à \(N\) fixé raccourcit \(T_a\) et dégrade la résolution \(\Delta f = f_e/N\).</p>
+  </div>
+
+  <div class="method-box">
+    <strong>Méthode 2 — Prévoir la fréquence apparente d'une composante</strong>
+    <ol style="margin-top:.4rem">
+      <li><span class="step">Réduire.</span> Calculer \(f_0/f_e\) et prendre l'entier \(m\) le plus proche.</li>
+      <li><span class="step">Replier.</span> \(f_{\text{app}} = |f_0 - m f_e|\), nécessairement dans \([0\,;\,f_e/2]\). Si \(f_0 \lt f_e/2\), on retrouve \(f_{\text{app}} = f_0\).</li>
+      <li><span class="step">Signal composé.</span> Traiter chaque raie séparément ; signaler les coïncidences (une raie repliée tombant sur une vraie raie fausse son amplitude).</li>
+      <li><span class="step">Stroboscopie.</span> Pour une rotation, garder le signe : \(f_{\text{rot}} - m f_{\text{fl}} \in\, ]-f_{\text{fl}}/2\,;\,f_{\text{fl}}/2]\) ; négatif = rotation apparente inverse. Pour un motif à \(P\) branches identiques, raisonner sur la fréquence du motif \(P f_{\text{rot}}\).</li>
+    </ol>
+    <p style="margin:.4rem 0 0"><em>Piège :</em> une image immobile ne donne pas la vitesse de manière unique (tout multiple convient) : chercher la plus grande fréquence de flash donnant une image simple et immobile.</p>
+  </div>
+
+  <div class="method-box">
+    <strong>Méthode 3 — Exploiter une FFT calculée avec numpy</strong>
+    <ol style="margin-top:.4rem">
+      <li><span class="step">Axe des fréquences.</span> Point \(m\) ↔ \(f_m = m f_e/N\) (<span class="code-inline">np.fft.rfftfreq(N, d=1/fe)</span> ou <span class="code-inline">np.arange(N)*fe/N</span>).</li>
+      <li><span class="step">Moitié utile.</span> Ne garder que \(0 \le f \le f_e/2\) (<span class="code-inline">rfft</span> le fait directement) ; la moitié haute de <span class="code-inline">fft</span> est l'image miroir.</li>
+      <li><span class="step">Amplitudes.</span> \(A = 2|S_m|/N\) pour une raie, \(|S_0|/N\) pour la valeur moyenne.</li>
+      <li><span class="step">Contrôle.</span> Vérifier que les fréquences d'intérêt tombent sur des points entiers (\(f_0 T_a\) entier) ; sinon, s'attendre à des raies étalées et à des amplitudes sous-estimées.</li>
+    </ol>
+    <p style="margin:.4rem 0 0"><em>Piège :</em> oublier le facteur 2 (énergie partagée entre \(f_0\) et son image \(f_e - f_0\)) ou normaliser deux fois.</p>
+  </div>
+
+  <div class="method-box">
+    <strong>Méthode 4 — Dimensionner le filtre anti-repliement</strong>
+    <ol style="margin-top:.4rem">
+      <li><span class="step">Fréquence critique.</span> Repérer la plus basse fréquence qui se replie dans la bande utile : \(f_e - f_{\max}\).</li>
+      <li><span class="step">Atténuation exigée.</span> Fixer \(A_{\min}\) (souvent la dynamique du CAN, \(\approx 6n\) dB, ou une valeur imposée par l'énoncé).</li>
+      <li><span class="step">Ordre.</span> Avec l'asymptote \(-20p\) dB/décade : \(p \ge A_{\min}\big/\left(20\log\frac{f_e - f_{\max}}{f_c}\right)\), arrondi à l'entier supérieur.</li>
+      <li><span class="step">Discussion.</span> Si l'ordre est trop élevé, augmenter \(f_e\) (suréchantillonnage) et recalculer.</li>
+    </ol>
+    <p style="margin:.4rem 0 0"><em>Piège :</em> placer ce filtre après l'échantillonneur, ou croire qu'un filtre numérique peut le remplacer.</p>
+  </div>
+
+  <div class="method-box">
+    <strong>Méthode 5 — Quantification : choisir le calibre et le nombre de bits</strong>
+    <ol style="margin-top:.4rem">
+      <li><span class="step">Plage.</span> Ajuster le conditionnement pour que l'excursion du signal couvre l'essentiel de \(\Delta U\), sans la dépasser.</li>
+      <li><span class="step">Quantum.</span> \(q = \Delta U/2^n\) ; le traduire en grandeur physique via la sensibilité du capteur (résolution effective).</li>
+      <li><span class="step">Nombre de bits.</span> Choisir le plus petit \(n\) tel que \(q/2\) (ou \(q/\sqrt{12}\) en efficace) soit inférieur à la précision exigée : \(n \ge \log_2(\Delta U/q_{\max})\).</li>
+      <li><span class="step">Code.</span> Code \(= \mathrm{round}(u/q)\) (arrondi) ou \(\lfloor u/q\rfloor\) (troncature, approximations successives) ; tension numérisée reconstituée \(u_N = \text{code}\times q\).</li>
+    </ol>
+    <p style="margin:.4rem 0 0"><em>Piège :</em> confondre résolution (quantum) et précision (qui inclut aussi les erreurs du capteur et de l'électronique).</p>
+  </div>
+
+  <div class="method-box">
+    <strong>Méthode 6 — Discrétiser un filtre analogique et le coder en Python</strong>
+    <ol style="margin-top:.4rem">
+      <li><span class="step">Équation différentielle.</span> Passer de la fonction de transfert à l'équation temporelle (\(j\omega \leftrightarrow \mathrm d/\mathrm dt\)), par exemple \(\tau\dot y + y = x\).</li>
+      <li><span class="step">Différences finies.</span> Remplacer \(\dot y(t_k)\) par \((y_k - y_{k-1})/T_e\) (arrière, toujours stable) ou \((y_{k+1} - y_k)/T_e\) (avant, stable seulement si \(T_e \lt 2\tau\)).</li>
+      <li><span class="step">Récurrence.</span> Isoler \(y_k\) : \(y_k = \alpha x_k + (1-\alpha)y_{k-1}\), \(\alpha = T_e/(\tau + T_e)\).</li>
+      <li><span class="step">Code.</span> Initialiser un tableau (<span class="code-inline">np.zeros(N)</span>), fixer \(y_0\), boucler sur \(k\) de 1 à \(N-1\).</li>
+      <li><span class="step">Validation.</span> Tester la réponse à un échelon (\(y_k \to 1\), temps caractéristique \(\tau\)) et vérifier \(T_e \ll \tau\).</li>
+    </ol>
+  </div>
+
+  <div class="method-box">
+    <strong>Méthode 7 — Réponse harmonique d'un filtre numérique</strong>
+    <ol style="margin-top:.4rem">
+      <li><span class="step">Entrée complexe.</span> Poser \(x_k = e^{2i\pi f kT_e}\) et chercher \(y_k = \underline H(f)\,x_k\) (régime harmonique établi).</li>
+      <li><span class="step">Substitution.</span> Un décalage d'un échantillon multiplie par \(e^{-2i\pi fT_e}\) : \(x_{k-1} = e^{-2i\pi fT_e}x_k\), \(y_{k-1} = e^{-2i\pi fT_e}y_k\).</li>
+      <li><span class="step">Identification.</span> Diviser par \(x_k\) et isoler \(\underline H(f)\) ; pour une moyenne glissante, sommer la série géométrique.</li>
+      <li><span class="step">Lecture.</span> Gain en continu (\(f = 0\)), zéros éventuels, valeur en \(f_e/2\), périodicité \(f_e\) ; comparer au filtre analogique pour \(f \ll f_e\).</li>
+    </ol>
+  </div>
+
+  <div class="method-box">
+    <strong>Méthode 8 — Régler un analyseur de spectre à filtre balayé</strong>
+    <ol style="margin-top:.4rem">
+      <li><span class="step">Sélectivité.</span> Pour séparer deux raies distantes de \(\delta f\) au voisinage de \(f_0\), imposer \(\Delta f = f_0/Q\) nettement inférieur à \(\delta f\), donc \(Q \gg f_0/\delta f\) (harmonique de rang \(p\) : \(Q \gg p\)).</li>
+      <li><span class="step">Temps de réponse.</span> \(\tau_f = 2Q/\omega_0 = 1/(\pi\Delta f)\) ; rester au moins 3 à 5 \(\tau_f\) sur chaque fréquence.</li>
+      <li><span class="step">Durée du balayage.</span> Nombre de points (étendue / pas) × durée par point ; comparer à la durée d'une acquisition pour FFT (\(\approx 1/\Delta f\)).</li>
+    </ol>
+    <p style="margin:.4rem 0 0"><em>Piège :</em> balayer trop vite : le filtre n'atteint pas son régime établi, les raies sont déformées et décalées.</p>
+  </div>
+</div>
+</template>
+<template class="pan-tpl" data-panneau="snum-exos">
+<div class="exo-wrapper">
+
+<div class="exo">
+  <span class="num">EXO 01</span><span class="diff">★ ☆ ☆</span>
+  <h3>Station météo connectée : quantification et mémoire</h3>
+  <div class="statement">Une sonde de température suivie de son électronique de conditionnement délivre la tension \(u = u_0 + a\,\theta\), avec \(u_0 = 1{,}00\ \text{V}\) et \(a = 25\ \text{mV/°C}\), pour des températures \(\theta\) comprises entre \(-20\ \text{°C}\) et \(+50\ \text{°C}\). Cette tension est numérisée par le CAN 12 bits d'un microcontrôleur, de plage d'entrée \([0\,;\,3{,}3\ \text{V}]\), qui quantifie par arrondi.</div>
+  <div class="q"><strong>Q1.</strong> Calculer le quantum \(q\) et la résolution correspondante en température.</div>
+  <div class="q"><strong>Q2.</strong> Quel code (en décimal et en binaire) le CAN fournit-il pour \(\theta = 18{,}6\ \text{°C}\) ? Quelle température le microcontrôleur en déduit-il ? Comparer l'écart obtenu à sa valeur maximale possible.</div>
+  <div class="q"><strong>Q3.</strong> Quelle fraction des codes disponibles est réellement utilisée ? Proposer un conditionnement plus judicieux et donner la nouvelle résolution.</div>
+  <div class="q"><strong>Q4.</strong> La température extérieure ne varie notablement qu'en plusieurs minutes. On mesure toutes les 10 s pendant 30 jours, chaque mesure occupant 2 octets. Commenter la cadence choisie et calculer la mémoire nécessaire.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> \(q = \dfrac{3{,}3}{2^{12}} = \dfrac{3{,}3}{4096} \approx 0{,}806\ \text{mV}\). En température : \(\Delta\theta = q/a = 0{,}806/25 \approx 0{,}032\ \text{°C}\).</p>
+    <p><strong>Q2.</strong> \(u = 1{,}00 + 0{,}025\times18{,}6 = 1{,}465\ \text{V}\), d'où \(u/q \approx 1818{,}4\) : le code est \(1818\), soit \(0111\,0001\,1010\) en binaire (\(1024+512+256+16+8+2\)). Tension reconstituée : \(u_N = 1818\,q \approx 1{,}4647\ \text{V}\), d'où \(\theta_N = (u_N - u_0)/a \approx 18{,}588\ \text{°C}\). L'écart (environ \(0{,}012\ \text{°C}\)) est bien inférieur à l'écart maximal \(q/(2a) \approx 0{,}016\ \text{°C}\).</p>
+    <p><strong>Q3.</strong> La tension varie de \(0{,}50\ \text{V}\) (à \(-20\ \text{°C}\)) à \(2{,}25\ \text{V}\) (à \(+50\ \text{°C}\)) : \(1{,}75\ \text{V}\) sur \(3{,}3\ \text{V}\), soit 53 % de la plage, environ 2 170 codes sur 4 096. On peut retrancher \(0{,}50\ \text{V}\) puis amplifier d'un facteur \(3{,}3/1{,}75 \approx 1{,}9\) (montage soustracteur à ALI) : la plage \([-20\,;\,50]\ \text{°C}\) occupe alors tout \([0\,;\,3{,}3\ \text{V}]\) et la résolution devient \(70/4096 \approx 0{,}017\ \text{°C}\), presque deux fois meilleure. En pratique, on garde une petite marge pour ne jamais saturer.</p>
+    <p><strong>Q4.</strong> Des variations en plusieurs minutes correspondent à des fréquences de l'ordre de \(10^{-3}\) à \(10^{-2}\ \text{Hz}\) : \(f_e = 0{,}1\ \text{Hz}\) respecte largement le critère de Shannon (on pourrait même échantillonner moins vite). Nombre de mesures : \(N = 30\times86\,400/10 = 259\,200\), soit \(518\,400\) octets \(\approx 0{,}52\ \text{Mo}\). C'est peu pour une carte mémoire, mais trop pour la mémoire vive d'un petit microcontrôleur (quelques dizaines de ko) : il faut stocker à l'extérieur ou transmettre régulièrement.</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 02</span><span class="diff">★ ☆ ☆</span>
+  <h3>Raies repliées et ventilateur stroboscopé</h3>
+  <div class="statement"><strong>A.</strong> Un signal comporte quatre composantes sinusoïdales de fréquences \(1{,}2\ \text{kHz}\), \(3{,}5\ \text{kHz}\), \(6{,}1\ \text{kHz}\) et \(8{,}8\ \text{kHz}\). On l'échantillonne à \(f_e = 5{,}0\ \text{kHz}\) sans filtrage préalable.<br>
+  <strong>B.</strong> Un ventilateur à trois pales identiques tourne à 980 tr/min ; on l'éclaire avec un stroboscope de fréquence \(f_{\text{fl}}\) réglable.</div>
+  <div class="q"><strong>Q1.</strong> Déterminer les fréquences apparentes des quatre composantes. Quelle difficulté apparaît pour la mesure de la raie à \(1{,}2\ \text{kHz}\) ?</div>
+  <div class="q"><strong>Q2.</strong> Quelle fréquence d'échantillonnage minimale permettrait d'analyser correctement les quatre composantes ?</div>
+  <div class="q"><strong>Q3.</strong> Seule la composante à \(1{,}2\ \text{kHz}\) intéresse l'expérimentateur, qui conserve \(f_e = 5{,}0\ \text{kHz}\). Que doit-il ajouter à sa chaîne ? Quelle composante rend ce dispositif délicat à réaliser ?</div>
+  <div class="q"><strong>Q4.</strong> Le stroboscope est réglé sur \(50\ \text{Hz}\). Décrire ce que l'on observe.</div>
+  <div class="q"><strong>Q5.</strong> Quelle est la plus grande fréquence de flash donnant une image immobile à trois pales ? Qu'observe-t-on à \(98\ \text{Hz}\) ? à \(24{,}5\ \text{Hz}\) ? Conclure sur l'usage d'un stroboscope pour mesurer une vitesse.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> On calcule \(f_0/f_e\) et l'entier \(m\) le plus proche :</p>
+    <ul>
+      <li>\(1{,}2\ \text{kHz}\) : inférieure à \(f_e/2 = 2{,}5\ \text{kHz}\), lue sans erreur ;</li>
+      <li>\(3{,}5\ \text{kHz}\) : \(m = 1\), \(f_{\text{app}} = |3{,}5 - 5| = 1{,}5\ \text{kHz}\) ;</li>
+      <li>\(6{,}1\ \text{kHz}\) : \(m = 1\), \(f_{\text{app}} = 1{,}1\ \text{kHz}\) ;</li>
+      <li>\(8{,}8\ \text{kHz}\) : \(m = 2\), \(f_{\text{app}} = |8{,}8 - 10| = 1{,}2\ \text{kHz}\).</li>
+    </ul>
+    <p>Deux raies parasites, absentes du signal réel, apparaissent à 1,1 et 1,5 kHz, et surtout la composante à 8,8 kHz se replie <em>exactement</em> sur la vraie raie à 1,2 kHz : les deux contributions s'ajoutent avec des phases quelconques et l'amplitude lue à 1,2 kHz est fausse, sans qu'aucun indice ne le signale.</p>
+    <p><strong>Q2.</strong> Il faut \(f_e \gt 2\times8{,}8 = 17{,}6\ \text{kHz}\) ; en pratique, 20 kHz ou plus.</p>
+    <p><strong>Q3.</strong> Un filtre passe-bas <strong>analogique</strong> anti-repliement, placé avant l'échantillonneur, qui transmet 1,2 kHz et atténue fortement au-delà de \(f_e/2\). Il doit impérativement éliminer 8,8 kHz (superposition exacte) et 6,1 kHz (repliée à 1,1 kHz, tout près de la raie utile) ; pour un spectre propre, il doit aussi atténuer 3,5 kHz. Or cette dernière n'est qu'à un facteur 2,9 de la fréquence utile (moins d'une demi-décade) : le filtre doit être raide, donc d'ordre élevé. Si l'on tolère la raie parasite à 1,5 kHz, loin de 1,2 kHz, la contrainte se relâche : la composante gênante la plus basse devient 6,1 kHz, à un facteur 5 de la fréquence utile.</p>
+    <p><strong>Q4.</strong> Les trois pales étant identiques, l'image se reproduit tous les tiers de tour : la fréquence du motif est \(3\times980/60 = 49{,}0\ \text{Hz}\). Avec \(f_{\text{fl}} = 50\ \text{Hz}\), l'écart signé vaut \(49 - 50 = -1{,}0\ \text{Hz}\) : le motif semble reculer d'un tiers de tour par seconde, soit une rotation apparente de 20 tr/min <strong>en sens inverse</strong>.</p>
+    <p><strong>Q5.</strong> L'image est immobile si \(49{,}0 = m\,f_{\text{fl}}\) : la plus grande fréquence est \(f_{\text{fl}} = 49{,}0\ \text{Hz}\). À 98 Hz, deux flashs par période du motif : les pales sont vues à deux positions décalées d'un sixième de tour, d'où six pales immobiles. À 24,5 Hz (\(m = 2\)), on voit à nouveau trois pales immobiles. Une image immobile ne fixe donc pas la vitesse : il faut partir d'une fréquence de flash élevée et la diminuer jusqu'à la <em>première</em> image simple et immobile.</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 03</span><span class="diff">★ ★ ☆</span>
+  <h3>Régler une FFT pour séparer deux raies voisines</h3>
+  <div class="statement">La tension délivrée par une pince de courant placée sur l'alimentation d'un moteur contient deux raies voisines, à \(48{,}0\ \text{Hz}\) et \(50{,}0\ \text{Hz}\), ainsi que des harmoniques jusqu'à \(1{,}5\ \text{kHz}\). Un filtre anti-repliement élimine tout ce qui dépasse \(2\ \text{kHz}\). La carte d'acquisition propose \(f_e \in \{1\,;\,2\,;\,5\,;\,10\,;\,20\}\ \text{kHz}\) et enregistre au plus \(N = 8\,192\) points.</div>
+  <div class="q"><strong>Q1.</strong> Quelles fréquences d'échantillonnage sont acceptables ?</div>
+  <div class="q"><strong>Q2.</strong> Calculer la durée d'acquisition \(T_a\) et la résolution \(\Delta f\) pour \(f_e = 5\ \text{kHz}\) et pour \(f_e = 20\ \text{kHz}\), avec \(N = 8\,192\). Quel réglage permet de séparer les deux raies ?</div>
+  <div class="q"><strong>Q3.</strong> Avec \(f_e = 5\ \text{kHz}\) et \(N = 8\,192\), à quel indice \(m\) du spectre correspond la raie à 50 Hz ? Conséquence ? Proposer une valeur de \(N\) (pas nécessairement une puissance de 2) pour laquelle les deux raies tombent exactement sur des points du spectre.</div>
+  <div class="q"><strong>Q4.</strong> Écrire les instructions numpy qui, à partir du tableau <span class="code-inline">s</span> des \(N\) échantillons, calculent l'axe des fréquences et les amplitudes. Le pic à 50 Hz a pour module \(|S_m| = 2{,}05\times10^3\) avec \(N = 8\,192\) : quelle est l'amplitude de cette composante ?</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> Le signal filtré ne contient rien au-delà de 2 kHz : il faut \(f_e \gt 4\ \text{kHz}\). Seules 5, 10 et 20 kHz conviennent ; à 1 ou 2 kHz, les harmoniques au-delà de 0,5 ou 1 kHz se replieraient.</p>
+    <p><strong>Q2.</strong> \(T_a = N/f_e\) et \(\Delta f = 1/T_a\) :</p>
+    <ul>
+      <li>\(f_e = 5\ \text{kHz}\) : \(T_a = 8192/5000 \approx 1{,}64\ \text{s}\), \(\Delta f \approx 0{,}61\ \text{Hz}\) ;</li>
+      <li>\(f_e = 20\ \text{kHz}\) : \(T_a \approx 0{,}41\ \text{s}\), \(\Delta f \approx 2{,}44\ \text{Hz}\).</li>
+    </ul>
+    <p>Les raies sont distantes de 2 Hz, soit environ 3,3 points à 5 kHz (raies séparées) mais moins d'un point à 20 kHz (raies confondues). À \(N\) imposé, on prend la plus petite cadence acceptable : \(f_e = 5\ \text{kHz}\).</p>
+    <p><strong>Q3.</strong> \(m = 50/\Delta f = 50\times8192/5000 = 81{,}92\) : non entier. La raie tombe entre deux points ; elle est un peu étalée (fuite spectrale), lue au point \(m = 82\) (50,05 Hz) avec une amplitude légèrement sous-estimée, et ses « pieds » peuvent gêner la lecture de la raie voisine. Pour des points exacts, \(T_a\) doit contenir un nombre entier de périodes à 48 Hz et à 50 Hz, donc être un multiple de \(1/2\ \text{s}\) (les deux fréquences sont multiples de 2 Hz). Avec \(T_a = 1{,}5\ \text{s}\) : \(N = 7\,500\) (\(\le 8\,192\)), \(\Delta f = 2/3\ \text{Hz}\), et \(48 = 72\,\Delta f\), \(50 = 75\,\Delta f\). La FFT de numpy accepte tout \(N\), au prix d'un calcul un peu moins rapide.</p>
+    <p><strong>Q4.</strong></p>
+<pre class="codeblock">N = len(s)
+S = np.fft.rfft(s)                  <span class="cmt"># N//2 + 1 valeurs, de 0 à fe/2</span>
+f = np.fft.rfftfreq(N, d=1/fe)      <span class="cmt"># fréquences m*fe/N</span>
+A = 2*np.abs(S)/N                   <span class="cmt"># amplitudes (sauf A[0] : diviser par 2)</span></pre>
+    <p>Amplitude : \(A = 2\times2050/8192 \approx 0{,}50\ \text{V}\). Pour une raie isolée, le décalage de 0,08 point ne sous-estimerait la valeur que d'environ 1 %. Mais la raie à 48 Hz n'est qu'à 3,3 points : sa fuite ajoute au point lu une contribution de l'ordre de 8 % de sa propre amplitude, avec une phase quelconque. La valeur 0,50 V n'est donc sûre qu'à quelques pour cent près, d'où l'intérêt du réglage exact proposé en Q3.</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 04</span><span class="diff">★ ★ ☆</span>
+  <h3>Trois architectures de CAN face à face</h3>
+  <div class="statement">On considère un CAN 8 bits de plage d'entrée \([0\,;\,5{,}12\ \text{V}]\), à approximations successives. À chaque étape, un comparateur indique si la tension d'entrée \(u\) est supérieure ou égale à la tension délivrée par le CNA interne pour le code d'essai ; le bit testé est conservé à 1 si c'est le cas, remis à 0 sinon.</div>
+  <div class="q"><strong>Q1.</strong> Calculer le quantum.</div>
+  <div class="q"><strong>Q2.</strong> Dérouler la conversion de \(u = 3{,}47\ \text{V}\) sous forme d'un tableau (bit testé, code d'essai, tension d'essai, décision). Donner le code final en binaire et en décimal, la tension reconstituée et l'erreur commise. Quelle est l'erreur maximale de ce convertisseur ? Comment la ramener à \(q/2\) ?</div>
+  <div class="q"><strong>Q3.</strong> L'horloge du convertisseur est à 2 MHz ; il faut un coup d'horloge par bit, plus deux pour l'échantillonnage. Calculer la durée d'une conversion, la fréquence d'échantillonnage maximale et la bande de fréquences analysable.</div>
+  <div class="q"><strong>Q4.</strong> Comparer avec un CAN parallèle 8 bits (nombre de comparateurs) et avec un CAN à rampe à comptage piloté par la même horloge (durée maximale de conversion). Reprendre la comparaison pour 12 bits et conclure.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> \(q = 5{,}12/2^8 = 5{,}12/256 = 20\ \text{mV}\).</p>
+    <p><strong>Q2.</strong> Chaque essai ajoute le bit testé au code déjà retenu :</p>
+    <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:.82rem;margin:.5rem 0;text-align:center">
+      <tr style="background:var(--paper-dark)"><th style="padding:.3rem;border:1px solid var(--grid)">Bit</th><th style="padding:.3rem;border:1px solid var(--grid)">Code d'essai</th><th style="padding:.3rem;border:1px solid var(--grid)">Tension d'essai</th><th style="padding:.3rem;border:1px solid var(--grid)">\(u \ge\) ?</th><th style="padding:.3rem;border:1px solid var(--grid)">Bit retenu</th></tr>
+      <tr><td style="padding:.3rem;border:1px solid var(--grid)">\(b_7\)</td><td style="padding:.3rem;border:1px solid var(--grid)">1000 0000 (128)</td><td style="padding:.3rem;border:1px solid var(--grid)">2,56 V</td><td style="padding:.3rem;border:1px solid var(--grid)">oui</td><td style="padding:.3rem;border:1px solid var(--grid)">1</td></tr>
+      <tr><td style="padding:.3rem;border:1px solid var(--grid)">\(b_6\)</td><td style="padding:.3rem;border:1px solid var(--grid)">1100 0000 (192)</td><td style="padding:.3rem;border:1px solid var(--grid)">3,84 V</td><td style="padding:.3rem;border:1px solid var(--grid)">non</td><td style="padding:.3rem;border:1px solid var(--grid)">0</td></tr>
+      <tr><td style="padding:.3rem;border:1px solid var(--grid)">\(b_5\)</td><td style="padding:.3rem;border:1px solid var(--grid)">1010 0000 (160)</td><td style="padding:.3rem;border:1px solid var(--grid)">3,20 V</td><td style="padding:.3rem;border:1px solid var(--grid)">oui</td><td style="padding:.3rem;border:1px solid var(--grid)">1</td></tr>
+      <tr><td style="padding:.3rem;border:1px solid var(--grid)">\(b_4\)</td><td style="padding:.3rem;border:1px solid var(--grid)">1011 0000 (176)</td><td style="padding:.3rem;border:1px solid var(--grid)">3,52 V</td><td style="padding:.3rem;border:1px solid var(--grid)">non</td><td style="padding:.3rem;border:1px solid var(--grid)">0</td></tr>
+      <tr><td style="padding:.3rem;border:1px solid var(--grid)">\(b_3\)</td><td style="padding:.3rem;border:1px solid var(--grid)">1010 1000 (168)</td><td style="padding:.3rem;border:1px solid var(--grid)">3,36 V</td><td style="padding:.3rem;border:1px solid var(--grid)">oui</td><td style="padding:.3rem;border:1px solid var(--grid)">1</td></tr>
+      <tr><td style="padding:.3rem;border:1px solid var(--grid)">\(b_2\)</td><td style="padding:.3rem;border:1px solid var(--grid)">1010 1100 (172)</td><td style="padding:.3rem;border:1px solid var(--grid)">3,44 V</td><td style="padding:.3rem;border:1px solid var(--grid)">oui</td><td style="padding:.3rem;border:1px solid var(--grid)">1</td></tr>
+      <tr><td style="padding:.3rem;border:1px solid var(--grid)">\(b_1\)</td><td style="padding:.3rem;border:1px solid var(--grid)">1010 1110 (174)</td><td style="padding:.3rem;border:1px solid var(--grid)">3,48 V</td><td style="padding:.3rem;border:1px solid var(--grid)">non</td><td style="padding:.3rem;border:1px solid var(--grid)">0</td></tr>
+      <tr><td style="padding:.3rem;border:1px solid var(--grid)">\(b_0\)</td><td style="padding:.3rem;border:1px solid var(--grid)">1010 1101 (173)</td><td style="padding:.3rem;border:1px solid var(--grid)">3,46 V</td><td style="padding:.3rem;border:1px solid var(--grid)">oui</td><td style="padding:.3rem;border:1px solid var(--grid)">1</td></tr>
+    </table></div>
+    <p>Code final : \(1010\,1101\), soit 173 ; tension reconstituée \(u_N = 173\times20\ \text{mV} = 3{,}46\ \text{V}\) ; erreur \(10\ \text{mV}\). Ce convertisseur <strong>tronque</strong> (\(0 \le u - u_N \lt q\)) : l'erreur peut atteindre presque \(q = 20\ \text{mV}\). En décalant tous les seuils d'un demi-quantum (par exemple en ajoutant \(q/2\) à la tension d'entrée), on réalise un arrondi et \(|\varepsilon| \le q/2 = 10\ \text{mV}\).</p>
+    <p><strong>Q3.</strong> \(8 + 2 = 10\) coups d'horloge de \(0{,}5\ \mu\text{s}\) : \(5\ \mu\text{s}\) par conversion, d'où \(f_{e,\max} = 200\ \text{kHz}\). Le critère de Shannon limite la bande analysable à moins de 100 kHz, en pratique quelques dizaines de kHz compte tenu de la raideur finie du filtre anti-repliement.</p>
+    <p><strong>Q4.</strong> CAN parallèle 8 bits : \(2^8 - 1 = 255\) comparateurs, conversion en une seule étape. CAN à rampe : jusqu'à \(2^8 = 256\) coups d'horloge, soit 128 µs, donc \(f_e \le 7{,}8\ \text{kHz}\) environ. En 12 bits : le parallèle exigerait 4 095 comparateurs (irréaliste) ; les approximations successives demandent 14 coups (7 µs, environ 140 kHz) ; la rampe jusqu'à 4 096 coups (2 ms, moins de 500 Hz). Les approximations successives offrent le meilleur compromis ; le parallèle est réservé aux très grandes vitesses à faible résolution, la rampe aux mesures lentes (précises dans sa version à double rampe).</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 05</span><span class="diff">★ ★ ☆</span>
+  <h3>Débarrasser une mesure lente du réseau électrique</h3>
+  <div class="statement">Un capteur de pression placé dans une cuve délivre un signal utile lentement variable (composantes inférieures à \(2\ \text{Hz}\)), auquel s'ajoute un parasite capté sur le réseau : \(50\ \text{Hz}\) et ses harmoniques. La carte d'acquisition échantillonne à \(f_e = 800\ \text{Hz}\), précédée d'un filtre anti-repliement. Le programme lisse ensuite les mesures par une moyenne glissante sur \(M\) points : \(y_k = \frac{1}{M}\sum_{j=0}^{M-1}x_{k-j}\).</div>
+  <div class="q"><strong>Q1.</strong> Établir l'expression du gain \(|\underline H(f)|\) de ce filtre.</div>
+  <div class="q"><strong>Q2.</strong> Quelle est la plus petite valeur de \(M\) qui annule exactement le 50 Hz et toutes ses harmoniques jusqu'à \(f_e/2\) ?</div>
+  <div class="q"><strong>Q3.</strong> Calculer le gain à 2 Hz et le retard introduit. Le signal utile est-il préservé ?</div>
+  <div class="q"><strong>Q4.</strong> La fréquence du réseau peut s'écarter de \(0{,}5\ \text{Hz}\) de sa valeur nominale. Quelle atténuation (en dB) le filtre garantit-il encore à \(50{,}5\ \text{Hz}\) ?</div>
+  <div class="q"><strong>Q5.</strong> Écrire une fonction Python <span class="code-inline">moyenne_glissante(x, M)</span> qui renvoie les sorties calculables (dès que \(M\) échantillons sont disponibles).</div>
+  <div class="q"><strong>Q6.</strong> Une alimentation à découpage voisine rayonne une perturbation de fréquence \(801\ \text{Hz}\), que le filtre d'entrée de la carte, défectueux, laisse passer. À quelle fréquence apparaît-elle dans les échantillons ? Quel gain la moyenne glissante lui oppose-t-elle ? Que conclure ?</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> Avec \(x_k = e^{2i\pi fkT_e}\), \(y_k = \underline H\,x_k\) et \(\underline H = \frac1M\sum_{j=0}^{M-1}e^{-2i\pi fjT_e}\). Somme géométrique de raison \(r = e^{-2i\pi fT_e}\) :</p>
+    <div class="formula">$$\underline H = \frac{1}{M}\,\frac{1 - r^M}{1 - r}$$
+    $$\underline H = \frac{e^{-i\pi (M-1) fT_e}}{M}\,\frac{\sin(\pi M f T_e)}{\sin(\pi f T_e)}$$
+    $$|\underline H| = \frac{|\sin(\pi M f/f_e)|}{M\,|\sin(\pi f/f_e)|}$$</div>
+    <p><strong>Q2.</strong> Le gain s'annule pour \(f = j\,f_e/M\) (\(j\) entier non multiple de \(M\)). Pour que 50 Hz soit un zéro, il faut \(50 = j\times800/M\), soit \(M = 16\,j\) : la plus petite valeur est \(M = 16\). Les zéros sont alors 50, 100, …, 400 Hz : toutes les harmoniques jusqu'à \(f_e/2\) sont annulées. Remarque : \(f_e\) étant un multiple de 50 Hz, une harmonique plus élevée qui aurait échappé au filtre d'entrée se replierait elle aussi sur un multiple de 50 Hz, donc sur un zéro — sauf les rangs multiples de 16, qui se replient en 0 Hz et décaleraient la valeur moyenne.</p>
+    <p><strong>Q3.</strong> \(|\underline H(2\ \text{Hz})| = \dfrac{\sin(0{,}1257)}{16\,\sin(0{,}007854)} \approx 0{,}997\) : le signal utile est transmis à 0,3 % près. Le retard vaut \((M-1)T_e/2 = 15\times1{,}25\ \text{ms}/2 \approx 9{,}4\ \text{ms}\), négligeable devant les durées d'évolution du signal (plus de 0,5 s). La phase étant linéaire, toutes les composantes utiles sont retardées d'autant : pas de distorsion de phase.</p>
+    <p><strong>Q4.</strong> À 50,5 Hz, \(Mf/f_e = 1{,}01\) et \(f/f_e \approx 0{,}0631\) :</p>
+    <div class="formula">$$|\underline H| = \frac{|\sin(1{,}01\,\pi)|}{16\,\sin(0{,}0631\,\pi)}$$
+    $$|\underline H| \approx \frac{0{,}0314}{3{,}15} \approx 1{,}0\times10^{-2}$$</div>
+    <p>soit environ \(-40\ \text{dB}\) : la réjection n'est plus infinie mais reste très confortable.</p>
+    <p><strong>Q5.</strong></p>
+<pre class="codeblock"><span class="kw">def</span> moyenne_glissante(x, M):
+    y = np.zeros(len(x) - M + 1)
+    <span class="kw">for</span> k <span class="kw">in</span> range(M - 1, len(x)):
+        y[k - M + 1] = np.sum(x[k - M + 1 : k + 1]) / M
+    <span class="kw">return</span> y
+
+<span class="cmt"># variante vectorisée : np.convolve(x, np.ones(M)/M, mode='valid')</span></pre>
+    <p>Remarque : on économise des calculs avec la forme récursive \(y_k = y_{k-1} + (x_k - x_{k-M})/M\), qui ne demande qu'une addition et une soustraction par échantillon.</p>
+    <p><strong>Q6.</strong> \(801/800 \approx 1\) : \(m = 1\) et \(f_{\text{app}} = |801 - 800| = 1\ \text{Hz}\). Le gain d'un filtre numérique étant périodique de période \(f_e\), \(|\underline H(801\ \text{Hz})| = |\underline H(1\ \text{Hz})| \approx 0{,}999\) : la perturbation traverse la moyenne glissante sans atténuation et se présente comme une oscillation de pression de période 1 s, impossible à distinguer d'une évolution réelle. Seul un filtre <strong>analogique</strong> placé avant l'échantillonneur peut l'arrêter : le traitement numérique, aussi soigné soit-il, n'y peut rien.</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 06</span><span class="diff">★ ★ ★</span>
+  <h3>Filtre RC numérique : schémas, stabilité et réponse fréquentielle</h3>
+  <div class="statement">On souhaite réaliser numériquement un passe-bas du premier ordre de constante de temps \(\tau = 1{,}0\ \text{ms}\) (fréquence de coupure \(f_c = 1/(2\pi\tau) \approx 159\ \text{Hz}\)) à partir d'échantillons prélevés à \(f_e = 10\ \text{kHz}\). L'équation du filtre analogique est \(\tau\,\dot y + y = x\).</div>
+  <div class="q"><strong>Q1.</strong> Établir la relation de récurrence obtenue en approchant la dérivée par une différence arrière. Calculer \(\alpha\).</div>
+  <div class="q"><strong>Q2.</strong> On part de \(y_0 = 0\) et on applique un échelon : \(x_k = 1\) pour \(k \ge 1\). Exprimer \(y_k\), puis comparer \(y_{10}\) à la réponse du filtre analogique à \(t = \tau\).</div>
+  <div class="q"><strong>Q3.</strong> Établir la récurrence obtenue avec une différence avant. Pour l'échelon, exprimer \(y_k - 1\) et en déduire une condition de stabilité. Que se passe-t-il si l'on réduit \(f_e\) à 400 Hz ? Et pour le schéma arrière à la même cadence ?</div>
+  <div class="q"><strong>Q4.</strong> Montrer que le filtre de la question Q1 a pour fonction de transfert \(\underline H(f) = \dfrac{\alpha}{1 - (1-\alpha)\,e^{-2i\pi fT_e}}\). Calculer son gain à 100 Hz, 1 kHz et 5 kHz, le comparer à celui du filtre analogique et conclure.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> \(\tau\,\dfrac{y_k - y_{k-1}}{T_e} + y_k = x_k\) donne \(y_k = \alpha\,x_k + (1-\alpha)\,y_{k-1}\) avec \(\alpha = \dfrac{T_e}{\tau + T_e} = \dfrac{0{,}1}{1{,}1} \approx 0{,}0909\).</p>
+    <p><strong>Q2.</strong> Pour \(x_k = 1\) : \(y_k - 1 = (1-\alpha)(y_{k-1} - 1)\), suite géométrique, d'où \(y_k = 1 - (1-\alpha)^k\). Pour \(k = 10\) (soit \(t = 10\,T_e = \tau\)) : \(y_{10} = 1 - (0{,}909)^{10} \approx 0{,}614\), contre \(1 - e^{-1} \approx 0{,}632\) pour le filtre analogique. L'écart vient de \((1-\alpha)^k = e^{-k\ln(1 + T_e/\tau)}\), légèrement supérieur à \(e^{-kT_e/\tau}\) : la réponse numérique est un peu en retard ; l'écart s'annule quand \(T_e/\tau \to 0\).</p>
+    <p><strong>Q3.</strong> \(\tau\,\dfrac{y_{k+1} - y_k}{T_e} + y_k = x_k\) donne \(y_{k+1} = \left(1 - \dfrac{T_e}{\tau}\right)y_k + \dfrac{T_e}{\tau}\,x_k\). Pour l'échelon de Q2 (\(x_0 = 0\), donc \(y_1 = 0\)) : \(y_k - 1 = \left(1 - \dfrac{T_e}{\tau}\right)^{k-1}(y_1 - 1) = -\left(1 - \dfrac{T_e}{\tau}\right)^{k-1}\) pour \(k \ge 1\). La suite converge vers 1 si et seulement si \(|1 - T_e/\tau| \lt 1\), c'est-à-dire \(T_e \lt 2\tau\). À 10 kHz, le facteur vaut 0,9 : tout va bien. À 400 Hz, \(T_e = 2{,}5\ \text{ms}\) et \(T_e/\tau = 2{,}5\) : le facteur vaut \(-1{,}5\), l'écart à 1 est multiplié par 1,5 en changeant de signe à chaque pas — divergence oscillante. Le schéma arrière, lui, donne \(\alpha = 2{,}5/3{,}5 \approx 0{,}71\) et un facteur \(0{,}29\) : il reste stable (il l'est toujours), mais ne ressemble plus guère au filtre analogique, puisque \(T_e \gt \tau\) et que \(f_c\) est proche de \(f_e/2 = 200\ \text{Hz}\).</p>
+    <p><strong>Q4.</strong> Avec \(x_k = e^{2i\pi fkT_e}\) et \(y_k = \underline H\,x_k\), on a \(y_{k-1} = e^{-2i\pi fT_e}\,y_k\), donc \(\underline H = \alpha + (1-\alpha)\,e^{-2i\pi fT_e}\,\underline H\), d'où l'expression annoncée. Numériquement (filtre analogique : \(1/\sqrt{1 + (f/f_c)^2}\)) :</p>
+    <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:.82rem;margin:.5rem 0;text-align:center">
+      <tr style="background:var(--paper-dark)"><th style="padding:.3rem;border:1px solid var(--grid)">\(f\)</th><th style="padding:.3rem;border:1px solid var(--grid)">100 Hz</th><th style="padding:.3rem;border:1px solid var(--grid)">1 kHz</th><th style="padding:.3rem;border:1px solid var(--grid)">5 kHz \(= f_e/2\)</th></tr>
+      <tr><td style="padding:.3rem;border:1px solid var(--grid)">numérique</td><td style="padding:.3rem;border:1px solid var(--grid)">0,835</td><td style="padding:.3rem;border:1px solid var(--grid)">0,152</td><td style="padding:.3rem;border:1px solid var(--grid)">\(\alpha/(2-\alpha) \approx 0{,}048\)</td></tr>
+      <tr><td style="padding:.3rem;border:1px solid var(--grid)">analogique</td><td style="padding:.3rem;border:1px solid var(--grid)">0,847</td><td style="padding:.3rem;border:1px solid var(--grid)">0,157</td><td style="padding:.3rem;border:1px solid var(--grid)">0,032</td></tr>
+    </table></div>
+    <p>L'accord est bon tant que \(f \ll f_e\) ; il se dégrade près de \(f_e/2\). Surtout, \(\underline H\) est périodique de période \(f_e\) : \(|\underline H(f_e)| = 1\). Le filtre numérique imite le filtre RC dans la bande \([0\,;\,f_e/2]\) seulement, et ne dispense pas du filtre anti-repliement.</p>
+  </div>
+</div>
+
+<div class="exo concours">
+  <span class="num">CONCOURS PT</span><span class="diff">★ ★ ★</span>
+  <h3>Surveillance vibratoire d'un roulement</h3>
+  <div class="exo-source">
+    Exercice <strong>original</strong> au format des épreuves PT (thème <em>acquisition et traitement numérique du signal</em>). Pour t'entraîner sur les sujets réellement tombés :
+    <a href="https://www.banquept.fr/rubrique38.html" target="_blank" rel="noopener">annales officielles de la Banque PT</a>.
+  </div>
+  <div class="statement">
+    Pour détecter l'usure d'un roulement de machine tournante, on fixe sur son palier un accéléromètre de sensibilité \(100\ \text{mV/g}\) (\(g = 9{,}81\ \text{m·s}^{-2}\)). Après conditionnement, sa tension \(v(t)\) reste comprise entre \(-2{,}5\ \text{V}\) et \(+2{,}5\ \text{V}\). Les défauts de roulement se manifestent par des raies dans la bande utile \([0\,;\,2\ \text{kHz}]\) ; le palier présente aussi des résonances mécaniques, excitées par les chocs, jusqu'à \(30\ \text{kHz}\). La rotation de l'arbre se fait à \(25\ \text{tr/s}\).
+  </div>
+
+  <p class="exo-part">Partie A — Quantification</p>
+  <div class="q"><strong>A1.</strong> Le CAN a 12 bits et une plage \([-2{,}5\ \text{V}\,;\,+2{,}5\ \text{V}]\). Calculer le quantum et la résolution en accélération (en g et en \(\text{m·s}^{-2}\)).</div>
+  <div class="q"><strong>A2.</strong> Donner la valeur efficace du bruit de quantification et le rapport signal sur bruit maximal (sinusoïde pleine échelle).</div>
+
+  <p class="exo-part">Partie B — Échantillonnage et anti-repliement</p>
+  <div class="q"><strong>B1.</strong> On envisage \(f_e = 10\ \text{kHz}\). Le critère de Shannon est-il respecté pour la bande utile ? pour le signal complet ? À quelles fréquences apparaîtraient des résonances à \(8{,}5\ \text{kHz}\) et à \(21{,}3\ \text{kHz}\) ?</div>
+  <div class="q"><strong>B2.</strong> Quelles bandes de fréquences se replient dans la bande utile ? Quelle est la plus basse fréquence « dangereuse » ?</div>
+  <div class="q"><strong>B3.</strong> Le filtre anti-repliement est un Butterworth d'ordre \(p\), de fréquence de coupure \(f_c = 2{,}5\ \text{kHz}\), dont on utilise l'asymptote \(-20p\) dB/décade. On exige au moins 60 dB d'atténuation pour toute composante susceptible de se replier dans la bande utile. Déterminer l'ordre minimal pour \(f_e = 10\ \text{kHz}\).</div>
+  <div class="q"><strong>B4.</strong> Reprendre la question pour \(f_e = 40\ \text{kHz}\) et commenter.</div>
+
+  <p class="exo-part">Partie C — Analyse spectrale par FFT</p>
+  <div class="q"><strong>C1.</strong> Une bague usée produit deux raies à \(157\ \text{Hz}\) et \(162\ \text{Hz}\) que l'on veut distinguer ; on vise \(\Delta f \le 1\ \text{Hz}\). Avec \(f_e = 40\ \text{kHz}\), déterminer la durée d'acquisition minimale, le nombre \(N\) de points (puissance de 2), la résolution obtenue et la mémoire nécessaire (2 octets par échantillon).</div>
+  <div class="q"><strong>C2.</strong> Écrire les lignes numpy qui, à partir du tableau <span class="code-inline">s</span> des tensions (en volts), donnent l'amplitude des raies d'accélération (en g) en fonction de la fréquence, limitée à la bande utile.</div>
+  <div class="q"><strong>C3.</strong> Le pic voisin de 162 Hz a pour module \(|S_m| = 1{,}31\times10^3\). En déduire l'amplitude de l'accélération correspondante. Pourquoi cette valeur est-elle probablement sous-estimée ? Proposer un remède.</div>
+
+  <p class="exo-part">Partie D — Indicateur global et comparaison avec l'analogique</p>
+  <div class="q"><strong>D1.</strong> Pour une alarme simple, on calcule en continu une valeur efficace glissante : on élève chaque échantillon au carré, on lisse le résultat par un passe-bas récursif du premier ordre (différence arrière) de constante de temps \(\tau = 0{,}20\ \text{s}\), puis on prend la racine carrée. Écrire la récurrence, calculer \(\alpha\), justifier l'ordre de grandeur de \(\tau\) et écrire la boucle Python correspondante.</div>
+  <div class="q"><strong>D2.</strong> On envisage à la place un analyseur analogique à filtre passe-bande balayé, de même résolution \(\Delta f = 1\ \text{Hz}\). Quel facteur de qualité faut-il au voisinage de 160 Hz ? Quel est le temps de réponse du filtre ? Estimer la durée d'un balayage de 0 à 2 kHz par pas de 1 Hz, en restant \(3\tau_f\) sur chaque point. Conclure.</div>
+
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>A1.</strong> \(q = 5{,}0/2^{12} \approx 1{,}22\ \text{mV}\), soit \(1{,}22/100 \approx 1{,}2\times10^{-2}\ \text{g} \approx 0{,}12\ \text{m·s}^{-2}\).</p>
+    <p><strong>A2.</strong> \(q/\sqrt{12} \approx 0{,}35\ \text{mV}\) ; \(\mathrm{RSB} \approx 6{,}02\times12 + 1{,}76 \approx 74\ \text{dB}\).</p>
+    <p><strong>B1.</strong> Bande utile : \(2\ \text{kHz} \lt f_e/2 = 5\ \text{kHz}\), critère respecté. Signal complet : non, il faudrait \(f_e \gt 60\ \text{kHz}\). Résonance à 8,5 kHz : \(m = 1\), \(f_{\text{app}} = 1{,}5\ \text{kHz}\) ; à 21,3 kHz : \(m = 2\), \(f_{\text{app}} = 1{,}3\ \text{kHz}\). Les deux tombent dans la bande utile et seraient prises pour des défauts de roulement.</p>
+    <p><strong>B2.</strong> Se replient dans \([0\,;\,2\ \text{kHz}]\) les composantes de fréquences \([m f_e - 2\,;\,m f_e + 2]\) kHz, \(m \ge 1\) : \([8\,;\,12]\), \([18\,;\,22]\), \([28\,;\,32]\) kHz… La plus basse fréquence dangereuse est \(f_e - f_{\max} = 8\ \text{kHz}\). (Les composantes entre 2 et 5 kHz, sous \(f_e/2\), ne se replient pas ; celles entre 5 et 8 kHz se replient entre 2 et 5 kHz. Toutes restent hors de la bande utile \([0\,;\,2\ \text{kHz}]\) : on les tolère.)</p>
+    <p><strong>B3.</strong> Atténuation à 8 kHz : \(20\,p\log(8/2{,}5) \approx 10{,}1\,p\ \text{dB} \ge 60\ \text{dB}\), d'où \(p \ge 5{,}94\) : ordre 6 au minimum.</p>
+    <p><strong>B4.</strong> La fréquence critique devient \(40 - 2 = 38\ \text{kHz}\) : \(20\,p\log(38/2{,}5) \approx 23{,}6\,p \ge 60\), d'où \(p \ge 2{,}54\) : ordre 3. Suréchantillonner d'un facteur 4 divise l'ordre par deux : filtre plus simple, moins coûteux et moins déphasant, au prix de quatre fois plus d'échantillons à stocker et à traiter (on peut ensuite filtrer numériquement et décimer).</p>
+    <p><strong>C1.</strong> \(T_a \ge 1/\Delta f = 1\ \text{s}\), donc \(N \ge 40\,000\) ; on prend \(N = 2^{16} = 65\,536\), d'où \(T_a \approx 1{,}64\ \text{s}\) et \(\Delta f \approx 0{,}61\ \text{Hz}\). Les deux raies, distantes de 5 Hz, sont séparées par environ 8 points. Mémoire : \(65\,536\times2 = 131\,072\) octets, soit 128 kio.</p>
+    <p><strong>C2.</strong></p>
+<pre class="codeblock">N = len(s)
+S = np.fft.rfft(s)
+f = np.fft.rfftfreq(N, d=1/fe)
+A = 2*np.abs(S)/N / 0.100          <span class="cmt"># amplitudes en g (sensibilité 0,100 V/g)</span>
+utile = f &lt;= 2000                  <span class="cmt"># masque de la bande utile</span>
+f, A = f[utile], A[utile]</pre>
+    <p><strong>C3.</strong> Amplitude en tension : \(2\times1310/65\,536 \approx 4{,}0\times10^{-2}\ \text{V}\), soit \(0{,}40\ \text{g} \approx 3{,}9\ \text{m·s}^{-2}\). La raie à 162 Hz correspond à l'indice \(162/\Delta f \approx 265{,}4\), non entier : elle tombe entre deux points, son énergie fuit sur les voisins et l'amplitude lue est sous-estimée. Sans fenêtre, un écart de 0,42 point au point le plus proche ne restitue qu'environ \(\left|\sin(0{,}42\pi)\right|/(0{,}42\pi) \approx 73\ \%\) de l'amplitude : la vraie valeur avoisinerait \(0{,}55\ \text{g}\). Remèdes : fenêtre de pondération adaptée à la mesure d'amplitude (fenêtre « à sommet plat »), durée d'acquisition contenant un nombre entier de périodes, ou interpolation entre les points voisins.</p>
+    <p><strong>D1.</strong> En notant \(z_k = s_k^2\) : \(y_k = \alpha\,z_k + (1-\alpha)\,y_{k-1}\), avec</p>
+    <div class="formula">$$\alpha = \frac{T_e}{\tau + T_e} = \frac{25\times10^{-6}}{0{,}200025} \approx 1{,}25\times10^{-4}$$</div>
+    <p>et la valeur efficace glissante vaut \(\sqrt{y_k}\). Le carré d'un signal vibratoire contient sa valeur moyenne (le carré de la valeur efficace) et des termes oscillants, principalement à des fréquences doubles des raies, donc supérieures ou égales à 50 Hz pour une rotation à 25 Hz. La coupure \(f_c = 1/(2\pi\tau) \approx 0{,}8\ \text{Hz}\) est très inférieure à 50 Hz (ondulation résiduelle de l'ordre de \(f_c/50 \approx 2\ \%\)) tout en laissant à l'indicateur un temps de réponse d'environ \(3\tau = 0{,}6\ \text{s}\), suffisant pour une alarme. Les battements entre raies voisines (5 Hz entre 157 et 162 Hz) ne sont atténués que d'un facteur \(f_c/5 \approx 0{,}16\) : ils font légèrement fluctuer l'indicateur.</p>
+<pre class="codeblock">Te = 1/fe
+tau = 0.20
+a = Te/(tau + Te)
+y = np.zeros(len(s))
+y[0] = s[0]**2
+<span class="kw">for</span> k <span class="kw">in</span> range(1, len(s)):
+    y[k] = a*s[k]**2 + (1 - a)*y[k-1]
+v_eff = np.sqrt(y)                 <span class="cmt"># valeur efficace glissante (V)</span></pre>
+    <p><strong>D2.</strong> \(Q = f_0/\Delta f = 160/1 = 160\). Temps de réponse : \(\tau_f = 1/(\pi\Delta f) \approx 0{,}32\ \text{s}\). Balayage : \(2\,000\) points \(\times\,3\times0{,}32\ \text{s} \approx 1\,900\ \text{s}\), soit environ une demi-heure, contre 1,6 s d'acquisition (et un calcul quasi instantané) pour la FFT. De plus, un phénomène évoluant en quelques minutes serait déformé pendant le balayage. L'analyse par FFT s'impose ici ; l'analyse analogique ne reste intéressante que pour une résolution grossière ou avec un banc de filtres fonctionnant en parallèle.</p>
+  </div>
+</div>
+
+</div>
+</template>

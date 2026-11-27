@@ -1,0 +1,904 @@
+<!-- Chapitre « Algorithmes gloutons » (pyglouton) : contenu des onglets Cours, Méthodes et Exercices, chargé à l'ouverture du chapitre.
+     On l'édite ici, puis : node tools/chapitres.js (docs/chargement-chapitres.md). -->
+<template class="pan-tpl" data-panneau="glou-cours">
+<div class="course-section">
+  <div class="sec-num">AU PROGRAMME · INFORMATIQUE</div>
+  <h2>Ce que le programme officiel demande</h2>
+  <div class="intro">Les algorithmes gloutons forment un thème du premier semestre. Le programme cite trois situations : le rendu de monnaie, l'allocation de salles pour des cours et la sélection d'activités, et demande de montrer sur des exemples qu'un algorithme glouton ne fournit pas toujours une solution optimale, ni même une solution. En deuxième année, la programmation dynamique reprend ces problèmes là où le glouton échoue.</div>
+  <div class="reveal" onclick="this.classList.toggle('open')">
+    <span class="label">Programme officiel</span>
+    <span class="prompt">Les notions et activités couvertes, dans l'ordre du chapitre</span>
+    <div class="content">
+      <ul>
+        <li><strong>Algorithmes gloutons</strong> (S1) : principe, problème d'optimisation, choix local définitif (§1).</li>
+        <li><strong>Rendu de monnaie</strong> (S1) : algorithme glouton, coût (§2) ; systèmes pour lesquels il n'est pas optimal, ou ne trouve pas de solution (§3).</li>
+        <li><strong>Sélection d'activités</strong> (S1) : critères possibles, contre-exemples, algorithme de la fin au plus tôt (§4) et preuve de son optimalité (§5).</li>
+        <li><strong>Allocation de salles pour des cours</strong> (S1) : algorithme glouton, nombre de salles égal au nombre maximal de cours simultanés (§6).</li>
+        <li><strong>Un glouton ne fournit pas toujours une solution optimale</strong> (S1) : contre-exemples (§3, §4, §7).</li>
+        <li><strong>Lien avec la programmation dynamique</strong> (S3) : propriété de sous-structure optimale, comparée à sa situation dans une stratégie gloutonne (§5, §7 ; développé dans le chapitre <em>Dictionnaires et programmation dynamique</em>).</li>
+      </ul>
+      <p>Les situations citées sont des exemples d'activités, non exigibles en tant que telles : ce qui est attendu, c'est de savoir écrire un algorithme glouton, évaluer son coût, justifier son optimalité dans un cas simple ou la réfuter par un contre-exemple. Les preuves des §5 et §6 sont données pour comprendre ; seul le raisonnement guidé est exigible. Le code n'utilise que les éléments de Python de l'annexe du programme, plus la fonction <span class="code-inline">sorted</span>, documentée au §1.</p>
+    </div>
+  </div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§1 · PROBLÈMES D'OPTIMISATION ET STRATÉGIE GLOUTONNE</div>
+  <h2>Faire, à chaque étape, le choix qui semble le meilleur</h2>
+  <div class="intro">Rendre la monnaie avec le moins de pièces possible, placer le plus de réunions dans une salle, ouvrir le moins de salles possible : ces problèmes demandent la <em>meilleure</em> solution parmi un très grand nombre de solutions possibles. Les essayer toutes est hors de portée (une liste de 50 objets a \(2^{50} \approx 10^{15}\) sous-listes). Un algorithme glouton construit une seule solution, par une suite de choix simples.</div>
+
+  <div class="def-box">
+    Un <strong>problème d'optimisation</strong> est donné par un ensemble de <strong>solutions réalisables</strong> (celles qui respectent les contraintes) et une <strong>fonction objectif</strong> à minimiser ou à maximiser. Une <strong>solution optimale</strong> est une solution réalisable qui donne la meilleure valeur de l'objectif ; il peut y en avoir plusieurs.
+  </div>
+  <div class="def-box">
+    Un <strong>algorithme glouton</strong> construit une solution étape par étape. À chaque étape, il fait le choix qui paraît le meilleur <em>sur le moment</em>, selon un critère local, et ne revient jamais sur ce choix.
+  </div>
+  <p>La plupart des gloutons de ce chapitre suivent le même schéma : on range les candidats selon un critère, puis on les examine un par un en gardant ceux qui sont compatibles avec les choix déjà faits.</p>
+<pre class="codeblock">solution ← vide
+pour chaque candidat, pris dans l'ordre du critère :
+    si le candidat est compatible avec la solution :
+        l'ajouter à la solution (définitivement)
+renvoyer la solution</pre>
+
+  <div class="prop-box">
+    <strong>Forces et faiblesse.</strong> Un glouton est simple à écrire et rapide : son coût est souvent dominé par le tri des candidats, en \(O(n \log n)\). Mais un choix localement le meilleur peut empêcher d'atteindre l'optimum. Face à un glouton, on se pose donc deux questions : la solution obtenue est-elle <strong>réalisable</strong> ? Est-elle <strong>optimale</strong> ? La seconde se tranche par une preuve (§5) ou par un contre-exemple (§3, §4).
+  </div>
+
+  <div class="method-box">
+    <strong>Exemple — Remplir une clé USB avec le plus de fichiers possible</strong>
+    <p>Une clé de 1 000 Mo doit recevoir le plus grand nombre possible de fichiers parmi sept, de tailles 700, 120, 350, 45, 260, 90 et 500 Mo. Le critère glouton naturel : copier d'abord les plus petits.</p>
+<pre class="codeblock"><span class="kw">def</span> max_fichiers(tailles, capacite):
+    <span class="cmt"># nombre maximal de fichiers copiables sur la clé</span>
+    total, nb = 0, 0
+    <span class="kw">for</span> t <span class="kw">in</span> sorted(tailles):    <span class="cmt"># du plus petit au plus gros</span>
+        <span class="kw">if</span> total + t &gt; capacite:
+            <span class="kw">break</span>                <span class="cmt"># les suivants sont plus gros</span>
+        total = total + t
+        nb = nb + 1
+    <span class="kw">return</span> nb</pre>
+    <ol>
+      <li>Dans l'ordre croissant : 45 (total 45), 90 (135), 120 (255), 260 (515), 350 (865).</li>
+      <li>Le suivant, 500, porterait le total à 1 365 Mo : il ne rentre pas, et les suivants, plus gros, non plus. La fonction renvoie 5.</li>
+      <li><strong>Optimalité</strong> : pour tout \(k\), les \(k\) plus petits fichiers ont le plus petit total possible parmi tous les choix de \(k\) fichiers. Si 6 fichiers quelconques tenaient sur la clé, les 6 plus petits tiendraient aussi ; or ils font 1 365 Mo. Donc 5 est le maximum.</li>
+    </ol>
+<pre class="codeblock">tailles = [700, 120, 350, 45, 260, 90, 500]   <span class="cmt"># en Mo</span>
+max_fichiers(tailles, 1000)    <span class="cmt"># 5</span></pre>
+  </div>
+  <div class="notice"><strong>Documentation</strong> : <span class="code-inline">sorted(L)</span> renvoie une <em>nouvelle</em> liste contenant les éléments de <span class="code-inline">L</span> rangés dans l'ordre croissant, en \(O(n \log n)\) (chapitre <em>Algorithmes de tri</em>). Des tuples sont comparés dans l'ordre <strong>lexicographique</strong> : d'abord la première composante, puis la deuxième en cas d'égalité, etc. Ainsi <span class="code-inline">sorted([(10, 8), (9, 12), (10, 1)])</span> vaut <span class="code-inline">[(9, 12), (10, 1), (10, 8)]</span>.</div>
+  <div class="notice"><strong>Erreur classique</strong> : appeler « optimal » le résultat d'un glouton parce qu'il paraît raisonnable, ou parce qu'il est juste sur quelques exemples. Sans preuve, un glouton n'est qu'une <em>heuristique</em> : une méthode qui donne une solution acceptable, sans garantie.</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§2 · LE RENDU DE MONNAIE</div>
+  <h2>Rendre la plus grosse pièce possible</h2>
+  <div class="intro">Un commerçant doit rendre une somme \(s\) en utilisant le moins possible de pièces et de billets. Le réflexe de tout caissier est glouton : rendre la plus grosse valeur qui ne dépasse pas ce qui reste dû, puis recommencer.</div>
+
+  <div class="def-box">
+    Un <strong>système de pièces</strong> est une liste de valeurs entières \(c_1 \gt c_2 \gt \dots \gt c_k = 1\) (la plus petite valeur vaut 1, ce qui garantit qu'une somme entière peut toujours être rendue). Le <strong>problème du rendu de monnaie</strong> : pour une somme entière \(s \ge 0\), trouver des nombres \(n_1, \dots, n_k \ge 0\) tels que \(n_1 c_1 + \dots + n_k c_k = s\), avec un nombre total de pièces \(n_1 + \dots + n_k\) minimal.
+  </div>
+<pre class="codeblock"><span class="kw">def</span> rendu_glouton(s, pieces):
+    <span class="cmt"># pieces : valeurs décroissantes, la dernière vaut 1</span>
+    <span class="cmt"># s : entier &gt;= 0 ; renvoie la liste des pièces rendues</span>
+    rendu = []
+    <span class="kw">for</span> c <span class="kw">in</span> pieces:
+        <span class="kw">while</span> s &gt;= c:
+            rendu.append(c)
+            s = s - c
+    <span class="kw">return</span> rendu</pre>
+  <p>On travaille en <strong>centimes</strong>, avec des entiers. Le système de l'euro, limité aux valeurs de 5 € à 1 centime, s'écrit alors <span class="code-inline">[500, 200, 100, 50, 20, 10, 5, 2, 1]</span>.</p>
+
+  <div class="method-box">
+    <strong>Exemple — Rendre 7,87 €</strong>
+    <p>Un client paie 12,13 € avec un billet de 20 € : il faut rendre 787 centimes.</p>
+    <div><table>
+      <tr><th>reste dû</th><th>787</th><th>287</th><th>87</th><th>37</th><th>17</th><th>7</th><th>2</th></tr>
+      <tr><td>valeur rendue</td><td>500</td><td>200</td><td>50</td><td>20</td><td>10</td><td>5</td><td>2</td></tr>
+    </table></div>
+    <ol>
+      <li>Les valeurs 100 (après 287 − 200 = 87), puis 1 (après 2 − 2 = 0) ne sont jamais utilisées.</li>
+      <li>Sept pièces et billets au total : c'est le minimum (le système de l'euro est canonique, voir §3).</li>
+    </ol>
+<pre class="codeblock">EURO = [500, 200, 100, 50, 20, 10, 5, 2, 1]   <span class="cmt"># en centimes</span>
+rendu_glouton(787, EURO)   <span class="cmt"># [500, 200, 50, 20, 10, 5, 2]</span></pre>
+  </div>
+
+  <p>Plutôt que de rendre les pièces une à une, on peut calculer directement le nombre d'exemplaires de chaque valeur par une division euclidienne : avec \(c\) et un reste dû \(s\), on rend \(\lfloor s/c \rfloor\) pièces \(c\) et il reste \(s \bmod c\).</p>
+<pre class="codeblock"><span class="kw">def</span> rendu_compte(s, pieces):
+    <span class="cmt"># même choix glouton ; renvoie {pièce : nombre}</span>
+    d = {}
+    <span class="kw">for</span> c <span class="kw">in</span> pieces:
+        <span class="kw">if</span> s &gt;= c:
+            d[c] = s // c   <span class="cmt"># autant de pièces c que possible</span>
+            s = s % c         <span class="cmt"># reste à rendre</span>
+    <span class="kw">return</span> d</pre>
+<pre class="codeblock">rendu_compte(1990, EURO)   <span class="cmt"># {500: 3, 200: 2, 50: 1, 20: 2}</span></pre>
+
+  <div class="prop-box">
+    <strong>Coût.</strong> <span class="code-inline">rendu_glouton</span> fait \(k\) tours de boucle <span class="code-inline">for</span>, plus un tour de <span class="code-inline">while</span> par pièce rendue : \(O(k + p)\), où \(p\) est le nombre de pièces rendues. <span class="code-inline">rendu_compte</span> ne fait que \(k\) tours, chacun de coût constant : \(O(k)\), quelle que soit la somme. La boucle <span class="code-inline">while</span> termine car \(s\) est un entier positif qui diminue strictement à chaque tour.
+  </div>
+
+  <div class="reveal" onclick="this.classList.toggle('open')">
+    <span class="label">Démonstration</span>
+    <span class="prompt">Le glouton est optimal pour le système (5, 2, 1)</span>
+    <div class="content">
+      <p>Prenons une solution optimale pour une somme \(s\), avec \(n_5\), \(n_2\), \(n_1\) pièces de 5, 2 et 1. Elle vérifie :</p>
+      <ul>
+        <li>\(n_1 \le 1\) : sinon, remplacer deux pièces de 1 par une pièce de 2 économiserait une pièce ;</li>
+        <li>\(n_2 \le 2\) : sinon, remplacer trois pièces de 2 par une de 5 et une de 1 économiserait une pièce ;</li>
+        <li>on n'a pas à la fois \(n_1 = 1\) et \(n_2 = 2\) : sinon, \(2 + 2 + 1\) serait remplacé par une pièce de 5.</li>
+      </ul>
+      <p>Les pièces de 2 et de 1 valent donc ensemble au plus \(2 + 2 = 4\) : comme \(s = 5 n_5 + (2 n_2 + n_1)\) avec \(0 \le 2 n_2 + n_1 \le 4\), \(n_5\) est exactement le quotient de \(s\) par 5, comme dans le glouton. Le reste, entre 0 et 4, ne se décompose que d'une façon qui respecte les trois contraintes (0, 1, 2, 2 + 1, 2 + 2), et c'est celle du glouton. La solution optimale est donc celle du glouton. Le même type de raisonnement, plus long, établit l'optimalité pour l'euro.</p>
+    </div>
+  </div>
+
+  <div class="notice"><strong>Erreur classique</strong> : calculer en euros avec des flottants. 0,03 € se décompose en 2 c + 1 c, mais en flottants, \(0{,}03 - 0{,}02\) ne vaut pas exactement \(0{,}01\) :
+<pre class="codeblock">reste = 0.03 - 0.02    <span class="cmt"># euros, en flottants</span>
+reste                  <span class="cmt"># 0.009999999999999998</span>
+reste &gt;= 0.01          <span class="cmt"># False</span></pre>
+  La pièce de 1 centime n'est jamais rendue. Les valeurs décimales comme 0,01 ne sont pas représentables exactement en binaire (chapitre <em>Représentation des nombres</em>) : on calcule en centimes, avec des entiers.</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§3 · QUAND LE GLOUTON SE TROMPE : SYSTÈMES NON CANONIQUES</div>
+  <h2>Un seul contre-exemple suffit</h2>
+  <div class="intro">Le glouton est optimal pour l'euro, mais ce n'est pas une propriété de tous les systèmes de pièces. Pour certains, il rend trop de pièces ; si la pièce de 1 manque, il peut même échouer alors qu'une solution existe.</div>
+
+  <div class="def-box">
+    Un système de pièces est <strong>canonique</strong> si l'algorithme glouton rend un nombre minimal de pièces pour <em>toute</em> somme \(s\). Le système de l'euro, celui du dollar sont canoniques (admis).
+  </div>
+
+  <div class="method-box">
+    <strong>Exemple — Le système (4, 3, 1)</strong>
+    <p>On compare, pour chaque somme de 1 à 8, le nombre de pièces rendues par le glouton et le minimum possible, trouvé à la main.</p>
+    <div><table>
+      <tr><th>\(s\)</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th><th>6</th><th>7</th><th>8</th></tr>
+      <tr><td>glouton</td><td>1</td><td>2</td><td>1</td><td>1</td><td>2</td><td><strong>3</strong></td><td>2</td><td>2</td></tr>
+      <tr><td>minimum</td><td>1</td><td>2</td><td>1</td><td>1</td><td>2</td><td><strong>2</strong></td><td>2</td><td>2</td></tr>
+    </table></div>
+    <ol>
+      <li>Pour \(s = 6\), le glouton prend 4, puis il reste 2, rendu en 1 + 1 : trois pièces.</li>
+      <li>Or \(6 = 3 + 3\) : deux pièces suffisent. Le premier choix (prendre 4) était localement le meilleur, mais il a condamné la suite.</li>
+      <li>Le système (4, 3, 1) n'est donc pas canonique : un seul contre-exemple le prouve.</li>
+    </ol>
+<pre class="codeblock">rendu_glouton(6, [4, 3, 1])                 <span class="cmt"># [4, 1, 1]</span>
+rendu_glouton(48, [30, 24, 12, 6, 3, 1])    <span class="cmt"># [30, 12, 6]</span>
+rendu_glouton(6, [5, 2])                    <span class="cmt"># [5]</span></pre>
+  </div>
+
+  <p>Ce n'est pas qu'un cas d'école. Avant 1971, la monnaie britannique comptait notamment des pièces de 1, 3, 6, 12, 24 et 30 pence (penny, threepence, sixpence, shilling, florin, demi-couronne) : pour 48 pence, le glouton rend 30 + 12 + 6, alors que deux florins (24 + 24) suffisent. Enfin, sans pièce de 1, le glouton peut ne rien trouver : avec des pièces de 5 et de 2, il rend 5 pour une somme de 6, puis reste bloqué sur 1, alors que \(6 = 2 + 2 + 2\). La troisième ligne ci-dessus renvoie une liste de somme 5 : la solution n'est pas réalisable.</p>
+
+  <div class="notice"><strong>Erreur classique</strong> : conclure qu'un glouton est optimal parce qu'il l'est sur les exemples essayés. Des tests réussis ne prouvent rien ; un seul contre-exemple prouve la non-optimalité. Pour en chercher, on essaie les petites valeurs et les cas où un gros premier choix gêne la suite (ici, une somme qui s'écrit bien avec une pièce moyenne répétée). Le §7 montre comment automatiser cette recherche.</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§4 · SÉLECTION D'ACTIVITÉS</div>
+  <h2>Placer le plus d'activités dans une salle</h2>
+  <div class="intro">Un amphithéâtre reçoit des demandes de réservation, chacune avec une heure de début et une heure de fin. On veut en satisfaire le plus grand nombre possible, sans que deux réservations se chevauchent. Le bon critère glouton n'est pas le plus évident.</div>
+
+  <div class="def-box">
+    Une <strong>activité</strong> est un intervalle semi-ouvert \([d, f[\), avec \(d \lt f\) (l'activité libère la salle à l'instant \(f\)). Deux activités \([d_1, f_1[\) et \([d_2, f_2[\) sont <strong>compatibles</strong> si \(f_1 \le d_2\) ou \(f_2 \le d_1\) : l'une se termine avant que l'autre commence. Le problème de la <strong>sélection d'activités</strong> : choisir un nombre maximal d'activités deux à deux compatibles.
+  </div>
+
+  <h3>Trois critères naturels</h3>
+  <p>On peut retenir en priorité l'activité qui commence le plus tôt, celle qui dure le moins longtemps, ou celle qui se termine le plus tôt. Les deux premiers critères sont faux, comme le montrent deux petits contre-exemples :</p>
+<figure class="schema" style="max-width:430px">
+<svg viewBox="0 0 354 256" role="img" aria-label="Deux contre-exemples. Début au plus tôt : le glouton retient la longue activité de 0 à 10 et ne peut plus rien ajouter, alors que les trois courtes sont compatibles. Plus courte d'abord : le glouton retient l'activité de 4 à 7, qui chevauche les deux autres, compatibles entre elles."><text x="56" y="18" class="lab-b" text-anchor="start">Critère « début au plus tôt »</text><rect x="57" y="30" width="258" height="16" rx="4" class="fl-accent-soft"/><rect x="57" y="30" width="258" height="16" rx="4" class="sk-accent" style="stroke-width:1.4"/><text x="46" y="43" class="lab-muted" text-anchor="end">[0, 10[</text><rect x="83" y="52" width="50" height="16" rx="4" class="fl-green-soft"/><rect x="83" y="52" width="50" height="16" rx="4" class="sk-green" style="stroke-width:1.4"/><text x="46" y="65" class="lab-muted" text-anchor="end">[1, 3[</text><rect x="161" y="74" width="50" height="16" rx="4" class="fl-green-soft"/><rect x="161" y="74" width="50" height="16" rx="4" class="sk-green" style="stroke-width:1.4"/><text x="46" y="87" class="lab-muted" text-anchor="end">[4, 6[</text><rect x="239" y="96" width="50" height="16" rx="4" class="fl-green-soft"/><rect x="239" y="96" width="50" height="16" rx="4" class="sk-green" style="stroke-width:1.4"/><text x="46" y="109" class="lab-muted" text-anchor="end">[7, 9[</text><text x="56" y="148" class="lab-b" text-anchor="start">Critère « la plus courte d'abord »</text><rect x="57" y="160" width="128" height="16" rx="4" class="fl-green-soft"/><rect x="57" y="160" width="128" height="16" rx="4" class="sk-green" style="stroke-width:1.4"/><text x="46" y="173" class="lab-muted" text-anchor="end">[0, 5[</text><rect x="213" y="182" width="128" height="16" rx="4" class="fl-green-soft"/><rect x="213" y="182" width="128" height="16" rx="4" class="sk-green" style="stroke-width:1.4"/><text x="46" y="195" class="lab-muted" text-anchor="end">[6, 11[</text><rect x="161" y="204" width="76" height="16" rx="4" class="fl-accent-soft"/><rect x="161" y="204" width="76" height="16" rx="4" class="sk-accent" style="stroke-width:1.4"/><text x="46" y="217" class="lab-muted" text-anchor="end">[4, 7[</text><line x1="56" y1="232" x2="342" y2="232" class="sk-axis"/><line x1="56" y1="229" x2="56" y2="235" class="sk-axis"/><text x="56" y="249" class="lab-muted" text-anchor="middle">0</text><line x1="82" y1="229" x2="82" y2="235" class="sk-axis"/><text x="82" y="249" class="lab-muted" text-anchor="middle"></text><line x1="108" y1="229" x2="108" y2="235" class="sk-axis"/><text x="108" y="249" class="lab-muted" text-anchor="middle">2</text><line x1="134" y1="229" x2="134" y2="235" class="sk-axis"/><text x="134" y="249" class="lab-muted" text-anchor="middle"></text><line x1="160" y1="229" x2="160" y2="235" class="sk-axis"/><text x="160" y="249" class="lab-muted" text-anchor="middle">4</text><line x1="186" y1="229" x2="186" y2="235" class="sk-axis"/><text x="186" y="249" class="lab-muted" text-anchor="middle"></text><line x1="212" y1="229" x2="212" y2="235" class="sk-axis"/><text x="212" y="249" class="lab-muted" text-anchor="middle">6</text><line x1="238" y1="229" x2="238" y2="235" class="sk-axis"/><text x="238" y="249" class="lab-muted" text-anchor="middle"></text><line x1="264" y1="229" x2="264" y2="235" class="sk-axis"/><text x="264" y="249" class="lab-muted" text-anchor="middle">8</text><line x1="290" y1="229" x2="290" y2="235" class="sk-axis"/><text x="290" y="249" class="lab-muted" text-anchor="middle"></text><line x1="316" y1="229" x2="316" y2="235" class="sk-axis"/><text x="316" y="249" class="lab-muted" text-anchor="middle">10</text><line x1="342" y1="229" x2="342" y2="235" class="sk-axis"/><text x="342" y="249" class="lab-muted" text-anchor="middle"></text></svg>
+<figcaption>Deux critères naturels mais faux. En rouge, le premier choix du glouton ; en vert, les activités d'une solution optimale. En haut, le glouton n'obtient qu'une activité au lieu de trois ; en bas, une au lieu de deux.</figcaption>
+</figure>
+  <p>Le critère « l'activité qui a le moins de conflits avec les autres » échoue aussi, sur des exemples un peu plus grands (il en existe avec neuf activités). Le bon critère est la <strong>fin au plus tôt</strong> : en choisissant l'activité qui libère la salle le plus tôt, on laisse le plus de temps possible aux suivantes.</p>
+
+<pre class="codeblock"><span class="kw">def</span> selection(activites):
+    <span class="cmt"># activites : couples (debut, fin), 0 &lt;= debut &lt; fin</span>
+    <span class="cmt"># renvoie une liste maximale d'activités deux à deux</span>
+    <span class="cmt"># compatibles</span>
+    par_fin = sorted([(f, d) <span class="kw">for</span> (d, f) <span class="kw">in</span> activites])
+    choisies = []
+    libre = 0          <span class="cmt"># salle libre à partir de cet instant</span>
+    <span class="kw">for</span> (f, d) <span class="kw">in</span> par_fin:
+        <span class="kw">if</span> d &gt;= libre:     <span class="cmt"># compatible avec les choix faits</span>
+            choisies.append((d, f))
+            libre = f
+    <span class="kw">return</span> choisies</pre>
+  <p>La liste <span class="code-inline">par_fin</span> contient les couples retournés <span class="code-inline">(f, d)</span> : leur tri lexicographique range les activités par fin croissante. La variable <span class="code-inline">libre</span> est la fin de la dernière activité retenue ; une activité est compatible avec toutes celles déjà retenues dès qu'elle commence après cet instant, puisque celles-ci se terminent toutes au plus tard à <span class="code-inline">libre</span>.</p>
+
+  <div class="method-box">
+    <strong>Exemple — Neuf demandes de réservation</strong>
+    <p>Les demandes A à I, en heures : A = [8, 10[, B = [9, 12[, C = [10, 11[, D = [11, 14[, E = [12, 13[, F = [13, 16[, G = [14, 15[, H = [15, 18[, I = [17, 19[.</p>
+    <div><table>
+      <tr><th>par fin</th><th>A</th><th>C</th><th>B</th><th>E</th><th>D</th><th>G</th><th>F</th><th>H</th><th>I</th></tr>
+      <tr><td>début</td><td>8</td><td>10</td><td>9</td><td>12</td><td>11</td><td>14</td><td>13</td><td>15</td><td>17</td></tr>
+      <tr><td>libre avant</td><td>0</td><td>10</td><td>11</td><td>11</td><td>13</td><td>13</td><td>15</td><td>15</td><td>18</td></tr>
+      <tr><td>retenue ?</td><td>oui</td><td>oui</td><td>non</td><td>oui</td><td>non</td><td>oui</td><td>non</td><td>oui</td><td>non</td></tr>
+    </table></div>
+    <ol>
+      <li>A est retenue (la salle est libre) : <span class="code-inline">libre = 10</span>. C commence à 10 : compatible, retenue (une activité peut commencer à l'instant exact où la précédente finit).</li>
+      <li>B commence à 9, avant 11 : écartée. E est retenue, D écartée, G retenue, F écartée, H retenue (elle commence à 15, quand G finit), I écartée.</li>
+      <li>Résultat : A, C, E, G, H, soit 5 activités. Le §5 prouve qu'on ne peut pas faire mieux.</li>
+    </ol>
+<pre class="codeblock">A = [(8, 10), (9, 12), (10, 11), (11, 14), (12, 13),
+     (13, 16), (14, 15), (15, 18), (17, 19)]
+selection(A)
+<span class="cmt"># [(8, 10), (10, 11), (12, 13), (14, 15), (15, 18)]</span></pre>
+  </div>
+<figure class="schema" style="max-width:430px">
+<svg viewBox="0 0 354 236" role="img" aria-label="Neuf activités A à I sur une journée, de 8 h à 19 h. Le glouton par fin au plus tôt retient A, C, E, G et H, deux à deux compatibles ; les quatre autres sont écartées."><text x="22" y="22" class="lab-b" text-anchor="end">A</text><rect x="35" y="10" width="54" height="16" rx="4" class="fl-green-soft"/><rect x="35" y="10" width="54" height="16" rx="4" class="sk-green" style="stroke-width:1.4"/><text x="22" y="44" class="lab-b" text-anchor="end">B</text><rect x="63" y="32" width="82" height="16" rx="4" class="fl-muted-soft"/><rect x="63" y="32" width="82" height="16" rx="4" class="sk-dash" style="stroke-width:1.4"/><text x="22" y="66" class="lab-b" text-anchor="end">C</text><rect x="91" y="54" width="26" height="16" rx="4" class="fl-green-soft"/><rect x="91" y="54" width="26" height="16" rx="4" class="sk-green" style="stroke-width:1.4"/><text x="22" y="88" class="lab-b" text-anchor="end">D</text><rect x="119" y="76" width="82" height="16" rx="4" class="fl-muted-soft"/><rect x="119" y="76" width="82" height="16" rx="4" class="sk-dash" style="stroke-width:1.4"/><text x="22" y="110" class="lab-b" text-anchor="end">E</text><rect x="147" y="98" width="26" height="16" rx="4" class="fl-green-soft"/><rect x="147" y="98" width="26" height="16" rx="4" class="sk-green" style="stroke-width:1.4"/><text x="22" y="132" class="lab-b" text-anchor="end">F</text><rect x="175" y="120" width="82" height="16" rx="4" class="fl-muted-soft"/><rect x="175" y="120" width="82" height="16" rx="4" class="sk-dash" style="stroke-width:1.4"/><text x="22" y="154" class="lab-b" text-anchor="end">G</text><rect x="203" y="142" width="26" height="16" rx="4" class="fl-green-soft"/><rect x="203" y="142" width="26" height="16" rx="4" class="sk-green" style="stroke-width:1.4"/><text x="22" y="176" class="lab-b" text-anchor="end">H</text><rect x="231" y="164" width="82" height="16" rx="4" class="fl-green-soft"/><rect x="231" y="164" width="82" height="16" rx="4" class="sk-green" style="stroke-width:1.4"/><text x="22" y="198" class="lab-b" text-anchor="end">I</text><rect x="287" y="186" width="54" height="16" rx="4" class="fl-muted-soft"/><rect x="287" y="186" width="54" height="16" rx="4" class="sk-dash" style="stroke-width:1.4"/><line x1="34" y1="212" x2="342" y2="212" class="sk-axis"/><line x1="34" y1="209" x2="34" y2="215" class="sk-axis"/><text x="34" y="229" class="lab-muted" text-anchor="middle">8</text><line x1="62" y1="209" x2="62" y2="215" class="sk-axis"/><text x="62" y="229" class="lab-muted" text-anchor="middle"></text><line x1="90" y1="209" x2="90" y2="215" class="sk-axis"/><text x="90" y="229" class="lab-muted" text-anchor="middle">10</text><line x1="118" y1="209" x2="118" y2="215" class="sk-axis"/><text x="118" y="229" class="lab-muted" text-anchor="middle"></text><line x1="146" y1="209" x2="146" y2="215" class="sk-axis"/><text x="146" y="229" class="lab-muted" text-anchor="middle">12</text><line x1="174" y1="209" x2="174" y2="215" class="sk-axis"/><text x="174" y="229" class="lab-muted" text-anchor="middle"></text><line x1="202" y1="209" x2="202" y2="215" class="sk-axis"/><text x="202" y="229" class="lab-muted" text-anchor="middle">14</text><line x1="230" y1="209" x2="230" y2="215" class="sk-axis"/><text x="230" y="229" class="lab-muted" text-anchor="middle"></text><line x1="258" y1="209" x2="258" y2="215" class="sk-axis"/><text x="258" y="229" class="lab-muted" text-anchor="middle">16</text><line x1="286" y1="209" x2="286" y2="215" class="sk-axis"/><text x="286" y="229" class="lab-muted" text-anchor="middle"></text><line x1="314" y1="209" x2="314" y2="215" class="sk-axis"/><text x="314" y="229" class="lab-muted" text-anchor="middle">18</text><line x1="342" y1="209" x2="342" y2="215" class="sk-axis"/><text x="342" y="229" class="lab-muted" text-anchor="middle"></text><text x="342" y="229" class="lab-muted" text-anchor="start">h</text></svg>
+<figcaption>Les neuf demandes de l'exemple sur l'axe des heures. Traitées par fin croissante, elles sont retenues (en vert, trait plein) si elles commencent après la fin de la dernière retenue, écartées sinon (en pointillés) : A, C, E, G, H, soit cinq activités, le maximum possible.</figcaption>
+</figure>
+
+  <div class="prop-box">
+    <strong>Coût.</strong> Construire <span class="code-inline">par_fin</span> coûte \(O(n)\), la trier \(O(n \log n)\), la parcourir \(O(n)\) (chaque tour est de coût constant). Le coût total est \(O(n \log n)\), dominé par le tri. Comparer toutes les sous-listes coûterait au moins \(2^n\) opérations.
+  </div>
+  <div class="notice"><strong>Erreurs classiques</strong> : oublier de trier (le parcours dans l'ordre de la liste donnée n'a aucune raison d'être optimal) ; trier les couples <span class="code-inline">(debut, fin)</span> sans les retourner, ce qui range par début et applique le mauvais critère ; tester <span class="code-inline">d &gt; libre</span> au lieu de <span class="code-inline">d &gt;= libre</span>, ce qui refuse deux activités qui se suivent exactement (C après A dans l'exemple).</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§5 · PROUVER QU'UN GLOUTON EST OPTIMAL</div>
+  <h2>L'argument du glouton « toujours en avance »</h2>
+  <div class="intro">Pour prouver qu'un glouton est optimal, on le compare à une solution optimale quelconque, que l'on ne connaît pas, et l'on montre qu'il fait au moins aussi bien qu'elle, étape par étape.</div>
+
+  <div class="prop-box">
+    <strong>Théorème.</strong> La fonction <span class="code-inline">selection</span> renvoie un ensemble d'activités deux à deux compatibles de taille maximale.
+  </div>
+  <div class="reveal" onclick="this.classList.toggle('open')">
+    <span class="label">Démonstration</span>
+    <span class="prompt">Le glouton termine toujours au plus tôt</span>
+    <div class="content">
+      <p><strong>Réalisable.</strong> Une activité n'est retenue que si elle commence après la fin <span class="code-inline">libre</span> de la précédente ; comme les activités retenues sont rangées par fin croissante, elles sont deux à deux compatibles.</p>
+      <p><strong>Optimale.</strong> Notons \(g_1, \dots, g_k\) les activités retenues par le glouton, et \(o_1, \dots, o_m\) celles d'une solution optimale, chacune rangée par fin croissante (donc aussi par début croissant, puisqu'elles ne se chevauchent pas). On note \(f(a)\) et \(d(a)\) la fin et le début d'une activité \(a\). Montrons par récurrence que \(f(g_i) \le f(o_i)\) pour tout \(i \le k\) : le glouton est « toujours en avance ».</p>
+      <ul>
+        <li>\(i = 1\) : \(g_1\) est la première activité examinée, celle dont la fin est la plus petite de toutes, donc \(f(g_1) \le f(o_1)\).</li>
+        <li>Si \(f(g_i) \le f(o_i)\) : l'activité \(o_{i+1}\) commence après la fin de \(o_i\), donc \(d(o_{i+1}) \ge f(o_i) \ge f(g_i)\). Quand le glouton a retenu \(g_i\), l'activité \(o_{i+1}\) était donc encore compatible. Le glouton retient ensuite la première compatible dans l'ordre des fins : \(f(g_{i+1}) \le f(o_{i+1})\).</li>
+      </ul>
+      <p>Supposons \(m \gt k\). L'activité \(o_{k+1}\) vérifie \(d(o_{k+1}) \ge f(o_k) \ge f(g_k)\) : elle était compatible avec \(g_1, \dots, g_k\), et le glouton, qui examine toutes les activités, aurait retenu une activité de plus. C'est absurde : \(m = k\), la solution gloutonne est optimale.</p>
+    </div>
+  </div>
+
+  <div class="method-box">
+    <strong>Méthode — Prouver l'optimalité d'un glouton</strong>
+    <ol>
+      <li>Vérifier que la solution gloutonne est réalisable (elle respecte les contraintes).</li>
+      <li>Prendre une solution optimale quelconque \(O\), rangée dans le même ordre que les choix du glouton.</li>
+      <li>Soit montrer que le glouton « reste en avance » sur \(O\) à chaque étape (récurrence), soit montrer qu'on peut <strong>échanger</strong> le premier élément de \(O\) qui diffère du choix glouton contre ce choix, sans détériorer \(O\) (argument d'échange).</li>
+      <li>Conclure : le glouton fait au moins aussi bien que \(O\), il est donc optimal.</li>
+    </ol>
+  </div>
+
+  <div class="method-box">
+    <strong>Exemple — Argument d'échange pour la sélection d'activités</strong>
+    <ol>
+      <li>Soit \(O\) une solution optimale, rangée par fin croissante, et \(g_1\) l'activité qui finit le plus tôt.</li>
+      <li>Si la première activité \(o_1\) de \(O\) n'est pas \(g_1\), on la remplace par \(g_1\) : comme \(f(g_1) \le f(o_1) \le d(o_2)\), \(g_1\) est compatible avec \(o_2, o_3, \dots\). On obtient une solution de même taille, donc optimale, qui contient le premier choix glouton.</li>
+      <li>Il reste à résoudre le même problème sur les activités qui commencent après \(f(g_1)\) : une solution optimale de ce sous-problème, complétée par \(g_1\), est optimale pour le problème entier. On recommence, et l'on retrouve exactement les choix du glouton.</li>
+    </ol>
+  </div>
+
+  <div class="def-box">
+    Les deux ingrédients de cette preuve ont un nom. La <strong>propriété du choix glouton</strong> : il existe une solution optimale qui contient le premier choix glouton. La <strong>propriété de sous-structure optimale</strong> : une fois ce choix fait, le reste d'une solution optimale est une solution optimale du sous-problème restant.
+  </div>
+  <div class="notice"><strong>Glouton ou programmation dynamique ?</strong> La sous-structure optimale est aussi la clé de la programmation dynamique (deuxième année). La différence est là : le glouton fait un seul choix et n'étudie qu'un sous-problème, ce qui exige la propriété du choix glouton ; la programmation dynamique essaie tous les choix possibles et compare les sous-problèmes correspondants, ce qui coûte plus cher mais ne demande que la sous-structure optimale (§7).</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§6 · ALLOCATION DE SALLES</div>
+  <h2>Ouvrir le moins de salles possible</h2>
+  <div class="intro">Cette fois, tous les cours doivent avoir lieu, aux horaires prévus. Deux cours qui se chevauchent ont besoin de deux salles différentes : on cherche le nombre minimal de salles, et une affectation des cours aux salles qui l'atteint.</div>
+
+  <div class="def-box">
+    Le problème de l'<strong>allocation de salles</strong> : étant donnés \(n\) cours \([d_i, f_i[\), affecter à chacun une salle de sorte que deux cours d'une même salle soient compatibles, en utilisant le moins de salles possible. La <strong>profondeur</strong> de l'ensemble des cours est le nombre maximal de cours qui ont lieu à un même instant.
+  </div>
+  <p>Quelle que soit l'affectation, des cours simultanés occupent des salles différentes : <strong>il faut au moins autant de salles que la profondeur</strong>. Le glouton suivant atteint exactement cette borne : il traite les cours par heure de début croissante et place chacun dans la première salle libre, en n'ouvrant une nouvelle salle que si toutes sont occupées.</p>
+<pre class="codeblock"><span class="kw">def</span> allocation(cours):
+    <span class="cmt"># cours : couples (debut, fin) ; renvoie le nombre de</span>
+    <span class="cmt"># salles et la liste des triplets (debut, fin, salle)</span>
+    fin_salle = []   <span class="cmt"># fin du dernier cours de chaque salle</span>
+    planning = []
+    <span class="kw">for</span> (d, f) <span class="kw">in</span> sorted(cours):     <span class="cmt"># par début croissant</span>
+        s = 0
+        <span class="kw">while</span> s &lt; len(fin_salle) <span class="kw">and</span> fin_salle[s] &gt; d:
+            s = s + 1                <span class="cmt"># salle s occupée en d</span>
+        <span class="kw">if</span> s == len(fin_salle):
+            fin_salle.append(f)      <span class="cmt"># on ouvre une salle</span>
+        <span class="kw">else</span>:
+            fin_salle[s] = f
+        planning.append((d, f, s))
+    <span class="kw">return</span> len(fin_salle), planning</pre>
+<figure class="schema" style="max-width:440px">
+<svg viewBox="0 0 354 148" role="img" aria-label="Planning obtenu par le glouton : salle 0, physique puis SI puis chimie ; salle 1, maths puis anglais puis français ; salle 2, informatique. À 10 h 30, trois cours ont lieu en même temps."><rect x="174" y="18" width="56" height="104" class="fl-amber-soft"/><text x="52" y="42" class="lab-muted" text-anchor="end">salle 0</text><text x="52" y="74" class="lab-muted" text-anchor="end">salle 1</text><text x="52" y="106" class="lab-muted" text-anchor="end">salle 2</text><rect x="64" y="26" width="52" height="24" rx="4" class="fl-accent2-soft"/><rect x="64" y="26" width="52" height="24" rx="4" class="sk-accent2" style="stroke-width:1.4"/><text x="90" y="43" text-anchor="middle" style="font-size:12px">Physique</text><rect x="64" y="58" width="108" height="24" rx="4" class="fl-accent2-soft"/><rect x="64" y="58" width="108" height="24" rx="4" class="sk-accent2" style="stroke-width:1.4"/><text x="118" y="75" text-anchor="middle" style="font-size:12px">Maths</text><rect x="120" y="26" width="108" height="24" rx="4" class="fl-accent2-soft"/><rect x="120" y="26" width="108" height="24" rx="4" class="sk-accent2" style="stroke-width:1.4"/><text x="174" y="43" text-anchor="middle" style="font-size:12px">SI</text><rect x="176" y="58" width="52" height="24" rx="4" class="fl-accent2-soft"/><rect x="176" y="58" width="52" height="24" rx="4" class="sk-accent2" style="stroke-width:1.4"/><text x="202" y="75" text-anchor="middle" style="font-size:12px">Anglais</text><rect x="176" y="90" width="108" height="24" rx="4" class="fl-accent2-soft"/><rect x="176" y="90" width="108" height="24" rx="4" class="sk-accent2" style="stroke-width:1.4"/><text x="230" y="107" text-anchor="middle" style="font-size:12px">Info</text><rect x="232" y="26" width="108" height="24" rx="4" class="fl-accent2-soft"/><rect x="232" y="26" width="108" height="24" rx="4" class="sk-accent2" style="stroke-width:1.4"/><text x="286" y="43" text-anchor="middle" style="font-size:12px">Chimie</text><rect x="288" y="58" width="52" height="24" rx="4" class="fl-accent2-soft"/><rect x="288" y="58" width="52" height="24" rx="4" class="sk-accent2" style="stroke-width:1.4"/><text x="314" y="75" text-anchor="middle" style="font-size:12px">Français</text><text x="202" y="12" class="lab-it" text-anchor="middle" style="font-size:12px">de 10 h à 11 h : trois cours à la fois</text><line x1="62" y1="124" x2="342" y2="124" class="sk-axis"/><line x1="62" y1="121" x2="62" y2="127" class="sk-axis"/><text x="62" y="141" class="lab-muted" text-anchor="middle">8 h</text><line x1="118" y1="121" x2="118" y2="127" class="sk-axis"/><text x="118" y="141" class="lab-muted" text-anchor="middle">9 h</text><line x1="174" y1="121" x2="174" y2="127" class="sk-axis"/><text x="174" y="141" class="lab-muted" text-anchor="middle">10 h</text><line x1="230" y1="121" x2="230" y2="127" class="sk-axis"/><text x="230" y="141" class="lab-muted" text-anchor="middle">11 h</text><line x1="286" y1="121" x2="286" y2="127" class="sk-axis"/><text x="286" y="141" class="lab-muted" text-anchor="middle">12 h</text><line x1="342" y1="121" x2="342" y2="127" class="sk-axis"/><text x="342" y="141" class="lab-muted" text-anchor="middle">13 h</text></svg>
+<figcaption>Le planning produit par <span class="code-inline">allocation</span>. Trois salles suffisent, et il en faut au moins trois : entre 10 h et 11 h, SI, anglais et informatique ont lieu en même temps.</figcaption>
+</figure>
+
+  <div class="method-box">
+    <strong>Exemple — Une matinée de cours</strong>
+    <p>Sept cours, en heures : maths [8, 10[, physique [8, 9[, SI [9, 11[, anglais [10, 11[, informatique [10, 12[, chimie [11, 13[, français [12, 13[. Les cours sont pris par début croissant ; pour chacun, on note les salles occupées à son début, la salle choisie et la liste <span class="code-inline">fin_salle</span> (fin du dernier cours de chaque salle).</p>
+    <div><table>
+      <tr><th>cours</th><th>occupées</th><th>salle</th><th>fins après</th></tr>
+      <tr><td>physique</td><td>—</td><td>0 (nouvelle)</td><td>[9]</td></tr>
+      <tr><td>maths</td><td>0</td><td>1 (nouvelle)</td><td>[9, 10]</td></tr>
+      <tr><td>SI</td><td>1</td><td>0</td><td>[11, 10]</td></tr>
+      <tr><td>anglais</td><td>0</td><td>1</td><td>[11, 11]</td></tr>
+      <tr><td>info</td><td>0 et 1</td><td>2 (nouvelle)</td><td>[11, 11, 12]</td></tr>
+      <tr><td>chimie</td><td>2</td><td>0</td><td>[13, 11, 12]</td></tr>
+      <tr><td>français</td><td>0</td><td>1</td><td>[13, 13, 12]</td></tr>
+    </table></div>
+    <p>Trois salles. C'est optimal : de 10 h à 11 h, SI, anglais et informatique ont lieu en même temps.</p>
+<pre class="codeblock">C = [(8, 10), (8, 9), (9, 11), (10, 11),
+     (10, 12), (11, 13), (12, 13)]
+nb, planning = allocation(C)
+nb          <span class="cmt"># 3</span>
+planning
+<span class="cmt"># [(8, 9, 0), (8, 10, 1), (9, 11, 0), (10, 11, 1),</span>
+<span class="cmt">#  (10, 12, 2), (11, 13, 0), (12, 13, 1)]</span></pre>
+  </div>
+
+  <div class="prop-box">
+    <strong>Théorème.</strong> Le nombre de salles ouvertes par <span class="code-inline">allocation</span> est égal à la profondeur de l'ensemble des cours : il est minimal.
+  </div>
+  <div class="reveal" onclick="this.classList.toggle('open')">
+    <span class="label">Démonstration</span>
+    <span class="prompt">Chaque salle ouverte correspond à un instant chargé</span>
+    <div class="content">
+      <p>L'affectation est valide : un cours n'est placé dans la salle \(s\) que si le dernier cours de \(s\) se termine avant son début ; les cours de \(s\) se succèdent donc sans se chevaucher.</p>
+      <p>Supposons que le glouton ouvre une salle numéro \(p\) (la \((p+1)\)-ième) pour un cours \([d, f[\). Les \(p\) salles déjà ouvertes sont toutes occupées à l'instant \(d\) : leur dernier cours se termine après \(d\), et il a commencé au plus tard à \(d\), puisque les cours sont traités par début croissant. Avec le nouveau cours, \(p + 1\) cours ont donc lieu à l'instant \(d\) : la profondeur est au moins \(p + 1\). Pour la dernière salle ouverte, cela montre que le nombre de salles est au plus égal à la profondeur ; comme il lui est toujours au moins égal, il y a égalité.</p>
+    </div>
+  </div>
+
+  <p>La profondeur se calcule à part, par un <strong>balayage</strong> : chaque cours produit deux événements, son début (+1) et sa fin (−1) ; on les parcourt dans l'ordre chronologique en tenant à jour le nombre de cours en cours.</p>
+<pre class="codeblock"><span class="kw">def</span> profondeur(cours):
+    <span class="cmt"># nombre maximal de cours qui ont lieu en même temps</span>
+    evenements = []
+    <span class="kw">for</span> (d, f) <span class="kw">in</span> cours:
+        evenements.append((d, 1))     <span class="cmt"># un cours commence</span>
+        evenements.append((f, -1))    <span class="cmt"># un cours se termine</span>
+    nb, maxi = 0, 0
+    <span class="kw">for</span> (t, e) <span class="kw">in</span> sorted(evenements):  <span class="cmt"># à égalité, -1 avant 1</span>
+        nb = nb + e
+        <span class="kw">if</span> nb &gt; maxi:
+            maxi = nb
+    <span class="kw">return</span> maxi</pre>
+<pre class="codeblock">profondeur(C)    <span class="cmt"># 3</span></pre>
+  <p>Le tri lexicographique place l'événement <span class="code-inline">(11, -1)</span> avant <span class="code-inline">(11, 1)</span> : un cours qui finit à 11 h libère sa salle avant que celui de 11 h ne la prenne, conformément aux intervalles semi-ouverts.</p>
+
+  <div class="prop-box">
+    <strong>Coût.</strong> Tri des cours : \(O(n \log n)\). Pour chaque cours, la recherche d'une salle libre parcourt au plus les \(p\) salles ouvertes : \(O(np)\), soit \(O(n^2)\) dans le pire cas (tous les cours simultanés). Le balayage coûte \(O(n \log n)\).
+  </div>
+  <div class="notice"><strong>Erreur classique</strong> : ne pas trier par début. Traités dans l'ordre <span class="code-inline">[(13, 14), (10, 11), (10, 12), (11, 14)]</span>, les cours occupent trois salles, alors que deux suffisent (profondeur 2). Trier par heure de <em>fin</em> ne suffit pas non plus : pour <span class="code-inline">[(4, 5), (7, 8), (5, 9), (4, 6)]</span>, ce tri conduit à trois salles au lieu de deux. Le bon ordre dépend du problème : fin au plus tôt pour la sélection, début au plus tôt pour l'allocation.</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§7 · LIMITES DU GLOUTON ET PROGRAMMATION DYNAMIQUE</div>
+  <h2>Quand il faut envisager tous les choix</h2>
+  <div class="intro">Dès qu'un premier choix raisonnable peut mener à une impasse, le glouton n'est plus fiable. Deux problèmes proches de ceux du chapitre le montrent ; la programmation dynamique, étudiée en deuxième année, les résout en comparant tous les choix possibles.</div>
+
+  <h3>Deux échecs instructifs</h3>
+  <p><strong>Sac à dos.</strong> Des objets ont chacun une valeur et une masse ; on veut emporter la plus grande valeur possible dans un sac de 10 kg. Le glouton qui prend d'abord le meilleur rapport valeur/masse échoue :</p>
+<pre class="codeblock">objets = [(30, 6), (20, 5), (20, 5)]   <span class="cmt"># (valeur, masse en kg)</span>
+<span class="cmt"># glouton par valeur/masse décroissante, sac de 10 kg :</span>
+<span class="cmt"># prend (30, 6) ; il reste 4 kg, rien d'autre ne rentre : 30</span>
+<span class="cmt"># optimum : les deux objets de 5 kg, valeur 40</span></pre>
+  <p><strong>Tâches pondérées.</strong> Si chaque activité a un poids (son intérêt) et que l'on maximise la somme des poids retenus, la fin au plus tôt ne convient plus :</p>
+<pre class="codeblock">taches = [(0, 3, 1), (2, 10, 10)]   <span class="cmt"># (debut, fin, poids)</span>
+<span class="cmt"># fin au plus tôt : (0, 3) choisie, (2, 10) incompatible : 1</span>
+<span class="cmt"># optimum : la tâche (2, 10) seule, poids 10</span></pre>
+  <p>Dans les deux cas, la propriété du choix glouton est fausse : aucune solution optimale ne contient le premier choix. La sous-structure optimale, elle, reste vraie : c'est ce qu'exploite la programmation dynamique.</p>
+
+  <h3>Le rendu de monnaie résolu exactement</h3>
+  <div class="prop-box">
+    <strong>Relation de récurrence.</strong> Notons \(N(s)\) le nombre minimal de pièces pour rendre \(s\). Une solution optimale pour \(s \ge 1\) contient au moins une pièce \(c \le s\), et le reste est une solution optimale pour \(s - c\) (sous-structure optimale). Comme on ne sait pas quelle pièce choisir, on les essaie toutes :
+    <div class="formula" data-nom="Rendu de monnaie optimal">$$N(0) = 0, \qquad N(s) = 1 + \min_{c \le s} N(s - c) \quad (s \ge 1).$$</div>
+  </div>
+  <p>On calcule \(N(0), N(1), \dots, N(s)\) dans cet ordre, en rangeant les valeurs dans une liste : chaque valeur se déduit des précédentes. C'est un premier exemple de programmation dynamique « de bas en haut ».</p>
+<pre class="codeblock"><span class="kw">def</span> nb_min_pieces(s, pieces):
+    <span class="cmt"># nombre minimal de pièces pour rendre s (1 dans pieces)</span>
+    <span class="cmt"># m[v] : nombre minimal de pièces pour la somme v</span>
+    m = [0] * (s + 1)
+    <span class="kw">for</span> v <span class="kw">in</span> range(1, s + 1):
+        m[v] = v                     <span class="cmt"># v pièces de 1</span>
+        <span class="kw">for</span> c <span class="kw">in</span> pieces:
+            <span class="kw">if</span> c &lt;= v <span class="kw">and</span> m[v - c] + 1 &lt; m[v]:
+                m[v] = m[v - c] + 1  <span class="cmt"># une pièce c, puis v - c</span>
+    <span class="kw">return</span> m[s]</pre>
+
+  <div class="method-box">
+    <strong>Exemple — Le système (4, 3, 1), de 0 à 8</strong>
+    <div><table>
+      <tr><th>\(s\)</th><th>0</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th><th>6</th><th>7</th><th>8</th></tr>
+      <tr><td>\(N(s)\)</td><td>0</td><td>1</td><td>2</td><td>1</td><td>1</td><td>2</td><td>2</td><td>2</td><td>2</td></tr>
+    </table></div>
+    <ol>
+      <li>\(N(6) = 1 + \min\big(N(5), N(3), N(2)\big) = 1 + \min(2, 1, 2) = 2\) : le minimum est atteint en enlevant une pièce de 3, ce que le glouton ne fait pas.</li>
+      <li>Comparer le glouton à \(N(s)\) pour toutes les sommes jusqu'à une borne permet de chercher automatiquement le plus petit contre-exemple :</li>
+    </ol>
+<pre class="codeblock"><span class="kw">def</span> premier_contre_exemple(pieces, smax):
+    <span class="cmt"># plus petite somme s &lt;= smax où le glouton n'est pas</span>
+    <span class="cmt"># optimal ; -1 s'il n'y en a pas</span>
+    <span class="kw">for</span> s <span class="kw">in</span> range(1, smax + 1):
+        g = len(rendu_glouton(s, pieces))
+        <span class="kw">if</span> g &gt; nb_min_pieces(s, pieces):
+            <span class="kw">return</span> s
+    <span class="kw">return</span> -1</pre>
+<pre class="codeblock">premier_contre_exemple([4, 3, 1], 100)                <span class="cmt"># 6</span>
+premier_contre_exemple([30, 24, 12, 6, 3, 1], 100)    <span class="cmt"># 48</span>
+premier_contre_exemple(EURO, 1000)                    <span class="cmt"># -1</span></pre>
+  </div>
+
+  <div class="prop-box">
+    <strong>Coût comparé.</strong> <span class="code-inline">nb_min_pieces(s, pieces)</span> fait \(s\) tours, chacun parcourant les \(k\) valeurs : \(O(sk)\) opérations et une liste de \(s + 1\) cases en mémoire. Le glouton coûte \(O(k)\) avec <span class="code-inline">rendu_compte</span>. Pour un système canonique, le glouton est donc à la fois exact et bien plus rapide ; pour un système quelconque, seule la programmation dynamique est sûre.
+  </div>
+  <div class="notice"><strong>Pour la suite</strong> : la programmation dynamique, la mémoïsation à l'aide d'un dictionnaire et la reconstruction d'une solution optimale (quelles pièces rendre, et pas seulement combien) sont étudiées en deuxième année, dans le chapitre <em>Dictionnaires et programmation dynamique</em>, avec en particulier l'ordonnancement de tâches pondérées.</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">POUR ALLER PLUS LOIN · HORS PROGRAMME</div>
+  <h2>D'autres gloutons célèbres</h2>
+  <ul>
+    <li><strong>Vérifier qu'un système est canonique.</strong> On a démontré (Kozen et Zaks, 1994) que si un système n'est pas canonique, son plus petit contre-exemple est inférieur à la somme des deux plus grandes valeurs. Pour l'euro limité à 5 €, il suffit donc de tester les sommes jusqu'à \(500 + 200\) : c'est ce que fait l'appel <span class="code-inline">premier_contre_exemple(EURO, 1000)</span> ci-dessus.</li>
+    <li><strong>Algorithme de Dijkstra.</strong> Au programme du second semestre (chapitre <em>Graphes</em>), il est lui aussi glouton : à chaque étape, il fixe définitivement la distance du sommet non traité le plus proche, et l'on prouve que ce choix n'est jamais remis en cause.</li>
+    <li><strong>Codage de Huffman, arbres couvrants minimaux</strong> (algorithmes de Kruskal et de Prim) : d'autres gloutons optimaux, utilisés en compression de données et en conception de réseaux. Une théorie générale (les matroïdes) décrit une large classe de problèmes où le glouton est toujours optimal.</li>
+    <li><strong>Allocation de salles plus rapide.</strong> Avec une file de priorité (un tas) qui donne en \(O(\log n)\) la salle qui se libère le plus tôt, l'allocation se fait en \(O(n \log n)\).</li>
+  </ul>
+</div>
+</template>
+<template class="pan-tpl" data-panneau="glou-meth">
+<div class="course-section">
+  <div class="sec-num">MÉTHODES · ALGORITHMES GLOUTONS</div>
+  <h2>Les réflexes du chapitre</h2>
+  <div class="intro">Reconnaître un problème d'optimisation, écrire le glouton correspondant, puis trancher : le prouver optimal ou le mettre en défaut par un contre-exemple. Ces méthodes valent pour les trois situations du programme et pour celles que propose un sujet de concours.</div>
+
+  <div class="method-box"><strong>Méthode 1 — Modéliser un problème d'optimisation</strong>
+    <ol>
+      <li><span class="step">Données.</span> Les représenter avec les types du programme : liste de couples <span class="code-inline">(debut, fin)</span>, liste de valeurs de pièces, dictionnaire de stocks…</li>
+      <li><span class="step">Solutions réalisables.</span> Écrire la contrainte sous forme d'une fonction de test (deux activités compatibles, somme des masses inférieure à la capacité…).</li>
+      <li><span class="step">Objectif.</span> Préciser ce que l'on minimise ou maximise (nombre de pièces, nombre d'activités, poids total).</li>
+      <li><span class="step">Conventions.</span> Fixer les cas limites dès le départ : intervalles semi-ouverts \([d, f[\) (deux activités qui se suivent exactement sont compatibles), montants entiers en centimes.</li>
+    </ol>
+    <p><em>Exemple éclair :</em> le test de compatibilité de deux activités.</p>
+<pre class="codeblock"><span class="kw">def</span> compatibles(a, b):
+    <span class="cmt"># a, b : activités (debut, fin), intervalles [debut, fin[</span>
+    <span class="kw">return</span> a[1] &lt;= b[0] <span class="kw">or</span> b[1] &lt;= a[0]</pre>
+<pre class="codeblock">compatibles((8, 10), (10, 11))   <span class="cmt"># True</span>
+compatibles((8, 10), (9, 12))    <span class="cmt"># False</span></pre>
+  </div>
+
+  <div class="method-box"><strong>Méthode 2 — Écrire un glouton : trier, puis parcourir</strong>
+    <ol>
+      <li><span class="step">Critère.</span> Choisir l'ordre dans lequel examiner les candidats (fin croissante, valeur décroissante, taille croissante…).</li>
+      <li><span class="step">Tri.</span> Construire une liste de tuples dont la <em>première</em> composante est le critère, puis appliquer <span class="code-inline">sorted</span> (ordre lexicographique ; pour un ordre décroissant, parcourir la liste triée depuis la fin).</li>
+      <li><span class="step">Parcours.</span> Garder un résumé de la solution partielle qui rend le test de compatibilité immédiat (la fin de la dernière activité retenue, le reste dû, la place restante).</li>
+      <li><span class="step">Choix définitif.</span> Ajouter le candidat s'il est compatible, sans jamais revenir en arrière.</li>
+    </ol>
+<pre class="codeblock">candidats = sorted(... selon le critère ...)
+solution = []
+for x in candidats:
+    if compatible(x, solution):    # test en temps constant
+        solution.append(x)         # choix définitif</pre>
+  </div>
+  <div class="notice"><strong>Piège</strong> : un test de compatibilité qui compare le candidat à <em>toutes</em> les activités déjà retenues rend le parcours quadratique. Avec le bon ordre de tri, une seule comparaison suffit (avec <span class="code-inline">libre</span>).</div>
+
+  <div class="method-box"><strong>Méthode 3 — Rendre la monnaie</strong>
+    <ol>
+      <li><span class="step">Unités.</span> Convertir les montants en centimes : des entiers, jamais des flottants.</li>
+      <li><span class="step">Ordre.</span> Ranger les valeurs par ordre décroissant ; vérifier que la plus petite vaut 1 (sinon, le glouton peut échouer).</li>
+      <li><span class="step">Rendu.</span> Pour chaque valeur \(c\), rendre \(\lfloor s/c \rfloor\) exemplaires et continuer avec \(s \bmod c\) (ou rendre une pièce tant que \(s \ge c\)).</li>
+      <li><span class="step">Vérification.</span> Contrôler que la somme rendue vaut \(s\) ; l'optimalité n'est garantie que pour un système canonique.</li>
+    </ol>
+    <p><em>Exemple éclair :</em> 13,64 € en euros (billets compris) : 10 € + 2 € + 1 € + 50 c + 10 c + 2 c + 2 c, soit 7 pièces et billets.</p>
+  </div>
+
+  <div class="method-box"><strong>Méthode 4 — Chercher un contre-exemple</strong>
+    <ol>
+      <li><span class="step">Petites instances.</span> Deux ou trois candidats suffisent souvent ; essayer les petites sommes une à une.</li>
+      <li><span class="step">Piéger le critère.</span> Construire un premier choix conforme au critère mais qui bloque la suite : une activité très longue qui commence tôt, une activité courte à cheval sur deux autres, une grosse pièce qui laisse un reste mal décomposable.</li>
+      <li><span class="step">Comparer à l'optimum,</span> trouvé à la main sur l'instance, ou par une recherche exhaustive (programme qui essaie toutes les possibilités) sur de petites tailles.</li>
+      <li><span class="step">Conclure.</span> Un seul contre-exemple prouve que le glouton n'est pas optimal ; aucun nombre de tests réussis ne prouve qu'il l'est.</li>
+    </ol>
+    <p><em>Exemple éclair :</em> système (7, 5, 1) et \(s = 10\) : le glouton rend 7 + 1 + 1 + 1 (4 pièces), alors que 5 + 5 suffit.</p>
+  </div>
+
+  <div class="method-box"><strong>Méthode 5 — Prouver l'optimalité d'un glouton</strong>
+    <ol>
+      <li><span class="step">Réalisable.</span> Montrer que la solution construite respecte les contraintes.</li>
+      <li><span class="step">Comparaison.</span> Prendre une solution optimale \(O\) quelconque, rangée dans l'ordre où le glouton fait ses choix.</li>
+      <li><span class="step">« Toujours en avance ».</span> Montrer par récurrence qu'après \(i\) choix, le glouton est au moins aussi bien placé que \(O\) après ses \(i\) premiers éléments (fin plus précoce, distance parcourue plus grande…), puis conclure qu'il ne peut pas avoir moins d'éléments.</li>
+      <li><span class="step">Ou échange.</span> Remplacer dans \(O\) le premier élément qui diffère du choix glouton par ce choix, en montrant que la solution reste réalisable et aussi bonne ; recommencer sur le sous-problème restant.</li>
+    </ol>
+    <p><em>Exemple éclair :</em> pour remplir une clé avec le plus de fichiers, les \(k\) plus petits fichiers ont le plus petit total parmi tous les choix de \(k\) fichiers : si \(k\) fichiers tiennent, les \(k\) plus petits tiennent aussi.</p>
+  </div>
+
+  <div class="method-box"><strong>Méthode 6 — Sélectionner des activités</strong>
+    <ol>
+      <li><span class="step">Trier par fin croissante</span> : <span class="code-inline">sorted([(f, d) for (d, f) in activites])</span>.</li>
+      <li><span class="step">Retenir</span> chaque activité qui commence après la fin de la dernière retenue (<span class="code-inline">d &gt;= libre</span>), puis mettre <span class="code-inline">libre</span> à jour.</li>
+      <li><span class="step">Coût</span> : \(O(n \log n)\), dominé par le tri.</li>
+      <li><span class="step">Ne pas confondre</span> avec les critères faux : début au plus tôt, durée la plus courte, moins de conflits.</li>
+    </ol>
+    <p><em>Exemple éclair :</em> [8, 10[, [9, 12[, [10, 11[ : par fin, [8, 10[ est retenue, puis [10, 11[ (elle commence à 10), [9, 12[ est écartée. Deux activités.</p>
+  </div>
+
+  <div class="method-box"><strong>Méthode 7 — Allouer des salles et vérifier le nombre obtenu</strong>
+    <ol>
+      <li><span class="step">Trier par début croissant</span> (et non par fin).</li>
+      <li><span class="step">Placer</span> chaque cours dans la première salle dont le dernier cours est terminé ; en ouvrir une nouvelle si aucune n'est libre.</li>
+      <li><span class="step">Borne inférieure</span> : la profondeur, nombre maximal de cours simultanés, calculée par balayage des événements (début +1, fin −1, les fins avant les débuts à égalité).</li>
+      <li><span class="step">Conclure</span> : nombre de salles du glouton = profondeur, donc optimal.</li>
+    </ol>
+    <p><em>Exemple éclair :</em> cours [8, 10[, [9, 11[, [10, 12[ : salle 0, puis salle 1 (la salle 0 est occupée à 9 h), puis salle 0 (libre à 10 h). Deux salles ; profondeur 2 (de 9 h à 10 h, puis de 10 h à 11 h).</p>
+  </div>
+
+  <div class="method-box"><strong>Méthode 8 — Évaluer le coût d'un glouton</strong>
+    <ol>
+      <li><span class="step">Tri</span> des \(n\) candidats : \(O(n \log n)\).</li>
+      <li><span class="step">Parcours</span> : \(n\) tours, multipliés par le coût du test de compatibilité (constant avec un bon résumé, \(O(p)\) s'il faut parcourir \(p\) salles).</li>
+      <li><span class="step">Additionner</span> et garder le terme dominant ; comparer à la recherche exhaustive (\(2^n\) sous-ensembles) pour mesurer le gain.</li>
+    </ol>
+    <p><em>Exemple éclair :</em> allocation de \(n\) cours avec \(p\) salles ouvertes : \(O(n \log n + np)\), au pire \(O(n^2)\) ; pour \(n = 1\,000\), au plus \(10^6\) opérations, alors qu'une recherche exhaustive essaierait les \(p^n\) affectations possibles des cours aux \(p\) salles.</p>
+  </div>
+  <div class="notice"><strong>Piège</strong> : un glouton juste ne dispense pas de justifier ; inversement, quand l'énoncé demande « montrer que cet algorithme ne donne pas toujours l'optimum », il faut une instance précise, la solution du glouton et une solution strictement meilleure, chiffrées.</div>
+</div>
+</template>
+<template class="pan-tpl" data-panneau="glou-exos">
+<div class="exo-wrapper">
+
+<div class="exo"><span class="num">EXO 01</span><span class="diff">★ ☆ ☆</span>
+  <h3>Rendre la monnaie en euros</h3>
+  <div class="statement">On travaille en centimes, avec les billets et pièces de 50 € à 1 c : <span class="code-inline">EUROS = [5000, 2000, 1000, 500, 200, 100, 50, 20, 10, 5, 2, 1]</span>. On dispose des fonctions <span class="code-inline">rendu_glouton</span> et <span class="code-inline">rendu_compte</span> du cours.</div>
+  <div class="q"><strong>Q1.</strong> Donner, sans programme, ce que rend le glouton pour 13,64 € et pour 48,50 €.</div>
+  <div class="q"><strong>Q2.</strong> Écrire <span class="code-inline">nb_pieces(s, pieces)</span>, qui renvoie le nombre total de pièces et billets rendus par le glouton, à l'aide de <span class="code-inline">rendu_compte</span>.</div>
+  <div class="q"><strong>Q3.</strong> On rend 10 000 € (\(s = 10^6\)). Combien de tours de boucle font <span class="code-inline">rendu_glouton</span> et <span class="code-inline">rendu_compte</span> ?</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution"><h4>Correction</h4>
+    <p><strong>Q1.</strong> 1 364 c : 1000 (reste 364), 200 (164), 100 (64), 50 (14), 10 (4), 2, 2 : sept pièces et billets. 4 850 c : 2000, 2000 (reste 850), 500 (350), 200 (150), 100 (50), 50 : six.</p>
+    <p><strong>Q2.</strong> On additionne les nombres d'exemplaires du dictionnaire :</p>
+<pre class="codeblock">EUROS = [5000, 2000, 1000, 500, 200, 100,
+         50, 20, 10, 5, 2, 1]          <span class="cmt"># en centimes</span>
+
+<span class="kw">def</span> nb_pieces(s, pieces):
+    <span class="cmt"># nombre de pièces et billets rendus par le glouton</span>
+    d = rendu_compte(s, pieces)
+    total = 0
+    <span class="kw">for</span> c, k <span class="kw">in</span> d.items():
+        total = total + k
+    <span class="kw">return</span> total</pre>
+<pre class="codeblock">rendu_compte(1364, EUROS)
+<span class="cmt"># {1000: 1, 200: 1, 100: 1, 50: 1, 10: 1, 2: 2}</span>
+nb_pieces(1364, EUROS)       <span class="cmt"># 7</span>
+nb_pieces(4850, EUROS)       <span class="cmt"># 6</span>
+nb_pieces(1000000, EUROS)    <span class="cmt"># 200</span></pre>
+    <p><strong>Q3.</strong> Le glouton rend 200 billets de 50 € et rien d'autre. <span class="code-inline">rendu_glouton</span> fait 12 tours de <span class="code-inline">for</span> et 200 tours de <span class="code-inline">while</span> (un par billet) ; <span class="code-inline">rendu_compte</span> ne fait que 12 tours, grâce à la division euclidienne. Le coût du premier croît avec la somme, celui du second non.</p>
+  </div>
+</div>
+
+<div class="exo"><span class="num">EXO 02</span><span class="diff">★ ☆ ☆</span>
+  <h3>Systèmes canoniques ou non</h3>
+  <div class="statement">On rappelle qu'un système de pièces est canonique si le glouton rend un nombre minimal de pièces pour toute somme.</div>
+  <div class="q"><strong>Q1.</strong> Montrer que le système (7, 5, 1) n'est pas canonique, en trouvant la plus petite somme pour laquelle le glouton n'est pas optimal.</div>
+  <div class="q"><strong>Q2.</strong> Avec le système (5, 3), sans pièce de 1, que fait le glouton pour 6 ? Une solution existe-t-elle ?</div>
+  <div class="q"><strong>Q3.</strong> Montrer qu'un système à deux valeurs \((c, 1)\), avec \(c \ge 2\), est canonique.</div>
+  <div class="q"><strong>Q4.</strong> Montrer que le système des puissances de 2, \((2^k, \dots, 4, 2, 1)\), est canonique.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution"><h4>Correction</h4>
+    <p><strong>Q1.</strong> De 1 à 9, le glouton est optimal : en dessous de 5, seules les pièces de 1 sont possibles ; de 5 à 6, une pièce de 5 et des 1 ; 7, 8, 9 : une pièce de 7 et au plus deux 1, contre au moins trois pièces sans la pièce de 7 (5 + 1 + 1…). Pour \(s = 10\), le glouton rend 7 + 1 + 1 + 1 (4 pièces), alors que 5 + 5 (2 pièces) suffit : 10 est le plus petit contre-exemple.</p>
+<pre class="codeblock">rendu_glouton(10, [7, 5, 1])    <span class="cmt"># [7, 1, 1, 1]</span>
+rendu_glouton(6, [5, 3])        <span class="cmt"># [5]</span></pre>
+    <p><strong>Q2.</strong> Le glouton rend 5, puis reste bloqué sur 1 : il échoue, alors que \(6 = 3 + 3\). Sans pièce de 1, le glouton peut ne trouver aucune solution réalisable.</p>
+    <p><strong>Q3.</strong> Dans une solution optimale, il y a au plus \(c - 1\) pièces de 1 : sinon, en remplaçant \(c\) pièces de 1 par une pièce de \(c\), on économiserait \(c - 1 \ge 1\) pièce. Donc \(s = n_c\,c + n_1\) avec \(0 \le n_1 \lt c\) : \(n_c\) et \(n_1\) sont le quotient et le reste de la division de \(s\) par \(c\). C'est exactement ce que rend le glouton : la solution optimale est la sienne.</p>
+    <p><strong>Q4.</strong> Dans une solution optimale, chaque valeur \(2^i\) avec \(i \lt k\) apparaît au plus une fois : deux pièces \(2^i\) se remplacent par une pièce \(2^{i+1}\). Les petites pièces valent donc ensemble au plus \(1 + 2 + \dots + 2^{k-1} = 2^k - 1\), d'où \(n_{2^k} = \lfloor s/2^k \rfloor\), et les autres pièces forment l'écriture en base 2 du reste, qui est unique. Le glouton produit exactement cette décomposition : il est optimal.</p>
+  </div>
+</div>
+
+<div class="exo"><span class="num">EXO 03</span><span class="diff">★ ★ ☆</span>
+  <h3>Réserver une salle de réunion</h3>
+  <div class="statement">Une salle de réunion reçoit les demandes suivantes (heures, intervalles \([d, f[\)) :
+<pre class="codeblock">D = [(9, 11), (10, 12), (11, 13), (8, 9), (12, 15),
+     (13, 14), (14, 16), (9, 10), (15, 17)]
+selection(D)
+<span class="cmt"># [(8, 9), (9, 10), (10, 12), (13, 14), (14, 16)]</span></pre>
+  On dispose de la fonction <span class="code-inline">selection</span> du cours (glouton « fin au plus tôt »).</div>
+  <div class="q"><strong>Q1.</strong> Dérouler la sélection à la main : ordre de traitement, activités retenues.</div>
+  <div class="q"><strong>Q2.</strong> Construire, avec trois activités, un contre-exemple au critère « début au plus tôt », puis un contre-exemple au critère « durée la plus courte ».</div>
+  <div class="q"><strong>Q3.</strong> On traite les activités en partant de la fin de la journée : on retient l'activité qui <em>commence le plus tard</em>, puis la suivante compatible, etc. Écrire cette variante <span class="code-inline">selection_tard</span>. Pourquoi est-elle aussi optimale ?</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution"><h4>Correction</h4>
+    <p><strong>Q1.</strong> Par fin croissante : [8, 9[ (retenue, libre = 9), [9, 10[ (retenue, 10), [9, 11[ (écartée : 9 &lt; 10), [10, 12[ (retenue, 12), [11, 13[ (écartée), [13, 14[ (retenue, 14), [12, 15[ (écartée), [14, 16[ (retenue, 16), [15, 17[ (écartée). Cinq activités : [8, 9[, [9, 10[, [10, 12[, [13, 14[, [14, 16[.</p>
+    <p><strong>Q2.</strong> « Début au plus tôt » : [0, 10[, [1, 2[, [3, 4[ : le glouton retient [0, 10[ seule, alors que [1, 2[ et [3, 4[ sont compatibles (1 contre 2). « Plus courte » : [0, 5[, [6, 11[ et [4, 7[ : la plus courte, [4, 7[, chevauche les deux autres, qui sont compatibles entre elles (1 contre 2).</p>
+    <p><strong>Q3.</strong></p>
+<pre class="codeblock"><span class="kw">def</span> selection_tard(activites):
+    <span class="cmt"># même problème, en partant de la fin de la journée :</span>
+    <span class="cmt"># on retient l'activité qui commence le plus tard</span>
+    par_debut = sorted(activites)    <span class="cmt"># par début croissant</span>
+    choisies = []
+    occupee = 0        <span class="cmt"># début de la dernière activité retenue</span>
+    k = len(par_debut) - 1
+    <span class="kw">while</span> k &gt;= 0:                    <span class="cmt"># du dernier début au premier</span>
+        d, f = par_debut[k]
+        <span class="kw">if</span> len(choisies) == 0 <span class="kw">or</span> f &lt;= occupee:
+            choisies.append((d, f))
+            occupee = d
+        k = k - 1
+    <span class="kw">return</span> choisies</pre>
+    <p>Retourner le temps (\(t \mapsto -t\)) échange débuts et fins : l'activité qui commence le plus tard devient celle qui finit le plus tôt, et la compatibilité est conservée. La variante est donc le glouton du cours appliqué au problème retourné, qui a les mêmes solutions : elle est optimale.</p>
+  </div>
+</div>
+
+<div class="exo"><span class="num">EXO 04</span><span class="diff">★ ★ ☆</span>
+  <h3>Allouer les salles d'une journée de colles</h3>
+  <div class="statement">On reprend la fonction <span class="code-inline">allocation</span> du cours (cours triés par début, première salle libre) et la fonction <span class="code-inline">profondeur</span>. Les colles d'un après-midi occupent les créneaux suivants (heures) :
+<pre class="codeblock">cours = [(9, 12), (9, 10), (10, 11), (11, 13),
+         (12, 14), (10, 13), (13, 15)]</pre>
+  </div>
+  <div class="q"><strong>Q1.</strong> Dérouler <span class="code-inline">allocation(cours)</span> en donnant, après chaque cours, la liste <span class="code-inline">fin_salle</span>.</div>
+  <div class="q"><strong>Q2.</strong> Calculer la profondeur. Le nombre de salles est-il optimal ?</div>
+  <div class="q"><strong>Q3.</strong> Montrer sur un exemple de quatre cours que traiter les cours dans l'ordre de la liste, sans les trier, peut ouvrir une salle de trop.</div>
+  <div class="q"><strong>Q4.</strong> Coût de <span class="code-inline">allocation</span> pour \(n\) cours qui ont tous lieu en même temps ?</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution"><h4>Correction</h4>
+    <p><strong>Q1.</strong> Ordre par début : [9, 10[ → salle 0, <span class="code-inline">[10]</span> ; [9, 12[ → la salle 0 est occupée à 9 h, salle 1, <span class="code-inline">[10, 12]</span> ; [10, 11[ → salle 0 (libre à 10 h), <span class="code-inline">[11, 12]</span> ; [10, 13[ → salles 0 et 1 occupées, salle 2, <span class="code-inline">[11, 12, 13]</span> ; [11, 13[ → salle 0, <span class="code-inline">[13, 12, 13]</span> ; [12, 14[ → salle 1, <span class="code-inline">[13, 14, 13]</span> ; [13, 15[ → salle 0, <span class="code-inline">[15, 14, 13]</span>. Trois salles.</p>
+    <p><strong>Q2.</strong> De 10 h à 11 h, [9, 12[, [10, 11[ et [10, 13[ ont lieu en même temps : profondeur au moins 3 ; le balayage donne exactement 3. Trois salles sont nécessaires et suffisent : c'est optimal.</p>
+    <p><strong>Q3.</strong> Dans l'ordre [13, 14[, [10, 11[, [10, 12[, [11, 14[ : [13, 14[ → salle 0 ; [10, 11[ → la salle 0 a un cours qui finit à 14 h, elle est considérée comme occupée : salle 1 ; [10, 12[ → salle 2 ; [11, 14[ → salles 0 (fin 14), 1 (fin 11, libre !) : salle 1. Avec ce test, trois salles. Un test plus fin (une salle est libre si aucun de ses cours ne chevauche le nouveau) ne sauve rien : [10, 11[ rejoint [13, 14[ en salle 0, [10, 12[ va en salle 1, puis [11, 14[ chevauche [13, 14[ comme [10, 12[ et part en salle 2. Or la profondeur vaut 2 (salle 0 : [10, 11[ puis [11, 14[ ; salle 1 : [10, 12[ puis [13, 14[).</p>
+    <p><strong>Q4.</strong> Le tri coûte \(O(n \log n)\). Le \(k\)-ième cours trouve les \(k - 1\) salles ouvertes occupées et les parcourt toutes : \(0 + 1 + \dots + (n-1) = \frac{n(n-1)}{2}\) tests, soit \(O(n^2)\).</p>
+  </div>
+</div>
+
+<div class="exo"><span class="num">EXO 05</span><span class="diff">★ ★ ☆</span>
+  <h3>Minimiser l'attente devant une machine</h3>
+  <div class="statement">Une découpeuse laser doit traiter des travaux de durées connues (en minutes), un seul à la fois et sans pause. L'<em>instant de fin</em> d'un travail est le moment où il est terminé ; on veut minimiser la somme des instants de fin (donc l'attente moyenne des utilisateurs). Exemple : durées <span class="code-inline">[5, 2, 8, 3]</span>.</div>
+  <div class="q"><strong>Q1.</strong> Écrire <span class="code-inline">somme_fins(durees)</span>, qui renvoie la somme des instants de fin quand les travaux passent dans l'ordre de la liste. Calculer pour l'ordre donné, puis pour l'ordre croissant des durées.</div>
+  <div class="q"><strong>Q2.</strong> Deux travaux de durées \(a \gt b\) passent consécutivement, \(a\) d'abord, à partir de l'instant \(t\). Calculer la variation de la somme si on les échange.</div>
+  <div class="q"><strong>Q3.</strong> En déduire que le glouton « le plus court d'abord » est optimal. Coût ?</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution"><h4>Correction</h4>
+    <p><strong>Q1.</strong></p>
+<pre class="codeblock"><span class="kw">def</span> somme_fins(durees):
+    <span class="cmt"># tâches exécutées dans l'ordre de la liste, sans pause ;</span>
+    <span class="cmt"># renvoie la somme de leurs instants de fin</span>
+    t, total = 0, 0
+    <span class="kw">for</span> d <span class="kw">in</span> durees:
+        t = t + d             <span class="cmt"># instant de fin de cette tâche</span>
+        total = total + t
+    <span class="kw">return</span> total</pre>
+    <p>Ordre donné : fins 5, 7, 15, 18, somme 45. Ordre croissant 2, 3, 5, 8 : fins 2, 5, 10, 18, somme 35.</p>
+<pre class="codeblock">somme_fins([5, 2, 8, 3])           <span class="cmt"># 45</span>
+somme_fins(sorted([5, 2, 8, 3]))   <span class="cmt"># 35</span></pre>
+    <p><strong>Q2.</strong> Avant l'échange, les deux travaux finissent à \(t + a\) et \(t + a + b\) ; après, à \(t + b\) et \(t + a + b\). Les autres instants de fin ne changent pas. La somme diminue de \((t + a) - (t + b) = a - b \gt 0\).</p>
+    <p><strong>Q3.</strong> Dans un ordre optimal, il ne peut pas y avoir deux travaux consécutifs dont le premier est strictement plus long : en les échangeant, on ferait strictement mieux. Un ordre optimal est donc rangé par durées croissantes (les travaux de même durée sont interchangeables), et c'est l'ordre du glouton : il est optimal. C'est un argument d'échange. Coût : le tri, \(O(n \log n)\).</p>
+  </div>
+</div>
+
+<div class="exo"><span class="num">EXO 06</span><span class="diff">★ ★ ☆</span>
+  <h3>Points d'eau sur un sentier</h3>
+  <div class="statement">Un randonneur parcourt un sentier de 52 km avec une gourde qui lui permet de marcher au plus \(A\) km sans s'arrêter. Les points d'eau sont aux kilomètres <span class="code-inline">P = [0, 8, 15, 21, 30, 34, 45, 52]</span> (départ en 0, arrivée en 52). Il veut faire le moins d'arrêts possible. Stratégie gloutonne : depuis le point où il se trouve, aller jusqu'au point d'eau le plus lointain qu'il peut atteindre.</div>
+  <div class="q"><strong>Q1.</strong> Écrire <span class="code-inline">faisable(points, A)</span>, qui teste si le trajet est possible, et <span class="code-inline">arrets(points, A)</span>, qui renvoie les indices des points où il s'arrête. Justifier la terminaison.</div>
+  <div class="q"><strong>Q2.</strong> Dérouler pour \(A = 15\) et pour \(A = 25\).</div>
+  <div class="q"><strong>Q3.</strong> Montrer que la stratégie est optimale : si \(g_k\) et \(o_k\) sont les positions du \(k\)-ième arrêt du glouton et d'un trajet optimal, montrer \(g_k \ge o_k\).</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution"><h4>Correction</h4>
+    <p><strong>Q1.</strong></p>
+<pre class="codeblock"><span class="kw">def</span> arrets(points, A):
+    <span class="cmt"># points : positions croissantes ; points[0] départ, dernier</span>
+    <span class="cmt"># = arrivée ; deux points consécutifs à distance &lt;= A</span>
+    <span class="cmt"># renvoie les indices des points de ravitaillement</span>
+    res = []
+    i, n = 0, len(points)
+    <span class="kw">while</span> i &lt; n - 1:
+        j = i
+        <span class="kw">while</span> j + 1 &lt; n <span class="kw">and</span> points[j + 1] - points[i] &lt;= A:
+            j = j + 1     <span class="cmt"># points[j + 1] encore atteignable</span>
+        <span class="kw">if</span> j &lt; n - 1:
+            res.append(j)     <span class="cmt"># arrêt au plus loin possible</span>
+        i = j
+    <span class="kw">return</span> res
+
+<span class="kw">def</span> faisable(points, A):
+    <span class="kw">for</span> i <span class="kw">in</span> range(len(points) - 1):
+        <span class="kw">if</span> points[i + 1] - points[i] &gt; A:
+            <span class="kw">return</span> <span class="kw">False</span>
+    <span class="kw">return</span> <span class="kw">True</span></pre>
+    <p>Si le trajet est faisable, le point suivant est toujours atteignable, donc la boucle intérieure avance au moins une fois : \(j \gt i\), et \(i\) augmente strictement à chaque tour de la boucle extérieure. Le variant \(n - 1 - i\) assure la terminaison.</p>
+    <p><strong>Q2.</strong> \(A = 15\) : de 0, il atteint 8 et 15 (pas 21) : arrêt au km 15 (indice 2) ; de 15, jusqu'à 30 : arrêt (indice 4) ; de 30, jusqu'à 45 : arrêt (indice 6) ; de 45, l'arrivée est à 7 km. Trois arrêts. \(A = 25\) : arrêts aux km 21 et 45, soit deux arrêts.</p>
+<pre class="codeblock">P = [0, 8, 15, 21, 30, 34, 45, 52]    <span class="cmt"># en km</span>
+arrets(P, 15)       <span class="cmt"># [2, 4, 6]</span>
+arrets(P, 25)       <span class="cmt"># [3, 6]</span>
+faisable(P, 10)     <span class="cmt"># False</span></pre>
+    <p><strong>Q3.</strong> Récurrence, avec \(g_0 = o_0 = 0\). Si \(g_k \ge o_k\), alors \(o_{k+1} \le o_k + A \le g_k + A\) : le point \(o_{k+1}\) est atteignable depuis \(g_k\), et le glouton va au moins aussi loin, \(g_{k+1} \ge o_{k+1}\). Si le trajet optimal a \(m\) arrêts, l'arrivée est à au plus \(A\) km de \(o_m\), donc de \(g_m \ge o_m\) : le glouton atteint l'arrivée depuis \(g_m\) sans autre arrêt. Il fait donc au plus \(m\) arrêts : il est optimal.</p>
+  </div>
+</div>
+
+<div class="exo"><span class="num">EXO 07</span><span class="diff">★ ★ ☆</span>
+  <h3>Rendre la monnaie avec une caisse limitée</h3>
+  <div class="statement">Une caisse ne contient qu'un nombre limité de pièces de chaque valeur, décrit par un dictionnaire : pour une caisse qui contient une pièce de 50 c et trois de 20 c, <span class="code-inline">caisse = {50: 1, 20: 3, 10: 0, 5: 0, 2: 0, 1: 0}</span>.</div>
+  <div class="q"><strong>Q1.</strong> Écrire <span class="code-inline">rendu_stock(s, pieces, stock)</span>, glouton qui rend pour chaque valeur autant de pièces que possible dans la limite du stock, et renvoie le dictionnaire des pièces rendues et le reste non rendu.</div>
+  <div class="q"><strong>Q2.</strong> Que se passe-t-il pour 60 c avec cette caisse ? Une solution existe-t-elle ?</div>
+  <div class="q"><strong>Q3.</strong> Pour deux valeurs \(a\) et \(b\) disponibles en \(n_a\) et \(n_b\) exemplaires, écrire une recherche exhaustive <span class="code-inline">rendu_deux(s, a, na, b, nb)</span> qui renvoie le nombre minimal de pièces pour rendre exactement \(s\) (\(-1\) si c'est impossible). Coût ?</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution"><h4>Correction</h4>
+    <p><strong>Q1.</strong></p>
+<pre class="codeblock"><span class="kw">def</span> rendu_stock(s, pieces, stock):
+    <span class="cmt"># pieces décroissantes ; stock[c] : nombre de pièces c</span>
+    <span class="cmt"># disponibles ; renvoie (pièces rendues, reste non rendu)</span>
+    rendu = {}
+    <span class="kw">for</span> c <span class="kw">in</span> pieces:
+        k = s // c
+        <span class="kw">if</span> k &gt; stock[c]:
+            k = stock[c]          <span class="cmt"># pas assez de pièces c</span>
+        <span class="kw">if</span> k &gt; 0:
+            rendu[c] = k
+            s = s - k * c
+    <span class="kw">return</span> rendu, s</pre>
+    <p><strong>Q2.</strong> Le glouton rend la pièce de 50 c, puis il reste 10 c, qu'aucune pièce disponible ne permet de rendre. Pourtant trois pièces de 20 c conviennent. Même avec un système canonique, la limite de stock suffit à mettre le glouton en échec : le premier choix (la plus grosse pièce) rend la suite impossible.</p>
+<pre class="codeblock">caisse = {50: 1, 20: 3, 10: 0, 5: 0, 2: 0, 1: 0}
+rendu_stock(60, [50, 20, 10, 5, 2, 1], caisse)
+<span class="cmt"># ({50: 1}, 10)  : 10 centimes restent dus</span></pre>
+    <p><strong>Q3.</strong> On essaie tous les couples \((i, j)\) de nombres de pièces :</p>
+<pre class="codeblock"><span class="kw">def</span> rendu_deux(s, a, na, b, nb):
+    <span class="cmt"># au plus na pièces a et nb pièces b ; renvoie le nombre</span>
+    <span class="cmt"># minimal de pièces pour rendre exactement s, -1 si impossible</span>
+    meilleur = -1
+    <span class="kw">for</span> i <span class="kw">in</span> range(na + 1):
+        <span class="kw">for</span> j <span class="kw">in</span> range(nb + 1):
+            <span class="kw">if</span> i * a + j * b == s:
+                <span class="kw">if</span> meilleur == -1 <span class="kw">or</span> i + j &lt; meilleur:
+                    meilleur = i + j
+    <span class="kw">return</span> meilleur</pre>
+<pre class="codeblock">rendu_deux(60, 50, 1, 20, 3)    <span class="cmt"># 3</span>
+rendu_deux(70, 50, 1, 20, 3)    <span class="cmt"># 2</span>
+rendu_deux(30, 50, 1, 20, 3)    <span class="cmt"># -1</span></pre>
+    <p>Deux boucles imbriquées : \((n_a + 1)(n_b + 1)\) essais. Une telle énumération explose avec le nombre de valeurs différentes (un niveau de boucle par valeur) : pour le cas général, on utilise la programmation dynamique (deuxième année).</p>
+  </div>
+</div>
+
+<div class="exo"><span class="num">EXO 08</span><span class="diff">★ ★ ★</span>
+  <h3>Relais radio dans un tunnel</h3>
+  <div class="statement">Des capteurs sont fixés le long d'un tunnel rectiligne, aux abscisses (en centaines de mètres) <span class="code-inline">x = [1, 3, 4, 9, 11, 12, 20]</span>, triées. Un relais radio placé à l'abscisse \(p\) capte tous les capteurs de l'intervalle \([p - r, p + r]\). On veut capter tous les capteurs avec le moins de relais possible. Stratégie gloutonne : placer un relais le plus à droite possible tout en captant le premier capteur non couvert, c'est-à-dire en \(x_i + r\).</div>
+  <div class="q"><strong>Q1.</strong> Écrire <span class="code-inline">bornes(x, r)</span>, qui renvoie la liste des positions des relais. Dérouler pour \(r = 2\).</div>
+  <div class="q"><strong>Q2.</strong> Montrer par un argument d'échange qu'il existe une solution optimale dont le premier relais est en \(x_0 + r\). En déduire l'optimalité du glouton.</div>
+  <div class="q"><strong>Q3.</strong> Coût, si les abscisses ne sont pas triées au départ ?</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution"><h4>Correction</h4>
+    <p><strong>Q1.</strong></p>
+<pre class="codeblock"><span class="kw">def</span> bornes(x, r):
+    <span class="cmt"># x : positions triées des capteurs ; une borne en p couvre</span>
+    <span class="cmt"># [p - r, p + r] ; renvoie les positions des bornes</span>
+    res = []
+    i = 0
+    <span class="kw">while</span> i &lt; len(x):
+        p = x[i] + r          <span class="cmt"># le plus à droite possible</span>
+        res.append(p)
+        <span class="kw">while</span> i &lt; len(x) <span class="kw">and</span> x[i] &lt;= p + r:
+            i = i + 1         <span class="cmt"># capteurs couverts par p</span>
+    <span class="kw">return</span> res</pre>
+    <p>Pour \(r = 2\) : le capteur 1 impose un relais en 3, qui couvre \([1, 5]\) : capteurs 1, 3, 4. Le capteur 9 impose un relais en 11, qui couvre \([9, 13]\) : 9, 11, 12. Le capteur 20 impose un relais en 22. Trois relais.</p>
+<pre class="codeblock">bornes([1, 3, 4, 9, 11, 12, 20], 2)   <span class="cmt"># [3, 11, 22]</span></pre>
+    <p><strong>Q2.</strong> Dans une solution optimale, le capteur \(x_0\) (le plus à gauche) est couvert par un relais \(p\) avec \(x_0 - r \le p \le x_0 + r\). Les capteurs couverts par \(p\) sont tous dans \([x_0, p + r] \subset [x_0, x_0 + 2r]\), donc couverts aussi par un relais en \(x_0 + r\). En remplaçant \(p\) par \(x_0 + r\), on garde une solution de même taille : il existe une solution optimale qui contient le choix glouton (propriété du choix glouton). Les capteurs restants à couvrir sont ceux au-delà de \(x_0 + 2r\), et une solution optimale pour eux, complétée par ce relais, est optimale (sous-structure optimale). En recommençant, on retrouve les choix du glouton : il est optimal.</p>
+    <p><strong>Q3.</strong> Chaque capteur est examiné une seule fois par la boucle intérieure (l'indice \(i\) ne fait qu'augmenter) : \(O(n)\). Avec un tri préalable, le coût total est \(O(n \log n)\).</p>
+  </div>
+</div>
+
+<div class="exo"><span class="num">EXO 09</span><span class="diff">★ ★ ★</span>
+  <h3>Le sac à dos : un glouton presque juste</h3>
+  <div class="statement">Des objets sont donnés par des couples (valeur, masse) ; on veut emporter la plus grande valeur totale dans un sac de capacité 10 kg. Chaque objet est pris entièrement ou laissé.</div>
+  <div class="q"><strong>Q1.</strong> Le glouton « meilleur rapport valeur/masse d'abord » est-il optimal pour les objets (30, 6), (20, 5), (20, 5) ?</div>
+  <div class="q"><strong>Q2.</strong> Trouver un contre-exemple au glouton « le plus léger d'abord », puis au glouton « le plus précieux d'abord ».</div>
+  <div class="q"><strong>Q3.</strong> On peut maintenant emporter une <em>fraction</em> d'un objet (du sable, de la farine), avec une valeur proportionnelle. Écrire <span class="code-inline">sac_fractionnaire(objets, capacite)</span>, glouton par rapport décroissant, et calculer sa valeur pour les objets de Q1. Pourquoi est-il optimal ?</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution"><h4>Correction</h4>
+    <p><strong>Q1.</strong> Rapports 5, 4 et 4 : le glouton prend (30, 6) ; il reste 4 kg et aucun objet de 5 kg ne rentre : valeur 30. Les deux objets de 5 kg tiennent ensemble et valent 40. Le glouton n'est pas optimal.</p>
+    <p><strong>Q2.</strong> « Plus léger d'abord » : (1, 1) et (100, 10) ; le glouton prend (1, 1), puis (100, 10) ne rentre plus : 1 contre 100. « Plus précieux d'abord » : (10, 10), (7, 5), (7, 5) ; le glouton prend l'objet de valeur 10, qui remplit le sac : 10 contre 14.</p>
+    <p><strong>Q3.</strong> Pour parcourir par rapport décroissant avec <span class="code-inline">sorted</span> (ordre croissant), on parcourt la liste triée depuis la fin.</p>
+<pre class="codeblock"><span class="kw">def</span> sac_fractionnaire(objets, capacite):
+    <span class="cmt"># objets : couples (valeur, masse) ; on peut emporter une</span>
+    <span class="cmt"># fraction de chaque objet ; renvoie la valeur maximale</span>
+    par_ratio = sorted([(v / m, v, m) <span class="kw">for</span> (v, m) <span class="kw">in</span> objets])
+    total, reste = 0, capacite
+    k = len(par_ratio) - 1     <span class="cmt"># du meilleur rapport au moins bon</span>
+    <span class="kw">while</span> k &gt;= 0 <span class="kw">and</span> reste &gt; 0:
+        r, v, m = par_ratio[k]
+        <span class="kw">if</span> m &lt;= reste:
+            total, reste = total + v, reste - m    <span class="cmt"># objet entier</span>
+        <span class="kw">else</span>:
+            total, reste = total + r * reste, 0    <span class="cmt"># une fraction</span>
+        k = k - 1
+    <span class="kw">return</span> total</pre>
+<pre class="codeblock">objets = [(30, 6), (20, 5), (20, 5)]
+sac_fractionnaire(objets, 10)    <span class="cmt"># 46.0</span></pre>
+    <p>L'objet (30, 6) est pris en entier, puis 4 kg d'un objet de rapport 4 : \(30 + 16 = 46\). Optimalité par échange : si une solution contient une masse \(m\) d'un objet de rapport \(r'\) alors qu'il reste une masse \(m\) inutilisée d'un objet de rapport \(r \gt r'\), remplacer l'une par l'autre augmente la valeur de \((r - r')\,m\). Une solution optimale remplit donc le sac par rapports décroissants, comme le glouton. Pour le sac à dos entier, la propriété d'échange tombe (on ne peut pas couper un objet) : il faut la programmation dynamique.</p>
+  </div>
+</div>
+
+<div class="exo concours"><span class="num">CONCOURS PT</span><span class="diff">★ ★ ★</span>
+  <h3>Les imprimantes 3D d'un FabLab</h3>
+  <div class="exo-source">Exercice <strong>original</strong> au format des épreuves d'informatique PT (thème : algorithmes gloutons, sélection d'activités, allocation de ressources, contre-exemples, récursivité).</div>
+  <div class="statement">Le FabLab d'un lycée possède des imprimantes 3D identiques. Une demande d'impression est un couple <span class="code-inline">(debut, fin)</span> d'entiers (en heures), qui occupe une imprimante sur l'intervalle \([\textit{debut}, \textit{fin}[\), avec \(\textit{debut} \lt \textit{fin}\). Une imprimante ne traite qu'une demande à la fois ; deux demandes qui se suivent exactement peuvent passer sur la même imprimante. On utilisera l'exemple :
+<pre class="codeblock">F = [(9, 11), (9, 10), (10, 13), (11, 12), (12, 14),
+     (13, 15), (14, 16), (10, 11), (15, 17)]</pre>
+  On note \(n\) le nombre de demandes. On pourra utiliser la fonction <span class="code-inline">sorted(L)</span>, qui renvoie une nouvelle liste contenant les éléments de <span class="code-inline">L</span> dans l'ordre croissant (ordre lexicographique pour des tuples), avec un coût \(O(n \log n)\).</div>
+
+  <p class="exo-part">Partie A — Modélisation</p>
+  <div class="q"><strong>A1.</strong> Écrire <span class="code-inline">compatibles(a: tuple, b: tuple) -&gt; bool</span>, qui indique si deux demandes peuvent passer sur la même imprimante.</div>
+  <div class="q"><strong>A2.</strong> Écrire <span class="code-inline">planning_valide(L: list) -&gt; bool</span>, qui indique si les demandes de <span class="code-inline">L</span> peuvent toutes passer sur une seule imprimante, avec un coût \(O(n \log n)\). Justifier qu'il suffit de comparer des demandes voisines après un tri par début.</div>
+
+  <p class="exo-part">Partie B — Une seule imprimante</p>
+  <div class="q"><strong>B1.</strong> Écrire <span class="code-inline">max_impressions(F: list) -&gt; list</span>, qui renvoie un plus grand ensemble de demandes deux à deux compatibles, par le glouton de la fin au plus tôt (\(F\) non vide).</div>
+  <div class="q"><strong>B2.</strong> Dérouler <span class="code-inline">max_impressions(F)</span> sur l'exemple. Quel est son coût ?</div>
+  <div class="q"><strong>B3.</strong> On note \(g_1, \dots, g_k\) les demandes retenues et \(o_1, \dots, o_m\) celles d'une solution optimale, rangées par fin croissante. Montrer par récurrence que la fin de \(g_i\) est inférieure ou égale à celle de \(o_i\) pour tout \(i \le k\), puis que \(k = m\).</div>
+
+  <p class="exo-part">Partie C — Plusieurs imprimantes</p>
+  <div class="q"><strong>C1.</strong> Écrire <span class="code-inline">nb_imprimantes(F: list) -&gt; int</span>, qui renvoie le nombre d'imprimantes utilisées quand on traite les demandes par début croissant en plaçant chacune sur la première imprimante libre.</div>
+  <div class="q"><strong>C2.</strong> Montrer que l'exemple demande au moins trois imprimantes et que <span class="code-inline">nb_imprimantes(F)</span> vaut 3.</div>
+  <div class="q"><strong>C3.</strong> Montrer qu'en général, quand la fonction met en service une \((p+1)\)-ième imprimante, \(p + 1\) demandes sont en cours au même instant. Conclure.</div>
+  <div class="q"><strong>C4.</strong> Donner le coût dans le pire cas.</div>
+
+  <p class="exo-part">Partie D — Demandes prioritaires</p>
+  <div class="q"><strong>D1.</strong> Chaque demande reçoit désormais un poids (sa priorité) : <span class="code-inline">(debut, fin, poids)</span>. On veut maximiser la somme des poids des demandes retenues sur une imprimante. Pour <span class="code-inline">G = [(9, 10, 1), (10, 11, 1), (11, 12, 1), (9, 13, 5)]</span>, que donne le glouton de la fin au plus tôt ? Quel est l'optimum ?</div>
+  <div class="q"><strong>D2.</strong> On propose de traiter les demandes par poids décroissant. Donner un contre-exemple.</div>
+  <div class="q"><strong>D3.</strong> Les demandes \(T\) sont rangées par fin croissante. Écrire une fonction récursive <span class="code-inline">meilleur_poids(T: list, i: int, libre: int) -&gt; int</span> qui renvoie le poids maximal que l'on peut obtenir avec les demandes \(T[i], T[i+1], \dots\), l'imprimante étant occupée jusqu'à l'instant <span class="code-inline">libre</span>, en distinguant le cas où \(T[i]\) est refusée et celui où elle est acceptée. Majorer le nombre d'appels.</div>
+
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution"><h4>Correction</h4>
+    <p><strong>A1, A2.</strong></p>
+<pre class="codeblock"><span class="kw">def</span> compatibles(a, b):
+    <span class="kw">return</span> a[1] &lt;= b[0] <span class="kw">or</span> b[1] &lt;= a[0]
+
+<span class="kw">def</span> planning_valide(L):
+    <span class="cmt"># True si les demandes de L sont deux à deux compatibles</span>
+    T = sorted(L)                         <span class="cmt"># par début croissant</span>
+    <span class="kw">for</span> i <span class="kw">in</span> range(len(T) - 1):
+        <span class="kw">if</span> T[i][1] &gt; T[i + 1][0]:         <span class="cmt"># chevauchement</span>
+            <span class="kw">return</span> <span class="kw">False</span>
+    <span class="kw">return</span> <span class="kw">True</span></pre>
+    <p>Si les demandes triées par début sont voisines compatibles (\(f_i \le d_{i+1}\)), alors pour \(i \lt j\) : \(f_i \le d_{i+1} \lt f_{i+1} \le d_{i+2} \lt \dots \le d_j\), donc \(f_i \le d_j\) : toutes les paires sont compatibles. Réciproquement, deux voisines incompatibles suffisent à invalider le planning. Coût : le tri, \(O(n \log n)\), puis \(n - 1\) comparaisons. La version naïve, qui teste toutes les paires, coûte \(O(n^2)\).</p>
+    <p><strong>B1, B2.</strong></p>
+<pre class="codeblock"><span class="kw">def</span> max_impressions(F):
+    <span class="cmt"># F : liste non vide de demandes (debut, fin)</span>
+    T = sorted([(f, d) <span class="kw">for</span> (d, f) <span class="kw">in</span> F])     <span class="cmt"># par fin croissante</span>
+    retenues = [(T[0][1], T[0][0])]
+    libre = T[0][0]
+    <span class="kw">for</span> k <span class="kw">in</span> range(1, len(T)):
+        f, d = T[k]
+        <span class="kw">if</span> d &gt;= libre:
+            retenues.append((d, f))
+            libre = f
+    <span class="kw">return</span> retenues</pre>
+<pre class="codeblock">max_impressions(F)
+<span class="cmt"># [(9, 10), (10, 11), (11, 12), (12, 14), (14, 16)]</span></pre>
+    <p>Ordre par fin (à fin égale, par début) : [9, 10[ retenue (libre = 10) ; [9, 11[ écartée ; [10, 11[ retenue (11) ; [11, 12[ retenue (12) ; [10, 13[ écartée ; [12, 14[ retenue (14) ; [13, 15[ écartée ; [14, 16[ retenue (16) ; [15, 17[ écartée. Cinq impressions. Coût \(O(n \log n)\) (tri), puis \(O(n)\).</p>
+    <p><strong>B3.</strong> Pour \(i = 1\) : \(g_1\) a la plus petite fin de toutes les demandes. Si \(\textit{fin}(g_i) \le \textit{fin}(o_i)\) : \(o_{i+1}\) commence après la fin de \(o_i\), donc après celle de \(g_i\) ; elle était compatible avec \(g_1, \dots, g_i\), et le glouton, qui retient la première demande compatible dans l'ordre des fins, en a retenu une qui finit au plus tard en même temps : \(\textit{fin}(g_{i+1}) \le \textit{fin}(o_{i+1})\). Si l'on avait \(m \gt k\), la demande \(o_{k+1}\), qui commence après \(\textit{fin}(o_k) \ge \textit{fin}(g_k)\), serait compatible avec tous les choix du glouton, qui l'aurait retenue ou en aurait retenu une autre : contradiction. Donc \(k = m\).</p>
+    <p><strong>C1, C2.</strong></p>
+<pre class="codeblock"><span class="kw">def</span> nb_imprimantes(F):
+    fins = []          <span class="cmt"># fins[p] : fin de la dernière demande de p</span>
+    <span class="kw">for</span> (d, f) <span class="kw">in</span> sorted(F):
+        p = 0
+        <span class="kw">while</span> p &lt; len(fins) <span class="kw">and</span> fins[p] &gt; d:
+            p = p + 1
+        <span class="kw">if</span> p == len(fins):
+            fins.append(f)
+        <span class="kw">else</span>:
+            fins[p] = f
+    <span class="kw">return</span> len(fins)</pre>
+<pre class="codeblock">nb_imprimantes(F)     <span class="cmt"># 3</span>
+profondeur(F)         <span class="cmt"># 3</span></pre>
+    <p>De 10 h à 11 h, les demandes [9, 11[, [10, 13[ et [10, 11[ sont en cours : il faut au moins trois imprimantes. La fonction en utilise trois (la fonction <span class="code-inline">profondeur</span> du cours confirme la valeur 3).</p>
+    <p><strong>C3.</strong> Quand une \((p+1)\)-ième imprimante est mise en service pour une demande \([d, f[\), les \(p\) imprimantes existantes ont une dernière demande qui finit après \(d\) et qui a commencé au plus tard en \(d\) (traitement par début croissant) : avec la nouvelle, \(p + 1\) demandes sont en cours à l'instant \(d\). Aucune répartition ne peut donc utiliser moins d'imprimantes que la fonction : elle est optimale.</p>
+    <p><strong>C4.</strong> Tri en \(O(n \log n)\) ; chaque demande parcourt au plus toutes les imprimantes déjà en service : \(O(n^2)\) dans le pire cas (toutes les demandes simultanées).</p>
+    <p><strong>D1.</strong> Par fin : [9, 10[, [10, 11[, [11, 12[ sont retenues, [9, 13[ est écartée : poids 3. La demande [9, 13[ seule a le poids 5, et c'est l'optimum (elle chevauche les trois autres). La fin au plus tôt ne tient pas compte des poids.</p>
+    <p><strong>D2.</strong> <span class="code-inline">[(9, 13, 5), (9, 10, 4), (10, 11, 4), (11, 13, 4)]</span> : par poids décroissant, [9, 13[ (poids 5) est retenue et bloque les trois autres ; or les trois autres, compatibles entre elles, totalisent 12.</p>
+    <p><strong>D3.</strong></p>
+<pre class="codeblock"><span class="kw">def</span> meilleur_poids(T, i, libre):
+    <span class="cmt"># T : demandes (debut, fin, poids) triées par fin croissante ;</span>
+    <span class="cmt"># poids maximal que l'on peut obtenir avec T[i], T[i+1], …</span>
+    <span class="cmt"># sachant que l'imprimante est occupée jusqu'à libre</span>
+    <span class="kw">if</span> i == len(T):
+        <span class="kw">return</span> 0
+    d, f, w = T[i]
+    sans = meilleur_poids(T, i + 1, libre)    <span class="cmt"># on refuse T[i]</span>
+    <span class="kw">if</span> d &gt;= libre:
+        avec = w + meilleur_poids(T, i + 1, f)
+        <span class="kw">if</span> avec &gt; sans:
+            <span class="kw">return</span> avec
+    <span class="kw">return</span> sans</pre>
+<pre class="codeblock">G = [(9, 10, 1), (10, 11, 1), (11, 12, 1), (9, 13, 5)]
+meilleur_poids(G, 0, 0)     <span class="cmt"># 5</span></pre>
+    <p>La fonction termine car \(i\) augmente à chaque appel et s'arrête à \(n\). Chaque appel en provoque au plus deux, sur l'indice suivant : au plus \(1 + 2 + 4 + \dots + 2^n = 2^{n+1} - 1\) appels, coût exponentiel \(O(2^n)\), atteint quand toutes les demandes sont compatibles. Les mêmes sous-problèmes (même \(i\), même <span class="code-inline">libre</span>) sont recalculés de nombreuses fois : la programmation dynamique de deuxième année (mémoïsation dans un dictionnaire, ordonnancement de tâches pondérées) ramène ce calcul à un coût polynomial.</p>
+  </div>
+</div>
+
+</div>
+</template>

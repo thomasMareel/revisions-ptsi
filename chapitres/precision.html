@@ -1,0 +1,702 @@
+<!-- Chapitre « Performances : précision et rapidité » (precision) : contenu des onglets Cours, Méthodes et Exercices, chargé à l'ouverture du chapitre.
+     On l'édite ici, puis : node tools/chapitres.js (docs/chargement-chapitres.md). -->
+<template class="pan-tpl" data-panneau="prec-cours">
+<!-- ============ PRÉCISION ET RAPIDITÉ : COURS ============ -->
+<div class="course-section">
+  <div class="sec-num">AU PROGRAMME · PTSI</div>
+  <h2>Ce que le programme officiel demande</h2>
+  <div class="intro">Ce chapitre couvre les <strong>performances</strong> d'un système asservi autres que la stabilité, au programme du semestre S2 de sciences industrielles (compétences C2 « Déterminer les performances d'un système asservi » et C1 « Proposer une démarche permettant d'évaluer les performances »). <strong>Tout y est exigible en 1ʳᵉ année</strong>, sauf ce qui est signalé au §5 et la dernière section. Il s'appuie sur <a href="#slci/cours">« SLCI : modélisation et transformée de Laplace »</a> (théorème de la valeur finale, classe), <a href="#schblocs/cours">« Schéma-blocs et systèmes asservis »</a> (FTBO, FTBF, perturbations), <a href="#sys2/cours">« Systèmes du 2e ordre »</a> (dépassement, abaque du temps de réponse) et <a href="#stabilite/cours">« Stabilité des systèmes asservis »</a> (marges). Il prépare, en 2ᵉ année, <a href="#correcteurs/cours">« Correction des SLCI »</a>.</div>
+  <div class="reveal" onclick="this.classList.toggle('open')">
+    <span class="label">Programme officiel</span>
+    <span class="prompt">Les capacités exigibles, dans l'ordre du chapitre</span>
+    <div class="content">
+      <ul>
+        <li><strong>Critères du cahier des charges</strong> (C1, S2) : stabilité (amortissement, dépassement relatif), précision (écart statique, erreur de traînage), rapidité (temps de réponse à 5 %, temps de montée, bande passante, retard de traînage) (§1, §4, §7).</li>
+        <li><strong>Précision d'un système asservi</strong> (C2, S2) : théorème de la valeur finale ; écart statique vis-à-vis de la consigne ; lien entre la classe de la fonction de transfert en boucle ouverte et l'écart statique (§2).</li>
+        <li><strong>Écart et erreur vis-à-vis d'une perturbation</strong> (C2, S2) ; perturbation, poursuite et régulation dans la structure d'un système asservi (B2, S1) (§3).</li>
+        <li><strong>Rapidité d'un système</strong> (C2, S2) : temps de réponse à 5 %, temps de montée, bande passante (§4).</li>
+        <li><strong>Écart et erreur</strong> (C2, S2) : distinction avec une chaîne de retour non unitaire (§6) ; <strong>erreur de traînage</strong> vis-à-vis de la consigne et retard de traînage (§2, §7).</li>
+        <li><strong>Proposer une démarche permettant d'évaluer les performances</strong> (C1, S2) et <strong>vérifier la cohérence du modèle</strong> en confrontant ses résultats à des mesures (B3, S2) : démarche complète (§8).</li>
+      </ul>
+      <p>Relève de la 2ᵉ année : le réglage des correcteurs proportionnel, proportionnel intégral et à avance de phase, dont le §5 ne présente que le principe, et la réduction d'un modèle à ses pôles dominants (<a href="#correcteurs/cours">« Correction des SLCI »</a>). Hors programme des deux années : correcteurs PD et PID, réglage de Ziegler et Nichols.</p>
+    </div>
+  </div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§1 · LES PERFORMANCES D'UN ASSERVISSEMENT</div>
+  <h2>Quatre exigences du cahier des charges</h2>
+  <div class="intro">Un asservissement stable n'est pas forcément satisfaisant : il doit aussi atteindre la consigne (précision), vite (rapidité), sans trop la dépasser (amortissement), et résister aux perturbations. Ces exigences se chiffrent sur la réponse à un échelon de consigne ; ce chapitre montre comment les prévoir à partir de la boucle ouverte.</div>
+  <figure class="schema">
+<svg viewBox="0 0 410 188" role="img" aria-label="Réponse indicielle d'un asservissement : dépassement, temps de réponse à cinq pour cent et écart statique">
+<line x1="50" y1="164" x2="392" y2="164" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<line x1="50" y1="164" x2="50" y2="12" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<text x="394" y="168" class="lab-muted lab-it">t</text>
+<text x="46" y="10" class="lab-muted lab-it" text-anchor="end">s(t)</text>
+<line x1="50" y1="60.3" x2="380" y2="60.3" class="sk-ink" style="opacity:.6"/>
+<line x1="50" y1="70.7" x2="380" y2="70.7" class="sk-dash"/>
+<line x1="50" y1="66" x2="380" y2="66" class="sk-axis" style="stroke-dasharray:2 3"/>
+<line x1="50" y1="75.3" x2="380" y2="75.3" class="sk-axis" style="stroke-dasharray:2 3"/>
+<polyline points="50,164 51.3,163.9 52.5,163.5 53.8,162.8 55.1,161.9 56.4,160.8 57.6,159.5 58.9,158 60.2,156.3 61.5,154.4 62.7,152.4 64,150.2 65.3,147.9 66.6,145.5 67.8,142.9 69.1,140.3 70.4,137.5 71.7,134.7 72.9,131.9 74.2,128.9 75.5,126 76.8,123 78,119.9 79.3,116.9 80.6,113.9 81.9,110.8 83.1,107.8 84.4,104.8 85.7,101.8 86.9,98.9 88.2,96 89.5,93.2 90.8,90.4 92,87.7 93.3,85 94.6,82.4 95.9,79.9 97.1,77.5 98.4,75.1 99.7,72.9 101,70.7 102.2,68.6 103.5,66.6 104.8,64.7 106.1,62.9 107.3,61.3 108.6,59.7 109.9,58.2 111.2,56.8 112.4,55.5 113.7,54.3 115,53.2 116.3,52.2 117.5,51.2 118.8,50.4 120.1,49.7 121.4,49.1 122.6,48.5 123.9,48.1 125.2,47.7 126.4,47.4 127.7,47.2 129,47 130.3,47 131.5,47 132.8,47.1 134.1,47.2 135.4,47.4 136.6,47.7 137.9,48 139.2,48.3 140.5,48.7 141.7,49.2 143,49.7 144.3,50.2 145.6,50.8 146.8,51.4 148.1,52.1 149.4,52.7 150.7,53.4 151.9,54.1 153.2,54.8 154.5,55.6 155.8,56.3 157,57.1 158.3,57.8 159.6,58.6 160.8,59.4 162.1,60.2 163.4,60.9 164.7,61.7 165.9,62.4 167.2,63.2 168.5,63.9 169.8,64.7 171,65.4 172.3,66.1 173.6,66.8 174.9,67.4 176.1,68.1 177.4,68.7 178.7,69.3 180,69.9 181.2,70.4 182.5,71 183.8,71.5 185.1,72 186.3,72.4 187.6,72.9 188.9,73.3 190.2,73.7 191.4,74.1 192.7,74.4 194,74.7 195.3,75 196.5,75.3 197.8,75.5 199.1,75.7 200.3,75.9 201.6,76.1 202.9,76.2 204.2,76.4 205.4,76.5 206.7,76.5 208,76.6 209.3,76.6 210.5,76.7 211.8,76.7 213.1,76.7 214.4,76.6 215.6,76.6 216.9,76.5 218.2,76.5 219.5,76.4 220.7,76.3 222,76.2 223.3,76 224.6,75.9 225.8,75.8 227.1,75.6 228.4,75.5 229.7,75.3 230.9,75.1 232.2,74.9 233.5,74.8 234.7,74.6 236,74.4 237.3,74.2 238.6,74 239.8,73.8 241.1,73.6 242.4,73.4 243.7,73.2 244.9,73 246.2,72.8 247.5,72.6 248.8,72.5 250,72.3 251.3,72.1 252.6,71.9 253.9,71.7 255.1,71.6 256.4,71.4 257.7,71.2 259,71.1 260.2,70.9 261.5,70.8 262.8,70.6 264.1,70.5 265.3,70.4 266.6,70.3 267.9,70.2 269.2,70 270.4,69.9 271.7,69.8 273,69.8 274.2,69.7 275.5,69.6 276.8,69.5 278.1,69.5 279.3,69.4 280.6,69.4 281.9,69.3 283.2,69.3 284.4,69.2 285.7,69.2 287,69.2 288.3,69.2 289.5,69.2 290.8,69.1 292.1,69.1 293.4,69.1 294.6,69.1 295.9,69.2 297.2,69.2 298.5,69.2 299.7,69.2 301,69.2 302.3,69.3 303.6,69.3 304.8,69.3 306.1,69.4 307.4,69.4 308.6,69.4 309.9,69.5 311.2,69.5 312.5,69.6 313.7,69.6 315,69.7 316.3,69.7 317.6,69.8 318.8,69.8 320.1,69.8 321.4,69.9 322.7,69.9 323.9,70 325.2,70 326.5,70.1 327.8,70.1 329,70.2 330.3,70.2 331.6,70.3 332.9,70.3 334.1,70.4 335.4,70.4 336.7,70.5 338,70.5 339.2,70.5 340.5,70.6 341.8,70.6 343.1,70.7 344.3,70.7 345.6,70.7 346.9,70.8 348.1,70.8 349.4,70.8 350.7,70.8 352,70.9 353.2,70.9 354.5,70.9 355.8,70.9 357.1,70.9 358.3,71 359.6,71 360.9,71 362.2,71 363.4,71 364.7,71 366,71 367.3,71 368.5,71 369.8,71 371.1,71.1 372.4,71.1 373.6,71.1 374.9,71.1 376.2,71.1 377.5,71 378.7,71 380,71" class="sk-accent"/>
+<line x1="130.3" y1="70.7" x2="130.3" y2="47" class="sk-green"/>
+<line x1="126.7" y1="47" x2="133.8" y2="47" class="sk-green"/>
+<line x1="126.7" y1="70.7" x2="133.8" y2="70.7" class="sk-green"/>
+<text x="138.3" y="63.8" class="lab-green lab-b">D₁</text>
+<line x1="363.5" y1="70.7" x2="363.5" y2="60.3" class="sk-accent2"/>
+<line x1="358.8" y1="60.3" x2="368.2" y2="60.3" class="sk-accent2"/>
+<line x1="358.8" y1="70.7" x2="368.2" y2="70.7" class="sk-accent2"/>
+<text x="357.5" y="70.5" class="lab-accent2 lab-b" text-anchor="end">εₛ</text>
+<line x1="229.7" y1="164" x2="229.7" y2="75.3" class="sk-axis"/>
+<text x="229.7" y="180" class="lab-muted" text-anchor="middle">tᵣ₅%</text>
+<text x="226.8" y="54.3" class="lab-muted" text-anchor="middle">consigne</text>
+<text x="266.9" y="87.3" class="lab-muted">bande ± 5 %</text>
+</svg>
+<figcaption>Les performances se lisent sur la réponse à un échelon de consigne : <strong>dépassement</strong> \(D_1\) (amortissement), <strong>temps de réponse à 5 %</strong> \(t_{r5\%}\), instant à partir duquel la sortie reste dans la bande ± 5 % autour de sa valeur finale (rapidité), et <strong>écart statique</strong> \(\varepsilon_s\) entre consigne et valeur finale (précision).</figcaption>
+</figure>
+  <div class="def-box">
+    <ul>
+      <li>L'<strong>écart</strong> \(\varepsilon(t)\) est la différence entre la consigne et la sortie (exprimées dans la même unité, retour unitaire). Sa limite en régime permanent est l'<strong>écart statique</strong> \(\varepsilon_s\) pour une consigne en échelon, l'<strong>écart de traînage</strong> \(\varepsilon_v\) pour une consigne en rampe.</li>
+      <li>Le <strong>temps de réponse à 5 %</strong> \(t_{r5\%}\) est l'instant à partir duquel la sortie reste à moins de 5 % de sa variation finale.</li>
+      <li>Le <strong>temps de montée</strong> \(t_m\) est la durée que met la sortie pour passer de 10 % à 90 % de sa variation finale. C'est la convention la plus courante ; certains sujets prennent l'instant du premier passage à la valeur finale : l'énoncé le précise.</li>
+      <li>Le <strong>dépassement</strong> \(D_1\) est l'excès relatif du premier maximum sur la valeur finale : \(D_1 = \dfrac{s_{\max} - s_\infty}{s_\infty}\).</li>
+    </ul>
+  </div>
+  <div class="method-box">
+    <strong>Exemple — lire les performances sur la figure</strong>
+    <p>La figure est tracée pour une boucle fermée du deuxième ordre de gain statique 0,9, de pulsation propre \(\omega_0 = 1\ \text{rad/s}\) et d'amortissement \(\xi = 0{,}4\), soumise à un échelon de consigne unité.</p>
+    <ol>
+      <li>Précision : la sortie tend vers 0,9, l'écart statique vaut \(\varepsilon_s = 1 - 0{,}9 = 0{,}1\), soit 10 % de la consigne.</li>
+      <li>Amortissement : le maximum vaut 1,13, d'où \(D_1 = (1{,}13 - 0{,}9)/0{,}9 \approx 25\ \%\), rapporté à la valeur finale et non à la consigne.</li>
+      <li>Rapidité : la sortie passe de 0,09 à 0,81 en \(t_m \approx 1{,}5\ \text{s}\) ; elle entre définitivement dans la bande \(0{,}9 \pm 0{,}045\) vers \(t_{r5\%} \approx 7{,}6\ \text{s}\). Une sortie qui monte vite peut mettre longtemps à se stabiliser.</li>
+    </ol>
+  </div>
+  <div class="notice"><strong>Erreur classique</strong> : mesurer le temps de réponse à 5 % de la consigne au lieu de 5 % de la <strong>valeur finale</strong>, ou rapporter le dépassement à la consigne. Quand la valeur finale diffère de la consigne (écart statique non nul), les deux lectures donnent des résultats différents.</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§2 · CALCULER L'ÉCART EN RÉGIME PERMANENT</div>
+  <h2>La classe de la boucle ouverte décide</h2>
+  <div class="prop-box">
+    <strong>Théorème de la valeur finale</strong> (admis). Si \(f(t)\) a une limite finie quand \(t \to +\infty\), ce qui est le cas pour la sortie ou l'écart d'un système <strong>stable</strong> soumis à une entrée qui tend vers une constante, alors
+    <div class="formula" data-nom="Théorème de la valeur finale">$$\lim_{t \to +\infty} f(t) = \lim_{p \to 0} p\,F(p).$$</div>
+  </div>
+  <div class="prop-box">
+    Pour une boucle à retour unitaire, \(\varepsilon(p) = E(p) - S(p) = E(p) - H_{BF}(p)E(p)\), soit
+    <div class="formula" data-nom="Écart d'une boucle à retour unitaire">$$\varepsilon(p) = \frac{E(p)}{1 + H_{BO}(p)},\qquad \varepsilon_\infty = \lim_{p \to 0} p\,\frac{E(p)}{1 + H_{BO}(p)}\quad\text{(boucle fermée stable)}.$$</div>
+    Avec la FTBO sous forme canonique \(H_{BO}(p) = \dfrac{K}{p^\alpha}\cdot\dfrac{1 + \cdots}{1 + \cdots}\), seuls comptent la <strong>classe</strong> \(\alpha\) et le <strong>gain</strong> \(K\).
+  </div>
+  <div style="overflow-x:auto"><table>
+    <tr><th>Consigne</th><th>Classe 0</th><th>Classe 1</th><th>Classe 2</th></tr>
+    <tr><td>Échelon \(E_0\) : écart statique</td><td>\(\dfrac{E_0}{1 + K}\)</td><td>0</td><td>0</td></tr>
+    <tr><td>Rampe \(a\,t\) : écart de traînage</td><td>infini</td><td>\(\dfrac{a}{K}\)</td><td>0</td></tr>
+    <tr><td>Parabole \(\tfrac12 b\,t^2\) : écart en accélération</td><td>infini</td><td>infini</td><td>\(\dfrac{b}{K}\)</td></tr>
+  </table></div>
+  <div class="method-box">
+    <strong>Exemple — un écart statique et un écart de traînage</strong>
+    <ol>
+      <li>FTBO \(\dfrac{9}{(1 + 2p)(1 + 0{,}1p)}\) : classe 0, \(K = 9\). Pour un échelon unité, \(\varepsilon_s = \dfrac{1}{1 + 9} = 0{,}1\) : la sortie s'arrête à 90 % de la consigne.</li>
+      <li>FTBO \(\dfrac{20}{p\,(1 + 0{,}1p)}\) : classe 1, \(K = 20\ \text{s}^{-1}\). Échelon : écart nul. Rampe de pente \(a = 0{,}5\ \text{m/s}\) : \(\varepsilon_v = \dfrac{0{,}5}{20} = 2{,}5\ \text{cm}\) de retard permanent.</li>
+    </ol>
+  </div>
+  <div class="notice">Ces résultats supposent la boucle fermée <strong>stable</strong> : on la vérifie d'abord. Avec un retour non unitaire, on se ramène au retour unitaire (adaptateur de même gain que le capteur) ; si ce n'est pas possible, on calcule directement \(e - s\) avec la FTBF (§6).</div>
+  <div class="reveal" onclick="this.classList.toggle('open')">
+    <span class="label">Démonstration</span>
+    <span class="prompt">Retrouver la ligne « échelon » du tableau.</span>
+    <div class="content"><p>Avec \(E(p) = E_0/p\) : \(\varepsilon_\infty = \lim_{p \to 0} \dfrac{E_0}{1 + H_{BO}(p)}\). En classe 0, \(H_{BO}(0) = K\) et \(\varepsilon_\infty = E_0/(1 + K)\). En classe \(\alpha \geq 1\), \(H_{BO}(p) \sim K/p^\alpha \to \infty\) quand \(p \to 0\), donc \(\varepsilon_\infty = 0\). Pour une rampe, \(E(p) = a/p^2\) et \(\varepsilon_\infty = \lim \dfrac{a}{p\,(1 + H_{BO}(p))}\), soit \(\varepsilon_\infty = \lim \dfrac{a}{p + p\,H_{BO}(p)}\) : \(p\,H_{BO} \to K\) en classe 1, d'où \(a/K\).</p></div>
+  </div>
+  <div class="notice"><strong>Erreur classique</strong> : appliquer le théorème de la valeur finale sans vérifier la stabilité. Avec la FTBO \(\dfrac{10}{p^2\,(1 + 0{,}5p)}\) (classe 2) et une rampe, le calcul donne un écart nul ; mais l'équation caractéristique \(0{,}5p^3 + p^2 + 10 = 0\) n'a pas de terme en \(p\) : la boucle est instable, la sortie diverge et la « limite » calculée n'a aucun sens.</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§3 · REJETER UNE PERTURBATION</div>
+  <h2>Où placer l'intégrateur</h2>
+  <div class="intro">Une régulation doit maintenir la sortie malgré les perturbations : couple résistant sur un moteur, ouverture d'une porte sur un four, rafale sur un drone. Par superposition, \(S = H_E\,E + H_D\,D\) ; l'effet permanent d'une perturbation constante \(D_0\) vaut \(H_D(0)\,D_0\).</div>
+  <div class="def-box">
+    On parle de <strong>poursuite</strong> (ou d'asservissement) quand la consigne varie et que la sortie doit la suivre (position d'un axe, cap d'un navire), et de <strong>régulation</strong> quand la consigne est constante et que la boucle doit surtout compenser les perturbations (température d'un four, vitesse d'un convoyeur chargé). Les mêmes outils s'appliquent : \(H_E\) pour la poursuite, \(H_D\) pour la régulation.
+  </div>
+  <figure class="schema">
+<svg viewBox="0 0 420 156" role="img" aria-label="Schéma-blocs d'une boucle à retour unitaire : correcteur C, bloc amont G1, perturbation D soustraite, bloc aval G2">
+<polyline points="14,70 52,70" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<text x="16" y="62" class="lab-it">E(p)</text>
+<circle cx="64" cy="70" r="11" class="sk-ink fl-paper"/>
+<line x1="56.3" y1="62.3" x2="71.7" y2="77.7" class="sk-ink" style="opacity:.45"/>
+<line x1="56.3" y1="77.7" x2="71.7" y2="62.3" class="sk-ink" style="opacity:.45"/>
+<text x="48" y="62" class="lab-b" text-anchor="middle">+</text>
+<text x="55" y="95" class="lab-b" text-anchor="middle">−</text>
+<polyline points="75,70 104,70" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<text x="89" y="62" class="lab-it" text-anchor="middle">ε</text>
+<rect x="104" y="53" width="50" height="34" rx="2" class="sk-ink fl-paper"/><text x="129" y="74.5" class="lab-it" text-anchor="middle">C(p)</text>
+<polyline points="154,70 180,70" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<rect x="180" y="53" width="54" height="34" rx="2" class="sk-ink fl-paper"/><text x="207" y="74.5" class="lab-it" text-anchor="middle">G₁(p)</text>
+<polyline points="234,70 259,70" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<circle cx="270" cy="70" r="11" class="sk-ink fl-paper"/>
+<line x1="262.3" y1="62.3" x2="277.7" y2="77.7" class="sk-ink" style="opacity:.45"/>
+<line x1="262.3" y1="77.7" x2="277.7" y2="62.3" class="sk-ink" style="opacity:.45"/>
+<text x="254" y="62" class="lab-b" text-anchor="middle">+</text>
+<text x="279" y="56" class="lab-b" text-anchor="middle">−</text>
+<polyline points="270,18 270,59" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<text x="278" y="26" class="lab-it lab-accent">D(p)</text>
+<polyline points="281,70 306,70" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<rect x="306" y="53" width="54" height="34" rx="2" class="sk-ink fl-paper"/><text x="333" y="74.5" class="lab-it" text-anchor="middle">G₂(p)</text>
+<polyline points="360,70 404,70" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<text x="402" y="62" class="lab-it" text-anchor="end">S(p)</text>
+<circle cx="382" cy="70" r="2.6" class="fl-ink"/>
+<polyline points="382,70 382,128 64,128 64,81" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<text x="205" y="145" class="lab-muted" text-anchor="middle">retour unitaire</text>
+<text x="169" y="112" class="lab-muted" text-anchor="middle">en amont de D</text>
+<line x1="104" y1="95" x2="234" y2="95" class="sk-dash"/>
+</svg>
+<figcaption>La perturbation \(D\) (couple résistant, pertes thermiques…) se soustrait entre le bloc amont \(G_1\) (actionneur) et le bloc aval \(G_2\) (processus). Le correcteur et \(G_1\) sont <strong>en amont</strong> du point d'entrée de la perturbation.</figcaption>
+</figure>
+  <div class="prop-box">
+    Pour une boucle à retour unitaire de correcteur \(C\), où la perturbation \(D\) se soustrait entre un bloc amont \(G_1\) et un bloc aval \(G_2\) :
+    <div class="formula" data-nom="Transfert d'une perturbation">$$H_D(p) = \frac{S(p)}{D(p)} = \frac{-\,G_2(p)}{1 + C(p)\,G_1(p)\,G_2(p)}.$$</div>
+    Une perturbation constante est <strong>entièrement rejetée</strong> en régime permanent si et seulement si la chaîne <strong>en amont</strong> de son point d'entrée (\(C\,G_1\)) contient un intégrateur. Un intégrateur situé en aval ne suffit pas.
+  </div>
+  <div class="method-box">
+    <strong>Exemple — deux intégrateurs qui ne se valent pas</strong>
+    <p>\(G_1(p) = \dfrac{2}{1 + 0{,}5p}\) (actionneur), perturbation, puis processus \(G_2\) ; perturbation constante \(D_0\).</p>
+    <ol>
+      <li>\(G_2 = \dfrac{5}{1 + 2p}\), correcteur \(C = K_c = 4\) : \(H_D(0) = \dfrac{-5}{1 + 4 \times 2 \times 5} = -\dfrac{5}{41}\) : la sortie baisse durablement de \(0{,}12\,D_0\).</li>
+      <li>Processus intégrateur \(G_2 = \dfrac{5}{p}\), même correcteur : \(H_D(p) = \dfrac{-5/p}{1 + 40/\big(p\,(1 + 0{,}5p)\big)}\), et \(H_D(0) = -\dfrac{5}{40} = -\dfrac{1}{8}\) : toujours un écart, malgré l'intégrateur.</li>
+      <li>Correcteur à action intégrale \(C(p) = K_c\,\dfrac{1 + T_ip}{T_ip}\) : \(C(p) \to \infty\) quand \(p \to 0\), donc \(H_D(0) = 0\) : la perturbation est rejetée, à condition que la boucle reste stable.</li>
+    </ol>
+  </div>
+  <div class="method-box">
+    <strong>Exemple — consigne et perturbation ensemble</strong>
+    <p>Même boucle qu'au cas 1 (\(C = 4\), \(G_2 = \dfrac{5}{1 + 2p}\)), consigne en échelon \(E_0 = 1\) et perturbation \(D_0 = 0{,}5\) (dans l'unité de la sortie de \(G_1\)).</p>
+    <ol>
+      <li>Poursuite : \(H_E(0) = \dfrac{40}{1 + 40} \approx 0{,}976\).</li>
+      <li>Régulation : \(H_D(0)\,D_0 = -\dfrac{5}{41} \times 0{,}5 \approx -0{,}061\).</li>
+      <li>Par superposition, \(s_\infty \approx 0{,}976 - 0{,}061 = 0{,}915\) : l'écart permanent passe de 2,4 % (consigne seule) à 8,5 %, la perturbation en est la principale cause.</li>
+    </ol>
+  </div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§4 · LA RAPIDITÉ</div>
+  <h2>Lire le temps de réponse sur la boucle ouverte</h2>
+  <div class="intro">Trois grandeurs chiffrent la rapidité : le temps de réponse à 5 %, le temps de montée (§1) et la bande passante de la boucle fermée, qui en est l'image fréquentielle (voir <a href="#bode/cours">« Réponse fréquentielle et diagrammes de Bode »</a>, §8). Toutes trois varient comme l'inverse de la pulsation de coupure à 0 dB de la boucle ouverte.</div>
+  <div class="prop-box">
+    <ul>
+      <li>Si la boucle fermée est un premier ordre de constante de temps \(\tau'\) : \(t_{r5\%} = 3\tau'\), \(t_m = \tau'\ln 9 \approx 2{,}2\,\tau'\), bande passante \(1/\tau'\).</li>
+      <li>Si c'est un deuxième ordre : abaque \(t_{r5\%}\,\omega_0\) en fonction de \(\xi\) (minimum ≈ 3 pour \(\xi \approx 0{,}7\) : voir <a href="#sys2/cours">« Systèmes du 2e ordre »</a>, §2).</li>
+      <li>Repère général, pour une boucle bien amortie (\(M_\varphi\) de 45° à 70°) : \(t_{r5\%} \approx \dfrac{3}{\omega_{c0}}\), à un facteur 2 près, et la bande passante de la boucle fermée est voisine de \(\omega_{c0}\).</li>
+    </ul>
+  </div>
+  <div class="method-box">
+    <strong>Exemple — ce que le bouclage fait gagner</strong>
+    <p>Processus \(\dfrac{9}{1 + 2p}\) (temps en secondes), retour unitaire, correcteur unité.</p>
+    <ol>
+      <li>En boucle ouverte : \(t_{r5\%} = 3 \times 2 = 6\ \text{s}\), \(t_m = 2\ln 9 \approx 4{,}4\ \text{s}\).</li>
+      <li>FTBF : \(\dfrac{9}{10 + 2p} = \dfrac{0{,}9}{1 + 0{,}2p}\), premier ordre de constante de temps \(\tau' = 0{,}2\ \text{s}\) : \(t_{r5\%} = 0{,}6\ \text{s}\), \(t_m \approx 0{,}44\ \text{s}\), bande passante 5 rad/s. La boucle est dix fois plus rapide, au prix d'un écart statique de 10 %.</li>
+    </ol>
+  </div>
+  <div class="method-box">
+    <strong>Exemple — une boucle fermée du deuxième ordre</strong>
+    <p>FTBO \(\dfrac{10}{p\,(1 + 0{,}1p)}\) : \(\omega_{c0} \approx 7{,}9\ \text{rad/s}\), \(M_\varphi \approx 52°\) ; FTBF \(\dfrac{1}{1 + 0{,}1p + 0{,}01p^2}\), \(\omega_0 = 10\ \text{rad/s}\), \(\xi = 0{,}5\).</p>
+    <ol>
+      <li>Abaque : \(t_{r5\%}\,\omega_0 \approx 5{,}3\) pour \(\xi = 0{,}5\), soit \(t_{r5\%} \approx 0{,}53\ \text{s}\) ; dépassement 16 % ; \(t_m \approx 0{,}16\ \text{s}\).</li>
+      <li>Repère : \(3/\omega_{c0} \approx 0{,}38\ \text{s}\), bien du même ordre (facteur 1,4).</li>
+      <li>Bande passante de la FTBF : 12,7 rad/s, environ \(1{,}6\,\omega_{c0}\).</li>
+    </ol>
+  </div>
+  <div class="notice">Être rapide demande une pulsation de coupure élevée, donc un gain élevé et une commande énergique : la saturation de l'actionneur (tension, couple, courant maximal) fixe en pratique la rapidité accessible, quels que soient les calculs linéaires.</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§5 · LE DILEMME STABILITÉ – PRÉCISION</div>
+  <h2>Pourquoi il faut des correcteurs</h2>
+  <div class="prop-box">
+    <ul>
+      <li><strong>Augmenter le gain</strong> : l'écart statique d'une classe 0 diminue sans s'annuler, l'écart de traînage d'une classe 1 diminue, la boucle accélère… mais les marges de stabilité fondent.</li>
+      <li><strong>Ajouter un intégrateur</strong> : un écart s'annule et les perturbations en amont sont rejetées… mais la phase perd 90° à <em>toutes</em> les pulsations, ce qui dégrade fortement la marge de phase.</li>
+    </ul>
+    On ne peut donc pas tout obtenir avec un simple gain : on insère un <strong>correcteur</strong> \(C(p)\) qui agit différemment selon les pulsations — fort gain en basses pulsations (précision), phase préservée autour de \(\omega_{c0}\) (stabilité).
+  </div>
+  <div class="notice"><strong>Vu en 2ᵉ année</strong> : les correcteurs P, PI et à avance de phase sont au programme de PT, avec leur réglage (<a href="#correcteurs/cours">« Correction des SLCI »</a>). On en donne ici les structures et le principe, qui découlent directement de la classe et des marges ; les correcteurs PD et PID sont hors programme des deux années.</div>
+  <div style="overflow-x:auto"><table>
+    <tr><th>Correcteur</th><th>Fonction de transfert</th><th>Effet principal</th></tr>
+    <tr><td>Proportionnel (P)</td><td>\(K_p\)</td><td>règle rapidité et écart statique, au détriment des marges</td></tr>
+    <tr><td>Intégral (I)</td><td>\(\dfrac{1}{T_ip}\)</td><td>classe + 1, mais \(-90°\) partout : rarement utilisé seul</td></tr>
+    <tr><td>Proportionnel intégral (PI) (2ᵉ année)</td><td>\(K_p\Big(1 + \dfrac{1}{T_ip}\Big) = K_p\,\dfrac{1 + T_ip}{T_ip}\)</td><td>classe + 1 ; retard de phase limité aux basses pulsations si \(1/T_i \ll \omega_{c0}\)</td></tr>
+    <tr><td>Proportionnel dérivé (PD) (hors programme)</td><td>\(K_p\,(1 + T_dp)\)</td><td>avance de phase, plus rapide et mieux amorti, mais amplifie le bruit</td></tr>
+    <tr><td>PID (hors programme)</td><td>\(K_p\Big(1 + \dfrac{1}{T_ip} + T_dp\Big)\)</td><td>cumule précision (I) et amortissement (D)</td></tr>
+    <tr><td>Avance de phase (2ᵉ année)</td><td>\(K\,\dfrac{1 + aTp}{1 + Tp}\), \(a \gt 1\)</td><td>remonte la phase autour de \(\omega_{c0}\) : dérivée filtrée, réalisable</td></tr>
+  </table></div>
+  <div class="method-box">
+    <strong>Exemple — un PI qui annule l'écart sans ruiner la marge (aperçu de 2ᵉ année)</strong>
+    <p>Processus \(G(p) = \dfrac{2}{(1 + p)(1 + 0{,}2p)}\), retour unitaire. Sans correction (\(C = 1\)) : \(\varepsilon_s = 1/3\), et la boucle coupe 0 dB vers 1,6 rad/s.</p>
+    <ol>
+      <li>On ajoute \(C(p) = \dfrac{1 + T_ip}{T_ip}\) (\(K_p = 1\)) : la classe passe à 1, l'écart statique s'annule.</li>
+      <li>On place la cassure \(1/T_i\) une décade sous la coupure : \(1/T_i = 0{,}16\ \text{rad/s}\), soit \(T_i \approx 6\ \text{s}\).</li>
+      <li>Autour de \(\omega_{c0}\), \(|C| \approx 1\) et \(\arg C = -\arctan\dfrac{1}{T_i\omega} \approx -6°\) : la marge de phase ne perd qu'environ 6°. Le prix à payer est une fin de réponse plus lente (le PI « rattrape » l'écart avec la constante de temps \(T_i\)).</li>
+    </ol>
+  </div>
+  <p>Le réglage méthodique des correcteurs (P, PI, avance de phase, boucles imbriquées) est l'objet du chapitre de deuxième année <a href="#correcteurs/cours">« Correction des SLCI — réglage des correcteurs »</a>.</p>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§6 · ÉCART ET ERREUR : LE RETOUR NON UNITAIRE</div>
+  <h2>Ce que mesure le comparateur, ce que voit l'utilisateur</h2>
+  <div class="intro">Dans un système réel, le comparateur ne reçoit pas la sortie elle-même mais son image par un capteur (une tension pour une température, une vitesse, une position). Il faut alors distinguer l'écart, signal interne de la boucle, de l'erreur, qui intéresse l'utilisateur.</div>
+  <figure class="schema">
+<svg viewBox="0 0 420 168" role="img" aria-label="Schéma-blocs d'une régulation de température : adaptateur, comparateur, correcteur, four, capteur dans la chaîne de retour">
+<polyline points="8,64 34,64" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<text x="8" y="56" class="lab-it">θ<tspan dy="4" font-size="12">c</tspan></text>
+<text x="8" y="86" class="lab-muted">°C</text>
+<rect x="34" y="47" width="44" height="34" rx="2" class="sk-ink fl-paper"/><text x="56" y="68.5" class="lab-it" text-anchor="middle">K<tspan dy="4" font-size="12">a</tspan></text>
+<polyline points="78,64 112,64" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<text x="94" y="56" class="lab-it" text-anchor="middle">u<tspan dy="4" font-size="12">c</tspan></text>
+<circle cx="124" cy="64" r="11" class="sk-ink fl-paper"/>
+<line x1="116.3" y1="56.3" x2="131.7" y2="71.7" class="sk-ink" style="opacity:.45"/>
+<line x1="116.3" y1="71.7" x2="131.7" y2="56.3" class="sk-ink" style="opacity:.45"/>
+<text x="108" y="56" class="lab-b" text-anchor="middle">+</text>
+<text x="115" y="89" class="lab-b" text-anchor="middle">−</text>
+<polyline points="135,64 166,64" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<text x="150" y="56" class="lab-it" text-anchor="middle">ε</text>
+<text x="150" y="86" class="lab-muted" text-anchor="middle">V</text>
+<rect x="166" y="47" width="44" height="34" rx="2" class="sk-ink fl-paper"/><text x="188" y="68.5" class="lab-it" text-anchor="middle">C</text>
+<polyline points="210,64 240,64" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<text x="225" y="56" class="lab-it" text-anchor="middle">u</text>
+<rect x="240" y="47" width="88" height="34" rx="2" class="sk-ink fl-paper"/><text x="284" y="68.5" text-anchor="middle">four G(p)</text>
+<polyline points="328,64 408,64" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<text x="406" y="56" class="lab-it" text-anchor="end">θ</text>
+<text x="406" y="86" class="lab-muted" text-anchor="end">°C</text>
+<circle cx="368" cy="64" r="2.6" class="fl-ink"/>
+<polyline points="368,64 368,124 306,124" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<rect x="262" y="107" width="44" height="34" rx="2" class="sk-ink fl-paper"/><text x="284" y="128.5" class="lab-it" text-anchor="middle">K<tspan dy="4" font-size="12">c</tspan></text>
+<polyline points="262,124 124,124 124,75" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<text x="190" y="118" class="lab-muted" text-anchor="middle">mesure u<tspan dy="4" font-size="12">m</tspan><tspan dy="-4"> (V)</tspan></text>
+<text x="56" y="38" class="lab-muted" text-anchor="middle">adaptateur</text>
+<text x="284" y="158" class="lab-muted" text-anchor="middle">capteur</text>
+</svg>
+<figcaption>Régulation de température : la consigne \(\theta_c\) (en °C) est convertie en tension par l'adaptateur \(K_a\) ; le capteur \(K_c\) convertit la température mesurée. L'<strong>écart</strong> \(\varepsilon = u_c - u_m\) est une tension ; l'<strong>erreur</strong> \(\theta_c - \theta\) est une température.</figcaption>
+</figure>
+  <div class="def-box">
+    <ul>
+      <li>L'<strong>écart</strong> \(\varepsilon(t) = u_c(t) - u_m(t)\) est la sortie du comparateur : différence entre l'image de la consigne et la mesure, dans l'unité du capteur (souvent des volts).</li>
+      <li>L'<strong>erreur</strong> est la différence entre la sortie souhaitée et la sortie obtenue, dans l'unité de la sortie : \(\theta_c - \theta\) dans l'exemple d'un four (°C).</li>
+    </ul>
+    Si l'adaptateur a le même gain que le capteur (\(K_a = K_c\)), \(\varepsilon = K_c\,(\theta_c - \theta)\) : l'écart est l'image exacte de l'erreur, et l'on se ramène au retour unitaire avec la FTBO \(K_c\,C\,G\). On calcule alors l'écart par le tableau du §2, puis l'erreur en divisant par \(K_c\).
+  </div>
+  <div class="method-box">
+    <strong>Exemple — la régulation d'un four</strong>
+    <p>Four \(G(p) = \dfrac{4}{1 + 600p}\) (°C/V, temps en secondes), capteur \(K_c = 0{,}05\ \text{V/°C}\), correcteur proportionnel \(C = 20\), consigne \(\theta_c = 200\ \text{°C}\).</p>
+    <ol>
+      <li>Adaptateur réglé comme le capteur, \(K_a = 0{,}05\ \text{V/°C}\) : FTBO \(K_c\,C\,G = \dfrac{4}{1 + 600p}\), classe 0, \(K = 4\).</li>
+      <li>Écart statique : \(u_c = 0{,}05 \times 200 = 10\ \text{V}\), \(\varepsilon_s = \dfrac{10}{1 + 4} = 2\ \text{V}\) ; erreur : \(2/0{,}05 = 40\ \text{°C}\). Le four se stabilise à 160 °C.</li>
+      <li>Rapidité : FTBF du premier ordre de constante de temps \(600/(1 + 4) = 120\ \text{s}\), soit \(t_{r5\%} = 6\ \text{min}\), contre 30 min en boucle ouverte.</li>
+      <li>Adaptateur mal étalonné, \(K_a = 0{,}055\ \text{V/°C}\) :<div class="formula">$$\theta_\infty = \frac{K_a\,C\,G(0)}{1 + K_c\,C\,G(0)}\,\theta_c = \frac{4{,}4}{5} \times 200 = 176\ \text{°C}.$$</div>L'erreur vaut 24 °C, mais l'écart \(11 - 0{,}05 \times 176 = 2{,}2\ \text{V}\) correspond à 44 °C : écart et erreur ne sont plus proportionnels.</li>
+    </ol>
+  </div>
+  <div class="notice"><strong>Erreur classique</strong> : annoncer un « écart nul » comme une « erreur nulle ». Avec un adaptateur mal réglé ou un capteur dérivant, un intégrateur annule l'écart (la mesure égale l'image de la consigne) mais pas l'erreur : un asservissement n'est jamais plus précis que sa mesure.</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§7 · SUIVRE UNE RAMPE : ERREUR ET RETARD DE TRAÎNAGE</div>
+  <h2>Poursuivre une consigne qui varie</h2>
+  <div class="intro">Un axe de machine-outil qui suit une trajectoire, une antenne qui poursuit un satellite, un convoyeur qui accélère reçoivent des consignes en rampe. La précision se juge alors sur l'erreur de traînage, et la rapidité sur le retard de traînage.</div>
+  <div class="prop-box">
+    Pour une boucle à retour unitaire de classe 1 et de gain \(K\), soumise à la rampe \(e(t) = a\,t\), la sortie finit par suivre une rampe de même pente, décalée de l'<strong>erreur de traînage</strong> \(\varepsilon_v\), ou retardée du <strong>retard de traînage</strong> \(t_v\) :
+    <div class="formula" data-nom="Erreur et retard de traînage (classe 1)">$$\varepsilon_v = \frac{a}{K},\qquad t_v = \frac{\varepsilon_v}{a} = \frac{1}{K}.$$</div>
+    En classe 0, l'erreur croît sans limite (la sortie ne suit pas la pente) ; en classe 2, elle s'annule.
+  </div>
+  <figure class="schema">
+<svg viewBox="0 0 410 196" role="img" aria-label="Réponse d'une boucle de classe 1 à une rampe : la sortie suit la consigne avec un écart constant de 2,5 centimètres, soit un retard de 50 millisecondes">
+<line x1="56" y1="172" x2="388" y2="172" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<line x1="56" y1="172" x2="56" y2="10" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<text x="390" y="176" class="lab-muted lab-it">t (s)</text>
+<text x="64" y="18" class="lab-muted lab-it">position (m)</text>
+<polyline points="56,172 57.1,171.5 58.1,171 59.2,170.5 60.3,170 61.3,169.5 62.4,169 63.5,168.5 64.5,168 65.6,167.5 66.7,167 67.7,166.5 68.8,166 69.9,165.5 70.9,165 72,164.5 73.1,164 74.1,163.5 75.2,163 76.3,162.5 77.3,162 78.4,161.5 79.5,161 80.5,160.5 81.6,160 82.7,159.5 83.7,159 84.8,158.5 85.9,158 86.9,157.5 88,157 89.1,156.5 90.1,156 91.2,155.5 92.3,155 93.3,154.5 94.4,154 95.5,153.5 96.5,153 97.6,152.5 98.7,152 99.7,151.5 100.8,151 101.9,150.5 102.9,150 104,149.5 105.1,149 106.1,148.5 107.2,148 108.3,147.5 109.3,147 110.4,146.5 111.5,146 112.5,145.5 113.6,145 114.7,144.5 115.7,144 116.8,143.5 117.9,143 118.9,142.5 120,142 121.1,141.5 122.1,141 123.2,140.5 124.3,140 125.3,139.5 126.4,139 127.5,138.5 128.5,138 129.6,137.5 130.7,137 131.7,136.5 132.8,136 133.9,135.5 134.9,135 136,134.5 137.1,134 138.1,133.5 139.2,133 140.3,132.5 141.3,132 142.4,131.5 143.5,131 144.5,130.5 145.6,130 146.7,129.5 147.7,129 148.8,128.5 149.9,128 150.9,127.5 152,127 153.1,126.5 154.1,126 155.2,125.5 156.3,125 157.3,124.5 158.4,124 159.5,123.5 160.5,123 161.6,122.5 162.7,122 163.7,121.5 164.8,121 165.9,120.5 166.9,120 168,119.5 169.1,119 170.1,118.5 171.2,118 172.3,117.5 173.3,117 174.4,116.5 175.5,116 176.5,115.5 177.6,115 178.7,114.5 179.7,114 180.8,113.5 181.9,113 182.9,112.5 184,112 185.1,111.5 186.1,111 187.2,110.5 188.3,110 189.3,109.5 190.4,109 191.5,108.5 192.5,108 193.6,107.5 194.7,107 195.7,106.5 196.8,106 197.9,105.5 198.9,105 200,104.5 201.1,104 202.1,103.5 203.2,103 204.3,102.5 205.3,102 206.4,101.5 207.5,101 208.5,100.5 209.6,100 210.7,99.5 211.7,99 212.8,98.5 213.9,98 214.9,97.5 216,97 217.1,96.5 218.1,96 219.2,95.5 220.3,95 221.3,94.5 222.4,94 223.5,93.5 224.5,93 225.6,92.5 226.7,92 227.7,91.5 228.8,91 229.9,90.5 230.9,90 232,89.5 233.1,89 234.1,88.5 235.2,88 236.3,87.5 237.3,87 238.4,86.5 239.5,86 240.5,85.5 241.6,85 242.7,84.5 243.7,84 244.8,83.5 245.9,83 246.9,82.5 248,82 249.1,81.5 250.1,81 251.2,80.5 252.3,80 253.3,79.5 254.4,79 255.5,78.5 256.5,78 257.6,77.5 258.7,77 259.7,76.5 260.8,76 261.9,75.5 262.9,75 264,74.5 265.1,74 266.1,73.5 267.2,73 268.3,72.5 269.3,72 270.4,71.5 271.5,71 272.5,70.5 273.6,70 274.7,69.5 275.7,69 276.8,68.5 277.9,68 278.9,67.5 280,67 281.1,66.5 282.1,66 283.2,65.5 284.3,65 285.3,64.5 286.4,64 287.5,63.5 288.5,63 289.6,62.5 290.7,62 291.7,61.5 292.8,61 293.9,60.5 294.9,60 296,59.5 297.1,59 298.1,58.5 299.2,58 300.3,57.5 301.3,57 302.4,56.5 303.5,56 304.5,55.5 305.6,55 306.7,54.5 307.7,54 308.8,53.5 309.9,53 310.9,52.5 312,52 313.1,51.5 314.1,51 315.2,50.5 316.3,50 317.3,49.5 318.4,49 319.5,48.5 320.5,48 321.6,47.5 322.7,47 323.7,46.5 324.8,46 325.9,45.5 326.9,45 328,44.5 329.1,44 330.1,43.5 331.2,43 332.3,42.5 333.3,42 334.4,41.5 335.5,41 336.5,40.5 337.6,40 338.7,39.5 339.7,39 340.8,38.5 341.9,38 342.9,37.5 344,37 345.1,36.5 346.1,36 347.2,35.5 348.3,35 349.3,34.5 350.4,34 351.5,33.5 352.5,33 353.6,32.5 354.7,32 355.7,31.5 356.8,31 357.9,30.5 358.9,30 360,29.5 361.1,29 362.1,28.5 363.2,28 364.3,27.5 365.3,27 366.4,26.5 367.5,26 368.5,25.5 369.6,25 370.7,24.5 371.7,24 372.8,23.5 373.9,23 374.9,22.5 376,22" class="sk-accent2"/>
+<polyline points="56,172 57.1,172 58.1,172 59.2,172 60.3,172 61.3,172 62.4,172 63.5,172 64.5,172 65.6,172 66.7,171.9 67.7,171.9 68.8,171.9 69.9,171.9 70.9,171.8 72,171.8 73.1,171.7 74.1,171.7 75.2,171.6 76.3,171.6 77.3,171.5 78.4,171.5 79.5,171.4 80.5,171.3 81.6,171.2 82.7,171.1 83.7,171 84.8,170.9 85.9,170.8 86.9,170.6 88,170.5 89.1,170.3 90.1,170.2 91.2,170 92.3,169.9 93.3,169.7 94.4,169.5 95.5,169.3 96.5,169.1 97.6,168.9 98.7,168.7 99.7,168.4 100.8,168.2 101.9,168 102.9,167.7 104,167.4 105.1,167.2 106.1,166.9 107.2,166.6 108.3,166.3 109.3,166 110.4,165.7 111.5,165.3 112.5,165 113.6,164.6 114.7,164.3 115.7,163.9 116.8,163.6 117.9,163.2 118.9,162.8 120,162.4 121.1,162 122.1,161.6 123.2,161.2 124.3,160.7 125.3,160.3 126.4,159.8 127.5,159.4 128.5,158.9 129.6,158.5 130.7,158 131.7,157.5 132.8,157 133.9,156.5 134.9,156 136,155.5 137.1,155 138.1,154.5 139.2,153.9 140.3,153.4 141.3,152.9 142.4,152.3 143.5,151.8 144.5,151.2 145.6,150.6 146.7,150.1 147.7,149.5 148.8,148.9 149.9,148.3 150.9,147.7 152,147.2 153.1,146.6 154.1,146 155.2,145.4 156.3,144.7 157.3,144.1 158.4,143.5 159.5,142.9 160.5,142.3 161.6,141.7 162.7,141 163.7,140.4 164.8,139.8 165.9,139.1 166.9,138.5 168,137.9 169.1,137.2 170.1,136.6 171.2,135.9 172.3,135.3 173.3,134.6 174.4,134 175.5,133.3 176.5,132.7 177.6,132 178.7,131.4 179.7,130.7 180.8,130.1 181.9,129.4 182.9,128.8 184,128.1 185.1,127.5 186.1,126.8 187.2,126.2 188.3,125.5 189.3,124.9 190.4,124.2 191.5,123.6 192.5,122.9 193.6,122.3 194.7,121.6 195.7,121 196.8,120.3 197.9,119.7 198.9,119.1 200,118.4 201.1,117.8 202.1,117.1 203.2,116.5 204.3,115.9 205.3,115.2 206.4,114.6 207.5,114 208.5,113.4 209.6,112.7 210.7,112.1 211.7,111.5 212.8,110.9 213.9,110.3 214.9,109.7 216,109.1 217.1,108.5 218.1,107.9 219.2,107.3 220.3,106.7 221.3,106.1 222.4,105.5 223.5,104.9 224.5,104.3 225.6,103.7 226.7,103.1 227.7,102.5 228.8,102 229.9,101.4 230.9,100.8 232,100.3 233.1,99.7 234.1,99.1 235.2,98.6 236.3,98 237.3,97.5 238.4,96.9 239.5,96.4 240.5,95.8 241.6,95.3 242.7,94.7 243.7,94.2 244.8,93.6 245.9,93.1 246.9,92.6 248,92.1 249.1,91.5 250.1,91 251.2,90.5 252.3,90 253.3,89.5 254.4,88.9 255.5,88.4 256.5,87.9 257.6,87.4 258.7,86.9 259.7,86.4 260.8,85.9 261.9,85.4 262.9,84.9 264,84.4 265.1,83.9 266.1,83.4 267.2,82.9 268.3,82.5 269.3,82 270.4,81.5 271.5,81 272.5,80.5 273.6,80 274.7,79.6 275.7,79.1 276.8,78.6 277.9,78.1 278.9,77.7 280,77.2 281.1,76.7 282.1,76.3 283.2,75.8 284.3,75.3 285.3,74.9 286.4,74.4 287.5,73.9 288.5,73.5 289.6,73 290.7,72.6 291.7,72.1 292.8,71.6 293.9,71.2 294.9,70.7 296,70.3 297.1,69.8 298.1,69.4 299.2,68.9 300.3,68.4 301.3,68 302.4,67.5 303.5,67.1 304.5,66.6 305.6,66.2 306.7,65.7 307.7,65.3 308.8,64.8 309.9,64.4 310.9,63.9 312,63.5 313.1,63 314.1,62.5 315.2,62.1 316.3,61.6 317.3,61.2 318.4,60.7 319.5,60.3 320.5,59.8 321.6,59.4 322.7,58.9 323.7,58.5 324.8,58 325.9,57.5 326.9,57.1 328,56.6 329.1,56.2 330.1,55.7 331.2,55.2 332.3,54.8 333.3,54.3 334.4,53.9 335.5,53.4 336.5,52.9 337.6,52.5 338.7,52 339.7,51.5 340.8,51.1 341.9,50.6 342.9,50.1 344,49.7 345.1,49.2 346.1,48.7 347.2,48.3 348.3,47.8 349.3,47.3 350.4,46.8 351.5,46.4 352.5,45.9 353.6,45.4 354.7,44.9 355.7,44.5 356.8,44 357.9,43.5 358.9,43 360,42.6 361.1,42.1 362.1,41.6 363.2,41.1 364.3,40.6 365.3,40.1 366.4,39.7 367.5,39.2 368.5,38.7 369.6,38.2 370.7,37.7 371.7,37.2 372.8,36.7 373.9,36.2 374.9,35.7 376,35.3" class="sk-accent"/>
+<line x1="296" y1="72" x2="296" y2="59.5" class="sk-green"/>
+<line x1="291.7" y1="59.5" x2="300.3" y2="59.5" class="sk-green"/>
+<line x1="291.7" y1="72" x2="300.3" y2="72" class="sk-green"/>
+<text x="303" y="70.8" class="lab-green lab-b">ε<tspan dy="4" font-size="12">v</tspan><tspan dy="-4"> = 2,5 cm</tspan></text>
+<line x1="216" y1="97" x2="242.7" y2="97" class="sk-green"/>
+<line x1="216" y1="99" x2="216" y2="95" class="sk-green"/>
+<line x1="242.7" y1="99" x2="242.7" y2="95" class="sk-green"/>
+<text x="248.7" y="115" class="lab-green lab-b">t<tspan dy="4" font-size="12">v</tspan><tspan dy="-4"> = 50 ms</tspan></text>
+<text x="109.3" y="188" class="lab-muted" text-anchor="middle">0,1</text>
+<text x="162.7" y="188" class="lab-muted" text-anchor="middle">0,2</text>
+<text x="216" y="188" class="lab-muted" text-anchor="middle">0,3</text>
+<text x="269.3" y="188" class="lab-muted" text-anchor="middle">0,4</text>
+<text x="322.7" y="188" class="lab-muted" text-anchor="middle">0,5</text>
+<text x="376" y="188" class="lab-muted" text-anchor="middle">0,6</text>
+<text x="51" y="126" class="lab-muted" text-anchor="end">0,1</text>
+<text x="51" y="76" class="lab-muted" text-anchor="end">0,2</text>
+<text x="51" y="26" class="lab-muted" text-anchor="end">0,3</text>
+<line x1="70" y1="34" x2="88" y2="34" class="sk-accent2"/><text x="94" y="38" class="lab-accent2">consigne e(t) = at</text>
+<line x1="70" y1="54" x2="88" y2="54" class="sk-accent"/><text x="94" y="58" class="lab-accent">sortie s(t)</text>
+</svg>
+<figcaption>Boucle de FTBO \(\dfrac{20}{p\,(1 + 0{,}1p)}\) (classe 1, \(K = 20\ \text{s}^{-1}\)) et consigne en rampe de pente \(a = 0{,}5\ \text{m/s}\). Après le transitoire, la sortie est une rampe de même pente : <strong>erreur de traînage</strong> \(\varepsilon_v = a/K = 2{,}5\ \text{cm}\) (écart vertical), ou <strong>retard de traînage</strong> \(t_v = 1/K = 50\ \text{ms}\) (écart horizontal).</figcaption>
+</figure>
+  <div class="method-box">
+    <strong>Exemple — l'axe d'une machine de découpe</strong>
+    <p>FTBO \(\dfrac{20}{p\,(1 + 0{,}1p)}\), consigne de position en rampe à \(a = 0{,}5\ \text{m/s}\).</p>
+    <ol>
+      <li>Classe 1, \(K = 20\ \text{s}^{-1}\) : la boucle est stable (degré 2, coefficients positifs).</li>
+      <li>Erreur de traînage : \(\varepsilon_v = 0{,}5/20 = 2{,}5\ \text{cm}\) ; retard de traînage : \(t_v = 1/20 = 50\ \text{ms}\).</li>
+      <li>Pour une erreur de 1 cm à la même vitesse, il faudrait \(K = 50\ \text{s}^{-1}\) ; mais la FTBF \(\dfrac{1}{1 + p/K + 0{,}1p^2/K}\) aurait alors \(\xi = \dfrac{1}{2\sqrt{0{,}1K}} \approx 0{,}22\) au lieu de 0,35 : précision et amortissement s'opposent encore.</li>
+    </ol>
+  </div>
+  <div class="notice"><strong>Erreur classique</strong> : appliquer \(a/K\) avec le gain de la FTBF, ou à une boucle de classe 0 (l'erreur y est infinie). Le gain \(K\) d'une classe 1 a la dimension de l'inverse d'un temps : \(t_v = 1/K\) est un ordre de grandeur direct de la « réactivité » de la boucle.</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§8 · VÉRIFIER UN CAHIER DES CHARGES</div>
+  <h2>Une démarche complète</h2>
+  <div class="intro">Évaluer un asservissement, c'est vérifier toutes les exigences à la fois, sur un modèle d'abord, sur des mesures ensuite. On l'applique au convoyeur d'une ligne de conditionnement : FTBO \(\dfrac{K}{(1 + 0{,}5p)(1 + 0{,}05p)}\) (classe 0, temps en secondes), correcteur proportionnel de gain réglable. Cahier des charges : boucle stable avec \(M_\varphi \geq 45°\), écart statique au plus 5 %, dépassement au plus 10 %.</div>
+  <div class="method-box">
+    <strong>Exemple — le convoyeur</strong>
+    <ol>
+      <li><strong>Stabilité</strong> : FTBO d'ordre 2 sans retard, stable pour tout \(K \gt 0\) (§7 de « Stabilité »).</li>
+      <li><strong>Précision</strong> : \(\varepsilon_s = \dfrac{1}{1 + K} \leq 0{,}05\) impose \(K \geq 19\).</li>
+      <li><strong>Amortissement</strong> avec \(K = 19\) : FTBF \(\dfrac{0{,}95}{1 + 0{,}0275p + 0{,}00125p^2}\), \(\omega_0 \approx 28{,}3\ \text{rad/s}\), \(\xi \approx 0{,}39\), dépassement 27 % ; \(M_\varphi \approx 44°\). Deux exigences sur quatre échouent.</li>
+      <li><strong>Réglage inverse</strong> : un dépassement de 10 % demande \(\xi \geq 0{,}59\), donc \(K \leq 7{,}7\) ; l'écart statique vaut alors 12 %.</li>
+      <li><strong>Conclusion</strong> : aucun gain ne satisfait à la fois la précision et l'amortissement. Il faut une action intégrale (classe 1 : écart nul quel que soit le gain), réglée sans dégrader la marge : c'est le correcteur PI de 2ᵉ année.</li>
+    </ol>
+  </div>
+  <figure class="schema">
+<svg viewBox="0 0 410 206" role="img" aria-label="Réponses indicielles en boucle fermée pour deux gains : le gain qui satisfait la précision donne trop de dépassement, celui qui limite le dépassement ne satisfait pas la précision">
+<line x1="50" y1="180" x2="392" y2="180" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<line x1="50" y1="180" x2="50" y2="18" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<text x="394" y="184" class="lab-muted lab-it">t (s)</text>
+<text x="46" y="16" class="lab-muted lab-it" text-anchor="end">s(t)</text>
+<line x1="50" y1="64.6" x2="380" y2="64.6" class="sk-ink" style="opacity:.6"/>
+<line x1="50" y1="70.4" x2="380" y2="70.4" class="sk-dash"/>
+<line x1="187.5" y1="116.5" x2="205.5" y2="116.5" class="sk-dash"/>
+<text x="211.5" y="120.5" class="lab-muted">exigence de précision : s∞ ≥ 0,95</text>
+<text x="45" y="68.6" class="lab-muted" text-anchor="end">1</text>
+<polyline points="50,180 50.8,179.9 51.6,179.6 52.5,179.1 53.3,178.5 54.1,177.7 55,176.7 55.8,175.5 56.6,174.3 57.4,172.8 58.2,171.3 59.1,169.6 59.9,167.8 60.7,165.8 61.5,163.8 62.4,161.7 63.2,159.4 64,157.1 64.8,154.7 65.7,152.3 66.5,149.7 67.3,147.2 68.2,144.5 69,141.8 69.8,139.1 70.6,136.4 71.5,133.6 72.3,130.8 73.1,128 73.9,125.1 74.8,122.3 75.6,119.5 76.4,116.6 77.2,113.8 78,111 78.9,108.2 79.7,105.5 80.5,102.7 81.3,100 82.2,97.3 83,94.7 83.8,92.1 84.7,89.6 85.5,87.1 86.3,84.7 87.1,82.3 88,79.9 88.8,77.7 89.6,75.4 90.4,73.3 91.2,71.2 92.1,69.2 92.9,67.2 93.7,65.4 94.6,63.6 95.4,61.8 96.2,60.1 97,58.5 97.9,57 98.7,55.6 99.5,54.2 100.3,52.9 101.2,51.7 102,50.5 102.8,49.4 103.6,48.4 104.5,47.5 105.3,46.6 106.1,45.8 106.9,45.1 107.8,44.4 108.6,43.8 109.4,43.3 110.2,42.8 111,42.4 111.9,42.1 112.7,41.8 113.5,41.6 114.4,41.4 115.2,41.3 116,41.3 116.8,41.3 117.7,41.4 118.5,41.5 119.3,41.6 120.1,41.8 121,42.1 121.8,42.3 122.6,42.7 123.4,43 124.3,43.4 125.1,43.9 125.9,44.3 126.7,44.8 127.6,45.4 128.4,45.9 129.2,46.5 130,47.1 130.8,47.7 131.7,48.4 132.5,49.1 133.3,49.7 134.2,50.4 135,51.1 135.8,51.9 136.6,52.6 137.4,53.3 138.3,54.1 139.1,54.8 139.9,55.6 140.8,56.3 141.6,57.1 142.4,57.8 143.2,58.6 144.1,59.3 144.9,60.1 145.7,60.8 146.5,61.5 147.3,62.2 148.2,63 149,63.7 149.8,64.4 150.6,65 151.5,65.7 152.3,66.4 153.1,67 153.9,67.6 154.8,68.2 155.6,68.8 156.4,69.4 157.2,70 158.1,70.5 158.9,71 159.7,71.5 160.6,72 161.4,72.5 162.2,72.9 163,73.4 163.9,73.8 164.7,74.2 165.5,74.5 166.3,74.9 167.1,75.2 168,75.6 168.8,75.8 169.6,76.1 170.4,76.4 171.3,76.6 172.1,76.8 172.9,77 173.8,77.2 174.6,77.4 175.4,77.5 176.2,77.7 177.1,77.8 177.9,77.9 178.7,77.9 179.5,78 180.3,78.1 181.2,78.1 182,78.1 182.8,78.1 183.7,78.1 184.5,78.1 185.3,78 186.1,78 187,77.9 187.8,77.9 188.6,77.8 189.4,77.7 190.3,77.6 191.1,77.5 191.9,77.3 192.7,77.2 193.6,77.1 194.4,76.9 195.2,76.8 196,76.6 196.9,76.5 197.7,76.3 198.5,76.1 199.3,75.9 200.2,75.8 201,75.6 201.8,75.4 202.6,75.2 203.5,75 204.3,74.8 205.1,74.6 205.9,74.4 206.8,74.2 207.6,74 208.4,73.8 209.2,73.6 210,73.4 210.9,73.2 211.7,73 212.5,72.8 213.3,72.6 214.2,72.4 215,72.2 215.8,72.1 216.7,71.9 217.5,71.7 218.3,71.5 219.1,71.3 220,71.2 220.8,71 221.6,70.9 222.4,70.7 223.2,70.6 224.1,70.4 224.9,70.3 225.7,70.1 226.6,70 227.4,69.9 228.2,69.8 229,69.6 229.9,69.5 230.7,69.4 231.5,69.3 232.3,69.2 233.2,69.1 234,69 234.8,69 235.6,68.9 236.5,68.8 237.3,68.8 238.1,68.7 238.9,68.6 239.8,68.6 240.6,68.5 241.4,68.5 242.2,68.5 243.1,68.4 243.9,68.4 244.7,68.4 245.5,68.4 246.3,68.4 247.2,68.3 248,68.3 248.8,68.3 249.7,68.3 250.5,68.3 251.3,68.3 252.1,68.4 252.9,68.4 253.8,68.4 254.6,68.4 255.4,68.4 256.2,68.5 257.1,68.5 257.9,68.5 258.7,68.6 259.6,68.6 260.4,68.6 261.2,68.7 262,68.7 262.9,68.8 263.7,68.8 264.5,68.8 265.3,68.9 266.1,68.9 267,69 267.8,69 268.6,69.1 269.5,69.1 270.3,69.2 271.1,69.2 271.9,69.3 272.8,69.4 273.6,69.4 274.4,69.5 275.2,69.5 276.1,69.6 276.9,69.6 277.7,69.7 278.5,69.7 279.4,69.8 280.2,69.8 281,69.9 281.8,69.9 282.6,70 283.5,70 284.3,70.1 285.1,70.1 285.9,70.2 286.8,70.2 287.6,70.2 288.4,70.3 289.2,70.3 290.1,70.4 290.9,70.4 291.7,70.4 292.5,70.5 293.4,70.5 294.2,70.5 295,70.6 295.9,70.6 296.7,70.6 297.5,70.7 298.3,70.7 299.1,70.7 300,70.7 300.8,70.8 301.6,70.8 302.5,70.8 303.3,70.8 304.1,70.8 304.9,70.8 305.8,70.9 306.6,70.9 307.4,70.9 308.2,70.9 309.1,70.9 309.9,70.9 310.7,70.9 311.5,70.9 312.4,70.9 313.2,70.9 314,70.9 314.8,70.9 315.7,70.9 316.5,70.9 317.3,70.9 318.1,70.9 319,70.9 319.8,70.9 320.6,70.9 321.4,70.9 322.2,70.9 323.1,70.9 323.9,70.9 324.7,70.9 325.6,70.9 326.4,70.9 327.2,70.8 328,70.8 328.9,70.8 329.7,70.8 330.5,70.8 331.3,70.8 332.2,70.8 333,70.8 333.8,70.7 334.6,70.7 335.5,70.7 336.3,70.7 337.1,70.7 337.9,70.7 338.8,70.7 339.6,70.6 340.4,70.6 341.2,70.6 342.1,70.6 342.9,70.6 343.7,70.6 344.5,70.6 345.4,70.6 346.2,70.5 347,70.5 347.8,70.5 348.7,70.5 349.5,70.5 350.3,70.5 351.1,70.5 352,70.4 352.8,70.4 353.6,70.4 354.4,70.4 355.3,70.4 356.1,70.4 356.9,70.4 357.7,70.4 358.6,70.4 359.4,70.4 360.2,70.3 361,70.3 361.9,70.3 362.7,70.3 363.5,70.3 364.3,70.3 365.2,70.3 366,70.3 366.8,70.3 367.6,70.3 368.4,70.3 369.3,70.3 370.1,70.3 370.9,70.3 371.8,70.3 372.6,70.3 373.4,70.3 374.2,70.3 375.1,70.2 375.9,70.2 376.7,70.2 377.5,70.2 378.4,70.2 379.2,70.2 380,70.2" class="sk-accent"/>
+<line x1="187.5" y1="131.5" x2="205.5" y2="131.5" class="sk-accent"/>
+<text x="211.5" y="135.5" class="lab-accent">K = 19 : ε<tspan dy="4" font-size="12">s</tspan><tspan dy="-4"> = 5 %, D₁ = 27 %</tspan></text>
+<polyline points="50,180 50.8,180 51.6,179.8 52.5,179.7 53.3,179.4 54.1,179.1 55,178.7 55.8,178.2 56.6,177.7 57.4,177.1 58.2,176.4 59.1,175.8 59.9,175 60.7,174.2 61.5,173.4 62.4,172.5 63.2,171.5 64,170.6 64.8,169.5 65.7,168.5 66.5,167.4 67.3,166.3 68.2,165.1 69,163.9 69.8,162.7 70.6,161.5 71.5,160.2 72.3,159 73.1,157.7 73.9,156.3 74.8,155 75.6,153.6 76.4,152.3 77.2,150.9 78,149.5 78.9,148.1 79.7,146.7 80.5,145.3 81.3,143.8 82.2,142.4 83,141 83.8,139.6 84.7,138.1 85.5,136.7 86.3,135.3 87.1,133.8 88,132.4 88.8,131 89.6,129.6 90.4,128.2 91.2,126.8 92.1,125.4 92.9,124 93.7,122.6 94.6,121.2 95.4,119.9 96.2,118.6 97,117.2 97.9,115.9 98.7,114.6 99.5,113.3 100.3,112 101.2,110.8 102,109.5 102.8,108.3 103.6,107.1 104.5,105.9 105.3,104.7 106.1,103.6 106.9,102.4 107.8,101.3 108.6,100.2 109.4,99.1 110.2,98.1 111,97 111.9,96 112.7,95 113.5,94 114.4,93 115.2,92.1 116,91.1 116.8,90.2 117.7,89.4 118.5,88.5 119.3,87.6 120.1,86.8 121,86 121.8,85.2 122.6,84.4 123.4,83.7 124.3,83 125.1,82.3 125.9,81.6 126.7,80.9 127.6,80.3 128.4,79.6 129.2,79 130,78.4 130.8,77.8 131.7,77.3 132.5,76.8 133.3,76.2 134.2,75.7 135,75.3 135.8,74.8 136.6,74.3 137.4,73.9 138.3,73.5 139.1,73.1 139.9,72.7 140.8,72.4 141.6,72 142.4,71.7 143.2,71.4 144.1,71.1 144.9,70.8 145.7,70.5 146.5,70.3 147.3,70 148.2,69.8 149,69.6 149.8,69.4 150.6,69.2 151.5,69 152.3,68.8 153.1,68.7 153.9,68.6 154.8,68.4 155.6,68.3 156.4,68.2 157.2,68.1 158.1,68 158.9,68 159.7,67.9 160.6,67.9 161.4,67.8 162.2,67.8 163,67.8 163.9,67.7 164.7,67.7 165.5,67.7 166.3,67.7 167.1,67.7 168,67.8 168.8,67.8 169.6,67.8 170.4,67.9 171.3,67.9 172.1,68 172.9,68 173.8,68.1 174.6,68.2 175.4,68.3 176.2,68.3 177.1,68.4 177.9,68.5 178.7,68.6 179.5,68.7 180.3,68.8 181.2,68.9 182,69 182.8,69.2 183.7,69.3 184.5,69.4 185.3,69.5 186.1,69.6 187,69.8 187.8,69.9 188.6,70 189.4,70.2 190.3,70.3 191.1,70.4 191.9,70.6 192.7,70.7 193.6,70.8 194.4,71 195.2,71.1 196,71.3 196.9,71.4 197.7,71.6 198.5,71.7 199.3,71.8 200.2,72 201,72.1 201.8,72.3 202.6,72.4 203.5,72.6 204.3,72.7 205.1,72.8 205.9,73 206.8,73.1 207.6,73.3 208.4,73.4 209.2,73.5 210,73.7 210.9,73.8 211.7,73.9 212.5,74.1 213.3,74.2 214.2,74.3 215,74.5 215.8,74.6 216.7,74.7 217.5,74.8 218.3,75 219.1,75.1 220,75.2 220.8,75.3 221.6,75.4 222.4,75.5 223.2,75.7 224.1,75.8 224.9,75.9 225.7,76 226.6,76.1 227.4,76.2 228.2,76.3 229,76.4 229.9,76.5 230.7,76.6 231.5,76.7 232.3,76.8 233.2,76.8 234,76.9 234.8,77 235.6,77.1 236.5,77.2 237.3,77.3 238.1,77.3 238.9,77.4 239.8,77.5 240.6,77.5 241.4,77.6 242.2,77.7 243.1,77.7 243.9,77.8 244.7,77.9 245.5,77.9 246.3,78 247.2,78 248,78.1 248.8,78.1 249.7,78.2 250.5,78.2 251.3,78.3 252.1,78.3 252.9,78.4 253.8,78.4 254.6,78.4 255.4,78.5 256.2,78.5 257.1,78.5 257.9,78.6 258.7,78.6 259.6,78.6 260.4,78.7 261.2,78.7 262,78.7 262.9,78.7 263.7,78.8 264.5,78.8 265.3,78.8 266.1,78.8 267,78.8 267.8,78.9 268.6,78.9 269.5,78.9 270.3,78.9 271.1,78.9 271.9,78.9 272.8,78.9 273.6,78.9 274.4,78.9 275.2,78.9 276.1,79 276.9,79 277.7,79 278.5,79 279.4,79 280.2,79 281,79 281.8,79 282.6,79 283.5,79 284.3,79 285.1,78.9 285.9,78.9 286.8,78.9 287.6,78.9 288.4,78.9 289.2,78.9 290.1,78.9 290.9,78.9 291.7,78.9 292.5,78.9 293.4,78.9 294.2,78.9 295,78.9 295.9,78.8 296.7,78.8 297.5,78.8 298.3,78.8 299.1,78.8 300,78.8 300.8,78.8 301.6,78.8 302.5,78.8 303.3,78.7 304.1,78.7 304.9,78.7 305.8,78.7 306.6,78.7 307.4,78.7 308.2,78.7 309.1,78.6 309.9,78.6 310.7,78.6 311.5,78.6 312.4,78.6 313.2,78.6 314,78.6 314.8,78.5 315.7,78.5 316.5,78.5 317.3,78.5 318.1,78.5 319,78.5 319.8,78.5 320.6,78.4 321.4,78.4 322.2,78.4 323.1,78.4 323.9,78.4 324.7,78.4 325.6,78.4 326.4,78.3 327.2,78.3 328,78.3 328.9,78.3 329.7,78.3 330.5,78.3 331.3,78.3 332.2,78.3 333,78.2 333.8,78.2 334.6,78.2 335.5,78.2 336.3,78.2 337.1,78.2 337.9,78.2 338.8,78.2 339.6,78.2 340.4,78.1 341.2,78.1 342.1,78.1 342.9,78.1 343.7,78.1 344.5,78.1 345.4,78.1 346.2,78.1 347,78.1 347.8,78.1 348.7,78 349.5,78 350.3,78 351.1,78 352,78 352.8,78 353.6,78 354.4,78 355.3,78 356.1,78 356.9,78 357.7,78 358.6,78 359.4,77.9 360.2,77.9 361,77.9 361.9,77.9 362.7,77.9 363.5,77.9 364.3,77.9 365.2,77.9 366,77.9 366.8,77.9 367.6,77.9 368.4,77.9 369.3,77.9 370.1,77.9 370.9,77.9 371.8,77.9 372.6,77.9 373.4,77.9 374.2,77.9 375.1,77.9 375.9,77.9 376.7,77.9 377.5,77.9 378.4,77.9 379.2,77.9 380,77.9" class="sk-accent2"/>
+<line x1="187.5" y1="146.5" x2="205.5" y2="146.5" class="sk-accent2"/>
+<text x="211.5" y="150.5" class="lab-accent2">K = 7,7 : ε<tspan dy="4" font-size="12">s</tspan><tspan dy="-4"> = 12 %, D₁ = 10 %</tspan></text>
+<text x="105" y="196" class="lab-muted" text-anchor="middle">0,1</text>
+<text x="160" y="196" class="lab-muted" text-anchor="middle">0,2</text>
+<text x="215" y="196" class="lab-muted" text-anchor="middle">0,3</text>
+<text x="270" y="196" class="lab-muted" text-anchor="middle">0,4</text>
+<text x="325" y="196" class="lab-muted" text-anchor="middle">0,5</text>
+<text x="380" y="196" class="lab-muted" text-anchor="middle">0,6</text>
+</svg>
+<figcaption>Convoyeur de FTBO \(\dfrac{K}{(1 + 0{,}5p)(1 + 0{,}05p)}\), échelon unité. Le gain qui donne \(\varepsilon_s = 5\ \%\) (\(K = 19\)) donne aussi un dépassement de 27 % ; celui qui limite le dépassement à 10 % (\(K \approx 7{,}7\)) laisse un écart de 12 %. Aucun gain ne satisfait les deux exigences : il faut un correcteur.</figcaption>
+</figure>
+  <div class="method-box">
+    <strong>Exemple — confronter le modèle à la mesure</strong>
+    <p>Un essai sur le convoyeur réel, réglé à \(K = 19\), donne une valeur finale de 0,94, un maximum de 1,21 et un temps de réponse à 5 % de 0,30 s.</p>
+    <ol>
+      <li>Le modèle prévoit 0,95, 1,20 et 0,27 s : valeur finale et dépassement (29 % mesuré, 27 % prévu) sont bien rendus.</li>
+      <li>Le temps de réponse est sous-estimé de 10 % : un frottement ou une constante de temps négligée ralentit le système réel. Le modèle reste suffisant pour conclure, puisque les exigences non satisfaites le sont nettement.</li>
+    </ol>
+  </div>
+  <div class="notice">Toujours conclure <strong>exigence par exigence</strong>, avec la valeur obtenue et la valeur exigée, et dire quel paramètre joue sur quelle exigence : le gain améliore précision et rapidité mais dégrade l'amortissement et les marges.</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">POUR ALLER PLUS LOIN · 2ᵉ ANNÉE ET HORS PROGRAMME</div>
+  <h2>Ce qui vient ensuite</h2>
+  <div class="intro">Rien de ce qui suit n'est exigible en PTSI.</div>
+  <ul>
+    <li><strong>Réglage des correcteurs</strong> P, PI et à avance de phase, compensation de pôles, boucles imbriquées (2ᵉ année) : <a href="#correcteurs/cours">« Correction des SLCI »</a>.</li>
+    <li><strong>Pôles dominants et réduction de l'ordre d'un modèle</strong> (2ᵉ année) : justifie les repères \(t_{r5\%} \approx 3/\omega_{c0}\) et \(\xi \approx M_\varphi/100\) pour une boucle d'ordre élevé (même chapitre, §1).</li>
+    <li><strong>Anticipation de consigne et compensation de perturbation</strong>, <strong>correcteur PID</strong> et réglage empirique de <strong>Ziegler et Nichols</strong> : hors programme des deux années.</li>
+  </ul>
+</div>
+</template>
+<template class="pan-tpl" data-panneau="prec-meth">
+<div class="course-section">
+  <div class="sec-num">MÉTHODES · PRÉCISION ET RAPIDITÉ</div>
+  <h2>Les réflexes du chapitre</h2>
+  <div class="intro">Ces méthodes servent à chiffrer la précision et la rapidité d'un asservissement à partir de sa boucle ouverte, à évaluer l'effet des perturbations et à vérifier un cahier des charges exigence par exigence.</div>
+  <div class="method-box"><strong>Méthode 1 — Calculer un écart en régime permanent</strong>
+    <ol>
+      <li>Vérifier la stabilité de la boucle fermée.</li>
+      <li>Se ramener à un retour unitaire et mettre la FTBO sous forme canonique : classe \(\alpha\), gain \(K\).</li>
+      <li>Lire le tableau (échelon : \(E_0/(1 + K)\) en classe 0, nul au-delà ; rampe : \(a/K\) en classe 1) ou appliquer \(\varepsilon_\infty = \lim_{p \to 0} \dfrac{p\,E(p)}{1 + H_{BO}(p)}\).</li>
+      <li>Exprimer le résultat avec l'unité de la consigne (un écart de traînage en mètres, en degrés…).</li>
+    </ol>
+    <p><em>Exemple éclair :</em> FTBO \(\dfrac{49}{(1 + p)(1 + 0{,}1p)}\), échelon de 2 : classe 0, \(\varepsilon_s = \dfrac{2}{1 + 49} = 0{,}04\), soit 2 % de la consigne.</p>
+  </div>
+  <div class="method-box"><strong>Méthode 2 — Appliquer le théorème de la valeur finale</strong>
+    <ol>
+      <li>Vérifier que la limite existe : système (ou boucle fermée) stable, entrée qui tend vers une constante.</li>
+      <li>Écrire la transformée de la grandeur cherchée : \(S(p) = H(p)\,E(p)\), \(\varepsilon(p) = \dfrac{E(p)}{1 + H_{BO}(p)}\)…</li>
+      <li>Calculer \(\lim_{p \to 0} p\,F(p)\) en simplifiant d'abord les puissances de \(p\).</li>
+    </ol>
+    <p><em>Exemple éclair :</em> FTBF \(\dfrac{0{,}9}{1 + 0{,}2p}\), échelon de 5 : \(s_\infty = \lim_{p \to 0} p \times \dfrac{0{,}9}{1 + 0{,}2p} \times \dfrac{5}{p} = 4{,}5\).</p>
+  </div>
+  <div class="method-box"><strong>Méthode 3 — Passer de l'écart à l'erreur avec un retour non unitaire</strong>
+    <ol>
+      <li>Identifier le gain du capteur \(K_c\) et celui de l'adaptateur \(K_a\).</li>
+      <li>Si \(K_a = K_c\) : se ramener au retour unitaire de FTBO \(K_c\,C\,G\), calculer l'écart (en volts), puis l'erreur \(= \varepsilon/K_c\) (dans l'unité de la sortie).</li>
+      <li>Si \(K_a \neq K_c\) : calculer directement la sortie par la FTBF, \(s_\infty = \dfrac{K_a\,C\,G(0)}{1 + K_c\,C\,G(0)}\,e_0\), puis l'erreur \(e_0 - s_\infty\).</li>
+    </ol>
+    <p><em>Exemple éclair :</em> génératrice tachymétrique de 0,1 V par tr/min, adaptateur identique, écart statique 0,5 V : l'erreur de vitesse vaut \(0{,}5/0{,}1 = 5\) tr/min.</p>
+  </div>
+  <div class="method-box"><strong>Méthode 4 — Évaluer l'effet d'une perturbation</strong>
+    <ol>
+      <li>Écrire \(H_D = \dfrac{\pm\,\text{blocs entre } D \text{ et } S}{1 + H_{BO}}\) (le signe est celui de l'entrée de \(D\) au sommateur).</li>
+      <li>Effet permanent d'une perturbation en échelon \(D_0\) : \(H_D(0)\,D_0\) ; avec une consigne, superposer \(H_E(0)\,E_0 + H_D(0)\,D_0\).</li>
+      <li>Conclusion rapide : rejet total si et seulement si un intégrateur se trouve entre le comparateur et le point d'entrée de la perturbation.</li>
+    </ol>
+    <p><em>Exemple éclair :</em> correcteur \(C = 10\), actionneur \(G_1 = 1\), perturbation soustraite, processus \(G_2 = \dfrac{2}{1 + p}\) : \(H_D(0) = \dfrac{-2}{1 + 20} \approx -0{,}095\) ; une perturbation unité fait baisser la sortie de 0,095 en régime permanent.</p>
+  </div>
+  <div class="method-box"><strong>Méthode 5 — Calculer l'erreur et le retard de traînage</strong>
+    <ol>
+      <li>Vérifier la stabilité ; identifier la classe de la FTBO.</li>
+      <li>Classe 1 de gain \(K\) : \(\varepsilon_v = a/K\) pour une rampe de pente \(a\) ; retard de traînage \(t_v = \varepsilon_v/a = 1/K\). Classe 0 : erreur infinie ; classe 2 : nulle.</li>
+      <li>Pour une erreur imposée, en déduire le gain minimal \(K = a/\varepsilon_{v,max}\), puis contrôler l'amortissement et les marges.</li>
+    </ol>
+    <p><em>Exemple éclair :</em> FTBO \(\dfrac{25}{p\,(1 + 0{,}04p)}\), consigne en rampe de 2 rad/s : \(\varepsilon_v = 2/25 = 0{,}08\ \text{rad}\), \(t_v = 40\ \text{ms}\).</p>
+  </div>
+  <div class="method-box"><strong>Méthode 6 — Estimer la rapidité</strong>
+    <ol>
+      <li>Boucle fermée du premier ordre : \(t_{r5\%} = 3\tau'\), \(t_m \approx 2{,}2\,\tau'\), bande passante \(1/\tau'\) ; du deuxième ordre : abaque avec \(\xi\) et \(\omega_0\).</li>
+      <li>Ordre de grandeur à partir de la boucle ouverte : \(t_{r5\%} \approx 3/\omega_{c0}\) et bande passante de la boucle fermée voisine de \(\omega_{c0}\), pour une boucle bien amortie.</li>
+      <li>Vérifier que la commande nécessaire ne sature pas l'actionneur.</li>
+    </ol>
+    <p><em>Exemple éclair :</em> FTBF \(\dfrac{1}{1 + 0{,}05p}\) : \(t_{r5\%} = 0{,}15\ \text{s}\), \(t_m = 0{,}05\ln 9 \approx 0{,}11\ \text{s}\), bande passante 20 rad/s.</p>
+  </div>
+  <div class="method-box"><strong>Méthode 7 — Lire les performances sur une réponse indicielle</strong>
+    <ol>
+      <li>Valeur finale \(s_\infty\) ; écart statique \(E_0 - s_\infty\) (en valeur et en % de la consigne).</li>
+      <li>Dépassement \(D_1 = (s_{\max} - s_\infty)/s_\infty\), rapporté à la <strong>valeur finale</strong>.</li>
+      <li>Temps de réponse à 5 % : dernier instant où la courbe sort de la bande \(s_\infty \pm 5\ \%\) ; temps de montée : de 10 % à 90 % de \(s_\infty\).</li>
+    </ol>
+    <p><em>Exemple éclair :</em> consigne 2, valeur finale 1,9, maximum 2,28 : écart statique 0,1 (5 %), dépassement \(0{,}38/1{,}9 = 20\ \%\) ; la bande des 5 % est \([1{,}805\ ;\ 1{,}995]\).</p>
+  </div>
+  <div class="method-box"><strong>Méthode 8 — Choisir une structure de correction pour la précision (réglage en 2ᵉ année)</strong>
+    <ol>
+      <li>Écart à réduire sans l'annuler : augmenter le gain (P), dans la limite des marges.</li>
+      <li>Écart à annuler (ou perturbation constante à rejeter) : ajouter une action intégrale (PI) en amont de la perturbation.</li>
+      <li>Placer la cassure du PI une décade sous \(\omega_{c0}\) (\(T_i \approx 10/\omega_{c0}\)), puis recontrôler la marge de phase.</li>
+    </ol>
+    <p><em>Exemple éclair :</em> boucle de classe 0 coupant 0 dB à 1,6 rad/s : un PI de \(T_i \approx 6\ \text{s}\) annule l'écart statique et ne retire qu'environ 6° de marge de phase.</p>
+  </div>
+  <div class="method-box"><strong>Méthode 9 — Vérifier un cahier des charges complet</strong>
+    <ol>
+      <li>Stabilité et marges d'abord (critère du revers sur la FTBO).</li>
+      <li>Précision : classe et gain de la FTBO, effet des perturbations, écart ou erreur selon la chaîne de retour.</li>
+      <li>Rapidité et dépassement : modèle de la boucle fermée ou repères \(\xi \approx M_\varphi/100\), \(t_{r5\%} \approx 3/\omega_{c0}\).</li>
+      <li>Conclure critère par critère, avec la valeur obtenue et la valeur exigée ; comparer aux mesures s'il y en a.</li>
+    </ol>
+    <p><em>Exemple éclair :</em> convoyeur de FTBO \(\dfrac{19}{(1 + 0{,}5p)(1 + 0{,}05p)}\) : écart statique 5 % (exigé ≤ 5 %, conforme), dépassement 27 % (exigé ≤ 10 %, non conforme), \(M_\varphi \approx 44°\) (exigé ≥ 45°, non conforme).</p>
+  </div>
+  <div class="notice"><strong>Pièges classiques.</strong> Appliquer le théorème de la valeur finale à une boucle instable ; compter un intégrateur situé en aval d'une perturbation ; utiliser le gain de la FTBF au lieu de celui de la FTBO dans le tableau ; confondre écart (sortie du comparateur, en volts) et erreur (dans l'unité de la sortie) ; rapporter le dépassement à la consigne au lieu de la valeur finale ; oublier qu'un intégrateur dégrade la marge de phase.</div>
+</div>
+</template>
+<template class="pan-tpl" data-panneau="prec-exos">
+<div class="exo-wrapper">
+<div class="exo">
+  <span class="num">EXO 01</span><span class="diff">★ ☆ ☆</span>
+  <h3>Classe et erreur statique</h3>
+  <div class="statement">\(H_{BO}(p) = \frac{5}{(1+p)(1+2p)}\).</div>
+  <div class="q"><strong>Q1.</strong> Quelle est la classe du système ? Calculer \(K_0\).</div>
+  <div class="q"><strong>Q2.</strong> Calculer l'erreur statique pour un échelon \(E=2\).</div>
+  <div class="q"><strong>Q3.</strong> Que se passe-t-il pour une entrée rampe \(vt\) ?</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> Pas de pôle en 0 → classe 0. \(K_0 = H_{BO}(0) = 5\).</p>
+    <p><strong>Q2.</strong> \(\varepsilon_0 = E/(1+K_0) = 2/6 = 0{,}333\). Erreur relative : \(1/(1+K_0) = 1/6 \approx 16{,}7\%\).</p>
+    <p><strong>Q3.</strong> Système de classe 0 avec entrée rampe → erreur infinie (le système ne peut pas suivre une consigne à vitesse constante).</p>
+  </div>
+</div>
+<div class="exo">
+  <span class="num">EXO 02</span><span class="diff">★ ★ ☆</span>
+  <h3>Classe 1 — erreur de traînage</h3>
+  <div class="statement">\(H_{BO}(p) = \frac{10}{p(1+0{,}5p)}\). Entrée rampe : \(e(t) = 3t\).</div>
+  <div class="q"><strong>Q1.</strong> Vérifier la classe et calculer \(K_v\).</div>
+  <div class="q"><strong>Q2.</strong> Calculer l'erreur de traînage \(\varepsilon_v\).</div>
+  <div class="q"><strong>Q3.</strong> Pour réduire \(\varepsilon_v\) de moitié, comment modifier \(H_{BO}\) ?</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> Un pôle en 0 → classe 1 ✓. \(K_v = \lim_{p\to0}p H_{BO}(p) = \lim_{p\to0}\frac{10}{1+0{,}5p} = 10\).</p>
+    <p><strong>Q2.</strong> \(\varepsilon_v = v/K_v = 3/10 = 0{,}3\) (en unités de sortie). La sortie suit la rampe avec un décalage constant de 0,3.</p>
+    <p><strong>Q3.</strong> Pour \(\varepsilon_v' = 0{,}15\) : \(K_v' = v/\varepsilon_v' = 3/0{,}15 = 20\). Il faut doubler le gain : \(H_{BO}'(p) = 20/[p(1+0{,}5p)]\). Attention : vérifier que les marges restent acceptables.</p>
+  </div>
+</div>
+<div class="exo">
+  <span class="num">EXO 03</span><span class="diff">★ ★ ☆</span>
+  <h3>Correcteur PI — suppression de l'écart statique (vu en 2ᵉ année)</h3>
+  <div class="statement">Système de classe 0 : \(H_0(p) = \frac{2}{(1+p)(1+0{,}2p)}\), retour unitaire. On veut \(\varepsilon_\infty = 0\) sur échelon. Correcteur PI : \(C(p) = K_P(1+1/(T_i p))\).</div>
+  <div class="q"><strong>Q1.</strong> Calculer l'écart statique sans correcteur pour \(E=1\).</div>
+  <div class="q"><strong>Q2.</strong> Écrire \(H_{BO}(p)\) avec le PI. Quelle est la nouvelle classe ?</div>
+  <div class="q"><strong>Q3.</strong> Sans correcteur, la boucle coupe 0 dB en \(\omega_{c0} \approx 1{,}6\ \text{rad/s}\). Choisir \(T_i\) pour que la cassure \(1/T_i\) soit une décade sous cette pulsation.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> \(K_0 = 2\). \(\varepsilon_0 = 1/(1+2) = 1/3 \approx 33\%\).</p>
+    <p><strong>Q2.</strong></p><div class="formula">$$H_{BO}(p) = K_P\frac{1+T_ip}{T_ip}\times\frac{2}{(1+p)(1+0{,}2p)} = \frac{2K_P(1+T_ip)}{T_ip(1+p)(1+0{,}2p)}.$$</div><p>Classe 1 (un pôle en 0) → \(\varepsilon_\infty = 0\) sur échelon, si la boucle reste stable.</p>
+    <p><strong>Q3.</strong> \(1/T_i = \omega_{c0}/10 \approx 0{,}16\ \text{rad/s}\) → \(T_i \approx 6\ \text{s}\). La cassure du PI est bien en dessous de \(\omega_{c0}\) : en \(\omega_{c0}\), le PI ne retire qu'environ \(\arctan 0{,}1 \approx 6°\) de phase, faible impact sur les marges (c'est l'exemple du §5 du cours).</p>
+  </div>
+</div>
+<div class="exo">
+  <span class="num">EXO 04</span><span class="diff">★ ★ ☆</span>
+  <h3>Théorème de la valeur finale — perturbation</h3>
+  <div class="statement">Système avec perturbation \(d(t)\) ajoutée en entrée du processus. \(H_p(p) = \frac{1}{p(1+p)}\), correcteur \(C(p) = 10\), retour unitaire. Consigne nulle, perturbation échelon \(D\).</div>
+  <div class="q"><strong>Q1.</strong> Écrire le transfert perturbation → sortie \(S(p)/D(p)\).</div>
+  <div class="q"><strong>Q2.</strong> Calculer \(s_\infty\) sous perturbation échelon \(D=1\).</div>
+  <div class="q"><strong>Q3.</strong> Comment le correcteur C réduit-il l'effet de la perturbation ? Comment l'annuler ?</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> \(S/D = H_p/(1+C H_p) = \frac{1}{p(1+p)+10}\), soit \(S/D = \frac{1}{p^2+p+10}\). Le dénominateur est de degré 2 à coefficients positifs : la boucle est stable, le théorème de la valeur finale s'applique.</p>
+    <p><strong>Q2.</strong> \(S_\infty = \lim_{p\to0}p\times\frac{1}{p}\times\frac{1}{p^2+p+10} = \frac{1}{10} = 0{,}1\). La perturbation crée une erreur résiduelle de 0,1 en sortie.</p>
+    <p><strong>Q3.</strong> Le dénominateur vaut 10 à \(p=0\) grâce au gain \(C=10\). Plus le gain est élevé, plus l'effet de la perturbation est atténué, sans jamais s'annuler : l'intégrateur du processus est <strong>en aval</strong> de la perturbation et ne la rejette pas. Il faut un intégrateur en amont, dans le correcteur. Un intégrateur pur \(C = K/p\) rendrait la boucle instable (polynôme caractéristique \(p^3 + p^2 + K\), sans terme en \(p\)). Avec un PI \(C = K_p\big(1 + 1/(T_ip)\big)\) (vu en 2ᵉ année), le polynôme caractéristique est \(T_ip^3 + T_ip^2 + K_pT_ip + K_p\) ; en y cherchant des pôles imaginaires purs \(p = j\omega\), on trouve \(\omega^2 = K_p\) et \(T_i = 1\ \text{s}\) : la limite de stabilité est \(T_i = 1\ \text{s}\), la boucle est stable pour \(T_i \gt 1\ \text{s}\) (pour \(T_i\) grand, le PI se réduit au gain \(K_p\), stable), et l'effet permanent de la perturbation devient nul.</p>
+  </div>
+</div>
+<div class="exo">
+  <span class="num">EXO 05</span><span class="diff">★ ★ ☆</span>
+  <h3>Comparaison correcteurs P et PI (vu en 2ᵉ année)</h3>
+  <div class="statement">\(H_0(p) = \frac{1}{(1+p)(1+0{,}5p)}\), retour unitaire. Échelon \(E=1\). Comparer P (\(K_P=5\)) et PI (\(K_P=3\), \(T_i=5\ \text{s}\)).</div>
+  <div class="q"><strong>Q1.</strong> Calculer l'écart statique avec P seul.</div>
+  <div class="q"><strong>Q2.</strong> Calculer l'écart statique avec PI.</div>
+  <div class="q"><strong>Q3.</strong> Lequel a de meilleures marges ? (Justifier qualitativement.)</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> P : \(K_0 = 5\times1 = 5\). \(\varepsilon_0 = 1/(1+5) = 1/6 \approx 16{,}7\%\).</p>
+    <p><strong>Q2.</strong> PI : classe 1 → \(\varepsilon_\infty = 0\). Le PI annule l'écart statique.</p>
+    <p><strong>Q3.</strong> À gain égal, l'intégrateur du PI retire de la phase et réduit la marge. Mais ici le PI a un gain plus faible (\(K_P = 3\) contre 5) : sa pulsation de coupure est plus basse, là où la phase du processus est moins négative, et sa cassure \(1/T_i = 0{,}2\ \text{rad/s}\) est loin sous la coupure. Le calcul donne, pour le P : \(\omega_{c0} \approx 2{,}8\ \text{rad/s}\) et \(M_\varphi \approx 56°\) ; pour le PI : \(\omega_{c0} \approx 1{,}9\ \text{rad/s}\) et \(M_\varphi \approx 68°\). Le PI est ici à la fois plus précis et mieux amorti, mais plus lent.</p>
+  </div>
+</div>
+<div class="exo">
+  <span class="num">EXO 06</span><span class="diff">★ ★ ★</span>
+  <h3>Réglage PID complet par Ziegler-Nichols (hors programme, pour aller plus loin)</h3>
+  <div class="statement">Un process donne des oscillations entretenues pour \(K_{ult}=12\), avec période \(T_{ult}=2\ \text{s}\). On veut un correcteur PID.</div>
+  <div class="q"><strong>Q1.</strong> Calculer \(K_P\), \(T_i\), \(T_d\) par Ziegler-Nichols.</div>
+  <div class="q"><strong>Q2.</strong> Écrire \(C(p)\) et identifier ses zéros.</div>
+  <div class="q"><strong>Q3.</strong> Quel est l'effet de chaque terme (P, I, D) sur les performances ?</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> Formules Z-N (boucle fermée) : \(K_P = 0{,}6K_{ult} = 7{,}2\). \(T_i = T_{ult}/2 = 1\ \text{s}\). \(T_d = T_{ult}/8 = 0{,}25\ \text{s}\).</p>
+    <p><strong>Q2.</strong> \(C(p) = 7{,}2\left(1+\frac{1}{p}+0{,}25p\right)\), soit \(C(p) = 7{,}2\times\frac{0{,}25p^2+p+1}{p}\). Les zéros du numérateur : \(0{,}25p^2+p+1=0\) → \(p_{1,2}=\frac{-1\pm\sqrt{1-1}}{0{,}5} = -2\) (double). Zéro double en \(p=-2\).</p>
+    <p><strong>Q3.</strong> Terme P : règle le gain → rapidité et précision de base. Terme I : annule l'erreur statique (intégration de l'erreur accumulée). Terme D : accélère la réponse en anticipant les variations → réduit le dépassement, améliore \(M_\varphi\), mais amplifie le bruit HF. Z-N est un point de départ — un affinage par simulation est toujours nécessaire.</p>
+  </div>
+</div>
+<div class="exo">
+  <span class="num">EXO 07</span><span class="diff">★ ★ ☆</span>
+  <h3>Précision — effet de la classe, et le piège de la stabilité</h3>
+  <div class="statement">
+    <p>Un système en retour unitaire a pour boucle ouverte \(H_{BO}(p) = \dfrac{10}{p(1+0{,}5p)}\). On veut analyser la précision à l'échelon et à la rampe, puis l'effet d'un intégrateur supplémentaire.</p>
+  </div>
+  <div class="q"><strong>Q1.</strong> Identifier la classe \(\alpha\) et le gain \(K\) de la FTBO. Vérifier la stabilité, puis calculer \(\varepsilon_\infty\) pour un échelon \(E_0 = 1\) et pour une rampe de pente \(a = 2\).</div>
+  <div class="q"><strong>Q2.</strong> Pour annuler l'écart de traînage, on ajoute un intégrateur : \(H'_{BO}(p) = \dfrac{10}{p^2(1+0{,}5p)}\). Que donne le théorème de la valeur finale pour la rampe ? Ce résultat est-il valable ?</div>
+  <div class="q"><strong>Q3.</strong> Un correcteur PI \(C(p) = K_p(1 + 1/(T_i p))\) (vu en 2ᵉ année) est ajouté en série avec la FTBO initiale. Quel est l'effet sur la classe ? Pourquoi peut-il rester stable, contrairement à l'intégrateur pur ?</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> Un facteur \(1/p\) : classe \(\alpha = 1\), \(K = 10\ \text{s}^{-1}\). Équation caractéristique \(0{,}5p^2 + p + 10 = 0\) : degré 2, coefficients positifs, stable. Échelon : \(\varepsilon_\infty = 0\). Rampe : \(\varepsilon_\infty = a/K = 2/10 = 0{,}2\).</p>
+    <p><strong>Q2.</strong> Formellement, classe 2 donne un écart de traînage nul. Mais l'équation caractéristique \(0{,}5p^3 + p^2 + 10 = 0\) n'a pas de terme en \(p\) : un coefficient nul suffit, la boucle est <strong>instable</strong> (deux pôles \(0{,}78 \pm 2{,}23j\)). La sortie diverge : le théorème de la valeur finale ne s'applique pas et « écart nul » n'a aucun sens. La phase de \(H'_{BO}\) est partout sous \(-180°\) (chapitre « Stabilité », §7).</p>
+    <p><strong>Q3.</strong> Le PI contient un intégrateur \(1/(T_i p)\) : la classe augmente de 1 (ici de 1 à 2, écart de traînage nul). Mais il apporte aussi un zéro \(1 + T_ip\), qui remonte la phase au-dessus de \(-180°\) aux pulsations supérieures à \(1/T_i\) : la boucle peut rester stable si ce zéro est placé assez bas (\(T_i\) assez grand). C'est l'intérêt du PI : la précision d'un intégrateur sans en payer tout le prix en stabilité.</p>
+  </div>
+</div>
+<div class="exo">
+  <span class="num">EXO 08</span><span class="diff">★ ★ ★</span>
+  <h3>Synthèse — précision et marge, puis correcteur PI (vu en 2ᵉ année)</h3>
+  <div class="statement">
+    <p>Un système en boucle ouverte sans correcteur : \(G(p) = \dfrac{4}{(1+p)(1+0{,}2p)}\), retour unitaire. On veut : écart nul à l'échelon, marge de phase ≥ 45°.</p>
+  </div>
+  <div class="q"><strong>Q1.</strong> Sans correcteur : calculer \(\varepsilon_\infty\) à l'échelon, estimer \(\omega_{c0}\) sur les asymptotes, puis la calculer exactement et en déduire la marge de phase.</div>
+  <div class="q"><strong>Q2.</strong> On ajoute un correcteur PI : \(C(p) = K_p\left(1 + \dfrac{1}{T_i p}\right)\). Quelle est la nouvelle classe ? Quel est le nouvel écart statique ?</div>
+  <div class="q"><strong>Q3.</strong> Expliquer comment choisir \(T_i\) pour minimiser la dégradation de la marge de phase apportée par le correcteur PI.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> Sans correcteur, classe 0, \(K = 4\) : \(\varepsilon_\infty = E_0/(1+4) = 20\ \%\) de la consigne, insatisfaisant. Asymptotes : palier à \(20\log 4 \approx 12\) dB jusqu'à 1 rad/s, pente \(-20\) dB/déc jusqu'à 5 rad/s (où l'on arrive à \(12 - 14 = -2\) dB), \(-40\) au-delà : l'asymptote coupe 0 dB sur la pente \(-20\), en \(\omega = 10^{12/20} \approx 4\ \text{rad/s}\). La courbe réelle, plus basse près des cassures, coupe plus tôt : \(16 = (1 + \omega^2)(1 + 0{,}04\,\omega^2)\) donne \(\omega_{c0} \approx 3{,}2\ \text{rad/s}\). Phase : \(-\arctan 3{,}21 - \arctan 0{,}64 \approx -105{,}4°\), d'où \(M_\varphi \approx 75°\) : marge confortable, mais précision insuffisante. (Avec l'estimation asymptotique, on aurait trouvé \(M_\varphi \approx 65°\) : le calcul exact s'impose.)</p>
+    <p><strong>Q2.</strong> Le PI ajoute un intégrateur : nouvelle classe 1 → \(\varepsilon_\infty = 0\) à l'échelon, si la boucle reste stable.</p>
+    <p><strong>Q3.</strong> Le PI <strong>retarde</strong> la phase : \(-90°\) en basses pulsations, \(-45°\) en \(\omega = 1/T_i\), presque 0° au-delà de \(10/T_i\). Pour qu'il dégrade peu la marge, on place sa cassure une décade sous la coupure : \(1/T_i \approx \omega_{c0}/10\), soit \(T_i \approx 10/3{,}2 \approx 3\ \text{s}\). En \(\omega_{c0}\), il se comporte alors presque comme un gain pur et ne retire qu'environ \(\arctan 0{,}1 \approx 6°\) : \(M_\varphi \approx 69°\).</p>
+  </div>
+</div>
+<div class="exo">
+  <span class="num">EXO 09</span><span class="diff">★ ★ ☆</span>
+  <h3>Écart et erreur d'une régulation de vitesse</h3>
+  <div class="statement">Un moteur est asservi en vitesse. La consigne \(N_c\) (tr/min) est convertie en tension par un adaptateur de gain \(K_a\) ; une génératrice tachymétrique de gain \(K_c = 0{,}01\ \text{V/(tr/min)}\) mesure la vitesse \(N\). Correcteur proportionnel \(C = K_p\) ; amplificateur et moteur : \(G(p) = \dfrac{50}{1 + 0{,}2p}\) (tr/min par volt). Consigne : échelon de 1 500 tr/min.</div>
+  <div class="q"><strong>Q1.</strong> L'adaptateur est réglé comme le capteur, \(K_a = K_c\). Écrire la FTBO de la boucle à retour unitaire équivalente. Pour \(K_p = 20\), calculer l'écart statique (en volts), l'erreur (en tr/min) et la vitesse atteinte.</div>
+  <div class="q"><strong>Q2.</strong> Quel gain \(K_p\) faudrait-il pour une erreur de 1 % ? Que vaudrait la tension de commande à l'instant de l'échelon ? Conclure.</div>
+  <div class="q"><strong>Q3.</strong> Comparer les temps de réponse à 5 % en boucle ouverte et en boucle fermée (\(K_p = 20\)).</div>
+  <div class="q"><strong>Q4.</strong> L'adaptateur dérive : \(K_a = 0{,}0102\ \text{V/(tr/min)}\). Calculer la vitesse atteinte, l'erreur et l'écart. Commenter.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> FTBO \(K_c\,K_p\,G(p) = \dfrac{0{,}5\,K_p}{1 + 0{,}2p}\), classe 0 ; pour \(K_p = 20\), \(K = 10\). L'image de la consigne vaut \(0{,}01 \times 1500 = 15\ \text{V}\) ; écart statique \(\varepsilon_s = \dfrac{15}{1 + 10} \approx 1{,}36\ \text{V}\) ; erreur \(1{,}36/0{,}01 \approx 136\ \text{tr/min}\) ; vitesse atteinte \(1500 \times \dfrac{10}{11} \approx 1364\ \text{tr/min}\).</p>
+    <p><strong>Q2.</strong> \(\dfrac{1}{1 + K} \leq 0{,}01\) impose \(K \geq 99\), soit \(K_p \geq 198\). À l'instant de l'échelon, la vitesse est nulle et l'écart vaut 15 V : la commande demandée serait \(198 \times 15 \approx 3000\ \text{V}\). L'amplificateur sature bien avant : le modèle linéaire ne vaut plus et la précision ne s'obtient pas en augmentant indéfiniment le gain. Il faut une action intégrale.</p>
+    <p><strong>Q3.</strong> Boucle ouverte : \(t_{r5\%} = 3 \times 0{,}2 = 0{,}6\ \text{s}\). Boucle fermée : premier ordre de constante de temps \(0{,}2/(1 + 10) \approx 18\ \text{ms}\), \(t_{r5\%} \approx 55\ \text{ms}\), si l'amplificateur ne sature pas (la commande initiale vaut déjà \(20 \times 15 = 300\ \text{V}\) : en pratique, la montée sera limitée par la saturation).</p>
+    <p><strong>Q4.</strong> La FTBF de consigne vaut \(\dfrac{K_a\,K_p\,G(0)}{1 + K_c\,K_p\,G(0)} = \dfrac{0{,}0102 \times 1000}{11} \approx 0{,}927\) (tr/min par tr/min) : \(N_\infty \approx 1391\ \text{tr/min}\), erreur \(\approx 109\ \text{tr/min}\). L'écart vaut \(0{,}0102 \times 1500 - 0{,}01 \times 1391 \approx 1{,}39\ \text{V}\), soit l'image de 139 tr/min : écart et erreur ne correspondent plus. Un adaptateur mal réglé fausse la consigne ; seul un étalonnage commun capteur-adaptateur garantit qu'un écart nul est une erreur nulle.</p>
+  </div>
+</div>
+<div class="exo">
+  <span class="num">EXO 10</span><span class="diff">★ ★ ☆</span>
+  <h3>Temps de réponse, temps de montée et bande passante</h3>
+  <div class="statement">Un asservissement à retour unitaire a pour FTBO \(H_{BO}(p) = \dfrac{K}{p\,(1 + 0{,}05p)}\). On compare les réglages \(K = 10\) et \(K = 40\ \text{s}^{-1}\).</div>
+  <div class="q"><strong>Q1.</strong> Mettre la FTBF sous forme canonique ; en déduire \(\omega_0\) et \(\xi\) pour chaque réglage.</div>
+  <div class="q"><strong>Q2.</strong> Pour chaque réglage, donner le dépassement, et lire le temps de réponse à 5 % sur l'abaque (\(t_{r5\%}\,\omega_0 \approx 2{,}9\) pour \(\xi = 0{,}7\), \(\approx 7{,}9\) pour \(\xi = 0{,}35\)).</div>
+  <div class="q"><strong>Q3.</strong> Les temps de montée valent 0,15 s et 0,05 s, les bandes passantes 14 et 40 rad/s. Quel réglage est le plus rapide ? Conclure en comparant aussi les écarts de traînage.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> \(H_{BF} = \dfrac{K}{0{,}05p^2 + p + K}\), soit \(H_{BF} = \dfrac{1}{1 + \frac{p}{K} + \frac{0{,}05}{K}p^2}\) : \(\omega_0 = \sqrt{K/0{,}05}\) et \(\xi = \dfrac{1}{2\sqrt{0{,}05\,K}}\). \(K = 10\) : \(\omega_0 \approx 14{,}1\ \text{rad/s}\), \(\xi \approx 0{,}71\). \(K = 40\) : \(\omega_0 \approx 28{,}3\ \text{rad/s}\), \(\xi \approx 0{,}35\).</p>
+    <p><strong>Q2.</strong> \(K = 10\) : dépassement 4,3 %, \(t_{r5\%} \approx 2{,}9/14{,}1 \approx 0{,}21\ \text{s}\). \(K = 40\) : dépassement 30 %, \(t_{r5\%} \approx 7{,}9/28{,}3 \approx 0{,}28\ \text{s}\).</p>
+    <p><strong>Q3.</strong> Avec \(K = 40\), la sortie monte trois fois plus vite (\(t_m\) de 0,05 s contre 0,15 s) et la bande passante est presque triple, mais elle oscille et se stabilise <em>plus tard</em> dans la bande des 5 % : au sens du temps de réponse, le réglage \(K = 10\) est le plus rapide. L'écart de traînage, \(a/K\), est en revanche quatre fois plus faible avec \(K = 40\). Le choix dépend de l'exigence prioritaire : temps d'établissement et dépassement (\(K = 10\)) ou poursuite d'une rampe (\(K = 40\), au prix d'une marge de phase de 39° seulement).</p>
+  </div>
+</div>
+<div class="exo">
+  <span class="num">EXO 11</span><span class="diff">★ ★ ☆</span>
+  <h3>Imprimante 3D : erreur et retard de traînage</h3>
+  <div class="statement">La tête d'une imprimante 3D est asservie en position ; la FTBO de l'axe vaut \(H_{BO}(p) = \dfrac{K}{p\,(1 + 0{,}02p)}\) (\(K\) en s⁻¹). Pendant le dépôt d'un trait, la consigne est une rampe à 50 mm/s ; le cahier des charges impose une erreur de traînage d'au plus 0,5 mm et un dépassement d'au plus 5 % lors des arrêts (échelons).</div>
+  <div class="q"><strong>Q1.</strong> Quel gain minimal faut-il pour respecter l'erreur de traînage ? Que vaut alors le retard de traînage ?</div>
+  <div class="q"><strong>Q2.</strong> Avec ce gain, calculer \(\xi\) de la boucle fermée et le dépassement. Le cahier des charges est-il respecté ?</div>
+  <div class="q"><strong>Q3.</strong> Quel gain donne \(\xi = 0{,}7\) ? Quelle erreur de traînage obtient-on alors ? Que faudrait-il pour concilier les deux exigences ?</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> Classe 1 : \(\varepsilon_v = a/K \leq 0{,}5\ \text{mm}\) avec \(a = 50\ \text{mm/s}\) impose \(K \geq 100\ \text{s}^{-1}\). Retard de traînage \(t_v = 1/K = 10\ \text{ms}\) : la tête passe en chaque point 10 ms après la consigne.</p>
+    <p><strong>Q2.</strong> FTBF \(\dfrac{1}{1 + p/K + 0{,}02p^2/K}\) : \(\xi = \dfrac{1}{2\sqrt{0{,}02\,K}} = \dfrac{1}{2\sqrt2} \approx 0{,}35\), dépassement \(\approx 30\ \%\). L'exigence de dépassement n'est pas respectée (la marge de phase ne vaut que 39°).</p>
+    <p><strong>Q3.</strong> \(\xi = 0{,}7\) demande \(0{,}02\,K = \dfrac{1}{4 \times 0{,}49}\), soit \(K \approx 25{,}5\ \text{s}^{-1}\) ; l'erreur de traînage vaut alors \(50/25{,}5 \approx 2\ \text{mm}\), quatre fois trop. Un simple gain ne concilie pas précision en poursuite et amortissement : il faut une FTBO de classe 2 stable (correcteur PI, 2ᵉ année) ou une anticipation de la consigne (hors programme).</p>
+  </div>
+</div>
+
+<div class="exo concours">
+  <span class="num">CONCOURS PT</span><span class="diff">★ ★ ★</span>
+  <h3>Régulation de vitesse d'un convoyeur à bande</h3>
+  <div class="exo-source">
+    Exercice <strong>original</strong> au format des épreuves de Sciences industrielles PT (thème <em>précision, rapidité et perturbations</em>). Pour t'entraîner sur les sujets réellement tombés :
+    <a href="https://www.banquept.fr/rubrique38.html" target="_blank" rel="noopener">annales officielles de la Banque PT</a>.
+  </div>
+  <div class="statement">
+    La vitesse \(v\) (m/s) d'un convoyeur est asservie. La chaîne directe comprend un correcteur proportionnel \(K_p\), un ensemble amplificateur-moteur \(G_1(p) = \dfrac{1}{1 + 0{,}02p}\) (couple moteur en N·m par volt), puis la mécanique du convoyeur \(G_2(p) = \dfrac{2}{1 + 0{,}4p}\) (m/s par N·m). Les produits posés sur la bande exercent un couple résistant \(D\) qui se soustrait au couple moteur, entre \(G_1\) et \(G_2\). Le capteur et l'adaptateur ont le même gain, 1 V par m/s : on travaille en retour unitaire.<br>
+    Cahier des charges, pour une consigne en échelon de 1 m/s : boucle stable avec \(M_\varphi \geq 45°\) ; écart statique au plus 5 % ; dépassement au plus 15 % ; temps de réponse à 5 % au plus 0,2 s ; une charge \(D_0 = 0{,}5\ \text{N·m}\) ne doit pas faire varier la vitesse de plus de 0,02 m/s en régime permanent.
+  </div>
+  <p class="exo-part">Partie A — Premier réglage</p>
+  <div class="q"><strong>A1.</strong> Écrire la FTBO ; donner sa classe et son gain \(K\) en fonction de \(K_p\). Avec \(K_p = 4{,}5\), calculer l'écart statique.</div>
+  <div class="q"><strong>A2.</strong> Comment annuler cet écart en agissant sur la structure de la FTBO ? Pourquoi un intégrateur placé dans le processus n'aiderait-il pas contre la charge ?</div>
+  <p class="exo-part">Partie B — Stabilité et amortissement</p>
+  <div class="q"><strong>B1.</strong> La boucle fermée est-elle stable pour tout \(K_p \gt 0\) ? Écrire la FTBF sous forme canonique et exprimer \(\omega_0\) et \(\xi\) en fonction de \(K\).</div>
+  <p class="exo-part">Partie C — Réglage pour la précision</p>
+  <div class="q"><strong>C1.</strong> Quel gain \(K_p\) minimal respecte l'écart statique ? Calculer alors \(\xi\), le dépassement, et vérifier la marge de phase (\(\omega_{c0} \approx 37{,}8\ \text{rad/s}\)) et le temps de réponse (abaque : \(t_{r5\%}\,\omega_0 \approx 5{,}3\) pour \(\xi \approx 0{,}5\)).</div>
+  <p class="exo-part">Partie D — Effet de la charge</p>
+  <div class="q"><strong>D1.</strong> Exprimer le transfert \(H_D(p) = V(p)/D(p)\), puis la variation permanente de vitesse due à \(D_0\) avec le réglage de C1. L'exigence est-elle respectée ?</div>
+  <div class="q"><strong>D2.</strong> Quel gain faudrait-il pour la respecter ? Que deviendraient l'amortissement et la marge de phase ?</div>
+  <p class="exo-part">Partie E — Conclusion</p>
+  <div class="q"><strong>E1.</strong> Conclure sur la possibilité de satisfaire le cahier des charges avec un correcteur proportionnel, et proposer une structure de correction (son réglage relève de la 2ᵉ année).</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>A1.</strong> \(H_{BO}(p) = \dfrac{2K_p}{(1 + 0{,}02p)(1 + 0{,}4p)}\) : classe 0, \(K = 2K_p\). Avec \(K_p = 4{,}5\), \(K = 9\) et l'écart statique vaut \(\dfrac{1}{1 + 9} = 0{,}10\ \text{m/s}\), soit 10 % : trop.</p>
+    <p><strong>A2.</strong> Ajouter un intégrateur dans la chaîne directe (FTBO de classe 1) annule l'écart statique vis-à-vis de la consigne. Pour la charge, seul un intégrateur <strong>en amont</strong> de son point d'entrée (dans le correcteur) la rejette ; un intégrateur dans \(G_2\), en aval, ne ferait que réduire son effet.</p>
+    <p><strong>B1.</strong> Équation caractéristique \((1 + 0{,}02p)(1 + 0{,}4p) + K = 0\), soit \(0{,}008p^2 + 0{,}42p + 1 + K = 0\) : degré 2, coefficients positifs, stable pour tout \(K_p \gt 0\). \(H_{BF} = \dfrac{K}{1 + K}\cdot\dfrac{1}{1 + \frac{0{,}42}{1 + K}p + \frac{0{,}008}{1 + K}p^2}\), d'où \(\omega_0 = \sqrt{\dfrac{1 + K}{0{,}008}}\) et \(\xi = \dfrac{0{,}21}{\sqrt{0{,}008\,(1 + K)}}\).</p>
+    <p><strong>C1.</strong> \(\dfrac{1}{1 + K} \leq 0{,}05\) impose \(K \geq 19\), soit \(K_p \geq 9{,}5\). Alors \(\omega_0 = \sqrt{20/0{,}008} = 50\ \text{rad/s}\) et \(\xi = 0{,}21/\sqrt{0{,}16} \approx 0{,}53\) : dépassement \(\approx 14\ \%\) (conforme). Phase en \(\omega_{c0} \approx 37{,}8\ \text{rad/s}\) : \(-\arctan 0{,}756 - \arctan 15{,}1 \approx -123°\), donc \(M_\varphi \approx 57°\) (conforme). \(t_{r5\%} \approx 5{,}3/50 \approx 0{,}11\ \text{s}\) (conforme).</p>
+    <p><strong>D1.</strong> Avec \(E = 0\) : \(H_D(p) = \dfrac{-G_2}{1 + K_p\,G_1\,G_2}\), et \(H_D(0) = \dfrac{-2}{1 + 19} = -0{,}1\ \text{m/s par N·m}\). La charge fait chuter la vitesse de \(0{,}1 \times 0{,}5 = 0{,}05\ \text{m/s}\) : plus que les 0,02 m/s admis. Exigence non respectée.</p>
+    <p><strong>D2.</strong> Il faudrait \(\dfrac{2 \times 0{,}5}{1 + K} \leq 0{,}02\), soit \(K \geq 49\) (\(K_p \geq 24{,}5\)). Alors \(\xi = 0{,}21/\sqrt{0{,}4} \approx 0{,}33\) : dépassement de 33 %, et \(M_\varphi \approx 37°\) : deux exigences ne sont plus respectées.</p>
+    <p><strong>E1.</strong> Aucun gain proportionnel ne satisfait à la fois le rejet de la charge et l'amortissement : c'est le dilemme stabilité-précision. Il faut une action intégrale dans le correcteur, en amont de la charge : un correcteur PI rend la FTBO de classe 1, annule l'écart statique et l'effet permanent de la charge. Avec \(K_p = 9{,}5\) et une cassure \(1/T_i\) une décade sous \(\omega_{c0}\) (\(T_i \approx 0{,}26\ \text{s}\)), il ne retire qu'environ 6° de marge de phase (\(M_\varphi \approx 51°\)) : le cahier des charges devient accessible.</p>
+  </div>
+</div>
+
+</div>
+</template>

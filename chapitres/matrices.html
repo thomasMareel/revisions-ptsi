@@ -1,0 +1,1070 @@
+<!-- Chapitre « Calcul matriciel » (matrices) : contenu des onglets Cours, Méthodes et Exercices, chargé à l'ouverture du chapitre.
+     On l'édite ici, puis : node tools/chapitres.js (docs/chargement-chapitres.md). -->
+<template class="pan-tpl" data-panneau="mat-cours">
+<div class="course-section">
+  <div class="sec-num">AU PROGRAMME · PTSI</div>
+  <h2>Ce que le programme officiel demande</h2>
+  <div class="intro">Ce chapitre réunit deux sections du programme de PTSI. Au premier semestre, « Calcul matriciel et systèmes linéaires » : calculer avec des matrices, résoudre un système par le pivot de Gauss, inverser une matrice. Au second semestre, « Matrices et applications linéaires » : une matrice devient le portrait d'une application linéaire dans des bases, et changer de base change le portrait sans changer l'application. Il s'appuie sur le chapitre Applications linéaires (noyau, image, rang, théorème du rang, projecteurs et symétries) ; les déterminants ont leur propre chapitre. En 2ᵉ année, Calcul matriciel (approfondissements) ajoute la trace et le calcul par blocs, puis la réduction cherche systématiquement la base où la matrice est la plus simple.</div>
+  <div class="reveal" onclick="this.classList.toggle('open')">
+    <span class="label">Programme officiel</span>
+    <span class="prompt">Les notions et capacités exigibles, dans l'ordre du chapitre</span>
+    <div class="content">
+      <ul>
+        <li><strong>Opérations</strong> : \(\mathcal{M}_{n,p}(\mathbb{K})\), combinaisons linéaires, matrices élémentaires \(E_{ij}\) et leurs produits (symbole de Kronecker), produit matriciel, \(AX\) combinaison linéaire des colonnes de \(A\), transposée \(A^\top\) (§1).</li>
+        <li><strong>Matrices carrées</strong> : \(I_n\), matrices scalaires, diagonales, triangulaires, symétriques \(\mathcal{S}_n(\mathbb{K})\) et antisymétriques \(\mathcal{A}_n(\mathbb{K})\) ; non-commutativité, diviseurs de zéro, matrices nilpotentes (§2).</li>
+        <li><strong>Puissances</strong> : formule du binôme pour des matrices qui commutent, application au calcul de \(A^n\) (§3).</li>
+        <li><strong>Opérations élémentaires</strong> sur les lignes et sur les colonnes, interprétées comme des produits matriciels (§4).</li>
+        <li><strong>Systèmes linéaires</strong> : écriture \(AX = B\), système homogène associé, compatibilité, solutions \(X_0 + Y\), algorithme du pivot (§5).</li>
+        <li><strong>Matrices inversibles</strong> : \(\mathrm{GL}_n(\mathbb{K})\), inverse d'un produit et d'une transposée, calcul de l'inverse par opérations élémentaires ou par résolution de \(AX = Y\), matrices triangulaires inversibles (§6).</li>
+        <li><strong>Matrice d'une application linéaire</strong> dans des bases, d'un vecteur, d'une famille ; isomorphisme \(\mathcal{L}(E, F) \simeq \mathcal{M}_{n,p}(\mathbb{K})\) ; matrice d'une composée, d'une réciproque ; rotation et homothétie (§7).</li>
+        <li><strong>Application canoniquement associée</strong> ; noyau, image et rang d'une matrice ; caractérisations de l'inversibilité ; matrice inversible d'un seul côté ; opérations élémentaires et rang ; invariance du rang par transposition (admise) (§8).</li>
+        <li><strong>Changements de bases</strong> : matrice de passage et son inverse, effet sur les coordonnées d'un vecteur, sur la matrice d'une application linéaire et d'un endomorphisme (§9).</li>
+        <li><strong>Matrices semblables</strong> ; exemples de recherche d'une base où la matrice d'un endomorphisme est simple (§10).</li>
+        <li><strong>Systèmes et rang</strong> : solutions d'un système homogène comme noyau, dimension de l'espace des solutions, compatibilité ⟺ \(B \in \operatorname{Im} A\), système de Cramer (§11).</li>
+      </ul>
+      <p>Hors programme en PTSI : la trace et les matrices équivalentes (2ᵉ année), les formules de Cramer et la comatrice (hors de tout programme), toute théorie de la réduction (2ᵉ année). Quelques mots en fin de chapitre.</p>
+    </div>
+  </div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§1 · CALCULER AVEC DES MATRICES</div>
+  <h2>Opérations et produit matriciel</h2>
+  <div class="intro">Une matrice est d'abord un tableau de nombres sur lequel on calcule : additionner, multiplier par un scalaire, multiplier deux matrices. Le produit, qui n'est pas commutatif, est la seule opération vraiment nouvelle. Lire un produit « colonne par colonne » est le geste qui relie les matrices aux systèmes et aux applications linéaires. Dans tout le chapitre, \(\mathbb{K} = \mathbb{R}\) ou \(\mathbb{C}\).</div>
+
+  <div class="def-box">
+    Une <strong>matrice</strong> \(A = (a_{ij})\) de taille \(n \times p\) est un tableau de \(n\) lignes et \(p\) colonnes de scalaires de \(\mathbb{K}\) ; \(a_{ij}\) est le coefficient de la ligne \(i\) et de la colonne \(j\). On note \(\mathcal{M}_{n,p}(\mathbb{K})\) leur ensemble, et \(\mathcal{M}_n(\mathbb{K})\) celui des matrices <strong>carrées</strong> de taille \(n\). Somme et multiplication par un scalaire se font coefficient par coefficient : \(\mathcal{M}_{n,p}(\mathbb{K})\) est un espace vectoriel.
+  </div>
+
+  <div class="prop-box">
+    <strong>Matrices élémentaires.</strong> \(E_{ij}\) est la matrice dont le seul coefficient non nul vaut 1, en ligne \(i\) et colonne \(j\). Toute matrice est combinaison linéaire des \(E_{ij}\) : \(A = \sum_{i,j} a_{ij} E_{ij}\) ; ces \(np\) matrices forment la base canonique de \(\mathcal{M}_{n,p}(\mathbb{K})\), de dimension \(np\). Par exemple
+    <div class="formula">$$\begin{pmatrix} 3 & -1 \\ 2 & 5 \end{pmatrix} = 3E_{11} - E_{12} + 2E_{21} + 5E_{22}.$$</div>
+  </div>
+
+  <div class="prop-box">
+    <strong>Produit.</strong> Le produit de \(A \in \mathcal{M}_{n,p}(\mathbb{K})\) par \(B \in \mathcal{M}_{p,q}(\mathbb{K})\) est la matrice \(AB \in \mathcal{M}_{n,q}(\mathbb{K})\) de coefficients
+    <div class="formula" data-nom="Produit matriciel">$$(AB)_{ij} = \sum_{k=1}^{p} a_{ik}\,b_{kj} \qquad \text{(ligne } i \text{ de } A \text{ par colonne } j \text{ de } B\text{)}.$$</div>
+    Il n'existe que si le nombre de colonnes de \(A\) égale le nombre de lignes de \(B\). Il est associatif, bilinéaire (distributif), \(I_n\) est neutre, mais il n'est <strong>pas commutatif</strong>. Pour les matrices élémentaires (de tailles compatibles), avec le symbole de Kronecker \(\delta_{jk}\) (1 si \(j = k\), 0 sinon) :
+    <div class="formula" data-nom="Produit de matrices élémentaires">$$E_{ij}\,E_{kl} = \delta_{jk}\,E_{il}.$$</div>
+  </div>
+
+  <div class="method-box">
+    <strong>Exemple — un produit pas à pas</strong>
+    <p>\(A = \begin{pmatrix} 1 & 2 & 0 \\ -1 & 3 & 1 \end{pmatrix}\) est de taille \(2 \times 3\) et \(B = \begin{pmatrix} 2 & 1 \\ 0 & -1 \\ 4 & 2 \end{pmatrix}\) de taille \(3 \times 2\) : le produit \(AB\) existe et sera de taille \(2 \times 2\).</p>
+    <ol>
+      <li>Ligne 1 de \(A\) par colonne 1 de \(B\) : \(1 \times 2 + 2 \times 0 + 0 \times 4 = 2\).</li>
+      <li>Ligne 1 par colonne 2 : \(1 \times 1 + 2 \times (-1) + 0 \times 2 = -1\).</li>
+      <li>Ligne 2 par colonne 1 : \(-2 + 0 + 4 = 2\) ; ligne 2 par colonne 2 : \(-1 - 3 + 2 = -2\).</li>
+    </ol>
+    <div class="formula">$$AB = \begin{pmatrix} 2 & -1 \\ 2 & -2 \end{pmatrix}, \qquad \text{alors que } BA \text{ est de taille } 3 \times 3 \,!$$</div>
+  </div>
+
+  <div class="prop-box">
+    <strong>Lecture par colonnes.</strong> Si \(C_1, \ldots, C_p\) sont les colonnes de \(A\) et \(X = (x_1, \ldots, x_p)\) une colonne, alors
+    <div class="formula" data-nom="Produit par une colonne">$$AX = x_1 C_1 + x_2 C_2 + \cdots + x_p C_p.$$</div>
+    \(AX\) est une combinaison linéaire des colonnes de \(A\), de coefficients les \(x_j\). De même, la colonne \(j\) de \(AB\) est \(A\) fois la colonne \(j\) de \(B\). Exemple :
+    <div class="formula">$$\begin{pmatrix} 1 & 2 \\ 3 & 4 \end{pmatrix}\begin{pmatrix} x \\ y \end{pmatrix} = x\begin{pmatrix} 1 \\ 3 \end{pmatrix} + y\begin{pmatrix} 2 \\ 4 \end{pmatrix}.$$</div>
+  </div>
+
+  <div class="prop-box">
+    <strong>Transposée.</strong> \(A^\top \in \mathcal{M}_{p,n}(\mathbb{K})\) échange lignes et colonnes : \((A^\top)_{ij} = a_{ji}\). On a \((\lambda A + \mu B)^\top = \lambda A^\top + \mu B^\top\) et surtout \((AB)^\top = B^\top A^\top\) (l'ordre s'inverse).
+  </div>
+
+  <div class="notice"><strong>Trois pièges à connaître.</strong> En général \(AB \neq BA\) : avec \(A = \begin{pmatrix} 1 & 1 \\ 0 & 0 \end{pmatrix}\) et \(B = \begin{pmatrix} 1 & 0 \\ 1 & 0 \end{pmatrix}\), \(AB = \begin{pmatrix} 2 & 0 \\ 0 & 0 \end{pmatrix}\) mais \(BA = \begin{pmatrix} 1 & 1 \\ 1 & 1 \end{pmatrix}\). Un produit peut être nul sans qu'aucun facteur ne le soit : \(E_{12}E_{12} = 0\), alors que \(E_{12}E_{21} = E_{11}\). Enfin \((A+B)^2 = A^2 + AB + BA + B^2\), et non \(A^2 + 2AB + B^2\).</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§2 · MATRICES CARRÉES REMARQUABLES</div>
+  <h2>Diagonales, triangulaires, symétriques, nilpotentes</h2>
+  <div class="intro">Dans \(\mathcal{M}_n(\mathbb{K})\), on peut multiplier n'importe quelles matrices entre elles et calculer des puissances. Certaines familles de matrices sont stables par produit et se calculent très facilement : ce sont elles que l'on cherchera à obtenir, au §10, en changeant de base.</div>
+
+  <div class="def-box">
+    Dans \(\mathcal{M}_n(\mathbb{K})\) : la matrice <strong>identité</strong> \(I_n\) (des 1 sur la diagonale, des 0 ailleurs), les matrices <strong>scalaires</strong> \(\lambda I_n\), les matrices <strong>diagonales</strong> \(\operatorname{diag}(d_1, \ldots, d_n)\), les matrices <strong>triangulaires supérieures</strong> (\(a_{ij} = 0\) si \(i \gt j\)) et <strong>inférieures</strong>. \(A\) est <strong>symétrique</strong> si \(A^\top = A\), <strong>antisymétrique</strong> si \(A^\top = -A\) ; on note \(\mathcal{S}_n(\mathbb{K})\) et \(\mathcal{A}_n(\mathbb{K})\) ces deux sous-espaces. \(N\) est <strong>nilpotente</strong> s'il existe \(k \geq 1\) tel que \(N^k = 0\).
+  </div>
+  <div class="prop-box">
+    <strong>Propriétés.</strong>
+    <ul>
+      <li>Le produit de deux matrices diagonales se calcule coefficient diagonal par coefficient diagonal ; en particulier \(D = \operatorname{diag}(d_1, \ldots, d_n)\) vérifie \(D^k = \operatorname{diag}(d_1^k, \ldots, d_n^k)\).</li>
+      <li>Le produit de deux matrices triangulaires supérieures est triangulaire supérieure, et sa diagonale est le produit des diagonales (de même pour les inférieures).</li>
+      <li>Une matrice scalaire commute avec toutes les matrices.</li>
+      <li>Une matrice triangulaire à diagonale nulle (strictement triangulaire) de taille \(n\) est nilpotente : \(N^n = 0\).</li>
+      <li>Une matrice antisymétrique a une diagonale nulle, et \(\mathcal{M}_n(\mathbb{K}) = \mathcal{S}_n(\mathbb{K}) \oplus \mathcal{A}_n(\mathbb{K})\), avec \(A = \frac{A + A^\top}{2} + \frac{A - A^\top}{2}\) (voir les symétries au chapitre Applications linéaires, §9).</li>
+    </ul>
+  </div>
+
+  <div class="method-box">
+    <strong>Exemple — quatre vérifications rapides</strong>
+    <ol>
+      <li>Triangulaires : le produit ci-dessous est triangulaire, de diagonale \((1 \times 2,\ 3 \times 1)\).
+      <div class="formula">$$\begin{pmatrix} 1 & 2 \\ 0 & 3 \end{pmatrix}\begin{pmatrix} 2 & -1 \\ 0 & 1 \end{pmatrix} = \begin{pmatrix} 2 & 1 \\ 0 & 3 \end{pmatrix}$$</div></li>
+      <li>Diagonale : \(\operatorname{diag}(2, -1, 3)^n = \operatorname{diag}\big(2^n, (-1)^n, 3^n\big)\).</li>
+      <li>Nilpotente : \(N = \begin{pmatrix} 0 & 1 & 2 \\ 0 & 0 & 3 \\ 0 & 0 & 0 \end{pmatrix}\) donne \(N^2 = 3E_{13}\) puis \(N^3 = 0\).</li>
+      <li>Décomposition de \(A = \begin{pmatrix} 1 & 4 & 0 \\ 2 & 3 & -1 \\ 6 & 5 & 2 \end{pmatrix}\) :</li>
+    </ol>
+    <div class="formula">$$A = \underbrace{\begin{pmatrix} 1 & 3 & 3 \\ 3 & 3 & 2 \\ 3 & 2 & 2 \end{pmatrix}}_{\text{symétrique}} + \underbrace{\begin{pmatrix} 0 & 1 & -3 \\ -1 & 0 & -3 \\ 3 & 3 & 0 \end{pmatrix}}_{\text{antisymétrique}}.$$</div>
+  </div>
+
+  <div class="notice"><strong>Erreur classique</strong> : simplifier \(AB = AC\) en \(B = C\), ou conclure \(A = 0\) ou \(B = 0\) de \(AB = 0\). Dans \(\mathcal{M}_n(\mathbb{K})\), il existe des <strong>diviseurs de zéro</strong> : \(\begin{pmatrix} 1 & 1 \\ 1 & 1 \end{pmatrix}\begin{pmatrix} 1 & -1 \\ -1 & 1 \end{pmatrix} = 0\). On ne simplifie que par une matrice inversible (§6).</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§3 · PUISSANCES D'UNE MATRICE CARRÉE</div>
+  <h2>Calculer \(A^n\)</h2>
+  <div class="intro">Pour \(A\) carrée, \(A^0 = I_n\) et \(A^{n+1} = A\,A^n\). Les puissances servent à résoudre des récurrences linéaires (suites couplées, chaînes à plusieurs états). Deux méthodes couvrent la première année ; une troisième, par changement de base, est au §10.</div>
+
+  <div class="method-box">
+    <strong>Méthode — conjecturer, puis démontrer par récurrence</strong>
+    <p>On calcule \(A^2\), \(A^3\), on devine la forme de \(A^n\), puis on la prouve par récurrence. Exemple : \(A = \begin{pmatrix} 1 & 1 \\ 0 & 1 \end{pmatrix}\) donne \(A^2 = \begin{pmatrix} 1 & 2 \\ 0 & 1 \end{pmatrix}\), \(A^3 = \begin{pmatrix} 1 & 3 \\ 0 & 1 \end{pmatrix}\). On conjecture \(A^n = \begin{pmatrix} 1 & n \\ 0 & 1 \end{pmatrix}\) ; si c'est vrai au rang \(n\), alors \(A^{n+1} = A\,A^n = \begin{pmatrix} 1 & n+1 \\ 0 & 1 \end{pmatrix}\).</p>
+  </div>
+
+  <div class="prop-box">
+    <strong>Binôme de Newton.</strong> Si \(AB = BA\), alors pour tout \(n \in \mathbb{N}\),
+    <div class="formula" data-nom="Binôme matriciel">$$(A+B)^n = \sum_{k=0}^{n} \binom{n}{k} A^k B^{n-k}.$$</div>
+    L'hypothèse de commutation est indispensable ; elle est toujours vraie quand l'une des deux matrices est scalaire.
+  </div>
+  <div class="reveal" onclick="this.classList.toggle('open')">
+    <span class="label">Démonstration</span>
+    <span class="prompt">Où sert la commutation ?</span>
+    <div class="content"><p>Par récurrence sur \(n\), comme pour les nombres : \((A + B)^{n+1} = (A + B)\sum_k \binom{n}{k} A^k B^{n-k}\). Le terme \(B\,A^k B^{n-k}\) doit être réécrit \(A^k B^{n-k+1}\), ce qui exige \(BA = AB\) ; on regroupe ensuite par la formule de Pascal \(\binom{n}{k} + \binom{n}{k-1} = \binom{n+1}{k}\).</p></div>
+  </div>
+
+  <div class="method-box">
+    <strong>Méthode — écrire \(A = \lambda I_n + N\) avec \(N\) nilpotente</strong>
+    <p>Exemple : \(A = \begin{pmatrix} 2 & 1 & 0 \\ 0 & 2 & 1 \\ 0 & 0 & 2 \end{pmatrix} = 2I_3 + N\) avec \(N = E_{12} + E_{23}\).</p>
+    <ol>
+      <li>\(N^2 = E_{13}\) et \(N^3 = 0\) : la somme du binôme s'arrête à \(k = 2\).</li>
+      <li>\(2I_3\) commute avec \(N\), donc \(A^n = 2^n I_3 + n\,2^{n-1} N + \dfrac{n(n-1)}{2}\,2^{n-2} N^2\).</li>
+      <li>D'où la formule ci-dessous, valable pour tout \(n \geq 0\) (pour \(n = 0\) et \(n = 1\), les termes en \(N^2\) sont nuls).</li>
+    </ol>
+    <div class="formula">$$A^n = \begin{pmatrix} 2^n & n\,2^{n-1} & n(n-1)\,2^{n-3} \\ 0 & 2^n & n\,2^{n-1} \\ 0 & 0 & 2^n \end{pmatrix}.$$</div>
+  </div>
+
+  <div class="reveal" onclick="this.classList.toggle('open')">
+    <span class="label">Application</span>
+    <span class="prompt">Deux suites vérifient \(u_{n+1} = 2u_n + v_n\) et \(v_{n+1} = 2v_n\), avec \(u_0 = 0\), \(v_0 = 1\). Exprimer \(u_n\).</span>
+    <div class="content"><p>Avec \(X_n = \begin{pmatrix} u_n \\ v_n \end{pmatrix}\), le système s'écrit \(X_{n+1} = A X_n\) avec \(A = \begin{pmatrix} 2 & 1 \\ 0 & 2 \end{pmatrix} = 2I_2 + N\), \(N^2 = 0\). Donc \(X_n = A^n X_0\) avec \(A^n = 2^n I_2 + n\,2^{n-1} N = \begin{pmatrix} 2^n & n\,2^{n-1} \\ 0 & 2^n \end{pmatrix}\), et \(u_n = n\,2^{n-1}\), \(v_n = 2^n\).</p></div>
+  </div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§4 · OPÉRATIONS ÉLÉMENTAIRES ET PRODUITS</div>
+  <h2>Le pivot de Gauss est une suite de multiplications</h2>
+  <div class="intro">Échanger deux lignes, multiplier une ligne par un nombre non nul, ajouter à une ligne un multiple d'une autre : ces opérations élémentaires reviennent à multiplier à gauche par une matrice inversible très simple. C'est ce qui justifie toutes les techniques du pivot : elles ne changent ni les solutions d'un système, ni l'inversibilité, ni le rang.</div>
+
+  <div class="prop-box">
+    <strong>Opérations sur les lignes.</strong> Soit \(A \in \mathcal{M}_{n,p}(\mathbb{K})\). Avec des matrices de \(\mathcal{M}_n(\mathbb{K})\) :
+    <ul>
+      <li>\(L_i \leftrightarrow L_j\) : produit à gauche par \(P_{ij}\), la matrice \(I_n\) dont on a échangé les lignes \(i\) et \(j\) ;</li>
+      <li>\(L_i \leftarrow \lambda L_i\) (\(\lambda \neq 0\)) : produit à gauche par \(D_i(\lambda) = I_n + (\lambda - 1)E_{ii}\) ;</li>
+      <li>\(L_i \leftarrow L_i + \lambda L_j\) (\(i \neq j\)) : produit à gauche par \(T_{ij}(\lambda) = I_n + \lambda E_{ij}\).</li>
+    </ul>
+    Les mêmes matrices (de taille \(p\)) agissent sur les <strong>colonnes</strong> par produit à droite ; attention, \(A\,T_{ij}(\lambda)\) réalise \(C_j \leftarrow C_j + \lambda C_i\). Ces matrices sont inversibles : \(P_{ij}^{-1} = P_{ij}\), \(D_i(\lambda)^{-1} = D_i(1/\lambda)\), \(T_{ij}(\lambda)^{-1} = T_{ij}(-\lambda)\).
+  </div>
+
+  <div class="method-box">
+    <strong>Exemple — vérifier sur une matrice 3 × 2</strong>
+    <p>Soit \(A = \begin{pmatrix} 1 & 2 \\ 3 & 4 \\ 5 & 6 \end{pmatrix}\).</p>
+    <ol>
+      <li>\(T_{21}(-3) = I_3 - 3E_{21}\) et \(T_{21}(-3)\,A = \begin{pmatrix} 1 & 2 \\ 0 & -2 \\ 5 & 6 \end{pmatrix}\) : c'est bien \(L_2 \leftarrow L_2 - 3L_1\).</li>
+      <li>\(D_2(5)\,A\) multiplie la ligne 2 par 5 : on obtient les lignes \((1, 2)\), \((15, 20)\), \((5, 6)\).</li>
+      <li>À droite, avec \(T_{12}(7) \in \mathcal{M}_2(\mathbb{K})\) : \(A\,T_{12}(7) = \begin{pmatrix} 1 & 9 \\ 3 & 25 \\ 5 & 41 \end{pmatrix}\), c'est \(C_2 \leftarrow C_2 + 7C_1\).</li>
+    </ol>
+  </div>
+
+  <div class="prop-box">
+    <strong>Conséquence.</strong> Un pivot de Gauss sur les lignes transforme \(A\) en \(R = E_k \cdots E_1 A\), où les \(E_i\) sont des matrices d'opérations, donc \(R = QA\) avec \(Q\) inversible. Ainsi \(AX = B \iff RX = QB\) : les opérations sur les lignes conservent les solutions des systèmes (appliquées aussi au second membre), et \(A\) est inversible si et seulement si \(R\) l'est.
+  </div>
+  <div class="notice"><strong>Erreur classique</strong> : faire « \(L_1 \leftarrow L_2\) » ou « \(L_2 \leftarrow 0 \cdot L_2 + L_1\) » : ce ne sont pas des opérations élémentaires (non inversibles), et elles perdent de l'information. Dans \(L_i \leftarrow \lambda L_i + \mu L_j\), il faut \(\lambda \neq 0\).</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§5 · SYSTÈMES LINÉAIRES ET PIVOT DE GAUSS</div>
+  <h2>Résoudre \(AX = B\)</h2>
+  <div class="intro">Un système de \(n\) équations linéaires à \(p\) inconnues s'écrit \(AX = B\), avec \(A \in \mathcal{M}_{n,p}(\mathbb{K})\) la matrice des coefficients, \(X\) la colonne des inconnues et \(B\) la colonne des seconds membres. Le pivot de Gauss le résout ; la lecture par colonnes dit quand il a des solutions, et la structure « solution particulière + solutions homogènes » dit à quoi elles ressemblent.</div>
+
+  <div class="def-box">
+    Le <strong>système homogène associé</strong> à \(AX = B\) est \(AX = 0\) ; il a toujours la solution nulle. Le système \(AX = B\) est <strong>compatible</strong> s'il a au moins une solution. D'après le §1, \(AX = x_1 C_1 + \cdots + x_p C_p\) : le système est compatible si et seulement si \(B\) est combinaison linéaire des colonnes de \(A\).
+  </div>
+  <div class="prop-box">
+    <strong>Structure des solutions.</strong> Si \(X_0\) est une solution de \(AX = B\), les solutions sont exactement les \(X_0 + Y\), où \(Y\) parcourt l'ensemble des solutions du système homogène associé.
+  </div>
+  <div class="reveal" onclick="this.classList.toggle('open')">
+    <span class="label">Démonstration</span>
+    <span class="prompt">Une soustraction.</span>
+    <div class="content"><p>\(AX = B = AX_0 \iff A(X - X_0) = 0\). C'est le cas particulier des équations linéaires \(u(x) = a\) du chapitre Applications linéaires (§7).</p></div>
+  </div>
+
+  <figure class="schema" style="max-width:430px">
+<svg viewBox="0 0 336.2 259.2" role="img" aria-label="Lecture d'un système linéaire par les colonnes de sa matrice">
+<line x1="12" y1="231.6" x2="155" y2="231.6" class="sk-axis" style="opacity:.6"/>
+<line x1="27.6" y1="247.2" x2="27.6" y2="34" class="sk-axis" style="opacity:.6"/>
+<line x1="79.6" y1="205.6" x2="131.6" y2="49.6" class="sk-dash"/>
+<line x1="79.6" y1="75.6" x2="131.6" y2="49.6" class="sk-dash"/>
+<line x1="27.6" y1="231.6" x2="79.6" y2="75.6" class="sk-accent2" style="stroke-dasharray:5 4;opacity:.7"/>
+<line x1="27.6" y1="231.6" x2="79.6" y2="205.6" class="sk-accent" marker-end="url(#sk-arrow-accent)"/>
+<line x1="27.6" y1="231.6" x2="53.6" y2="153.6" class="sk-accent2" marker-end="url(#sk-arrow-accent2)"/>
+<line x1="27.6" y1="231.6" x2="131.6" y2="49.6" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<circle cx="27.6" cy="231.6" r="2.8" class="fl-ink"/>
+<text x="84.6" y="217.6" class="lab-accent lab-b">C₁</text>
+<text x="48.6" y="157.6" class="lab-accent2 lab-b" text-anchor="end">C₂</text>
+<text x="74.6" y="79.6" class="lab-accent2 lab-b" text-anchor="end">2C₂</text>
+<text x="125.6" y="47.6" class="lab-b" text-anchor="end">B</text>
+<text x="83.5" y="24" class="lab-muted" text-anchor="middle" style="font-size:13px">B = 1·C₁ + 2·C₂</text>
+<line x1="189" y1="231.6" x2="324.2" y2="231.6" class="sk-axis" style="opacity:.6"/>
+<line x1="204.6" y1="247.2" x2="204.6" y2="34" class="sk-axis" style="opacity:.6"/>
+<line x1="196.8" y1="247.2" x2="303.4" y2="34" class="sk-green" style="stroke-width:1.6;opacity:.8"/>
+<line x1="204.6" y1="231.6" x2="256.6" y2="127.6" class="sk-accent2" marker-end="url(#sk-arrow-accent2)"/>
+<line x1="204.6" y1="231.6" x2="230.6" y2="179.6" class="sk-accent" marker-end="url(#sk-arrow-accent)"/>
+<circle cx="204.6" cy="231.6" r="2.8" class="fl-ink"/>
+<circle cx="282.6" cy="75.6" r="3.4" class="fl-green"/>
+<circle cx="298.2" cy="148.4" r="3.4" class="fl-ink"/>
+<text x="237.6" y="185.6" class="lab-accent lab-b">C₁</text>
+<text x="263.6" y="133.6" class="lab-accent2 lab-b">C₂</text>
+<text x="275.6" y="79.6" class="lab-green lab-b" text-anchor="end">B</text>
+<text x="305.2" y="153.4" class="lab-b">B′</text>
+<text x="298.2" y="48.4" class="lab-green lab-it" text-anchor="end">Im A</text>
+<text x="256.6" y="24" class="lab-muted" text-anchor="middle" style="font-size:13px">colonnes colinéaires</text>
+</svg>
+<figcaption>Résoudre AX = B, c'est écrire B comme combinaison des colonnes de A. À gauche, les colonnes C₁ = (2, 1) et C₂ = (1, 3) ne sont pas colinéaires : tout B est atteint, par exemple B = (4, 7) = C₁ + 2C₂, donc X = (1, 2). À droite, les colonnes C₁ = (1, 2) et C₂ = (2, 4) sont sur une même droite, Im A : le système est compatible pour B = (3, 6), qui est sur cette droite, et n'a aucune solution pour B′, qui n'y est pas.</figcaption>
+</figure>
+
+  <div class="prop-box">
+    <strong>Pivot de Gauss.</strong> Par opérations élémentaires sur les lignes de la <strong>matrice augmentée</strong> \((A \mid B)\) (§4), on obtient un système <strong>échelonné</strong> de même ensemble de solutions, que l'on résout en remontant. Le nombre de pivots est le <strong>rang</strong> \(r\) du système. Il est <strong>incompatible</strong> s'il apparaît une ligne \(0 = c\) avec \(c \neq 0\). Sinon, il a une <strong>unique</strong> solution si \(r = p\), et une <strong>infinité</strong> si \(r \lt p\), décrites par \(p - r\) inconnues libres.
+  </div>
+
+  <div class="method-box">
+    <strong>Exemple — un système 3 × 3 par le pivot</strong>
+    <div class="formula">$$\begin{cases} x + y + z = 6 \\ 2x + y - z = 1 \\ x - y + 2z = 5 \end{cases}$$</div>
+    <ol>
+      <li>Pivot \(x\) de la ligne 1 : \(L_2 \leftarrow L_2 - 2L_1\) donne \(-y - 3z = -11\) ; \(L_3 \leftarrow L_3 - L_1\) donne \(-2y + z = -1\).</li>
+      <li>Pivot \(-y\) de la nouvelle ligne 2 : \(L_3 \leftarrow L_3 - 2L_2\) donne \(7z = 21\).</li>
+      <li>Remontée : \(z = 3\), puis \(-y - 9 = -11\) donc \(y = 2\), puis \(x = 6 - 2 - 3 = 1\).</li>
+      <li>Vérification dans les trois équations : \(1 + 2 + 3 = 6\), \(2 + 2 - 3 = 1\), \(1 - 2 + 6 = 5\). Solution unique \((1, 2, 3)\) : trois pivots pour trois inconnues.</li>
+    </ol>
+  </div>
+
+  <div class="method-box">
+    <strong>Exemple — une infinité de solutions, et leur structure</strong>
+    <p>\(x + 2y - z = 1\), \(2x + 4y + z = 5\).</p>
+    <ol>
+      <li>\(L_2 \leftarrow L_2 - 2L_1\) donne \(3z = 3\) : deux pivots (\(x\) et \(z\)) pour trois inconnues, \(y\) est libre.</li>
+      <li>\(z = 1\) et \(x = 1 - 2y + z = 2 - 2y\).</li>
+      <li>Solutions : \((x, y, z) = (2, 0, 1) + y\,(-2, 1, 0)\), \(y \in \mathbb{R}\). On reconnaît une solution particulière \(X_0 = (2, 0, 1)\) et une base \((-2, 1, 0)\) des solutions homogènes : l'ensemble des solutions est une droite affine.</li>
+    </ol>
+  </div>
+
+  <div class="reveal" onclick="this.classList.toggle('open')">
+    <span class="label">Application</span>
+    <span class="prompt">Selon le réel \(a\), résoudre \(\begin{cases} x + y = 1 \\ x + a y = 2 \end{cases}\).</span>
+    <div class="content"><p>\(L_2 \leftarrow L_2 - L_1\) donne \((a - 1)\,y = 1\). Si \(a \neq 1\) : solution unique \(y = \dfrac{1}{a-1}\), \(x = 1 - \dfrac{1}{a-1} = \dfrac{a-2}{a-1}\). Si \(a = 1\) : la ligne devient \(0 = 1\), le système n'a aucune solution. Le paramètre se discute <strong>au moment</strong> où il apparaît dans un pivot.</p></div>
+  </div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§6 · MATRICES INVERSIBLES</div>
+  <h2>Inverser une matrice</h2>
+  <div class="intro">Une matrice inversible est une matrice par laquelle on peut « diviser » : \(AX = Y\) donne \(X = A^{-1}Y\). Le §8 donnera des critères d'inversibilité par le rang ; ici, on apprend à calculer l'inverse.</div>
+  <div class="def-box">
+    \(A \in \mathcal{M}_n(\mathbb{K})\) est <strong>inversible</strong> s'il existe \(B \in \mathcal{M}_n(\mathbb{K})\) telle que \(AB = BA = I_n\) ; \(B\) est unique et notée \(A^{-1}\). L'ensemble des matrices inversibles est le <strong>groupe linéaire</strong> \(\mathrm{GL}_n(\mathbb{K})\) : il contient \(I_n\), et
+    <div class="formula" data-nom="Inverse d'un produit, d'une transposée">$$(AB)^{-1} = B^{-1}A^{-1}, \qquad (A^\top)^{-1} = (A^{-1})^\top, \qquad (A^{-1})^{-1} = A.$$</div>
+  </div>
+  <div class="prop-box">
+    <strong>Taille 2.</strong> \(A = \begin{pmatrix} a & b \\ c & d \end{pmatrix}\) est inversible si et seulement si \(ad - bc \neq 0\), et alors
+    <div class="formula" data-nom="Inverse d'une matrice 2 × 2">$$A^{-1} = \frac{1}{ad - bc}\begin{pmatrix} d & -b \\ -c & a \end{pmatrix}.$$</div>
+    <strong>Matrices triangulaires.</strong> Une matrice triangulaire est inversible si et seulement si ses coefficients diagonaux sont tous non nuls ; son inverse est alors triangulaire du même type, de diagonale les inverses des \(a_{ii}\). En particulier \(\operatorname{diag}(d_i)^{-1} = \operatorname{diag}(1/d_i)\).
+  </div>
+
+  <div class="method-box">
+    <strong>Méthode 1 — résoudre \(AX = Y\) en gardant \(Y\) en lettres</strong>
+    <p>Exemple : \(A = \begin{pmatrix} 1 & 0 & 1 \\ 1 & 1 & 0 \\ 0 & 1 & 1 \end{pmatrix}\). Le système \(AX = Y\) s'écrit \(x + z = a\), \(x + y = b\), \(y + z = c\).</p>
+    <ol>
+      <li>En sommant les trois équations : \(x + y + z = \dfrac{a + b + c}{2}\).</li>
+      <li>On en retranche chaque équation : \(y = \dfrac{-a + b + c}{2}\), \(z = \dfrac{a - b + c}{2}\), \(x = \dfrac{a + b - c}{2}\).</li>
+      <li>Le système a une unique solution pour tout \(Y\) : \(A\) est inversible, et l'on lit \(A^{-1}\) sur les coefficients de \(a, b, c\) :</li>
+    </ol>
+    <div class="formula">$$A^{-1} = \frac{1}{2}\begin{pmatrix} 1 & 1 & -1 \\ -1 & 1 & 1 \\ 1 & -1 & 1 \end{pmatrix}.$$</div>
+  </div>
+
+  <div class="method-box">
+    <strong>Méthode 2 — Gauss-Jordan sur \((A \mid I_n)\)</strong>
+    <p>On applique les <strong>mêmes</strong> opérations sur les lignes à \(A\) et à \(I_n\), placées côte à côte, jusqu'à transformer \(A\) en \(I_n\) : la matrice obtenue à droite est \(A^{-1}\) (si \(QA = I_n\), le bloc de droite est \(Q I_n = Q = A^{-1}\), §4). Si une ligne de zéros apparaît à gauche, \(A\) n'est pas inversible. Exemple en taille 2 : on part de \((A \mid I_2)\) avec \(A = \begin{pmatrix} 2 & 1 \\ 5 & 3 \end{pmatrix}\) ; \(L_2 \leftarrow 2L_2 - 5L_1\) donne la ligne \((0\ 1 \mid -5\ 2)\), puis \(L_1 \leftarrow (L_1 - L_2)/2\) donne \((1\ 0 \mid 3\ {-1})\) : \(A^{-1} = \begin{pmatrix} 3 & -1 \\ -5 & 2 \end{pmatrix}\).</p>
+  </div>
+
+  <div class="method-box">
+    <strong>Méthode 3 — avec une relation polynomiale</strong>
+    <p>Si \(A^2 - 3A + 2I_n = 0\), on isole \(I_n\) : \(A\,(3I_n - A) = 2I_n\), donc \(A \times \tfrac{1}{2}(3I_n - A) = I_n\) et \(A^{-1} = \tfrac{1}{2}(3I_n - A)\). Il suffit que le coefficient constant de la relation soit non nul. Exemple : \(A = \begin{pmatrix} 1 & 1 \\ 0 & 2 \end{pmatrix}\) vérifie cette relation, et \(\tfrac{1}{2}(3I_2 - A) = \begin{pmatrix} 1 & -\frac{1}{2} \\ 0 & \frac{1}{2} \end{pmatrix}\) est bien son inverse.</p>
+  </div>
+
+  <div class="method-box">
+    <strong>Exemple — inverse d'une matrice triangulaire</strong>
+    <p>\(T = \begin{pmatrix} 1 & 2 & 3 \\ 0 & 1 & 4 \\ 0 & 0 & 2 \end{pmatrix}\) a une diagonale sans zéro : elle est inversible. On résout \(TX = Y\) en remontant : \(z = \frac{c}{2}\), \(y = b - 4z = b - 2c\), \(x = a - 2y - 3z = a - 2b + \frac{5}{2}c\). D'où</p>
+    <div class="formula">$$T^{-1} = \begin{pmatrix} 1 & -2 & \frac{5}{2} \\ 0 & 1 & -2 \\ 0 & 0 & \frac{1}{2} \end{pmatrix},$$</div>
+    <p>triangulaire supérieure, de diagonale \((1, 1, \frac{1}{2})\).</p>
+  </div>
+  <div class="notice"><strong>Erreur classique</strong> : écrire \((AB)^{-1} = A^{-1}B^{-1}\) (l'ordre s'inverse), ou « diviser » par une matrice non inversible. Le critère « déterminant non nul » vaut en toute taille (chapitre Déterminants), mais la formule \(\frac{1}{ad - bc}\begin{pmatrix} d & -b \\ -c & a \end{pmatrix}\) ne vaut qu'en taille 2.</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§7 · MATRICE D'UNE APPLICATION LINÉAIRE</div>
+  <h2>Des vecteurs aux colonnes</h2>
+  <div class="intro">Une application linéaire est déterminée par les images des vecteurs d'une base (chapitre Applications linéaires, §5). Écrire ces images en colonnes donne sa matrice : on calcule alors images, composées et réciproques par de simples produits de matrices. La matrice dépend des bases choisies ; le §9 dira comment.</div>
+
+  <div class="def-box">
+    Soit \(E\) de base \(\mathcal{B} = (e_1, \ldots, e_p)\) et \(F\) de base \(\mathcal{C} = (f_1, \ldots, f_n)\).
+    <ul>
+      <li>La matrice d'un vecteur \(x = \sum x_j e_j\) dans \(\mathcal{B}\) est la colonne \(\operatorname{Mat}_{\mathcal{B}}(x) = (x_1, \ldots, x_p)\) de ses coordonnées ; celle d'une famille \((y_1, \ldots, y_q)\) a pour colonnes les coordonnées des \(y_k\).</li>
+      <li>La matrice de \(u \in \mathcal{L}(E, F)\) dans les bases \(\mathcal{B}\) et \(\mathcal{C}\) est \(\operatorname{Mat}_{\mathcal{B},\mathcal{C}}(u) \in \mathcal{M}_{n,p}(\mathbb{K})\), dont la colonne \(j\) contient les coordonnées de \(u(e_j)\) dans \(\mathcal{C}\).</li>
+      <li>Pour un endomorphisme, avec la même base au départ et à l'arrivée : \(\operatorname{Mat}_{\mathcal{B}}(u) \in \mathcal{M}_p(\mathbb{K})\).</li>
+    </ul>
+  </div>
+  <div class="prop-box">
+    <strong>Calcul des images.</strong> Si \(X = \operatorname{Mat}_{\mathcal{B}}(x)\) et \(A = \operatorname{Mat}_{\mathcal{B},\mathcal{C}}(u)\), alors les coordonnées de \(u(x)\) dans \(\mathcal{C}\) sont
+    <div class="formula" data-nom="Coordonnées de l'image">$$Y = AX.$$</div>
+  </div>
+
+  <figure class="schema" style="max-width:380px">
+<svg viewBox="0 0 378 236.4" role="img" aria-label="Images des vecteurs de la base canonique par la rotation d'angle θ">
+<line x1="17.9" y1="183.1" x2="360.1" y2="183.1" class="sk-axis"/>
+<line x1="183.1" y1="218.5" x2="183.1" y2="17.9" class="sk-axis"/>
+<polyline points="297.1,213.6 298.5,207.6 299.6,201.6 300.5,195.4 300.9,189.3 301.1,183.1 300.9,176.9 300.5,170.8 299.6,164.6 298.5,158.6 297.1,152.6 295.3,146.6 293.3,140.8 290.9,135.1 288.2,129.5 285.3,124.1 282.1,118.8 278.6,113.7 274.8,108.8 270.8,104.1 266.5,99.7 262.1,95.4 257.4,91.4 252.5,87.6 247.4,84.1 242.1,80.9 236.7,78 231.1,75.3 225.4,72.9 219.6,70.9 213.6,69.1 207.6,67.7 201.6,66.6 195.4,65.7 189.3,65.3 183.1,65.1 176.9,65.3 170.8,65.7 164.6,66.6 158.6,67.7 152.6,69.1 146.6,70.9 140.8,72.9 135.1,75.3 129.5,78 124.1,80.9 118.8,84.1 113.7,87.6 108.8,91.4 104.1,95.4 99.7,99.7 95.4,104.1 91.4,108.8 87.6,113.7 84.1,118.8 80.9,124.1 78,129.5 75.3,135.1 72.9,140.8 70.9,146.6 69.1,152.6 67.7,158.6 66.6,164.6 65.7,170.8 65.3,176.9 65.1,183.1 65.3,189.3 65.7,195.4 66.6,201.6 67.7,207.6 69.1,213.6" class="sk-axis" style="stroke-dasharray:3 4"/>
+<line x1="279.8" y1="183.1" x2="279.8" y2="115.4" class="sk-dash"/>
+<line x1="183.1" y1="115.4" x2="279.8" y2="115.4" class="sk-dash"/>
+<line x1="115.4" y1="183.1" x2="115.4" y2="86.4" class="sk-dash"/>
+<line x1="183.1" y1="86.4" x2="115.4" y2="86.4" class="sk-dash"/>
+<line x1="183.1" y1="183.1" x2="301.1" y2="183.1" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<line x1="183.1" y1="183.1" x2="183.1" y2="65.1" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<line x1="183.1" y1="183.1" x2="279.8" y2="115.4" class="sk-accent" marker-end="url(#sk-arrow-accent)"/>
+<line x1="183.1" y1="183.1" x2="115.4" y2="86.4" class="sk-accent" marker-end="url(#sk-arrow-accent)"/>
+<polyline points="220.9,183.1 220.8,181 220.6,178.9 220.3,176.8 219.9,174.8 219.4,172.7 218.8,170.7 218,168.8 217.2,166.9 216.2,165 215.2,163.2 214,161.4" class="sk-ink" style="stroke-width:1.1"/>
+<polyline points="183.1,154.8 181.5,154.8 180,155 178.4,155.2 176.9,155.5 175.3,155.9 173.8,156.3 172.4,156.9 170.9,157.5 169.5,158.2 168.2,159 166.9,159.9" class="sk-ink" style="stroke-width:1.1"/>
+<circle cx="183.1" cy="183.1" r="2.8" class="fl-ink"/>
+<text x="307.1" y="178.1" class="lab-b">e₁</text>
+<text x="188.1" y="63.1" class="lab-b">e₂</text>
+<text x="285.8" y="113.4" class="lab-accent">R(e₁)</text>
+<text x="109.4" y="84.4" class="lab-accent" text-anchor="end">R(e₂)</text>
+<text x="225.4" y="177" class="lab-it">θ</text>
+<text x="171.1" y="151.8" class="lab-it" text-anchor="end">θ</text>
+<text x="279.8" y="198.1" class="lab-muted" text-anchor="middle">cos θ</text>
+<text x="178.1" y="119.4" class="lab-muted" text-anchor="end">sin θ</text>
+<text x="115.4" y="198.1" class="lab-muted" text-anchor="middle">−sin θ</text>
+</svg>
+<figcaption>La rotation R d'angle θ envoie e₁ sur (cos θ, sin θ) et e₂ sur (−sin θ, cos θ) (ici θ = 35°). Ces deux images, écrites en colonnes, forment sa matrice dans la base canonique.</figcaption>
+</figure>
+
+  <div class="method-box">
+    <strong>Exemple — trois matrices à savoir écrire</strong>
+    <ol>
+      <li><strong>Rotation</strong> d'angle \(\theta\) du plan, dans la base canonique : \(e_1 \mapsto (\cos\theta, \sin\theta)\), \(e_2 \mapsto (-\sin\theta, \cos\theta)\), d'où la matrice
+      <div class="formula" data-nom="Matrice de rotation">$$R_\theta = \begin{pmatrix} \cos\theta & -\sin\theta \\ \sin\theta & \cos\theta \end{pmatrix}.$$</div>
+      L'<strong>homothétie</strong> de rapport \(\lambda\) a pour matrice \(\lambda I_n\) dans toute base.</li>
+      <li><strong>Translation des polynômes</strong> \(\tau : P \mapsto P(X + 1)\) sur \(\mathbb{R}_2[X]\), base \((1, X, X^2)\) : \(\tau(1) = 1\), \(\tau(X) = 1 + X\), \(\tau(X^2) = 1 + 2X + X^2\), d'où la matrice ci-dessous. Pour \(P = 2 - X + 3X^2\), de coordonnées \((2, -1, 3)\), le produit donne \((4, 5, 3)\) : \(P(X + 1) = 4 + 5X + 3X^2\), ce que confirme le développement.</li>
+      <li><strong>Évaluation</strong> \(v : \mathbb{R}_2[X] \to \mathbb{R}^2\), \(P \mapsto \big(P(0), P(1)\big)\), bases \((1, X, X^2)\) et canonique : colonnes \(v(1) = (1, 1)\), \(v(X) = (0, 1)\), \(v(X^2) = (0, 1)\) ; c'est une matrice \(2 \times 3\).</li>
+    </ol>
+    <div class="formula">$$\operatorname{Mat}(\tau) = \begin{pmatrix} 1 & 1 & 1 \\ 0 & 1 & 2 \\ 0 & 0 & 1 \end{pmatrix}, \qquad \operatorname{Mat}(v) = \begin{pmatrix} 1 & 0 & 0 \\ 1 & 1 & 1 \end{pmatrix}.$$</div>
+  </div>
+
+  <div class="prop-box">
+    <strong>Théorème.</strong> Les bases \(\mathcal{B}\) et \(\mathcal{C}\) étant fixées :
+    <ul>
+      <li>\(u \mapsto \operatorname{Mat}_{\mathcal{B},\mathcal{C}}(u)\) est un isomorphisme de \(\mathcal{L}(E, F)\) sur \(\mathcal{M}_{n,p}(\mathbb{K})\) (matrice d'une combinaison linéaire = combinaison des matrices) ; donc \(\dim \mathcal{L}(E, F) = np\) ;</li>
+      <li>si \(v \in \mathcal{L}(F, G)\) et \(\mathcal{D}\) est une base de \(G\), la matrice d'une composée est le produit des matrices, dans le même ordre :
+      <div class="formula" data-nom="Matrice d'une composée">$$\operatorname{Mat}_{\mathcal{B},\mathcal{D}}(v \circ u) = \operatorname{Mat}_{\mathcal{C},\mathcal{D}}(v)\,\operatorname{Mat}_{\mathcal{B},\mathcal{C}}(u) ;$$</div></li>
+      <li>si \(\dim E = \dim F\), \(u\) est un isomorphisme si et seulement si sa matrice est inversible, et \(\operatorname{Mat}_{\mathcal{C},\mathcal{B}}(u^{-1}) = \operatorname{Mat}_{\mathcal{B},\mathcal{C}}(u)^{-1}\). Pour un endomorphisme : \(\operatorname{Mat}_{\mathcal{B}}(u^k) = \operatorname{Mat}_{\mathcal{B}}(u)^k\).</li>
+    </ul>
+  </div>
+  <div class="reveal" onclick="this.classList.toggle('open')">
+    <span class="label">Démonstration</span>
+    <span class="prompt">Pourquoi la matrice d'une composée est-elle le produit ?</span>
+    <div class="content"><p>Pour tout \(x\) de coordonnées \(X\) : les coordonnées de \(u(x)\) sont \(AX\), celles de \(v(u(x))\) sont \(B(AX) = (BA)X\). La matrice \(M\) de \(v \circ u\) vérifie aussi \(MX = (BA)X\) pour toute colonne \(X\) ; en prenant pour \(X\) les colonnes de \(I_p\), on obtient colonne par colonne \(M = BA\). Le lien avec l'inverse en découle : \(u^{-1} \circ u = \mathrm{id}\) donne \(\operatorname{Mat}(u^{-1})\operatorname{Mat}(u) = I_n\).</p></div>
+  </div>
+
+  <div class="method-box">
+    <strong>Exemple — composée et réciproque</strong>
+    <ol>
+      <li>\(R_\theta R_\varphi = R_{\theta + \varphi}\) (formules d'addition) traduit la composition des rotations, et \(R_\theta^{-1} = R_{-\theta}\).</li>
+      <li>La réciproque de \(\tau\) est \(P \mapsto P(X - 1)\), de matrice \(\begin{pmatrix} 1 & -1 & 1 \\ 0 & 1 & -2 \\ 0 & 0 & 1 \end{pmatrix}\) : on vérifie que le produit avec \(\operatorname{Mat}(\tau)\) vaut \(I_3\).</li>
+      <li>La dérivation \(D\) sur \(\mathbb{R}_2[X]\) a pour matrice \(\begin{pmatrix} 0 & 1 & 0 \\ 0 & 0 & 2 \\ 0 & 0 & 0 \end{pmatrix}\), nilpotente (dériver trois fois un polynôme de degré 2 donne 0) ; la matrice de \(D \circ \tau\) est le produit \(\operatorname{Mat}(D)\operatorname{Mat}(\tau)\).</li>
+    </ol>
+  </div>
+  <div class="notice"><strong>Erreur classique</strong> : écrire les images en <em>lignes</em>, ou exprimer \(u(e_j)\) dans la base de départ quand les bases diffèrent. La colonne \(j\) contient les coordonnées de \(u(e_j)\) dans la base d'<strong>arrivée</strong>, et la matrice a autant de colonnes que \(\dim E\), autant de lignes que \(\dim F\).</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§8 · NOYAU, IMAGE ET RANG D'UNE MATRICE</div>
+  <h2>Une matrice vue comme une application</h2>
+  <div class="intro">Toute matrice \(A \in \mathcal{M}_{n,p}(\mathbb{K})\) définit une application linéaire \(X \mapsto AX\) de \(\mathbb{K}^p\) dans \(\mathbb{K}^n\) (on identifie colonnes et \(n\)-uplets). On lui transporte tout le vocabulaire du chapitre Applications linéaires : noyau, image, rang. Les colonnes engendrent l'image, les lignes donnent les équations du noyau.</div>
+
+  <div class="def-box">
+    L'<strong>application canoniquement associée</strong> à \(A\) est \(\tilde{a} : \mathbb{K}^p \to \mathbb{K}^n\), \(X \mapsto AX\) ; sa matrice dans les bases canoniques est \(A\). Le <strong>noyau</strong>, l'<strong>image</strong> et le <strong>rang</strong> de \(A\) sont ceux de \(\tilde{a}\) :
+    <div class="formula" data-nom="Noyau, image et rang d'une matrice">$$\ker A = \{X \in \mathbb{K}^p,\ AX = 0\}, \qquad \operatorname{Im} A = \operatorname{Vect}(C_1, \ldots, C_p), \qquad \operatorname{rg} A = \dim \operatorname{Im} A.$$</div>
+  </div>
+  <div class="prop-box">
+    <strong>Propriétés.</strong>
+    <ul>
+      <li>\(\operatorname{rg} A\) est le rang de la famille des colonnes, et c'est aussi le rang de toute application linéaire représentée par \(A\) (dans n'importe quelles bases).</li>
+      <li>Théorème du rang : \(\dim \ker A + \operatorname{rg} A = p\) (nombre de colonnes).</li>
+      <li>Les opérations élémentaires sur les colonnes conservent l'image ; celles sur les lignes conservent le noyau ; toutes conservent le rang (produit par une matrice inversible, chapitre Applications linéaires §4). Le rang est donc le nombre de pivots d'une forme échelonnée.</li>
+      <li>\(\operatorname{rg}(A^\top) = \operatorname{rg} A\) (résultat admis) : le rang des lignes égale le rang des colonnes.</li>
+    </ul>
+  </div>
+
+  <div class="prop-box">
+    <strong>Inversibilité.</strong> Pour \(A \in \mathcal{M}_n(\mathbb{K})\), les propriétés suivantes sont équivalentes : \(A\) est inversible ; \(\ker A = \{0\}\) ; les colonnes de \(A\) engendrent \(\mathbb{K}^n\) ; \(\operatorname{rg} A = n\) ; il existe \(B\) telle que \(BA = I_n\) ; il existe \(B\) telle que \(AB = I_n\). Une matrice carrée inversible d'un seul côté est donc inversible, et cet inverse « d'un côté » est \(A^{-1}\).
+  </div>
+  <div class="reveal" onclick="this.classList.toggle('open')">
+    <span class="label">Démonstration</span>
+    <span class="prompt">Tout passe par l'endomorphisme \(\tilde{a}\) de \(\mathbb{K}^n\).</span>
+    <div class="content"><p>\(A\) inversible ⟺ \(\tilde{a}\) bijectif (§7) ⟺ \(\tilde{a}\) injectif (\(\ker A = \{0\}\)) ⟺ \(\tilde{a}\) surjectif (colonnes génératrices, rang \(n\)), par le théorème du rang en dimension finie. Si \(BA = I_n\), alors \(AX = 0\) entraîne \(X = BAX = 0\) : \(A\) est inversible et \(B = BAA^{-1} = A^{-1}\). Si \(AB = I_n\), alors \(B^\top A^\top = I_n\), donc \(A^\top\) est inversible, et \(A\) aussi.</p></div>
+  </div>
+
+  <div class="method-box">
+    <strong>Exemple — noyau et image d'une matrice 3 × 3</strong>
+    <p>\(A = \begin{pmatrix} 1 & -1 & 2 \\ 2 & 1 & 1 \\ 1 & 2 & -1 \end{pmatrix}\), de colonnes \(C_1, C_2, C_3\).</p>
+    <ol>
+      <li>On repère \(C_3 = C_1 - C_2\), et \(C_1\), \(C_2\) ne sont pas colinéaires : \(\operatorname{rg} A = 2\), \(\operatorname{Im} A = \operatorname{Vect}(C_1, C_2)\).</li>
+      <li>La relation \(C_1 - C_2 - C_3 = 0\) s'écrit \(A\,(1, -1, -1) = 0\) ; par le théorème du rang, \(\dim \ker A = 3 - 2 = 1\), donc \(\ker A = \operatorname{Vect}\big((-1, 1, 1)\big)\).</li>
+      <li>Équation de l'image : les trois colonnes vérifient \(x - y + z = 0\) (par exemple \(1 - 2 + 1 = 0\)) ; c'est le plan \(\operatorname{Im} A\).</li>
+    </ol>
+  </div>
+
+  <div class="method-box">
+    <strong>Exemple — rang selon un paramètre</strong>
+    <p>\(A_m = \begin{pmatrix} 1 & 1 & m \\ 1 & m & 1 \\ m & 1 & 1 \end{pmatrix}\), \(m \in \mathbb{R}\).</p>
+    <ol>
+      <li>\(L_2 \leftarrow L_2 - L_1\) et \(L_3 \leftarrow L_3 - mL_1\) donnent les lignes \((0,\ m - 1,\ 1 - m)\) et \((0,\ 1 - m,\ 1 - m^2)\).</li>
+      <li>\(L_3 \leftarrow L_3 + L_2\) : \((0,\ 0,\ 2 - m - m^2)\), et \(2 - m - m^2 = (1 - m)(m + 2)\).</li>
+      <li>Si \(m \notin \{1, -2\}\) : trois pivots, \(\operatorname{rg} A_m = 3\), \(A_m\) inversible. Si \(m = -2\) : deux pivots, rang 2. Si \(m = 1\) : toutes les lignes valent \((1, 1, 1)\), rang 1.</li>
+    </ol>
+  </div>
+  <div class="notice"><strong>Erreur classique</strong> : diviser une ligne par \(m - 1\) sans traiter à part le cas \(m = 1\). Autre confusion : le noyau se lit sur les <em>lignes</em> (ce sont les équations), l'image sur les <em>colonnes</em> (ce sont les générateurs).</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§9 · CHANGEMENT DE BASE</div>
+  <h2>Un même vecteur, deux jeux de coordonnées</h2>
+  <div class="intro">Les coordonnées d'un vecteur, et la matrice d'une application linéaire, dépendent de la base choisie. Une bonne base peut rendre une matrice diagonale, donc ses puissances immédiates. Pour passer d'une base à l'autre, une seule matrice suffit : la matrice de passage. Les notations sont celles du chapitre Calcul matriciel (approfondissements) de 2ᵉ année.</div>
+
+  <div class="def-box">
+    Soit \(\mathcal{B}\) et \(\mathcal{B}'\) deux bases de \(E\). La <strong>matrice de passage</strong> de \(\mathcal{B}\) à \(\mathcal{B}'\), notée \(P_{\mathcal{B}\to\mathcal{B}'}\), est la matrice de la famille \(\mathcal{B}'\) dans la base \(\mathcal{B}\) : ses colonnes sont les coordonnées des <strong>nouveaux</strong> vecteurs dans l'<strong>ancienne</strong> base. (Certains ouvrages la notent \(P_{\mathcal{B}}^{\mathcal{B}'}\).)
+  </div>
+  <div class="prop-box">
+    <strong>Propriétés.</strong> \(P = P_{\mathcal{B}\to\mathcal{B}'}\) est inversible, d'inverse \(P_{\mathcal{B}'\to\mathcal{B}}\). Si \(X\) et \(X'\) sont les colonnes de coordonnées d'un même vecteur \(x\) dans \(\mathcal{B}\) et dans \(\mathcal{B}'\) :
+    <div class="formula" data-nom="Changement de coordonnées">$$X = P X' \qquad \text{(ancienne = } P \times \text{nouvelle)}.$$</div>
+  </div>
+  <div class="reveal" onclick="this.classList.toggle('open')">
+    <span class="label">Démonstration</span>
+    <span class="prompt">\(P\) est la matrice de l'identité, lue entre deux bases.</span>
+    <div class="content"><p>Par définition, la colonne \(j\) de \(P\) contient les coordonnées dans \(\mathcal{B}\) de \(e'_j = \mathrm{id}(e'_j)\) : \(P = \operatorname{Mat}_{\mathcal{B}',\mathcal{B}}(\mathrm{id}_E)\). Le §7 donne alors \(X = PX'\) (coordonnées de \(\mathrm{id}(x) = x\) dans \(\mathcal{B}\)). Et \(\mathrm{id} \circ \mathrm{id} = \mathrm{id}\) donne \(P_{\mathcal{B}\to\mathcal{B}'}\,P_{\mathcal{B}'\to\mathcal{B}} = \operatorname{Mat}_{\mathcal{B}}(\mathrm{id}) = I_n\).</p></div>
+  </div>
+
+  <figure class="schema" style="max-width:300px">
+<svg viewBox="0 0 324 339" role="img" aria-label="Un même vecteur x et ses coordonnées dans deux bases du plan">
+<line x1="17" y1="327" x2="17" y2="12" class="sk-axis" style="opacity:.35"/>
+<line x1="67" y1="327" x2="67" y2="12" class="sk-axis" style="opacity:.35"/>
+<line x1="117" y1="327" x2="117" y2="12" class="sk-axis" style="opacity:.35"/>
+<line x1="167" y1="327" x2="167" y2="12" class="sk-axis" style="opacity:.35"/>
+<line x1="217" y1="327" x2="217" y2="12" class="sk-axis" style="opacity:.35"/>
+<line x1="267" y1="327" x2="267" y2="12" class="sk-axis" style="opacity:.35"/>
+<line x1="12" y1="297" x2="312" y2="297" class="sk-axis" style="opacity:.35"/>
+<line x1="12" y1="247" x2="312" y2="247" class="sk-axis" style="opacity:.35"/>
+<line x1="12" y1="197" x2="312" y2="197" class="sk-axis" style="opacity:.35"/>
+<line x1="12" y1="147" x2="312" y2="147" class="sk-axis" style="opacity:.35"/>
+<line x1="12" y1="97" x2="312" y2="97" class="sk-axis" style="opacity:.35"/>
+<line x1="12" y1="47" x2="312" y2="47" class="sk-axis" style="opacity:.35"/>
+<line x1="12" y1="257" x2="134.5" y2="12" class="sk-accent2" style="stroke-width:1;opacity:.45"/>
+<line x1="187" y1="327" x2="312" y2="202" class="sk-accent2" style="stroke-width:1;opacity:.45"/>
+<line x1="12" y1="307" x2="159.5" y2="12" class="sk-accent2" style="stroke-width:1;opacity:.45"/>
+<line x1="137" y1="327" x2="312" y2="152" class="sk-accent2" style="stroke-width:1;opacity:.45"/>
+<line x1="27" y1="327" x2="184.5" y2="12" class="sk-accent2" style="stroke-width:1;opacity:.45"/>
+<line x1="87" y1="327" x2="312" y2="102" class="sk-accent2" style="stroke-width:1;opacity:.45"/>
+<line x1="52" y1="327" x2="209.5" y2="12" class="sk-accent2" style="stroke-width:1;opacity:.45"/>
+<line x1="37" y1="327" x2="312" y2="52" class="sk-accent2" style="stroke-width:1;opacity:.45"/>
+<line x1="77" y1="327" x2="234.5" y2="12" class="sk-accent2" style="stroke-width:1;opacity:.45"/>
+<line x1="12" y1="302" x2="302" y2="12" class="sk-accent2" style="stroke-width:1;opacity:.45"/>
+<line x1="102" y1="327" x2="259.5" y2="12" class="sk-accent2" style="stroke-width:1;opacity:.45"/>
+<line x1="12" y1="252" x2="252" y2="12" class="sk-accent2" style="stroke-width:1;opacity:.45"/>
+<line x1="127" y1="327" x2="284.5" y2="12" class="sk-accent2" style="stroke-width:1;opacity:.45"/>
+<line x1="12" y1="202" x2="202" y2="12" class="sk-accent2" style="stroke-width:1;opacity:.45"/>
+<line x1="152" y1="327" x2="309.5" y2="12" class="sk-accent2" style="stroke-width:1;opacity:.45"/>
+<line x1="12" y1="152" x2="152" y2="12" class="sk-accent2" style="stroke-width:1;opacity:.45"/>
+<line x1="67" y1="297" x2="167" y2="97" class="sk-accent2" style="stroke-dasharray:5 4;stroke-width:1.6"/>
+<line x1="167" y1="97" x2="217" y2="47" class="sk-accent2" style="stroke-dasharray:5 4;stroke-width:1.6"/>
+<line x1="67" y1="297" x2="117" y2="297" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<line x1="67" y1="297" x2="67" y2="247" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<line x1="67" y1="297" x2="117" y2="197" class="sk-accent2" marker-end="url(#sk-arrow-accent2)"/>
+<line x1="67" y1="297" x2="117" y2="247" class="sk-accent2" marker-end="url(#sk-arrow-accent2)"/>
+<line x1="67" y1="297" x2="217" y2="47" class="sk-accent" marker-end="url(#sk-arrow-accent)"/>
+<circle cx="67" cy="297" r="2.8" class="fl-ink"/>
+<circle cx="217" cy="47" r="3" class="fl-accent"/>
+<text x="62" y="311" class="lab-muted" text-anchor="end">0</text>
+<text x="115" y="312" class="lab-b" text-anchor="middle">e₁</text>
+<text x="62" y="247" class="lab-b" text-anchor="end">e₂</text>
+<text x="111" y="197" class="lab-accent2 lab-b" text-anchor="end">u₁</text>
+<text x="124" y="255" class="lab-accent2 lab-b">u₂</text>
+<text x="224" y="47" class="lab-accent lab-b">x</text>
+<text x="224" y="63" class="lab-muted" style="font-size:12px">X = (3, 5)</text>
+<text x="224" y="78" class="lab-accent2" style="font-size:12px">X′ = (2, 1)</text>
+</svg>
+<figcaption>Le vecteur x = (3, 5) a pour coordonnées X = (3, 5) dans la base canonique (quadrillage gris) et X′ = (2, 1) dans la base B′ = (u₁, u₂), u₁ = (1, 2), u₂ = (1, 1) (quadrillage bleu) : x = 2u₁ + u₂ (chemin en tirets). La matrice de passage P, de colonnes u₁ et u₂, relie les deux : X = PX′.</figcaption>
+</figure>
+
+  <div class="method-box">
+    <strong>Exemple — coordonnées dans une base oblique</strong>
+    <p>Dans \(\mathbb{R}^2\), \(\mathcal{B}' = (u_1, u_2)\) avec \(u_1 = (1, 2)\) et \(u_2 = (1, 1)\) (non colinéaires).</p>
+    <ol>
+      <li>\(P = \begin{pmatrix} 1 & 1 \\ 2 & 1 \end{pmatrix}\) (colonnes \(u_1\), \(u_2\)), \(ad - bc = -1\), donc \(P^{-1} = \begin{pmatrix} -1 & 1 \\ 2 & -1 \end{pmatrix}\).</li>
+      <li>Pour \(x = (3, 5)\) : \(X' = P^{-1}X = (-3 + 5,\ 6 - 5) = (2, 1)\).</li>
+      <li>Contrôle : \(2u_1 + u_2 = (2, 4) + (1, 1) = (3, 5)\), comme sur la figure.</li>
+    </ol>
+  </div>
+
+  <div class="prop-box">
+    <strong>Formules de changement de base.</strong> Soit \(u \in \mathcal{L}(E, F)\), \(\mathcal{B}, \mathcal{B}'\) deux bases de \(E\), \(\mathcal{C}, \mathcal{C}'\) deux bases de \(F\), \(P = P_{\mathcal{B}\to\mathcal{B}'}\) et \(Q = P_{\mathcal{C}\to\mathcal{C}'}\). Si \(A = \operatorname{Mat}_{\mathcal{B},\mathcal{C}}(u)\) et \(A' = \operatorname{Mat}_{\mathcal{B}',\mathcal{C}'}(u)\) :
+    <div class="formula" data-nom="Changement de bases">$$A' = Q^{-1} A P.$$</div>
+    Pour un endomorphisme, avec \(A = \operatorname{Mat}_{\mathcal{B}}(u)\) et \(A' = \operatorname{Mat}_{\mathcal{B}'}(u)\) :
+    <div class="formula" data-nom="Changement de base d'un endomorphisme">$$A' = P^{-1} A P.$$</div>
+  </div>
+  <div class="reveal" onclick="this.classList.toggle('open')">
+    <span class="label">Démonstration</span>
+    <span class="prompt">Retrouver \(A' = Q^{-1}AP\) en une ligne.</span>
+    <div class="content"><p>Soit \(x\) de coordonnées \(X\) et \(X'\), et \(y = u(x)\) de coordonnées \(Y\), \(Y'\). On a \(Y = AX\), \(X = PX'\) et \(Y = QY'\). Donc \(QY' = APX'\), soit \(Y' = Q^{-1}AP\,X'\) pour toute colonne \(X'\) : c'est la définition de \(A'\). Lecture de droite à gauche : on passe des nouvelles coordonnées aux anciennes (\(P\)), on applique \(u\) (\(A\)), on revient aux nouvelles (\(Q^{-1}\)).</p></div>
+  </div>
+
+  <div class="method-box">
+    <strong>Exemple — l'endomorphisme du plan dans la base \(\mathcal{B}'\)</strong>
+    <p>Soit \(u\) l'endomorphisme de \(\mathbb{R}^2\) de matrice \(A = \begin{pmatrix} 0 & 1 \\ -2 & 3 \end{pmatrix}\) dans la base canonique, et \(\mathcal{B}' = (u_1, u_2)\) comme ci-dessus.</p>
+    <ol>
+      <li>Calcul direct : \(A\,u_1 = (2, 4) = 2u_1\) et \(A\,u_2 = (1, 1) = u_2\).</li>
+      <li>Donc \(\operatorname{Mat}_{\mathcal{B}'}(u) = \begin{pmatrix} 2 & 0 \\ 0 & 1 \end{pmatrix}\), lu directement sur les images (colonne \(j\) = coordonnées de \(u(u_j)\) dans \(\mathcal{B}'\)).</li>
+      <li>Contrôle par la formule : \(AP = \begin{pmatrix} 2 & 1 \\ 4 & 1 \end{pmatrix}\), puis \(P^{-1}(AP) = \begin{pmatrix} 2 & 0 \\ 0 & 1 \end{pmatrix}\).</li>
+    </ol>
+  </div>
+
+  <div class="method-box">
+    <strong>Exemple — changement de base au départ seulement</strong>
+    <p>Pour \(v : P \mapsto \big(P(0), P(1)\big)\) du §7, on remplace au départ la base \((1, X, X^2)\) par \(\mathcal{B}' = \big(1, X, X(X - 1)\big)\), et l'on garde la base canonique à l'arrivée (\(Q = I_2\)).</p>
+    <ol>
+      <li>\(X(X - 1) = X^2 - X\), donc \(P = \begin{pmatrix} 1 & 0 & 0 \\ 0 & 1 & -1 \\ 0 & 0 & 1 \end{pmatrix}\).</li>
+      <li>\(A' = AP = \begin{pmatrix} 1 & 0 & 0 \\ 1 & 1 & 0 \end{pmatrix}\) : la troisième colonne est nulle, car \(X(X - 1)\) s'annule en 0 et en 1. On lit \(\ker v = \operatorname{Vect}\big(X(X - 1)\big)\) sur la nouvelle matrice.</li>
+    </ol>
+  </div>
+  <div class="notice"><strong>Erreur classique</strong> : écrire \(PAP^{-1}\) au lieu de \(P^{-1}AP\), ou \(X' = PX\). Pour ne pas se tromper : les colonnes de \(P\) sont les nouveaux vecteurs écrits dans l'ancienne base, donc \(P\) transforme des coordonnées nouvelles en coordonnées anciennes ; dans \(P^{-1}AP\), c'est \(P\) qui agit en premier, à droite.</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§10 · MATRICES SEMBLABLES</div>
+  <h2>Chercher la base où la matrice est simple</h2>
+  <div class="intro">Deux matrices qui représentent le même endomorphisme dans deux bases sont dites semblables. Elles partagent tout ce qui ne dépend pas de la base : rang, inversibilité, déterminant. Trouver une matrice simple (diagonale, triangulaire) semblable à une matrice donnée, c'est trouver une base adaptée à l'endomorphisme : c'est tout l'objet de la réduction, au cœur des épreuves de PT.</div>
+
+  <div class="def-box">
+    \(A, B \in \mathcal{M}_n(\mathbb{K})\) sont <strong>semblables</strong> s'il existe \(P \in \mathrm{GL}_n(\mathbb{K})\) telle que \(B = P^{-1}AP\). D'après le §9, c'est le cas si et seulement si \(A\) et \(B\) sont les matrices d'un même endomorphisme dans deux bases (\(P\) étant la matrice de passage).
+  </div>
+  <div class="prop-box">
+    <strong>Propriétés.</strong> Si \(B = P^{-1}AP\) :
+    <ul>
+      <li>\(B^k = P^{-1}A^kP\) pour tout \(k \in \mathbb{N}\) (les \(P\,P^{-1}\) intérieurs se simplifient), donc \(A^k = P B^k P^{-1}\) ;</li>
+      <li>\(\operatorname{rg} B = \operatorname{rg} A\), et \(B\) est inversible si et seulement si \(A\) l'est ;</li>
+      <li>\(\det B = \det A\) (chapitre Déterminants) ; la trace aussi est conservée (2ᵉ année).</li>
+    </ul>
+    Une matrice semblable à \(\lambda I_n\) est égale à \(\lambda I_n\), puisque \(P^{-1}(\lambda I_n)P = \lambda I_n\).
+  </div>
+
+  <figure class="schema" style="max-width:300px">
+<svg viewBox="0 0 263.2 341.2" role="img" aria-label="Action d'un endomorphisme du plan dans une base adaptée (u₁, u₂)">
+<line x1="12" y1="199.2" x2="105.6" y2="12" class="sk-accent2" style="stroke-width:1;opacity:.3"/>
+<line x1="168" y1="329.2" x2="251.2" y2="246" class="sk-accent2" style="stroke-width:1;opacity:.3"/>
+<line x1="12" y1="251.2" x2="131.6" y2="12" class="sk-accent2" style="stroke-width:1;opacity:.3"/>
+<line x1="116" y1="329.2" x2="251.2" y2="194" class="sk-accent2" style="stroke-width:1;opacity:.3"/>
+<line x1="12" y1="303.2" x2="157.6" y2="12" class="sk-accent2" style="stroke-width:1;opacity:.3"/>
+<line x1="64" y1="329.2" x2="251.2" y2="142" class="sk-accent2" style="stroke-width:1;opacity:.3"/>
+<line x1="25" y1="329.2" x2="183.6" y2="12" class="sk-accent2" style="stroke-width:1;opacity:.3"/>
+<line x1="12" y1="329.2" x2="251.2" y2="90" class="sk-accent2" style="stroke-width:1;opacity:.3"/>
+<line x1="51" y1="329.2" x2="209.6" y2="12" class="sk-accent2" style="stroke-width:1;opacity:.3"/>
+<line x1="12" y1="277.2" x2="251.2" y2="38" class="sk-accent2" style="stroke-width:1;opacity:.3"/>
+<line x1="77" y1="329.2" x2="235.6" y2="12" class="sk-accent2" style="stroke-width:1;opacity:.3"/>
+<line x1="12" y1="225.2" x2="225.2" y2="12" class="sk-accent2" style="stroke-width:1;opacity:.3"/>
+<line x1="103" y1="329.2" x2="251.2" y2="32.8" class="sk-accent2" style="stroke-width:1;opacity:.3"/>
+<line x1="12" y1="173.2" x2="173.2" y2="12" class="sk-accent2" style="stroke-width:1;opacity:.3"/>
+<line x1="129" y1="329.2" x2="251.2" y2="84.8" class="sk-accent2" style="stroke-width:1;opacity:.3"/>
+<line x1="12" y1="121.2" x2="121.2" y2="12" class="sk-accent2" style="stroke-width:1;opacity:.3"/>
+<polygon points="38,303.2 142,95.2 194,43.2 90,251.2" class="fl-accent-soft"/>
+<polygon points="38,303.2 142,95.2 194,43.2 90,251.2" class="sk-accent" style="stroke-width:1.3"/>
+<polygon points="38,303.2 90,199.2 142,147.2 90,251.2" class="fl-accent2-soft"/>
+<polygon points="38,303.2 90,199.2 142,147.2 90,251.2" class="sk-accent2" style="stroke-width:1.3"/>
+<line x1="38" y1="303.2" x2="90" y2="199.2" class="sk-accent2" marker-end="url(#sk-arrow-accent2)"/>
+<line x1="38" y1="303.2" x2="90" y2="251.2" class="sk-accent2" marker-end="url(#sk-arrow-accent2)"/>
+<line x1="90" y1="199.2" x2="142" y2="95.2" class="sk-accent" marker-end="url(#sk-arrow-accent)"/>
+<line x1="38" y1="303.2" x2="142" y2="147.2" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<line x1="38" y1="303.2" x2="194" y2="43.2" class="sk-ink" marker-end="url(#sk-arrow-ink)" style="stroke-dasharray:6 3"/>
+<circle cx="38" cy="303.2" r="2.8" class="fl-ink"/>
+<text x="33" y="317.2" class="lab-muted" text-anchor="end">0</text>
+<text x="83" y="201.2" class="lab-accent2 lab-b" text-anchor="end">u₁</text>
+<text x="97" y="261.2" class="lab-accent2 lab-b">u₂</text>
+<text x="135" y="95.2" class="lab-accent" text-anchor="end">u(u₁) = 2u₁</text>
+<text x="149" y="153.2" class="lab-b">v</text>
+<text x="201" y="47.2" class="lab-b">u(v)</text>
+</svg>
+<figcaption>L'endomorphisme u de ℝ² de matrice A, de lignes (0, 1) et (−2, 3), vérifie u(u₁) = 2u₁ et u(u₂) = u₂, avec u₁ = (1, 2) et u₂ = (1, 1). La maille bleue construite sur u₁ et u₂ est envoyée sur la maille rouge : étirée d'un facteur 2 le long de u₁, inchangée le long de u₂. Dans la base (u₁, u₂), la matrice de u est donc diag(2, 1) ; par exemple v = u₁ + u₂ = (2, 3) a pour image u(v) = 2u₁ + u₂ = (3, 5).</figcaption>
+</figure>
+
+  <div class="method-box">
+    <strong>Exemple — puissances par une matrice diagonale semblable</strong>
+    <p>Avec \(A = \begin{pmatrix} 0 & 1 \\ -2 & 3 \end{pmatrix}\) et \(P = \begin{pmatrix} 1 & 1 \\ 2 & 1 \end{pmatrix}\) du §9 : \(P^{-1}AP = D = \operatorname{diag}(2, 1)\), donc \(A^n = PD^nP^{-1}\) :</p>
+    <div class="formula">$$A^n = \begin{pmatrix} 1 & 1 \\ 2 & 1 \end{pmatrix}\begin{pmatrix} 2^n & 0 \\ 0 & 1 \end{pmatrix}\begin{pmatrix} -1 & 1 \\ 2 & -1 \end{pmatrix} = \begin{pmatrix} 2 - 2^n & 2^n - 1 \\ 2 - 2^{n+1} & 2^{n+1} - 1 \end{pmatrix}.$$</div>
+    <p>Contrôles : \(n = 0\) donne \(I_2\), \(n = 1\) redonne \(A\).</p>
+  </div>
+
+  <div class="method-box">
+    <strong>Exemple — une matrice de carré nul est semblable à \(E_{12}\)</strong>
+    <p>Soit \(A = \begin{pmatrix} 2 & -4 \\ 1 & -2 \end{pmatrix}\) : on vérifie \(A^2 = 0\), avec \(A \neq 0\). Soit \(u\) l'endomorphisme associé.</p>
+    <ol>
+      <li>On choisit \(x\) tel que \(u(x) \neq 0\), par exemple \(x = e_1\), \(u(e_1) = (2, 1)\).</li>
+      <li>\(\big(u(x), x\big) = \big((2, 1), (1, 0)\big)\) est libre : si \(\alpha u(x) + \beta x = 0\), appliquer \(u\) donne \(\beta u(x) = 0\) (car \(u^2 = 0\)), donc \(\beta = 0\), puis \(\alpha = 0\).</li>
+      <li>Dans cette base, \(u(u(x)) = 0\) et \(u(x) = u(x)\) : la matrice est \(\begin{pmatrix} 0 & 1 \\ 0 & 0 \end{pmatrix} = E_{12}\), avec \(P = \begin{pmatrix} 2 & 1 \\ 1 & 0 \end{pmatrix}\).</li>
+    </ol>
+    <p>Le même raisonnement montre que \(\begin{pmatrix} 3 & 1 \\ -1 & 1 \end{pmatrix}\), pour laquelle \((A - 2I_2)^2 = 0\), est semblable à \(\begin{pmatrix} 2 & 1 \\ 0 & 2 \end{pmatrix}\) (base \(\big((A - 2I_2)e_1,\ e_1\big)\)).</p>
+  </div>
+
+  <div class="method-box">
+    <strong>Exemple — projecteurs et symétries</strong>
+    <p>Le chapitre Applications linéaires (§8) a montré que la matrice \(\frac{1}{2}\begin{pmatrix} 1 & -2 & 1 \\ -1 & 0 & 1 \\ -1 & -2 & 3 \end{pmatrix}\) est celle d'une projection de \(\mathbb{R}^3\) sur un plan parallèlement à une droite : dans une base adaptée, elle devient \(\operatorname{diag}(1, 1, 0)\). Toute matrice de projecteur de rang \(r\) est semblable à \(\operatorname{diag}(I_r, 0)\), toute matrice de symétrie à \(\operatorname{diag}(I_r, -I_{n-r})\).</p>
+  </div>
+
+  <div class="notice"><strong>Erreur classique</strong> : croire que deux matrices de même rang (ou de même déterminant) sont semblables. \(\operatorname{diag}(2, 3)\) et \(\begin{pmatrix} 2 & 1 \\ 0 & 2 \end{pmatrix}\) sont toutes deux de rang 2, mais leurs déterminants (6 et 4) diffèrent : elles ne sont pas semblables. Et \(2I_2\) et \(\begin{pmatrix} 2 & 1 \\ 0 & 2 \end{pmatrix}\) ont même rang et même déterminant, mais ne sont pas semblables, car une matrice semblable à \(2I_2\) est égale à \(2I_2\).</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§11 · SYSTÈMES LINÉAIRES ET RANG</div>
+  <h2>Le pivot, relu avec le noyau et l'image</h2>
+  <div class="intro">Le §5 résolvait les systèmes par le calcul. Le vocabulaire du §8 permet maintenant de prévoir le résultat : un système homogène a pour solutions un noyau, dont la dimension se lit sur le rang ; un système avec second membre est compatible exactement quand ce second membre est dans l'image.</div>
+
+  <div class="prop-box">
+    <strong>Théorème.</strong> Soit \(A \in \mathcal{M}_{n,p}(\mathbb{K})\), de rang \(r\), et \(B \in \mathbb{K}^n\).
+    <ul>
+      <li>Les solutions de \(AX = 0\) forment le sous-espace \(\ker A\) de \(\mathbb{K}^p\), de dimension \(p - r\).</li>
+      <li>\(AX = B\) est compatible si et seulement si \(B \in \operatorname{Im} A\), c'est-à-dire si et seulement si \(\operatorname{rg}(A \mid B) = \operatorname{rg} A\) ; ses solutions sont alors \(X_0 + \ker A\).</li>
+      <li>Si \(A\) est carrée et inversible (\(n = p = r\)), le système a une unique solution \(X = A^{-1}B\) : on dit que c'est un <strong>système de Cramer</strong>.</li>
+    </ul>
+  </div>
+
+  <div class="method-box">
+    <strong>Exemple — une discussion complète par le rang</strong>
+    <p>On reprend \(A_m\) du §8 et le système \(x + y + mz = 1\), \(x + my + z = 1\), \(mx + y + z = 1\).</p>
+    <ol>
+      <li>\(m \notin \{1, -2\}\) : \(A_m\) est inversible, système de Cramer. Le triplet \(x = y = z = \frac{1}{m + 2}\) est solution (chaque équation devient \(\frac{m + 2}{m + 2} = 1\)), et c'est la seule puisque le système est de Cramer.</li>
+      <li>\(m = 1\) : rang 1, les trois équations sont \(x + y + z = 1\). Compatible ; solutions \((1, 0, 0) + \ker A_1\), un plan (dimension \(3 - 1 = 2\)).</li>
+      <li>\(m = -2\) : rang 2. La somme des équations donne \(0 = 3\) : le second membre n'est pas dans l'image, le système est incompatible, alors que le système homogène a pour solutions la droite \(\operatorname{Vect}\big((1, 1, 1)\big)\) (dimension \(3 - 2 = 1\)).</li>
+    </ol>
+  </div>
+  <div class="notice"><strong>Erreur classique</strong> : conclure « rang \(r \lt p\), donc une infinité de solutions » sans vérifier la compatibilité. Un rang non maximal laisse soit aucune solution, soit une infinité : c'est le second membre qui tranche. Les formules de Cramer (avec des déterminants) sont hors programme : on résout un système de Cramer par le pivot ou par \(A^{-1}\).</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">POUR ALLER PLUS LOIN · 2ᵉ ANNÉE ET HORS PROGRAMME</div>
+  <h2>Ce que la suite apportera</h2>
+  <div class="intro">Ces prolongements ne sont pas exigibles en PTSI ; ils sont traités en 2ᵉ année ou servent de repères.</div>
+  <ul>
+    <li><strong>Trace</strong> (2ᵉ année, Calcul matriciel (approfondissements), §3) : \(\operatorname{tr}(AB) = \operatorname{tr}(BA)\), donc deux matrices semblables ont même trace ; la trace d'un projecteur est son rang.</li>
+    <li><strong>Matrices équivalentes</strong> (2ᵉ année, même chapitre, §2) : \(B = QAP\) avec \(P, Q\) inversibles ; deux matrices de même taille sont équivalentes si et seulement si elles ont le même rang.</li>
+    <li><strong>Calcul par blocs et sous-espaces stables</strong> (2ᵉ année) : une matrice triangulaire par blocs traduit un sous-espace stable.</li>
+    <li><strong>Réduction</strong> (2ᵉ année, Éléments propres et Réduction des endomorphismes) : méthode générale pour trouver, quand elle existe, une matrice diagonale semblable à une matrice donnée (exemples des §9 et §10).</li>
+    <li><strong>Formules de Cramer et comatrice</strong> : hors programme en PTSI comme en PT ; elles expriment l'inverse et la solution d'un système de Cramer avec des déterminants, mais le pivot est plus rapide dès la taille 3.</li>
+  </ul>
+</div>
+</template>
+<template class="pan-tpl" data-panneau="mat-meth">
+<div class="course-section">
+  <div class="sec-num">MÉTHODES · CALCUL MATRICIEL</div>
+  <h2>Les réflexes du chapitre</h2>
+  <div class="intro">Ces méthodes couvrent les deux volets du chapitre : le calcul (produits, puissances, pivot de Gauss, inverses) et le lien avec les applications linéaires (matrice dans des bases, rang, changement de base, matrices semblables). Les notations sont celles du cours : \(\operatorname{Mat}_{\mathcal{B},\mathcal{C}}(u)\), \(P_{\mathcal{B}\to\mathcal{B}'}\), \(\operatorname{rg}\), \(A^\top\).</div>
+
+  <div class="method-box"><strong>Méthode 1 — Calculer un produit matriciel</strong>
+    <ol>
+      <li>Écrire les tailles : \(A \in \mathcal{M}_{n,p}\), \(B \in \mathcal{M}_{p,q}\) donne \(AB \in \mathcal{M}_{n,q}\) ; si les tailles intérieures diffèrent, le produit n'existe pas.</li>
+      <li>Coefficient \((i, j)\) : ligne \(i\) de \(A\) par colonne \(j\) de \(B\), \(\sum_k a_{ik} b_{kj}\).</li>
+      <li>Pour un produit par une colonne, raisonner par colonnes : \(AX = x_1 C_1 + \cdots + x_p C_p\) ; pour des matrices élémentaires, \(E_{ij}E_{kl} = \delta_{jk}E_{il}\).</li>
+    </ol>
+    <p><em>Exemple éclair :</em> le produit d'une matrice par une colonne, lu par colonnes :</p>
+    <div class="formula">$$\begin{pmatrix} 1 & 2 \\ 0 & -1 \end{pmatrix}\begin{pmatrix} 3 \\ 4 \end{pmatrix} = 3\begin{pmatrix} 1 \\ 0 \end{pmatrix} + 4\begin{pmatrix} 2 \\ -1 \end{pmatrix} = \begin{pmatrix} 11 \\ -4 \end{pmatrix}.$$</div>
+  </div>
+  <div class="notice"><strong>Piège</strong> : \(AB \neq BA\) en général, \((A + B)^2 = A^2 + AB + BA + B^2\), et \(AB = 0\) n'entraîne ni \(A = 0\) ni \(B = 0\).</div>
+
+  <div class="method-box"><strong>Méthode 2 — Calculer une puissance \(A^n\)</strong>
+    <ol>
+      <li>Calculer \(A^2\), \(A^3\) : si une forme se dégage, la démontrer par récurrence.</li>
+      <li>Sinon, chercher \(A = \lambda I_n + N\) avec \(N^k = 0\) : le binôme s'applique (\(\lambda I_n\) commute avec \(N\)) et la somme s'arrête à \(N^{k-1}\).</li>
+      <li>Sinon, chercher une base où la matrice est diagonale : \(A = PDP^{-1}\) donne \(A^n = PD^nP^{-1}\) (Méthode 8).</li>
+      <li>Contrôler \(n = 0\) (on doit trouver \(I_n\)) et \(n = 1\) (on doit retrouver \(A\)).</li>
+    </ol>
+    <p><em>Exemple éclair :</em> \(A = \begin{pmatrix} 3 & 1 \\ 0 & 3 \end{pmatrix} = 3I_2 + E_{12}\), \(E_{12}^2 = 0\), donc \(A^n = 3^n I_2 + n\,3^{n-1} E_{12} = \begin{pmatrix} 3^n & n\,3^{n-1} \\ 0 & 3^n \end{pmatrix}\).</p>
+  </div>
+
+  <div class="method-box"><strong>Méthode 3 — Résoudre un système par le pivot de Gauss</strong>
+    <ol>
+      <li>Écrire la matrice augmentée \((A \mid B)\).</li>
+      <li>Descente : choisir un pivot non nul (échanger des lignes au besoin), annuler les coefficients en dessous par \(L_i \leftarrow L_i - \frac{a_{ij}}{a_{jj}} L_j\), passer à la colonne suivante.</li>
+      <li>Lire la forme échelonnée : une ligne \(0 = c \neq 0\) signale un système incompatible ; sinon, le nombre de pivots est le rang \(r\).</li>
+      <li>Remontée : exprimer les inconnues principales en fonction des \(p - r\) inconnues libres, et écrire la solution sous la forme \(X_0 + t_1 Y_1 + \cdots\).</li>
+    </ol>
+    <p><em>Exemple éclair :</em> \(x + y + z = 2\), \(x - y + 3z = 0\). \(L_2 \leftarrow L_2 - L_1\) : \(-2y + 2z = -2\), donc \(y = 1 + z\), \(x = 1 - 2z\) : \(X = (1, 1, 0) + z\,(-2, 1, 1)\).</p>
+  </div>
+  <div class="notice"><strong>Piège</strong> : avec un paramètre, ne jamais diviser par une expression qui peut s'annuler sans traiter ce cas à part ; discuter au moment où le paramètre apparaît dans un pivot.</div>
+
+  <div class="method-box"><strong>Méthode 4 — Inverser une matrice</strong>
+    <ol>
+      <li>Taille 2 : si \(ad - bc \neq 0\), \(A^{-1} = \frac{1}{ad - bc}\begin{pmatrix} d & -b \\ -c & a \end{pmatrix}\).</li>
+      <li>Résoudre \(AX = Y\) avec \(Y\) en lettres : une unique solution pour tout \(Y\) prouve l'inversibilité, et la ligne \(i\) de \(A^{-1}\) se lit sur l'expression de la \(i\)-ième inconnue.</li>
+      <li>Ou Gauss-Jordan : \((A \mid I_n) \to (I_n \mid A^{-1})\) ; une ligne nulle à gauche prouve que \(A\) n'est pas inversible.</li>
+      <li>Avec une relation polynomiale \(a_k A^k + \cdots + a_1 A + a_0 I_n = 0\), \(a_0 \neq 0\) : isoler \(I_n\) et factoriser par \(A\).</li>
+      <li>Toujours vérifier \(AA^{-1} = I_n\) sur au moins une ligne.</li>
+    </ol>
+    <p><em>Exemple éclair :</em> \(A = \begin{pmatrix} 1 & 1 \\ 1 & 2 \end{pmatrix}\) vérifie \(A^2 = 3A - I_2\), donc \(A(3I_2 - A) = I_2\) et \(A^{-1} = 3I_2 - A = \begin{pmatrix} 2 & -1 \\ -1 & 1 \end{pmatrix}\), ce que confirme la formule de la taille 2.</p>
+  </div>
+
+  <div class="method-box"><strong>Méthode 5 — Écrire la matrice d'une application linéaire</strong>
+    <ol>
+      <li>Fixer les bases : \(\mathcal{B} = (e_1, \ldots, e_p)\) au départ, \(\mathcal{C}\) à l'arrivée.</li>
+      <li>Calculer \(u(e_j)\) pour chaque \(j\) et l'écrire dans la base d'arrivée.</li>
+      <li>Ranger ces coordonnées en <strong>colonne</strong> \(j\) : la matrice a \(p = \dim E\) colonnes et \(n = \dim F\) lignes.</li>
+      <li>Contrôler sur un vecteur : les coordonnées de \(u(x)\) doivent être \(AX\).</li>
+    </ol>
+    <p><em>Exemple éclair :</em> la dérivation sur \(\mathbb{R}_3[X]\), base \((1, X, X^2, X^3)\) : \(1 \mapsto 0\), \(X \mapsto 1\), \(X^2 \mapsto 2X\), \(X^3 \mapsto 3X^2\), d'où</p>
+    <div class="formula">$$\begin{pmatrix} 0 & 1 & 0 & 0 \\ 0 & 0 & 2 & 0 \\ 0 & 0 & 0 & 3 \\ 0 & 0 & 0 & 0 \end{pmatrix}.$$</div>
+  </div>
+
+  <div class="method-box"><strong>Méthode 6 — Calculer le rang, le noyau et l'image d'une matrice</strong>
+    <ol>
+      <li>Repérer d'abord les relations évidentes entre colonnes (colonne nulle, colonnes proportionnelles, colonne somme d'autres) : chacune donne un vecteur du noyau et fait baisser le rang.</li>
+      <li>Sinon, échelonner par opérations sur les lignes : le rang est le nombre de pivots, et le système échelonné donne le noyau (les lignes sont les équations).</li>
+      <li>Image : engendrée par les colonnes ; en garder \(\operatorname{rg} A\) indépendantes, et chercher au besoin des équations.</li>
+      <li>Contrôler par le théorème du rang : \(\dim \ker A + \operatorname{rg} A = p\) (nombre de colonnes).</li>
+    </ol>
+    <p><em>Exemple éclair :</em> \(\begin{pmatrix} 1 & 2 & 3 \\ 4 & 5 & 6 \\ 7 & 8 & 9 \end{pmatrix}\) : \(C_1 - 2C_2 + C_3 = 0\) et \(C_1\), \(C_2\) non colinéaires, donc rang 2 et noyau \(\operatorname{Vect}\big((1, -2, 1)\big)\).</p>
+  </div>
+
+  <div class="method-box"><strong>Méthode 7 — Changer de base</strong>
+    <ol>
+      <li>Écrire \(P = P_{\mathcal{B}\to\mathcal{B}'}\) : en colonnes, les coordonnées des <strong>nouveaux</strong> vecteurs dans l'<strong>ancienne</strong> base ; vérifier qu'elle est inversible (c'est bien une base).</li>
+      <li>Coordonnées d'un vecteur : \(X = PX'\), donc \(X' = P^{-1}X\).</li>
+      <li>Matrice d'un endomorphisme : \(A' = P^{-1}AP\) ; ou, souvent plus rapide, calculer \(u(e'_j)\) et l'exprimer dans \(\mathcal{B}'\) (colonne \(j\) de \(A'\)). Entre deux espaces : \(A' = Q^{-1}AP\).</li>
+    </ol>
+    <p><em>Exemple éclair :</em> \(\mathcal{B}' = \big((1, 1), (1, -1)\big)\) : \(P = \begin{pmatrix} 1 & 1 \\ 1 & -1 \end{pmatrix}\), \(P^{-1} = \frac{1}{2}P\), et \(x = (5, 1)\) a pour coordonnées \(X' = (3, 2)\) : \(3(1, 1) + 2(1, -1) = (5, 1)\).</p>
+  </div>
+  <div class="notice"><strong>Piège</strong> : \(P^{-1}AP\) et non \(PAP^{-1}\) ; \(X = PX'\) et non \(X' = PX\). Le contrôle le plus sûr : appliquer la formule à un vecteur de la nouvelle base.</div>
+
+  <div class="method-box"><strong>Méthode 8 — Trouver une matrice simple semblable à \(A\)</strong>
+    <ol>
+      <li>Voir \(A\) comme la matrice d'un endomorphisme \(u\) de \(\mathbb{K}^n\).</li>
+      <li>Chercher des vecteurs non nuls que \(u\) multiplie par un scalaire : résoudre \((A - \lambda I_n)X = 0\) pour les valeurs \(\lambda\) suggérées par l'énoncé (ou pour lesquelles \(A - \lambda I_n\) n'est pas inversible).</li>
+      <li>Si l'on en trouve \(n\) formant une base, la matrice de \(u\) y est diagonale ; sinon, compléter par des vecteurs bien choisis (\(x\) et \(u(x)\) pour une matrice de carré nul) pour obtenir une matrice triangulaire.</li>
+      <li>Écrire \(P\) (colonnes = nouveaux vecteurs), \(P^{-1}AP = D\), puis exploiter : \(A^n = PD^nP^{-1}\).</li>
+    </ol>
+    <p><em>Exemple éclair :</em> \(A = \begin{pmatrix} 4 & -2 \\ 1 & 1 \end{pmatrix}\) : \(A(1, 1) = (2, 2)\) et \(A(2, 1) = (6, 3)\). Avec \(P = \begin{pmatrix} 1 & 2 \\ 1 & 1 \end{pmatrix}\), \(P^{-1}AP = \operatorname{diag}(2, 3)\).</p>
+  </div>
+
+  <div class="method-box"><strong>Méthode 9 — Montrer que deux matrices ne sont pas semblables, ou qu'elles le sont</strong>
+    <ol>
+      <li>Pas semblables : exhiber un invariant qui diffère : rang, inversibilité, déterminant (chapitre Déterminants), rang de \(A - \lambda I_n\) ou de \(A^2\).</li>
+      <li>Rappel : une matrice semblable à \(\lambda I_n\) est égale à \(\lambda I_n\).</li>
+      <li>Semblables : construire une base dans laquelle l'endomorphisme associé à \(A\) a pour matrice \(B\), ou montrer que les deux sont semblables à une même troisième matrice.</li>
+    </ol>
+    <p><em>Exemple éclair :</em> \(\operatorname{diag}(2, 3)\) et \(\begin{pmatrix} 2 & 1 \\ 0 & 2 \end{pmatrix}\) ont pour déterminants 6 et 4 : pas semblables. \(\begin{pmatrix} 2 & 1 \\ 0 & 2 \end{pmatrix}\) et \(2I_2\) ne le sont pas non plus, la seconde étant scalaire.</p>
+  </div>
+
+  <div class="method-box"><strong>Méthode 10 — Utiliser le rang pour discuter un système</strong>
+    <ol>
+      <li>Calculer \(r = \operatorname{rg} A\) (selon le paramètre éventuel).</li>
+      <li>Si \(A\) est carrée de rang \(n\) : système de Cramer, une unique solution.</li>
+      <li>Sinon, tester la compatibilité : \(B \in \operatorname{Im} A\) (une combinaison des lignes qui annule \(A\) doit aussi annuler \(B\)).</li>
+      <li>Si compatible : solutions \(X_0 + \ker A\), avec \(\dim \ker A = p - r\).</li>
+    </ol>
+    <p><em>Exemple éclair :</em> \(x + 2y = 1\), \(2x + 4y = b\) : rang 1 ; \(L_2 - 2L_1\) donne \(0 = b - 2\). Compatible si et seulement si \(b = 2\), et alors les solutions forment la droite \((1, 0) + \operatorname{Vect}\big((-2, 1)\big)\).</p>
+  </div>
+  <div class="notice"><strong>Piège</strong> : les formules de Cramer (avec des déterminants) sont hors programme ; un système de Cramer se résout par le pivot ou par \(X = A^{-1}B\). Et « rang non maximal » ne veut pas dire « infinité de solutions » : il peut n'y en avoir aucune.</div>
+</div>
+</template>
+<template class="pan-tpl" data-panneau="mat-exos">
+<div class="exo-wrapper">
+
+<div class="exo">
+  <span class="num">EXO 01</span><span class="diff">★ ☆ ☆</span>
+  <h3>Calcul matriciel de base</h3>
+  <div class="statement">Soient \(A = \begin{pmatrix} 1 & 2 \\ 3 & 4 \end{pmatrix}\) et \(B = \begin{pmatrix} 0 & 1 \\ 2 & 0 \end{pmatrix}\).</div>
+  <div class="q"><strong>Q1.</strong> Calculer \(AB\), \(BA\) et vérifier \(AB \neq BA\).</div>
+  <div class="q"><strong>Q2.</strong> Calculer \(A^{-1}\) et vérifier \(AA^{-1} = I_2\).</div>
+  <div class="q"><strong>Q3.</strong> Résoudre \(AX = \begin{pmatrix} 1 \\ 0 \end{pmatrix}\) via \(A^{-1}\).</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> </p>
+    <div class="formula">$$AB = \begin{pmatrix}1\cdot0+2\cdot2 & 1\cdot1+2\cdot0 \\ 3\cdot0+4\cdot2 & 3\cdot1+4\cdot0\end{pmatrix} = \begin{pmatrix}4 & 1 \\ 8 & 3\end{pmatrix}.$$</div>
+    <p> \(BA = \begin{pmatrix}3 & 4 \\ 2 & 4\end{pmatrix}\). Clairement \(AB \neq BA\).</p>
+    <p><strong>Q2.</strong> \(\det(A) = 1\cdot4 - 2\cdot3 = 4 - 6 = -2\). </p>
+    <div class="formula">$$A^{-1} = \dfrac{1}{-2}\begin{pmatrix}4 & -2 \\ -3 & 1\end{pmatrix} = \begin{pmatrix}-2 & 1 \\ 3/2 & -1/2\end{pmatrix}.$$</div>
+    <p> Vérif : </p>
+    <div class="formula">$$A \cdot A^{-1} = \begin{pmatrix}1\cdot(-2)+2\cdot3/2 & \cdots \\ \cdots & \cdots\end{pmatrix} = I_2$$</div>
+    <p><strong>Q3.</strong> \(X = A^{-1}\begin{pmatrix}1\\0\end{pmatrix} = \begin{pmatrix}-2\\3/2\end{pmatrix}\). Vérif : </p>
+    <div class="formula">$$A\begin{pmatrix}-2\\3/2\end{pmatrix} = \begin{pmatrix}1\cdot(-2)+2\cdot3/2 \\ 3\cdot(-2)+4\cdot3/2\end{pmatrix} = \begin{pmatrix}1\\0\end{pmatrix}$$</div>
+    </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 02</span><span class="diff">★ ★ ☆</span>
+  <h3>Système linéaire par pivot de Gauss</h3>
+  <div class="statement">Résoudre le système :</div>
+  <div class="formula" style="margin:0.6rem 0">$$\begin{cases} x + 2y + z = 3 \\ 2x + y - z = 1 \\ x - y + 2z = 2 \end{cases}$$</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p>Matrice augmentée puis pivot :</p>
+    <div class="formula">$$\begin{pmatrix}1&2&1&|&3\\2&1&-1&|&1\\1&-1&2&|&2\end{pmatrix} \xrightarrow{L_2\leftarrow L_2-2L_1,\;L_3\leftarrow L_3-L_1} \begin{pmatrix}1&2&1&|&3\\0&-3&-3&|&-5\\0&-3&1&|&-1\end{pmatrix}$$</div>
+    <div class="formula">$$\xrightarrow{L_3\leftarrow L_3-L_2} \begin{pmatrix}1&2&1&|&3\\0&-3&-3&|&-5\\0&0&4&|&4\end{pmatrix}$$</div>
+    <p>Rang = 3 = nombre d'inconnues → <strong>solution unique</strong>.</p>
+    <p>Remontée : \(4z = 4 \Rightarrow z = 1\). \(-3y - 3 = -5 \Rightarrow y = 2/3\). \(x + 4/3 + 1 = 3 \Rightarrow x = 2/3\).</p>
+    <p>Vérification dans la 3ème équation : \(2/3 - 2/3 + 2 = 2\) ✓. <strong>Solution : \((x,y,z) = (2/3,\, 2/3,\, 1)\)</strong>.</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 03</span><span class="diff">★ ★ ☆</span>
+  <h3>Système avec paramètre</h3>
+  <div class="statement">Discuter selon \(m \in \mathbb{R}\) le système :</div>
+  <div class="formula" style="margin:0.6rem 0">$$\begin{cases} mx + y = 1 \\ x + my = 1 \end{cases}$$</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p>On place en tête l'équation dont le coefficient de \(x\) vaut 1 (le pivot \(m\) pourrait être nul) : \(x + my = 1\), \(mx + y = 1\). Puis \(L_2 \leftarrow L_2 - mL_1\) donne \((1 - m^2)\,y = 1 - m\), avec \(1 - m^2 = (1 - m)(1 + m)\).</p>
+    <p><strong>Cas \(m \neq \pm 1\) :</strong> deux pivots, solution unique. \(y = \dfrac{1 - m}{(1 - m)(1 + m)} = \dfrac{1}{m + 1}\), puis \(x = 1 - my = \dfrac{1}{m + 1}\). Solution : \(x = y = \dfrac{1}{m+1}\).</p>
+    <p><strong>Cas \(m = 1\) :</strong> Système devient \(x+y=1\) et \(x+y=1\) : équations identiques. Infinité de solutions : \(\{(x,y) : x+y=1\} = \{(1-t, t),\, t\in\mathbb{R}\}\).</p>
+    <p><strong>Cas \(m = -1\) :</strong> la ligne réduite devient \(0 \cdot y = 2\) : contradiction. Directement, le système s'écrit \(-x+y=1\) et \(x-y=1\), soit \(-x+y=1\) et \(-x+y=-1\). Aucune solution : le second membre n'est pas dans l'image de la matrice, de rang 1.</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 04</span><span class="diff">★ ★ ☆</span>
+  <h3>Déterminant et inversibilité</h3>
+  <div class="statement">Soit \(A = \begin{pmatrix} 1 & 2 & 3 \\ 0 & 1 & 4 \\ 5 & 6 & 0 \end{pmatrix}\).</div>
+  <div class="q"><strong>Q1.</strong> Calculer \(\det(A)\) par développement selon la première colonne.</div>
+  <div class="q"><strong>Q2.</strong> \(A\) est-elle inversible ? En déduire si \(AX = b\) admet une unique solution pour tout \(b\).</div>
+  <div class="q"><strong>Q3.</strong> Calculer \(A^{-1}\) en résolvant \(AX = Y\), puis la solution de \(AX = (1, 1, 1)\).</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> Développement selon la 1ère colonne (\(j=1\)) :</p>
+    <div class="formula">$$\det(A) = 1 \cdot \det\begin{pmatrix}1&4\\6&0\end{pmatrix} - 0 + 5 \cdot \det\begin{pmatrix}2&3\\1&4\end{pmatrix}$$</div>
+    <p>\(= 1 \cdot (0 - 24) + 5 \cdot (8 - 3) = -24 + 25 = 1\).</p>
+    <p><strong>Q2.</strong> \(\det(A) = 1 \neq 0\) : \(A\) est inversible (chapitre Déterminants). Donc le système \(AX = b\) admet une unique solution pour tout \(b\), donnée par \(X = A^{-1}b\).</p>
+    <p><strong>Q3.</strong> \(AX = Y\) s'écrit \(x + 2y + 3z = a\), \(y + 4z = b\), \(5x + 6y = c\). La 2ᵉ équation donne \(y = b - 4z\), la 1ʳᵉ \(x = a - 2b + 5z\) ; en reportant dans la 3ᵉ : \(5a - 10b + 25z + 6b - 24z = c\), soit \(z = -5a + 4b + c\). Puis \(y = 20a - 15b - 4c\) et \(x = -24a + 18b + 5c\). Les coefficients de \(a, b, c\) donnent les lignes de l'inverse :</p>
+    <div class="formula">$$A^{-1} = \begin{pmatrix} -24 & 18 & 5 \\ 20 & -15 & -4 \\ -5 & 4 & 1 \end{pmatrix}, \qquad A^{-1}\begin{pmatrix} 1 \\ 1 \\ 1 \end{pmatrix} = \begin{pmatrix} -1 \\ 1 \\ 0 \end{pmatrix}.$$</div>
+    <p>Contrôle : \(A\,(-1, 1, 0)\) vaut \((-1 + 2,\ 1,\ -5 + 6) = (1, 1, 1)\). Le déterminant égal à 1 explique les coefficients entiers.</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 05</span><span class="diff">★ ★ ★</span>
+  <h3>Calcul d'inverse par la méthode de Gauss-Jordan</h3>
+  <div class="statement">Calculer \(A^{-1}\) pour \(A = \begin{pmatrix} 2 & 1 & 0 \\ 1 & 2 & 1 \\ 0 & 1 & 2 \end{pmatrix}\) par la méthode \((A|I_3)\to(I_3|A^{-1})\).</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p>Matrice augmentée \((A|I_3)\) :</p>
+    <p>\(\begin{pmatrix}2&1&0&|&1&0&0\\1&2&1&|&0&1&0\\0&1&2&|&0&0&1\end{pmatrix}\)</p>
+    <p>\(L_1\leftrightarrow L_2\) : \(\begin{pmatrix}1&2&1&|&0&1&0\\2&1&0&|&1&0&0\\0&1&2&|&0&0&1\end{pmatrix}\)</p>
+    <p>\(L_2\leftarrow L_2-2L_1\) : \(\begin{pmatrix}1&2&1&|&0&1&0\\0&-3&-2&|&1&-2&0\\0&1&2&|&0&0&1\end{pmatrix}\)</p>
+    <p>\(L_2\leftrightarrow L_3\) (pour avoir le pivot 1) : \(\begin{pmatrix}1&2&1&|&0&1&0\\0&1&2&|&0&0&1\\0&-3&-2&|&1&-2&0\end{pmatrix}\)</p>
+    <p>\(L_3\leftarrow L_3+3L_2\) puis \(L_3\leftarrow \frac{1}{4}L_3\) : la dernière ligne devient \(\big(0\ \ 0\ \ 1 \mid \frac{1}{4}\ \ {-\frac{1}{2}}\ \ \frac{3}{4}\big)\).</p>
+    <p>Remontée : \(L_2\leftarrow L_2-2L_3\) donne \(\big(0\ \ 1\ \ 0 \mid {-\frac{1}{2}}\ \ 1\ \ {-\frac{1}{2}}\big)\) ; \(L_1\leftarrow L_1-L_3\) puis \(L_1\leftarrow L_1-2L_2\) donnent \(\big(1\ \ 0\ \ 0 \mid \frac{3}{4}\ \ {-\frac{1}{2}}\ \ \frac{1}{4}\big)\). La partie gauche est devenue \(I_3\), donc :</p>
+    <div class="formula">$$A^{-1} = \frac{1}{4}\begin{pmatrix} 3 & -2 & 1 \\ -2 & 4 & -2 \\ 1 & -2 & 3 \end{pmatrix}$$</div>
+    <p>Vérification : \(AA^{-1}\) doit donner \(I_3\). Par ex. \(1\)ère ligne de \(A\) fois \(1\)ère colonne de \(A^{-1}\) : \((2\cdot3 + 1\cdot(-2) + 0\cdot1)/4 = 4/4 = 1\) ✓.</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 06</span><span class="diff">★ ★ ★</span>
+  <h3>Rang, noyau et image</h3>
+  <div class="statement">Soit \(A = \begin{pmatrix} 1 & 2 & 1 \\ 2 & 4 & 2 \\ 3 & 6 & 3 \end{pmatrix}\).</div>
+  <div class="q"><strong>Q1.</strong> Calculer le rang de \(A\).</div>
+  <div class="q"><strong>Q2.</strong> Résoudre \(AX = 0\) et en déduire \(\ker(f)\) pour \(f : x \mapsto Ax\).</div>
+  <div class="q"><strong>Q3.</strong> Décrire \(\operatorname{Im} f\). Vérifier le théorème du rang.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> On remarque que les lignes 2 et 3 sont respectivement \(2L_1\) et \(3L_1\). Donc \(L_2 \leftarrow L_2-2L_1\), \(L_3\leftarrow L_3-3L_1\) donnent deux lignes nulles. <strong>Rang \(r = 1\)</strong>.</p>
+    <p><strong>Q2.</strong> \(AX=0\) équivaut à \(x_1+2x_2+x_3=0\), soit \(x_1 = -2x_2-x_3\). En prenant \(x_2 = s\), \(x_3 = t\) libres : \(X = s\begin{pmatrix}-2\\1\\0\end{pmatrix} + t\begin{pmatrix}-1\\0\\1\end{pmatrix}\). Donc </p>
+    <div class="formula">$$\ker(f) = \operatorname{Vect}\left(\begin{pmatrix}-2\\1\\0\end{pmatrix}, \begin{pmatrix}-1\\0\\1\end{pmatrix}\right),$$</div>
+    <p> de dimension 2.</p>
+    <p><strong>Q3.</strong> \(\operatorname{Im} f\) est l'espace engendré par les colonnes de \(A\), toutes colinéaires à \((1,2,3)^\top\). Donc \(\operatorname{Im} f = \operatorname{Vect}\big((1, 2, 3)\big)\), de dimension 1. Vérification : \(\dim\ker f + \operatorname{rg} f = 2 + 1 = 3\) = nombre de colonnes ✓.</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 07</span><span class="diff">★ ☆ ☆</span>
+  <h3>Puissances, inverse et système linéaire</h3>
+  <div class="statement">
+    On pose \(A = \begin{pmatrix}1&1\\0&1\end{pmatrix}\) et \(M = \begin{pmatrix}2&1\\1&1\end{pmatrix}\).
+  </div>
+
+  <p class="exo-part">Partie A — Puissances de A</p>
+  <div class="q"><strong>A1.</strong> Démontrer par récurrence que \(A^n = \begin{pmatrix}1&n\\0&1\end{pmatrix}\) pour tout \(n\ge1\).</div>
+
+  <p class="exo-part">Partie B — Inverse et système</p>
+  <div class="q"><strong>B1.</strong> Calculer \(\det M\) et en déduire \(M^{-1}\).</div>
+  <div class="q"><strong>B2.</strong> Résoudre le système \(M\begin{pmatrix}x\\y\end{pmatrix} = \begin{pmatrix}3\\2\end{pmatrix}\).</div>
+
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>A1.</strong> <em>Initialisation</em> : \(A^1 = A\). <em>Hérédité</em> : </p>
+    <div class="formula">$$A^{n+1} = A^n A = \begin{pmatrix}1&n\\0&1\end{pmatrix}\begin{pmatrix}1&1\\0&1\end{pmatrix} = \begin{pmatrix}1&n+1\\0&1\end{pmatrix}.$$</div>
+    <p> La propriété est donc vraie pour tout \(n\ge1\).</p>
+    <p><strong>B1.</strong> \(\det M = 2\cdot1 - 1\cdot1 = 1\). D'où </p>
+    <div class="formula">$$M^{-1} = \dfrac{1}{\det M}\begin{pmatrix}1&-1\\-1&2\end{pmatrix} = \begin{pmatrix}1&-1\\-1&2\end{pmatrix}.$$</div>
+    <p><strong>B2.</strong> </p>
+    <div class="formula">$$\begin{pmatrix}x\\y\end{pmatrix} = M^{-1}\begin{pmatrix}3\\2\end{pmatrix} = \begin{pmatrix}3-2\\-3+4\end{pmatrix} = \begin{pmatrix}1\\1\end{pmatrix}.$$</div>
+    <p> (Vérification : \(M\,(1,1)^\top = (3,2)^\top\).)</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 08</span><span class="diff">★ ★ ☆</span>
+  <h3>Matrice d'un endomorphisme de polynômes, et une meilleure base</h3>
+  <div class="statement">Soit \(E = \mathbb{R}_2[X]\), de base \(\mathcal{B} = (1, X, X^2)\), et \(u : P \mapsto (X + 1)\,P'\).</div>
+  <div class="q"><strong>Q1.</strong> Montrer que \(u\) est un endomorphisme de \(E\) et écrire \(A = \operatorname{Mat}_{\mathcal{B}}(u)\).</div>
+  <div class="q"><strong>Q2.</strong> Déterminer le rang, le noyau et l'image de \(u\).</div>
+  <div class="q"><strong>Q3.</strong> Montrer que \(\mathcal{B}' = \big(1,\ X + 1,\ (X + 1)^2\big)\) est une base de \(E\), écrire \(P = P_{\mathcal{B}\to\mathcal{B}'}\), puis \(\operatorname{Mat}_{\mathcal{B}'}(u)\) en calculant directement les images.</div>
+  <div class="q"><strong>Q4.</strong> En déduire \(A^n\) pour \(n \geq 1\).</div>
+  <div class="q"><strong>Q5.</strong> Résoudre l'équation \(u(P) = X^2 + X\). L'équation \(u(P) = 1\) a-t-elle des solutions ?</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> La dérivation et la multiplication par \(X + 1\) sont linéaires, donc \(u\) aussi ; si \(\deg P \leq 2\), alors \(\deg\big((X + 1)P'\big) \leq 1 + 1 = 2\). Images : \(u(1) = 0\), \(u(X) = X + 1\), \(u(X^2) = 2X(X + 1) = 2X + 2X^2\). En colonnes :</p>
+    <div class="formula">$$A = \begin{pmatrix} 0 & 1 & 0 \\ 0 & 1 & 2 \\ 0 & 0 & 2 \end{pmatrix}.$$</div>
+    <p><strong>Q2.</strong> \(u(P) = 0 \iff P' = 0\) (car \(X + 1 \neq 0\)) : \(\ker u\) est la droite des constantes, et \(\operatorname{rg} u = 3 - 1 = 2\). L'image est engendrée par \(u(X) = X + 1\) et \(u(X^2) = 2X(X + 1)\), non colinéaires : \(\operatorname{Im} u = \operatorname{Vect}\big(X + 1,\ X(X + 1)\big)\), l'ensemble des polynômes de degré au plus 2 divisibles par \(X + 1\).</p>
+    <p><strong>Q3.</strong> Les trois polynômes sont de degrés 0, 1, 2 (degrés échelonnés) : ils forment une base de \(E\). Comme \(X + 1\) et \((X + 1)^2 = 1 + 2X + X^2\), on a, en colonnes,</p>
+    <div class="formula">$$P = \begin{pmatrix} 1 & 1 & 1 \\ 0 & 1 & 2 \\ 0 & 0 & 1 \end{pmatrix}.$$</div>
+    <p>Puis \(u\big((X + 1)^k\big) = (X + 1) \times k(X + 1)^{k-1}\), soit \(k\,(X + 1)^k\) : les trois vecteurs de \(\mathcal{B}'\) sont multipliés par 0, 1 et 2. Donc \(\operatorname{Mat}_{\mathcal{B}'}(u) = \operatorname{diag}(0, 1, 2)\), sans aucun calcul de \(P^{-1}AP\) (qui donne bien ce résultat).</p>
+    <p><strong>Q4.</strong> \(A = PDP^{-1}\) avec \(D = \operatorname{diag}(0, 1, 2)\), donc \(A^n = PD^nP^{-1}\), \(D^n = \operatorname{diag}(0, 1, 2^n)\) pour \(n \geq 1\). On trouve \(P^{-1}\) en remontant \(PX = Y\) (ou en voyant \(P^{-1}\) comme la matrice de \(Q \mapsto Q(X - 1)\)) :</p>
+    <div class="formula">$$P^{-1} = \begin{pmatrix} 1 & -1 & 1 \\ 0 & 1 & -2 \\ 0 & 0 & 1 \end{pmatrix}, \qquad A^n = \begin{pmatrix} 0 & 1 & 2^n - 2 \\ 0 & 1 & 2^{n+1} - 2 \\ 0 & 0 & 2^n \end{pmatrix} \quad (n \geq 1).$$</div>
+    <p>Contrôle : \(n = 1\) redonne \(A\). (Pour \(n = 0\), \(A^0 = I_3\), et la formule ne s'applique pas car \(0^0\) vaut 1 dans \(D^0\).)</p>
+    <p><strong>Q5.</strong> \(X^2 + X = X(X + 1) = (X + 1)^2 - (X + 1)\), de coordonnées \((0, -1, 1)\) dans \(\mathcal{B}'\). Pour \(P = a + b(X + 1) + c(X + 1)^2\), \(u(P) = b(X + 1) + 2c(X + 1)^2\) : il faut \(b = -1\) et \(c = \frac{1}{2}\), \(a\) quelconque. Ainsi \(P = a - (X + 1) + \frac{1}{2}(X + 1)^2\), soit \(P = \frac{1}{2}X^2 + \lambda\), \(\lambda \in \mathbb{R}\) : une solution particulière plus le noyau (les constantes). Contrôle : \(u\big(\frac{1}{2}X^2\big) = (X + 1)X\). Enfin \(1 \notin \operatorname{Im} u\) (il n'est pas divisible par \(X + 1\)) : \(u(P) = 1\) n'a pas de solution.</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 09</span><span class="diff">★ ★ ☆</span>
+  <h3>Rang et système à deux paramètres</h3>
+  <div class="statement">Pour \(m, b \in \mathbb{R}\), on considère
+  $$A_m = \begin{pmatrix} 1 & 1 & 1 \\ 1 & 2 & 3 \\ 1 & 3 & m \end{pmatrix} \quad \text{et le système} \quad \begin{cases} x + y + z = 1 \\ x + 2y + 3z = 2 \\ x + 3y + mz = b \end{cases}$$</div>
+  <div class="q"><strong>Q1.</strong> Déterminer le rang de \(A_m\) selon \(m\).</div>
+  <div class="q"><strong>Q2.</strong> Pour \(m \neq 5\), résoudre le système.</div>
+  <div class="q"><strong>Q3.</strong> Pour \(m = 5\), donner une condition nécessaire et suffisante sur \(b\) pour que le système soit compatible, puis le résoudre dans ce cas.</div>
+  <div class="q"><strong>Q4.</strong> Pour \(m = 5\), déterminer \(\ker A_5\) et une équation de \(\operatorname{Im} A_5\). Relire Q3 avec ces deux sous-espaces.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> Sur la matrice augmentée : \(L_2 \leftarrow L_2 - L_1\) et \(L_3 \leftarrow L_3 - L_1\) donnent \((0\ 1\ 2 \mid 1)\) et \((0\ 2\ m - 1 \mid b - 1)\) ; puis \(L_3 \leftarrow L_3 - 2L_2\) donne \((0\ 0\ m - 5 \mid b - 3)\). Le rang de \(A_m\) vaut 3 si \(m \neq 5\) (trois pivots), 2 si \(m = 5\).</p>
+    <p><strong>Q2.</strong> Système de Cramer : \((m - 5)z = b - 3\), donc \(z = \frac{b - 3}{m - 5}\) ; puis \(y + 2z = 1\) et \(x = 1 - y - z\), d'où</p>
+    <div class="formula">$$x = z = \frac{b - 3}{m - 5}, \qquad y = 1 - 2\,\frac{b - 3}{m - 5}.$$</div>
+    <p>Contrôle avec \(b = 3\) : la solution \((0, 1, 0)\) vérifie bien les trois équations quel que soit \(m\).</p>
+    <p><strong>Q3.</strong> Pour \(m = 5\), la dernière ligne s'écrit \(0 = b - 3\) : le système est compatible si et seulement si \(b = 3\). Alors \(z\) est libre, \(y = 1 - 2z\), \(x = z\) : les solutions sont \((0, 1, 0) + z\,(1, -2, 1)\), \(z \in \mathbb{R}\), une droite.</p>
+    <p><strong>Q4.</strong> \(\ker A_5 = \operatorname{Vect}\big((1, -2, 1)\big)\), de dimension \(3 - 2 = 1\). Les opérations du Q1 montrent que \(L_3 - 2L_2 + L_1\) est nulle : un second membre \((b_1, b_2, b_3)\) est dans l'image si et seulement si \(b_1 - 2b_2 + b_3 = 0\) ; c'est l'équation du plan \(\operatorname{Im} A_5\) (les trois colonnes la vérifient : \(1 - 2 + 1 = 0\), \(1 - 4 + 3 = 0\), \(1 - 6 + 5 = 0\)). Pour \((1, 2, b)\) : \(1 - 4 + b = 0\), soit \(b = 3\), et les solutions sont « solution particulière + \(\ker A_5\) ».</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 10</span><span class="diff">★ ★ ☆</span>
+  <h3>Changement de base dans l'espace</h3>
+  <div class="statement">Dans \(\mathbb{R}^3\), soit \(u_1 = (1, 1, 0)\), \(u_2 = (0, 1, 1)\), \(u_3 = (1, 0, 1)\), et \(f\) l'endomorphisme de matrice, dans la base canonique \(\mathcal{B}\),
+  $$A = \frac{1}{2}\begin{pmatrix} 1 & 1 & -1 \\ -1 & 3 & 1 \\ -2 & 2 & 2 \end{pmatrix}.$$</div>
+  <div class="q"><strong>Q1.</strong> Montrer que \(\mathcal{B}' = (u_1, u_2, u_3)\) est une base ; écrire \(P = P_{\mathcal{B}\to\mathcal{B}'}\) et \(P^{-1}\).</div>
+  <div class="q"><strong>Q2.</strong> Donner les coordonnées de \(x = (2, 3, 1)\) dans \(\mathcal{B}'\).</div>
+  <div class="q"><strong>Q3.</strong> Calculer \(f(u_1)\), \(f(u_2)\), \(f(u_3)\) et en déduire \(\operatorname{Mat}_{\mathcal{B}'}(f)\).</div>
+  <div class="q"><strong>Q4.</strong> Déterminer le rang, le noyau et l'image de \(f\).</div>
+  <div class="q"><strong>Q5.</strong> Calculer \(A^n\) pour \(n \geq 1\).</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> \(P\) a pour colonnes \(u_1, u_2, u_3\) : c'est la matrice déjà inversée au §6 du cours (en résolvant \(PX = Y\)). Elle est inversible, donc \(\mathcal{B}'\) est une base, et</p>
+    <div class="formula">$$P = \begin{pmatrix} 1 & 0 & 1 \\ 1 & 1 & 0 \\ 0 & 1 & 1 \end{pmatrix}, \qquad P^{-1} = \frac{1}{2}\begin{pmatrix} 1 & 1 & -1 \\ -1 & 1 & 1 \\ 1 & -1 & 1 \end{pmatrix}.$$</div>
+    <p><strong>Q2.</strong> \(X' = P^{-1}X = (2, 1, 0)\) (lignes de \(P^{-1}\) appliquées à \((2, 3, 1)\) : \(\frac{2 + 3 - 1}{2} = 2\), \(\frac{-2 + 3 + 1}{2} = 1\), \(\frac{2 - 3 + 1}{2} = 0\)). Contrôle : \(2u_1 + u_2 = (2, 2, 0) + (0, 1, 1) = (2, 3, 1)\).</p>
+    <p><strong>Q3.</strong> \(A u_1 = \frac{1}{2}(2, 2, 0) = u_1\), \(A u_2 = \frac{1}{2}(0, 4, 4) = 2u_2\), \(A u_3 = \frac{1}{2}(0, 0, 0) = 0\). Donc \(\operatorname{Mat}_{\mathcal{B}'}(f) = \operatorname{diag}(1, 2, 0) = P^{-1}AP\) : \(A\) est semblable à une matrice diagonale.</p>
+    <p><strong>Q4.</strong> Lu sur la matrice diagonale : rang 2, \(\ker f = \operatorname{Vect}(u_3)\), \(\operatorname{Im} f = \operatorname{Vect}(u_1, u_2)\) (le plan \(x - y + z = 0\), qui contient \(u_1\) et \(u_2\)). Le rang est le même dans toutes les bases.</p>
+    <p><strong>Q5.</strong> \(A^n = P\operatorname{diag}(1, 2^n, 0)P^{-1}\) pour \(n \geq 1\), soit</p>
+    <div class="formula">$$A^n = \frac{1}{2}\begin{pmatrix} 1 & 1 & -1 \\ 1 - 2^n & 1 + 2^n & 2^n - 1 \\ -2^n & 2^n & 2^n \end{pmatrix}.$$</div>
+    <p>Contrôle : \(n = 1\) redonne \(A\). La première ligne ne dépend pas de \(n\) : la composante sur \(u_1\) est conservée, celle sur \(u_2\) double à chaque étape, celle sur \(u_3\) disparaît.</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 11</span><span class="diff">★ ★ ★</span>
+  <h3>Semblables ou non ?</h3>
+  <div class="statement">On cherche, pour plusieurs couples de matrices, s'ils représentent ou non un même endomorphisme dans deux bases.</div>
+  <div class="q"><strong>Q1.</strong> Montrer que \(E_{12} = \begin{pmatrix} 0 & 1 \\ 0 & 0 \end{pmatrix}\) et \(E_{21} = \begin{pmatrix} 0 & 0 \\ 1 & 0 \end{pmatrix}\) sont semblables.</div>
+  <div class="q"><strong>Q2.</strong> Soit \(N = \begin{pmatrix} 1 & -1 & 2 \\ 1 & -1 & 2 \\ 0 & 0 & 0 \end{pmatrix}\). Calculer son rang et \(N^2\). Déterminer \(\ker N\) et montrer que \(N\) est semblable à la matrice élémentaire \(E_{12}\) de \(\mathcal{M}_3(\mathbb{R})\), en utilisant la base \(\big(Ne_3,\ e_3,\ w\big)\) pour un vecteur \(w\) bien choisi.</div>
+  <div class="q"><strong>Q3.</strong> Les matrices \(\begin{pmatrix} 2 & 1 \\ 1 & 2 \end{pmatrix}\) et \(\begin{pmatrix} 1 & 2 \\ 2 & 1 \end{pmatrix}\) sont-elles semblables ? Et \(\begin{pmatrix} 1 & 1 \\ 0 & 1 \end{pmatrix}\) et \(I_2\) ?</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> Soit \(u\) l'endomorphisme de matrice \(E_{12}\) : \(u(e_1) = 0\), \(u(e_2) = e_1\). Dans la base \((e_2, e_1)\), on a \(u(e_2) = e_1\) (2ᵉ vecteur) et \(u(e_1) = 0\) : la matrice est \(E_{21}\). Avec \(P = \begin{pmatrix} 0 & 1 \\ 1 & 0 \end{pmatrix}\) (égale à son inverse), \(P^{-1}E_{12}P = E_{21}\) : échanger l'ordre des vecteurs de base échange lignes et colonnes.</p>
+    <p><strong>Q2.</strong> Les deux premières lignes sont égales et la troisième nulle : \(\operatorname{rg} N = 1\), et \(\ker N\) est le plan \(x - y + 2z = 0\), de base \(\big((1, 1, 0), (-2, 0, 1)\big)\). Les colonnes de \(N\) sont proportionnelles à \((1, 1, 0)\), qui est dans le noyau : \(N^2 = 0\). On a \(Ne_3 = (2, 2, 0) \neq 0\) ; prenons \(w = (-2, 0, 1) \in \ker N\).</p>
+    <p>La famille \(\big((2, 2, 0), (0, 0, 1), (-2, 0, 1)\big)\) est libre : en résolvant \(\alpha(2, 2, 0) + \beta(0, 0, 1) + \gamma(-2, 0, 1) = 0\), la 2ᵉ coordonnée donne \(\alpha = 0\), puis \(\gamma = 0\) et \(\beta = 0\). Dans cette base, \(N(Ne_3) = N^2 e_3 = 0\), \(N(e_3) = Ne_3\) (1ᵉʳ vecteur), \(N(w) = 0\) : la matrice n'a qu'un coefficient non nul, en ligne 1 et colonne 2. C'est \(E_{12}\).</p>
+    <p><strong>Q3.</strong> Les déterminants valent \(4 - 1 = 3\) et \(1 - 4 = -3\) : des matrices semblables ont même déterminant, donc ces deux-là ne le sont pas (bien qu'elles aient les mêmes coefficients et le même rang). Quant à \(\begin{pmatrix} 1 & 1 \\ 0 & 1 \end{pmatrix}\), elle n'est pas semblable à \(I_2\), car la seule matrice semblable à \(I_2\) est \(I_2\) elle-même (\(P^{-1}I_2P = I_2\)) ; pourtant rang (2) et déterminant (1) coïncident.</p>
+  </div>
+</div>
+
+<div class="exo concours">
+  <span class="num">CONCOURS PT</span><span class="diff">★ ★ ★</span>
+  <h3>Une base où la matrice devient presque diagonale</h3>
+  <div class="exo-source">
+    Exercice <strong>original</strong> au format de l'épreuve de Mathématiques PT (thème <em>calcul matriciel et changement de base</em>). Pour t'entraîner sur les sujets réellement tombés :
+    <a href="https://www.banquept.fr/rubrique38.html" target="_blank" rel="noopener">annales officielles de la Banque PT</a>.
+  </div>
+  <div class="statement">
+    Soit \(u\) l'endomorphisme de \(\mathbb{R}^3\) de matrice dans la base canonique
+    $$A = \begin{pmatrix} 2 & 1 & 1 \\ 1 & 2 & 1 \\ 0 & -1 & 1 \end{pmatrix}.$$
+  </div>
+
+  <p class="exo-part">Partie A — Deux noyaux</p>
+  <div class="q"><strong>A1.</strong> Déterminer le rang et le noyau de \(A - I_3\) et de \(A - 2I_3\). On notera \(u_3\) et \(u_1\) des vecteurs directeurs de ces noyaux, de première coordonnée 1.</div>
+  <div class="q"><strong>A2.</strong> Résoudre \((A - 2I_3)X = u_1\), et choisir la solution \(u_2\) de dernière coordonnée nulle.</div>
+
+  <p class="exo-part">Partie B — Une base adaptée</p>
+  <div class="q"><strong>B1.</strong> Montrer que \(\mathcal{B}' = (u_1, u_2, u_3)\) est une base de \(\mathbb{R}^3\) ; écrire la matrice de passage \(P\) et calculer \(P^{-1}\).</div>
+  <div class="q"><strong>B2.</strong> Sans calculer \(P^{-1}AP\), déterminer \(T = \operatorname{Mat}_{\mathcal{B}'}(u)\).</div>
+
+  <p class="exo-part">Partie C — Puissances</p>
+  <div class="q"><strong>C1.</strong> Écrire \(T = D + N\) avec \(D\) diagonale et \(N\) nilpotente qui commutent ; en déduire \(T^n\) pour \(n \in \mathbb{N}\).</div>
+  <div class="q"><strong>C2.</strong> En déduire \(A^n\).</div>
+
+  <p class="exo-part">Partie D — Trois suites couplées</p>
+  <div class="q"><strong>D1.</strong> On définit \(x_0 = 1\), \(y_0 = z_0 = 0\) et, pour tout \(n\), \(x_{n+1} = 2x_n + y_n + z_n\), \(y_{n+1} = x_n + 2y_n + z_n\), \(z_{n+1} = -y_n + z_n\). Exprimer \(x_n\), \(y_n\), \(z_n\) en fonction de \(n\).</div>
+
+  <p class="exo-part">Partie E — Inverse</p>
+  <div class="q"><strong>E1.</strong> Montrer que \(A\) est inversible, calculer \(T^{-1}\) puis \(A^{-1}\). La formule de C2 est-elle encore valable pour \(n = -1\) ?</div>
+
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>A1.</strong> \(A - I_3\) a pour lignes \((1, 1, 1)\), \((1, 1, 1)\), \((0, -1, 0)\) : rang 2 ; le noyau est donné par \(y = 0\) et \(x + z = 0\), d'où \(\ker(A - I_3) = \operatorname{Vect}(u_3)\) avec \(u_3 = (1, 0, -1)\). \(A - 2I_3\) a pour lignes \((0, 1, 1)\), \((1, 0, 1)\), \((0, -1, -1)\) : rang 2 ; \(y = -z\) et \(x = -z\), d'où \(\ker(A - 2I_3) = \operatorname{Vect}(u_1)\) avec \(u_1 = (1, 1, -1)\). Ainsi \(u(u_3) = u_3\) et \(u(u_1) = 2u_1\).</p>
+    <p><strong>A2.</strong> Le système \(y + z = 1\), \(x + z = 1\), \(-y - z = -1\) a pour solutions \((1 - z,\ 1 - z,\ z)\) : une solution particulière plus \(\ker(A - 2I_3)\), comme il se doit. Avec \(z = 0\) : \(u_2 = (1, 1, 0)\), et \(Au_2 = u_1 + 2u_2\).</p>
+    <p><strong>B1.</strong> La matrice de passage a pour colonnes \(u_1, u_2, u_3\). En résolvant \(PX = Y\), on trouve qu'elle est inversible (donc \(\mathcal{B}'\) est une base), avec</p>
+    <div class="formula">$$P = \begin{pmatrix} 1 & 1 & 1 \\ 1 & 1 & 0 \\ -1 & 0 & -1 \end{pmatrix}, \qquad P^{-1} = \begin{pmatrix} -1 & 1 & -1 \\ 1 & 0 & 1 \\ 1 & -1 & 0 \end{pmatrix}.$$</div>
+    <p>Contrôle : la première ligne de \(P^{-1}\) par la première colonne de \(P\) donne \(-1 + 1 + 1 = 1\), par la deuxième \(-1 + 1 + 0 = 0\).</p>
+    <p><strong>B2.</strong> \(u(u_1) = 2u_1\), \(u(u_2) = u_1 + 2u_2\), \(u(u_3) = u_3\) : en colonnes,</p>
+    <div class="formula">$$T = \begin{pmatrix} 2 & 1 & 0 \\ 0 & 2 & 0 \\ 0 & 0 & 1 \end{pmatrix} = P^{-1}AP.$$</div>
+    <p><strong>C1.</strong> \(D = \operatorname{diag}(2, 2, 1)\) et \(N = E_{12}\). On a \(DN = 2E_{12} = ND\) (la ligne 1 et la colonne 2 sont toutes deux multipliées par 2) et \(N^2 = 0\). Le binôme donne \(T^n = D^n + n D^{n-1} N\), soit</p>
+    <div class="formula">$$T^n = \begin{pmatrix} 2^n & n\,2^{n-1} & 0 \\ 0 & 2^n & 0 \\ 0 & 0 & 1 \end{pmatrix}.$$</div>
+    <p><strong>C2.</strong> \(A^n = PT^nP^{-1}\). Le produit donne</p>
+    <div class="formula">$$A^n = \begin{pmatrix} n\,2^{n-1} + 1 & 2^n - 1 & n\,2^{n-1} \\ n\,2^{n-1} & 2^n & n\,2^{n-1} \\ 2^n - 1 - n\,2^{n-1} & 1 - 2^n & 2^n - n\,2^{n-1} \end{pmatrix}.$$</div>
+    <p>Contrôles : \(n = 0\) donne \(I_3\), \(n = 1\) redonne \(A\).</p>
+    <p><strong>D1.</strong> Avec \(X_n = (x_n, y_n, z_n)\), \(X_{n+1} = AX_n\), donc \(X_n = A^n e_1\), la première colonne de \(A^n\) :</p>
+    <div class="formula">$$x_n = n\,2^{n-1} + 1, \qquad y_n = n\,2^{n-1}, \qquad z_n = 2^n - 1 - n\,2^{n-1}.$$</div>
+    <p>Autre lecture : \(e_1 = -u_1 + u_2 + u_3\) (première colonne de \(P^{-1}\)), et \(T^n\) envoie ces coordonnées \((-1, 1, 1)\) sur \((n\,2^{n-1} - 2^n,\ 2^n,\ 1)\). Contrôle : \(x_1 = 2\), \(y_1 = 1\), \(z_1 = 0\), conformes à la récurrence.</p>
+    <p><strong>E1.</strong> \(T\) est triangulaire à diagonale sans zéro, donc inversible, et \(A = PTP^{-1}\) aussi. En remontant \(TX = Y\) : \(T^{-1} = \begin{pmatrix} \frac{1}{2} & -\frac{1}{4} & 0 \\ 0 & \frac{1}{2} & 0 \\ 0 & 0 & 1 \end{pmatrix}\), puis</p>
+    <div class="formula">$$A^{-1} = PT^{-1}P^{-1} = \frac{1}{4}\begin{pmatrix} 3 & -2 & -1 \\ -1 & 2 & -1 \\ -1 & 2 & 3 \end{pmatrix}.$$</div>
+    <p>Pour \(n = -1\), la formule de C2 donne, avec \(n\,2^{n-1} = -\frac{1}{4}\) et \(2^n = \frac{1}{2}\), exactement cette matrice : elle reste valable (en fait pour tout \(n \in \mathbb{Z}\), car la formule de \(T^n\) l'est).</p>
+  </div>
+</div>
+
+</div>
+</template>

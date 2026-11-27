@@ -78,27 +78,27 @@ module.exports = {
     res.verifier('flashcards câblées (un deck makeFlash par chapitre avec « flash »)', !inv.decksManquants.length,
       inv.decksManquants.map(p => 'deck absent ou vide : ' + p));
 
-    // Performance au téléphone : contenu des onglets Cours / Méthodes / Exercices des chapitres non
-    // encore ouverts rangé dans un <template class="pan-tpl"> (tools/replier_panneaux.py), mis en
-    // place à l'ouverture du chapitre (window.__deplierChapitre) : ≈ 19 000 éléments au lieu de 112 000.
+    // Performance au téléphone : le contenu des onglets Cours / Méthodes / Exercices vit dans
+    // chapitres/<id>.html (docs/chargement-chapitres.md) et n'est chargé qu'à l'ouverture du chapitre :
+    // au démarrage, les panneaux des autres chapitres sont VIDES (≈ 32 000 éléments, RLC affiché).
     const repli = await page.evaluate(() => {
-      const deplies = [];
+      const pleins = [];
       for (const c of CHAPTERS) {
-        const ch = document.getElementById('chap-' + c.id);
-        if (!ch || ch.__deplie || c.id === 'rlc') continue;
+        if (window.__chapitreCharge && window.__chapitreCharge(c.id) && (window.__CHAPITRES.v || {})[c.id]) continue;   // chapitre ouvert
         for (const p of ['cours', 'meth', 'exos']) {
           if (!c.panels.includes(p)) continue;
-          const el = document.getElementById(c.prefix + '-' + p), t = el && el.firstElementChild;
-          if (!(t && t.tagName === 'TEMPLATE' && t.classList.contains('pan-tpl'))) deplies.push(c.prefix + '-' + p);
+          const el = document.getElementById(c.prefix + '-' + p);
+          if (el && el.firstChild) pleins.push(c.prefix + '-' + p);
         }
       }
-      return { elements: document.getElementsByTagName('*').length, deplies };
+      return { elements: document.getElementsByTagName('*').length, pleins, manifeste: !!(window.__CHAPITRES && window.__CHAPITRES.v) };
     });
     res.info('elementsDemarrage', repli.elements);
     ctx.log('éléments au démarrage : ' + repli.elements);
-    res.verifier('panneaux des chapitres non ouverts repliés au démarrage (< 40 000 éléments)',
-      !repli.deplies.length && repli.elements < 40000,
-      (repli.deplies.length ? ['panneaux dépliés (lancer tools/replier_panneaux.py) : ' + repli.deplies.slice(0, 15).join(', ')] : [])
+    res.verifier('contenu des chapitres non ouverts absent au démarrage (chapitres/<id>.html, < 40 000 éléments)',
+      repli.manifeste && !repli.pleins.length && repli.elements < 40000,
+      (repli.manifeste ? [] : ['manifeste window.__CHAPITRES absent (node tools/chapitres.js)'])
+        .concat(repli.pleins.length ? ['panneaux déjà remplis : ' + repli.pleins.slice(0, 15).join(', ')] : [])
         .concat(repli.elements >= 40000 ? [repli.elements + ' éléments au démarrage'] : []));
 
     /* ---------- 3) Chaque chapitre × chacun de ses onglets ---------- */

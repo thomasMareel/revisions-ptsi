@@ -1,0 +1,951 @@
+<!-- Chapitre « Modélisation multiphysique » (multiphy) : contenu des onglets Cours, Méthodes et Exercices, chargé à l'ouverture du chapitre.
+     On l'édite ici, puis : node tools/chapitres.js (docs/chargement-chapitres.md). -->
+<template class="pan-tpl" data-panneau="mph-cours">
+
+<div class="course-section">
+  <div class="sec-num">AU PROGRAMME · PT</div>
+  <h2>Ce que le programme officiel demande</h2>
+  <div class="intro">Compétences A3 « Justifier le choix des constituants » (S4), A4 « Analyser les performances et les écarts » (S4), B1 « Choisir les grandeurs physiques » (S4), B2 « Proposer un modèle de connaissance et de comportement » (S3 et S4), B3 « Valider un modèle » (S4) et C3 « Mener une simulation numérique » (S4). L'architecture fonctionnelle (chaînes d'information et de puissance, SysML) est un rappel de S1. Les modèles couvrent les domaines électrique, mécanique, thermique, hydraulique et pneumatique ; le réglage des correcteurs sur ces modèles est l'objet de « Correction des SLCI ».</div>
+  <div class="reveal" onclick="this.classList.toggle('open')">
+    <span class="label">Programme officiel</span>
+    <span class="prompt">Les capacités exigibles, dans l'ordre du chapitre</span>
+    <div class="content">
+      <ul>
+        <li><strong>Chaînes fonctionnelles et diagramme de blocs internes</strong> (rappel S1, S4) : justifier le choix des constituants ; écarts entre performances attendues, simulées et mesurées (§1).</li>
+        <li><strong>Modèle de connaissance, modèle de comportement</strong> ; paramètres d'un modèle (S3, S4) (§2).</li>
+        <li><strong>Modélisation causale</strong> (S3) : schéma-blocs, linéarisation autour d'un point de fonctionnement (§3).</li>
+        <li><strong>Mener une simulation</strong> (S4) : choix des grandeurs observées, du solveur, du pas et de la durée de simulation ; influence d'un paramètre du modèle sur les performances (§3).</li>
+        <li><strong>Modélisation acausale</strong> (S3) : composants, ports, sources parfaites d'effort et de flux (§4).</li>
+        <li><strong>Grandeurs effort et flux</strong> (S3, S4) dans les domaines électrique, mécanique, hydraulique, pneumatique et thermique ; analogies ; convertisseurs idéaux (§5).</li>
+        <li><strong>Compléter et exploiter un modèle multiphysique</strong> (S3) : exemple complet d'une motorisation (§6).</li>
+        <li><strong>Choisir un modèle adapté</strong> aux performances à prévoir (S4) : phénomènes physiques, domaine de validité, solide indéformable ou déformable (§7).</li>
+        <li><strong>Limites de validité d'un modèle</strong> (S4) : point de fonctionnement, non-linéarités (courbure, hystérésis, saturation, seuil), retard pur ; <strong>modifier les paramètres et enrichir le modèle</strong> pour réduire l'écart avec l'expérience (§3, §7).</li>
+      </ul>
+      <p>Les propriétés théoriques des solveurs (stabilité, convergence) ne sont pas exigibles : seul leur usage l'est. La grille <em>across/through</em> des logiciels acausaux (§4) est une précision utile, non exigée.</p>
+    </div>
+  </div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§1 · ARCHITECTURE D'UN SYSTÈME (RAPPELS)</div>
+  <h2>Du système réel au modèle multiphysique</h2>
+  <div class="intro">Un produit industriel actuel associe mécanique, électrotechnique, électronique, hydraulique, thermique et informatique. Pour prévoir ses performances avant de le fabriquer, ou pour comprendre pourquoi il ne se comporte pas comme prévu, on assemble dans un logiciel de simulation les modèles de chacun de ses constituants : c'est la <strong>modélisation multiphysique</strong>.</div>
+
+  <h3>Chaîne d'information et chaîne de puissance</h3>
+  <p>Le découpage fonctionnel de 1<sup>re</sup> année reste l'ossature de tout modèle :</p>
+  <ul>
+    <li><strong>chaîne d'information</strong> : <em>acquérir</em> (capteurs, interface homme-machine), <em>traiter</em> (microcontrôleur, automate, carte de commande), <em>communiquer</em> (bus de terrain, liaison sans fil, afficheur). Elle manipule des signaux de très faible puissance : seule leur valeur compte ;</li>
+    <li><strong>chaîne de puissance</strong> (ou d'énergie) : <em>alimenter</em> (batterie, réseau, compresseur), <em>moduler</em> ou <em>distribuer</em> (variateur, hacheur, distributeur hydraulique), <em>convertir</em> (moteur, vérin, résistance chauffante), <em>transmettre</em> (réducteur, vis, courroie, bielle-manivelle), puis <em>agir</em> sur la matière d'œuvre par l'effecteur. Elle véhicule de l'énergie.</li>
+  </ul>
+
+<figure class="schema">
+<svg viewBox="0 0 380 212" role="img" aria-label="Chaîne d'information (acquérir, traiter, communiquer) qui envoie des ordres à la chaîne de puissance (alimenter, moduler, convertir, transmettre, agir), laquelle renvoie des mesures">
+  <text x="73" y="20" class="lab-muted">chaîne d'information</text>
+  <rect x="73" y="30" width="80" height="28" class="sk-ink fl-paper"/>
+  <rect x="183" y="30" width="80" height="28" class="sk-ink fl-paper"/>
+  <rect x="293" y="30" width="80" height="28" class="sk-ink fl-paper"/>
+  <text x="113" y="48" text-anchor="middle" style="font-size:11px">Communiquer</text>
+  <text x="223" y="48" text-anchor="middle" style="font-size:11px">Traiter</text>
+  <text x="333" y="48" text-anchor="middle" style="font-size:11px">Acquérir</text>
+  <line x1="293" y1="44" x2="265" y2="44" class="sk-accent2" marker-end="url(#sk-arrow-accent2)"/>
+  <line x1="183" y1="44" x2="155" y2="44" class="sk-accent2" marker-end="url(#sk-arrow-accent2)"/>
+  <line x1="333" y1="3" x2="333" y2="28" class="sk-accent2" marker-end="url(#sk-arrow-accent2)"/>
+  <text x="326" y="14" class="lab-accent2" text-anchor="end" style="font-size:10.5px">consignes</text>
+  <line x1="113" y1="58" x2="113" y2="128" class="sk-accent2" marker-end="url(#sk-arrow-accent2)"/>
+  <text x="119" y="97" class="lab-accent2" style="font-size:10.5px">ordres</text>
+  <line x1="347" y1="130" x2="347" y2="60" class="sk-accent2" marker-end="url(#sk-arrow-accent2)"/>
+  <text x="341" y="97" class="lab-accent2" text-anchor="end" style="font-size:10.5px">mesures</text>
+  <rect x="5" y="130" width="60" height="28" class="sk-ink fl-paper"/>
+  <rect x="83" y="130" width="60" height="28" class="sk-ink fl-paper"/>
+  <rect x="161" y="130" width="60" height="28" class="sk-ink fl-paper"/>
+  <rect x="239" y="130" width="60" height="28" class="sk-ink fl-paper"/>
+  <rect x="317" y="130" width="60" height="28" class="sk-ink fl-paper"/>
+  <text x="35" y="148" text-anchor="middle" style="font-size:9.5px">Alimenter</text>
+  <text x="113" y="148" text-anchor="middle" style="font-size:9.5px">Moduler</text>
+  <text x="191" y="148" text-anchor="middle" style="font-size:9.5px">Convertir</text>
+  <text x="269" y="148" text-anchor="middle" style="font-size:9.5px">Transmettre</text>
+  <text x="347" y="148" text-anchor="middle" style="font-size:9.5px">Agir</text>
+  <line x1="65" y1="144" x2="82" y2="144" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+  <line x1="143" y1="144" x2="160" y2="144" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+  <line x1="221" y1="144" x2="238" y2="144" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+  <line x1="299" y1="144" x2="316" y2="144" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+  <line x1="35" y1="192" x2="35" y2="160" class="sk-accent" marker-end="url(#sk-arrow-accent)"/>
+  <text x="35" y="206" class="lab-accent" text-anchor="middle" style="font-size:10.5px">énergie</text>
+  <text x="83" y="176" class="lab-muted">chaîne de puissance</text>
+  <line x1="347" y1="160" x2="347" y2="190" class="sk-accent" marker-end="url(#sk-arrow-accent)"/>
+  <text x="372" y="206" class="lab-accent" text-anchor="end" style="font-size:10.5px">action sur la matière d'œuvre</text>
+</svg>
+<figcaption>Les deux chaînes d'un système commandé : la chaîne d'information élabore les <strong>ordres</strong> à partir des consignes et des <strong>mesures</strong> ; la chaîne de puissance transforme l'énergie d'entrée en action sur la matière d'œuvre.</figcaption>
+</figure>
+
+  <div class="def-box"><strong>Diagramme de blocs internes (ibd, SysML).</strong> Il décrit l'architecture structurelle du système : les constituants (blocs) y sont reliés par leurs <strong>ports</strong>, et chaque connecteur indique ce qui circule (énergie électrique, énergie mécanique, fluide, information…). Un modèle multiphysique acausal en reprend directement la topologie : un bloc devient un composant, un connecteur devient un lien.</div>
+
+  <div class="prop-box"><strong>À quoi sert un modèle multiphysique ?</strong>
+    <ul style="margin:.4rem 0">
+      <li><strong>dimensionner</strong> : choisir un moteur, une batterie, un vérin, un réducteur ;</li>
+      <li><strong>prévoir les performances</strong> (rapidité, précision, consommation, échauffement) et les confronter au cahier des charges ;</li>
+      <li><strong>tester une loi de commande</strong> sans risquer le matériel ;</li>
+      <li><strong>expliquer un écart</strong> entre le comportement attendu et le comportement mesuré.</li>
+    </ul>
+  </div>
+
+  <div class="notice"><strong>Trois systèmes, trois écarts.</strong> On compare en permanence le système <em>souhaité</em> (exigences du cahier des charges), le système <em>réel</em> (mesures sur le prototype) et le système <em>simulé</em> (modèle). L'écart souhaité–simulé dit si la solution envisagée répond au besoin ; l'écart réel–simulé dit si le modèle est fidèle ; l'écart souhaité–réel dit si le produit est conforme.</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§2 · DEUX FAMILLES DE MODÈLES</div>
+  <h2>Modèle de connaissance et modèle de comportement</h2>
+  <div class="intro">Avant de choisir un logiciel, il faut décider d'où viennent les équations de chaque constituant : de la physique, ou de l'expérience.</div>
+
+  <h3>Modèle de connaissance</h3>
+  <div class="def-box"><strong>Modèle de connaissance.</strong> Ses équations découlent des lois physiques : principe fondamental de la dynamique, lois de Kirchhoff, conservation de la masse, bilan d'énergie… Ses paramètres ont un sens physique (résistance \(R\), inertie \(J\), raideur \(k\), section \(S\)…) et s'obtiennent par le calcul, la documentation du constructeur ou la CAO. Il reste utilisable hors des conditions d'essai, tant que ses hypothèses restent vraies.</div>
+  <p>Exemple : une bobine réelle est décrite par la loi des mailles,</p>
+  <div class="formula">$$u(t) = R\,i(t) + L\,\frac{di}{dt}$$</div>
+
+  <h3>Modèle de comportement</h3>
+  <div class="def-box"><strong>Modèle de comportement</strong> (ou de représentation). Modèle « boîte noire » dont on choisit a priori la structure (gain pur, premier ordre, deuxième ordre, retard…) et dont on ajuste les paramètres pour reproduire des essais : c'est l'<strong>identification</strong>. Il ne renseigne pas sur les mécanismes internes et n'est fiable que dans le domaine exploré par les essais (amplitude, fréquence, point de fonctionnement).</div>
+  <div class="formula">$$H(p) = \frac{K}{1+\tau p}\qquad\text{ou}$$ $$H(p) = \frac{K}{1+\dfrac{2\xi}{\omega_0}\,p+\dfrac{p^2}{\omega_0^2}}$$</div>
+
+  <div class="reveal" onclick="this.classList.toggle('open')">
+    <span class="label">Application</span>
+    <span class="prompt">Un échelon de 10 V appliqué à un moteur fait passer sa vitesse de 0 à 150 rad/s, et 63 % de cette variation sont atteints au bout de 40 ms. Quel modèle de comportement proposer ?</span>
+    <div class="content"><p>Échelon de 10 V, vitesse finale 150 rad/s, 63 % atteints à 40 ms. La réponse ne présente ni dépassement ni tangente horizontale à l'origine : on retient un premier ordre. Gain statique \(K = \Delta\omega_\infty/\Delta u = 150/10 = 15\ \text{rad·s}^{-1}\text{·V}^{-1}\) ; constante de temps \(\tau = 40\ \text{ms}\) (instant où \(\omega = 0{,}63\times150 \approx 95\ \text{rad/s}\)). D'où :</p>
+    <div class="formula">$$H(p) = \frac{15}{1+0{,}04\,p}$$</div>
+    <p>Contrôle : temps de réponse à 5 % \(\approx 3\tau = 0{,}12\ \text{s}\), à comparer à la courbe mesurée.</p></div>
+  </div>
+
+  <h3>Paramétrer un modèle</h3>
+  <div class="prop-box">Les sources de paramètres sont, par ordre de préférence : la <strong>documentation constructeur</strong> (\(R\), \(L\), \(K\), \(J\) d'un moteur, rapport d'un réducteur) ; le <strong>modeleur volumique</strong> (masses, centres d'inertie, moments d'inertie) ; le <strong>calcul</strong> (inertie ramenée, raideur d'une poutre) ; les <strong>essais</strong>. Un paramètre impossible à mesurer directement (frottement, raideur de contact) est <strong>recalé</strong> en comparant simulation et essai.</div>
+
+  <div class="notice"><strong>Principe de parcimonie.</strong> Le bon modèle est le plus simple qui permet de répondre à la question posée. Chaque phénomène ajouté alourdit le calcul et introduit des paramètres mal connus.</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§3 · MODÉLISATION CAUSALE</div>
+  <h2>Relations de cause à effet et schéma-blocs</h2>
+  <div class="intro">En modélisation causale, chaque relation est écrite comme une instruction de calcul : connaissant la cause, on en déduit l'effet. Le modèle est un graphe orienté de blocs reliés par des signaux.</div>
+
+  <h3>Cause, effet et causalité intégrale</h3>
+  <p>Le courant dans une inductance soumise à la tension \(u_L\) s'obtient en intégrant la loi \(u_L = L\,di/dt\) :</p>
+  <div class="formula">$$i(t) = i(0) + \frac{1}{L}\int_0^t u_L(\tau)\,d\tau$$</div>
+  <p>Le courant à l'instant \(t\) résulte de toute l'histoire de la tension : la tension est la <strong>cause</strong>, le courant l'<strong>effet</strong>. Il en va de même pour la tension d'un condensateur, qui cumule les charges apportées par le courant, ou pour la vitesse d'un solide, qui cumule l'action de la résultante des efforts. Ce sens, imposé par la physique (une grandeur « stockée » ne peut pas varier instantanément), est la <strong>causalité intégrale</strong>. Les simulateurs la préfèrent : l'intégration numérique est stable et lisse les discontinuités, alors qu'une dérivation amplifie le bruit et transforme un échelon en impulsion.</p>
+
+  <h3>Le schéma-blocs, modèle causal linéaire</h3>
+  <div class="def-box"><strong>Schéma-blocs.</strong> Traduction graphique, après transformation de Laplace, d'un modèle linéaire invariant. Un <strong>bloc</strong> contient une fonction de transfert qui calcule son signal de sortie à partir de son signal d'entrée ; une <strong>flèche</strong> transmet <strong>un signal unique</strong> (par exemple un courant ou une vitesse angulaire) dans un sens imposé ; sommateurs et points de prélèvement combinent ou recopient ces signaux.</div>
+  <p>Une équation différentielle linéaire à coefficients constants, d'entrée \(e(t)\) et de sortie \(s(t)\),</p>
+  <div class="formula">$$\sum_{i=0}^{n} a_i\,\frac{d^i s}{dt^i} = \sum_{j=0}^{m} b_j\,\frac{d^j e}{dt^j}$$</div>
+  <p>devient, par transformation de Laplace,</p>
+  <div class="formula">$$H(p)=\frac{S(p)}{E(p)}=\frac{b_m p^m+\dots+b_1 p+b_0}{a_n p^n+\dots+a_1 p+a_0}$$</div>
+  <div class="prop-box"><strong>Conditions de Heaviside.</strong> Cette écriture suppose nulles, à l'instant initial, l'entrée, la sortie et toutes leurs dérivées utiles. On s'y ramène en travaillant sur les <strong>variations</strong> autour d'un point d'équilibre : \(e = e_0 + \Delta e\), \(s = s_0 + \Delta s\). Le schéma-blocs relie alors \(\Delta E(p)\) à \(\Delta S(p)\).</div>
+
+  <h3>Linéariser autour d'un point de fonctionnement</h3>
+  <p>Une loi non linéaire \(y = g(x)\) (débit à travers un orifice, couple aérodynamique en \(\omega^2\), force d'un électroaimant…) est remplacée, pour de petites variations autour de \(x_0\), par sa tangente :</p>
+  <div class="formula">$$\Delta y \approx g'(x_0)\,\Delta x$$</div>
+  <p>Le gain du bloc obtenu dépend du point de fonctionnement : un modèle linéarisé n'est valable qu'au voisinage de ce point.</p>
+
+  <h3>Atouts et limites</h3>
+  <ul>
+    <li><strong>+</strong> Le modèle est prêt pour l'automatique : FTBO, diagramme de Bode, marges, réglage d'un correcteur ; le calcul est léger et rapide.</li>
+    <li><strong>−</strong> C'est le modélisateur qui écrit toutes les équations et décide du sens de chaque relation.</li>
+    <li><strong>−</strong> On ne « voit » plus le système : un bloc rassemble souvent plusieurs pièces (une inertie équivalente regroupe rotor, réducteur et charge), un même système admet plusieurs schémas, et changer un constituant impose de reprendre les calculs à la main.</li>
+    <li><strong>−</strong> Hors des quelques blocs non linéaires fournis par le logiciel (saturation, seuil, hystérésis, retard), toute loi non linéaire doit d'abord être linéarisée.</li>
+  </ul>
+
+  <h3>Rôle du solveur</h3>
+  <div class="def-box"><strong>Solveur.</strong> Algorithme qui intègre numériquement les équations du modèle, pas à pas : il calcule l'état à l'instant \(t_{k+1} = t_k + h\) à partir de l'état à l'instant \(t_k\). Le schéma le plus simple, Euler explicite, s'écrit
+  $$x_{k+1} = x_k + h\,f(x_k, u_k)$$
+  Les logiciels emploient des méthodes plus précises (Runge-Kutta, méthodes implicites) et adaptent le pas \(h\) pour respecter une tolérance d'erreur.</div>
+  <p>Un pas trop grand devant la plus petite constante de temps donne des résultats faux, voire divergents. Un modèle qui mêle des constantes de temps très différentes (par exemple 1 ms pour l'électrique et 1 s pour la mécanique) est dit <strong>raide</strong> : il demande un solveur adapté.</p>
+  <div class="notice"><strong>Boucle algébrique.</strong> Une boucle fermée qui ne contient ni intégrateur ni retard oblige le solveur à résoudre une équation implicite à chaque pas ; la plupart des logiciels le signalent par un avertissement.</div>
+
+  <h3>Mener une simulation : grandeurs, pas, durée, influence d'un paramètre</h3>
+  <div class="method-box">
+    <strong>Méthode — préparer puis exploiter une simulation</strong>
+    <ol>
+      <li><strong>Grandeurs observées</strong> : celles des critères du cahier des charges (vitesse, position, temps de réponse, dépassement…), plus les grandeurs internes qui dimensionnent ou limitent les constituants (courant, couple, tension de commande, pression, puissance). Un réglage qui sature l'actionneur n'est pas validé par la seule courbe de sortie.</li>
+      <li><strong>Durée</strong> : assez longue pour atteindre le régime permanent, soit 3 à 5 fois la plus grande constante de temps (ou le temps de réponse attendu), ou un cycle de fonctionnement complet pour un bilan d'énergie.</li>
+      <li><strong>Solveur et pas</strong> : à pas fixe, un pas de l'ordre du dixième de la plus petite constante de temps à représenter ; pour un modèle raide, un solveur à pas variable réglé par une tolérance. Contrôle simple : diviser le pas par deux ne doit plus changer les résultats.</li>
+      <li><strong>Influence d'un paramètre</strong> : faire varier un seul paramètre à la fois (balayage), tracer chaque performance en fonction de ce paramètre et repérer la plage de valeurs qui respecte le cahier des charges.</li>
+    </ol>
+  </div>
+  <div class="method-box">
+    <strong>Exemple — démarrage du moteur du convoyeur</strong>
+    <p>On reprend le moteur du §6 (\(R = 1\ \Omega\), \(L = 1\ \text{mH}\), \(K = 0{,}05\ \text{N·m/A}\), frottement et charge négligés), démarré par un échelon de 12 V, et l'on intègre ses deux équations (courant et vitesse) par Euler explicite.</p>
+    <ol>
+      <li><strong>Pas et durée</strong> : \(\tau_e = L/R = 1\ \text{ms}\) et, pour \(J_{eq} = 10^{-4}\ \text{kg·m}^2\), \(\tau_m = RJ_{eq}/K^2 = 40\ \text{ms}\). On prend \(h = 0{,}1\ \text{ms}\) et une durée de \(5\tau_m = 0{,}2\ \text{s}\), soit 2 000 pas.</li>
+      <li><strong>Résultats</strong> : vitesse finale \(U/K = 240\ \text{rad/s}\), temps de réponse à 5 % de 118 ms (environ \(3\tau_m\)), courant maximal de 11,2 A, proche de \(U/R\) : au démarrage, le moteur est presque un court-circuit.</li>
+      <li><strong>Pas trop grand</strong> : avec \(h = 1{,}5\ \text{ms}\), plus grand que \(\tau_e\), le calcul annonce un courant maximal de 18 A, faux (oscillation purement numérique) ; avec \(h = 2{,}5\ \text{ms}\), il diverge, alors que le moteur est stable.</li>
+      <li><strong>Influence de l'inertie</strong> (masse transportée) : voir le tableau. Le temps de réponse et l'énergie perdue par effet Joule sont proportionnels à \(J_{eq}\) ; le courant maximal n'augmente presque pas. Pour \(J_{eq} = 4\cdot10^{-4}\ \text{kg·m}^2\), une durée de 0,2 s ne montrerait pas le régime permanent : la durée se règle sur le cas le plus lent du balayage (ici 1 s).</li>
+    </ol>
+    <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:.85rem;margin:.6rem 0;text-align:center">
+      <tr><th style="padding:.35rem .5rem;border:1px solid var(--muted);background:var(--paper-dark)">\(J_{eq}\) (\(10^{-4}\ \text{kg·m}^2\))</th><th style="padding:.35rem .5rem;border:1px solid var(--muted);background:var(--paper-dark)">0,5</th><th style="padding:.35rem .5rem;border:1px solid var(--muted);background:var(--paper-dark)">1</th><th style="padding:.35rem .5rem;border:1px solid var(--muted);background:var(--paper-dark)">2</th><th style="padding:.35rem .5rem;border:1px solid var(--muted);background:var(--paper-dark)">4</th></tr>
+      <tr><td style="padding:.35rem .5rem;border:1px solid var(--muted)">\(t_{r5\%}\) (ms)</td><td style="padding:.35rem .5rem;border:1px solid var(--muted)">58</td><td style="padding:.35rem .5rem;border:1px solid var(--muted)">118</td><td style="padding:.35rem .5rem;border:1px solid var(--muted)">238</td><td style="padding:.35rem .5rem;border:1px solid var(--muted)">477</td></tr>
+      <tr><td style="padding:.35rem .5rem;border:1px solid var(--muted)">\(i_{max}\) (A)</td><td style="padding:.35rem .5rem;border:1px solid var(--muted)">10,8</td><td style="padding:.35rem .5rem;border:1px solid var(--muted)">11,2</td><td style="padding:.35rem .5rem;border:1px solid var(--muted)">11,5</td><td style="padding:.35rem .5rem;border:1px solid var(--muted)">11,7</td></tr>
+      <tr><td style="padding:.35rem .5rem;border:1px solid var(--muted)">Pertes Joule au démarrage (J)</td><td style="padding:.35rem .5rem;border:1px solid var(--muted)">1,4</td><td style="padding:.35rem .5rem;border:1px solid var(--muted)">2,9</td><td style="padding:.35rem .5rem;border:1px solid var(--muted)">5,8</td><td style="padding:.35rem .5rem;border:1px solid var(--muted)">11,5</td></tr>
+    </table></div>
+    <p>Les pertes Joule du démarrage valent exactement l'énergie cinétique finale \(\frac12 J_{eq}\,\Omega^2\) : la source fournit \(U\!\int i\,\mathrm{d}t = J_{eq}\,\Omega^2\) (car \(K\!\int i\,\mathrm{d}t = J_{eq}\,\Omega\) et \(U = K\,\Omega\)), dont la moitié seulement est stockée. La simulation le retrouve à 1 % près.</p>
+  </div>
+  <div class="reveal" onclick="this.classList.toggle('open')">
+    <span class="label">Programme</span>
+    <span class="prompt">Euler explicite sur le vecteur d'état (courant, vitesse) et balayage de l'inertie.</span>
+    <div class="content">
+  <pre class="codeblock"><span class="kw">def</span> demarrage(J, h=1e-4, tf=1.0, U=12.0, R=1.0, L=1e-3, K=0.05):
+    n = int(round(tf/h))
+    i, w = 0.0, 0.0
+    I, W = [i], [w]
+    <span class="kw">for</span> _ <span class="kw">in</span> range(n):                     <span class="cmt"># Euler explicite</span>
+        i, w = i + h*(U - K*w - R*i)/L, w + h*K*i/J
+        I.append(i); W.append(w)
+    <span class="kw">return</span> I, W
+
+<span class="kw">for</span> J <span class="kw">in</span> [0.5e-4, 1e-4, 2e-4, 4e-4]:     <span class="cmt"># balayage du paramètre</span>
+    I, W = demarrage(J)
+    print(J, max(I))</pre>
+    </div>
+  </div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§4 · MODÉLISATION ACAUSALE</div>
+  <h2>Composants à ports et liens de puissance</h2>
+  <div class="intro">En modélisation acausale, on reconstitue le système pièce par pièce, comme si on le câblait : chaque constituant devient un composant, chaque liaison physique un lien entre ports. Personne ne décide qui est la cause et qui est l'effet : c'est le logiciel qui organise le calcul.</div>
+
+  <h3>Composants et ports</h3>
+  <div class="def-box"><strong>Composant acausal.</strong> Modèle d'un constituant physique (résistance, moteur, ressort, vérin, pompe, paroi…) défini par ses équations internes et ses paramètres, et muni de <strong>ports</strong> appartenant chacun à un domaine physique. Un <strong>lien acausal</strong> n'est pas orienté : il relie deux ports du même domaine et porte <strong>deux grandeurs</strong> dont le produit est la puissance échangée :
+  $$\mathcal{P} = e\times f \qquad (\text{effort}\times\text{flux})$$</div>
+  <p>Le signe de \(\mathcal{P}\) indique le sens de transfert de l'énergie à l'instant considéré : un même lien peut la transporter dans un sens puis dans l'autre (moteur qui retient une charge en descente).</p>
+
+  <h3>Règles de connexion</h3>
+  <div class="prop-box">Quand plusieurs ports sont reliés en un même nœud, le logiciel écrit automatiquement :
+    <ul style="margin:.4rem 0">
+      <li>l'<strong>égalité des grandeurs transversales</strong> (<em>across</em>) : potentiel électrique, vitesse, pression ou température commun(e) ;</li>
+      <li>la <strong>conservation des grandeurs traversantes</strong> (<em>through</em>) : la somme des courants, des forces, des débits ou des flux thermiques entrant dans le nœud est nulle.</li>
+    </ul>
+    Ce sont les lois de Kirchhoff, généralisées à tous les domaines.</div>
+  <div class="notice"><strong>Across/through n'est pas effort/flux.</strong> En électricité et en hydraulique, l'effort (tension, pression) est la grandeur transversale et le flux (courant, débit) la grandeur traversante. En mécanique, c'est l'inverse : la vitesse (flux) est commune aux ports reliés, et ce sont les forces (efforts) dont la somme est nulle. Les logiciels de type Modelica ou Simscape raisonnent en <em>across/through</em> ; le programme de PT raisonne en <em>effort/flux</em> : ne pas confondre les deux grilles.</div>
+
+  <h3>Compatibilité des domaines</h3>
+  <p>On ne relie que des ports de même nature. Tout changement de domaine passe par un composant de conversion :</p>
+  <ul>
+    <li>moteur électrique : électrique → rotation ;</li>
+    <li>pignon-crémaillère, vis-écrou, poulie-courroie, tambour-câble : rotation ↔ translation ;</li>
+    <li>pompe : rotation → hydraulique ; vérin : hydraulique → translation ;</li>
+    <li>résistance chauffante : électrique → thermique.</li>
+  </ul>
+  <p>Entre le monde acausal et les signaux de la commande, deux interfaces : les <strong>sources pilotées</strong> (un signal impose une tension, un couple, une vitesse…) et les <strong>capteurs</strong> (une grandeur physique devient un signal). Les ports de signal ne transportent aucune puissance.</p>
+
+  <h3>Références et sources</h3>
+  <ul>
+    <li>Une <strong>référence</strong> est indispensable dans chaque domaine : masse électrique, bâti fixe, réservoir à pression atmosphérique, température ambiante imposée.</li>
+    <li>Une <strong>source d'effort</strong> impose l'effort quel que soit le flux demandé (alimentation de tension idéale, poids, couple résistant constant, pression de réseau) ; une <strong>source de flux</strong> impose le flux quel que soit l'effort (générateur de courant, vitesse imposée, pompe volumétrique idéale).</li>
+  </ul>
+
+  <h3>Résolution, atouts et limites</h3>
+  <p>Le logiciel rassemble les équations de tous les composants et de toutes les connexions en un système d'équations différentielles et algébriques, le réorganise symboliquement pour décider lui-même de l'ordre de calcul, puis l'intègre avec un solveur capable de traiter de fortes non-linéarités (mécanismes à géométrie variable, frottements, saturations).</p>
+  <ul>
+    <li><strong>+</strong> L'architecture réelle est conservée : le modèle se lit comme le diagramme de blocs internes.</li>
+    <li><strong>+</strong> Composants réutilisables, paramètres physiques (catalogues, CAO) ; on change un moteur sans réécrire une équation.</li>
+    <li><strong>+</strong> Toutes les grandeurs physiques, donc toutes les puissances, sont disponibles en chaque lien.</li>
+    <li><strong>−</strong> Simulation plus lourde ; fonction de transfert et Bode non immédiats ; conditions initiales à rendre cohérentes ; contenu des composants de bibliothèque moins maîtrisé.</li>
+  </ul>
+  <div class="notice">Les deux approches se combinent : un modèle global comporte souvent une partie <strong>acausale</strong> (la chaîne de puissance) et une partie <strong>causale</strong> (consigne, correcteur, logique de commande), reliées par des sources pilotées et des capteurs.</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§5 · EFFORT, FLUX ET ANALOGIES</div>
+  <h2>Une même structure dans tous les domaines</h2>
+  <div class="intro">Chaque domaine physique possède son couple (effort, flux) et trois composants passifs de base : un élément qui dissipe l'énergie, un élément qui stocke de l'énergie « potentielle », un élément qui stocke de l'énergie « cinétique ». Repérer ces analogies permet de transposer d'un domaine à l'autre tout ce que l'on sait du circuit RLC.</div>
+
+  <h3>Couples effort/flux</h3>
+  <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:.85rem;margin:.6rem 0;min-width:480px">
+    <tr><th style="padding:.35rem .5rem;border:1px solid var(--muted);background:var(--paper-dark);text-align:left;vertical-align:top">Domaine</th><th style="padding:.35rem .5rem;border:1px solid var(--muted);background:var(--paper-dark);text-align:left;vertical-align:top">Effort \(e\)</th><th style="padding:.35rem .5rem;border:1px solid var(--muted);background:var(--paper-dark);text-align:left;vertical-align:top">Flux \(f\)</th><th style="padding:.35rem .5rem;border:1px solid var(--muted);background:var(--paper-dark);text-align:left;vertical-align:top">Puissance</th></tr>
+    <tr><td style="padding:.35rem .5rem;border:1px solid var(--muted);vertical-align:top">Translation</td><td style="padding:.35rem .5rem;border:1px solid var(--muted);vertical-align:top">force \(F\) (N)</td><td style="padding:.35rem .5rem;border:1px solid var(--muted);vertical-align:top">vitesse \(v\) (m/s)</td><td style="padding:.35rem .5rem;border:1px solid var(--muted);vertical-align:top">\(F\,v\)</td></tr>
+    <tr><td style="padding:.35rem .5rem;border:1px solid var(--muted);vertical-align:top">Rotation</td><td style="padding:.35rem .5rem;border:1px solid var(--muted);vertical-align:top">couple \(C\) (N·m)</td><td style="padding:.35rem .5rem;border:1px solid var(--muted);vertical-align:top">vitesse angulaire \(\omega\) (rad/s)</td><td style="padding:.35rem .5rem;border:1px solid var(--muted);vertical-align:top">\(C\,\omega\)</td></tr>
+    <tr><td style="padding:.35rem .5rem;border:1px solid var(--muted);vertical-align:top">Électricité</td><td style="padding:.35rem .5rem;border:1px solid var(--muted);vertical-align:top">tension \(u\) (V)</td><td style="padding:.35rem .5rem;border:1px solid var(--muted);vertical-align:top">courant \(i\) (A)</td><td style="padding:.35rem .5rem;border:1px solid var(--muted);vertical-align:top">\(u\,i\)</td></tr>
+    <tr><td style="padding:.35rem .5rem;border:1px solid var(--muted);vertical-align:top">Hydraulique</td><td style="padding:.35rem .5rem;border:1px solid var(--muted);vertical-align:top">pression \(p\) (Pa)</td><td style="padding:.35rem .5rem;border:1px solid var(--muted);vertical-align:top">débit volumique \(Q_v\) (m³/s)</td><td style="padding:.35rem .5rem;border:1px solid var(--muted);vertical-align:top">\(p\,Q_v\)</td></tr>
+    <tr><td style="padding:.35rem .5rem;border:1px solid var(--muted);vertical-align:top">Pneumatique</td><td style="padding:.35rem .5rem;border:1px solid var(--muted);vertical-align:top">pression \(p\) (Pa)</td><td style="padding:.35rem .5rem;border:1px solid var(--muted);vertical-align:top">débit massique \(q_m\) (kg/s), ou débit volumique \(Q_v\)</td><td style="padding:.35rem .5rem;border:1px solid var(--muted);vertical-align:top">\(p\,Q_v\)</td></tr>
+    <tr><td style="padding:.35rem .5rem;border:1px solid var(--muted);vertical-align:top">Thermique</td><td style="padding:.35rem .5rem;border:1px solid var(--muted);vertical-align:top">température \(T\) (K)</td><td style="padding:.35rem .5rem;border:1px solid var(--muted);vertical-align:top">flux d'entropie \(\dot S\) (W/K)</td><td style="padding:.35rem .5rem;border:1px solid var(--muted);vertical-align:top">\(T\,\dot S\)</td></tr>
+  </table></div>
+  <div class="notice"><strong>Pneumatique : l'air est compressible.</strong> Les logiciels décrivent souvent le débit d'air par un débit <em>massique</em> \(q_m\), parce que le débit volumique change avec la pression le long du circuit. Surtout, une chambre d'air se comporte comme un <strong>ressort</strong> : comprimer l'air d'un vérin fait monter sa pression. Le volume d'une chambre est donc un élément de stockage « potentiel » (comme l'accumulateur hydraulique), que l'on néglige souvent pour l'huile, presque incompressible, mais presque jamais pour l'air.</div>
+  <div class="prop-box">
+    <strong>Raideur d'une chambre de vérin.</strong> Pour une chambre de volume \(V\) et de section \(S\), sous la pression absolue \(p\), une petite évolution polytropique (\(pV^n\) constant) donne
+    <div class="formula" data-nom="Raideur pneumatique">$$k = \frac{n\,p\,S^2}{V}$$</div>
+    avec \(n = 1\) pour une évolution lente (isotherme) et \(n = \gamma = 1{,}4\) pour une évolution rapide (adiabatique). Pour une huile de module de compressibilité \(B\), le même calcul donne \(k = B\,S^2/V\).
+  </div>
+  <div class="reveal" onclick="this.classList.toggle('open')">
+    <span class="label">Démonstration et exemple</span>
+    <span class="prompt">Raideur d'un vérin pneumatique Ø 50 mm comparée à celle d'un vérin hydraulique.</span>
+    <div class="content">
+      <p>En différentiant \(pV^n = \text{cste}\) : \(\mathrm{d}p/p = -n\,\mathrm{d}V/V\). Si la tige s'enfonce de \(\mathrm{d}x\) dans la chambre, \(\mathrm{d}V = -S\,\mathrm{d}x\) et l'effort de l'air sur le piston augmente de \(\mathrm{d}F = S\,\mathrm{d}p = (n\,p\,S^2/V)\,\mathrm{d}x\) : c'est la raideur annoncée.</p>
+      <p>Vérin de diamètre 50 mm (\(S \approx 19{,}6\ \text{cm}^2\)), chambre longue de 10 cm (\(V \approx 196\ \text{cm}^3\)), sous 6 bar absolus : \(k \approx 11{,}8\ \text{N/mm}\) en isotherme, \(16{,}5\ \text{N/mm}\) en adiabatique. Avec une masse mobile de 10 kg, la pulsation propre \(\sqrt{k/m}\) correspond à 5,5 à 6,5 Hz : la charge « rebondit » sur son coussin d'air.</p>
+      <p>Le même vérin rempli d'huile (\(B \approx 1{,}4\cdot10^9\ \text{Pa}\)) a une raideur \(k \approx 2{,}7\cdot10^7\ \text{N/m}\), environ 2 300 fois plus grande (fréquence propre voisine de 260 Hz). D'où l'usage : vérins pneumatiques pour des mouvements tout ou rien entre butées, vérins hydrauliques ou électriques pour un positionnement précis.</p>
+    </div>
+  </div>
+  <div class="notice"><strong>Thermique : un « pseudo-couple ».</strong> Les logiciels utilisent le plus souvent la température \(T\) et le <em>flux thermique</em> \(\Phi\) (en W). Le produit \(T\,\Phi\) n'est alors pas une puissance : \(\Phi\) est déjà une puissance. Les lois de connexion restent valables (température commune, somme des flux nulle).</div>
+
+  <h3>Composants passifs élémentaires</h3>
+  <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:.85rem;margin:.6rem 0;min-width:480px">
+    <tr><th style="padding:.35rem .5rem;border:1px solid var(--muted);background:var(--paper-dark);text-align:left;vertical-align:top">Rôle</th><th style="padding:.35rem .5rem;border:1px solid var(--muted);background:var(--paper-dark);text-align:left;vertical-align:top">Électricité</th><th style="padding:.35rem .5rem;border:1px solid var(--muted);background:var(--paper-dark);text-align:left;vertical-align:top">Translation</th><th style="padding:.35rem .5rem;border:1px solid var(--muted);background:var(--paper-dark);text-align:left;vertical-align:top">Rotation</th><th style="padding:.35rem .5rem;border:1px solid var(--muted);background:var(--paper-dark);text-align:left;vertical-align:top">Hydraulique</th></tr>
+    <tr><td style="padding:.35rem .5rem;border:1px solid var(--muted);vertical-align:top"><strong>Dissipation</strong> \(e = R\,f\)</td><td style="padding:.35rem .5rem;border:1px solid var(--muted);vertical-align:top">résistance \(u = R\,i\)</td><td style="padding:.35rem .5rem;border:1px solid var(--muted);vertical-align:top">amortisseur \(F = c\,v\)</td><td style="padding:.35rem .5rem;border:1px solid var(--muted);vertical-align:top">frottement visqueux \(C = f_v\,\omega\)</td><td style="padding:.35rem .5rem;border:1px solid var(--muted);vertical-align:top">perte de charge linéaire \(\Delta p = R_h\,Q_v\)</td></tr>
+    <tr><td style="padding:.35rem .5rem;border:1px solid var(--muted);vertical-align:top"><strong>Stockage « potentiel »</strong> \(f = C\,\dfrac{de}{dt}\)</td><td style="padding:.35rem .5rem;border:1px solid var(--muted);vertical-align:top">condensateur \(i = C\,\dfrac{du}{dt}\)</td><td style="padding:.35rem .5rem;border:1px solid var(--muted);vertical-align:top">ressort \(v = \dfrac{1}{k}\dfrac{dF}{dt}\)</td><td style="padding:.35rem .5rem;border:1px solid var(--muted);vertical-align:top">barre de torsion \(\omega = \dfrac{1}{k_\theta}\dfrac{dC}{dt}\)</td><td style="padding:.35rem .5rem;border:1px solid var(--muted);vertical-align:top">accumulateur \(Q_v = C_h\,\dfrac{dp}{dt}\)</td></tr>
+    <tr><td style="padding:.35rem .5rem;border:1px solid var(--muted);vertical-align:top"><strong>Stockage « cinétique »</strong> \(e = I\,\dfrac{df}{dt}\)</td><td style="padding:.35rem .5rem;border:1px solid var(--muted);vertical-align:top">inductance \(u = L\,\dfrac{di}{dt}\)</td><td style="padding:.35rem .5rem;border:1px solid var(--muted);vertical-align:top">masse \(F = m\,\dfrac{dv}{dt}\)</td><td style="padding:.35rem .5rem;border:1px solid var(--muted);vertical-align:top">inertie \(C = J\,\dfrac{d\omega}{dt}\)</td><td style="padding:.35rem .5rem;border:1px solid var(--muted);vertical-align:top">inertance \(\Delta p = I_h\,\dfrac{dQ_v}{dt}\)</td></tr>
+    <tr><td style="padding:.35rem .5rem;border:1px solid var(--muted);vertical-align:top"><strong>Énergie stockée</strong></td><td style="padding:.35rem .5rem;border:1px solid var(--muted);vertical-align:top">\(\tfrac12 C u^2\) ; \(\tfrac12 L i^2\)</td><td style="padding:.35rem .5rem;border:1px solid var(--muted);vertical-align:top">\(\tfrac12 k x^2\) ; \(\tfrac12 m v^2\)</td><td style="padding:.35rem .5rem;border:1px solid var(--muted);vertical-align:top">\(\tfrac12 k_\theta \theta^2\) ; \(\tfrac12 J\omega^2\)</td><td style="padding:.35rem .5rem;border:1px solid var(--muted);vertical-align:top">\(\tfrac12 C_h p^2\) ; \(\tfrac12 I_h Q_v^2\)</td></tr>
+  </table></div>
+  <p>Le coefficient de frottement visqueux en rotation est noté ici \(f_v\) pour ne pas le confondre avec le flux \(f\) (on le note souvent \(f\) dans le chapitre sur la MCC).</p>
+
+  <h3>Analogie force–tension</h3>
+  <div class="prop-box">En associant effort à effort et flux à flux : masse \(m\) ↔ inductance \(L\) ; raideur \(k\) ↔ inverse de la capacité \(1/C\) ; amortisseur \(c\) ↔ résistance \(R\) ; déplacement \(x\) ↔ charge \(q\). Des éléments mécaniques qui ont la <strong>même vitesse</strong> correspondent à des dipôles parcourus par le <strong>même courant</strong>, c'est-à-dire en série.
+  $$m\ddot{x}+c\,\dot{x}+k\,x=F(t)\quad\longleftrightarrow$$
+  $$L\ddot{q}+R\,\dot{q}+\frac{q}{C}=u(t)$$
+  $$\omega_0=\sqrt{\frac{k}{m}}\ \leftrightarrow\ \frac{1}{\sqrt{LC}}$$
+  $$\xi=\frac{c}{2\sqrt{k\,m}}\ \leftrightarrow\ \frac{R}{2}\sqrt{\frac{C}{L}}$$</div>
+
+  <h3>Convertisseurs idéaux</h3>
+  <ul>
+    <li><strong>Transformateur</strong> : relie les efforts entre eux et les flux entre eux, sans perte. Réducteur : \(\omega_2 = k\,\omega_1\) et \(C_2 = C_1/k\) ; pignon-crémaillère : \(v = R_p\,\omega\) et \(F = C/R_p\) ; vérin : \(F = p\,S\) et \(Q_v = S\,v\).</li>
+    <li><strong>Gyrateur</strong> : croise effort et flux. C'est le cas de la machine à courant continu : la f.é.m. (effort électrique) est proportionnelle à la vitesse (flux mécanique), le couple (effort mécanique) au courant (flux électrique).</li>
+  </ul>
+  <div class="formula">$$e = K\,\omega,\qquad C_m = K\,i$$ $$\Longrightarrow\quad e\,i = C_m\,\omega$$</div>
+  <p>Dans les deux cas, la puissance qui entre est égale à la puissance qui sort ; les pertes sont apportées par des composants dissipatifs (résistance d'induit, frottements) ou par un rendement.</p>
+
+  <div class="reveal" onclick="this.classList.toggle('open')">
+    <span class="label">Application</span>
+    <span class="prompt">Un vérin de section 12 cm² reçoit un débit de 0,6 L/min sous 80 bar. Vitesse de tige, effort développé, puissance ?</span>
+    <div class="content"><p>Vérin : \(S = 12\ \text{cm}^2\), débit 0,6 L/min, pression 80 bar. \(Q_v = 0{,}6\cdot10^{-3}/60 = 1{,}0\cdot10^{-5}\ \text{m}^3/\text{s}\), d'où \(v = Q_v/S = 10^{-5}/1{,}2\cdot10^{-3} \approx 8{,}3\ \text{mm/s}\). Effort : \(F = p\,S = 8\cdot10^{6}\times1{,}2\cdot10^{-3} = 9\,600\ \text{N}\).</p>
+    <p>Puissance : \(F\,v = p\,Q_v = 8\cdot10^{6}\times10^{-5} = 80\ \text{W}\). Le vérin idéal est un transformateur : il conserve la puissance.</p></div>
+  </div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§6 · EXEMPLE : MOTORISATION D'UN CONVOYEUR</div>
+  <h2>Un même système, deux modèles</h2>
+  <div class="intro">Un convoyeur à bande est entraîné par un moteur à courant continu, alimenté par un variateur, à travers un réducteur et un rouleau moteur. On le modélise d'abord en causal, puis en acausal.</div>
+
+  <h3>Hypothèses et notations</h3>
+  <ul>
+    <li>Induit de résistance \(R\) et d'inductance \(L\) ; constante de f.é.m. et de couple \(K\) ; inertie du rotor \(J_m\) ; frottement visqueux équivalent \(f_v\) sur l'arbre moteur.</li>
+    <li>Réducteur de rapport \(k = \omega_r/\omega_m\) (\(k \lt 1\)), d'inertie négligée ; rouleau de rayon \(r\) ; bande et charges de masse totale \(M\), de vitesse \(v = r\,\omega_r = k\,r\,\omega_m\).</li>
+    <li>Effort résistant \(F_r\) sur la bande (frottements, pente) ; transmission sans perte et sans glissement.</li>
+  </ul>
+
+  <h3>Réduction à l'arbre moteur</h3>
+  <p>L'énergie cinétique de l'ensemble s'écrit avec la seule vitesse \(\omega_m\) :</p>
+  <div class="formula">$$E_c=\frac12 J_m\,\omega_m^2+\frac12 M v^2$$ $$E_c=\frac12\underbrace{\left(J_m+M\,k^2r^2\right)}_{J_{eq}}\,\omega_m^2$$</div>
+  <p>La puissance de l'effort résistant vaut \(-F_r\,v = -(k\,r\,F_r)\,\omega_m\) : tout se passe comme si un couple résistant \(C_{r,eq} = k\,r\,F_r\) s'exerçait sur l'arbre moteur. Le théorème de l'énergie cinétique donne alors l'équation mécanique.</p>
+
+  <h3>Modèle causal</h3>
+  <div class="formula">$$u = e + R\,i + L\frac{di}{dt}$$ $$e = K\,\omega_m,\qquad C_m = K\,i$$</div>
+  <div class="formula">$$J_{eq}\frac{d\omega_m}{dt} = C_m - C_{r,eq} - f_v\,\omega_m$$ $$v = k\,r\,\omega_m$$</div>
+  <p>Sous les conditions de Heaviside, chaque équation devient un bloc orienté de la cause vers l'effet ; la f.é.m. crée une boucle de retour interne, purement physique (ce n'est pas un asservissement) :</p>
+
+<figure class="schema">
+<svg viewBox="0 0 400 128" role="img" aria-label="Schéma-blocs de la motorisation : tension, bloc électrique, constante de couple, sommateur du couple résistant, bloc mécanique, vitesse moteur, gain k r vers la vitesse de bande, retour de la force électromotrice">
+  <text x="4" y="49">U</text>
+  <line x1="15" y1="45" x2="30" y2="45" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+  <circle cx="38" cy="45" r="7" class="sk-ink fl-paper"/>
+  <text x="24" y="38" class="lab-muted">+</text>
+  <text x="44" y="68" class="lab-muted">−</text>
+  <line x1="45" y1="45" x2="61" y2="45" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+  <rect x="62" y="31" width="62" height="28" class="sk-ink fl-paper"/>
+  <text x="93" y="49" text-anchor="middle" style="font-size:11px">1/(R+Lp)</text>
+  <line x1="124" y1="45" x2="145" y2="45" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+  <text x="135" y="39" class="lab-muted" text-anchor="middle">I</text>
+  <rect x="146" y="31" width="26" height="28" class="sk-ink fl-paper"/>
+  <text x="159" y="49" text-anchor="middle">K</text>
+  <line x1="172" y1="45" x2="195" y2="45" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+  <text x="183" y="39" class="lab-muted" text-anchor="middle">Cₘ</text>
+  <circle cx="203" cy="45" r="7" class="sk-ink fl-paper"/>
+  <text x="189" y="62" class="lab-muted">+</text>
+  <text x="208" y="33" class="lab-muted">−</text>
+  <line x1="203" y1="6" x2="203" y2="37" class="sk-accent" marker-end="url(#sk-arrow-accent)"/>
+  <text x="210" y="15" class="lab-accent">Cᵣ</text>
+  <line x1="210" y1="45" x2="227" y2="45" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+  <rect x="228" y="31" width="70" height="28" class="sk-ink fl-paper"/>
+  <text x="263" y="49" text-anchor="middle" style="font-size:11px">1/(J p + fᵥ)</text>
+  <line x1="298" y1="45" x2="333" y2="45" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+  <circle cx="316" cy="45" r="2.4" class="fl-ink"/>
+  <text x="316" y="38" class="lab-muted" text-anchor="middle">Ωₘ</text>
+  <rect x="334" y="31" width="34" height="28" class="sk-ink fl-paper"/>
+  <text x="351" y="49" text-anchor="middle" style="font-size:11px">k·r</text>
+  <line x1="368" y1="45" x2="394" y2="45" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+  <text x="384" y="38" class="lab-muted" text-anchor="middle">V</text>
+  <polyline points="316,45 316,105 173,105" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+  <rect x="146" y="91" width="26" height="28" class="sk-ink fl-paper"/>
+  <text x="159" y="109" text-anchor="middle">K</text>
+  <polyline points="146,105 38,105 38,53" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+  <text x="92" y="99" class="lab-muted" text-anchor="middle">E</text>
+</svg>
+<figcaption>Modèle causal de la motorisation : J désigne l'inertie équivalente J<sub>eq</sub> et C<sub>r</sub> le couple résistant ramené C<sub>r,eq</sub>. Chaque lien porte une seule grandeur ; la f.é.m. E forme une boucle de retour interne.</figcaption>
+</figure>
+
+  <p>Pour \(C_{r,eq} = 0\), la formule de la boucle donne :</p>
+  <div class="formula">$$\frac{\Omega_m(p)}{U(p)}=\frac{K}{(R+L\,p)(J_{eq}\,p+f_v)+K^2}$$</div>
+  <div class="prop-box"><strong>Modèle réduit.</strong> Si la constante de temps électrique \(\tau_e = L/R\) est petite devant la constante de temps mécanique et si \(f_v\) est négligeable :
+  $$\frac{\Omega_m(p)}{U(p)}\approx\frac{1/K}{1+\tau_m\,p}$$ $$\tau_m=\frac{R\,J_{eq}}{K^2}$$
+  Ordres de grandeur pour un moteur de quelques dizaines de watts : \(R \approx 1\ \Omega\), \(L \approx 1\ \text{mH}\), \(K \approx 0{,}05\ \text{N·m/A}\), \(J_{eq} \approx 10^{-4}\ \text{kg·m}^2\) charge comprise, d'où \(\tau_e \approx 1\ \text{ms}\) et \(\tau_m \approx 40\ \text{ms}\).</div>
+
+  <h3>Modèle acausal</h3>
+  <p>On assemble les composants dans l'ordre de l'architecture réelle : source de tension pilotée par la commande, MCC (paramètres \(R\), \(L\), \(K\), \(J_m\)), réducteur idéal (\(k\)), rouleau (rotation → translation, rayon \(r\)), masse \(M\), source d'effort \(F_r\), capteur de vitesse. Chaque lien porte un couple effort/flux :</p>
+
+<figure class="schema">
+<svg viewBox="0 0 400 146" role="img" aria-label="Modèle acausal : source de tension pilotée, moteur, réducteur, rouleau et charge reliés par des liens non orientés portant chacun un couple effort-flux ; masse électrique, effort résistant et capteur de vitesse">
+  <text x="91" y="22" class="lab-muted" text-anchor="middle">u, i</text>
+  <text x="169" y="22" class="lab-muted" text-anchor="middle">Cₘ, ωₘ</text>
+  <text x="247" y="22" class="lab-muted" text-anchor="middle">Cₛ, ωᵣ</text>
+  <text x="325" y="22" class="lab-muted" text-anchor="middle">F, v</text>
+  <rect x="22" y="30" width="60" height="36" class="sk-ink fl-paper"/>
+  <rect x="100" y="30" width="60" height="36" class="sk-ink fl-paper"/>
+  <rect x="178" y="30" width="60" height="36" class="sk-ink fl-paper"/>
+  <rect x="256" y="30" width="60" height="36" class="sk-ink fl-paper"/>
+  <rect x="334" y="30" width="60" height="36" class="sk-ink fl-paper"/>
+  <text x="52" y="45" text-anchor="middle" style="font-size:11px">Source u</text>
+  <text x="52" y="59" text-anchor="middle" class="lab-muted" style="font-size:10px">pilotée</text>
+  <text x="130" y="45" text-anchor="middle" style="font-size:11px">MCC</text>
+  <text x="130" y="59" text-anchor="middle" class="lab-muted" style="font-size:10px">R, L, K, Jₘ</text>
+  <text x="208" y="45" text-anchor="middle" style="font-size:11px">Réducteur</text>
+  <text x="208" y="59" text-anchor="middle" class="lab-muted" style="font-size:10px">k</text>
+  <text x="286" y="45" text-anchor="middle" style="font-size:11px">Rouleau</text>
+  <text x="286" y="59" text-anchor="middle" class="lab-muted" style="font-size:10px">r</text>
+  <text x="364" y="45" text-anchor="middle" style="font-size:11px">Charge</text>
+  <text x="364" y="59" text-anchor="middle" class="lab-muted" style="font-size:10px">M</text>
+  <line x1="82" y1="40" x2="100" y2="40" class="sk-ink"/>
+  <line x1="82" y1="56" x2="100" y2="56" class="sk-ink"/>
+  <line x1="91" y1="56" x2="91" y2="82" class="sk-ink"/>
+  <line x1="81" y1="82" x2="101" y2="82" class="sk-ink"/>
+  <line x1="84" y1="86" x2="98" y2="86" class="sk-ink"/>
+  <line x1="87" y1="90" x2="95" y2="90" class="sk-ink"/>
+  <line x1="160" y1="48" x2="178" y2="48" class="sk-ink"/>
+  <line x1="238" y1="48" x2="256" y2="48" class="sk-ink"/>
+  <line x1="316" y1="48" x2="334" y2="48" class="sk-ink"/>
+  <line x1="2" y1="48" x2="20" y2="48" class="sk-accent2" marker-end="url(#sk-arrow-accent2)"/>
+  <text x="2" y="84" class="lab-accent2" style="font-size:10.5px">consigne</text>
+  <line x1="364" y1="66" x2="364" y2="98" class="sk-ink"/>
+  <circle cx="364" cy="82" r="2.6" class="fl-ink"/>
+  <polyline points="286,98 286,82 364,82" class="sk-ink"/>
+  <rect x="334" y="98" width="60" height="26" class="sk-ink fl-paper"/>
+  <text x="364" y="115" text-anchor="middle" style="font-size:11px">Effort Fᵣ</text>
+  <rect x="256" y="98" width="60" height="26" class="sk-ink fl-paper"/>
+  <text x="286" y="115" text-anchor="middle" style="font-size:11px">Capteur v</text>
+  <line x1="256" y1="111" x2="208" y2="111" class="sk-accent2" marker-end="url(#sk-arrow-accent2)"/>
+  <text x="250" y="140" class="lab-accent2" text-anchor="end" style="font-size:10.5px">mesure (signal)</text>
+</svg>
+<figcaption>Modèle acausal du convoyeur. Les liens en trait continu, non orientés, portent un couple effort/flux (C<sub>s</sub> : couple en sortie du réducteur) ; les flèches bleues sont des signaux sans puissance. Le stator du moteur et le carter du réducteur sont reliés au bâti (non représenté) ; la masse électrique fixe le potentiel de référence.</figcaption>
+</figure>
+
+  <p>Aucun calcul préalable : ni \(J_{eq}\) ni \(C_{r,eq}\) n'apparaissent, le logiciel les « retrouve » en résolvant les équations. Ajouter un rendement au réducteur, l'élasticité de la bande ou un hacheur réel revient à changer ou ajouter un composant.</p>
+
+  <div class="reveal" onclick="this.classList.toggle('open')">
+    <span class="label">Application</span>
+    <span class="prompt">En régime établi à la vitesse v, quelles puissances portent le lien de translation, le lien de rotation sur l'arbre moteur et le lien électrique ?</span>
+    <div class="content"><p>Régime établi (dérivées nulles) à la vitesse \(v\) :</p>
+    <ul>
+      <li>translation : \(\mathcal{P} = F_r\,v\) ;</li>
+      <li>rotation (arbre moteur) : \(C_m\,\omega_m = (C_{r,eq} + f_v\,\omega_m)\,\omega_m\), soit \(F_r\,v + f_v\,\omega_m^2\) ;</li>
+      <li>électrique : \(u\,i = e\,i + R\,i^2 = C_m\,\omega_m + R\,i^2\).</li>
+    </ul>
+    <p>Chaque lien porte la puissance du lien suivant augmentée des pertes situées entre les deux (frottements, effet Joule).</p></div>
+  </div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§7 · CHOISIR, PARAMÉTRER, VALIDER</div>
+  <h2>Un modèle au service d'un objectif</h2>
+  <div class="intro">Il n'existe pas de modèle « vrai » d'un système, seulement des modèles adaptés ou non à une question. On choisit un modèle d'après ce que l'on veut prédire, puis on le valide en le confrontant à l'expérience.</div>
+
+  <h3>Choisir le niveau de modèle</h3>
+  <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:.85rem;margin:.6rem 0;min-width:480px">
+    <tr><th style="padding:.35rem .5rem;border:1px solid var(--muted);background:var(--paper-dark);text-align:left;vertical-align:top">Objectif</th><th style="padding:.35rem .5rem;border:1px solid var(--muted);background:var(--paper-dark);text-align:left;vertical-align:top">Modèle adapté</th></tr>
+    <tr><td style="padding:.35rem .5rem;border:1px solid var(--muted);vertical-align:top">Régler un correcteur ; étudier stabilité, précision, bande passante</td><td style="padding:.35rem .5rem;border:1px solid var(--muted);vertical-align:top">causal linéarisé (fonctions de transfert)</td></tr>
+    <tr><td style="padding:.35rem .5rem;border:1px solid var(--muted);vertical-align:top">Dimensionner un actionneur (couple, courant, puissance crête)</td><td style="padding:.35rem .5rem;border:1px solid var(--muted);vertical-align:top">causal non linéaire ou acausal, avec observation des puissances</td></tr>
+    <tr><td style="padding:.35rem .5rem;border:1px solid var(--muted);vertical-align:top">Évaluer une consommation, une autonomie, un échauffement</td><td style="padding:.35rem .5rem;border:1px solid var(--muted);vertical-align:top">acausal sur un cycle complet, avec rendements et pertes</td></tr>
+    <tr><td style="padding:.35rem .5rem;border:1px solid var(--muted);vertical-align:top">Étudier un mécanisme dont la loi entrée-sortie n'est pas linéaire (came, bras articulé…)</td><td style="padding:.35rem .5rem;border:1px solid var(--muted);vertical-align:top">acausal multicorps, souvent importé de la CAO</td></tr>
+  </table></div>
+
+  <h3>Solide indéformable ou déformable ?</h3>
+  <p>Le modèle de solide <strong>indéformable</strong> suffit tant que les déformations des pièces n'influencent ni le mouvement étudié ni les performances attendues. Deux situations imposent un modèle <strong>déformable</strong> :</p>
+  <ul>
+    <li>la performance cherchée est elle-même une déformation ou une contrainte (flèche d'un bras, raideur d'un bâti, tenue d'un arbre) : modèle de poutre (« Résistance des matériaux ») ou calcul par éléments finis ;</li>
+    <li>une élasticité de la transmission (arbre long en torsion, courroie, accouplement élastique, câble, bras de robot élancé) crée un mode de vibration dont la fréquence approche la bande passante de la commande.</li>
+  </ul>
+  <div class="def-box">
+    <strong>Modèle à deux inerties.</strong> Le moteur (inertie \(J_m\)) et la charge (inertie \(J_c\)) sont reliés par une raideur de torsion \(k_\theta\) (et un léger amortissement). Le mode élastique a pour pulsation propre
+    <div class="formula" data-nom="Pulsation du mode élastique">$$\omega_r = \sqrt{k_\theta\,\frac{J_m+J_c}{J_m\,J_c}}$$</div>
+    Vue de l'arbre moteur (là où se trouve souvent le capteur de vitesse), la transmission présente d'abord une <strong>antirésonance</strong> en \(\omega_a = \sqrt{k_\theta/J_c}\), puis la résonance en \(\omega_r\).
+  </div>
+  <div class="reveal" onclick="this.classList.toggle('open')">
+    <span class="label">Démonstration</span>
+    <span class="prompt">Pulsation propre du mode élastique.</span>
+    <div class="content">
+      <p>Sans couple extérieur ni amortissement, le PFD appliqué à chaque inertie donne \(J_m\ddot\theta_m = -k_\theta(\theta_m-\theta_c)\) et \(J_c\ddot\theta_c = k_\theta(\theta_m-\theta_c)\). En retranchant ces équations divisées par \(J_m\) et \(J_c\), l'angle de torsion \(\varphi = \theta_m - \theta_c\) vérifie</p>
+      <div class="formula">$$\ddot\varphi + k_\theta\left(\frac{1}{J_m}+\frac{1}{J_c}\right)\varphi = 0$$</div>
+      <p>C'est un oscillateur de pulsation \(\omega_r\). Le mouvement d'ensemble (\(J_m\theta_m + J_c\theta_c\)) n'est soumis à aucun couple : c'est le mode « rigide », seul pris en compte par le modèle indéformable.</p>
+    </div>
+  </div>
+  <div class="prop-box">
+    <strong>Critère.</strong> On garde le modèle de solide indéformable si la plus basse pulsation propre vue par la commande (ici \(\omega_a\)) est au moins <strong>5 à 10 fois</strong> supérieure à la pulsation de coupure \(\omega_{c0}\) de la boucle. Sinon, la résonance, peu amortie, relève le gain de la FTBO près de la coupure et peut déstabiliser la boucle : il faut un modèle déformable, et soit raidir la transmission, soit réduire la bande passante, soit filtrer la commande.
+  </div>
+  <div class="method-box">
+    <strong>Exemple — arbre d'entraînement d'un plateau tournant</strong>
+    <p>Moteur \(J_m = 2\cdot10^{-3}\ \text{kg·m}^2\), plateau \(J_c = 6\cdot10^{-3}\ \text{kg·m}^2\), reliés par un arbre en acier de diamètre 12 mm et de longueur 0,5 m (\(G = 80\ \text{GPa}\)).</p>
+    <ol>
+      <li>Raideur de torsion : \(I_0 = \pi d^4/32 \approx 2{,}04\cdot10^{-9}\ \text{m}^4\), \(k_\theta = G I_0/\ell \approx 326\ \text{N·m/rad}\).</li>
+      <li>Pulsations, avec \(J_m + J_c = 8\cdot10^{-3}\) et \(J_mJ_c = 12\cdot10^{-6}\) (unités SI) : \(\omega_r \approx 466\ \text{rad/s}\) (74 Hz) et \(\omega_a \approx 233\ \text{rad/s}\) (37 Hz).</li>
+      <li>Boucle de vitesse réglée à \(\omega_{c0} = 40\ \text{rad/s}\) : \(\omega_a/\omega_{c0} \approx 5{,}8\), le modèle rigide (\(J = J_m + J_c = 8\cdot10^{-3}\ \text{kg·m}^2\)) convient.</li>
+      <li>Pour \(\omega_{c0} = 150\ \text{rad/s}\), le rapport tombe à 1,6 : le modèle doit inclure la raideur. Un arbre de 20 mm de diamètre et de 0,25 m de long multiplie \(k_\theta\) par 15 et \(\omega_a\) par 3,9 (environ 915 rad/s, rapport 6) : on retrouve un comportement rigide.</li>
+    </ol>
+  </div>
+<figure class="schema">
+<svg viewBox="0 0 380 200" role="img" aria-label="Gain de la fonction de transfert vitesse moteur sur couple moteur : modèle rigide à pente moins 20 décibels par décade, et modèle à deux inerties avec un creux d'antirésonance puis un pic de résonance">
+<line x1="42" y1="168" x2="306" y2="168" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<line x1="42" y1="168" x2="42" y2="6" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<text x="308" y="172" class="lab-muted lab-it">ω (rad/s)</text>
+<text x="38" y="4" class="lab-muted lab-it" text-anchor="end">dB</text>
+<line x1="42" y1="149.2" x2="294" y2="149.2" class="sk-dash" style="opacity:.5"/>
+<text x="37" y="153.2" class="lab-muted" text-anchor="end">−40</text>
+<line x1="42" y1="111.8" x2="294" y2="111.8" class="sk-dash" style="opacity:.5"/>
+<text x="37" y="115.8" class="lab-muted" text-anchor="end">−20</text>
+<line x1="42" y1="74.2" x2="294" y2="74.2" class="sk-dash" style="opacity:.5"/>
+<text x="37" y="78.2" class="lab-muted" text-anchor="end">0</text>
+<line x1="42" y1="36.8" x2="294" y2="36.8" class="sk-dash" style="opacity:.5"/>
+<text x="37" y="40.8" class="lab-muted" text-anchor="end">20</text>
+<line x1="130.1" y1="168" x2="130.1" y2="171.8" class="sk-ink"/>
+<text x="130.1" y="183" class="lab-muted" text-anchor="middle">100</text>
+<line x1="256.1" y1="168" x2="256.1" y2="171.8" class="sk-ink"/>
+<text x="256.1" y="183" class="lab-muted" text-anchor="middle">1000</text>
+<polyline points="42,44.4 43.2,44.7 44.3,45.1 45.5,45.4 46.6,45.8 47.8,46.1 48.9,46.5 50.1,46.8 51.2,47.1 52.4,47.5 53.5,47.8 54.7,48.2 55.8,48.5 57,48.9 58.1,49.2 59.3,49.5 60.4,49.9 61.6,50.2 62.7,50.6 63.9,50.9 65,51.3 66.2,51.6 67.3,51.9 68.5,52.3 69.6,52.6 70.8,53 71.9,53.3 73.1,53.7 74.2,54 75.4,54.3 76.5,54.7 77.7,55 78.8,55.4 80,55.7 81.1,56 82.3,56.4 83.4,56.7 84.6,57.1 85.7,57.4 86.9,57.8 88,58.1 89.2,58.4 90.3,58.8 91.5,59.1 92.6,59.5 93.8,59.8 94.9,60.2 96.1,60.5 97.2,60.8 98.4,61.2 99.5,61.5 100.7,61.9 101.8,62.2 103,62.6 104.1,62.9 105.3,63.2 106.4,63.6 107.6,63.9 108.7,64.3 109.9,64.6 111,65 112.2,65.3 113.3,65.6 114.5,66 115.6,66.3 116.8,66.7 117.9,67 119.1,67.3 120.2,67.7 121.4,68 122.5,68.4 123.7,68.7 124.8,69.1 126,69.4 127.2,69.7 128.3,70.1 129.5,70.4 130.6,70.8 131.8,71.1 132.9,71.5 134.1,71.8 135.2,72.1 136.4,72.5 137.5,72.8 138.7,73.2 139.8,73.5 141,73.9 142.1,74.2 143.3,74.5 144.4,74.9 145.6,75.2 146.7,75.6 147.9,75.9 149,76.3 150.2,76.6 151.3,76.9 152.5,77.3 153.6,77.6 154.8,78 155.9,78.3 157.1,78.7 158.2,79 159.4,79.3 160.5,79.7 161.7,80 162.8,80.4 164,80.7 165.1,81 166.3,81.4 167.4,81.7 168.6,82.1 169.7,82.4 170.9,82.8 172,83.1 173.2,83.4 174.3,83.8 175.5,84.1 176.6,84.5 177.8,84.8 178.9,85.2 180.1,85.5 181.2,85.8 182.4,86.2 183.5,86.5 184.7,86.9 185.8,87.2 187,87.6 188.1,87.9 189.3,88.2 190.4,88.6 191.6,88.9 192.7,89.3 193.9,89.6 195,90 196.2,90.3 197.3,90.6 198.5,91 199.6,91.3 200.8,91.7 201.9,92 203.1,92.3 204.2,92.7 205.4,93 206.5,93.4 207.7,93.7 208.8,94.1 210,94.4 211.2,94.7 212.3,95.1 213.5,95.4 214.6,95.8 215.8,96.1 216.9,96.5 218.1,96.8 219.2,97.1 220.4,97.5 221.5,97.8 222.7,98.2 223.8,98.5 225,98.9 226.1,99.2 227.3,99.5 228.4,99.9 229.6,100.2 230.7,100.6 231.9,100.9 233,101.3 234.2,101.6 235.3,101.9 236.5,102.3 237.6,102.6 238.8,103 239.9,103.3 241.1,103.7 242.2,104 243.4,104.3 244.5,104.7 245.7,105 246.8,105.4 248,105.7 249.1,106 250.3,106.4 251.4,106.7 252.6,107.1 253.7,107.4 254.9,107.8 256,108.1 257.2,108.4 258.3,108.8 259.5,109.1 260.6,109.5 261.8,109.8 262.9,110.2 264.1,110.5 265.2,110.8 266.4,111.2 267.5,111.5 268.7,111.9 269.8,112.2 271,112.6 272.1,112.9 273.3,113.2 274.4,113.6 275.6,113.9 276.7,114.3 277.9,114.6 279,115 280.2,115.3 281.3,115.6 282.5,116 283.6,116.3 284.8,116.7 285.9,117 287.1,117.3 288.2,117.7 289.4,118 290.5,118.4 291.7,118.7 292.8,119.1 294,119.4" class="sk-accent2"  style="stroke-dasharray:5 3"/>
+<polyline points="42,44.5 43.2,44.8 44.3,45.2 45.5,45.5 46.6,45.9 47.8,46.2 48.9,46.6 50.1,46.9 51.2,47.3 52.4,47.6 53.5,48 54.7,48.3 55.8,48.7 57,49 58.1,49.4 59.3,49.7 60.4,50.1 61.6,50.4 62.7,50.8 63.9,51.1 65,51.5 66.2,51.8 67.3,52.2 68.5,52.5 69.6,52.9 70.8,53.2 71.9,53.6 73.1,53.9 74.2,54.3 75.4,54.6 76.5,55 77.7,55.4 78.8,55.7 80,56.1 81.1,56.4 82.3,56.8 83.4,57.2 84.6,57.5 85.7,57.9 86.9,58.2 88,58.6 89.2,59 90.3,59.3 91.5,59.7 92.6,60.1 93.8,60.4 94.9,60.8 96.1,61.2 97.2,61.5 98.4,61.9 99.5,62.3 100.7,62.7 101.8,63 103,63.4 104.1,63.8 105.3,64.2 106.4,64.6 107.6,65 108.7,65.4 109.9,65.7 111,66.1 112.2,66.5 113.3,66.9 114.5,67.3 115.6,67.7 116.8,68.2 117.9,68.6 119.1,69 120.2,69.4 121.4,69.8 122.5,70.3 123.7,70.7 124.8,71.1 126,71.6 127.2,72 128.3,72.5 129.5,72.9 130.6,73.4 131.8,73.8 132.9,74.3 134.1,74.8 135.2,75.3 136.4,75.8 137.5,76.3 138.7,76.8 139.8,77.4 141,77.9 142.1,78.5 143.3,79 144.4,79.6 145.6,80.2 146.7,80.9 147.9,81.5 149,82.1 150.2,82.8 151.3,83.5 152.5,84.3 153.6,85 154.8,85.8 155.9,86.7 157.1,87.6 158.2,88.5 159.4,89.5 160.5,90.6 161.7,91.7 162.8,92.9 164,94.3 165.1,95.7 166.3,97.3 167.4,99.1 168.6,101.2 169.7,103.6 170.9,106.4 172,109.8 173.2,114 174.3,119.5 175.5,125.9 176.6,128.2 177.8,122.2 178.9,115.7 180.1,110.4 181.2,106.1 182.4,102.6 183.5,99.5 184.7,96.8 185.8,94.4 187,92.1 188.1,90.1 189.3,88.1 190.4,86.2 191.6,84.4 192.7,82.7 193.9,81 195,79.3 196.2,77.6 197.3,75.9 198.5,74.2 199.6,72.4 200.8,70.6 201.9,68.7 203.1,66.8 204.2,64.7 205.4,62.5 206.5,60.1 207.7,57.5 208.8,54.6 210,51.3 211.2,47.8 212.3,44.1 213.5,41.2 214.6,40.3 215.8,42.1 216.9,45.1 218.1,48.3 219.2,51.2 220.4,53.8 221.5,56 222.7,58 223.8,59.8 225,61.4 226.1,62.9 227.3,64.2 228.4,65.4 229.6,66.6 230.7,67.7 231.9,68.7 233,69.6 234.2,70.5 235.3,71.3 236.5,72.2 237.6,72.9 238.8,73.7 239.9,74.4 241.1,75.1 242.2,75.7 243.4,76.4 244.5,77 245.7,77.6 246.8,78.2 248,78.8 249.1,79.3 250.3,79.9 251.4,80.4 252.6,81 253.7,81.5 254.9,82 256,82.5 257.2,83 258.3,83.4 259.5,83.9 260.6,84.4 261.8,84.8 262.9,85.3 264.1,85.7 265.2,86.2 266.4,86.6 267.5,87 268.7,87.5 269.8,87.9 271,88.3 272.1,88.7 273.3,89.1 274.4,89.6 275.6,90 276.7,90.4 277.9,90.8 279,91.2 280.2,91.6 281.3,92 282.5,92.3 283.6,92.7 284.8,93.1 285.9,93.5 287.1,93.9 288.2,94.3 289.4,94.6 290.5,95 291.7,95.4 292.8,95.8 294,96.1" class="sk-accent"/>
+<text x="176.4" y="183" class="lab-accent" text-anchor="middle">ω<tspan dy="4" font-size="12">a</tspan></text>
+<text x="214.3" y="183" class="lab-accent" text-anchor="middle">ω<tspan dy="4" font-size="12">r</tspan></text>
+<line x1="176.4" y1="168" x2="176.4" y2="128.2" class="sk-dash"/>
+<line x1="214.3" y1="168" x2="214.3" y2="40.3" class="sk-dash"/>
+<text x="54.2" y="122.1" class="lab-accent">deux inerties + raideur</text>
+<text x="54.2" y="138" class="lab-accent2">solide indéformable</text>
+</svg>
+<figcaption>Vitesse du moteur rapportée au couple moteur (gain en dB) pour l'arbre de l'exemple : le modèle à deux inerties suit le modèle rigide tant que ω reste loin sous l'antirésonance ω<sub>a</sub> ≈ 233 rad/s ; au-delà, creux puis pic de résonance en ω<sub>r</sub> ≈ 466 rad/s (amortissement de 5 %).</figcaption>
+</figure>
+
+  <h3>Non-linéarités usuelles</h3>
+  <ul>
+    <li><strong>Saturation</strong> : une grandeur ne peut pas dépasser une limite (tension d'alimentation, courant maximal du variateur, course d'un vérin). Effet : pour un grand échelon, réponse plus lente que celle prévue par le modèle linéaire ; l'intégrateur d'un correcteur peut se « charger » exagérément (<em>windup</em>).</li>
+    <li><strong>Frottement sec</strong> (Coulomb) : couple de valeur \(C_s\) opposé au mouvement, indépendant de la vitesse. Effet : seuil de démarrage, zone morte, erreur statique en position, broutement à basse vitesse.</li>
+    <li><strong>Jeu</strong> (engrenage, liaison) : le mouvement n'est transmis qu'après rattrapage du jeu. Effet : imprécision de position, petites oscillations entretenues en boucle fermée.</li>
+    <li><strong>Courbure</strong> : caractéristique qui n'est pas une droite (débit d'un orifice en \(\sqrt{\Delta p}\), couple aérodynamique en \(\omega^2\), rendement variable avec la charge). Effet : le gain du modèle linéarisé (§3) change avec le point de fonctionnement ; un réglage fait à un point peut ne plus convenir à un autre.</li>
+    <li><strong>Seuil et hystérésis</strong> : zone morte d'un distributeur ou d'un variateur, thermostat qui bascule à deux températures différentes à la montée et à la descente. Effet : petite erreur permanente, ou oscillation entretenue (cycle limite) autour de la consigne.</li>
+    <li><strong>Retard pur</strong> : transport de matière (bande, canalisation), temps de calcul et échantillonnage d'une commande numérique (« Systèmes numériques », §4). Il ne change pas le gain mais retire \(\omega\tau\) radians de phase : la marge de phase diminue d'autant à la coupure (chapitre « Stabilité » de 1ʳᵉ année).</li>
+    <li>Autres : quantification d'un codeur, variation d'un paramètre avec la température (résistance d'un bobinage).</li>
+  </ul>
+
+<figure class="schema">
+<svg viewBox="0 0 360 126" role="img" aria-label="Caractéristiques de trois non-linéarités : saturation, frottement sec, jeu">
+  <line x1="15" y1="60" x2="105" y2="60" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+  <line x1="60" y1="105" x2="60" y2="12" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+  <polyline points="20,85 40,85 80,35 100,35" class="sk-accent"/>
+  <text x="104" y="74" class="lab-muted" text-anchor="end">e</text>
+  <text x="66" y="20" class="lab-muted">s</text>
+  <line x1="135" y1="60" x2="225" y2="60" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+  <line x1="180" y1="105" x2="180" y2="12" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+  <polyline points="140,80 180,80" class="sk-accent"/>
+  <polyline points="180,40 220,40" class="sk-accent"/>
+  <line x1="180" y1="80" x2="180" y2="40" class="sk-dash"/>
+  <text x="224" y="74" class="lab-muted" text-anchor="end">ω</text>
+  <text x="186" y="20" class="lab-muted">C</text>
+  <text x="200" y="34" class="lab-accent" style="font-size:10px">+Cₛ</text>
+  <text x="145" y="94" class="lab-accent" style="font-size:10px">−Cₛ</text>
+  <line x1="255" y1="60" x2="345" y2="60" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+  <line x1="300" y1="105" x2="300" y2="12" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+  <polyline points="295,75 325,45 305,45 275,75 295,75" class="sk-accent"/>
+  <text x="344" y="74" class="lab-muted" text-anchor="end">θₑ</text>
+  <text x="306" y="20" class="lab-muted">θₛ</text>
+  <text x="60" y="122" text-anchor="middle" style="font-size:11px">saturation</text>
+  <text x="180" y="122" text-anchor="middle" style="font-size:11px">frottement sec</text>
+  <text x="300" y="122" text-anchor="middle" style="font-size:11px">jeu</text>
+</svg>
+<figcaption>Trois non-linéarités à reconnaître sur une courbe : la saturation écrête la sortie, le frottement sec impose un couple ±C<sub>s</sub> dès qu'il y a mouvement, le jeu crée un cycle entre angle d'entrée θ<sub>e</sub> et angle de sortie θ<sub>s</sub>.</figcaption>
+</figure>
+
+  <h3>Valider un modèle</h3>
+  <ol>
+    <li>Simuler <strong>l'essai réellement réalisé</strong> : même entrée, mêmes conditions initiales, même charge.</li>
+    <li>Superposer les courbes mesurée et simulée ; chiffrer les écarts sur des critères du cahier des charges (valeur finale, temps de réponse à 5 %, dépassement, courant maximal…).</li>
+    <li>Chercher les causes : paramètre mal connu, phénomène négligé (frottement sec, élasticité, saturation, échauffement), instrumentation (filtrage, résolution du capteur).</li>
+    <li>Recaler les paramètres incertains, puis valider sur <strong>un autre essai</strong> que celui qui a servi au recalage.</li>
+  </ol>
+  <div class="formula">$$\varepsilon_r = \frac{x_{sim}-x_{mes}}{x_{mes}}$$</div>
+  <div class="notice">Un écart sur la <strong>valeur finale</strong> oriente vers un gain mal estimé ou une non-linéarité statique (frottement sec, saturation, rendement) ; un écart sur la <strong>forme du transitoire</strong> oriente vers une inertie, une constante de temps ou un élément négligé (inductance, élasticité, retard).</div>
+</div>
+
+</template>
+<template class="pan-tpl" data-panneau="mph-meth">
+<div class="course-section">
+  <div class="sec-num">MÉTHODES · MODÉLISATION MULTIPHYSIQUE</div>
+  <h2>Savoir-faire pour les écrits et les oraux</h2>
+
+  <div class="method-box">
+    <strong>Méthode 1 — Construire un modèle causal d'une chaîne de puissance</strong>
+    <ol style="margin-top:.4rem">
+      <li><span class="step">Étape 1.</span> Isoler chaque constituant et écrire ses équations : lois électriques, équation mécanique ramenée à un arbre (TEC ou PFD), relations de couplage (\(e = K\omega\), \(C_m = K i\)), relations cinématiques.</li>
+      <li><span class="step">Étape 2.</span> Linéariser si nécessaire autour du point de fonctionnement, passer en variations (conditions de Heaviside), puis dans le domaine de Laplace.</li>
+      <li><span class="step">Étape 3.</span> Orienter chaque équation de la cause vers l'effet en isolant la grandeur « intégrée » : \(I(p) = \dfrac{U(p)-E(p)}{R+Lp}\), \(\Omega(p) = \dfrac{C_m(p)-C_r(p)}{Jp+f_v}\).</li>
+      <li><span class="step">Étape 4.</span> Chaîner les blocs : les perturbations (couple résistant, effort extérieur) entrent par un sommateur, les couplages (f.é.m.) forment des boucles internes.</li>
+      <li><span class="step">Étape 5.</span> Contrôler chaque lien (une seule grandeur, une seule unité) et les signes des sommateurs.</li>
+    </ol>
+    <p><em>Piège</em> : obtenir une vitesse en dérivant une position (bloc \(p\) seul) ; préférer l'écriture intégrale, plus robuste en simulation.</p>
+  </div>
+
+  <div class="method-box">
+    <strong>Méthode 2 — Construire un modèle acausal</strong>
+    <ol style="margin-top:.4rem">
+      <li><span class="step">Étape 1.</span> Partir du diagramme de blocs internes (ou du schéma cinématique, électrique, hydraulique) et lister les constituants.</li>
+      <li><span class="step">Étape 2.</span> Associer à chacun un composant de bibliothèque et repérer le domaine de chacun de ses ports.</li>
+      <li><span class="step">Étape 3.</span> Ne relier que des ports de même domaine ; insérer un convertisseur à chaque changement de domaine.</li>
+      <li><span class="step">Étape 4.</span> Placer les références (masse électrique, bâti, réservoir, ambiance) et les sources d'effort ou de flux ; interfacer la commande par des sources pilotées et des capteurs.</li>
+      <li><span class="step">Étape 5.</span> Paramétrer (catalogue, CAO, essais), fixer des conditions initiales cohérentes, régler le solveur et la durée de simulation.</li>
+    </ol>
+    <p><em>Pièges</em> : oublier la masse électrique ou le bâti (système indéterminé) ; mettre en parallèle deux sources d'effort différentes, ou en série deux sources de flux (équations contradictoires) ; lier rigidement deux inerties lancées à des vitesses initiales différentes.</p>
+  </div>
+
+  <div class="method-box">
+    <strong>Méthode 3 — Identifier la nature des grandeurs d'un lien</strong>
+    <ol style="margin-top:.4rem">
+      <li><span class="step">Étape 1.</span> Le lien transporte-t-il de l'énergie ? Sinon, c'est un lien d'<strong>information</strong> : un signal (consigne, mesure, ordre) dont seule la valeur compte, la puissance qu'il met en jeu étant négligeable.</li>
+      <li><span class="step">Étape 2.</span> Si oui, reconnaître le domaine : électrique, translation, rotation, hydraulique, thermique.</li>
+      <li><span class="step">Étape 3.</span> Nommer l'effort (tension, force, couple, pression, température) et le flux (courant, vitesse, vitesse angulaire, débit, flux d'entropie).</li>
+      <li><span class="step">Étape 4.</span> Contrôle : le produit effort × flux s'exprime en watts.</li>
+    </ol>
+    <p><em>Piège</em> : dans un schéma-blocs, un lien « couple » ou « vitesse » ne porte qu'une grandeur ; ce n'est pas un lien de puissance.</p>
+  </div>
+
+  <div class="method-box">
+    <strong>Méthode 4 — Ramener inerties et efforts sur l'arbre moteur</strong>
+    <ol style="margin-top:.4rem">
+      <li><span class="step">Étape 1.</span> Écrire les lois entrée-sortie : \(\omega_i = \lambda_i\,\omega_m\) pour les pièces en rotation, \(v_j = \mu_j\,\omega_m\) pour les pièces en translation.</li>
+      <li><span class="step">Étape 2.</span> Égaler les énergies cinétiques : \(J_{eq} = \sum_i J_i\lambda_i^2 + \sum_j m_j\mu_j^2\).</li>
+      <li><span class="step">Étape 3.</span> Égaler les puissances des actions extérieures : \(C_{r,eq} = \sum_i C_i\lambda_i + \sum_j F_j\mu_j\) (signes selon les sens).</li>
+      <li><span class="step">Étape 4.</span> Avec un rendement \(\eta\) et un moteur entraînant, la puissance à fournir côté moteur est celle de la charge divisée par \(\eta\).</li>
+      <li><span class="step">Étape 5.</span> Écrire le TEC : \(J_{eq}\,\dot\omega_m = C_m - C_{r,eq}\).</li>
+    </ol>
+    <p><em>Piège</em> : quand la charge devient entraînante (descente), le flux d'énergie s'inverse et le rendement multiplie au lieu de diviser.</p>
+  </div>
+
+  <div class="method-box">
+    <strong>Méthode 5 — Choisir un modèle adapté à l'objectif</strong>
+    <ol style="margin-top:.4rem">
+      <li><span class="step">Étape 1.</span> Formuler précisément la question : quelle grandeur, avec quelle précision, sur quel scénario.</li>
+      <li><span class="step">Étape 2.</span> Repérer les phénomènes dominants sur ce scénario et négliger le reste en le justifiant par un ordre de grandeur (\(\tau_e \ll \tau_m\), inertie d'un réducteur devant celle du rotor…).</li>
+      <li><span class="step">Étape 3.</span> Choisir : causal linéaire pour le réglage et la stabilité, causal non linéaire ou acausal pour le dimensionnement, l'énergie et les mécanismes.</li>
+      <li><span class="step">Étape 4.</span> Prévoir les grandeurs à observer (capteurs virtuels, puissances aux liens).</li>
+    </ol>
+    <p><em>Piège</em> : un modèle linéaire ne prédit ni la limitation du courant au démarrage, ni le seuil dû au frottement sec.</p>
+  </div>
+
+  <div class="method-box">
+    <strong>Méthode 6 — Exploiter une courbe de simulation</strong>
+    <ol style="margin-top:.4rem">
+      <li><span class="step">Étape 1.</span> Découper la courbe en phases (démarrage, régime établi, perturbation, freinage) et associer un événement du scénario à chaque changement.</li>
+      <li><span class="step">Étape 2.</span> Vérifier le régime établi par un calcul à la main (toutes les dérivées nulles).</li>
+      <li><span class="step">Étape 3.</span> Relier les grandeurs : courant ↔ couple (\(C_m = K i\)), vitesse ↔ f.é.m. ; une puissance négative sur un lien signale un retour d'énergie vers la source.</li>
+      <li><span class="step">Étape 4.</span> Repérer les signatures de non-linéarités : palier (saturation), démarrage retardé ou erreur résiduelle (frottement sec, seuil), oscillations entretenues (jeu, hystérésis), réponse simplement décalée dans le temps (retard pur : transport, calcul, échantillonnage).</li>
+      <li><span class="step">Étape 5.</span> Conclure vis-à-vis du cahier des charges, valeurs chiffrées à l'appui.</li>
+    </ol>
+  </div>
+
+  <div class="method-box">
+    <strong>Méthode 7 — Analyser l'écart entre réel et simulé</strong>
+    <ol style="margin-top:.4rem">
+      <li><span class="step">Étape 1.</span> Superposer les courbes et calculer l'écart relatif \(\varepsilon_r\) sur chaque critère.</li>
+      <li><span class="step">Étape 2.</span> Classer l'écart : statique (valeur finale) ou dynamique (forme, rapidité, dépassement).</li>
+      <li><span class="step">Étape 3.</span> Formuler une hypothèse physique (frottement sec, saturation, inertie sous-estimée, élasticité, rendement) et la tester en modifiant le modèle.</li>
+      <li><span class="step">Étape 4.</span> Recaler, puis valider sur un essai différent.</li>
+    </ol>
+    <p><em>Piège</em> : ajuster un paramètre jusqu'à coller à un seul essai masque souvent un phénomène non modélisé.</p>
+  </div>
+  <div class="method-box">
+    <strong>Méthode 8 — Identifier un modèle de comportement sur une réponse indicielle</strong>
+    <ol style="margin-top:.4rem">
+      <li><span class="step">Étape 1.</span> Reconnaître l'allure : tangente non nulle à l'origine et aucun dépassement → premier ordre ; tangente horizontale à l'origine ou dépassement → deuxième ordre ; départ décalé dans le temps → retard pur à ajouter.</li>
+      <li><span class="step">Étape 2.</span> Gain statique \(K = \Delta s_\infty/\Delta e\), calculé sur les <em>variations</em> autour du point de fonctionnement.</li>
+      <li><span class="step">Étape 3.</span> Premier ordre : \(\tau\) = instant où la sortie atteint 63 % de sa variation finale ; contrôle \(t_{r5\%} \approx 3\tau\).</li>
+      <li><span class="step">Étape 4.</span> Deuxième ordre avec dépassement : \(\xi\) tiré de \(D = e^{-\pi\xi/\sqrt{1-\xi^2}}\), soit \(\xi = \dfrac{-\ln D}{\sqrt{\pi^2 + \ln^2 D}}\) ; puis \(\omega_0\) tiré de la pseudo-période \(T_p = \dfrac{2\pi}{\omega_0\sqrt{1-\xi^2}}\).</li>
+      <li><span class="step">Étape 5.</span> Superposer la réponse du modèle à l'essai, et retenir que le modèle ne vaut que dans le domaine exploré (amplitude, point de fonctionnement).</li>
+    </ol>
+    <p><em>Exemple éclair :</em> un échelon de 2 V fait varier une vitesse de 3 rad/s, avec un dépassement de 16 % et une pseudo-période de 0,5 s : \(K = 1{,}5\ \text{rad·s}^{-1}\text{·V}^{-1}\), \(\xi = 1{,}833/\sqrt{9{,}870 + 3{,}358} \approx 0{,}50\), \(\omega_0 = 2\pi/(0{,}5 \times 0{,}864) \approx 14{,}5\ \text{rad/s}\).</p>
+  </div>
+
+  <div class="method-box">
+    <strong>Méthode 9 — Préparer et exploiter une simulation</strong>
+    <ol style="margin-top:.4rem">
+      <li><span class="step">Étape 1.</span> Choisir les grandeurs observées : celles des critères du cahier des charges, plus les grandeurs internes qui dimensionnent ou limitent les constituants (courant, couple, tension de commande, pression, puissance).</li>
+      <li><span class="step">Étape 2.</span> Fixer le scénario (entrées et conditions initiales de l'essai) et la durée : 3 à 5 fois la plus grande constante de temps, ou un cycle complet pour un bilan d'énergie ; pour un balayage, la régler sur le cas le plus lent.</li>
+      <li><span class="step">Étape 3.</span> Régler le solveur : à pas fixe, \(h\) de l'ordre de \(\tau_{\min}/10\) ; pour un modèle raide, pas variable réglé par une tolérance, ou modèle réduit. Contrôle : diviser le pas par 2 ne doit plus changer les résultats.</li>
+      <li><span class="step">Étape 4.</span> Étudier un paramètre à la fois (balayage) : tracer chaque performance en fonction du paramètre, repérer la plage qui respecte le cahier des charges, comparer les paramètres par leur sensibilité relative.</li>
+    </ol>
+    <p><em>Exemple éclair :</em> moteur à courant continu avec \(\tau_e = 1\ \text{ms}\) et \(\tau_m = 40\ \text{ms}\) : \(h = 0{,}1\ \text{ms}\) et une durée de \(5\tau_m = 0{,}2\ \text{s}\). Si l'on balaie l'inertie jusqu'à 4 fois sa valeur, \(\tau_m\) monte à 160 ms : simuler 1 s.</p>
+    <p><em>Piège</em> : valider un réglage sur la seule courbe de sortie alors que le courant ou la tension de commande sature.</p>
+  </div>
+
+  <div class="method-box">
+    <strong>Méthode 10 — Décider si une transmission doit être modélisée déformable</strong>
+    <ol style="margin-top:.4rem">
+      <li><span class="step">Étape 1.</span> Évaluer la raideur : arbre en torsion \(k_\theta = GI_0/\ell\) avec \(I_0 = \pi d^4/32\) ; courroie ou accouplement élastique : documentation du constructeur.</li>
+      <li><span class="step">Étape 2.</span> Calculer les pulsations du modèle à deux inerties : antirésonance vue du moteur \(\omega_a = \sqrt{k_\theta/J_c}\), résonance \(\omega_r = \sqrt{k_\theta\,(J_m+J_c)/(J_mJ_c)}\).</li>
+      <li><span class="step">Étape 3.</span> Comparer à la coupure de la boucle : si \(\omega_a\) vaut au moins 5 à 10 fois \(\omega_{c0}\), garder le modèle rigide (inertie \(J_m + J_c\)) ; sinon, modèle à deux inerties et raideur.</li>
+      <li><span class="step">Étape 4.</span> Remédier si besoin : raidir la transmission (\(k_\theta\) varie comme \(d^4/\ell\)), réduire la bande passante ou filtrer la commande.</li>
+    </ol>
+    <p><em>Exemple éclair :</em> \(J_m = 1\cdot10^{-3}\ \text{kg·m}^2\), \(J_c = 4\cdot10^{-3}\ \text{kg·m}^2\), \(k_\theta = 100\ \text{N·m/rad}\) : \(\omega_a = \sqrt{100/(4\cdot10^{-3})} \approx 158\ \text{rad/s}\) et \(\omega_r \approx 354\ \text{rad/s}\). Pour une boucle à \(\omega_{c0} = 50\ \text{rad/s}\), le rapport ne vaut que 3,2 : il faut le modèle déformable.</p>
+  </div>
+</div>
+</template>
+<template class="pan-tpl" data-panneau="mph-exos">
+<div class="exo-wrapper">
+
+<div class="exo">
+  <span class="num">EXO 01</span><span class="diff">★ ☆ ☆</span>
+  <h3>Nature des liens d'un pont élévateur électro-hydraulique</h3>
+  <div class="statement">Un pont élévateur d'atelier comprend : une batterie, un contacteur commandé par un automate, un moteur électrique, une pompe à engrenages, un distributeur, un vérin simple effet et le plateau qui soulève le véhicule. Un capteur de pression renseigne l'automate.</div>
+  <div class="q"><strong>Q1.</strong> Répartir ces constituants entre chaîne d'information et chaîne de puissance, et associer à chacun une fonction générique.</div>
+  <div class="q"><strong>Q2.</strong> Pour les liens batterie → moteur, moteur → pompe, pompe → vérin et vérin → plateau, donner l'effort, le flux et leurs unités. Quelle est la nature du lien automate → contacteur ?</div>
+  <div class="q"><strong>Q3.</strong> Pendant la levée à vitesse constante, la pression dans le vérin vaut 120 bar et le débit 2 L/min ; la section du piston est \(S = 20\ \text{cm}^2\). Calculer la puissance hydraulique, la vitesse de la tige et l'effort développé, puis vérifier la cohérence.</div>
+  <div class="q"><strong>Q4.</strong> La pompe, de rendement 0,8, tourne à 150 rad/s. Quel couple le moteur doit-il fournir ?</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> Chaîne d'information : capteur de pression (acquérir), automate (traiter et communiquer les ordres). Chaîne de puissance : batterie (alimenter), contacteur et distributeur (distribuer, moduler), moteur (convertir électrique → mécanique), pompe (convertir mécanique → hydraulique), vérin (convertir hydraulique → translation), plateau (effecteur, agir sur le véhicule).</p>
+    <p><strong>Q2.</strong> Batterie → moteur : tension \(u\) (V) et courant \(i\) (A). Moteur → pompe : couple \(C\) (N·m) et vitesse angulaire \(\omega\) (rad/s). Pompe → vérin : pression \(p\) (Pa) et débit \(Q_v\) (m³/s). Vérin → plateau : force \(F\) (N) et vitesse \(v\) (m/s). Le lien automate → contacteur est un lien d'<strong>information</strong> : il ne porte pas de puissance utile, seulement un ordre (tout ou rien).</p>
+    <p><strong>Q3.</strong> \(p = 1{,}2\cdot10^{7}\ \text{Pa}\), \(Q_v = 2\cdot10^{-3}/60 = 3{,}33\cdot10^{-5}\ \text{m}^3/\text{s}\), donc \(\mathcal{P}_h = p\,Q_v = 400\ \text{W}\). Vitesse : \(v = Q_v/S\), soit \(v \approx 1{,}67\ \text{cm/s}\). Effort : \(F = p\,S = 1{,}2\cdot10^{7}\times2\cdot10^{-3} = 24\ \text{kN}\). Vérification : \(F\,v = 24\,000\times0{,}0167 = 400\ \text{W}\) : le vérin (supposé parfait) transmet la puissance sans la modifier.</p>
+    <p><strong>Q4.</strong> Puissance mécanique absorbée par la pompe : \(400/0{,}8 = 500\ \text{W}\). Couple : \(C = 500/150 \approx 3{,}3\ \text{N·m}\).</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 02</span><span class="diff">★ ☆ ☆</span>
+  <h3>Support antivibratoire et circuit analogue</h3>
+  <div class="statement">Un appareil de mesure de masse \(m = 2\ \text{kg}\) repose sur un support assimilé à un ressort de raideur \(k = 800\ \text{N/m}\) en parallèle avec un amortisseur de coefficient \(c = 16\ \text{N·s/m}\). On note \(x\) son déplacement vertical autour de l'équilibre et \(F(t)\) une force perturbatrice.</div>
+  <div class="q"><strong>Q1.</strong> Écrire l'équation du mouvement, puis la fonction de transfert \(X(p)/F(p)\) sous forme canonique. Calculer \(\omega_0\) et \(\xi\).</div>
+  <div class="q"><strong>Q2.</strong> Proposer le circuit électrique analogue (analogie force–tension) : nature, association et valeurs des composants.</div>
+  <div class="q"><strong>Q3.</strong> Retrouver \(\omega_0\) et \(\xi\) à partir du circuit.</div>
+  <div class="q"><strong>Q4.</strong> À un instant donné, \(x = 1\ \text{cm}\) et \(\dot x = 0{,}2\ \text{m/s}\). Calculer les énergies stockées dans le ressort et dans la masse, et dans les composants analogues.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> PFD : \(m\ddot x = F - c\dot x - kx\), soit \(m\ddot x + c\dot x + kx = F\). Avec des conditions initiales nulles :</p>
+    <div class="formula">$$\frac{X(p)}{F(p)} = \frac{1/k}{1+\dfrac{c}{k}\,p+\dfrac{m}{k}\,p^2}$$</div>
+    <p>\(\omega_0 = \sqrt{k/m} = \sqrt{400} = 20\ \text{rad/s}\) ; \(\xi = \dfrac{c}{2\sqrt{km}} = \dfrac{16}{2\times40} = 0{,}2\) : système peu amorti, qui présente une résonance (\(\xi \lt 0{,}707\)) vers \(\omega_0\sqrt{1-2\xi^2} \approx 19{,}2\ \text{rad/s}\).</p>
+    <p><strong>Q2.</strong> La masse, le ressort et l'amortisseur ont la même vitesse \(\dot x\) : leurs analogues sont parcourus par le même courant, donc placés <strong>en série</strong> avec une source de tension \(u \leftrightarrow F\). Inductance \(L = m = 2\ \text{H}\), résistance \(R = c = 16\ \Omega\), condensateur \(C = 1/k = 1{,}25\ \text{mF}\) ; la charge \(q\) joue le rôle de \(x\).</p>
+    <p><strong>Q3.</strong> Avec \(L = 2\ \text{H}\), \(C = 1{,}25\ \text{mF}\) et \(R = 16\ \Omega\) :</p>
+    <div class="formula">$$\omega_0 = \frac{1}{\sqrt{2\times1{,}25\cdot10^{-3}}} = 20\ \text{rad/s}$$ $$\xi = \frac{R}{2}\sqrt{\frac{C}{L}} = 8\times0{,}025 = 0{,}2$$</div>
+    <p>Mêmes valeurs : les deux systèmes obéissent à la même équation.</p>
+    <p><strong>Q4.</strong> Ressort : \(\tfrac12 kx^2 = 0{,}5\times800\times10^{-4} = 0{,}04\ \text{J}\) ; masse : \(\tfrac12 m\dot x^2 = 0{,}5\times2\times0{,}04 = 0{,}04\ \text{J}\). Analogues (\(q = 0{,}01\ \text{C}\), \(i = 0{,}2\ \text{A}\)) : condensateur \(q^2/(2C) = 10^{-4}/(2{,}5\cdot10^{-3}) = 0{,}04\ \text{J}\) ; inductance \(\tfrac12 Li^2 = 0{,}04\ \text{J}\). Le ressort et le condensateur stockent l'énergie « potentielle », la masse et l'inductance l'énergie « cinétique ».</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 03</span><span class="diff">★ ★ ☆</span>
+  <h3>Réservoir tampon : linéarisation et conditions de Heaviside</h3>
+  <div class="statement">Un réservoir cylindrique de section \(S = 0{,}5\ \text{m}^2\) reçoit un débit \(Q_e(t)\) et se vide par un orifice de fond. Le débit de sortie suit la loi \(Q_s = a\sqrt{h}\), avec \(a = 2{,}5\cdot10^{-3}\ \text{m}^{5/2}\text{/s}\) et \(h\) la hauteur d'eau. Le point de fonctionnement nominal est \(h_0 = 0{,}64\ \text{m}\).</div>
+  <div class="q"><strong>Q1.</strong> Écrire l'équation de conservation du volume (eau incompressible).</div>
+  <div class="q"><strong>Q2.</strong> Calculer le débit d'entrée \(Q_{e0}\) qui maintient \(h = h_0\).</div>
+  <div class="q"><strong>Q3.</strong> Linéariser la loi de sortie autour de \(h_0\) sous la forme \(\Delta Q_s = \Delta h/R_h\). Exprimer et calculer \(R_h\).</div>
+  <div class="q"><strong>Q4.</strong> En déduire la fonction de transfert \(\Delta H(p)/\Delta Q_e(p)\). Pourquoi raisonne-t-on sur des variations ? Calculer la constante de temps.</div>
+  <div class="q"><strong>Q5.</strong> Le débit d'entrée augmente brusquement de 0,2 L/s. Comparer la variation finale de hauteur prévue par le modèle linéarisé à la valeur exacte. Conclure.</div>
+  <div class="q"><strong>Q6.</strong> Interpréter le réservoir et l'orifice à l'aide des composants passifs élémentaires.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> La variation du volume stocké est égale au débit entrant moins le débit sortant : \(S\,\dfrac{dh}{dt} = Q_e - a\sqrt{h}\). L'équation est non linéaire à cause de \(\sqrt{h}\).</p>
+    <p><strong>Q2.</strong> À l'équilibre \(dh/dt = 0\) : \(Q_{e0} = a\sqrt{h_0}\), soit \(Q_{e0} = 2{,}5\cdot10^{-3}\times0{,}8 = 2\cdot10^{-3}\ \text{m}^3/\text{s}\) (2 L/s).</p>
+    <p><strong>Q3.</strong> Tangente en \(h_0\) : \(\Delta Q_s \approx \dfrac{a}{2\sqrt{h_0}}\,\Delta h\), donc \(R_h = \dfrac{2\sqrt{h_0}}{a} = \dfrac{1{,}6}{2{,}5\cdot10^{-3}} = 640\ \text{s/m}^2\).</p>
+    <p><strong>Q4.</strong> En variations : \(S\,\dfrac{d\Delta h}{dt} = \Delta Q_e - \dfrac{\Delta h}{R_h}\). Les variations sont nulles à l'instant initial (on part de l'équilibre) : les conditions de Heaviside sont respectées et la transformée de Laplace s'applique directement.</p>
+    <div class="formula">$$\frac{\Delta H(p)}{\Delta Q_e(p)} = \frac{R_h}{1+R_h S\,p}$$ $$\tau = R_h S = 320\ \text{s}$$</div>
+    <p><strong>Q5.</strong> Modèle linéarisé : \(\Delta h_\infty = R_h\,\Delta Q_e\), soit \(640\times2\cdot10^{-4} = 0{,}128\ \text{m}\). Valeur exacte : \(\sqrt{h_\infty} = (Q_{e0}+\Delta Q_e)/a = 0{,}88\), d'où \(h_\infty = 0{,}774\ \text{m}\) et \(\Delta h_\infty = 0{,}134\ \text{m}\). Écart relatif d'environ 5 % pour une variation de débit de 10 % : le modèle linéarisé reste acceptable pour de petites variations, mais se dégrade quand on s'éloigne de \(h_0\).</p>
+    <p><strong>Q6.</strong> La pression au fond, \(p = \rho g h\), est l'effort et le débit le flux. Le réservoir stocke de l'énergie potentielle : c'est une <strong>capacité hydraulique</strong> (\(Q_v = C_h\,dp/dt\) avec \(C_h = S/(\rho g)\)), analogue d'un condensateur. L'orifice dissipe : c'est une <strong>résistance hydraulique</strong>, non linéaire, que la linéarisation remplace par \(R_p = \Delta p/\Delta Q_s = \rho g\,R_h \approx 6{,}3\cdot10^{6}\ \text{Pa·s/m}^3\) (le \(R_h\) de Q3, en s/m², relie hauteur et débit ; \(R_p\) relie pression et débit, comme dans le tableau du cours). L'ensemble est l'analogue d'un circuit RC alimenté par une source de courant, de constante de temps \(\tau = R_p\,C_h = R_h S = 320\ \text{s}\).</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 04</span><span class="diff">★ ★ ☆</span>
+  <h3>Modèle causal d'une motorisation à courant continu</h3>
+  <div class="statement">Un moteur à courant continu entraîne une charge. Données : \(R = 2\ \Omega\), \(L = 0{,}8\ \text{mH}\), \(K = 0{,}04\ \text{N·m/A}\) (et V·s/rad), inertie totale ramenée sur l'arbre \(J = 4\cdot10^{-5}\ \text{kg·m}^2\). Les frottements visqueux sont négligés ; \(C_r\) désigne le couple résistant ramené sur l'arbre.</div>
+  <div class="q"><strong>Q1.</strong> Écrire les équations du moteur et en déduire le schéma-blocs d'entrées \(U(p)\) et \(C_r(p)\), de sortie \(\Omega(p)\).</div>
+  <div class="q"><strong>Q2.</strong> Pour \(C_r = 0\), établir \(\Omega(p)/U(p)\) et la mettre sous la forme \(\dfrac{K_m}{1+\tau_m p+\tau_e\tau_m p^2}\). Calculer \(\tau_e\), \(\tau_m\) et le coefficient d'amortissement.</div>
+  <div class="q"><strong>Q3.</strong> Justifier un modèle du premier ordre et donner ses paramètres.</div>
+  <div class="q"><strong>Q4.</strong> On applique un échelon de 12 V à vide. Donner la vitesse finale, le temps de réponse à 5 % et l'ordre de grandeur du courant et du couple au démarrage.</div>
+  <div class="q"><strong>Q5.</strong> À tension constante, on applique un couple résistant de 0,02 N·m. De combien la vitesse établie chute-t-elle ?</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> \(u = e + Ri + L\,di/dt\), \(e = K\omega\), \(C_m = Ki\), \(J\,d\omega/dt = C_m - C_r\). En Laplace : \(I(p) = \dfrac{U(p)-E(p)}{R+Lp}\), \(C_m = K\,I\), \(\Omega(p) = \dfrac{C_m(p)-C_r(p)}{Jp}\), \(E = K\,\Omega\). Schéma : \(U\) → sommateur (\(-E\)) → \(\dfrac{1}{R+Lp}\) → \(K\) → sommateur (\(-C_r\)) → \(\dfrac{1}{Jp}\) → \(\Omega\), avec un retour \(K\) de \(\Omega\) vers le premier sommateur.</p>
+    <p><strong>Q2.</strong> Formule de la boucle : \(\dfrac{\Omega}{U} = \dfrac{K}{(R+Lp)Jp + K^2}\). En divisant par \(K^2\) :</p>
+    <div class="formula">$$\frac{\Omega(p)}{U(p)} = \frac{1/K}{1+\dfrac{RJ}{K^2}\,p+\dfrac{LJ}{K^2}\,p^2}$$</div>
+    <p>\(K_m = 1/K = 25\ \text{rad·s}^{-1}\text{·V}^{-1}\) ; \(\tau_m = RJ/K^2 = 50\ \text{ms}\) ; \(\tau_e = L/R = 0{,}4\ \text{ms}\) (on vérifie que \(\tau_e\tau_m = LJ/K^2\)). Par identification, \(2\xi/\omega_0 = \tau_m\) et \(1/\omega_0^2 = \tau_e\tau_m\), d'où \(\xi = \tfrac12\sqrt{\tau_m/\tau_e} = \tfrac12\sqrt{125} \approx 5{,}6\).</p>
+    <p><strong>Q3.</strong> \(\xi \gg 1\) : les deux pôles sont réels et très éloignés, \(p_1 \approx -1/\tau_m = -20\ \text{s}^{-1}\) et \(p_2 \approx -1/\tau_e = -2\,500\ \text{s}^{-1}\). Le pôle rapide n'influe que pendant une fraction de milliseconde : on le néglige (\(L \approx 0\)) et \(\dfrac{\Omega}{U} \approx \dfrac{25}{1+0{,}05\,p}\).</p>
+    <p><strong>Q4.</strong> \(\omega_\infty = 25\times12 = 300\ \text{rad/s}\) (≈ 2 900 tr/min) ; \(t_{5\%} \approx 3\tau_m = 0{,}15\ \text{s}\). Au démarrage, \(e = 0\) : le courant monte en quelques \(\tau_e\) vers \(U/R = 6\ \text{A}\), soit un couple d'environ \(K\times6 = 0{,}24\ \text{N·m}\), puis décroît à mesure que la f.é.m. s'établit.</p>
+    <p><strong>Q5.</strong> En régime établi : \(K i = C_r\) et \(U = K\omega + Ri\), d'où \(\omega = \dfrac{U}{K} - \dfrac{R\,C_r}{K^2}\). Chute : \(\dfrac{2\times0{,}02}{1{,}6\cdot10^{-3}} = 25\ \text{rad/s}\) ; la vitesse passe de 300 à 275 rad/s.</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 05</span><span class="diff">★ ★ ☆</span>
+  <h3>Axe linéaire à vis à billes : grandeurs ramenées</h3>
+  <div class="statement">Un axe de machine-outil est entraîné par un moteur (inertie \(J_m = 5\cdot10^{-5}\ \text{kg·m}^2\), constante de couple \(K = 0{,}1\ \text{N·m/A}\)), une transmission poulie-courroie de rapport \(k = 1/2\) (\(\omega_{vis} = k\,\omega_m\)), puis une vis à billes de pas \(p_v = 20\ \text{mm}\) (inertie de la vis et de sa poulie \(J_v = 1\cdot10^{-5}\ \text{kg·m}^2\)). Le chariot a une masse \(M = 20\ \text{kg}\) et subit un effort d'usinage \(F_r = 150\ \text{N}\). Le rendement global de la transmission (courroie et vis) vaut \(\eta = 0{,}9\) ; le moteur est entraînant.</div>
+  <div class="q"><strong>Q1.</strong> Exprimer la vitesse du chariot \(v\) en fonction de \(\omega_m\) : \(v = \lambda\,\omega_m\). Calculer \(\lambda\).</div>
+  <div class="q"><strong>Q2.</strong> Calculer l'inertie équivalente ramenée sur l'arbre moteur sans tenir compte des pertes. Commenter la part de chaque élément.</div>
+  <div class="q"><strong>Q3.</strong> Le chariot accélère à \(a = 3\ \text{m/s}^2\) tout en subissant \(F_r\). Calculer le couple moteur nécessaire, pertes comprises, et le courant correspondant.</div>
+  <div class="q"><strong>Q4.</strong> La vitesse maximale du chariot est 0,4 m/s. Calculer la vitesse de rotation du moteur et la puissance mécanique crête à la fin de l'accélération.</div>
+  <div class="q"><strong>Q5.</strong> Quels composants faudrait-il assembler pour construire le modèle acausal de cet axe ? Qu'est-ce qui disparaît par rapport à l'approche des questions précédentes ?</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> Un tour de vis fait avancer le chariot d'un pas : \(v = \dfrac{p_v}{2\pi}\,\omega_{vis} = \dfrac{k\,p_v}{2\pi}\,\omega_m\), donc \(\lambda = \dfrac{0{,}5\times0{,}02}{2\pi} = 1{,}59\cdot10^{-3}\ \text{m/rad}\).</p>
+    <p><strong>Q2.</strong> Égalité des énergies cinétiques :</p>
+    <div class="formula">$$J_{eq} = J_m + k^2 J_v + M\lambda^2$$ $$J_{eq} \approx (5 + 0{,}25 + 5{,}07)\cdot10^{-5}$$ $$J_{eq} \approx 1{,}03\cdot10^{-4}\ \text{kg·m}^2$$</div>
+    <p>Le chariot ramené pèse autant que le rotor : l'inertie de charge est « adaptée » à celle du moteur, situation favorable pour accélérer. La vis, tournant deux fois moins vite que le moteur, ne compte que pour le quart de son inertie propre, soit 2 % du total.</p>
+    <p><strong>Q3.</strong> \(\dot\omega_m = a/\lambda = 3/1{,}59\cdot10^{-3} \approx 1\,885\ \text{rad/s}^2\). Le moteur accélère son rotor et fournit à la transmission la puissance utile divisée par \(\eta\) :</p>
+    <div class="formula">$$C_m = J_m\dot\omega_m + \frac{k^2J_v\,\dot\omega_m + \lambda\,(M a + F_r)}{\eta}$$</div>
+    <p>\(J_m\dot\omega_m = 0{,}094\ \text{N·m}\) ; numérateur : \(0{,}0047 + 1{,}59\cdot10^{-3}\times210\), soit \(0{,}339\ \text{N·m}\), qui divisé par 0,9 donne \(0{,}377\ \text{N·m}\). D'où \(C_m \approx 0{,}47\ \text{N·m}\) et \(i = C_m/K \approx 4{,}7\ \text{A}\). (Diviser par le rendement global le terme d'inertie de la vis, que seule la courroie précède, le majore un peu : l'effet est négligeable ici.)</p>
+    <p><strong>Q4.</strong> \(\omega_m = v/\lambda = 0{,}4/1{,}59\cdot10^{-3} \approx 251\ \text{rad/s}\), soit 2 400 tr/min. Puissance crête : \(C_m\,\omega_m \approx 0{,}47\times251 \approx 118\ \text{W}\).</p>
+    <p><strong>Q5.</strong> Source de tension pilotée, MCC, inertie du rotor (souvent incluse dans la MCC), poulie-courroie idéale (transformateur rotation → rotation, rapport \(k\)), inertie \(J_v\), vis-écrou (transformateur rotation → translation, pas \(p_v\), rendement), masse \(M\), source d'effort \(F_r\), bâti et masse électrique. Les grandeurs ramenées \(J_{eq}\) et \(C_{r,eq}\) disparaissent : le logiciel les prend en compte implicitement, et l'on peut lire la puissance sur chaque lien.</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 06</span><span class="diff">★ ★ ☆</span>
+  <h3>Chauffage d'un local régulé par thermostat</h3>
+  <div class="statement">Un local est chauffé par un convecteur électrique de puissance \(P = 1{,}5\ \text{kW}\), commandé en tout-ou-rien par un thermostat. La capacité thermique du local (air, mobilier, cloisons) vaut \(C_{th} = 2\cdot10^{6}\ \text{J/K}\) ; les pertes à travers les parois sont modélisées par une conductance \(G = 50\ \text{W/K}\) vers l'extérieur, à \(T_{ext} = 5\ °\text{C}\) constante. Le thermostat coupe le chauffage à 20 °C et le rallume à 18 °C.</div>
+  <div class="q"><strong>Q1.</strong> Lister les composants d'un modèle acausal de ce système et préciser la nature de chaque lien.</div>
+  <div class="q"><strong>Q2.</strong> Établir l'équation différentielle vérifiée par la température intérieure \(T\) quand le convecteur fonctionne. Donner la constante de temps.</div>
+  <div class="q"><strong>Q3.</strong> Dessiner (décrire) le circuit électrique analogue.</div>
+  <div class="q"><strong>Q4.</strong> Si le convecteur fonctionnait en permanence, quelle température atteindrait le local ?</div>
+  <div class="q"><strong>Q5.</strong> Calculer la durée d'une phase de chauffe (18 → 20 °C), celle d'une phase de refroidissement (20 → 18 °C), puis la puissance moyenne consommée. Vérifier ce dernier résultat par un raisonnement direct.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> Source de tension (réseau) et interrupteur commandé : liens électriques \((u, i)\). Résistance chauffante : port électrique et port thermique (convertisseur électrique → thermique). Capacité thermique du local, conductance des parois, source de température \(T_{ext}\) : liens thermiques (température, flux thermique). Capteur de température : il transforme la température en <strong>signal</strong>, traité par le thermostat, bloc causal à <strong>hystérésis</strong> qui commande l'interrupteur. Remarque : le couple (température, flux thermique) est un pseudo-couple, son produit n'est pas une puissance.</p>
+    <p><strong>Q2.</strong> Bilan d'énergie sur le local pendant \(dt\) : \(C_{th}\,\dfrac{dT}{dt} = P - G\,(T - T_{ext})\), soit</p>
+    <div class="formula">$$\tau\,\frac{dT}{dt} + T = T_{ext} + \frac{P}{G}$$ $$\tau = \frac{C_{th}}{G} = 4\cdot10^{4}\ \text{s} \approx 11\ \text{h}$$</div>
+    <p><strong>Q3.</strong> Température ↔ potentiel, flux thermique ↔ courant. Un nœud de potentiel \(T\) est relié : à la masse par un condensateur \(C_{th}\) ; à une source de tension \(T_{ext}\) (référencée à la masse) par une résistance \(1/G\) ; à une source de courant \(P\), coupée ou non par le thermostat, qui l'alimente.</p>
+    <p><strong>Q4.</strong> Régime permanent : \(T_\infty = T_{ext} + P/G = 5 + 30 = 35\ °\text{C}\).</p>
+    <p><strong>Q5.</strong> Chauffe : \(T\) tend vers 35 °C avec la constante \(\tau\) ; refroidissement (\(P = 0\)) : \(T\) tend vers 5 °C. D'où</p>
+    <div class="formula">$$t_{on} = \tau\ln\frac{35-18}{35-20} \approx 5\,000\ \text{s}$$ $$t_{off} = \tau\ln\frac{20-5}{18-5} \approx 5\,700\ \text{s}$$</div>
+    <p>soit environ 1 h 23 min de chauffe et 1 h 35 min de refroidissement. Rapport cyclique \(\alpha = t_{on}/(t_{on}+t_{off}) \approx 0{,}47\) et puissance moyenne \(\alpha P \approx 700\ \text{W}\). Vérification : en moyenne \(T \approx 19\ °\text{C}\) et le chauffage compense les pertes, \(G\,(19-5) = 700\ \text{W}\). Le modèle linéaire seul ne donnerait pas ce fonctionnement cyclique : il faut la non-linéarité du thermostat.</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 07</span><span class="diff">★ ★ ★</span>
+  <h3>Positionnement d'une vanne motorisée : frottement sec et saturation</h3>
+  <div class="statement">Une vanne quart de tour est positionnée par un moteur à courant continu (\(R = 2\ \Omega\), \(K = 0{,}04\ \text{N·m/A}\), inertie ramenée \(J = 4\cdot10^{-5}\ \text{kg·m}^2\), inductance et frottement visqueux négligés) suivi d'un réducteur de rapport \(k = 1/50\). L'angle de la vanne \(\theta\) est mesuré, et la commande élabore la tension \(u = K_a\,(\theta_c - \theta)\) avec \(K_a = 20\ \text{V/rad}\). L'alimentation limite \(u\) à \(\pm12\ \text{V}\). Le modèle « idéal » ignore cette limite et les frottements.</div>
+  <div class="q"><strong>Q1.</strong> Avec le modèle idéal, établir la FTBO et la FTBF. Préciser la classe, l'erreur statique pour un échelon, \(\omega_0\) et \(\xi\) en boucle fermée.</div>
+  <div class="q"><strong>Q2.</strong> Les essais montrent une erreur résiduelle de position d'environ 2° qui varie d'un essai à l'autre. On soupçonne un frottement sec, de couple \(C_s = 0{,}016\ \text{N·m}\) ramené sur l'arbre moteur. Montrer que la vanne peut s'arrêter dans toute une bande d'erreur, et calculer sa largeur.</div>
+  <div class="q"><strong>Q3.</strong> Pour quelle amplitude d'erreur la tension sature-t-elle ? Pour une consigne de 90°, estimer la vitesse de la vanne pendant la phase saturée et la durée de cette phase. Le temps de réponse prévu par le modèle idéal est-il crédible ?</div>
+  <div class="q"><strong>Q4.</strong> On propose de porter \(K_a\) à 80 V/rad. Effets sur l'erreur résiduelle et sur l'amortissement ? Citer une autre solution.</div>
+  <div class="q"><strong>Q5.</strong> Pour la consigne de 90°, le modèle enrichi (frottement sec et saturation) donne un temps de réponse à 5 % de 0,36 s et une erreur finale de 0,2° ; l'essai donne 0,41 s et 1,8°. Chiffrer l'écart sur le temps de réponse. L'écart sur l'erreur finale suffit-il à rejeter le modèle ? Proposer une démarche d'amélioration.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> Moteur : \(\dfrac{\Omega_m}{U} = \dfrac{1/K}{1+\tau_m p}\) avec \(\tau_m = RJ/K^2 = 50\ \text{ms}\) ; vanne : \(\Theta = k\,\Omega_m/p\). D'où</p>
+    <div class="formula">$$\text{FTBO} = \frac{K_a\,k/K}{p\,(1+\tau_m p)} = \frac{10}{p\,(1+0{,}05\,p)}$$ $$\text{FTBF} = \frac{1}{1+0{,}1\,p+0{,}005\,p^2}$$</div>
+    <p>Classe 1 : erreur statique nulle pour un échelon. \(\omega_0 = \sqrt{200} \approx 14{,}1\ \text{rad/s}\) et \(2\xi/\omega_0 = 0{,}1\), soit \(\xi \approx 0{,}71\) ; temps de réponse à 5 % \(\approx 3/\omega_0 \approx 0{,}21\ \text{s}\).</p>
+    <p><strong>Q2.</strong> À l'arrêt, \(e = 0\) et \(i = u/R = K_a\varepsilon/R\), d'où un couple moteur \(C_m = K K_a\,\varepsilon/R\). Le moteur ne repart que si \(C_m\) dépasse \(C_s\) ; il peut donc rester immobile pour toute erreur telle que</p>
+    <div class="formula">$$|\varepsilon| \le \frac{R\,C_s}{K\,K_a} = 0{,}04\ \text{rad} \approx 2{,}3°$$</div>
+    <p>La bande d'arrêt s'étend donc de −2,3° à +2,3° autour de la consigne : largeur totale 0,08 rad, soit environ 4,6°. La position d'arrêt dans cette bande dépend de la manière dont la vanne approche la consigne : d'où une erreur comprise entre 0 et 2,3° en valeur absolue, qui change d'un essai à l'autre, cohérente avec les 2° mesurés. Le modèle idéal ne pouvait pas la prévoir.</p>
+    <p><strong>Q3.</strong> Saturation dès que \(K_a|\varepsilon| \gt 12\ \text{V}\), soit \(|\varepsilon| \gt 0{,}6\ \text{rad}\) (34°). Pour 90° (1,57 rad), la tension reste à 12 V tant que l'erreur dépasse 0,6 rad : le moteur tend vers \(\omega_m \approx 12/K = 300\ \text{rad/s}\) (un peu moins à cause de \(C_s\)), soit une vanne à \(k\,\omega_m \approx 6\ \text{rad/s}\). Durée de la phase saturée : environ \((1{,}57-0{,}6)/6 \approx 0{,}16\ \text{s}\), plus un retard de l'ordre de \(\tau_m\) dû à la mise en vitesse, soit à peu près 0,2 s. Le modèle linéaire prévoit \(0{,}21\ \text{s}\) quelle que soit l'amplitude ; en réalité la phase saturée s'ajoute à la phase linéaire finale : le temps de réponse sera nettement plus long (une simulation avec saturation donne environ 0,33 s, et 0,36 s en ajoutant le frottement sec).</p>
+    <p><strong>Q4.</strong> La bande d'arrêt est inversement proportionnelle à \(K_a\) : elle tombe à 0,01 rad (0,6°). Mais la FTBO devient \(40/[p(1+0{,}05p)]\) : \(\omega_0 = \sqrt{800} \approx 28{,}3\ \text{rad/s}\) et \(\xi = \dfrac{\omega_0}{2\times40} \approx 0{,}35\), soit un dépassement d'environ 30 % en régime linéaire, c'est-à-dire pour de petites consignes (la tension sature désormais dès 0,15 rad d'erreur). Autres solutions : correcteur à action intégrale (qui force le moteur à sortir de la zone morte, au risque d'un cycle limite de petite amplitude) ou compensation du frottement par anticipation (ajout d'une tension \(\pm R\,C_s/K\) selon le sens du mouvement souhaité).</p>
+    <p><strong>Q5.</strong> Temps de réponse : \((0{,}36-0{,}41)/0{,}41 \approx -12\ \%\). Le modèle est un peu trop rapide : inertie sous-estimée (pièces de la vanne, accouplement), frottement visqueux négligé ou limitation de courant du variateur. Erreur finale : 0,2° et 1,8° sont toutes deux dans la bande d'arrêt ±2,3° de Q2. Avec un frottement sec, le point d'arrêt dans cette bande dépend finement de l'approche (vitesse d'arrivée, adhérence plus forte que le frottement de glissement, jeu du réducteur) : une seule valeur ne suffit ni à valider ni à rejeter le modèle. On compare plutôt la dispersion des arrêts sur plusieurs essais à la largeur de bande prévue (le même modèle prévoit d'ailleurs un arrêt vers 2° pour une consigne de 10°). On recale enfin les paramètres dynamiques sur cet essai, puis on valide sur une consigne d'amplitude différente.</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 08</span><span class="diff">★ ★ ☆</span>
+  <h3>Enrouleuse : faut-il modéliser l'accouplement élastique ?</h3>
+  <div class="statement">Le moteur d'une enrouleuse de film (inertie \(J_m = 3\cdot10^{-4}\ \text{kg·m}^2\)) entraîne le mandrin (inertie \(J_c = 1{,}2\cdot10^{-3}\ \text{kg·m}^2\), réducteur compris) par un accouplement élastique de raideur de torsion \(k_\theta = 60\ \text{N·m/rad}\) ; amortissement et frottements sont négligés. La vitesse est asservie à partir d'un codeur monté sur l'arbre moteur ; \(C_m\) est le couple moteur, \(\theta_m\) et \(\theta_c\) les angles du moteur et du mandrin.</div>
+  <div class="q"><strong>Q1.</strong> Appliquer le principe fondamental de la dynamique à chaque inertie. En déduire l'équation de l'angle de torsion \(\varphi = \theta_m - \theta_c\) pour \(C_m = 0\), et la pulsation propre \(\omega_r\) du mode élastique.</div>
+  <div class="q"><strong>Q2.</strong> Montrer que, conditions initiales nulles,
+    <div class="formula">$$\frac{\Omega_m(p)}{C_m(p)} = \frac{J_cp^2 + k_\theta}{p\,\big[J_mJ_cp^2 + k_\theta(J_m+J_c)\big]}$$</div>
+    Interpréter les racines du numérateur et du dénominateur, et le comportement en basses pulsations.</div>
+  <div class="q"><strong>Q3.</strong> Calculer \(\omega_a\) et \(\omega_r\) (en rad/s et en Hz). La boucle de vitesse coupe à \(\omega_{c0} = 30\ \text{rad/s}\) : le modèle de solide indéformable convient-il ?</div>
+  <div class="q"><strong>Q4.</strong> Pour accélérer la production, on veut porter \(\omega_{c0}\) à 100 rad/s. Conclure. Quelle raideur faudrait-il pour retrouver un rapport \(\omega_a/\omega_{c0}\) de 8 ? Citer deux autres solutions.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> L'accouplement exerce sur le mandrin le couple \(k_\theta(\theta_m - \theta_c)\) et, sur le moteur, son opposé : \(J_m\ddot\theta_m = C_m - k_\theta(\theta_m - \theta_c)\) et \(J_c\ddot\theta_c = k_\theta(\theta_m - \theta_c)\). Pour \(C_m = 0\), en divisant par \(J_m\) et \(J_c\) puis en retranchant :</p>
+    <div class="formula">$$\ddot\varphi + k_\theta\left(\frac{1}{J_m} + \frac{1}{J_c}\right)\varphi = 0,\qquad \omega_r = \sqrt{k_\theta\,\frac{J_m + J_c}{J_mJ_c}}$$</div>
+    <p><strong>Q2.</strong> En Laplace, la seconde équation donne \(\Theta_c = \dfrac{k_\theta}{J_cp^2 + k_\theta}\,\Theta_m\). En reportant dans la première, \(\big[J_mp^2 + k_\theta - \frac{k_\theta^2}{J_cp^2 + k_\theta}\big]\Theta_m = C_m\), soit, après réduction au même dénominateur, \(\Theta_m\,\dfrac{p^2\big[J_mJ_cp^2 + k_\theta(J_m + J_c)\big]}{J_cp^2 + k_\theta} = C_m\). Avec \(\Omega_m = p\,\Theta_m\), on obtient l'expression annoncée. Le numérateur s'annule pour \(p = \pm j\omega_a\), \(\omega_a = \sqrt{k_\theta/J_c}\) : antirésonance vue du moteur (le mandrin oscille alors seul et le moteur reste immobile). Le dénominateur s'annule pour \(p = 0\) (intégrateur du mouvement d'ensemble) et \(p = \pm j\omega_r\) : résonance. En basses pulsations (\(p \to 0\)), le rapport tend vers \(\dfrac{1}{(J_m + J_c)\,p}\) : on retrouve le modèle rigide d'inertie \(J_m + J_c = 1{,}5\cdot10^{-3}\ \text{kg·m}^2\).</p>
+    <p><strong>Q3.</strong> Avec \(J_m + J_c = 1{,}5\cdot10^{-3}\) et \(J_mJ_c = 3{,}6\cdot10^{-7}\) (unités SI) :</p>
+    <div class="formula">$$\omega_a = \sqrt{\frac{60}{1{,}2\cdot10^{-3}}} \approx 224\ \text{rad/s},\qquad \omega_r = \sqrt{\frac{60 \times 1{,}5\cdot10^{-3}}{3{,}6\cdot10^{-7}}} = 500\ \text{rad/s}$$</div>
+    <p>soit 35,6 Hz et 79,6 Hz. Rapport \(\omega_a/\omega_{c0} \approx 7{,}5\), compris entre 5 et 10 : le modèle rigide convient pour régler la boucle, en restant attentif au mode élastique lors de la validation.</p>
+    <p><strong>Q4.</strong> Le rapport tombe à 2,2 : la résonance, très peu amortie, relève le gain de la FTBO près de la coupure et peut déstabiliser la boucle ; le modèle rigide n'est plus fiable, il faut le modèle à deux inerties. Pour \(\omega_a \geq 8 \times 100 = 800\ \text{rad/s}\), il faut \(k_\theta \geq 800^2 \times 1{,}2\cdot10^{-3} \approx 770\ \text{N·m/rad}\), près de 13 fois plus raide (accouplement rigide, arbre plus court ou plus gros : \(k_\theta\) varie comme \(d^4/\ell\)). Autres solutions : garder une bande passante plus modeste, ou filtrer la commande autour de la résonance (filtre réjecteur) en le prenant en compte dans le réglage.</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 09</span><span class="diff">★ ★ ☆</span>
+  <h3>Vérin pneumatique : coussin d'air et choix de simulation</h3>
+  <div class="statement">Un vérin pneumatique de diamètre 32 mm déplace horizontalement une pince de masse \(m = 1{,}5\ \text{kg}\) (frottements négligés). En fin de mouvement, la chambre arrière a une longueur \(\ell = 0{,}12\ \text{m}\) et contient de l'air sous la pression absolue \(p = 7\ \text{bar}\) ; on étudie les petits mouvements de la pince autour de cette position, l'autre chambre étant à l'échappement.</div>
+  <div class="q"><strong>Q1.</strong> Quelles grandeurs effort et flux porte le lien entre le distributeur et le vérin ? Pourquoi les logiciels utilisent-ils souvent un débit massique en pneumatique ?</div>
+  <div class="q"><strong>Q2.</strong> Pour une petite évolution polytropique (\(pV^n\) constant), montrer que la chambre se comporte comme un ressort de raideur \(k = n\,p\,S^2/V\). Calculer \(k\) en isotherme (\(n = 1\)) et en adiabatique (\(n = 1{,}4\)).</div>
+  <div class="q"><strong>Q3.</strong> En déduire la fréquence propre des oscillations de la pince. Même question si le vérin était rempli d'huile (\(B = 1{,}4\cdot10^{9}\ \text{Pa}\), \(k = BS^2/V\)). Conclure sur l'usage des deux technologies.</div>
+  <div class="q"><strong>Q4.</strong> On simule le vérin pneumatique (adiabatique) à pas fixe. Proposer un pas et une durée de simulation pour observer ces oscillations. Que deviendrait le pas avec le modèle hydraulique compressible ? Comment l'éviter si la compressibilité de l'huile n'intéresse pas ?</div>
+  <div class="q"><strong>Q5.</strong> Comment la fréquence propre varie-t-elle avec la pression d'alimentation (4 à 8 bar absolus) et avec la longueur de la chambre ? Calculer les valeurs extrêmes pour la pression, puis la fréquence quand la chambre ne mesure plus que 3 cm.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> Effort : la pression \(p\) (Pa) ; flux : le débit (volumique \(Q_v\) en m³/s, ou massique \(q_m\) en kg/s), avec la puissance \(p\,Q_v\). L'air est compressible : son débit volumique change avec la pression le long du circuit, alors que le débit massique se conserve d'un composant à l'autre. On l'emploie donc pour écrire les nœuds.</p>
+    <p><strong>Q2.</strong> En différentiant \(pV^n = \text{cste}\) : \(\mathrm{d}p/p = -n\,\mathrm{d}V/V\). Si la tige s'enfonce de \(\mathrm{d}x\), \(\mathrm{d}V = -S\,\mathrm{d}x\), et l'effort de l'air sur le piston augmente de \(\mathrm{d}F = S\,\mathrm{d}p = \dfrac{n\,p\,S^2}{V}\,\mathrm{d}x\). Ici \(S = \pi \times 0{,}016^2 \approx 8{,}04\cdot10^{-4}\ \text{m}^2\) et \(V = S\ell\), donc \(k = n\,p\,S/\ell\) : \(k \approx 4\,690\ \text{N/m}\) en isotherme et \(6\,570\ \text{N/m}\) en adiabatique.</p>
+    <p><strong>Q3.</strong> \(f_0 = \dfrac{1}{2\pi}\sqrt{k/m}\) : 8,9 Hz (isotherme) à 10,5 Hz (adiabatique ; c'est ce cas qui vaut pour une oscillation de quelques hertz, trop rapide pour les échanges de chaleur). Avec de l'huile, \(k = BS/\ell \approx 9{,}4\cdot10^{6}\ \text{N/m}\), environ 1 400 fois plus raide, et \(f_0 \approx 400\ \text{Hz}\). La pince « rebondit » sur son coussin d'air : le vérin pneumatique convient pour des mouvements tout ou rien entre butées, pas pour un positionnement précis à mi-course, qui demande un vérin hydraulique ou électrique.</p>
+    <p><strong>Q4.</strong> Période des oscillations : \(1/10{,}5 \approx 0{,}095\ \text{s}\). Il faut un pas petit devant elle : au plus \(T/10 \approx 10\ \text{ms}\), et plutôt 1 ms pour une courbe propre, vérifiée en divisant le pas par 2. Durée : plusieurs périodes, et, s'il y a un amortissement, jusqu'à leur extinction, soit au moins une seconde ici. Avec le modèle hydraulique compressible, la période tombe à 2,5 ms : le pas devrait descendre à 0,25 ms au plus, alors que le mouvement utile dure des dixièmes de seconde : modèle raide. Si la compressibilité n'intéresse pas, on modélise l'huile incompressible (vérin = transformateur parfait \(F = pS\), \(Q_v = Sv\)), ou l'on emploie un solveur à pas variable.</p>
+    <p><strong>Q5.</strong> \(k\) est proportionnelle à \(p\) et inversement proportionnelle à \(\ell\), donc \(f_0\) varie comme \(\sqrt{p/\ell}\). En adiabatique : 8,0 Hz sous 4 bar et 11,3 Hz sous 8 bar ; pour \(\ell = 3\ \text{cm}\) (quatre fois moins), \(f_0\) double : environ 21 Hz. Un balayage de la position montrerait donc une raideur très variable le long de la course : un modèle linéarisé n'est valable qu'autour d'une position donnée.</p>
+  </div>
+</div>
+
+<div class="exo concours">
+  <span class="num">CONCOURS PT</span><span class="diff">★ ★ ★</span>
+  <h3>Monte-matériaux de chantier : du modèle causal au modèle acausal</h3>
+  <div class="exo-source">
+    Exercice <strong>original</strong> au format des épreuves de Sciences industrielles PT (thème <em>modélisation multiphysique</em>). Pour t'entraîner sur les sujets réellement tombés :
+    <a href="https://www.banquept.fr/rubrique38.html" target="_blank" rel="noopener">annales officielles de la Banque PT</a>.
+  </div>
+  <div class="statement">
+    Un monte-matériaux élève une plate-forme chargée le long d'un mât. Un variateur (hacheur) alimente un moteur à courant continu qui entraîne, par un réducteur, un tambour sur lequel s'enroule le câble de levage. Un codeur incrémental sur l'arbre moteur informe la carte de commande, qui reçoit aussi les ordres d'une boîte à boutons.<br>
+    Données : masse plate-forme + charge \(m = 200\ \text{kg}\) ; \(g = 9{,}81\ \text{m/s}^2\) ; tambour de rayon \(r_t = 0{,}10\ \text{m}\) ; réducteur de rapport \(k = \omega_t/\omega_m = 1/40\), sans perte ; câble inextensible ; inerties du réducteur et du tambour négligées. Moteur : \(R = 0{,}5\ \Omega\), \(L = 5\ \text{mH}\), \(K = 0{,}6\ \text{N·m/A}\), \(J_m = 2\cdot10^{-3}\ \text{kg·m}^2\), frottements négligés. Vitesse nominale de la plate-forme : \(V = 0{,}5\ \text{m/s}\). Le variateur limite le courant à \(I_{max} = 10\ \text{A}\).
+  </div>
+
+  <p class="exo-part">Partie A — Architecture et nature des grandeurs</p>
+  <div class="q"><strong>A1.</strong> Associer à chaque constituant (réseau et redresseur, hacheur, moteur, réducteur, tambour et câble, plate-forme, codeur, carte de commande, boîte à boutons) sa chaîne et sa fonction générique.</div>
+  <div class="q"><strong>A2.</strong> Préciser l'effort et le flux portés par les liens hacheur → moteur, moteur → réducteur et câble → plate-forme. Quelle est la nature du lien codeur → carte ?</div>
+
+  <p class="exo-part">Partie B — Modèle causal</p>
+  <div class="q"><strong>B1.</strong> Calculer l'inertie équivalente \(J_{eq}\) ramenée sur l'arbre moteur et le couple \(C_{r,eq}\) dû au poids, ramené sur le même arbre.</div>
+  <div class="q"><strong>B2.</strong> Écrire les équations du modèle et décrire son schéma-blocs (entrées : tension \(U\) et couple \(C_{r,eq}\) ; sortie : vitesse \(V\) de la plate-forme).</div>
+  <div class="q"><strong>B3.</strong> En montée à vitesse nominale, calculer \(\omega_m\), le courant, la f.é.m., la tension d'alimentation, puis faire le bilan des puissances et calculer le rendement du moteur.</div>
+
+  <p class="exo-part">Partie C — Modèle acausal</p>
+  <div class="q"><strong>C1.</strong> Lister, dans l'ordre de la chaîne de puissance, les composants du modèle acausal, avec le domaine de leurs ports. Comment modéliser le poids ?</div>
+  <div class="q"><strong>C2.</strong> Quel intérêt présente ce modèle pour l'étude de la descente ?</div>
+
+  <p class="exo-part">Partie D — Simulation, non-linéarités et validation</p>
+  <div class="q"><strong>D1.</strong> Une simulation sans limitation de courant, pour un échelon de tension de 124 V plate-forme à l'arrêt, donne un pic de courant d'environ 110 A. Justifier l'ordre de grandeur (majorant simple) et le rôle de \(I_{max}\). Où placer cette non-linéarité dans le modèle causal ?</div>
+  <div class="q"><strong>D2.</strong> Avec \(i = I_{max}\) pendant le démarrage en montée, calculer l'accélération de la plate-forme, la durée de mise en vitesse et la distance parcourue pendant celle-ci.</div>
+  <div class="q"><strong>D3.</strong> En descente à 0,5 m/s, calculer \(u\), \(i\) et la puissance électrique. Conclure sur le convertisseur et sur l'énergie disponible pour une descente de 10 m.</div>
+  <div class="q"><strong>D4.</strong> Sur le prototype, le courant mesuré en montée établie vaut 9,0 A. Chiffrer l'écart avec le modèle, proposer une cause et la façon de recaler le modèle acausal.</div>
+
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>A1.</strong> Chaîne de puissance : réseau et redresseur (alimenter), hacheur (moduler), moteur (convertir), réducteur, tambour et câble (transmettre), plate-forme (effecteur, agir sur les matériaux). Chaîne d'information : codeur (acquérir), boîte à boutons (acquérir les consignes de l'opérateur), carte de commande (traiter, communiquer les ordres au hacheur).</p>
+    <p><strong>A2.</strong> Hacheur → moteur : tension \(u\) et courant \(i\). Moteur → réducteur : couple \(C_m\) et vitesse angulaire \(\omega_m\). Câble → plate-forme : force (tension du câble) \(T_c\) et vitesse \(V\). Codeur → carte : lien d'information (impulsions), sans puissance utile.</p>
+    <p><strong>B1.</strong> \(V = k\,r_t\,\omega_m\) avec \(k\,r_t = 2{,}5\cdot10^{-3}\ \text{m/rad}\). Égalité des énergies cinétiques :</p>
+    <div class="formula">$$J_{eq} = J_m + m\,(k r_t)^2$$ $$J_{eq} = 2\cdot10^{-3} + 1{,}25\cdot10^{-3}$$ $$J_{eq} = 3{,}25\cdot10^{-3}\ \text{kg·m}^2$$</div>
+    <p>Puissance du poids : \(-m g V = -(m g\,k r_t)\,\omega_m\), d'où \(C_{r,eq} = m g\,k r_t \approx 4{,}9\ \text{N·m}\) (\(1\,962\ \text{N}\times2{,}5\cdot10^{-3}\ \text{m}\)).</p>
+    <p><strong>B2.</strong> \(u = e + Ri + L\,di/dt\) ; \(e = K\omega_m\) ; \(C_m = Ki\) ; \(J_{eq}\,d\omega_m/dt = C_m - C_{r,eq}\) ; \(V = k r_t\,\omega_m\). Schéma : \(U\) → sommateur (\(-E\)) → \(\dfrac{1}{R+Lp}\) → \(K\) → sommateur (\(-C_{r,eq}\)) → \(\dfrac{1}{J_{eq}p}\) → \(\Omega_m\) → \(k r_t\) → \(V\), avec le retour \(K\) (f.é.m.). Le poids, constant, entre comme une perturbation en échelon.</p>
+    <p><strong>B3.</strong> \(\omega_m = V/(k r_t) = 200\ \text{rad/s}\) ; \(i = C_{r,eq}/K = 4{,}905/0{,}6 \approx 8{,}2\ \text{A}\) ; \(e = K\omega_m = 120\ \text{V}\) ; \(u = e + Ri = 120 + 4{,}1 \approx 124\ \text{V}\). Puissances : électrique \(u\,i \approx 1\,014\ \text{W}\) ; mécanique \(C_m\omega_m = m g V = 981\ \text{W}\) ; pertes Joule \(R i^2 \approx 33\ \text{W}\). Rendement du moteur \(981/1\,014 \approx 0{,}97\).</p>
+    <p><strong>C1.</strong> Source de tension pilotée (port électrique, entrée signal) et masse électrique ; MCC (ports électriques, port de rotation) ; réducteur idéal (rotation → rotation) ; tambour et câble (rotation → translation, rayon \(r_t\)) ; masse \(m\) (translation) ; poids : <strong>source d'effort</strong> constante \(m g\), car il impose une force quelle que soit la vitesse ; bâti en référence ; capteur de vitesse ou de position (sortie signal) pour la commande. On pourrait remplacer le câble inextensible par un ressort si son élasticité devenait gênante.</p>
+    <p><strong>C2.</strong> En descente, la charge devient motrice : la puissance change de signe sur les liens mécaniques puis électrique. Le modèle acausal décrit ce renversement sans aucune réécriture et donne la puissance sur chaque lien ; il suffit de choisir un composant de convertisseur réversible (ou non) pour voir si l'énergie peut remonter vers la source.</p>
+    <p><strong>D1.</strong> À l'arrêt, \(e = 0\) : seuls \(R\) et \(L\) limitent le courant, majoré par \(u/R = 248\ \text{A}\). Le pic réel (≈ 110 A) est plus faible car la f.é.m. croît pendant que le courant s'établit (\(\tau_e = L/R = 10\ \text{ms}\)), mais il vaut plus de dix fois le courant nominal : inacceptable pour le moteur et le hacheur. La limitation \(I_{max}\) se modélise par un bloc <strong>saturation</strong> sur la consigne de courant d'une boucle de courant interne (ou sur le courant lui-même dans un modèle simplifié).</p>
+    <p><strong>D2.</strong> \(C_m = K I_{max} = 6\ \text{N·m}\) ; \(\dot\omega_m = (6 - 4{,}905)/J_{eq} \approx 337\ \text{rad/s}^2\) ; accélération \(a = k r_t\,\dot\omega_m \approx 0{,}84\ \text{m/s}^2\). Durée : \(200/337 \approx 0{,}59\ \text{s}\) ; distance \(V^2/(2a) = 0{,}25/1{,}68 \approx 0{,}15\ \text{m}\).</p>
+    <p><strong>D3.</strong> En descente établie, le moteur retient la charge : \(C_m = C_{r,eq}\), donc \(i \approx 8{,}2\ \text{A}\) (même signe qu'en montée), tandis que \(\omega_m = -200\ \text{rad/s}\) et \(e = -120\ \text{V}\). \(u = -120 + 4{,}1 \approx -116\ \text{V}\) et \(u\,i \approx -948\ \text{W}\) : le moteur fonctionne en génératrice et renvoie de l'énergie. Le convertisseur doit être réversible en <strong>tension</strong> (\(u \lt 0\) avec \(i \gt 0\)), et la source doit accepter cette énergie ; sinon une résistance de freinage la dissipe. Pour 10 m (20 s) : \(948\times20 \approx 19\ \text{kJ}\), soit l'énergie potentielle \(m g h = 19{,}6\ \text{kJ}\) moins les pertes Joule (\(33\times20 \approx 0{,}7\ \text{kJ}\)).</p>
+    <p><strong>D4.</strong> Écart : \((8{,}2 - 9{,}0)/9{,}0 \approx -9\ \%\) : le modèle sous-estime le couple nécessaire. Cause probable : pertes du réducteur (frottements des engrenages, paliers) supposées nulles. Rendement apparent \(\eta \approx 8{,}2/9{,}0 \approx 0{,}91\). Dans le modèle acausal, il suffit de renseigner ce rendement dans le composant réducteur (ou d'ajouter un frottement), puis de vérifier le recalage sur un autre essai, par exemple la descente, où le courant mesuré doit être plus faible que celui du modèle sans pertes.</p>
+  </div>
+</div>
+
+</div>
+</template>

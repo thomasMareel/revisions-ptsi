@@ -1,0 +1,1331 @@
+<!-- Chapitre « Modules, fichiers et statistiques » (pyfichiers) : contenu des onglets Cours, Méthodes et Exercices, chargé à l'ouverture du chapitre.
+     On l'édite ici, puis : node tools/chapitres.js (docs/chargement-chapitres.md). -->
+<template class="pan-tpl" data-panneau="fich-cours">
+<div class="course-section">
+  <div class="sec-num">AU PROGRAMME · INFORMATIQUE</div>
+  <h2>Ce que le programme officiel demande</h2>
+  <div class="intro">Le premier semestre fait lire un fichier de données simples, calculer des statistiques sur ces données et les représenter, en s'aidant de modules. Le programme est précis sur un point : <strong>aucune connaissance d'un module particulier n'est exigible</strong>, et la documentation des fonctions de fichiers est toujours rappelée dans un énoncé. On doit en revanche savoir importer un module, lire et écrire un fichier texte avec les fonctions de l'annexe, et programmer soi-même moyenne, variance et médiane. Les boucles et les listes sont celles des chapitres « Conditions &amp; boucles » et « Types construits » ; le comptage avec un dictionnaire est vu au chapitre « Recherche séquentielle, dictionnaires et dichotomie ».</div>
+  <div class="reveal" onclick="this.classList.toggle('open')">
+    <span class="label">Programme officiel</span>
+    <span class="prompt">Les notions du programme couvertes par ce chapitre, dans l'ordre du cours</span>
+    <div class="content"><ul>
+      <li><strong>Utilisation de modules, de bibliothèques</strong> (1ᵉʳ semestre) ; annexe Python : <span class="code-inline">import module</span>, <span class="code-inline">import module as alias</span>, <span class="code-inline">from module import f, g</span> (§1).</li>
+      <li><strong>Lecture d'un fichier de données simples</strong> ; annexe : <span class="code-inline">open</span>, <span class="code-inline">read</span>, <span class="code-inline">readline</span>, <span class="code-inline">readlines</span>, <span class="code-inline">split</span>, <span class="code-inline">close</span>, « la documentation utile de ces fonctions doit être rappelée ; tout problème relatif aux encodages est éludé » (§2, §3).</li>
+      <li><strong>Écriture dans un fichier texte</strong> ; annexe : <span class="code-inline">write</span>, <span class="code-inline">close</span> (§4).</li>
+      <li><strong>Calculs statistiques sur ces données</strong> : moyenne, variance, écart type (§5), médiane et quartiles (§6), effectifs (§7).</li>
+      <li><strong>Représentation graphique</strong> (histogrammes, courbes, nuages de points) à l'aide d'une bibliothèque documentée (§7, §8).</li>
+      <li><strong>Complexité</strong> (premiers éléments, 1ᵉʳ semestre) : coût linéaire d'une lecture et d'un calcul de moyenne, coût du tri pour la médiane (§5, §6).</li>
+    </ul>
+    <p>Hors programme : les encodages de caractères, l'instruction <span class="code-inline">with</span>, le rattrapage des erreurs (exceptions), et toute connaissance des modules eux-mêmes (math, random, matplotlib, numpy, csv…), dont un énoncé rappelle toujours la documentation.</p></div>
+  </div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§1 · MODULES ET BIBLIOTHÈQUES</div>
+  <h2>Utiliser du code écrit par d'autres</h2>
+  <div class="intro">Python de base ne sait calculer ni une racine carrée, ni un nombre au hasard, ni tracer une courbe. Ces outils sont rangés dans des <strong>modules</strong> : des fichiers de code Python (ou compilé) qu'on charge à la demande. Une <strong>bibliothèque</strong> est un ensemble de modules : la bibliothèque standard, livrée avec Python (math, random…), et des bibliothèques à installer (numpy, matplotlib…).</div>
+
+  <div class="def-box">Un <strong>module</strong> est un fichier qui définit des fonctions, des constantes et d'autres objets. L'instruction <span class="code-inline">import</span> le charge et rend ses noms accessibles ; il existe trois formes au programme.</div>
+
+  <h3>Trois façons d'importer</h3>
+  <p><strong>1. <span class="code-inline">import module</span></strong> : les noms du module s'utilisent <strong>préfixés</strong> par le nom du module et un point.</p>
+<pre class="codeblock"><span class="kw">import</span> math
+print(math.sqrt(2))    <span class="cmt"># 1.4142135623730951</span>
+print(math.pi)         <span class="cmt"># 3.141592653589793</span></pre>
+  <p>Sans le préfixe, le nom est inconnu du programme :</p>
+<pre class="codeblock"><span class="kw">import</span> math
+print(sqrt(16))    <span class="cmt"># NameError : name 'sqrt' is not defined</span></pre>
+  <p><strong>2. <span class="code-inline">import module as alias</span></strong> : même chose, avec un préfixe plus court. Certains alias sont des usages universels : <span class="code-inline">import numpy as np</span>, <span class="code-inline">import matplotlib.pyplot as plt</span>.</p>
+<pre class="codeblock"><span class="kw">import</span> math <span class="kw">as</span> m
+print(m.cos(m.pi))    <span class="cmt"># -1.0</span></pre>
+  <p><strong>3. <span class="code-inline">from module import f, g</span></strong> : seuls les noms cités sont importés, et ils s'utilisent <strong>sans préfixe</strong>.</p>
+<pre class="codeblock"><span class="kw">from</span> math <span class="kw">import</span> sqrt, pi
+print(sqrt(2) * pi)    <span class="cmt"># 4.442882938158366</span></pre>
+
+  <div class="notice"><strong>Erreur classique</strong> : un nom importé par <span class="code-inline">from … import</span> peut entrer en conflit avec un nom du programme. Après <span class="code-inline">from math import e</span>, une variable <span class="code-inline">e</span> créée plus loin (une erreur, une épaisseur) remplace la constante d'Euler sans prévenir, et inversement. Les formes avec préfixe évitent ce risque ; la forme <span class="code-inline">from math import *</span>, qui importe tous les noms, est à proscrire.</div>
+
+  <h3>Deux modules de la bibliothèque standard</h3>
+  <p>Le module <span class="code-inline">math</span> fournit les fonctions usuelles (<span class="code-inline">sqrt</span>, <span class="code-inline">exp</span>, <span class="code-inline">log</span>, <span class="code-inline">cos</span>, <span class="code-inline">sin</span>, <span class="code-inline">floor</span>…) et les constantes <span class="code-inline">pi</span> et <span class="code-inline">e</span>. Le module <span class="code-inline">random</span> produit des nombres pseudo-aléatoires : <span class="code-inline">randint(a, b)</span> renvoie un entier au hasard entre <span class="code-inline">a</span> et <span class="code-inline">b</span> <strong>inclus</strong>, <span class="code-inline">random()</span> un flottant au hasard dans \([0, 1[\). Leur connaissance n'est pas exigible : un énoncé rappelle ce dont il se sert.</p>
+
+  <div class="method-box"><strong>Exemple — simuler 6000 lancers de dé</strong>
+    <p>On estime la fréquence d'apparition du 6.</p>
+<pre class="codeblock"><span class="kw">from</span> random <span class="kw">import</span> randint
+
+n = 6000
+k = 0                          <span class="cmt"># nombre de 6 obtenus</span>
+<span class="kw">for</span> i <span class="kw">in</span> range(n):
+    <span class="kw">if</span> randint(1, 6) == 6:     <span class="cmt"># randint : bornes 1 et 6 comprises</span>
+        k = k + 1
+print(k / n)                   <span class="cmt"># proche de 1/6, différent à chaque exécution</span></pre>
+    <ol>
+      <li>Une seule fonction du module est utile : on l'importe par <span class="code-inline">from random import randint</span>, et l'on écrit <span class="code-inline">randint(1, 6)</span> sans préfixe.</li>
+      <li>La boucle fait \(n\) tirages, chacun en temps constant : coût \(O(n)\).</li>
+      <li>On obtient une valeur voisine de \(1/6 \approx 0{,}167\), mais pas la même à chaque exécution : pour tester un programme aléatoire, on vérifie des propriétés (fréquence entre 0 et 1, proche de \(1/6\) pour \(n\) grand) plutôt qu'une valeur exacte.</li>
+    </ol>
+  </div>
+
+  <h3>Écrire son propre module</h3>
+  <p>Tout fichier Python est un module. Si le fichier <span class="code-inline">outils.py</span>, placé dans le même dossier que le programme, contient</p>
+<pre class="codeblock">def carre(x):
+    return x * x</pre>
+  <p>alors un autre programme du dossier peut écrire :</p>
+<pre class="codeblock"><span class="kw">import</span> outils
+print(outils.carre(7))    <span class="cmt"># 49</span></pre>
+  <p>C'est ainsi qu'on réutilise d'un TP à l'autre les fonctions de lecture et de statistiques de ce chapitre.</p>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§2 · LIRE UN FICHIER TEXTE</div>
+  <h2>Ouvrir, lire, fermer</h2>
+  <div class="intro">Les mesures d'un capteur, les résultats d'une simulation, un relevé météorologique sont souvent livrés dans un <strong>fichier texte</strong> : une suite de lignes de caractères, lisible dans n'importe quel éditeur. Le programme doit ouvrir le fichier, en lire le contenu sous forme de chaînes de caractères, puis le fermer.</div>
+
+  <div class="def-box">Un <strong>fichier texte</strong> est une suite de caractères, découpée en <strong>lignes</strong> par le caractère de fin de ligne, noté <span class="code-inline">'\n'</span> en Python. Le fichier est désigné par son <strong>nom</strong> (par exemple <span class="code-inline">'releve.txt'</span>), cherché dans le dossier où le programme s'exécute.</div>
+
+  <p>Voici la documentation des fonctions de l'annexe, telle qu'un énoncé la rappelle. <span class="code-inline">f</span> désigne un fichier ouvert et <span class="code-inline">s</span> une chaîne de caractères.</p>
+  <div><table>
+    <tr><th>Appel</th><th>Effet</th></tr>
+    <tr><td><span class="code-inline">f = open(nom, 'r')</span></td><td>ouvre en lecture le fichier <span class="code-inline">nom</span>, qui doit exister</td></tr>
+    <tr><td><span class="code-inline">f = open(nom, 'w')</span></td><td>ouvre en écriture : crée le fichier, ou l'<strong>efface</strong> s'il existe</td></tr>
+    <tr><td><span class="code-inline">f = open(nom, 'a')</span></td><td>ouvre en ajout : écrit à la suite du contenu existant</td></tr>
+    <tr><td><span class="code-inline">f.read()</span></td><td>renvoie tout le texte restant, en une seule chaîne</td></tr>
+    <tr><td><span class="code-inline">f.readline()</span></td><td>renvoie la ligne suivante, <span class="code-inline">'\n'</span> final compris ; renvoie <span class="code-inline">''</span> à la fin du fichier</td></tr>
+    <tr><td><span class="code-inline">f.readlines()</span></td><td>renvoie la liste des lignes restantes, chacune avec son <span class="code-inline">'\n'</span></td></tr>
+    <tr><td><span class="code-inline">f.write(s)</span></td><td>écrit la chaîne <span class="code-inline">s</span>, sans ajouter de fin de ligne</td></tr>
+    <tr><td><span class="code-inline">f.close()</span></td><td>ferme le fichier (et termine les écritures en attente)</td></tr>
+    <tr><td><span class="code-inline">s.split(sep)</span></td><td>liste des morceaux de <span class="code-inline">s</span> séparés par la chaîne <span class="code-inline">sep</span></td></tr>
+    <tr><td><span class="code-inline">s.split()</span></td><td>liste des morceaux de <span class="code-inline">s</span> séparés par des blancs (espaces, tabulations, fins de ligne), sans morceau vide</td></tr>
+  </table></div>
+
+  <p>On considère le fichier <span class="code-inline">releve.txt</span>, une ligne d'en-tête puis une ligne par ville :</p>
+<pre class="codeblock">ville;temperature
+Brest;12.5
+Lyon;17.0
+Nice;21.5</pre>
+  <p>La lecture la plus simple charge tout le texte d'un coup :</p>
+<pre class="codeblock">f = open(<span class="str">'releve.txt'</span>, <span class="str">'r'</span>)    <span class="cmt"># ouverture en lecture</span>
+texte = f.read()               <span class="cmt"># tout le fichier en une chaîne</span>
+f.close()
+print(len(texte))    <span class="cmt"># 49 : 45 caractères visibles et 4 fins de ligne</span></pre>
+  <p>Les lectures successives avancent dans le fichier : chacune reprend là où la précédente s'est arrêtée.</p>
+<pre class="codeblock">f = open(<span class="str">'releve.txt'</span>, <span class="str">'r'</span>)
+entete = f.readline()      <span class="cmt"># 'ville;temperature\n'</span>
+premiere = f.readline()    <span class="cmt"># 'Brest;12.5\n'</span>
+reste = f.readlines()      <span class="cmt"># les lignes qui restent</span>
+fin = f.readline()         <span class="cmt"># '' : on est à la fin du fichier</span>
+f.close()
+print(reste)    <span class="cmt"># ['Lyon;17.0\n', 'Nice;21.5\n']</span></pre>
+<figure class="schema">
+<svg viewBox="0 0 330 168" role="img" aria-label="Le fichier releve.txt vu comme quatre lignes terminées chacune par le caractère de fin de ligne ; un curseur de lecture est placé après les deux premières lignes">
+<text x="18" y="16" class="lab-b" style="font-size:13px;font-family:var(--font-code)">releve.txt</text>
+<rect x="18" y="30" width="142.6" height="22" class="sk-axis fl-paper" rx="2"/>
+<text x="23" y="46" style="font-size:13px;font-family:var(--font-code)">ville;temperature</text>
+<rect x="162.6" y="30" width="24" height="22" class="sk-accent fl-accent-soft" rx="2" stroke-width="1.2"/>
+<text x="174.6" y="46" class="lab-accent" text-anchor="middle" style="font-size:12px;font-family:var(--font-code)">\n</text>
+<rect x="18" y="60" width="88" height="22" class="sk-axis fl-paper" rx="2"/>
+<text x="23" y="76" style="font-size:13px;font-family:var(--font-code)">Brest;12.5</text>
+<rect x="108" y="60" width="24" height="22" class="sk-accent fl-accent-soft" rx="2" stroke-width="1.2"/>
+<text x="120" y="76" class="lab-accent" text-anchor="middle" style="font-size:12px;font-family:var(--font-code)">\n</text>
+<rect x="18" y="90" width="80.2" height="22" class="sk-axis fl-paper" rx="2"/>
+<text x="23" y="106" style="font-size:13px;font-family:var(--font-code)">Lyon;17.0</text>
+<rect x="100.2" y="90" width="24" height="22" class="sk-accent fl-accent-soft" rx="2" stroke-width="1.2"/>
+<text x="112.2" y="106" class="lab-accent" text-anchor="middle" style="font-size:12px;font-family:var(--font-code)">\n</text>
+<rect x="18" y="120" width="80.2" height="22" class="sk-axis fl-paper" rx="2"/>
+<text x="23" y="136" style="font-size:13px;font-family:var(--font-code)">Nice;21.5</text>
+<rect x="100.2" y="120" width="24" height="22" class="sk-accent fl-accent-soft" rx="2" stroke-width="1.2"/>
+<text x="112.2" y="136" class="lab-accent" text-anchor="middle" style="font-size:12px;font-family:var(--font-code)">\n</text>
+<line x1="12" y1="86" x2="200" y2="86" class="sk-green" stroke-width="1.6" stroke-dasharray="5 3"/>
+<text x="208" y="90" class="lab-green">curseur après</text>
+<text x="208" y="106" class="lab-green">deux readline()</text>
+<text x="18" y="164" class="lab-muted">fin du fichier : readline() renvoie ''</text>
+</svg>
+<figcaption>Un fichier texte est une suite de caractères ; le caractère <span class="code-inline">\n</span> (fin de ligne) sépare les lignes. Chaque lecture avance un <strong>curseur</strong> : après deux appels à <span class="code-inline">readline()</span>, le prochain renverra <span class="code-inline">'Lyon;17.0\n'</span>, et <span class="code-inline">read()</span> ou <span class="code-inline">readlines()</span> ne liraient que les deux dernières lignes.</figcaption>
+</figure>
+
+  <div class="prop-box"><strong>Lire ligne par ligne.</strong> <span class="code-inline">readline</span> renvoie la chaîne vide <span class="code-inline">''</span> seulement à la fin du fichier ; une ligne vide du fichier, elle, vaut <span class="code-inline">'\n'</span>. D'où la boucle de lecture, qui ne garde jamais plus d'une ligne en mémoire :</div>
+<pre class="codeblock">f = open(<span class="str">'releve.txt'</span>, <span class="str">'r'</span>)
+f.readline()                       <span class="cmt"># on lit, et on ignore, l'en-tête</span>
+ligne = f.readline()
+<span class="kw">while</span> ligne != <span class="str">''</span>:                 <span class="cmt"># '' : fin du fichier</span>
+    print(ligne.split(<span class="str">';'</span>)[0])     <span class="cmt"># Brest, puis Lyon, puis Nice</span>
+    ligne = f.readline()
+f.close()</pre>
+
+  <div class="notice"><strong>Erreurs classiques</strong> : ouvrir en <span class="code-inline">'w'</span> un fichier qu'on voulait lire (son contenu est effacé aussitôt) ; oublier que le fichier est cherché dans le dossier courant (une <span class="code-inline">FileNotFoundError</span> signale un nom ou un dossier erroné) ; relire après un <span class="code-inline">read()</span> (le curseur est à la fin, on n'obtient plus que <span class="code-inline">''</span>).</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§3 · DÉCOUPER LES LIGNES ET CONVERTIR</div>
+  <h2>Des chaînes de caractères aux nombres</h2>
+  <div class="intro">Tout ce qu'on lit dans un fichier texte est une chaîne. Une ligne de données contient plusieurs <strong>champs</strong> séparés par un caractère convenu (point-virgule, virgule, tabulation, espace) : on la découpe avec <span class="code-inline">split</span>, puis on convertit chaque champ numérique avec <span class="code-inline">int</span> ou <span class="code-inline">float</span>.</div>
+
+<pre class="codeblock">ligne = <span class="str">'Lyon;17.0\n'</span>
+champs = ligne.split(<span class="str">';'</span>)     <span class="cmt"># ['Lyon', '17.0\n']</span>
+t = float(champs[1])          <span class="cmt"># 17.0</span>
+print(champs, t)
+print(<span class="str">'  3   4.5\n'</span>.split())  <span class="cmt"># ['3', '4.5'] : coupe sur les blancs</span>
+print(<span class="str">'a;;b'</span>.split(<span class="str">';'</span>))      <span class="cmt"># ['a', '', 'b'] : un champ vide</span></pre>
+  <p>Le dernier champ garde le <span class="code-inline">'\n'</span> de la ligne. Les fonctions <span class="code-inline">int</span> et <span class="code-inline">float</span> ignorent les blancs et fins de ligne aux extrémités de la chaîne à convertir, mais une comparaison de chaînes, elle, en tient compte : <span class="code-inline">'ABS\n' == 'ABS'</span> est faux. Une petite fonction retire le <span class="code-inline">'\n'</span> final avec les seuls outils de l'annexe :</p>
+<pre class="codeblock"><span class="kw">def</span> sans_retour(ligne):
+    <span class="cmt"># la ligne sans son caractère de fin de ligne '\n' final, s'il y en a un</span>
+    n = len(ligne)
+    <span class="kw">if</span> n &gt; 0 <span class="kw">and</span> ligne[n - 1] == <span class="str">'\n'</span>:
+        <span class="kw">return</span> ligne[:n - 1]
+    <span class="kw">return</span> ligne</pre>
+
+  <div class="method-box"><strong>Exemple — lire un fichier de mesures commenté</strong>
+    <p>Un capteur produit le fichier suivant : deux lignes de commentaire commençant par <span class="code-inline">#</span>, puis des lignes « temps ; température », avec une ligne vide égarée.</p>
+<pre class="codeblock"># capteur de température n°3
+# temps (s) ; température (°C)
+0 ; 20.1
+10 ; 20.4
+20 ; 21.0
+
+30 ; 21.9</pre>
+<pre class="codeblock"><span class="kw">def</span> lire_capteur(nom):
+    f = open(nom, <span class="str">'r'</span>)
+    lignes = f.readlines()
+    f.close()
+    t, T = [], []
+    <span class="kw">for</span> ligne <span class="kw">in</span> lignes:
+        champs = ligne.split(<span class="str">';'</span>)
+        <span class="kw">if</span> ligne[0] != <span class="str">'#'</span> <span class="kw">and</span> len(champs) == 2:   <span class="cmt"># ni commentaire, ni ligne vide</span>
+            t.append(float(champs[0]))
+            T.append(float(champs[1]))
+    <span class="kw">return</span> t, T
+
+print(lire_capteur(<span class="str">'capteur.txt'</span>))   <span class="cmt"># ([0.0, 10.0, 20.0, 30.0], [20.1, 20.4, 21.0, 21.9])</span></pre>
+    <ol>
+      <li><span class="code-inline">readlines</span> renvoie 7 lignes. Les deux premières commencent par <span class="code-inline">#</span> et sont écartées, bien que la seconde contienne un point-virgule (sans le test sur <span class="code-inline">ligne[0]</span>, <span class="code-inline">float(' temps (s) ')</span> lèverait une <span class="code-inline">ValueError</span>).</li>
+      <li>La ligne <span class="code-inline">'0 ; 20.1\n'</span> donne <span class="code-inline">['0 ', ' 20.1\n']</span> : <span class="code-inline">float</span> ignore les espaces et la fin de ligne, on obtient 0.0 et 20.1.</li>
+      <li>La ligne vide vaut <span class="code-inline">'\n'</span> : son découpage donne un seul champ, elle est écartée par le test de longueur. Comme <span class="code-inline">readlines</span> ne renvoie jamais de chaîne vide, <span class="code-inline">ligne[0]</span> existe toujours.</li>
+      <li>Coût : un passage par ligne, de coût proportionnel à sa longueur ; au total, linéaire en la taille du fichier.</li>
+    </ol>
+  </div>
+
+  <p>Pour un fichier à deux colonnes numériques avec une ligne d'en-tête, cas le plus fréquent, on écrit une fois pour toutes :</p>
+<pre class="codeblock"><span class="kw">def</span> lire_colonnes(nom, sep):
+    <span class="cmt"># fichier à deux colonnes numériques séparées par sep, avec une ligne d'en-tête</span>
+    f = open(nom, <span class="str">'r'</span>)
+    lignes = f.readlines()
+    f.close()
+    xs, ys = [], []
+    <span class="kw">for</span> ligne <span class="kw">in</span> lignes[1:]:           <span class="cmt"># on saute l'en-tête</span>
+        champs = ligne.split(sep)
+        <span class="kw">if</span> len(champs) == 2:           <span class="cmt"># on ignore une ligne vide ou incomplète</span>
+            xs.append(float(champs[0]))
+            ys.append(float(champs[1]))
+    <span class="kw">return</span> xs, ys</pre>
+
+  <div class="notice"><strong>Erreur classique</strong> : oublier de convertir. Les chaînes se comparent dans l'ordre alphabétique, caractère par caractère : <span class="code-inline">'17.0' &lt; '9.5'</span> est vrai, car le caractère <span class="code-inline">'1'</span> précède <span class="code-inline">'9'</span>, et <span class="code-inline">'12.5' + '1'</span> vaut <span class="code-inline">'12.51'</span>. Une moyenne, un maximum ou un tri faits sur des chaînes sont faux sans message d'erreur.</div>
+<pre class="codeblock">print(<span class="str">'17.0'</span> &lt; <span class="str">'9.5'</span>)    <span class="cmt"># True : comparaison de chaînes, pas de nombres</span></pre>
+  <div class="notice"><strong>Virgule décimale</strong> : un tableur réglé en français écrit <span class="code-inline">12,5</span>, que <span class="code-inline">float</span> refuse. Il faut alors remplacer la virgule par un point (méthode <span class="code-inline">replace</span> des chaînes, documentée si un énoncé s'en sert), ou exporter le fichier avec le point décimal.</div>
+<pre class="codeblock">x = float(<span class="str">'12,5'</span>)    <span class="cmt"># ValueError : could not convert string to float</span></pre>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§4 · ÉCRIRE DANS UN FICHIER</div>
+  <h2>Enregistrer des résultats</h2>
+  <div class="intro">Écrire un fichier permet de garder des résultats, de les transmettre à un autre programme (un tableur, un logiciel de tracé) ou de les relire plus tard. On ouvre le fichier en écriture (<span class="code-inline">'w'</span>) ou en ajout (<span class="code-inline">'a'</span>), on écrit des <strong>chaînes</strong>, puis on ferme.</div>
+
+<pre class="codeblock">f = open(<span class="str">'carres.txt'</span>, <span class="str">'w'</span>)     <span class="cmt"># crée le fichier (ou l'efface)</span>
+f.write(<span class="str">'n;carre\n'</span>)            <span class="cmt"># en-tête</span>
+<span class="kw">for</span> n <span class="kw">in</span> range(1, 6):
+    f.write(str(n) + <span class="str">';'</span> + str(n * n) + <span class="str">'\n'</span>)
+f.close()                       <span class="cmt"># indispensable</span></pre>
+  <p>Le fichier <span class="code-inline">carres.txt</span> contient alors :</p>
+<pre class="codeblock">n;carre
+1;1
+2;4
+3;9
+4;16
+5;25</pre>
+
+  <div class="prop-box"><strong>Trois règles.</strong> <span class="code-inline">write</span> n'accepte qu'une chaîne : on convertit les nombres par <span class="code-inline">str</span>. Elle n'ajoute rien : chaque fin de ligne s'écrit explicitement, <span class="code-inline">'\n'</span>. Enfin, les écritures sont d'abord stockées en mémoire, et seul <span class="code-inline">close</span> garantit qu'elles sont toutes dans le fichier.</div>
+<pre class="codeblock">f = open(<span class="str">'essai.txt'</span>, <span class="str">'w'</span>)
+f.write(3.5)    <span class="cmt"># TypeError : write attend une chaîne, écrire str(3.5)</span></pre>
+
+  <p>La fonction suivante écrit deux listes de nombres en colonnes, au format que relit <span class="code-inline">lire_colonnes</span> (§3) :</p>
+<pre class="codeblock"><span class="kw">def</span> ecrire_colonnes(nom, xs, ys, sep):
+    f = open(nom, <span class="str">'w'</span>)
+    f.write(<span class="str">'x'</span> + sep + <span class="str">'y\n'</span>)
+    <span class="kw">for</span> k <span class="kw">in</span> range(len(xs)):
+        f.write(str(xs[k]) + sep + str(ys[k]) + <span class="str">'\n'</span>)
+    f.close()</pre>
+  <p>Le mode <span class="code-inline">'a'</span> sert à tenir un journal : chaque exécution ajoute ses lignes à la fin, sans effacer les précédentes.</p>
+<pre class="codeblock">journal = open(<span class="str">'journal.txt'</span>, <span class="str">'a'</span>)
+journal.write(<span class="str">'essai 1 : 25 mesures enregistrées\n'</span>)
+journal.close()</pre>
+
+  <div class="notice"><strong>Erreurs classiques</strong> : oublier <span class="code-inline">close</span> (le fichier peut rester vide ou tronqué) ; oublier <span class="code-inline">'\n'</span> (tout s'écrit sur une seule ligne) ; ouvrir en <span class="code-inline">'w'</span> le fichier de données d'origine pour y écrire les résultats (les données sont perdues).</div>
+
+  <div class="method-box"><strong>Exemple — écrire puis relire un tableau de valeurs</strong>
+    <p>On enregistre les valeurs de \(x \mapsto x^2\) pour \(x = 0 ; 0{,}5 ; 1 ; 1{,}5\), puis on vérifie qu'on relit exactement les mêmes nombres.</p>
+<pre class="codeblock">xs = [0.0, 0.5, 1.0, 1.5]
+ys = [x * x <span class="kw">for</span> x <span class="kw">in</span> xs]
+ecrire_colonnes(<span class="str">'table.txt'</span>, xs, ys, <span class="str">';'</span>)
+print(lire_colonnes(<span class="str">'table.txt'</span>, <span class="str">';'</span>) == (xs, ys))    <span class="cmt"># True</span></pre>
+    <ol>
+      <li>Le fichier contient l'en-tête <span class="code-inline">x;y</span>, puis <span class="code-inline">0.0;0.0</span>, <span class="code-inline">0.5;0.25</span>, <span class="code-inline">1.0;1.0</span>, <span class="code-inline">1.5;2.25</span>.</li>
+      <li><span class="code-inline">lire_colonnes</span> saute l'en-tête, découpe chaque ligne et convertit les deux champs : on retrouve les mêmes listes. La fonction <span class="code-inline">str</span> écrit assez de chiffres pour qu'un flottant relu par <span class="code-inline">float</span> soit identique à l'original.</li>
+      <li>Ce test « aller-retour » est un bon jeu de test pour une paire de fonctions d'écriture et de lecture.</li>
+    </ol>
+  </div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§5 · MOYENNE, VARIANCE, ÉCART TYPE</div>
+  <h2>Résumer une série de valeurs</h2>
+  <div class="intro">Une fois les données lues, on les résume par quelques nombres : où elles se situent (la moyenne) et à quel point elles s'écartent les unes des autres (la variance et l'écart type). Ces calculs se programment par une simple accumulation.</div>
+
+  <div class="def-box">Pour une série \(x_1, \dots, x_n\) de \(n\) valeurs, la <strong>moyenne</strong>, la <strong>variance</strong> et l'<strong>écart type</strong> sont
+  <div class="formula" data-nom="Moyenne, variance, écart type">$$\bar{x} = \frac{1}{n}\sum_{k=1}^{n} x_k \qquad V = \frac{1}{n}\sum_{k=1}^{n} \left(x_k - \bar{x}\right)^2 \qquad \sigma = \sqrt{V}$$</div>
+  La variance est la moyenne des carrés des écarts à la moyenne ; l'écart type \(\sigma\) a la même unité que les valeurs.</div>
+
+<pre class="codeblock"><span class="kw">def</span> moyenne(t):
+    s = 0
+    <span class="kw">for</span> x <span class="kw">in</span> t:
+        s = s + x
+    <span class="kw">return</span> s / len(t)
+
+<span class="kw">def</span> variance(t):
+    m = moyenne(t)
+    s = 0
+    <span class="kw">for</span> x <span class="kw">in</span> t:
+        s = s + (x - m) ** 2
+    <span class="kw">return</span> s / len(t)</pre>
+<pre class="codeblock"><span class="kw">from</span> math <span class="kw">import</span> sqrt</pre>
+<pre class="codeblock"><span class="kw">def</span> ecart_type(t):
+    <span class="kw">return</span> sqrt(variance(t))</pre>
+<figure class="schema">
+<svg viewBox="0 0 350 178" role="img" aria-label="Deux séries de cinq valeurs de même moyenne 12 : la série A est étalée, la série B resserrée autour de la moyenne">
+<text x="10" y="24" class="lab-muted">série A : moyenne 12, écart type 2,28</text>
+<rect x="111.6" y="38" width="136.8" height="24" class="fl-accent2-soft"/>
+<line x1="30" y1="50" x2="330" y2="50" class="sk-axis"/>
+<circle cx="180" cy="50" r="4.5" class="fl-ink"/>
+<circle cx="270" cy="50" r="4.5" class="fl-ink"/>
+<circle cx="90" cy="50" r="4.5" class="fl-ink"/>
+<circle cx="240" cy="50" r="4.5" class="fl-ink"/>
+<circle cx="120" cy="50" r="4.5" class="fl-ink"/>
+<line x1="180" y1="34" x2="180" y2="66" class="sk-accent"/>
+<text x="10" y="94" class="lab-muted">série B : moyenne 12, écart type 0,63</text>
+<rect x="161" y="108" width="37.9" height="24" class="fl-accent2-soft"/>
+<line x1="30" y1="120" x2="330" y2="120" class="sk-axis"/>
+<circle cx="150" cy="120" r="4.5" class="fl-ink"/>
+<circle cx="180" cy="120" r="4.5" class="fl-ink"/>
+<circle cx="210" cy="120" r="4.5" class="fl-ink"/>
+<circle cx="180" cy="113" r="4.5" class="fl-ink"/>
+<circle cx="180" cy="106" r="4.5" class="fl-ink"/>
+<line x1="180" y1="104" x2="180" y2="136" class="sk-accent"/>
+<line x1="30" y1="150" x2="30" y2="155" class="sk-axis"/>
+<text x="30" y="170" class="lab-muted" text-anchor="middle">7</text>
+<line x1="60" y1="150" x2="60" y2="155" class="sk-axis"/>
+<line x1="90" y1="150" x2="90" y2="155" class="sk-axis"/>
+<text x="90" y="170" class="lab-muted" text-anchor="middle">9</text>
+<line x1="120" y1="150" x2="120" y2="155" class="sk-axis"/>
+<line x1="150" y1="150" x2="150" y2="155" class="sk-axis"/>
+<text x="150" y="170" class="lab-muted" text-anchor="middle">11</text>
+<line x1="180" y1="150" x2="180" y2="155" class="sk-axis"/>
+<line x1="210" y1="150" x2="210" y2="155" class="sk-axis"/>
+<text x="210" y="170" class="lab-muted" text-anchor="middle">13</text>
+<line x1="240" y1="150" x2="240" y2="155" class="sk-axis"/>
+<line x1="270" y1="150" x2="270" y2="155" class="sk-axis"/>
+<text x="270" y="170" class="lab-muted" text-anchor="middle">15</text>
+<line x1="300" y1="150" x2="300" y2="155" class="sk-axis"/>
+<line x1="330" y1="150" x2="330" y2="155" class="sk-axis"/>
+<text x="330" y="170" class="lab-muted" text-anchor="middle">17</text>
+<line x1="30" y1="150" x2="330" y2="150" class="sk-axis"/>
+</svg>
+<figcaption>Deux séries de même moyenne 12 (trait vertical). La bande colorée s'étend d'un écart type de part et d'autre de la moyenne : l'écart type mesure la dispersion des valeurs autour de leur moyenne, dans la même unité qu'elles.</figcaption>
+</figure>
+
+  <div class="prop-box"><strong>Formule de König-Huygens.</strong> En développant le carré, \(V = \dfrac{1}{n}\displaystyle\sum_{k=1}^{n} x_k^2 - \bar{x}^2\) : la variance est la moyenne des carrés moins le carré de la moyenne. Elle permet de tout calculer en <strong>un seul parcours</strong>, en accumulant à la fois les \(x_k\) et les \(x_k^2\).</div>
+<pre class="codeblock"><span class="kw">def</span> variance_un_passage(t):
+    <span class="cmt"># formule de König-Huygens : moyenne des carrés moins carré de la moyenne</span>
+    s1, s2 = 0, 0
+    <span class="kw">for</span> x <span class="kw">in</span> t:
+        s1 = s1 + x
+        s2 = s2 + x * x
+    n = len(t)
+    <span class="kw">return</span> s2 / n - (s1 / n) ** 2</pre>
+
+  <div class="notice"><strong>Attention aux flottants</strong> : quand les valeurs sont grandes et peu dispersées, la formule de König-Huygens soustrait deux nombres presque égaux et perd presque tous ses chiffres significatifs (chapitre « Représentation des nombres »). Pour \([10^8 + 1, 10^8 + 2, 10^8 + 3]\), la variance vaut \(2/3\), mais le calcul en un passage renvoie 0.</div>
+<pre class="codeblock">t = [1e8 + 1, 1e8 + 2, 1e8 + 3]
+print(variance(t))               <span class="cmt"># 0.6666666666666666</span>
+print(variance_un_passage(t))    <span class="cmt"># 0.0</span></pre>
+
+  <div class="prop-box"><strong>Coût.</strong> <span class="code-inline">moyenne</span> fait un parcours de la liste, <span class="code-inline">variance</span> deux (un pour la moyenne, un pour les écarts) : toutes deux coûtent \(O(n)\). Il faut calculer la moyenne <strong>une seule fois</strong>, avant la boucle : l'appeler à chaque tour, dans <span class="code-inline">(x - moyenne(t)) ** 2</span>, coûterait \(O(n^2)\).</div>
+
+  <div class="notice"><strong>Variance de l'échantillon</strong> : en physique, pour évaluer une incertitude de type A à partir de \(n\) mesures répétées, on utilise l'écart type expérimental, où la somme des carrés est divisée par \(n - 1\) et non par \(n\). Les modules (numpy, tableurs) proposent les deux formules : vérifier dans la documentation laquelle est calculée.</div>
+
+  <div class="method-box"><strong>Exemple — calcul à la main</strong>
+    <p>On reprend la série A de la figure : 12, 15, 9, 14, 10.</p>
+    <ol>
+      <li>Moyenne : \((12 + 15 + 9 + 14 + 10)/5 = 60/5 = 12\).</li>
+      <li>Écarts à la moyenne : \(0, 3, -3, 2, -2\) ; leurs carrés : \(0, 9, 9, 4, 4\), de somme 26.</li>
+      <li>Variance : \(V = 26/5 = 5{,}2\) ; écart type : \(\sigma = \sqrt{5{,}2} \approx 2{,}28\).</li>
+      <li>Contrôle par König-Huygens : la moyenne des carrés vaut \((144 + 225 + 81 + 196 + 100)/5 = 149{,}2\), et \(149{,}2 - 12^2 = 5{,}2\).</li>
+    </ol>
+  </div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§6 · MÉDIANE ET QUARTILES</div>
+  <h2>Des indicateurs qui résistent aux valeurs aberrantes</h2>
+  <div class="intro">Une seule valeur aberrante (une erreur de saisie, une mesure ratée) peut déplacer beaucoup la moyenne. La médiane, valeur « du milieu », y est presque insensible. Pour la calculer, on trie les données.</div>
+
+  <div class="def-box">Soit \(u_1 \le u_2 \le \dots \le u_n\) les valeurs triées. La <strong>médiane</strong> partage la série en deux moitiés : c'est \(u_{(n+1)/2}\) si \(n\) est impair, et la moyenne \(\frac{1}{2}\left(u_{n/2} + u_{n/2+1}\right)\) des deux valeurs centrales si \(n\) est pair. Le <strong>premier quartile</strong> \(Q_1\) est la plus petite valeur \(u_r\) dont le rang \(r\) est au moins \(n/4\) ; le <strong>troisième quartile</strong> \(Q_3\) celle dont le rang est au moins \(3n/4\).</div>
+
+  <p>En Python, les indices commencent à 0 : la valeur de rang \(r\) est <span class="code-inline">u[r - 1]</span>. Pour trier, on peut utiliser une fonction du chapitre « Algorithmes de tri » ou la fonction <span class="code-inline">sorted</span>, dont voici la documentation : <span class="code-inline">sorted(t)</span> renvoie une <strong>nouvelle</strong> liste contenant les éléments de <span class="code-inline">t</span> dans l'ordre croissant, sans modifier <span class="code-inline">t</span>, en \(O(n\log n)\).</p>
+<pre class="codeblock"><span class="kw">def</span> mediane(t):
+    u = sorted(t)                  <span class="cmt"># nouvelle liste triée, t est inchangée</span>
+    n = len(u)
+    <span class="kw">if</span> n % 2 == 1:
+        <span class="kw">return</span> u[n // 2]
+    <span class="kw">return</span> (u[n // 2 - 1] + u[n // 2]) / 2</pre>
+  <p>Pour les quartiles, le plus petit rang au moins égal à \(n/4\) est \(\lceil n/4 \rceil\), qui s'écrit <span class="code-inline">(n + 3) // 4</span> avec des entiers :</p>
+<pre class="codeblock"><span class="kw">def</span> quartiles(t):
+    <span class="cmt"># Q1 (resp. Q3) : plus petite valeur dont le rang dans la liste triée</span>
+    <span class="cmt"># (compté à partir de 1) est au moins n/4 (resp. 3n/4)</span>
+    u = sorted(t)
+    n = len(u)
+    <span class="kw">return</span> u[(n + 3) // 4 - 1], u[(3 * n + 3) // 4 - 1]</pre>
+<figure class="schema">
+<svg viewBox="0 0 350 180" role="img" aria-label="Boîte à moustaches des vingt masses : minimum 42, premier quartile 48, médiane 50, troisième quartile 52, maximum 57 ; les vingt valeurs sont reportées en points sous la boîte">
+<line x1="55" y1="76" x2="145" y2="76" class="sk-ink"/>
+<line x1="205" y1="76" x2="280" y2="76" class="sk-ink"/>
+<line x1="55" y1="68" x2="55" y2="84" class="sk-ink"/>
+<line x1="280" y1="68" x2="280" y2="84" class="sk-ink"/>
+<rect x="145" y="60" width="60" height="32" class="sk-ink fl-accent2-soft"/>
+<line x1="175.0" y1="60" x2="175.0" y2="92" class="sk-accent"/>
+<text x="55" y="54" class="lab-muted" text-anchor="middle">min</text>
+<text x="145" y="54" class="lab-muted" text-anchor="middle">Q1</text>
+<text x="175" y="36" class="lab-accent" text-anchor="middle">médiane</text>
+<line x1="175.0" y1="41" x2="175.0" y2="58" class="sk-accent" stroke-width="1"/>
+<text x="205" y="54" class="lab-muted" text-anchor="middle">Q3</text>
+<text x="280" y="54" class="lab-muted" text-anchor="middle">max</text>
+<circle cx="55" cy="124" r="3.4" class="fl-ink"/>
+<circle cx="85" cy="124" r="3.4" class="fl-ink"/>
+<circle cx="115" cy="124" r="3.4" class="fl-ink"/>
+<circle cx="130" cy="124" r="3.4" class="fl-ink"/>
+<circle cx="145" cy="124" r="3.4" class="fl-ink"/>
+<circle cx="145" cy="116" r="3.4" class="fl-ink"/>
+<circle cx="160" cy="124" r="3.4" class="fl-ink"/>
+<circle cx="160" cy="116" r="3.4" class="fl-ink"/>
+<circle cx="175" cy="124" r="3.4" class="fl-ink"/>
+<circle cx="175" cy="116" r="3.4" class="fl-ink"/>
+<circle cx="175" cy="108" r="3.4" class="fl-ink"/>
+<circle cx="190" cy="124" r="3.4" class="fl-ink"/>
+<circle cx="190" cy="116" r="3.4" class="fl-ink"/>
+<circle cx="190" cy="108" r="3.4" class="fl-ink"/>
+<circle cx="205" cy="124" r="3.4" class="fl-ink"/>
+<circle cx="205" cy="116" r="3.4" class="fl-ink"/>
+<circle cx="220" cy="124" r="3.4" class="fl-ink"/>
+<circle cx="235" cy="124" r="3.4" class="fl-ink"/>
+<circle cx="250" cy="124" r="3.4" class="fl-ink"/>
+<circle cx="280" cy="124" r="3.4" class="fl-ink"/>
+<line x1="25" y1="136" x2="325" y2="136" class="sk-axis"/>
+<line x1="25" y1="136" x2="25" y2="141" class="sk-axis"/>
+<text x="25" y="156" class="lab-muted" text-anchor="middle">40</text>
+<line x1="55" y1="136" x2="55" y2="141" class="sk-axis"/>
+<line x1="85" y1="136" x2="85" y2="141" class="sk-axis"/>
+<text x="85" y="156" class="lab-muted" text-anchor="middle">44</text>
+<line x1="115" y1="136" x2="115" y2="141" class="sk-axis"/>
+<line x1="145" y1="136" x2="145" y2="141" class="sk-axis"/>
+<text x="145" y="156" class="lab-muted" text-anchor="middle">48</text>
+<line x1="175" y1="136" x2="175" y2="141" class="sk-axis"/>
+<line x1="205" y1="136" x2="205" y2="141" class="sk-axis"/>
+<text x="205" y="156" class="lab-muted" text-anchor="middle">52</text>
+<line x1="235" y1="136" x2="235" y2="141" class="sk-axis"/>
+<line x1="265" y1="136" x2="265" y2="141" class="sk-axis"/>
+<text x="265" y="156" class="lab-muted" text-anchor="middle">56</text>
+<line x1="295" y1="136" x2="295" y2="141" class="sk-axis"/>
+<line x1="325" y1="136" x2="325" y2="141" class="sk-axis"/>
+<text x="325" y="156" class="lab-muted" text-anchor="middle">60</text>
+<text x="325" y="174" class="lab-muted lab-it" text-anchor="end">masse (g)</text>
+</svg>
+<figcaption>Les 20 masses (points) et leur résumé par une « boîte à moustaches » : la boîte va du premier au troisième quartile (48 g et 52 g) et contient la moitié centrale des valeurs, le trait coloré marque la médiane (50 g), les moustaches vont jusqu'au minimum et au maximum.</figcaption>
+</figure>
+
+  <div class="notice"><strong>Conventions</strong> : la définition des quartiles varie d'un logiciel à l'autre (numpy et les tableurs interpolent entre deux valeurs). Les écarts sont minimes sur de grandes séries ; un énoncé précise toujours la convention à programmer.</div>
+
+  <div class="prop-box"><strong>Coût.</strong> Le tri domine : \(O(n\log n)\) avec <span class="code-inline">sorted</span> ou le tri par partition-fusion, \(O(n^2)\) avec un tri par insertion. L'accès aux valeurs centrales est ensuite en temps constant.</div>
+
+  <div class="method-box"><strong>Exemple — bilan d'un devoir</strong>
+    <p>Le fichier <span class="code-inline">notes.txt</span> contient les notes d'un groupe ; <span class="code-inline">ABS</span> signale un absent. On veut le nombre de présents, la moyenne et la médiane des notes, écrits dans <span class="code-inline">bilan.txt</span>.</p>
+<pre class="codeblock">nom;note
+Alice;14.5
+Bilal;ABS
+Chloé;9
+David;17
+Emma;ABS
+Farid;11.5
+Gaëlle;3</pre>
+<pre class="codeblock">f = open(<span class="str">'notes.txt'</span>, <span class="str">'r'</span>)
+lignes = f.readlines()
+f.close()
+notes = []
+<span class="kw">for</span> ligne <span class="kw">in</span> lignes[1:]:
+    champs = sans_retour(ligne).split(<span class="str">';'</span>)
+    <span class="kw">if</span> champs[1] != <span class="str">'ABS'</span>:
+        notes.append(float(champs[1]))
+g = open(<span class="str">'bilan.txt'</span>, <span class="str">'w'</span>)
+g.write(<span class="str">'présents : '</span> + str(len(notes)) + <span class="str">'\n'</span>)
+g.write(<span class="str">'moyenne : '</span> + str(moyenne(notes)) + <span class="str">'\n'</span>)
+g.write(<span class="str">'médiane : '</span> + str(mediane(notes)) + <span class="str">'\n'</span>)
+g.close()
+print(notes, moyenne(notes), mediane(notes))</pre>
+    <ol>
+      <li><span class="code-inline">sans_retour</span> est indispensable : sans elle, le champ de Bilal vaudrait <span class="code-inline">'ABS\n'</span>, différent de <span class="code-inline">'ABS'</span>, et <span class="code-inline">float('ABS\n')</span> lèverait une erreur.</li>
+      <li>On garde 5 notes : 14,5 ; 9 ; 17 ; 11,5 ; 3. Moyenne : \(55/5 = 11\).</li>
+      <li>Triées : 3 ; 9 ; 11,5 ; 14,5 ; 17. Médiane (rang 3) : 11,5.</li>
+      <li>Robustesse : si la note 17 avait été saisie 71 par erreur, la moyenne bondirait à \((55 - 17 + 71)/5 = 21{,}8\), alors que la médiane resterait 11,5.</li>
+    </ol>
+  </div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§7 · EFFECTIFS ET HISTOGRAMMES</div>
+  <h2>Compter les valeurs par classes</h2>
+  <div class="intro">Pour voir la répartition d'un grand nombre de valeurs, on découpe l'intervalle qui les contient en <strong>classes</strong> de même largeur, on compte les valeurs de chaque classe (les <strong>effectifs</strong>), puis on dessine un <strong>histogramme</strong> : une barre par classe, de hauteur égale à l'effectif.</div>
+
+  <div class="def-box">On découpe \([a, b[\) en \(k\) classes de largeur \(w = (b - a)/k\) : la classe numéro \(c\) (de 0 à \(k - 1\)) est \([a + c\,w,\ a + (c+1)\,w[\). Une valeur \(x\) de \([a, b[\) appartient à la classe numéro \(c = \left\lfloor \frac{x - a}{w} \right\rfloor\). L'<strong>effectif</strong> d'une classe est le nombre de valeurs qu'elle contient ; sa <strong>fréquence</strong>, cet effectif divisé par le nombre total de valeurs.</div>
+<pre class="codeblock"><span class="kw">def</span> effectifs(t, a, b, k):
+    <span class="cmt"># effectifs des k classes [a, a+w[, [a+w, a+2w[, ..., de largeur w = (b - a) / k</span>
+    w = (b - a) / k
+    eff = [0] * k
+    <span class="kw">for</span> x <span class="kw">in</span> t:
+        <span class="kw">if</span> a &lt;= x <span class="kw">and</span> x &lt; b:           <span class="cmt"># les valeurs hors de [a, b[ sont ignorées</span>
+            c = int((x - a) / w)       <span class="cmt"># numéro de la classe de x</span>
+            <span class="kw">if</span> c == k:                 <span class="cmt"># garde-fou : arrondi si x est très proche de b</span>
+                c = k - 1
+            eff[c] = eff[c] + 1
+    <span class="kw">return</span> eff</pre>
+  <p>Le numéro de classe se calcule directement : un seul parcours suffit, et le coût est \(O(n + k)\) (la création des \(k\) compteurs, puis un temps constant par valeur), au lieu de \(O(n\,k)\) si l'on comparait chaque valeur à toutes les classes.</p>
+<pre class="codeblock">masses = [47, 52, 49, 55, 51, 44, 50, 53, 48, 50,
+          57, 46, 51, 49, 52, 54, 50, 42, 51, 48]
+eff = effectifs(masses, 40, 60, 4)
+print(eff)    <span class="cmt"># [2, 6, 10, 2]</span></pre>
+<figure class="schema">
+<svg viewBox="0 0 330 192" role="img" aria-label="Histogramme des vingt masses en quatre classes de 5 g : 2 pièces entre 40 et 45 g, 6 entre 45 et 50, 10 entre 50 et 55, 2 entre 55 et 60">
+<rect x="40" y="126" width="65" height="24" class="sk-ink fl-accent2-soft" stroke-width="1.2"/>
+<text x="72.5" y="120" class="lab-b" text-anchor="middle" style="font-size:13px">2</text>
+<rect x="105" y="78" width="65" height="72" class="sk-ink fl-accent2-soft" stroke-width="1.2"/>
+<text x="137.5" y="72" class="lab-b" text-anchor="middle" style="font-size:13px">6</text>
+<rect x="170" y="30" width="65" height="120" class="sk-ink fl-accent2-soft" stroke-width="1.2"/>
+<text x="202.5" y="24" class="lab-b" text-anchor="middle" style="font-size:13px">10</text>
+<rect x="235" y="126" width="65" height="24" class="sk-ink fl-accent2-soft" stroke-width="1.2"/>
+<text x="267.5" y="120" class="lab-b" text-anchor="middle" style="font-size:13px">2</text>
+<line x1="40" y1="150" x2="314" y2="150" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<line x1="40" y1="150" x2="40" y2="18" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<line x1="40" y1="150" x2="40" y2="155" class="sk-axis"/>
+<text x="40" y="170" class="lab-muted" text-anchor="middle">40</text>
+<line x1="105" y1="150" x2="105" y2="155" class="sk-axis"/>
+<text x="105" y="170" class="lab-muted" text-anchor="middle">45</text>
+<line x1="170" y1="150" x2="170" y2="155" class="sk-axis"/>
+<text x="170" y="170" class="lab-muted" text-anchor="middle">50</text>
+<line x1="235" y1="150" x2="235" y2="155" class="sk-axis"/>
+<text x="235" y="170" class="lab-muted" text-anchor="middle">55</text>
+<line x1="300" y1="150" x2="300" y2="155" class="sk-axis"/>
+<text x="300" y="170" class="lab-muted" text-anchor="middle">60</text>
+<text x="34" y="154" class="lab-muted" text-anchor="end">0</text>
+<text x="34" y="94" class="lab-muted" text-anchor="end">5</text>
+<text x="34" y="34" class="lab-muted" text-anchor="end">10</text>
+<text x="304" y="186" class="lab-muted lab-it" text-anchor="end">masse (g)</text>
+<text x="46" y="20" class="lab-muted lab-it">effectif</text>
+</svg>
+<figcaption>Histogramme des 20 masses en 4 classes de largeur 5 g, calculé par <span class="code-inline">effectifs(masses, 40, 60, 4)</span> : chaque barre a pour base une classe et pour hauteur le nombre de valeurs qu'elle contient.</figcaption>
+</figure>
+
+  <p>Sans bibliothèque graphique, un histogramme se dessine en caractères, une ligne par classe :</p>
+<pre class="codeblock"><span class="kw">def</span> histogramme_texte(eff, a, w):
+    <span class="kw">for</span> c <span class="kw">in</span> range(len(eff)):
+        print(str(a + c * w) + <span class="str">' | '</span> + <span class="str">'#'</span> * eff[c])</pre>
+<pre class="codeblock">histogramme_texte(eff, 40, 5)</pre>
+<pre class="codeblock">40 | ##
+45 | ######
+50 | ##########
+55 | ##</pre>
+
+  <div class="notice"><strong>Erreur classique</strong> : faire confiance aux bornes de classes en flottants. Avec \(a = 0\) et \(w = 0{,}1\), le calcul de <span class="code-inline">0.3 / 0.1</span> donne <span class="code-inline">2.9999999999999996</span> : la valeur 0,3 est rangée dans la classe numéro 2, \([0{,}2 ; 0{,}3[\), au lieu de la classe numéro 3. Les valeurs situées exactement sur une borne sont fragiles ; on choisit des bornes qui ne coïncident pas avec des valeurs mesurées, ou l'on travaille en entiers (en millimètres plutôt qu'en mètres).</div>
+<pre class="codeblock">print(0.3 / 0.1, effectifs([0.3], 0, 1, 10))</pre>
+
+  <div class="method-box"><strong>Exemple — effectifs à la main</strong>
+    <p>On reprend les 20 masses (en grammes) ci-dessus, avec \(a = 40\), \(b = 60\), \(k = 4\).</p>
+    <ol>
+      <li>Largeur des classes : \(w = 20/4 = 5\) ; classes \([40, 45[\), \([45, 50[\), \([50, 55[\), \([55, 60[\).</li>
+      <li>La masse 47 va dans la classe \(\lfloor (47 - 40)/5 \rfloor = \lfloor 1{,}4 \rfloor = 1\), la masse 50 dans la classe \(\lfloor 2 \rfloor = 2\) (une borne gauche appartient à sa classe), la masse 57 dans la classe 3.</li>
+      <li>On obtient les effectifs 2, 6, 10, 2 (total 20) et les fréquences 0,1 ; 0,3 ; 0,5 ; 0,1 : la moitié des pièces pèse entre 50 et 55 g.</li>
+    </ol>
+  </div>
+
+  <p>Quand les valeurs sont peu nombreuses et discrètes (résultats d'un dé, notes entières, mots d'un texte), on compte plutôt chaque valeur distincte, avec un dictionnaire dont les clés sont les valeurs rencontrées (voir le chapitre « Recherche séquentielle, dictionnaires et dichotomie »).</p>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§8 · REPRÉSENTATIONS GRAPHIQUES</div>
+  <h2>Tracer avec une bibliothèque documentée</h2>
+  <div class="intro">En TP, on trace courbes et histogrammes avec une bibliothèque, le plus souvent le module <span class="code-inline">matplotlib.pyplot</span>. Aucune connaissance n'en est exigible : un énoncé qui demande un tracé rappelle les fonctions utiles. Il faut seulement savoir lire cette documentation et préparer les listes de données.</div>
+
+  <p>Voici une documentation typique, à la manière d'un énoncé. Après <span class="code-inline">import matplotlib.pyplot as plt</span> :</p>
+  <div><table>
+    <tr><th>Appel</th><th>Effet</th></tr>
+    <tr><td><span class="code-inline">plt.plot(X, Y)</span></td><td>trace la ligne brisée qui relie les points \((X[k], Y[k])\) ; <span class="code-inline">X</span> et <span class="code-inline">Y</span> sont deux listes de même longueur</td></tr>
+    <tr><td><span class="code-inline">plt.plot(X, Y, 'o')</span></td><td>trace les points isolés (nuage de points)</td></tr>
+    <tr><td><span class="code-inline">plt.bar(X, H, w)</span></td><td>trace des barres de hauteurs <span class="code-inline">H[k]</span> et de largeur <span class="code-inline">w</span>, centrées en <span class="code-inline">X[k]</span></td></tr>
+    <tr><td><span class="code-inline">plt.hist(T, k)</span></td><td>trace l'histogramme des valeurs de la liste <span class="code-inline">T</span> en <span class="code-inline">k</span> classes de même largeur, du minimum au maximum de <span class="code-inline">T</span></td></tr>
+    <tr><td><span class="code-inline">plt.xlabel(s)</span>, <span class="code-inline">plt.ylabel(s)</span>, <span class="code-inline">plt.title(s)</span></td><td>légende de l'axe horizontal, de l'axe vertical, titre</td></tr>
+    <tr><td><span class="code-inline">plt.show()</span></td><td>affiche la figure</td></tr>
+    <tr><td><span class="code-inline">plt.savefig(nom)</span></td><td>enregistre la figure dans le fichier image <span class="code-inline">nom</span></td></tr>
+  </table></div>
+
+  <h3>Une courbe à partir d'un fichier de mesures</h3>
+  <p>Le fichier <span class="code-inline">charge.txt</span> contient onze mesures de la tension aux bornes d'un condensateur qui se charge, toutes les millisecondes :</p>
+<pre class="codeblock">t (ms);u (V)
+0;0.00
+1;2.00
+2;3.12
+3;3.90
+4;4.32
+5;4.56
+6;4.79
+7;4.83
+8;4.92
+9;4.93
+10;4.99</pre>
+  <p>On le lit avec <span class="code-inline">lire_colonnes</span> (§3), on calcule le modèle théorique aux mêmes instants, et l'on trace les deux :</p>
+<pre class="codeblock"><span class="kw">import</span> matplotlib.pyplot <span class="kw">as</span> plt
+<span class="kw">from</span> math <span class="kw">import</span> exp
+
+t, u = lire_colonnes(<span class="str">'charge.txt'</span>, <span class="str">';'</span>)
+tm = [k / 10 <span class="kw">for</span> k <span class="kw">in</span> range(101)]                 <span class="cmt"># 101 instants de 0 à 10 ms</span>
+um = [5 * (1 - exp(-x / 2)) <span class="kw">for</span> x <span class="kw">in</span> tm]          <span class="cmt"># modèle, tau = 2 ms</span>
+plt.plot(t, u, <span class="str">'o'</span>)                               <span class="cmt"># mesures : points</span>
+plt.plot(tm, um)                                  <span class="cmt"># modèle : courbe</span>
+plt.xlabel(<span class="str">'t (ms)'</span>)
+plt.ylabel(<span class="str">'u (V)'</span>)
+plt.show()</pre>
+<figure class="schema">
+<svg viewBox="0 0 330 202" role="img" aria-label="Les onze mesures de la tension de charge en fonction du temps, en points, et la courbe du modèle exponentiel de constante de temps 2 ms, en trait coloré">
+<line x1="46" y1="160" x2="306" y2="160" class="sk-axis" stroke-width="0.5"/>
+<text x="40" y="164" class="lab-muted" text-anchor="end">0</text>
+<line x1="46" y1="134" x2="306" y2="134" class="sk-axis" stroke-width="0.5"/>
+<text x="40" y="138" class="lab-muted" text-anchor="end">1</text>
+<line x1="46" y1="108" x2="306" y2="108" class="sk-axis" stroke-width="0.5"/>
+<text x="40" y="112" class="lab-muted" text-anchor="end">2</text>
+<line x1="46" y1="82" x2="306" y2="82" class="sk-axis" stroke-width="0.5"/>
+<text x="40" y="86" class="lab-muted" text-anchor="end">3</text>
+<line x1="46" y1="56" x2="306" y2="56" class="sk-axis" stroke-width="0.5"/>
+<text x="40" y="60" class="lab-muted" text-anchor="end">4</text>
+<line x1="46" y1="30" x2="306" y2="30" class="sk-axis" stroke-width="0.5"/>
+<text x="40" y="34" class="lab-muted" text-anchor="end">5</text>
+<text x="46" y="178" class="lab-muted" text-anchor="middle">0</text>
+<text x="98" y="178" class="lab-muted" text-anchor="middle">2</text>
+<text x="150" y="178" class="lab-muted" text-anchor="middle">4</text>
+<text x="202" y="178" class="lab-muted" text-anchor="middle">6</text>
+<text x="254" y="178" class="lab-muted" text-anchor="middle">8</text>
+<text x="306" y="178" class="lab-muted" text-anchor="middle">10</text>
+<polyline points="46,160 48.6,153.7 51.2,147.6 53.8,141.9 56.4,136.4 59,131.2 61.6,126.3 64.2,121.6 66.8,117.1 69.4,112.9 72,108.8 74.6,105 77.2,101.3 79.8,97.9 82.4,94.6 85,91.4 87.6,88.4 90.2,85.6 92.8,82.9 95.4,80.3 98,77.8 100.6,75.5 103.2,73.3 105.8,71.2 108.4,69.2 111,67.2 113.6,65.4 116.2,63.7 118.8,62.1 121.4,60.5 124,59 126.6,57.6 129.2,56.2 131.8,55 134.4,53.7 137,52.6 139.6,51.5 142.2,50.4 144.8,49.4 147.4,48.5 150,47.6 152.6,46.7 155.2,45.9 157.8,45.1 160.4,44.4 163,43.7 165.6,43 168.2,42.4 170.8,41.8 173.4,41.2 176,40.7 178.6,40.2 181.2,39.7 183.8,39.2 186.4,38.7 189,38.3 191.6,37.9 194.2,37.5 196.8,37.2 199.4,36.8 202,36.5 204.6,36.2 207.2,35.9 209.8,35.6 212.4,35.3 215,35 217.6,34.8 220.2,34.6 222.8,34.3 225.4,34.1 228,33.9 230.6,33.7 233.2,33.6 235.8,33.4 238.4,33.2 241,33.1 243.6,32.9 246.2,32.8 248.8,32.6 251.4,32.5 254,32.4 256.6,32.3 259.2,32.2 261.8,32 264.4,31.9 267,31.9 269.6,31.8 272.2,31.7 274.8,31.6 277.4,31.5 280,31.4 282.6,31.4 285.2,31.3 287.8,31.2 290.4,31.2 293,31.1 295.6,31.1 298.2,31 300.8,31 303.4,30.9 306,30.9" class="sk-accent"/>
+<circle cx="46" cy="160" r="3.6" class="fl-ink"/>
+<circle cx="72" cy="108" r="3.6" class="fl-ink"/>
+<circle cx="98" cy="78.9" r="3.6" class="fl-ink"/>
+<circle cx="124" cy="58.6" r="3.6" class="fl-ink"/>
+<circle cx="150" cy="47.7" r="3.6" class="fl-ink"/>
+<circle cx="176" cy="41.4" r="3.6" class="fl-ink"/>
+<circle cx="202" cy="35.5" r="3.6" class="fl-ink"/>
+<circle cx="228" cy="34.4" r="3.6" class="fl-ink"/>
+<circle cx="254" cy="32.1" r="3.6" class="fl-ink"/>
+<circle cx="280" cy="31.8" r="3.6" class="fl-ink"/>
+<circle cx="306" cy="30.3" r="3.6" class="fl-ink"/>
+<line x1="46" y1="160" x2="306" y2="160" class="sk-ink" stroke-width="1"/>
+<line x1="46" y1="160" x2="46" y2="24" class="sk-ink" stroke-width="1"/>
+<text x="306" y="196" class="lab-muted lab-it" text-anchor="end">t (ms)</text>
+<text x="50" y="18" class="lab-muted lab-it">u (V)</text>
+<text x="306" y="100.2" text-anchor="end" style="font-size:13px">mesures</text>
+<circle cx="244" cy="96.2" r="3.6" class="fl-ink"/>
+<text x="306" y="121" class="lab-accent" text-anchor="end" style="font-size:13px">modèle</text>
+<line x1="236" y1="117" x2="252" y2="117" class="sk-accent"/>
+</svg>
+<figcaption>Ce que trace le programme ci-dessus : les mesures lues dans <span class="code-inline">charge.txt</span> en points (<span class="code-inline">plt.plot(t, u, 'o')</span>), et le modèle \(u(t) = 5\,(1 - \mathrm{e}^{-t/\tau})\) avec \(\tau = 2\) ms, en trait continu.</figcaption>
+</figure>
+  <p>La courbe du modèle est une ligne brisée de 100 segments, assez courts pour qu'elle paraisse lisse. Les mesures, elles, se tracent en points isolés, sans les relier : on montre ce qui a été mesuré, rien de plus.</p>
+
+  <h3>Un histogramme</h3>
+  <p><span class="code-inline">plt.hist(masses, 4)</span> trace directement un histogramme, mais choisit lui-même ses classes, du minimum (42) au maximum (57) des données. Pour imposer les classes \([40, 45[\)… du §7, on trace des barres à partir des effectifs calculés :</p>
+<pre class="codeblock">eff = effectifs(masses, 40, 60, 4)
+centres = [42.5, 47.5, 52.5, 57.5]     <span class="cmt"># milieux des classes</span>
+plt.bar(centres, eff, 5)               <span class="cmt"># barres de largeur 5, jointives</span>
+plt.xlabel(<span class="str">'masse (g)'</span>)
+plt.ylabel(<span class="str">'effectif'</span>)
+plt.savefig(<span class="str">'histogramme.png'</span>)         <span class="cmt"># enregistre l'image</span></pre>
+
+  <div class="method-box"><strong>Exemple — préparer les listes d'un tracé</strong>
+    <p>On veut tracer \(f(x) = x\,\mathrm{e}^{-x}\) sur \([0, 5]\) avec 51 points.</p>
+<pre class="codeblock">X = [5 * k / 50 <span class="kw">for</span> k <span class="kw">in</span> range(51)]     <span class="cmt"># 0, 0.1, ..., 5</span>
+Y = [x * exp(-x) <span class="kw">for</span> x <span class="kw">in</span> X]
+plt.plot(X, Y)
+plt.title(<span class="str">'x exp(-x)'</span>)
+plt.show()
+print(len(X), X[1], X[50])    <span class="cmt"># 51 0.1 5.0</span></pre>
+    <ol>
+      <li>\(n\) points régulièrement espacés sur \([a, b]\) s'obtiennent par \(x_k = a + k\,\dfrac{b - a}{n - 1}\) pour \(k\) de 0 à \(n - 1\) : ici \(x_k = 5k/50 = k/10\).</li>
+      <li>On écrit <span class="code-inline">5 * k / 50</span> plutôt que d'ajouter 0,1 à chaque pas : les additions répétées accumulent les erreurs d'arrondi, et la dernière abscisse ne vaudrait pas exactement 5.</li>
+      <li><span class="code-inline">plt.plot</span> exige deux listes de même longueur : on construit <span class="code-inline">Y</span> à partir de <span class="code-inline">X</span> par une compréhension.</li>
+    </ol>
+  </div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">POUR ALLER PLUS LOIN · RACCOURCIS ET MODULES</div>
+  <h2>Ce que l'on rencontre en TP</h2>
+  <div class="intro">Rien de ce qui suit n'est exigible ; un énoncé qui s'en sert en rappelle le fonctionnement.</div>
+  <ul>
+    <li><span class="code-inline">with open(nom, 'r') as f:</span> suivi d'un bloc indenté ferme le fichier automatiquement à la fin du bloc ; <span class="code-inline">for ligne in f:</span> parcourt les lignes une à une, comme la boucle sur <span class="code-inline">readline</span> du §2.</li>
+    <li>La méthode <span class="code-inline">s.strip()</span> renvoie la chaîne <span class="code-inline">s</span> sans les blancs (espaces, fins de ligne) de ses deux extrémités : elle remplace <span class="code-inline">sans_retour</span>.</li>
+    <li>Le module <span class="code-inline">csv</span> lit les fichiers « à valeurs séparées » en gérant les guillemets ; <span class="code-inline">numpy.loadtxt</span> charge un fichier de nombres en un tableau ; <span class="code-inline">numpy.mean</span>, <span class="code-inline">numpy.std</span>, <span class="code-inline">numpy.median</span> et le module <span class="code-inline">statistics</span> calculent les indicateurs du chapitre.</li>
+    <li>Un fichier texte est stocké sous forme d'octets selon un <strong>encodage</strong> (aujourd'hui presque toujours UTF-8). Les accents d'un fichier mal décodé apparaissent sous forme de caractères étranges ; on précise alors <span class="code-inline">open(nom, 'r', encoding='utf-8')</span>. Le programme élude ces questions.</li>
+  </ul>
+</div>
+
+</template>
+<template class="pan-tpl" data-panneau="fich-meth">
+<div class="course-section">
+  <div class="sec-num">MÉTHODES · FICHIERS ET STATISTIQUES</div>
+  <h2>Les réflexes du chapitre</h2>
+  <div class="intro">Huit savoir-faire pour passer d'un fichier de données à des statistiques et à un graphique, sans connaître par cœur aucun module : on lit la documentation fournie, on découpe, on convertit, on calcule, on vérifie.</div>
+
+  <div class="method-box"><strong>Méthode 1 — Importer une fonction d'un module</strong>
+    <ol>
+      <li>Repérer dans la documentation le nom du module, le nom de la fonction, ses paramètres et ce qu'elle renvoie.</li>
+      <li>Choisir la forme d'import : <span class="code-inline">import module</span> puis <span class="code-inline">module.f(…)</span> ; <span class="code-inline">import module as m</span> puis <span class="code-inline">m.f(…)</span> ; ou <span class="code-inline">from module import f</span> puis <span class="code-inline">f(…)</span>, sans préfixe.</li>
+      <li>Placer les imports en tête du programme, une fois pour toutes.</li>
+      <li>Interpréter les erreurs : <span class="code-inline">NameError</span> si le préfixe manque (ou n'existe pas), <span class="code-inline">ModuleNotFoundError</span> si le nom du module est mal écrit ou s'il n'est pas installé.</li>
+    </ol>
+    <p><em>Exemple éclair :</em> pour un flottant au hasard dans \([a, b[\), la documentation de <span class="code-inline">random()</span> (flottant au hasard dans \([0, 1[\)) suffit : <span class="code-inline">from random import random</span>, puis <span class="code-inline">a + (b - a) * random()</span>.</p>
+  </div>
+
+  <div class="method-box"><strong>Méthode 2 — Lire un fichier de données</strong>
+    <ol>
+      <li>Ouvrir en lecture, charger toutes les lignes par <span class="code-inline">readlines</span>, fermer aussitôt.</li>
+      <li>Écarter ce qui n'est pas une donnée : la ligne d'en-tête (<span class="code-inline">lignes[1:]</span>), les commentaires, les lignes vides (elles valent <span class="code-inline">'\n'</span>).</li>
+      <li>Découper chaque ligne avec <span class="code-inline">split(sep)</span> (ou <span class="code-inline">split()</span> pour des blancs), convertir chaque champ avec <span class="code-inline">int</span> ou <span class="code-inline">float</span>, ranger chaque colonne dans sa liste.</li>
+      <li>Contrôler : nombre de valeurs lues, première et dernière valeurs, type des éléments.</li>
+    </ol>
+<pre class="codeblock">champs = <span class="str">'12;4.5;-3\n'</span>.split(<span class="str">';'</span>)    <span class="cmt"># ['12', '4.5', '-3\n']</span>
+n, x, k = int(champs[0]), float(champs[1]), int(champs[2])
+print(n, x, k)    <span class="cmt"># 12 4.5 -3</span></pre>
+  </div>
+  <div class="notice"><strong>Piège</strong> : comparer le dernier champ d'une ligne à une chaîne (<span class="code-inline">'ABS'</span>, <span class="code-inline">'NA'</span>) sans retirer son <span class="code-inline">'\n'</span> ; ou convertir la ligne d'en-tête, ce qui lève une <span class="code-inline">ValueError</span>.</div>
+
+  <div class="method-box"><strong>Méthode 3 — Écrire des résultats dans un fichier</strong>
+    <ol>
+      <li>Ouvrir en <span class="code-inline">'w'</span> (nouveau fichier, ou fichier effacé) ou en <span class="code-inline">'a'</span> (ajout à la fin), jamais sur le fichier de données d'origine.</li>
+      <li>Écrire une ligne d'en-tête, puis une ligne par enregistrement : chaque nombre converti par <span class="code-inline">str</span>, les champs séparés par le séparateur choisi, la ligne terminée par <span class="code-inline">'\n'</span>.</li>
+      <li>Fermer le fichier avec <span class="code-inline">close</span>, sans quoi des écritures peuvent manquer.</li>
+    </ol>
+    <p><em>Exemple éclair :</em> <span class="code-inline">f.write(str(3) + ';' + str(0.5) + '\n')</span> écrit la ligne <span class="code-inline">3;0.5</span>.</p>
+  </div>
+
+  <div class="method-box"><strong>Méthode 4 — Calculer moyenne, variance et écart type</strong>
+    <ol>
+      <li>Moyenne : accumuler la somme dans une boucle, diviser par \(n\) (la liste ne doit pas être vide).</li>
+      <li>Variance : calculer la moyenne <strong>une seule fois</strong>, avant la boucle, puis la moyenne des carrés des écarts à cette moyenne.</li>
+      <li>Écart type : racine carrée de la variance (<span class="code-inline">sqrt</span> du module <span class="code-inline">math</span>).</li>
+      <li>Annoncer le coût, \(O(n)\), et préférer la formule à deux passages si les valeurs sont grandes et peu dispersées (perte de précision de König-Huygens).</li>
+    </ol>
+    <p><em>Exemple éclair :</em> pour 3, 5, 6, 8, 8 : moyenne \(30/5 = 6\) ; écarts \(-3, -1, 0, 2, 2\) ; variance \((9 + 1 + 0 + 4 + 4)/5 = 3{,}6\) ; écart type \(\sqrt{3{,}6} \approx 1{,}90\).</p>
+  </div>
+
+  <div class="method-box"><strong>Méthode 5 — Calculer une médiane et des quartiles</strong>
+    <ol>
+      <li>Trier une <strong>copie</strong> des données (<span class="code-inline">sorted(t)</span> si l'énoncé le permet, sinon un tri du chapitre « Algorithmes de tri » appliqué à <span class="code-inline">t[:]</span>).</li>
+      <li>Médiane : <span class="code-inline">u[n // 2]</span> si \(n\) est impair, la moyenne de <span class="code-inline">u[n // 2 - 1]</span> et <span class="code-inline">u[n // 2]</span> s'il est pair.</li>
+      <li>Quartiles : appliquer la convention de l'énoncé, en traduisant un rang \(r\) (compté à partir de 1) en indice \(r - 1\).</li>
+    </ol>
+    <p><em>Exemple éclair :</em> pour 7, 1, 4, 9 : triées 1, 4, 7, 9 ; \(n = 4\) est pair, la médiane vaut \((4 + 7)/2 = 5{,}5\).</p>
+  </div>
+  <div class="notice"><strong>Piège</strong> : prendre l'élément du milieu d'une liste non triée, ou trier les données elles-mêmes alors que l'ordre des mesures (l'ordre chronologique) servait encore.</div>
+
+  <div class="method-box"><strong>Méthode 6 — Construire les effectifs d'un histogramme</strong>
+    <ol>
+      <li>Fixer l'intervalle \([a, b[\) et le nombre \(k\) de classes ; leur largeur est \(w = (b - a)/k\).</li>
+      <li>Créer \(k\) compteurs nuls, <span class="code-inline">[0] * k</span>.</li>
+      <li>Pour chaque valeur \(x\) de \([a, b[\), calculer directement son numéro de classe <span class="code-inline">int((x - a) / w)</span> (en le ramenant à \(k - 1\) s'il vaut \(k\) par arrondi) et incrémenter ce compteur.</li>
+      <li>Vérifier que la somme des effectifs est le nombre de valeurs de \([a, b[\).</li>
+    </ol>
+    <p><em>Exemple éclair :</em> avec \(a = 0\), \(b = 10\), \(k = 4\) : \(w = 2{,}5\), et \(x = 7{,}5\) tombe dans la classe \(\lfloor 7{,}5/2{,}5 \rfloor = 3\), \([7{,}5 ; 10[\).</p>
+  </div>
+
+  <div class="method-box"><strong>Méthode 7 — Tracer un graphique avec la documentation fournie</strong>
+    <ol>
+      <li>Repérer la fonction qui convient (courbe, nuage de points, barres, histogramme) et l'ordre de ses paramètres.</li>
+      <li>Construire les listes d'abscisses et d'ordonnées, de même longueur, souvent par compréhension.</li>
+      <li>Légender les axes avec leurs unités, puis afficher ou enregistrer la figure.</li>
+    </ol>
+<pre class="codeblock"><span class="kw">import</span> matplotlib.pyplot <span class="kw">as</span> plt
+t, T = [0, 10, 20, 30], [20.1, 20.4, 21.0, 21.9]    <span class="cmt"># mesures du capteur (§3)</span>
+plt.plot(t, T, <span class="str">'o'</span>)                                 <span class="cmt"># nuage de points</span>
+plt.xlabel(<span class="str">'t (s)'</span>)
+plt.ylabel(<span class="str">'T (°C)'</span>)
+plt.show()</pre>
+  </div>
+
+  <div class="method-box"><strong>Méthode 8 — Tester un programme qui lit ou écrit des fichiers</strong>
+    <ol>
+      <li>Écrire soi-même, par programme, un petit fichier de test dont on connaît le contenu exact, avec les cas limites : ligne vide, dernière ligne sans <span class="code-inline">'\n'</span>, valeur manquante.</li>
+      <li>Vérifier le résultat de la lecture par des assertions.</li>
+      <li>Pour une paire écriture et lecture, faire un test aller-retour : écrire des données, les relire, comparer.</li>
+    </ol>
+<pre class="codeblock">f = open(<span class="str">'test.txt'</span>, <span class="str">'w'</span>)
+f.write(<span class="str">'t;u\n0;1.5\n\n1;2'</span>)    <span class="cmt"># une ligne vide, pas de '\n' final</span>
+f.close()
+<span class="kw">assert</span> lire_colonnes(<span class="str">'test.txt'</span>, <span class="str">';'</span>) == ([0.0, 1.0], [1.5, 2.0])</pre>
+  </div>
+</div>
+</template>
+<template class="pan-tpl" data-panneau="fich-exos">
+<div class="exo-wrapper">
+
+<div class="exo"><span class="num">EXO 01</span><span class="diff">★ ☆ ☆</span>
+  <h3>Importer correctement</h3>
+  <div class="statement">On rappelle que le module <span class="code-inline">math</span> contient la fonction <span class="code-inline">floor</span> (partie entière), la fonction <span class="code-inline">sqrt</span> (racine carrée) et la constante <span class="code-inline">pi</span>, et que <span class="code-inline">randint(a, b)</span>, du module <span class="code-inline">random</span>, renvoie un entier au hasard entre <span class="code-inline">a</span> et <span class="code-inline">b</span> inclus. Chacun des programmes suivants est exécuté seul, dans un interpréteur neuf.
+<pre class="codeblock"># programme a
+import math
+print(math.floor(2.7))
+
+# programme b
+from math import floor
+print(math.floor(2.7))
+
+# programme c
+import math as m
+print(math.sqrt(4))
+
+# programme d
+from math import sqrt, pi
+print(sqrt(pi * pi))
+
+# programme e
+from random import randint
+print(randint(3, 3))</pre>
+  </div>
+  <div class="q"><strong>Q1.</strong> Pour chaque programme, dire ce qui est affiché ou quelle erreur se produit.</div>
+  <div class="q"><strong>Q2.</strong> Écrire une fonction <span class="code-inline">distance(xa, ya, xb, yb)</span> qui renvoie la distance entre les points \((x_a, y_a)\) et \((x_b, y_b)\) du plan, en n'important que ce qui est nécessaire.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution"><h4>Correction</h4>
+    <p><strong>Q1.</strong></p>
+    <ul>
+      <li><strong>a</strong> affiche 2 : <span class="code-inline">floor</span> est utilisée avec le préfixe du module importé.</li>
+      <li><strong>b</strong> lève une <span class="code-inline">NameError</span> (<span class="code-inline">name 'math' is not defined</span>) : <span class="code-inline">from math import floor</span> importe le seul nom <span class="code-inline">floor</span>, pas le nom <span class="code-inline">math</span>. Il fallait écrire <span class="code-inline">floor(2.7)</span>.</li>
+      <li><strong>c</strong> lève aussi une <span class="code-inline">NameError</span> : le module n'est connu que sous son alias <span class="code-inline">m</span> ; il fallait <span class="code-inline">m.sqrt(4)</span>.</li>
+      <li><strong>d</strong> affiche <span class="code-inline">3.141592653589793</span>, valeur de \(\sqrt{\pi^2} = \pi\) en flottant.</li>
+      <li><strong>e</strong> affiche 3 : les deux bornes sont égales et incluses, le « hasard » n'a qu'une valeur possible.</li>
+    </ul>
+    <p><strong>Q2.</strong> Seule la racine carrée est utile :</p>
+<pre class="codeblock"><span class="kw">from</span> math <span class="kw">import</span> sqrt
+
+<span class="kw">def</span> distance(xa, ya, xb, yb):
+    <span class="kw">return</span> sqrt((xb - xa) ** 2 + (yb - ya) ** 2)
+
+print(distance(0, 0, 3, 4))    <span class="cmt"># 5.0</span></pre>
+  </div>
+</div>
+
+<div class="exo"><span class="num">EXO 02</span><span class="diff">★ ☆ ☆</span>
+  <h3>Suivre le curseur de lecture</h3>
+  <div class="statement">Le fichier <span class="code-inline">villes.txt</span> donne la population de trois villes, en millions d'habitants (valeurs arrondies) :
+<pre class="codeblock">Paris 2.1
+Lille 0.24
+Brest 0.14</pre>
+  On exécute :
+<pre class="codeblock">f = open(<span class="str">'villes.txt'</span>, <span class="str">'r'</span>)
+a = f.readline()
+b = f.read()
+c = f.readline()
+f.close()</pre>
+  </div>
+  <div class="q"><strong>Q1.</strong> Que valent les chaînes <span class="code-inline">a</span>, <span class="code-inline">b</span> et <span class="code-inline">c</span> ?</div>
+  <div class="q"><strong>Q2.</strong> Que valent <span class="code-inline">b.split()</span> et <span class="code-inline">b.split('\n')</span> ?</div>
+  <div class="q"><strong>Q3.</strong> Écrire une fonction <span class="code-inline">population_totale(nom)</span> qui renvoie la somme des populations d'un fichier de ce format.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution"><h4>Correction</h4>
+    <p><strong>Q1.</strong> <span class="code-inline">a</span> vaut <span class="code-inline">'Paris 2.1\n'</span> (première ligne, avec sa fin de ligne). <span class="code-inline">read</span> renvoie tout ce qui reste : <span class="code-inline">b</span> vaut <span class="code-inline">'Lille 0.24\nBrest 0.14\n'</span>. Le curseur est alors à la fin du fichier, et <span class="code-inline">c</span> vaut la chaîne vide <span class="code-inline">''</span>.</p>
+    <p><strong>Q2.</strong> Sans argument, <span class="code-inline">split</span> coupe sur tous les blancs, fins de ligne comprises, sans morceau vide : <span class="code-inline">['Lille', '0.24', 'Brest', '0.14']</span>. Avec <span class="code-inline">'\n'</span> comme séparateur, la fin de ligne finale crée un dernier morceau vide : <span class="code-inline">['Lille 0.24', 'Brest 0.14', '']</span>.</p>
+<pre class="codeblock">print(b.split())        <span class="cmt"># ['Lille', '0.24', 'Brest', '0.14']</span>
+print(b.split(<span class="str">'\n'</span>))    <span class="cmt"># ['Lille 0.24', 'Brest 0.14', '']</span></pre>
+    <p><strong>Q3.</strong> Chaque ligne se découpe sur les blancs en deux champs, le nom et la population.</p>
+<pre class="codeblock"><span class="kw">def</span> population_totale(nom):
+    f = open(nom, <span class="str">'r'</span>)
+    lignes = f.readlines()
+    f.close()
+    s = 0
+    <span class="kw">for</span> ligne <span class="kw">in</span> lignes:
+        champs = ligne.split()
+        <span class="kw">if</span> len(champs) == 2:        <span class="cmt"># ignore une éventuelle ligne vide</span>
+            s = s + float(champs[1])
+    <span class="kw">return</span> s
+
+print(population_totale(<span class="str">'villes.txt'</span>))    <span class="cmt"># 2.48</span></pre>
+  </div>
+</div>
+
+<div class="exo"><span class="num">EXO 03</span><span class="diff">★ ☆ ☆</span>
+  <h3>Moyenne et meilleure note d'un fichier</h3>
+  <div class="statement">Le fichier <span class="code-inline">devoir.txt</span> contient une ligne d'en-tête puis, sur chaque ligne, un nom et une note séparés par un point-virgule.
+<pre class="codeblock">nom;note
+Inès;13.5
+Jules;8
+Karim;16
+Léa;11.5</pre>
+  </div>
+  <div class="q"><strong>Q1.</strong> Écrire une fonction <span class="code-inline">lire_notes(nom)</span> qui renvoie le couple <span class="code-inline">(noms, notes)</span> formé de la liste des noms (sans fin de ligne) et de la liste des notes (en flottants).</div>
+  <div class="q"><strong>Q2.</strong> Écrire une fonction <span class="code-inline">meilleur(noms, notes)</span> qui renvoie le nom de l'élève qui a la meilleure note (le premier en cas d'égalité).</div>
+  <div class="q"><strong>Q3.</strong> Écrire une fonction <span class="code-inline">moyenne(t)</span>, et donner le coût total du traitement pour un fichier de \(n\) lignes.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution"><h4>Correction</h4>
+    <p><strong>Q1.</strong> Le nom est le premier champ, il ne contient pas de fin de ligne ; la note est convertie par <span class="code-inline">float</span>, qui ignore le <span class="code-inline">'\n'</span>.</p>
+<pre class="codeblock"><span class="kw">def</span> lire_notes(nom):
+    f = open(nom, <span class="str">'r'</span>)
+    lignes = f.readlines()
+    f.close()
+    noms, notes = [], []
+    <span class="kw">for</span> ligne <span class="kw">in</span> lignes[1:]:
+        champs = ligne.split(<span class="str">';'</span>)
+        noms.append(champs[0])
+        notes.append(float(champs[1]))
+    <span class="kw">return</span> noms, notes</pre>
+    <p><strong>Q2.</strong> Recherche séquentielle de l'indice du maximum ; l'inégalité stricte garde le premier en cas d'égalité.</p>
+<pre class="codeblock"><span class="kw">def</span> meilleur(noms, notes):
+    k = 0
+    <span class="kw">for</span> i <span class="kw">in</span> range(1, len(notes)):
+        <span class="kw">if</span> notes[i] &gt; notes[k]:
+            k = i
+    <span class="kw">return</span> noms[k]</pre>
+    <p><strong>Q3.</strong></p>
+<pre class="codeblock"><span class="kw">def</span> moyenne(t):
+    s = 0
+    <span class="kw">for</span> x <span class="kw">in</span> t:
+        s = s + x
+    <span class="kw">return</span> s / len(t)
+
+noms, notes = lire_notes(<span class="str">'devoir.txt'</span>)
+print(meilleur(noms, notes), moyenne(notes))    <span class="cmt"># Karim 12.25</span></pre>
+    <p>Lecture, recherche du maximum et moyenne font chacun un parcours : le coût total est \(O(n)\) (en supposant les lignes de longueur bornée).</p>
+  </div>
+</div>
+
+<div class="exo"><span class="num">EXO 04</span><span class="diff">★ ★ ☆</span>
+  <h3>Variance : deux formules, deux précisions</h3>
+  <div class="statement">On considère la série \(t\) = 4, 7, 7, 10, 12, et la fonction <span class="code-inline">moyenne</span> de l'exercice précédent.</div>
+  <div class="q"><strong>Q1.</strong> Calculer à la main la moyenne, la variance et l'écart type de \(t\).</div>
+  <div class="q"><strong>Q2.</strong> Démontrer la formule de König-Huygens : \(V = \frac{1}{n}\sum x_k^2 - \bar{x}^2\).</div>
+  <div class="q"><strong>Q3.</strong> Écrire une fonction <span class="code-inline">variance(t)</span> à deux parcours et une fonction <span class="code-inline">variance_kh(t)</span> qui n'en fait qu'un, à l'aide de la formule de König-Huygens.</div>
+  <div class="q"><strong>Q4.</strong> On ajoute \(10^9\) à chaque valeur de \(t\). Que devrait valoir la variance ? Que renvoient les deux fonctions ? Expliquer.</div>
+  <div class="q"><strong>Q5.</strong> Un élève écrit dans <span class="code-inline">variance</span> la ligne <span class="code-inline">s = s + (x - moyenne(t)) ** 2</span>. Quel est le coût de sa fonction ?</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution"><h4>Correction</h4>
+    <p><strong>Q1.</strong> Moyenne \(40/5 = 8\) ; écarts \(-4, -1, -1, 2, 4\) ; carrés \(16, 1, 1, 4, 16\), de somme 38 ; variance \(38/5 = 7{,}6\) ; écart type \(\sqrt{7{,}6} \approx 2{,}76\).</p>
+    <p><strong>Q2.</strong> On développe le carré, puis on utilise \(\frac{1}{n}\sum x_k = \bar{x}\) :</p>
+    <div class="formula">$$\begin{aligned} \frac{1}{n}\sum_{k=1}^{n} \left(x_k - \bar{x}\right)^2 &= \frac{1}{n}\sum_{k=1}^{n} x_k^2 - 2\bar{x}\,\frac{1}{n}\sum_{k=1}^{n} x_k + \bar{x}^2 \\ &= \frac{1}{n}\sum_{k=1}^{n} x_k^2 - 2\bar{x}^2 + \bar{x}^2 = \frac{1}{n}\sum_{k=1}^{n} x_k^2 - \bar{x}^2 \end{aligned}$$</div>
+    <p><strong>Q3.</strong></p>
+<pre class="codeblock"><span class="kw">def</span> variance(t):
+    m = moyenne(t)                  <span class="cmt"># calculée une seule fois</span>
+    s = 0
+    <span class="kw">for</span> x <span class="kw">in</span> t:
+        s = s + (x - m) ** 2
+    <span class="kw">return</span> s / len(t)
+
+<span class="kw">def</span> variance_kh(t):
+    s1, s2 = 0, 0
+    <span class="kw">for</span> x <span class="kw">in</span> t:
+        s1 = s1 + x
+        s2 = s2 + x * x
+    n = len(t)
+    <span class="kw">return</span> s2 / n - (s1 / n) ** 2
+
+t = [4, 7, 7, 10, 12]
+print(variance(t), variance_kh(t))    <span class="cmt"># 7.6 7.599999999999994</span></pre>
+    <p>Les deux formules sont mathématiquement égales, mais la seconde donne déjà une petite erreur d'arrondi (le dernier chiffre affiché), qui annonce la question suivante.</p>
+    <p><strong>Q4.</strong> Décaler toutes les valeurs ne change pas leur dispersion : la variance vaut toujours 7,6. La fonction à deux parcours la retrouve, car les écarts \(x_k - \bar{x}\) sont petits et calculés sans perte. König-Huygens soustrait deux nombres voisins de \(10^{18}\), connus chacun à quelques centaines près (un flottant n'a que 15 à 16 chiffres significatifs) : le résultat, ici \(-128\), est absurde, et une variance négative ferait échouer <span class="code-inline">sqrt</span>.</p>
+<pre class="codeblock">u = [x + 1e9 <span class="kw">for</span> x <span class="kw">in</span> t]
+print(variance(u), variance_kh(u))    <span class="cmt"># 7.6 -128.0</span></pre>
+    <p><strong>Q5.</strong> <span class="code-inline">moyenne(t)</span> coûte \(O(n)\) et serait appelée à chacun des \(n\) tours : \(O(n^2)\) au lieu de \(O(n)\), pour le même résultat.</p>
+  </div>
+</div>
+
+<div class="exo"><span class="num">EXO 05</span><span class="diff">★ ★ ☆</span>
+  <h3>Médiane, quartiles et valeur aberrante</h3>
+  <div class="statement">On a mesuré le temps de réaction (en ms) de neuf personnes à un signal lumineux ; l'une d'elles était distraite.
+<pre class="codeblock">r = [212, 245, 198, 230, 1250, 221, 239, 205, 226]</pre>
+  On note \(u_1 \le \dots \le u_n\) les valeurs triées. Convention : \(Q_1\) est la valeur \(u_r\) de plus petit rang \(r \ge n/4\), et \(Q_3\) celle de plus petit rang \(r \ge 3n/4\).</div>
+  <div class="q"><strong>Q1.</strong> Calculer à la main la moyenne et la médiane. Laquelle résume le mieux le temps de réaction typique ?</div>
+  <div class="q"><strong>Q2.</strong> Écrire une fonction <span class="code-inline">trie(t)</span> qui renvoie une copie triée de <span class="code-inline">t</span> par le tri par insertion, sans modifier <span class="code-inline">t</span>, puis une fonction <span class="code-inline">mediane(t)</span>.</div>
+  <div class="q"><strong>Q3.</strong> Écrire une fonction <span class="code-inline">quartiles(t)</span> qui renvoie le couple \((Q_1, Q_3)\). Que vaut-il pour <span class="code-inline">r</span> ?</div>
+  <div class="q"><strong>Q4.</strong> Une valeur est déclarée aberrante si elle sort de l'intervalle \([Q_1 - 1{,}5\,e,\ Q_3 + 1{,}5\,e]\), où \(e = Q_3 - Q_1\) est l'écart interquartile. Écrire une fonction <span class="code-inline">aberrantes(t)</span> qui renvoie la liste des valeurs aberrantes, et donner son coût.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution"><h4>Correction</h4>
+    <p><strong>Q1.</strong> La somme vaut 3026, la moyenne \(3026/9 \approx 336\) ms. Triées : 198, 205, 212, 221, 226, 230, 239, 245, 1250 ; la médiane est la 5ᵉ valeur, 226 ms. La moyenne dépasse huit des neuf valeurs à cause de la mesure de 1250 ms : la médiane décrit mieux le temps typique.</p>
+    <p><strong>Q2.</strong> On trie une copie, pour ne pas perdre l'ordre des mesures.</p>
+<pre class="codeblock"><span class="kw">def</span> trie(t):
+    u = t[:]                        <span class="cmt"># copie : t reste intacte</span>
+    <span class="kw">for</span> i <span class="kw">in</span> range(1, len(u)):
+        x = u[i]
+        j = i - 1
+        <span class="kw">while</span> j &gt;= 0 <span class="kw">and</span> u[j] &gt; x:
+            u[j + 1] = u[j]
+            j = j - 1
+        u[j + 1] = x
+    <span class="kw">return</span> u
+
+<span class="kw">def</span> mediane(t):
+    u = trie(t)
+    n = len(u)
+    <span class="kw">if</span> n % 2 == 1:
+        <span class="kw">return</span> u[n // 2]
+    <span class="kw">return</span> (u[n // 2 - 1] + u[n // 2]) / 2
+
+print(mediane(r), r[0])    <span class="cmt"># 226 212 : r n'a pas été triée</span></pre>
+    <p><strong>Q3.</strong> Le plus petit entier \(r \ge n/4\) est \(\lceil n/4 \rceil\) = <span class="code-inline">(n + 3) // 4</span>, d'indice <span class="code-inline">(n + 3) // 4 - 1</span>.</p>
+<pre class="codeblock"><span class="kw">def</span> quartiles(t):
+    u = trie(t)
+    n = len(u)
+    <span class="kw">return</span> u[(n + 3) // 4 - 1], u[(3 * n + 3) // 4 - 1]
+
+print(quartiles(r))    <span class="cmt"># (212, 239)</span></pre>
+    <p>Avec \(n = 9\) : rangs \(\lceil 2{,}25 \rceil = 3\) et \(\lceil 6{,}75 \rceil = 7\), d'où \(Q_1 = 212\) et \(Q_3 = 239\).</p>
+    <p><strong>Q4.</strong> Ici \(e = 27\) et l'intervalle est \([171{,}5 ;\ 279{,}5]\) : seule la mesure de 1250 ms est aberrante.</p>
+<pre class="codeblock"><span class="kw">def</span> aberrantes(t):
+    q1, q3 = quartiles(t)
+    e = q3 - q1
+    res = []
+    <span class="kw">for</span> x <span class="kw">in</span> t:
+        <span class="kw">if</span> x &lt; q1 - 1.5 * e <span class="kw">or</span> x &gt; q3 + 1.5 * e:
+            res.append(x)
+    <span class="kw">return</span> res
+
+print(aberrantes(r))    <span class="cmt"># [1250]</span></pre>
+    <p>Le tri par insertion coûte \(O(n^2)\) dans le pire cas, et le parcours final \(O(n)\) : \(O(n^2)\) au total. Avec un tri en \(O(n\log n)\), comme <span class="code-inline">sorted</span> ou le tri par partition-fusion, on obtiendrait \(O(n\log n)\).</p>
+  </div>
+</div>
+
+<div class="exo"><span class="num">EXO 06</span><span class="diff">★ ★ ☆</span>
+  <h3>Somme de deux dés : simulation et effectifs</h3>
+  <div class="statement">On utilise la fonction <span class="code-inline">randint</span> du module <span class="code-inline">random</span> : <span class="code-inline">randint(a, b)</span> renvoie un entier au hasard entre <span class="code-inline">a</span> et <span class="code-inline">b</span> inclus, chaque valeur ayant la même probabilité. On lance deux dés équilibrés et l'on note la somme \(s\), entre 2 et 12. Sa probabilité est \(p(s) = \dfrac{6 - |s - 7|}{36}\). On pourra utiliser <span class="code-inline">abs</span> : <span class="code-inline">abs(x)</span> est la valeur absolue de <span class="code-inline">x</span>.</div>
+  <div class="q"><strong>Q1.</strong> Écrire une fonction <span class="code-inline">sommes(n)</span> qui simule \(n\) lancers et renvoie une liste <span class="code-inline">eff</span> de longueur 13 telle que <span class="code-inline">eff[s]</span> soit le nombre de lancers de somme \(s\).</div>
+  <div class="q"><strong>Q2.</strong> Écrire une fonction <span class="code-inline">ecart_max(eff, n)</span> qui renvoie le plus grand écart, en valeur absolue, entre la fréquence observée et la probabilité \(p(s)\), pour \(s\) de 2 à 12.</div>
+  <div class="q"><strong>Q3.</strong> Écrire une fonction <span class="code-inline">enregistrer(eff, n, nom)</span> qui écrit dans le fichier <span class="code-inline">nom</span> une ligne d'en-tête <span class="code-inline">s;effectif;frequence</span> puis une ligne par somme possible.</div>
+  <div class="q"><strong>Q4.</strong> Donner le coût de <span class="code-inline">sommes(n)</span>. Comment évolue en général <span class="code-inline">ecart_max</span> quand \(n\) est multiplié par 100 ?</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution"><h4>Correction</h4>
+    <p><strong>Q1.</strong> Les sommes sont des entiers de 2 à 12 : elles servent directement d'indices (les cases 0 et 1 restent nulles).</p>
+<pre class="codeblock"><span class="kw">from</span> random <span class="kw">import</span> randint
+
+<span class="kw">def</span> sommes(n):
+    eff = [0] * 13
+    <span class="kw">for</span> i <span class="kw">in</span> range(n):
+        s = randint(1, 6) + randint(1, 6)
+        eff[s] = eff[s] + 1
+    <span class="kw">return</span> eff</pre>
+    <p><strong>Q2.</strong></p>
+<pre class="codeblock"><span class="kw">def</span> ecart_max(eff, n):
+    m = 0
+    <span class="kw">for</span> s <span class="kw">in</span> range(2, 13):
+        p = (6 - abs(s - 7)) / 36
+        d = abs(eff[s] / n - p)
+        <span class="kw">if</span> d &gt; m:
+            m = d
+    <span class="kw">return</span> m</pre>
+    <p><strong>Q3.</strong></p>
+<pre class="codeblock"><span class="kw">def</span> enregistrer(eff, n, nom):
+    f = open(nom, <span class="str">'w'</span>)
+    f.write(<span class="str">'s;effectif;frequence\n'</span>)
+    <span class="kw">for</span> s <span class="kw">in</span> range(2, 13):
+        f.write(str(s) + <span class="str">';'</span> + str(eff[s]) + <span class="str">';'</span> + str(eff[s] / n) + <span class="str">'\n'</span>)
+    f.close()
+
+eff = sommes(36000)
+enregistrer(eff, 36000, <span class="str">'des.txt'</span>)
+print(eff[7], ecart_max(eff, 36000))    <span class="cmt"># environ 6000, et quelques millièmes</span></pre>
+    <p><strong>Q4.</strong> Chaque lancer coûte un temps constant : \(O(n)\). Les fréquences se rapprochent des probabilités quand \(n\) grandit (loi des grands nombres) ; l'écart typique décroît comme \(1/\sqrt{n}\), il est donc divisé par 10 environ quand \(n\) est multiplié par 100. La valeur affichée change à chaque exécution : un test porte sur un ordre de grandeur, pas sur une valeur exacte.</p>
+  </div>
+</div>
+
+<div class="exo"><span class="num">EXO 07</span><span class="diff">★ ★ ☆</span>
+  <h3>Lisser un signal par moyenne glissante</h3>
+  <div class="statement">Le fichier <span class="code-inline">signal.txt</span> contient des mesures bruitées d'une tension (en mV), une toutes les millisecondes :
+<pre class="codeblock">t;u
+0;12
+1;9
+2;15
+3;10
+4;8
+5;14
+6;11
+7;13
+8;7</pre>
+  La <strong>moyenne glissante</strong> d'ordre \(p\) remplace chaque mesure \(u_k\) par la moyenne des \(2p + 1\) mesures \(u_{k-p}, \dots, u_{k+p}\) ; elle n'est définie que pour \(p \le k \le n - 1 - p\). On dispose de <span class="code-inline">lire_colonnes(nom, sep)</span> du cours, qui renvoie les deux colonnes d'un tel fichier en listes de flottants.
+<pre class="codeblock"><span class="kw">def</span> lire_colonnes(nom, sep):
+    <span class="cmt"># fichier à deux colonnes numériques séparées par sep, avec une ligne d'en-tête</span>
+    f = open(nom, <span class="str">'r'</span>)
+    lignes = f.readlines()
+    f.close()
+    xs, ys = [], []
+    <span class="kw">for</span> ligne <span class="kw">in</span> lignes[1:]:           <span class="cmt"># on saute l'en-tête</span>
+        champs = ligne.split(sep)
+        <span class="kw">if</span> len(champs) == 2:           <span class="cmt"># on ignore une ligne vide ou incomplète</span>
+            xs.append(float(champs[0]))
+            ys.append(float(champs[1]))
+    <span class="kw">return</span> xs, ys</pre>
+  </div>
+  <div class="q"><strong>Q1.</strong> Calculer à la main les moyennes glissantes d'ordre 1 aux instants 1 et 2.</div>
+  <div class="q"><strong>Q2.</strong> Écrire une fonction <span class="code-inline">glissante(u, p)</span> qui renvoie la liste des \(n - 2p\) moyennes glissantes. Quel est son coût ?</div>
+  <div class="q"><strong>Q3.</strong> Écrire une version de coût \(O(n)\) en mettant à jour la somme de la fenêtre au lieu de la recalculer.</div>
+  <div class="q"><strong>Q4.</strong> Écrire la suite d'instructions qui lit <span class="code-inline">signal.txt</span> et écrit dans <span class="code-inline">lisse.txt</span> les couples (instant, moyenne glissante d'ordre 1).</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution"><h4>Correction</h4>
+    <p><strong>Q1.</strong> À l'instant 1 : \((12 + 9 + 15)/3 = 12\) ; à l'instant 2 : \((9 + 15 + 10)/3 = 34/3 \approx 11{,}33\).</p>
+    <p><strong>Q2.</strong> Pour chacune des \(n - 2p\) positions, on additionne les \(2p + 1\) valeurs de la fenêtre :</p>
+<pre class="codeblock"><span class="kw">def</span> glissante(u, p):
+    res = []
+    <span class="kw">for</span> k <span class="kw">in</span> range(p, len(u) - p):
+        s = 0
+        <span class="kw">for</span> j <span class="kw">in</span> range(k - p, k + p + 1):
+            s = s + u[j]
+        res.append(s / (2 * p + 1))
+    <span class="kw">return</span> res</pre>
+    <p>Coût : \((n - 2p)(2p + 1)\) additions, un \(O(n\,p)\).</p>
+    <p><strong>Q3.</strong> D'une fenêtre à la suivante, une valeur entre (<span class="code-inline">u[k + p]</span>) et une sort (<span class="code-inline">u[k - p - 1]</span>) :</p>
+<pre class="codeblock"><span class="kw">def</span> glissante_rapide(u, p):
+    s = 0
+    <span class="kw">for</span> j <span class="kw">in</span> range(2 * p + 1):          <span class="cmt"># première fenêtre, centrée en p</span>
+        s = s + u[j]
+    res = [s / (2 * p + 1)]
+    <span class="kw">for</span> k <span class="kw">in</span> range(p + 1, len(u) - p):
+        s = s + u[k + p] - u[k - p - 1]
+        res.append(s / (2 * p + 1))
+    <span class="kw">return</span> res</pre>
+    <p>La première fenêtre coûte \(2p + 1\) additions, chaque suivante deux opérations : \(O(n)\). (Avec des flottants, les additions et soustractions répétées peuvent accumuler de petites erreurs d'arrondi ; avec des entiers, le calcul est exact.)</p>
+    <p><strong>Q4.</strong> Les moyennes d'ordre 1 correspondent aux instants <span class="code-inline">t[1]</span> à <span class="code-inline">t[n - 2]</span>.</p>
+<pre class="codeblock">t, u = lire_colonnes(<span class="str">'signal.txt'</span>, <span class="str">';'</span>)
+m = glissante(u, 1)
+g = open(<span class="str">'lisse.txt'</span>, <span class="str">'w'</span>)
+g.write(<span class="str">'t;u_lisse\n'</span>)
+<span class="kw">for</span> k <span class="kw">in</span> range(len(m)):
+    g.write(str(t[k + 1]) + <span class="str">';'</span> + str(m[k]) + <span class="str">'\n'</span>)
+g.close()
+print(m)</pre>
+  </div>
+</div>
+
+<div class="exo"><span class="num">EXO 08</span><span class="diff">★ ★ ☆</span>
+  <h3>Tenir un journal de mesures</h3>
+  <div class="statement">Une station enregistre ses mesures au fil de l'eau : à chaque nouvelle mesure, elle ajoute une ligne <span class="code-inline">instant;valeur</span> à la fin du fichier <span class="code-inline">journal.txt</span>, sans relire le reste.</div>
+  <div class="q"><strong>Q1.</strong> Écrire une fonction <span class="code-inline">ajouter_mesure(nom, t, x)</span> qui ajoute une telle ligne à la fin du fichier <span class="code-inline">nom</span>.</div>
+  <div class="q"><strong>Q2.</strong> Le fichier n'existe pas au départ. Que contient-il après les appels <span class="code-inline">ajouter_mesure('journal.txt', 0, 2.5)</span>, puis avec <span class="code-inline">(1, 2.75)</span> et <span class="code-inline">(2, 3.0)</span> ? Et si la fonction ouvrait le fichier en mode <span class="code-inline">'w'</span> ?</div>
+  <div class="q"><strong>Q3.</strong> Écrire une fonction <span class="code-inline">derniere_mesure(nom)</span> qui renvoie le couple <span class="code-inline">(t, x)</span> de flottants de la dernière ligne du fichier.</div>
+  <div class="q"><strong>Q4.</strong> Pourquoi faut-il fermer le fichier à chaque ajout, plutôt qu'une seule fois à la fin de la journée ?</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution"><h4>Correction</h4>
+    <p><strong>Q1.</strong> Le mode <span class="code-inline">'a'</span> crée le fichier s'il n'existe pas, et écrit à la fin sinon.</p>
+<pre class="codeblock"><span class="kw">def</span> ajouter_mesure(nom, t, x):
+    f = open(nom, <span class="str">'a'</span>)
+    f.write(str(t) + <span class="str">';'</span> + str(x) + <span class="str">'\n'</span>)
+    f.close()</pre>
+    <p><strong>Q2.</strong> Les trois lignes <span class="code-inline">0;2.5</span>, <span class="code-inline">1;2.75</span>, <span class="code-inline">2;3.0</span>, dans cet ordre. En mode <span class="code-inline">'w'</span>, chaque appel effacerait le fichier : il ne resterait que la dernière ligne, <span class="code-inline">2;3.0</span>.</p>
+<pre class="codeblock">ajouter_mesure(<span class="str">'journal.txt'</span>, 0, 2.5)
+ajouter_mesure(<span class="str">'journal.txt'</span>, 1, 2.75)
+ajouter_mesure(<span class="str">'journal.txt'</span>, 2, 3.0)
+print(open(<span class="str">'journal.txt'</span>, <span class="str">'r'</span>).readlines())    <span class="cmt"># ['0;2.5\n', '1;2.75\n', '2;3.0\n']</span></pre>
+    <p><strong>Q3.</strong> La dernière ligne est l'élément d'indice <span class="code-inline">len(lignes) - 1</span> de la liste renvoyée par <span class="code-inline">readlines</span>.</p>
+<pre class="codeblock"><span class="kw">def</span> derniere_mesure(nom):
+    f = open(nom, <span class="str">'r'</span>)
+    lignes = f.readlines()
+    f.close()
+    champs = lignes[len(lignes) - 1].split(<span class="str">';'</span>)
+    <span class="kw">return</span> float(champs[0]), float(champs[1])
+
+print(derniere_mesure(<span class="str">'journal.txt'</span>))    <span class="cmt"># (2.0, 3.0)</span></pre>
+    <p>Cette fonction lit tout le fichier : son coût est proportionnel à sa taille, ce qui devient lent pour un journal de plusieurs années. Une base de données ou un découpage en un fichier par jour règle le problème.</p>
+    <p><strong>Q4.</strong> Tant que le fichier n'est pas fermé, les écritures peuvent rester en mémoire : une coupure de courant ou un arrêt du programme ferait perdre toutes les mesures de la journée. Fermer à chaque ajout les inscrit aussitôt dans le fichier.</p>
+  </div>
+</div>
+
+<div class="exo"><span class="num">EXO 09</span><span class="diff">★ ★ ★</span>
+  <h3>Relevés météorologiques incomplets</h3>
+  <div class="statement">Le fichier <span class="code-inline">meteo.txt</span> contient des relevés de température (en °C) ; <span class="code-inline">NA</span> signale une mesure manquante (capteur en panne).
+<pre class="codeblock">jour;mois;temperature
+4;1;4.5
+15;1;NA
+28;1;6.0
+3;2;7.5
+19;2;NA
+5;3;10.0
+20;3;12.5</pre>
+  </div>
+  <div class="q"><strong>Q1.</strong> Écrire une fonction <span class="code-inline">lire_meteo(nom)</span> qui renvoie le couple <span class="code-inline">(releves, manquants)</span>, où <span class="code-inline">releves</span> est la liste des couples <span class="code-inline">(mois, temperature)</span> des mesures présentes (mois entier, température flottante) et <span class="code-inline">manquants</span> le nombre de mesures manquantes.</div>
+  <div class="q"><strong>Q2.</strong> Écrire une fonction <span class="code-inline">moyennes_mensuelles(releves)</span> qui renvoie un dictionnaire associant à chaque mois présent la moyenne de ses températures. On pourra d'abord construire un dictionnaire associant à chaque mois la liste <span class="code-inline">[somme, nombre]</span>.</div>
+  <div class="q"><strong>Q3.</strong> Écrire une fonction <span class="code-inline">rapport(moy, nom)</span> qui écrit dans le fichier <span class="code-inline">nom</span> une ligne <span class="code-inline">mois;moyenne</span> par mois présent, dans l'ordre des mois.</div>
+  <div class="q"><strong>Q4.</strong> Donner le coût de l'ensemble pour un fichier de \(n\) lignes, en admettant que l'accès à un dictionnaire et l'insertion se font en temps constant.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution"><h4>Correction</h4>
+    <p><strong>Q1.</strong> Le champ de température est le dernier de la ligne : on retire sa fin de ligne avant de le comparer à <span class="code-inline">'NA'</span>.</p>
+<pre class="codeblock"><span class="kw">def</span> sans_retour(ligne):
+    <span class="cmt"># la ligne sans son caractère de fin de ligne '\n' final, s'il y en a un</span>
+    n = len(ligne)
+    <span class="kw">if</span> n &gt; 0 <span class="kw">and</span> ligne[n - 1] == <span class="str">'\n'</span>:
+        <span class="kw">return</span> ligne[:n - 1]
+    <span class="kw">return</span> ligne</pre>
+<pre class="codeblock"><span class="kw">def</span> lire_meteo(nom):
+    f = open(nom, <span class="str">'r'</span>)
+    lignes = f.readlines()
+    f.close()
+    releves, manquants = [], 0
+    <span class="kw">for</span> ligne <span class="kw">in</span> lignes[1:]:
+        champs = sans_retour(ligne).split(<span class="str">';'</span>)
+        <span class="kw">if</span> champs[2] == <span class="str">'NA'</span>:
+            manquants = manquants + 1
+        <span class="kw">else</span>:
+            releves.append((int(champs[1]), float(champs[2])))
+    <span class="kw">return</span> releves, manquants
+
+print(lire_meteo(<span class="str">'meteo.txt'</span>))</pre>
+    <p>On obtient 5 relevés, <span class="code-inline">[(1, 4.5), (1, 6.0), (2, 7.5), (3, 10.0), (3, 12.5)]</span>, et 2 mesures manquantes.</p>
+    <p><strong>Q2.</strong> Les clés sont les mois rencontrés ; chaque valeur accumule la somme et le nombre de mesures.</p>
+<pre class="codeblock"><span class="kw">def</span> moyennes_mensuelles(releves):
+    acc = {}
+    <span class="kw">for</span> (mois, T) <span class="kw">in</span> releves:
+        <span class="kw">if</span> mois <span class="kw">in</span> acc:
+            acc[mois][0] = acc[mois][0] + T
+            acc[mois][1] = acc[mois][1] + 1
+        <span class="kw">else</span>:
+            acc[mois] = [T, 1]
+    moy = {}
+    <span class="kw">for</span> mois <span class="kw">in</span> acc.keys():
+        moy[mois] = acc[mois][0] / acc[mois][1]
+    <span class="kw">return</span> moy
+
+releves, manquants = lire_meteo(<span class="str">'meteo.txt'</span>)
+print(moyennes_mensuelles(releves))    <span class="cmt"># {1: 5.25, 2: 7.5, 3: 11.25}</span></pre>
+    <p><strong>Q3.</strong> On parcourt les mois dans l'ordre, de 1 à 12, et l'on n'écrit que ceux qui sont des clés du dictionnaire.</p>
+<pre class="codeblock"><span class="kw">def</span> rapport(moy, nom):
+    f = open(nom, <span class="str">'w'</span>)
+    f.write(<span class="str">'mois;moyenne\n'</span>)
+    <span class="kw">for</span> mois <span class="kw">in</span> range(1, 13):
+        <span class="kw">if</span> mois <span class="kw">in</span> moy:
+            f.write(str(mois) + <span class="str">';'</span> + str(moy[mois]) + <span class="str">'\n'</span>)
+    f.close()
+
+rapport(moyennes_mensuelles(releves), <span class="str">'mensuel.txt'</span>)</pre>
+    <p><strong>Q4.</strong> La lecture et le découpage coûtent \(O(n)\), le premier parcours de <span class="code-inline">moyennes_mensuelles</span> \(O(n)\) (un accès au dictionnaire en temps constant par relevé), le second et le rapport au plus 12 tours : le total est \(O(n)\).</p>
+  </div>
+</div>
+
+<div class="exo concours"><span class="num">CONCOURS PT</span><span class="diff">★ ★ ★</span>
+  <h3>Exploiter un essai de traction</h3>
+  <div class="exo-source">Exercice <strong>original</strong> au format des épreuves PT (thème : traitement de données expérimentales en résistance des matériaux).</div>
+  <div class="statement"><p>Une machine d'essai étire une éprouvette d'alliage d'aluminium de longueur utile \(L_0 = 50\) mm et de section \(S_0 = 20\ \text{mm}^2\), et enregistre l'allongement \(\Delta L\) (en mm) et la force \(F\) (en N). On en déduit la contrainte \(\sigma = F/S_0\) (en MPa, c'est-à-dire en N/mm²) et la déformation \(\varepsilon = \Delta L / L_0\) (sans unité). Le fichier <span class="code-inline">traction.txt</span> commence par des lignes de commentaire (premier caractère <span class="code-inline">#</span>), puis contient une ligne <span class="code-inline">dL;F</span> par mesure :</p>
+<pre class="codeblock"># essai n°17 - alliage d'aluminium
+# L0 = 50 mm ; S0 = 20 mm2
+# allongement (mm) ; force (N)
+0;0
+0.025;702
+0.05;1395
+0.075;2108
+0.1;2788
+0.125;3497
+0.15;4100
+0.2;4640
+0.25;4880
+0.3;5040
+0.5;5320
+1.0;5620
+2.0;5920
+3.0;6060
+4.0;6100
+5.0;5960
+5.5;5600</pre>
+  <p><strong>Documentation.</strong> Le fichier se lit avec les fonctions de l'annexe : <span class="code-inline">open(nom, 'r')</span>, <span class="code-inline">readlines()</span> (liste des lignes, chacune terminée par <span class="code-inline">'\n'</span>), <span class="code-inline">split(sep)</span>, <span class="code-inline">close()</span> ; <span class="code-inline">open(nom, 'w')</span> et <span class="code-inline">write(s)</span> pour écrire. Pour les tracés, après <span class="code-inline">import matplotlib.pyplot as plt</span> : <span class="code-inline">plt.plot(X, Y)</span> trace la ligne brisée reliant les points \((X[k], Y[k])\), <span class="code-inline">plt.xlabel(s)</span> et <span class="code-inline">plt.ylabel(s)</span> légendent les axes, <span class="code-inline">plt.savefig(nom)</span> enregistre la figure dans un fichier image.</p></div>
+
+  <div class="exo-part">Partie A — Lecture des mesures</div>
+  <div class="q"><strong>Q1.</strong> Écrire une fonction <span class="code-inline">lire_essai(nom)</span> qui renvoie le couple <span class="code-inline">(dL, F)</span> des listes de flottants lues dans le fichier, en ignorant les commentaires et les éventuelles lignes vides.</div>
+  <div class="q"><strong>Q2.</strong> Écrire une fonction <span class="code-inline">courbe(dL, F, L0, S0)</span> qui renvoie le couple <span class="code-inline">(eps, sig)</span> des listes des déformations et des contraintes.</div>
+
+  <div class="exo-part">Partie B — Caractéristiques du matériau</div>
+  <div class="q"><strong>Q3.</strong> La <strong>résistance à la traction</strong> \(R_m\) est la plus grande contrainte atteinte. Écrire une fonction <span class="code-inline">resistance(sig)</span> qui la renvoie.</div>
+  <div class="q"><strong>Q4.</strong> Dans le domaine élastique (\(\varepsilon \le 0{,}002\) ici), \(\sigma \approx E\,\varepsilon\), où \(E\) est le module d'Young. La droite des moindres carrés passant par l'origine donne \(E = \dfrac{\sum \varepsilon_k\,\sigma_k}{\sum \varepsilon_k^2}\), les sommes portant sur les mesures du domaine élastique. Écrire une fonction <span class="code-inline">module_young(eps, sig, eps_max)</span>.</div>
+  <div class="q"><strong>Q5.</strong> La <strong>limite d'élasticité conventionnelle</strong> \(R_{p0,2}\) est la contrainte au point où la courbe coupe la droite \(\sigma = E\,(\varepsilon - 0{,}002)\). On l'estime par la contrainte de la première mesure située sous cette droite. Écrire une fonction <span class="code-inline">limite_elastique(eps, sig, E)</span>.</div>
+
+  <div class="exo-part">Partie C — Compte rendu</div>
+  <div class="q"><strong>Q6.</strong> Écrire une fonction <span class="code-inline">compte_rendu(nom_essai, nom_cr)</span> qui lit l'essai et écrit dans le fichier <span class="code-inline">nom_cr</span> trois lignes <span class="code-inline">E (MPa);…</span>, <span class="code-inline">Rp02 (MPa);…</span> et <span class="code-inline">Rm (MPa);…</span>. Donner les valeurs obtenues pour l'essai ci-dessus.</div>
+  <div class="q"><strong>Q7.</strong> Écrire les instructions qui enregistrent dans <span class="code-inline">essai17.png</span> la courbe \(\sigma(\varepsilon)\), avec ses axes légendés.</div>
+  <div class="q"><strong>Q8.</strong> Donner la complexité de <span class="code-inline">compte_rendu</span> pour un fichier de \(n\) mesures. Une machine enregistre 1000 mesures par seconde pendant un essai de 3 minutes : le traitement est-il raisonnable ?</div>
+
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution"><h4>Correction</h4>
+    <p><strong>Q1.</strong> Une ligne de données se découpe en exactement deux champs ; un commentaire commence par <span class="code-inline">#</span> (et peut contenir des points-virgules), une ligne vide vaut <span class="code-inline">'\n'</span>.</p>
+<pre class="codeblock"><span class="kw">def</span> lire_essai(nom):
+    f = open(nom, <span class="str">'r'</span>)
+    lignes = f.readlines()
+    f.close()
+    dL, F = [], []
+    <span class="kw">for</span> ligne <span class="kw">in</span> lignes:
+        champs = ligne.split(<span class="str">';'</span>)
+        <span class="kw">if</span> ligne[0] != <span class="str">'#'</span> <span class="kw">and</span> len(champs) == 2:
+            dL.append(float(champs[0]))
+            F.append(float(champs[1]))
+    <span class="kw">return</span> dL, F</pre>
+    <p><strong>Q2.</strong></p>
+<pre class="codeblock"><span class="kw">def</span> courbe(dL, F, L0, S0):
+    eps = [x / L0 <span class="kw">for</span> x <span class="kw">in</span> dL]
+    sig = [f / S0 <span class="kw">for</span> f <span class="kw">in</span> F]
+    <span class="kw">return</span> eps, sig</pre>
+    <p><strong>Q3.</strong> Recherche séquentielle du maximum :</p>
+<pre class="codeblock"><span class="kw">def</span> resistance(sig):
+    m = sig[0]
+    <span class="kw">for</span> s <span class="kw">in</span> sig:
+        <span class="kw">if</span> s &gt; m:
+            m = s
+    <span class="kw">return</span> m</pre>
+    <p><strong>Q4.</strong> On accumule les deux sommes sur les seules mesures du domaine élastique :</p>
+<pre class="codeblock"><span class="kw">def</span> module_young(eps, sig, eps_max):
+    num, den = 0, 0
+    <span class="kw">for</span> k <span class="kw">in</span> range(len(eps)):
+        <span class="kw">if</span> eps[k] &lt;= eps_max:
+            num = num + eps[k] * sig[k]
+            den = den + eps[k] ** 2
+    <span class="kw">assert</span> den &gt; 0          <span class="cmt"># au moins une mesure non nulle dans le domaine</span>
+    <span class="kw">return</span> num / den</pre>
+    <p><strong>Q5.</strong> On parcourt les mesures dans l'ordre et l'on s'arrête à la première sous la droite décalée :</p>
+<pre class="codeblock"><span class="kw">def</span> limite_elastique(eps, sig, E):
+    <span class="kw">for</span> k <span class="kw">in</span> range(len(eps)):
+        <span class="kw">if</span> sig[k] &lt; E * (eps[k] - 0.002):
+            <span class="kw">return</span> sig[k]
+    <span class="kw">return</span> <span class="kw">None</span>             <span class="cmt"># la courbe ne coupe pas la droite</span></pre>
+    <p><strong>Q6.</strong></p>
+<pre class="codeblock"><span class="kw">def</span> compte_rendu(nom_essai, nom_cr):
+    dL, F = lire_essai(nom_essai)
+    eps, sig = courbe(dL, F, 50, 20)
+    E = module_young(eps, sig, 0.002)
+    g = open(nom_cr, <span class="str">'w'</span>)
+    g.write(<span class="str">'E (MPa);'</span> + str(E) + <span class="str">'\n'</span>)
+    g.write(<span class="str">'Rp02 (MPa);'</span> + str(limite_elastique(eps, sig, E)) + <span class="str">'\n'</span>)
+    g.write(<span class="str">'Rm (MPa);'</span> + str(resistance(sig)) + <span class="str">'\n'</span>)
+    g.close()
+
+compte_rendu(<span class="str">'traction.txt'</span>, <span class="str">'cr17.txt'</span>)
+print(open(<span class="str">'cr17.txt'</span>, <span class="str">'r'</span>).read())</pre>
+    <p>On obtient \(E \approx 69\,900\) MPa, soit environ 70 GPa (valeur usuelle pour l'aluminium), \(R_{p0,2} \approx 252\) MPa (mesure à \(\varepsilon = 0{,}006\), la première sous la droite) et \(R_m = 6100/20 = 305\) MPa.</p>
+    <p><strong>Q7.</strong></p>
+<pre class="codeblock"><span class="kw">import</span> matplotlib.pyplot <span class="kw">as</span> plt
+
+dL, F = lire_essai(<span class="str">'traction.txt'</span>)
+eps, sig = courbe(dL, F, 50, 20)
+plt.plot(eps, sig)
+plt.xlabel(<span class="str">'deformation'</span>)
+plt.ylabel(<span class="str">'contrainte (MPa)'</span>)
+plt.savefig(<span class="str">'essai17.png'</span>)</pre>
+    <p><strong>Q8.</strong> La lecture est linéaire en la taille du fichier, et chacune des fonctions de la partie B fait un parcours : le coût est \(O(n)\). Trois minutes à 1000 mesures par seconde donnent \(n = 180\,000\) lignes, soit quelques millions d'opérations élémentaires : moins d'une seconde en Python, c'est raisonnable.</p>
+  </div>
+</div>
+
+</div>
+</template>

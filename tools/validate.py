@@ -13,9 +13,14 @@ quand on ajoute un chapitre :
   5. « < » collé à une lettre dans une formule (utiliser \\lt).
   6. Délimiteurs \\[ … \\] dans le HTML (convention du site : $$ … $$ ; MathJax
      composait la formule mais laissait « \\[ » et « \\] » affichés en clair).
-  7. Panneaux Cours, Méthodes et Exercices repliés dans un <template class="pan-tpl">
-     (performance au téléphone ; sauf chap-rlc, affiché au départ) :
-     un panneau réécrit par un outil revient déplié → lancer tools/replier_panneaux.py.
+  7. Contenu des chapitres hors d'index.html (docs/chargement-chapitres.md) : chaque panneau
+     Cours, Méthodes, Exercices est VIDE dans index.html et son contenu est dans
+     chapitres/<id>.html (<template class="pan-tpl" data-panneau="…">), sans <script>,
+     <style> ni </template> parasite.
+  8. Données dérivées à jour : le manifeste window.__CHAPITRES porte l'empreinte de chaque
+     fichier de chapitre et de chapitres/recherche.json → sinon lancer node tools/chapitres.js.
+
+Les contrôles 2, 5, 6 et --souligne portent sur index.html ET les fichiers de chapitre.
 
 Option --souligne (information, sans échec) : liste les notations « X_y » écrites
 hors formule et hors code (elles s'affichent avec un vrai indice grâce au script
@@ -29,6 +34,8 @@ Usage :
 Code de sortie : 0 si tout est bon, 1 s'il y a au moins une erreur.
 """
 
+import hashlib
+import json
 import re
 import sys
 from pathlib import Path
@@ -44,6 +51,15 @@ ROOT = Path(__file__).resolve().parent.parent
 
 def load(path: Path) -> str:
     return path.read_text(encoding="utf-8")
+
+
+# Empreinte d'un fichier : mêmes règles que tools/chapitres.js (fins de ligne normalisées)
+
+
+def empreinte(texte: str) -> str:
+    return hashlib.sha1(texte.replace("\r\n", "\n").encode("utf-8")).hexdigest()[:8]
+
+
 
 
 def extract_chapters_region(html: str) -> str:
@@ -99,6 +115,13 @@ def main():
     html = load(target)
     errors = []
     warnings = []
+    # Fichiers de chapitre (contenu des onglets Cours, Méthodes, Exercices)
+    dossier = target.parent / "chapitres"
+    chap_textes = {}
+    if target.name == "index.html" and dossier.is_dir():
+        for f in sorted(dossier.glob("*.html")):
+            chap_textes[f.stem] = load(f)
+    tout = html + "\n".join(chap_textes.values())
 
     # --- Parsing ---
     region = extract_chapters_region(html)
@@ -125,7 +148,7 @@ def main():
 
     # --- 2. IDs HTML dupliqués ---
     counts = {}
-    for hid in all_html_ids(html):
+    for hid in all_html_ids(tout):
         counts[hid] = counts.get(hid, 0) + 1
     for hid, n in sorted(counts.items()):
         if n > 1:
@@ -163,7 +186,7 @@ def main():
     # On ne scanne que le corps HTML : le JS (<script>) contient des « \( »
     # littéraux (regex de flashConvertMath, LaTeX des flashcards) qui ne sont
     # pas des formules MathJax du cours et fausseraient l'appariement.
-    html_body = re.sub(r"<script.*?</script>", "", html, flags=re.S)
+    html_body = re.sub(r"<script.*?</script>", "", tout, flags=re.S)
     math_spans = []
     math_spans += re.findall(r"\\\((.*?)\\\)", html_body)        # \( ... \)
     math_spans += re.findall(r"\$\$(.*?)\$\$", html_body, re.S)   # $$ ... $$
@@ -183,18 +206,49 @@ def main():
     for m in re.finditer(r"(?<!\\)\\\[(.{0,60})", html_body):
         errors.append("formule entre \\[ … \\] (écrire $$ … $$) : \\[" + m.group(1).split("\n")[0])
 
-    # --- 7. Panneaux repliés (<template class="pan-tpl">, voir tools/replier_panneaux.py) ---
-    deplies = []
-    for m in re.finditer(r'<section class="panel(?: active)?" id="([a-z0-9]+)-(cours|meth|exos)">', html):
-        chap = html.rfind('<div class="chapter', 0, m.start())
-        mc = re.match(r'<div class="chapter[^"]*" id="([^"]+)"', html[chap:chap + 120]) if chap != -1 else None
-        if mc and mc.group(1) == "chap-rlc":
-            continue
-        if not html.startswith('<template class="pan-tpl">', m.end()):
-            deplies.append(m.group(1) + "-" + m.group(2))
-    if deplies:
-        errors.append(f"{len(deplies)} panneau(x) non replié(s) (lancer python3 tools/replier_panneaux.py) : "
-                      + ", ".join(deplies[:12]) + (" …" if len(deplies) > 12 else ""))
+    # --- 7. Contenu des chapitres dans chapitres/<id>.html, panneaux vides dans index.html ---
+    if target.name == "index.html":
+        attendus = {}
+        for m in re.finditer(r'<section class="panel(?: active)?" id="([a-z0-9]+)-(cours|meth|exos)">', html):
+            chap = html.rfind('<div class="chapter', 0, m.start())
+            mc = re.match(r'<div class="chapter[^"]*" id="chap-([^"]+)"', html[chap:chap + 120]) if chap != -1 else None
+            pid = m.group(1) + "-" + m.group(2)
+            if not html.startswith("</section>", m.end()):
+                errors.append(f"panneau {pid} non vide dans index.html (son contenu va dans chapitres/<id>.html)")
+            if mc:
+                attendus.setdefault(mc.group(1), []).append(pid)
+        for cid, pids in sorted(attendus.items()):
+            texte = chap_textes.get(cid)
+            if texte is None:
+                errors.append(f"chapitre '{cid}' : fichier chapitres/{cid}.html absent")
+                continue
+            dans = re.findall(r'<template class="pan-tpl" data-panneau="([a-z0-9-]+)">', texte)
+            if dans != pids:
+                errors.append(f"chapitres/{cid}.html : panneaux {dans} au lieu de {pids} (ordre d'index.html)")
+            if texte.count("</template>") != len(dans):
+                errors.append(f"chapitres/{cid}.html : </template> parasite dans le contenu")
+            if re.search(r"<(script|style)\b", texte):
+                errors.append(f"chapitres/{cid}.html : <script> ou <style> interdit dans un chapitre")
+        for cid in sorted(set(chap_textes) - set(attendus)):
+            errors.append(f"chapitres/{cid}.html ne correspond à aucun chapitre d'index.html")
+
+    # --- 8. Données dérivées (manifeste + chapitres/recherche.json, voir tools/chapitres.js) ---
+    if target.name == "index.html":
+        rech = dossier / "recherche.json"
+        m = re.search(r"window\.__CHAPITRES = (\{.*?\});\n", html)
+        if not rech.exists() or not m:
+            errors.append("données dérivées absentes (chapitres/recherche.json ou manifeste) : lancer node tools/chapitres.js")
+        else:
+            texte = rech.read_text(encoding="utf-8")
+            try:
+                source = json.loads(texte).get("source")
+                manif = json.loads(m.group(1))
+            except ValueError:
+                source, manif = None, {}
+            v = {cid: empreinte(x) for cid, x in chap_textes.items()}
+            ensemble = empreinte("\n".join(f"{cid}:{v[cid]}" for cid in sorted(v)))
+            if manif.get("v") != v or source != ensemble or manif.get("recherche") != empreinte(texte):
+                errors.append("données dérivées périmées (chapitre modifié depuis) : lancer node tools/chapitres.js")
 
     # --- Option : notations « X_y » hors formule et hors code (information) ---
     if souligne:

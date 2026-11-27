@@ -1,0 +1,1366 @@
+<!-- Chapitre « Récursivité » (pyrec) : contenu des onglets Cours, Méthodes et Exercices, chargé à l'ouverture du chapitre.
+     On l'édite ici, puis : node tools/chapitres.js (docs/chargement-chapitres.md). -->
+<template class="pan-tpl" data-panneau="recu-cours">
+<div class="course-section">
+  <div class="sec-num">AU PROGRAMME · INFORMATIQUE</div>
+  <h2>Ce que le programme officiel demande</h2>
+  <div class="intro">Les fonctions récursives sont un thème du premier semestre d'informatique commune. Le programme insiste sur leur usage hors des mathématiques : recherches dichotomiques, figures dessinées par des <span class="code-inline">print</span> successifs, fractales, énumération de sous-listes et de permutations, et sur le phénomène de dépassement de la pile. La récursivité sert ensuite partout : tris par partition-fusion et rapide (chapitre <em>Algorithmes de tri</em>), parcours en profondeur (chapitre <em>Graphes</em>), programmation dynamique en 2ᵉ année.</div>
+  <div class="reveal" onclick="this.classList.toggle('open')">
+    <span class="label">Programme officiel</span>
+    <span class="prompt">Les thèmes et activités couverts, dans l'ordre du chapitre</span>
+    <div class="content">
+      <ul>
+        <li><strong>Fonctions récursives</strong> (S1) : cas de base et appel récursif (§1) ; phénomène de dépassement de la taille de la pile (§2).</li>
+        <li><strong>Terminaison, correction, complexité</strong> (S2) appliquées aux fonctions récursives : variant, raisonnement par récurrence, relation de récurrence sur le coût (§3, puis dans chaque section). Ces outils sont exposés en détail dans le chapitre <em>Spécification, correction et complexité</em>.</li>
+        <li><strong>Version récursive d'algorithmes dichotomiques</strong> (S1) : recherche dichotomique, exponentiation rapide (§4) ; les versions itératives sont dans le chapitre <em>Recherche séquentielle, dictionnaires et dichotomie</em>.</li>
+        <li><strong>Fonctions produisant à l'aide de <span class="code-inline">print</span> successifs des figures alphanumériques</strong> (S1) (§5).</li>
+        <li><strong>Dessins de fractales</strong> (S1) (§5 et §6).</li>
+        <li><strong>Énumération des sous-listes ou des permutations d'une liste</strong> (S1) (§7, §8).</li>
+        <li>Choix entre écriture récursive et itérative (§9).</li>
+      </ul>
+      <p>Ces activités sont des exemples, non exigibles en tant que tels ; ce qui l'est, c'est de savoir écrire une fonction récursive, la dérouler, justifier qu'elle termine et qu'elle est correcte, et en évaluer le coût. Le code n'utilise que les éléments de Python de l'annexe du programme ; les modules (<span class="code-inline">math</span>, <span class="code-inline">matplotlib</span>) sont documentés là où ils servent.</p>
+      <p>Hors programme : la récursivité terminale, la modification de la limite de la pile, la mémoïsation (vue en 2ᵉ année avec la programmation dynamique), les fonctions récursives croisées (dernière section).</p>
+    </div>
+  </div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§1 · CAS DE BASE ET APPEL RÉCURSIF</div>
+  <h2>Une fonction qui s'appelle elle-même</h2>
+  <div class="intro">Beaucoup de problèmes se ramènent au même problème sur une donnée plus petite : un mot est un palindrome si ses deux lettres extrêmes sont égales et si ce qui reste entre elles en est un ; une poupée russe contient une poupée russe plus petite. Une fonction récursive traduit directement cette description.</div>
+
+  <div class="def-box">
+    Une fonction est <strong>récursive</strong> si son code contient un appel à elle-même. Elle comporte :
+    <ul>
+      <li>un ou plusieurs <strong>cas de base</strong>, traités directement, sans appel récursif ;</li>
+      <li>un ou plusieurs <strong>appels récursifs</strong>, sur des données <strong>plus petites</strong> (en un sens à préciser), dont les résultats sont combinés pour obtenir le résultat cherché.</li>
+    </ul>
+    Pour qu'elle termine, toute suite d'appels doit finir par atteindre un cas de base.
+  </div>
+
+  <p>L'exemple le plus simple suit la définition \(0! = 1\) et \(n! = n \times (n-1)!\) pour \(n \ge 1\) :</p>
+<pre class="codeblock"><span class="kw">def</span> factorielle(n):
+    <span class="cmt"># n entier &gt;= 0 ; renvoie n!</span>
+    <span class="kw">if</span> n == 0:                       <span class="cmt"># cas de base</span>
+        <span class="kw">return</span> 1
+    <span class="kw">return</span> n * factorielle(n - 1)    <span class="cmt"># appel sur n - 1</span></pre>
+<pre class="codeblock">factorielle(5)       <span class="cmt"># 120</span></pre>
+
+  <div class="method-box">
+    <strong>Exemple — Reconnaître un palindrome</strong>
+    <p>Un palindrome se lit de la même façon dans les deux sens (« radar », « ressasser »). On travaille sur la portion \(s[i..j]\) de la chaîne, repérée par deux indices, plutôt que sur des copies de morceaux de la chaîne.</p>
+<pre class="codeblock"><span class="kw">def</span> est_palindrome(s, i, j):
+    <span class="cmt"># True si s[i..j] se lit de la même façon</span>
+    <span class="cmt"># dans les deux sens</span>
+    <span class="kw">if</span> i &gt;= j:                       <span class="cmt"># 0 ou 1 caractère</span>
+        <span class="kw">return</span> <span class="kw">True</span>
+    <span class="kw">if</span> s[i] != s[j]:
+        <span class="kw">return</span> <span class="kw">False</span>
+    <span class="kw">return</span> est_palindrome(s, i + 1, j - 1)
+
+
+<span class="kw">def</span> palindrome(s):
+    <span class="kw">return</span> est_palindrome(s, 0, len(s) - 1)</pre>
+<pre class="codeblock">palindrome(<span class="str">"ressasser"</span>)    <span class="cmt"># True</span>
+palindrome(<span class="str">"radar"</span>)        <span class="cmt"># True</span>
+palindrome(<span class="str">"rotule"</span>)       <span class="cmt"># False</span>
+palindrome(<span class="str">""</span>)             <span class="cmt"># True</span></pre>
+    <ol>
+      <li><strong>Cas de base</strong> : si \(i \ge j\), la portion a 0 ou 1 caractère ; c'est un palindrome.</li>
+      <li><strong>Réduction</strong> : si les deux caractères extrêmes diffèrent, ce n'en est pas un ; sinon, la réponse est celle de la portion \(s[i+1..j-1]\), plus courte de deux caractères.</li>
+      <li><strong>Déroulé</strong> : <span class="code-inline">palindrome("radar")</span> appelle <span class="code-inline">est_palindrome</span> sur les indices \((0, 4)\), puis \((1, 3)\), puis \((2, 2)\) : cas de base, <span class="code-inline">True</span>, qui est renvoyé tel quel par les deux appels en attente.</li>
+      <li>La fonction <span class="code-inline">palindrome</span> fixe les indices du premier appel : c'est une <strong>fonction d'appel</strong> (on dit aussi enveloppe), qui donne à l'utilisateur une signature simple.</li>
+    </ol>
+  </div>
+
+  <div class="prop-box">
+    <strong>Trois questions pour écrire une fonction récursive.</strong>
+    <ul>
+      <li>Quel est le plus petit cas, que l'on sait traiter directement ?</li>
+      <li>Comment ramener le cas général à un ou plusieurs cas plus petits ?</li>
+      <li>Comment fabriquer le résultat à partir des résultats des appels ?</li>
+    </ul>
+  </div>
+
+  <div class="notice"><strong>Erreur classique</strong> : oublier de <em>renvoyer</em> le résultat de l'appel récursif. L'appel est bien fait, mais sa valeur est perdue et la fonction renvoie <span class="code-inline">None</span> :</div>
+<pre class="codeblock"><span class="kw">def</span> est_palindrome_faux(s, i, j):
+    <span class="kw">if</span> i &gt;= j:
+        <span class="kw">return</span> <span class="kw">True</span>
+    <span class="kw">if</span> s[i] != s[j]:
+        <span class="kw">return</span> <span class="kw">False</span>
+    <span class="cmt"># ERREUR : return oublié devant l'appel</span>
+    est_palindrome_faux(s, i + 1, j - 1)</pre>
+<pre class="codeblock">print(est_palindrome_faux(<span class="str">"radar"</span>, 0, 4))  <span class="cmt"># None</span></pre>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§2 · LA PILE D'APPELS</div>
+  <h2>Ce que fait la machine</h2>
+  <div class="intro">Quand <span class="code-inline">factorielle(3)</span> appelle <span class="code-inline">factorielle(2)</span>, le calcul de <span class="code-inline">3 * …</span> est suspendu en attendant la réponse. Python doit garder la trace de tous les appels en attente : il les range dans une pile.</div>
+
+  <div class="def-box">
+    Chaque appel de fonction crée un <strong>cadre</strong> qui contient ses paramètres, ses variables locales et l'endroit où reprendre le calcul. Ces cadres sont rangés dans la <strong>pile d'appels</strong> : un nouvel appel empile son cadre au sommet ; quand un appel se termine, son cadre est retiré et sa valeur est rendue à l'appel situé juste en dessous, qui reprend son calcul. Le dernier appel commencé est le premier terminé.
+  </div>
+<figure class="schema" style="max-width:410px">
+<svg viewBox="0 0 388 176" role="img" aria-label="Huit états successifs de la pile d'appels pendant le calcul de factorielle(3). Pendant la descente, les cadres n = 3, n = 2, n = 1, n = 0 s'empilent. Pendant la remontée, ils sont retirés un à un en renvoyant 1, 1, 2 puis 6.">
+<rect x="16" y="126" width="40" height="22" rx="2" class="sk-accent fl-accent-soft"/>
+<text x="36" y="142" class="lab-accent" text-anchor="middle">n=3</text>
+<line x1="14" y1="151" x2="58" y2="151" class="sk-axis"/>
+<rect x="62" y="126" width="40" height="22" rx="2" class="sk-ink fl-paper"/>
+<text x="82" y="142" text-anchor="middle">n=3</text>
+<rect x="62" y="102" width="40" height="22" rx="2" class="sk-accent fl-accent-soft"/>
+<text x="82" y="118" class="lab-accent" text-anchor="middle">n=2</text>
+<line x1="60" y1="151" x2="104" y2="151" class="sk-axis"/>
+<rect x="108" y="126" width="40" height="22" rx="2" class="sk-ink fl-paper"/>
+<text x="128" y="142" text-anchor="middle">n=3</text>
+<rect x="108" y="102" width="40" height="22" rx="2" class="sk-ink fl-paper"/>
+<text x="128" y="118" text-anchor="middle">n=2</text>
+<rect x="108" y="78" width="40" height="22" rx="2" class="sk-accent fl-accent-soft"/>
+<text x="128" y="94" class="lab-accent" text-anchor="middle">n=1</text>
+<line x1="106" y1="151" x2="150" y2="151" class="sk-axis"/>
+<rect x="154" y="126" width="40" height="22" rx="2" class="sk-ink fl-paper"/>
+<text x="174" y="142" text-anchor="middle">n=3</text>
+<rect x="154" y="102" width="40" height="22" rx="2" class="sk-ink fl-paper"/>
+<text x="174" y="118" text-anchor="middle">n=2</text>
+<rect x="154" y="78" width="40" height="22" rx="2" class="sk-ink fl-paper"/>
+<text x="174" y="94" text-anchor="middle">n=1</text>
+<rect x="154" y="54" width="40" height="22" rx="2" class="sk-accent fl-accent-soft"/>
+<text x="174" y="70" class="lab-accent" text-anchor="middle">n=0</text>
+<line x1="152" y1="151" x2="196" y2="151" class="sk-axis"/>
+<rect x="200" y="126" width="40" height="22" rx="2" class="sk-ink fl-paper"/>
+<text x="220" y="142" text-anchor="middle">n=3</text>
+<rect x="200" y="102" width="40" height="22" rx="2" class="sk-ink fl-paper"/>
+<text x="220" y="118" text-anchor="middle">n=2</text>
+<rect x="200" y="78" width="40" height="22" rx="2" class="sk-ink fl-paper"/>
+<text x="220" y="94" text-anchor="middle">n=1</text>
+<line x1="198" y1="151" x2="242" y2="151" class="sk-axis"/>
+<text x="220" y="168" class="lab-green" text-anchor="middle">→ 1</text>
+<rect x="246" y="126" width="40" height="22" rx="2" class="sk-ink fl-paper"/>
+<text x="266" y="142" text-anchor="middle">n=3</text>
+<rect x="246" y="102" width="40" height="22" rx="2" class="sk-ink fl-paper"/>
+<text x="266" y="118" text-anchor="middle">n=2</text>
+<line x1="244" y1="151" x2="288" y2="151" class="sk-axis"/>
+<text x="266" y="168" class="lab-green" text-anchor="middle">→ 1</text>
+<rect x="292" y="126" width="40" height="22" rx="2" class="sk-ink fl-paper"/>
+<text x="312" y="142" text-anchor="middle">n=3</text>
+<line x1="290" y1="151" x2="334" y2="151" class="sk-axis"/>
+<text x="312" y="168" class="lab-green" text-anchor="middle">→ 2</text>
+<line x1="336" y1="151" x2="380" y2="151" class="sk-axis"/>
+<text x="358" y="168" class="lab-green" text-anchor="middle">→ 6</text>
+<text x="105" y="16" class="lab-muted" text-anchor="middle">descente (appels)</text>
+<text x="289" y="16" class="lab-green" text-anchor="middle">remontée (retours)</text>
+<line x1="196" y1="26" x2="196" y2="172" class="sk-dash"/>
+</svg>
+<figcaption>La pile d'appels pendant <span class="code-inline">factorielle(3)</span> : chaque cadre garde le paramètre \(n\) de son appel (en couleur, l'appel en cours d'exécution). Les appels s'empilent jusqu'au cas de base \(n = 0\), puis chaque cadre est retiré en renvoyant sa valeur à celui du dessous : 1, puis \(1 \times 1\), \(2 \times 1\), \(3 \times 2 = 6\).</figcaption>
+</figure>
+
+  <div class="method-box">
+    <strong>Exemple — Un compte à rebours</strong>
+<pre class="codeblock"><span class="kw">def</span> compte_a_rebours(n):
+    <span class="cmt"># affiche n, n - 1, ..., 1 puis "partez"</span>
+    <span class="kw">if</span> n == 0:
+        print(<span class="str">"partez"</span>)
+    <span class="kw">else</span>:
+        print(n)
+        compte_a_rebours(n - 1)</pre>
+    <p><span class="code-inline">compte_a_rebours(3)</span> affiche :</p>
+<pre class="codeblock">3
+2
+1
+partez</pre>
+    <ol>
+      <li>L'appel pour \(n = 3\) affiche 3, puis appelle la fonction pour \(n = 2\) : son cadre reste dans la pile, avec \(n = 3\), jusqu'à la fin de cet appel.</li>
+      <li>Au plus profond, quatre cadres sont empilés (\(n = 3, 2, 1, 0\)) ; l'appel pour \(n = 0\) affiche « partez », puis les quatre appels se terminent dans l'ordre inverse, sans rien afficher de plus.</li>
+      <li>Chaque appel a son propre \(n\) : les quatre variables \(n\) des quatre cadres coexistent sans se gêner.</li>
+    </ol>
+  </div>
+
+  <h3>Dépassement de la taille de la pile</h3>
+  <p>La pile d'appels occupe de la mémoire, et Python en limite la hauteur à environ mille cadres. Au-delà, le programme s'arrête sur une erreur <span class="code-inline">RecursionError</span> (« maximum recursion depth exceeded »).</p>
+<pre class="codeblock">factorielle(900) &gt; 0       <span class="cmt"># True</span></pre>
+  <p>En revanche, <span class="code-inline">factorielle(2000)</span> provoque une <span class="code-inline">RecursionError</span> : il faudrait 2001 cadres. La même erreur survient avec un cas de base jamais atteint : <span class="code-inline">compte_a_rebours(-1)</span> appelle la fonction pour \(-2, -3, \dots\), sans jamais rencontrer \(n = 0\), jusqu'à la limite.</p>
+
+  <div class="prop-box">
+    <strong>Mémoire d'une fonction récursive.</strong> Une récursion de profondeur \(p\) (nombre maximal d'appels en attente simultanément) utilise un espace au moins proportionnel à \(p\). La profondeur de <span class="code-inline">factorielle(n)</span> vaut \(n + 1\) : espace \(O(n)\), alors que la boucle équivalente n'utilise qu'un espace \(O(1)\). La complexité en espace est étudiée dans le chapitre <em>Spécification, correction et complexité</em>.
+  </div>
+
+  <div class="notice"><strong>Erreur classique</strong> : un cas de base trop étroit. Avec le test <span class="code-inline">n == 0</span>, un argument négatif ne l'atteint jamais ; écrire la précondition (« \(n\) entier \(\ge 0\) ») et, si besoin, la vérifier par <span class="code-inline">assert n &gt;= 0</span>. Une condition <span class="code-inline">n &lt;= 0</span> rend le cas de base plus robuste.</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§3 · TERMINAISON, CORRECTION, COÛT</div>
+  <h2>Raisonner par récurrence</h2>
+  <div class="intro">Les outils de preuve des boucles se transposent aux fonctions récursives : un variant prouve la terminaison, une récurrence prouve la correction, une relation de récurrence donne le coût. Leur présentation générale est dans le chapitre <em>Spécification, correction et complexité</em> ; on les applique ici.</div>
+
+  <div class="prop-box">
+    <strong>Terminaison : un variant.</strong> On cherche une quantité entière, positive ou nulle tant qu'on n'est pas dans un cas de base, qui diminue strictement d'un appel au suivant : \(n\) pour <span class="code-inline">factorielle</span>, \(j - i\) pour <span class="code-inline">est_palindrome</span> (qui baisse de 2), la longueur de la liste pour une fonction qui s'appelle sur une liste plus courte. Une suite d'entiers positifs strictement décroissante est finie : un cas de base finit par être atteint.
+  </div>
+  <div class="prop-box">
+    <strong>Correction : une récurrence.</strong> On démontre « l'appel sur toute donnée de taille \(k\) renvoie le bon résultat » par récurrence (souvent forte) sur \(k\) : on vérifie les cas de base, puis, en supposant les appels plus petits corrects, on montre que la combinaison de leurs résultats est correcte. Pour <span class="code-inline">est_palindrome</span> : si \(s[i] = s[j]\), la portion \(s[i..j]\) est un palindrome si et seulement si \(s[i+1..j-1]\) en est un, ce que l'appel récursif dit correctement par hypothèse de récurrence.
+  </div>
+
+  <h3>Le coût : une relation de récurrence</h3>
+  <p>Le coût \(C(n)\) d'un appel s'exprime à l'aide du coût des appels qu'il fait. Pour <span class="code-inline">factorielle</span>, un appel fait une multiplication et un appel sur \(n - 1\) : \(C(n) = C(n-1) + c\), d'où \(C(n) = O(n)\). Une écriture récursive peut toutefois cacher un coût bien plus élevé que celui de la boucle correspondante.</p>
+<pre class="codeblock"><span class="kw">def</span> fib(n):
+    <span class="cmt"># n-ième terme de la suite de Fibonacci (n &gt;= 0)</span>
+    <span class="kw">if</span> n &lt;= 1:
+        <span class="kw">return</span> n
+    <span class="kw">return</span> fib(n - 1) + fib(n - 2)</pre>
+<pre class="codeblock"><span class="kw">def</span> nb_appels(n):
+    <span class="cmt"># nombre d'appels de fib provoqués par fib(n)</span>
+    <span class="kw">if</span> n &lt;= 1:
+        <span class="kw">return</span> 1
+    <span class="kw">return</span> 1 + nb_appels(n - 1) + nb_appels(n - 2)</pre>
+<pre class="codeblock">fib(10)            <span class="cmt"># 55</span>
+nb_appels(10)      <span class="cmt"># 177</span>
+nb_appels(20)      <span class="cmt"># 21891</span></pre>
+<figure class="schema" style="max-width:400px">
+<svg viewBox="0 0 342 218" role="img" aria-label="Arbre des appels de fib(5) : quinze nœuds sur cinq niveaux. La racine 5 a pour fils 4 et 3, et ainsi de suite jusqu'aux feuilles 1 et 0 ; le nœud 2 apparaît trois fois, le nœud 3 deux fois.">
+<line x1="45" y1="166" x2="24" y2="186" class="sk-axis"/>
+<line x1="45" y1="166" x2="66" y2="186" class="sk-axis"/>
+<line x1="76.5" y1="122" x2="45" y2="142" class="sk-axis"/>
+<line x1="76.5" y1="122" x2="108" y2="142" class="sk-axis"/>
+<line x1="171" y1="122" x2="150" y2="142" class="sk-axis"/>
+<line x1="171" y1="122" x2="192" y2="142" class="sk-axis"/>
+<line x1="123.8" y1="78" x2="76.5" y2="98" class="sk-axis"/>
+<line x1="123.8" y1="78" x2="171" y2="98" class="sk-axis"/>
+<line x1="255" y1="122" x2="234" y2="142" class="sk-axis"/>
+<line x1="255" y1="122" x2="276" y2="142" class="sk-axis"/>
+<line x1="286.5" y1="78" x2="255" y2="98" class="sk-axis"/>
+<line x1="286.5" y1="78" x2="318" y2="98" class="sk-axis"/>
+<line x1="205.1" y1="34" x2="123.8" y2="54" class="sk-axis"/>
+<line x1="205.1" y1="34" x2="286.5" y2="54" class="sk-axis"/>
+<circle cx="24" cy="198" r="12" class="sk-ink fl-paper"/>
+<text x="24" y="203" text-anchor="middle">1</text>
+<circle cx="66" cy="198" r="12" class="sk-ink fl-paper"/>
+<text x="66" y="203" text-anchor="middle">0</text>
+<circle cx="45" cy="154" r="12" class="sk-accent fl-accent-soft"/>
+<text x="45" y="159" class="lab-accent" text-anchor="middle">2</text>
+<circle cx="108" cy="154" r="12" class="sk-ink fl-paper"/>
+<text x="108" y="159" text-anchor="middle">1</text>
+<circle cx="76.5" cy="110" r="12" class="sk-ink fl-paper"/>
+<text x="76.5" y="115" text-anchor="middle">3</text>
+<circle cx="150" cy="154" r="12" class="sk-ink fl-paper"/>
+<text x="150" y="159" text-anchor="middle">1</text>
+<circle cx="192" cy="154" r="12" class="sk-ink fl-paper"/>
+<text x="192" y="159" text-anchor="middle">0</text>
+<circle cx="171" cy="110" r="12" class="sk-accent fl-accent-soft"/>
+<text x="171" y="115" class="lab-accent" text-anchor="middle">2</text>
+<circle cx="123.8" cy="66" r="12" class="sk-ink fl-paper"/>
+<text x="123.8" y="71" text-anchor="middle">4</text>
+<circle cx="234" cy="154" r="12" class="sk-ink fl-paper"/>
+<text x="234" y="159" text-anchor="middle">1</text>
+<circle cx="276" cy="154" r="12" class="sk-ink fl-paper"/>
+<text x="276" y="159" text-anchor="middle">0</text>
+<circle cx="255" cy="110" r="12" class="sk-accent fl-accent-soft"/>
+<text x="255" y="115" class="lab-accent" text-anchor="middle">2</text>
+<circle cx="318" cy="110" r="12" class="sk-ink fl-paper"/>
+<text x="318" y="115" text-anchor="middle">1</text>
+<circle cx="286.5" cy="66" r="12" class="sk-ink fl-paper"/>
+<text x="286.5" y="71" text-anchor="middle">3</text>
+<circle cx="205.1" cy="22" r="12" class="sk-ink fl-paper"/>
+<text x="205.1" y="27" text-anchor="middle">5</text>
+</svg>
+<figcaption>Arbre des appels de <span class="code-inline">fib(5)</span> : chaque nœud est un appel <span class="code-inline">fib(k)</span>, étiqueté par \(k\). Il y a 15 appels pour calculer \(F_5 = 5\), et le même calcul <span class="code-inline">fib(2)</span> est refait trois fois (en couleur).</figcaption>
+</figure>
+  <div class="method-box">
+    <strong>Exemple — Pourquoi <span class="code-inline">fib</span> est si lente</strong>
+    <ol>
+      <li>Le nombre d'appels \(A(n)\) provoqués par <span class="code-inline">fib(n)</span> vérifie \(A(0) = A(1) = 1\) et \(A(n) = 1 + A(n-1) + A(n-2)\).</li>
+      <li>On vérifie par récurrence que \(A(n) = 2F_{n+1} - 1\), où \(F_k\) est le \(k\)-ième terme de la suite de Fibonacci : \(A(10) = 2 \times 89 - 1 = 177\), \(A(30) = 2\,692\,537\).</li>
+      <li>Comme \(F_n\) croît comme \(\varphi^n\) avec \(\varphi = (1 + \sqrt 5)/2 \approx 1{,}62\), le coût est <strong>exponentiel</strong> : chaque unité de plus sur \(n\) multiplie le temps par 1,6 environ.</li>
+      <li>La cause : les mêmes calculs sont refaits (sur l'arbre, <span class="code-inline">fib(2)</span> trois fois pour \(n = 5\)). Une boucle qui garde les deux derniers termes fait \(n\) tours :</li>
+    </ol>
+<pre class="codeblock"><span class="kw">def</span> fib_iter(n):
+    a, b = 0, 1                <span class="cmt"># F(0), F(1)</span>
+    <span class="kw">for</span> k <span class="kw">in</span> range(n):
+        a, b = b, a + b        <span class="cmt"># F(k + 1), F(k + 2)</span>
+    <span class="kw">return</span> a</pre>
+  </div>
+
+  <div class="notice"><strong>Erreur classique</strong> : juger le coût d'une fonction récursive à la longueur de son code. Deux appels récursifs sur des données à peine plus petites (\(n - 1\) et \(n - 2\)) donnent un coût exponentiel ; deux appels sur des moitiés (tri fusion) donnent \(O(n \log n)\) ; un seul appel sur une moitié donne \(O(\log n)\) (§4). Garder en mémoire les résultats déjà calculés (mémoïsation) supprime les recalculs : c'est l'objet de la programmation dynamique, en 2ᵉ année.</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§4 · DICHOTOMIE ET EXPONENTIATION RAPIDE RÉCURSIVES</div>
+  <h2>Diviser le problème par deux</h2>
+  <div class="intro">Les deux algorithmes dichotomiques du programme s'écrivent naturellement de façon récursive : chercher dans une liste triée, c'est chercher dans l'une de ses moitiés ; calculer \(x^n\), c'est calculer \(x^{\lfloor n/2 \rfloor}\) et l'élever au carré. On garde les notations du chapitre <em>Recherche séquentielle, dictionnaires et dichotomie</em>.</div>
+
+  <h3>Recherche dichotomique</h3>
+  <p>Les bornes \(g\) et \(d\) de l'intervalle de recherche, variables de la boucle dans la version itérative, deviennent des paramètres ; l'intervalle vide \(g \gt d\) est le cas de base.</p>
+<pre class="codeblock"><span class="kw">def</span> dicho_rec(x, t, g, d):
+    <span class="cmt"># t triée ; renvoie un indice i de [g, d] tel que</span>
+    <span class="cmt"># t[i] == x, ou -1 si x n'est pas dans t[g..d]</span>
+    <span class="kw">if</span> g &gt; d:                        <span class="cmt"># intervalle vide</span>
+        <span class="kw">return</span> -1
+    m = (g + d) // 2
+    <span class="kw">if</span> t[m] == x:
+        <span class="kw">return</span> m
+    <span class="kw">elif</span> t[m] &lt; x:
+        <span class="kw">return</span> dicho_rec(x, t, m + 1, d)
+    <span class="kw">else</span>:
+        <span class="kw">return</span> dicho_rec(x, t, g, m - 1)
+
+
+<span class="kw">def</span> dicho_r(x, t):
+    <span class="kw">return</span> dicho_rec(x, t, 0, len(t) - 1)</pre>
+<pre class="codeblock">t = [3, 8, 12, 17, 21, 26, 30, 34,
+     41, 47, 52, 58, 63, 70, 77, 85]
+dicho_r(52, t)     <span class="cmt"># 10</span>
+dicho_r(50, t)     <span class="cmt"># -1</span>
+dicho_r(3, t)      <span class="cmt"># 0</span></pre>
+  <div class="method-box">
+    <strong>Exemple — Les appels pour \(x = 52\), puis \(x = 50\)</strong>
+<div><table>
+<tr><th><span class="code-inline">x</span></th><th>appel</th><th><span class="code-inline">g</span></th><th><span class="code-inline">d</span></th><th><span class="code-inline">m</span></th><th><span class="code-inline">t[m]</span></th><th>suite</th></tr>
+<tr><td>52</td><td>1</td><td>0</td><td>15</td><td>7</td><td>34</td><td>34 &lt; 52 : appel sur [8, 15]</td></tr>
+<tr><td></td><td>2</td><td>8</td><td>15</td><td>11</td><td>58</td><td>58 &gt; 52 : appel sur [8, 10]</td></tr>
+<tr><td></td><td>3</td><td>8</td><td>10</td><td>9</td><td>47</td><td>47 &lt; 52 : appel sur [10, 10]</td></tr>
+<tr><td></td><td>4</td><td>10</td><td>10</td><td>10</td><td>52</td><td>trouvé : renvoie 10</td></tr>
+<tr><td>50</td><td>1</td><td>0</td><td>15</td><td>7</td><td>34</td><td>34 &lt; 50 : appel sur [8, 15]</td></tr>
+<tr><td></td><td>2</td><td>8</td><td>15</td><td>11</td><td>58</td><td>58 &gt; 50 : appel sur [8, 10]</td></tr>
+<tr><td></td><td>3</td><td>8</td><td>10</td><td>9</td><td>47</td><td>47 &lt; 50 : appel sur [10, 10]</td></tr>
+<tr><td></td><td>4</td><td>10</td><td>10</td><td>10</td><td>52</td><td>52 &gt; 50 : appel sur [10, 9]</td></tr>
+<tr><td></td><td>5</td><td>10</td><td>9</td><td>—</td><td>—</td><td>intervalle vide : renvoie <span class="code-inline">-1</span></td></tr>
+</table></div>
+    <ol>
+      <li>Chaque appel fait une comparaison avec la case du milieu et au plus un appel récursif, sur un intervalle deux fois plus court.</li>
+      <li>La valeur trouvée (10) ou l'échec (\(-1\)) est renvoyée telle quelle par tous les appels en attente : la remontée ne fait aucun calcul.</li>
+    </ol>
+  </div>
+  <div class="prop-box">
+    <strong>Terminaison, correction, coût.</strong> Variant : la longueur \(d - g + 1\) de l'intervalle, qui diminue strictement à chaque appel (\(m\) est exclu). Correction par récurrence sur cette longueur : la liste étant triée, si \(t[m] \lt x\), \(x\) ne peut être que dans \(t[m+1..d]\), et l'appel récursif y répond correctement. Coût : \(C(L) = C(\lfloor L/2 \rfloor) + c\), d'où \(O(\log n)\), avec au plus \(\lfloor \log_2 n \rfloor + 2\) appels : 31 pour un milliard de valeurs, la pile n'est jamais un problème.
+  </div>
+  <div class="notice"><strong>Erreur classique</strong> : passer des tranches au lieu des indices. La fonction ci-dessous est correcte, mais chaque tranche recopie une moitié de liste : \(n/2 + n/4 + \dots \le n\) cases copiées, coût \(O(n)\), et l'on perd tout le gain de la dichotomie. De plus, un indice dans une tranche n'est plus un indice dans <span class="code-inline">t</span>.</div>
+<pre class="codeblock"><span class="kw">def</span> appartient(x, t):
+    <span class="cmt"># t triée ; version avec tranches : correcte, mais</span>
+    <span class="cmt"># chaque appel recopie une moitié de la liste</span>
+    <span class="kw">if</span> len(t) == 0:
+        <span class="kw">return</span> <span class="kw">False</span>
+    m = len(t) // 2
+    <span class="kw">if</span> t[m] == x:
+        <span class="kw">return</span> <span class="kw">True</span>
+    <span class="kw">elif</span> t[m] &lt; x:
+        <span class="kw">return</span> appartient(x, t[m + 1:len(t)])
+    <span class="kw">else</span>:
+        <span class="kw">return</span> appartient(x, t[0:m])</pre>
+
+  <h3>Exponentiation rapide</h3>
+  <p>Pour \(n \ge 1\), avec \(y = x^{\lfloor n/2 \rfloor}\), on a \(x^n = y^2\) si \(n\) est pair et \(x^n = x\,y^2\) si \(n\) est impair :</p>
+<pre class="codeblock"><span class="kw">def</span> puissance_rec(x, n):
+    <span class="cmt"># x nombre, n entier &gt;= 0 ; renvoie x ** n</span>
+    <span class="kw">if</span> n == 0:
+        <span class="kw">return</span> 1
+    y = puissance_rec(x, n // 2)     <span class="cmt"># un seul appel</span>
+    <span class="kw">if</span> n % 2 == 0:
+        <span class="kw">return</span> y * y
+    <span class="kw">else</span>:
+        <span class="kw">return</span> x * y * y</pre>
+<pre class="codeblock">puissance_rec(3, 13)     <span class="cmt"># 1594323</span>
+puissance_rec(2, 10)     <span class="cmt"># 1024</span></pre>
+  <p>Un appel fait au plus deux multiplications et <strong>un seul</strong> appel récursif, sur \(\lfloor n/2 \rfloor\) : \(C(n) = C(\lfloor n/2 \rfloor) + c\), coût \(O(\log n)\). Pour \(n = 1000\), il y a 11 appels.</p>
+  <div class="notice"><strong>Erreur classique</strong> : appeler deux fois la fonction au lieu de ranger le résultat dans une variable. Le résultat est juste, mais \(C(n) = 2\,C(\lfloor n/2 \rfloor) + c\), coût \(O(n)\) : pour \(n = 1000\), 2047 appels au lieu de 11, et l'exponentiation n'est plus rapide.</div>
+<pre class="codeblock"><span class="kw">def</span> puissance_lente(x, n):
+    <span class="cmt"># même calcul, mais deux appels identiques</span>
+    <span class="kw">if</span> n == 0:
+        <span class="kw">return</span> 1
+    a = puissance_lente(x, n // 2)
+    b = puissance_lente(x, n // 2)    <span class="cmt"># le même calcul !</span>
+    <span class="kw">if</span> n % 2 == 0:
+        <span class="kw">return</span> a * b
+    <span class="kw">else</span>:
+        <span class="kw">return</span> x * a * b</pre>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§5 · FIGURES ALPHANUMÉRIQUES</div>
+  <h2>Dessiner avec des <span class="code-inline">print</span></h2>
+  <div class="intro">Une figure faite de caractères s'affiche ligne par ligne. Chaque <span class="code-inline">print</span> écrit une ligne ; on fabrique cette ligne par répétition (<span class="code-inline">"*" * 4</span> vaut <span class="code-inline">"****"</span>) et concaténation de chaînes. L'ordre des lignes dépend de la place du <span class="code-inline">print</span> par rapport à l'appel récursif.</div>
+
+<pre class="codeblock"><span class="kw">def</span> triangle(n):
+    <span class="cmt"># affiche n lignes de 1, 2, ..., n étoiles</span>
+    <span class="kw">if</span> n &gt; 0:
+        triangle(n - 1)      <span class="cmt"># les n - 1 premières</span>
+        print(<span class="str">"*"</span> * n)       <span class="cmt"># puis la plus longue</span></pre>
+  <p><span class="code-inline">triangle(4)</span> affiche :</p>
+<pre class="codeblock">*
+**
+***
+****</pre>
+<pre class="codeblock"><span class="kw">def</span> triangle_inverse(n):
+    <span class="kw">if</span> n &gt; 0:
+        print(<span class="str">"*"</span> * n)       <span class="cmt"># d'abord la plus longue</span>
+        triangle_inverse(n - 1)</pre>
+  <p><span class="code-inline">triangle_inverse(4)</span> affiche :</p>
+<pre class="codeblock">****
+***
+**
+*</pre>
+
+  <div class="prop-box">
+    <strong>Avant ou après l'appel ?</strong> Un <span class="code-inline">print</span> placé <strong>avant</strong> l'appel récursif est exécuté pendant la descente : les lignes sortent dans l'ordre des appels (\(n\), puis \(n - 1\)…). Placé <strong>après</strong>, il est exécuté pendant la remontée : les lignes sortent dans l'ordre inverse (l'appel le plus profond d'abord).
+  </div>
+
+  <div class="method-box">
+    <strong>Exemple — Les graduations d'une règle</strong>
+    <p>Sur une règle, le trait du milieu est le plus long, et chaque moitié reproduit la règle entière en plus petit :</p>
+<pre class="codeblock"><span class="kw">def</span> regle(n):
+    <span class="cmt"># graduations d'une règle : 2 ** n - 1 traits,</span>
+    <span class="cmt"># le plus long (n tirets) au milieu</span>
+    <span class="kw">if</span> n &gt; 0:
+        regle(n - 1)
+        print(<span class="str">"-"</span> * n)
+        regle(n - 1)</pre>
+    <p><span class="code-inline">regle(3)</span> affiche :</p>
+<pre class="codeblock">-
+--
+-
+---
+-
+--
+-</pre>
+    <ol>
+      <li>Le nombre de lignes \(L(n)\) vérifie \(L(0) = 0\) et \(L(n) = 2L(n-1) + 1\), d'où \(L(n) = 2^n - 1\) (7 lignes pour \(n = 3\), 1023 pour \(n = 10\)).</li>
+      <li>La profondeur de la récursion n'est que \(n + 1\) : pas de risque pour la pile, mais un nombre de lignes exponentiel.</li>
+    </ol>
+  </div>
+
+  <h3>Une fractale en caractères</h3>
+  <p>Le triangle de Sierpiński d'ordre \(n\) est formé de trois copies de celui d'ordre \(n - 1\) : une en haut, centrée, deux en bas, côte à côte. La fonction renvoie la liste de ses lignes ; on les affiche ensuite.</p>
+<pre class="codeblock"><span class="kw">def</span> sierpinski(n):
+    <span class="cmt"># lignes du triangle de Sierpiński d'ordre n</span>
+    <span class="kw">if</span> n == 0:
+        <span class="kw">return</span> [<span class="str">"*"</span>]
+    t = sierpinski(n - 1)
+    k = len(t)                  <span class="cmt"># 2 ** (n - 1) lignes</span>
+    haut = [<span class="str">" "</span> * k + ligne + <span class="str">" "</span> * k <span class="kw">for</span> ligne <span class="kw">in</span> t]
+    bas = [ligne + <span class="str">" "</span> + ligne <span class="kw">for</span> ligne <span class="kw">in</span> t]
+    <span class="kw">return</span> haut + bas</pre>
+<pre class="codeblock"><span class="kw">for</span> ligne <span class="kw">in</span> sierpinski(3):
+    print(ligne)</pre>
+<pre class="codeblock">       *
+      * *
+     *   *
+    * * * *
+   *       *
+  * *     * *
+ *   *   *   *
+* * * * * * * *</pre>
+  <p>L'ordre \(n\) a \(2^n\) lignes de \(2^{n+1} - 1\) caractères et \(3^n\) étoiles. Construire la liste puis l'afficher sépare le calcul de la figure de son affichage, ce qui permet aussi de la tester.</p>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§6 · DESSINS DE FRACTALES</div>
+  <h2>Des figures faites de copies d'elles-mêmes</h2>
+  <div class="intro">Une fractale est une figure qui se compose de copies réduites d'elle-même : un flocon, une côte rocheuse, un arbre. Une fonction récursive en calcule les points ; une bibliothèque graphique, documentée dans l'énoncé, les trace.</div>
+
+  <div class="def-box">
+    <strong>Courbe de von Koch.</strong> À l'ordre 0, c'est le segment \([a, b]\). À l'ordre \(n \ge 1\), on coupe \([a, b]\) en trois aux points \(p\) et \(q\), on construit le triangle équilatéral \(p\,r\,q\) vers l'extérieur, et l'on remplace \([a, b]\) par les courbes d'ordre \(n - 1\) sur \([a, p]\), \([p, r]\), \([r, q]\) et \([q, b]\).
+  </div>
+<pre class="codeblock"><span class="kw">import</span> math      <span class="cmt"># math.sqrt(x) : racine carrée de x</span>
+
+
+<span class="kw">def</span> koch(a, b, n):
+    <span class="cmt"># points de la courbe de von Koch d'ordre n de a à b</span>
+    <span class="cmt"># (a, b : couples (x, y)) ; a inclus, b exclu</span>
+    <span class="kw">if</span> n == 0:
+        <span class="kw">return</span> [a]
+    xa, ya = a
+    xb, yb = b
+    dx, dy = (xb - xa) / 3, (yb - ya) / 3
+    p = (xa + dx, ya + dy)             <span class="cmt"># au tiers</span>
+    q = (xa + 2 * dx, ya + 2 * dy)     <span class="cmt"># aux deux tiers</span>
+    h = math.sqrt(3) / 2
+    <span class="cmt"># sommet r : [p, q] tourné de 60° autour de p</span>
+    r = (p[0] + dx / 2 - h * dy, p[1] + dy / 2 + h * dx)
+    <span class="kw">return</span> (koch(a, p, n - 1) + koch(p, r, n - 1)
+            + koch(r, q, n - 1) + koch(q, b, n - 1))</pre>
+<pre class="codeblock">len(koch((0, 0), (1, 0), 3))     <span class="cmt"># 64</span></pre>
+<figure class="schema" style="max-width:410px">
+<svg viewBox="0 0 370 324" role="img" aria-label="Courbes de von Koch d'ordres 0 à 3 : un segment, puis 4, 16 et 64 segments, chaque segment étant remplacé par quatre segments trois fois plus courts formant une pointe.">
+<polyline points="30,30 300,30" class="sk-accent2"/>
+<text x="22" y="34" class="lab-muted" text-anchor="end">0</text>
+<text x="306" y="34" class="lab-muted">1 seg.</text>
+<polyline points="30,130 120,130 165,52.1 210,130 300,130" class="sk-accent2"/>
+<text x="22" y="134" class="lab-muted" text-anchor="end">1</text>
+<text x="306" y="134" class="lab-muted">4 seg.</text>
+<polyline points="30,220 60,220 75,194 90,220 120,220 135,194 120,168 150,168 165,142.1 180,168 210,168 195,194 210,220 240,220 255,194 270,220 300,220" class="sk-accent2"/>
+<text x="22" y="224" class="lab-muted" text-anchor="end">2</text>
+<text x="306" y="224" class="lab-muted">16 seg.</text>
+<polyline points="30,310 40,310 45,301.3 50,310 60,310 65,301.3 60,292.7 70,292.7 75,284 80,292.7 90,292.7 85,301.3 90,310 100,310 105,301.3 110,310 120,310 125,301.3 120,292.7 130,292.7 135,284 130,275.4 120,275.4 125,266.7 120,258 130,258 135,249.4 140,258 150,258 155,249.4 150,240.7 160,240.7 165,232.1 170,240.7 180,240.7 175,249.4 180,258 190,258 195,249.4 200,258 210,258 205,266.7 210,275.4 200,275.4 195,284 200,292.7 210,292.7 205,301.3 210,310 220,310 225,301.3 230,310 240,310 245,301.3 240,292.7 250,292.7 255,284 260,292.7 270,292.7 265,301.3 270,310 280,310 285,301.3 290,310 300,310" class="sk-accent2"/>
+<text x="22" y="314" class="lab-muted" text-anchor="end">3</text>
+<text x="306" y="314" class="lab-muted">64 seg.</text>
+</svg>
+<figcaption>Courbes de von Koch d'ordres 0 à 3, tracées avec les points calculés par <span class="code-inline">koch</span>. À chaque ordre, chaque segment est remplacé par 4 segments trois fois plus courts : \(4^n\) segments, de longueur totale \((4/3)^n\).</figcaption>
+</figure>
+  <p>La fonction renvoie les points de la courbe, extrémité \(a\) comprise et \(b\) exclue, ce qui évite de répéter chaque point de jonction ; on ajoute \(b\) à la fin pour tracer. Le tracé utilise le module <span class="code-inline">matplotlib</span>, documenté :</p>
+<pre class="codeblock"><span class="kw">import</span> matplotlib.pyplot <span class="kw">as</span> plt
+<span class="cmt"># plt.plot(X, Y) : ligne brisée des points (X[k], Y[k]) ;</span>
+<span class="cmt"># plt.axis("equal") : même échelle sur les deux axes ;</span>
+<span class="cmt"># plt.show() : affiche la figure</span>
+
+
+<span class="kw">def</span> dessiner_koch(n):
+    pts = koch((0, 0), (1, 0), n) + [(1, 0)]
+    X = [p[0] <span class="kw">for</span> p <span class="kw">in</span> pts]
+    Y = [p[1] <span class="kw">for</span> p <span class="kw">in</span> pts]
+    plt.plot(X, Y)
+    plt.axis(<span class="str">"equal"</span>)
+    plt.show()</pre>
+
+  <div class="prop-box">
+    <strong>Combien de segments ?</strong> Chaque appel d'ordre \(n \ge 1\) fait quatre appels d'ordre \(n - 1\) : la courbe d'ordre \(n\) a \(4^n\) segments de longueur \(3^{-n}\) (pour \(|ab| = 1\)), donc une longueur totale \((4/3)^n\), qui tend vers l'infini. Le nombre d'appels est \(1 + 4 + \dots + 4^n = \dfrac{4^{n+1} - 1}{3}\) : coût \(O(4^n)\). À l'ordre 10, plus d'un million de points ; au-delà de l'ordre 6, l'écran ne montre plus de différence.
+  </div>
+
+  <div class="method-box">
+    <strong>Exemple — Un arbre fractal</strong>
+    <p>Un arbre est un tronc qui porte deux arbres plus petits. On renvoie la liste des segments à tracer :</p>
+<pre class="codeblock"><span class="kw">def</span> branches(x, y, angle, longueur, n):
+    <span class="cmt"># segments [(x, y), (x2, y2)] d'un arbre d'ordre n,</span>
+    <span class="cmt"># tronc partant de (x, y) dans la direction angle</span>
+    <span class="kw">if</span> n == 0:
+        <span class="kw">return</span> []
+    x2 = x + longueur * math.cos(angle)
+    y2 = y + longueur * math.sin(angle)
+    a1 = angle + math.pi / 6           <span class="cmt"># branche gauche</span>
+    a2 = angle - math.pi / 6           <span class="cmt"># branche droite</span>
+    lg = 0.7 * longueur          <span class="cmt"># plus courtes</span>
+    <span class="kw">return</span> ([[(x, y), (x2, y2)]]
+            + branches(x2, y2, a1, lg, n - 1)
+            + branches(x2, y2, a2, lg, n - 1))</pre>
+<pre class="codeblock">len(branches(0, 0, math.pi / 2, 1, 7))    <span class="cmt"># 127</span></pre>
+<figure class="schema" style="max-width:340px">
+<svg viewBox="0 0 300 200" role="img" aria-label="Arbre fractal d'ordre 7 : un tronc vertical se divise en deux branches inclinées de 30° de part et d'autre, plus courtes, qui se divisent à leur tour, jusqu'à 64 rameaux terminaux.">
+<line x1="150" y1="190" x2="150" y2="127.9" class="sk-ink"/>
+<line x1="150" y1="127.9" x2="128.3" y2="90.2" class="sk-ink"/>
+<line x1="128.3" y1="90.2" x2="101.9" y2="75" class="sk-ink"/>
+<line x1="101.9" y1="75" x2="80.6" y2="75" class="sk-ink"/>
+<line x1="80.6" y1="75" x2="67.6" y2="82.4" class="sk-green"/>
+<line x1="67.6" y1="82.4" x2="62.4" y2="91.5" class="sk-green"/>
+<line x1="62.4" y1="91.5" x2="62.4" y2="98.8" class="sk-green"/>
+<line x1="62.4" y1="91.5" x2="56.1" y2="95.1" class="sk-green"/>
+<line x1="67.6" y1="82.4" x2="57.2" y2="82.4" class="sk-green"/>
+<line x1="57.2" y1="82.4" x2="50.9" y2="86.1" class="sk-green"/>
+<line x1="57.2" y1="82.4" x2="50.9" y2="78.8" class="sk-green"/>
+<line x1="80.6" y1="75" x2="67.6" y2="67.5" class="sk-green"/>
+<line x1="67.6" y1="67.5" x2="57.2" y2="67.5" class="sk-green"/>
+<line x1="57.2" y1="67.5" x2="50.9" y2="71.2" class="sk-green"/>
+<line x1="57.2" y1="67.5" x2="50.9" y2="63.8" class="sk-green"/>
+<line x1="67.6" y1="67.5" x2="62.4" y2="58.5" class="sk-green"/>
+<line x1="62.4" y1="58.5" x2="56.1" y2="54.8" class="sk-green"/>
+<line x1="62.4" y1="58.5" x2="62.4" y2="51.1" class="sk-green"/>
+<line x1="101.9" y1="75" x2="91.2" y2="56.5" class="sk-ink"/>
+<line x1="91.2" y1="56.5" x2="78.3" y2="49" class="sk-green"/>
+<line x1="78.3" y1="49" x2="67.9" y2="49" class="sk-green"/>
+<line x1="67.9" y1="49" x2="61.5" y2="52.7" class="sk-green"/>
+<line x1="67.9" y1="49" x2="61.5" y2="45.4" class="sk-green"/>
+<line x1="78.3" y1="49" x2="73.1" y2="40" class="sk-green"/>
+<line x1="73.1" y1="40" x2="66.7" y2="36.3" class="sk-green"/>
+<line x1="73.1" y1="40" x2="73.1" y2="32.7" class="sk-green"/>
+<line x1="91.2" y1="56.5" x2="91.2" y2="41.6" class="sk-green"/>
+<line x1="91.2" y1="41.6" x2="86" y2="32.5" class="sk-green"/>
+<line x1="86" y1="32.5" x2="79.7" y2="28.9" class="sk-green"/>
+<line x1="86" y1="32.5" x2="86" y2="25.2" class="sk-green"/>
+<line x1="91.2" y1="41.6" x2="96.4" y2="32.5" class="sk-green"/>
+<line x1="96.4" y1="32.5" x2="96.4" y2="25.2" class="sk-green"/>
+<line x1="96.4" y1="32.5" x2="102.8" y2="28.9" class="sk-green"/>
+<line x1="128.3" y1="90.2" x2="128.3" y2="59.7" class="sk-ink"/>
+<line x1="128.3" y1="59.7" x2="117.6" y2="41.3" class="sk-ink"/>
+<line x1="117.6" y1="41.3" x2="104.7" y2="33.8" class="sk-green"/>
+<line x1="104.7" y1="33.8" x2="94.2" y2="33.8" class="sk-green"/>
+<line x1="94.2" y1="33.8" x2="87.9" y2="37.5" class="sk-green"/>
+<line x1="94.2" y1="33.8" x2="87.9" y2="30.2" class="sk-green"/>
+<line x1="104.7" y1="33.8" x2="99.4" y2="24.8" class="sk-green"/>
+<line x1="99.4" y1="24.8" x2="93.1" y2="21.1" class="sk-green"/>
+<line x1="99.4" y1="24.8" x2="99.4" y2="17.5" class="sk-green"/>
+<line x1="117.6" y1="41.3" x2="117.6" y2="26.4" class="sk-green"/>
+<line x1="117.6" y1="26.4" x2="112.4" y2="17.3" class="sk-green"/>
+<line x1="112.4" y1="17.3" x2="106" y2="13.7" class="sk-green"/>
+<line x1="112.4" y1="17.3" x2="112.4" y2="10" class="sk-green"/>
+<line x1="117.6" y1="26.4" x2="122.8" y2="17.3" class="sk-green"/>
+<line x1="122.8" y1="17.3" x2="122.8" y2="10" class="sk-green"/>
+<line x1="122.8" y1="17.3" x2="129.1" y2="13.7" class="sk-green"/>
+<line x1="128.3" y1="59.7" x2="138.9" y2="41.3" class="sk-ink"/>
+<line x1="138.9" y1="41.3" x2="138.9" y2="26.4" class="sk-green"/>
+<line x1="138.9" y1="26.4" x2="133.7" y2="17.3" class="sk-green"/>
+<line x1="133.7" y1="17.3" x2="127.4" y2="13.7" class="sk-green"/>
+<line x1="133.7" y1="17.3" x2="133.7" y2="10" class="sk-green"/>
+<line x1="138.9" y1="26.4" x2="144.1" y2="17.3" class="sk-green"/>
+<line x1="144.1" y1="17.3" x2="144.1" y2="10" class="sk-green"/>
+<line x1="144.1" y1="17.3" x2="150.5" y2="13.7" class="sk-green"/>
+<line x1="138.9" y1="41.3" x2="151.8" y2="33.8" class="sk-green"/>
+<line x1="151.8" y1="33.8" x2="157.1" y2="24.8" class="sk-green"/>
+<line x1="157.1" y1="24.8" x2="157.1" y2="17.5" class="sk-green"/>
+<line x1="157.1" y1="24.8" x2="163.4" y2="21.1" class="sk-green"/>
+<line x1="151.8" y1="33.8" x2="162.3" y2="33.8" class="sk-green"/>
+<line x1="162.3" y1="33.8" x2="168.6" y2="30.2" class="sk-green"/>
+<line x1="162.3" y1="33.8" x2="168.6" y2="37.5" class="sk-green"/>
+<line x1="150" y1="127.9" x2="171.7" y2="90.2" class="sk-ink"/>
+<line x1="171.7" y1="90.2" x2="171.7" y2="59.7" class="sk-ink"/>
+<line x1="171.7" y1="59.7" x2="161.1" y2="41.3" class="sk-ink"/>
+<line x1="161.1" y1="41.3" x2="148.2" y2="33.8" class="sk-green"/>
+<line x1="148.2" y1="33.8" x2="137.7" y2="33.8" class="sk-green"/>
+<line x1="137.7" y1="33.8" x2="131.4" y2="37.5" class="sk-green"/>
+<line x1="137.7" y1="33.8" x2="131.4" y2="30.2" class="sk-green"/>
+<line x1="148.2" y1="33.8" x2="142.9" y2="24.8" class="sk-green"/>
+<line x1="142.9" y1="24.8" x2="136.6" y2="21.1" class="sk-green"/>
+<line x1="142.9" y1="24.8" x2="142.9" y2="17.5" class="sk-green"/>
+<line x1="161.1" y1="41.3" x2="161.1" y2="26.4" class="sk-green"/>
+<line x1="161.1" y1="26.4" x2="155.9" y2="17.3" class="sk-green"/>
+<line x1="155.9" y1="17.3" x2="149.5" y2="13.7" class="sk-green"/>
+<line x1="155.9" y1="17.3" x2="155.9" y2="10" class="sk-green"/>
+<line x1="161.1" y1="26.4" x2="166.3" y2="17.3" class="sk-green"/>
+<line x1="166.3" y1="17.3" x2="166.3" y2="10" class="sk-green"/>
+<line x1="166.3" y1="17.3" x2="172.6" y2="13.7" class="sk-green"/>
+<line x1="171.7" y1="59.7" x2="182.4" y2="41.3" class="sk-ink"/>
+<line x1="182.4" y1="41.3" x2="182.4" y2="26.4" class="sk-green"/>
+<line x1="182.4" y1="26.4" x2="177.2" y2="17.3" class="sk-green"/>
+<line x1="177.2" y1="17.3" x2="170.9" y2="13.7" class="sk-green"/>
+<line x1="177.2" y1="17.3" x2="177.2" y2="10" class="sk-green"/>
+<line x1="182.4" y1="26.4" x2="187.6" y2="17.3" class="sk-green"/>
+<line x1="187.6" y1="17.3" x2="187.6" y2="10" class="sk-green"/>
+<line x1="187.6" y1="17.3" x2="194" y2="13.7" class="sk-green"/>
+<line x1="182.4" y1="41.3" x2="195.3" y2="33.8" class="sk-green"/>
+<line x1="195.3" y1="33.8" x2="200.6" y2="24.8" class="sk-green"/>
+<line x1="200.6" y1="24.8" x2="200.6" y2="17.5" class="sk-green"/>
+<line x1="200.6" y1="24.8" x2="206.9" y2="21.1" class="sk-green"/>
+<line x1="195.3" y1="33.8" x2="205.8" y2="33.8" class="sk-green"/>
+<line x1="205.8" y1="33.8" x2="212.1" y2="30.2" class="sk-green"/>
+<line x1="205.8" y1="33.8" x2="212.1" y2="37.5" class="sk-green"/>
+<line x1="171.7" y1="90.2" x2="198.1" y2="75" class="sk-ink"/>
+<line x1="198.1" y1="75" x2="208.8" y2="56.5" class="sk-ink"/>
+<line x1="208.8" y1="56.5" x2="208.8" y2="41.6" class="sk-green"/>
+<line x1="208.8" y1="41.6" x2="203.6" y2="32.5" class="sk-green"/>
+<line x1="203.6" y1="32.5" x2="197.2" y2="28.9" class="sk-green"/>
+<line x1="203.6" y1="32.5" x2="203.6" y2="25.2" class="sk-green"/>
+<line x1="208.8" y1="41.6" x2="214" y2="32.5" class="sk-green"/>
+<line x1="214" y1="32.5" x2="214" y2="25.2" class="sk-green"/>
+<line x1="214" y1="32.5" x2="220.3" y2="28.9" class="sk-green"/>
+<line x1="208.8" y1="56.5" x2="221.7" y2="49" class="sk-green"/>
+<line x1="221.7" y1="49" x2="226.9" y2="40" class="sk-green"/>
+<line x1="226.9" y1="40" x2="226.9" y2="32.7" class="sk-green"/>
+<line x1="226.9" y1="40" x2="233.3" y2="36.3" class="sk-green"/>
+<line x1="221.7" y1="49" x2="232.1" y2="49" class="sk-green"/>
+<line x1="232.1" y1="49" x2="238.5" y2="45.4" class="sk-green"/>
+<line x1="232.1" y1="49" x2="238.5" y2="52.7" class="sk-green"/>
+<line x1="198.1" y1="75" x2="219.4" y2="75" class="sk-ink"/>
+<line x1="219.4" y1="75" x2="232.4" y2="67.5" class="sk-green"/>
+<line x1="232.4" y1="67.5" x2="237.6" y2="58.5" class="sk-green"/>
+<line x1="237.6" y1="58.5" x2="237.6" y2="51.1" class="sk-green"/>
+<line x1="237.6" y1="58.5" x2="243.9" y2="54.8" class="sk-green"/>
+<line x1="232.4" y1="67.5" x2="242.8" y2="67.5" class="sk-green"/>
+<line x1="242.8" y1="67.5" x2="249.1" y2="63.8" class="sk-green"/>
+<line x1="242.8" y1="67.5" x2="249.1" y2="71.2" class="sk-green"/>
+<line x1="219.4" y1="75" x2="232.4" y2="82.4" class="sk-green"/>
+<line x1="232.4" y1="82.4" x2="242.8" y2="82.4" class="sk-green"/>
+<line x1="242.8" y1="82.4" x2="249.1" y2="78.8" class="sk-green"/>
+<line x1="242.8" y1="82.4" x2="249.1" y2="86.1" class="sk-green"/>
+<line x1="232.4" y1="82.4" x2="237.6" y2="91.5" class="sk-green"/>
+<line x1="237.6" y1="91.5" x2="243.9" y2="95.1" class="sk-green"/>
+<line x1="237.6" y1="91.5" x2="237.6" y2="98.8" class="sk-green"/>
+</svg>
+<figcaption>Arbre d'ordre 7 dessiné avec les 127 segments renvoyés par <span class="code-inline">branches(0, 0, math.pi / 2, 1, 7)</span> : chaque branche porte deux branches 0,7 fois plus courtes, inclinées de 30° (en vert, les plus petites).</figcaption>
+</figure>
+    <ol>
+      <li>Le nombre de segments \(S(n)\) vérifie \(S(0) = 0\) et \(S(n) = 1 + 2S(n-1)\) : \(S(n) = 2^n - 1\), soit 127 pour l'ordre 7.</li>
+      <li>Chaque segment se trace par <span class="code-inline">plt.plot([x1, x2], [y1, y2])</span>.</li>
+    </ol>
+  </div>
+
+  <div class="notice"><strong>Erreur classique</strong> : ne renvoyer que le premier des quatre morceaux (<span class="code-inline">return koch(a, p, n - 1)</span>), ou mal gérer les extrémités : si chaque morceau contient ses deux extrémités, les points de jonction apparaissent deux fois. Fixer une convention (début inclus, fin exclue) et s'y tenir dans chaque appel.</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§7 · ÉNUMÉRER LES SOUS-LISTES</div>
+  <h2>Avec ou sans le premier élément</h2>
+  <div class="intro">Choisir des objets à emporter, des projets à financer, des pièces pour faire une somme : quand on ne connaît pas d'algorithme plus astucieux, on essaie tous les choix possibles. La récursion les engendre méthodiquement : chaque élément est pris ou laissé.</div>
+
+  <div class="def-box">
+    Une <strong>sous-liste</strong> de \(t\) est une liste obtenue en retirant de \(t\) certains éléments, sans changer l'ordre des autres : [7, 2] est une sous-liste de [4, 7, 1, 2]. Ses éléments ne sont pas forcément voisins dans \(t\) (les tranches <span class="code-inline">t[a:b]</span> n'en sont qu'un cas particulier). Chaque élément étant pris ou non, une liste de \(n\) éléments a \(2^n\) sous-listes (la liste vide et \(t\) comprises).
+  </div>
+<pre class="codeblock"><span class="kw">def</span> sous_listes(t):
+    <span class="cmt"># liste des 2 ** len(t) sous-listes de t</span>
+    <span class="cmt"># (éléments gardés dans leur ordre)</span>
+    <span class="kw">if</span> len(t) == 0:
+        <span class="kw">return</span> [[]]
+    reste = sous_listes(t[1:len(t)])     <span class="cmt"># sans t[0]</span>
+    avec = [[t[0]] + s <span class="kw">for</span> s <span class="kw">in</span> reste]   <span class="cmt"># avec t[0]</span>
+    <span class="kw">return</span> reste + avec</pre>
+<pre class="codeblock">u = sous_listes([1, 2, 3])
+u[0:4]        <span class="cmt"># [[], [3], [2], [2, 3]]</span>
+u[4:8]        <span class="cmt"># [[1], [1, 3], [1, 2], [1, 2, 3]]</span>
+len(sous_listes([4, 7, 1, 8, 2, 9, 5]))    <span class="cmt"># 128</span></pre>
+<figure class="schema" style="max-width:400px">
+<svg viewBox="0 0 380 196" role="img" aria-label="Arbre de décision binaire pour les sous-listes de 1, 2, 3 : au premier niveau on garde ou non 1, au deuxième 2, au troisième 3 ; les huit feuilles sont les sous-listes vide, 3, 2, 2 3, 1, 1 3, 1 2 et 1 2 3.">
+<circle cx="190" cy="26" r="5" class="fl-ink"/>
+<line x1="190" y1="31" x2="102" y2="66" class="sk-dash"/>
+<text x="122" y="47" class="lab-muted" text-anchor="middle">sans 1</text>
+<circle cx="102" cy="76" r="5" class="fl-ink"/>
+<line x1="102" y1="81" x2="58" y2="116" class="sk-dash"/>
+<circle cx="58" cy="126" r="5" class="fl-ink"/>
+<line x1="58" y1="131" x2="36" y2="166" class="sk-dash"/>
+<rect x="15" y="166" width="42" height="24" rx="3" class="sk-green fl-green-soft"/>
+<text x="36" y="183" text-anchor="middle">∅</text>
+<line x1="58" y1="131" x2="80" y2="166" class="sk-ink"/>
+<rect x="59" y="166" width="42" height="24" rx="3" class="sk-green fl-green-soft"/>
+<text x="80" y="183" text-anchor="middle">3</text>
+<line x1="102" y1="81" x2="146" y2="116" class="sk-ink"/>
+<circle cx="146" cy="126" r="5" class="fl-ink"/>
+<line x1="146" y1="131" x2="124" y2="166" class="sk-dash"/>
+<rect x="103" y="166" width="42" height="24" rx="3" class="sk-green fl-green-soft"/>
+<text x="124" y="183" text-anchor="middle">2</text>
+<line x1="146" y1="131" x2="168" y2="166" class="sk-ink"/>
+<rect x="147" y="166" width="42" height="24" rx="3" class="sk-green fl-green-soft"/>
+<text x="168" y="183" text-anchor="middle">2 3</text>
+<line x1="190" y1="31" x2="278" y2="66" class="sk-ink"/>
+<text x="258" y="47" class="lab-muted" text-anchor="middle">avec 1</text>
+<circle cx="278" cy="76" r="5" class="fl-ink"/>
+<line x1="278" y1="81" x2="234" y2="116" class="sk-dash"/>
+<circle cx="234" cy="126" r="5" class="fl-ink"/>
+<line x1="234" y1="131" x2="212" y2="166" class="sk-dash"/>
+<rect x="191" y="166" width="42" height="24" rx="3" class="sk-green fl-green-soft"/>
+<text x="212" y="183" text-anchor="middle">1</text>
+<line x1="234" y1="131" x2="256" y2="166" class="sk-ink"/>
+<rect x="235" y="166" width="42" height="24" rx="3" class="sk-green fl-green-soft"/>
+<text x="256" y="183" text-anchor="middle">1 3</text>
+<line x1="278" y1="81" x2="322" y2="116" class="sk-ink"/>
+<circle cx="322" cy="126" r="5" class="fl-ink"/>
+<line x1="322" y1="131" x2="300" y2="166" class="sk-dash"/>
+<rect x="279" y="166" width="42" height="24" rx="3" class="sk-green fl-green-soft"/>
+<text x="300" y="183" text-anchor="middle">1 2</text>
+<line x1="322" y1="131" x2="344" y2="166" class="sk-ink"/>
+<rect x="323" y="166" width="42" height="24" rx="3" class="sk-green fl-green-soft"/>
+<text x="344" y="183" text-anchor="middle">1 2 3</text>
+</svg>
+<figcaption>Les sous-listes de [1, 2, 3] : à chaque niveau, on décide de prendre ou non une valeur (trait plein : avec, pointillé : sans). Les \(2^3 = 8\) feuilles sont les sous-listes, dans l'ordre où <span class="code-inline">sous_listes</span> les renvoie.</figcaption>
+</figure>
+  <div class="prop-box">
+    <strong>Correction et coût.</strong> Une sous-liste de \(t\) (non vide) ne contient pas \(t[0]\), et c'est une sous-liste de \(t[1..n-1]\), ou elle le contient, et c'est \(t[0]\) suivi d'une sous-liste de \(t[1..n-1]\) : par récurrence sur \(n\), la fonction renvoie chacune exactement une fois. Leur nombre vérifie \(N(0) = 1\) et \(N(n) = 2N(n-1)\), soit \(2^n\). La fonction ne fait que \(n + 1\) appels (un par longueur), mais elle construit \(2^n\) listes de longueur moyenne \(n/2\) : coût \(O(n\,2^n)\), et autant de mémoire.
+  </div>
+
+  <div class="method-box">
+    <strong>Exemple — Atteindre une somme avec une partie des valeurs</strong>
+    <p>Pour savoir si des valeurs de \(t\) peuvent totaliser \(s\), inutile de fabriquer toutes les sous-listes : on explore les deux choix pour \(t[i]\), et l'on s'arrête dès qu'un choix réussit.</p>
+<pre class="codeblock"><span class="kw">def</span> somme_atteinte(t, i, s):
+    <span class="cmt"># True si une sous-liste de t[i..n-1] a pour somme s</span>
+    <span class="kw">if</span> i == len(t):
+        <span class="kw">return</span> s == 0
+    <span class="kw">if</span> somme_atteinte(t, i + 1, s - t[i]):   <span class="cmt"># avec t[i]</span>
+        <span class="kw">return</span> <span class="kw">True</span>
+    <span class="kw">return</span> somme_atteinte(t, i + 1, s)       <span class="cmt"># sans t[i]</span></pre>
+<pre class="codeblock">somme_atteinte([8, 3, 11, 5, 7], 0, 20)    <span class="cmt"># True</span>
+somme_atteinte([8, 3, 11, 5, 7], 0, 6)     <span class="cmt"># False</span></pre>
+    <ol>
+      <li>\(20 = 8 + 5 + 7\) ; aucune sous-liste n'a pour somme 6.</li>
+      <li>Dans le pire cas (réponse négative), les deux appels sont faits à chaque niveau : \(2^{n+1} - 1\) appels, coût \(O(2^n)\). Pour \(n = 30\), plus d'un milliard d'appels : l'énumération n'est praticable que pour de petites listes.</li>
+    </ol>
+  </div>
+
+  <div class="notice"><strong>Erreur classique</strong> : écrire l'appel récursif deux fois, une pour les sous-listes « avec » et une pour les sous-listes « sans ». Chaque niveau double alors le travail : \(2^{n+1} - 1\) appels au lieu de \(n + 1\). On range le résultat de <span class="code-inline">sous_listes(t[1:len(t)])</span> dans une variable et on s'en sert deux fois.</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§8 · ÉNUMÉRER LES PERMUTATIONS</div>
+  <h2>Choisir le premier, permuter le reste</h2>
+  <div class="intro">Dans quel ordre visiter des clients, enchaîner des tâches, placer des invités ? Essayer tous les ordres revient à énumérer les permutations : le premier élément est l'un quelconque des \(n\), suivi d'une permutation des \(n - 1\) autres.</div>
+
+  <div class="def-box">
+    Une <strong>permutation</strong> d'une liste de \(n\) valeurs distinctes est une liste formée des mêmes valeurs dans un ordre quelconque. Il y en a \(n! = n \times (n-1) \times \dots \times 1\) : \(n\) choix pour la première place, puis \(n - 1\) pour la deuxième, etc.
+  </div>
+<pre class="codeblock"><span class="kw">def</span> permutations(t):
+    <span class="cmt"># liste des permutations de t (valeurs distinctes)</span>
+    <span class="kw">if</span> len(t) &lt;= 1:
+        <span class="kw">return</span> [t.copy()]
+    res = []
+    <span class="kw">for</span> i <span class="kw">in</span> range(len(t)):
+        reste = t[0:i] + t[i + 1:len(t)]   <span class="cmt"># t sans t[i]</span>
+        <span class="kw">for</span> p <span class="kw">in</span> permutations(reste):
+            res.append([t[i]] + p)   <span class="cmt"># t[i] en tête</span>
+    <span class="kw">return</span> res</pre>
+<pre class="codeblock">u = permutations([1, 2, 3])
+u[0:3]        <span class="cmt"># [[1, 2, 3], [1, 3, 2], [2, 1, 3]]</span>
+u[3:6]        <span class="cmt"># [[2, 3, 1], [3, 1, 2], [3, 2, 1]]</span>
+len(permutations([1, 2, 3, 4, 5, 6]))     <span class="cmt"># 720</span></pre>
+<figure class="schema" style="max-width:400px">
+<svg viewBox="0 0 380 212" role="img" aria-label="Arbre des choix pour les permutations de 1, 2, 3 : trois branches pour la première valeur, puis deux, puis une ; les six feuilles sont 1 2 3, 1 3 2, 2 1 3, 2 3 1, 3 1 2 et 3 2 1.">
+<circle cx="190" cy="24" r="5" class="fl-ink"/>
+<line x1="190" y1="29" x2="74" y2="70" class="sk-ink"/>
+<text x="123" y="52" class="lab-accent2 lab-b" text-anchor="middle">1</text>
+<circle cx="74" cy="80" r="5" class="fl-ink"/>
+<line x1="74" y1="85" x2="45" y2="126" class="sk-ink"/>
+<text x="50.5" y="108" class="lab-accent2 lab-b" text-anchor="middle">2</text>
+<circle cx="45" cy="136" r="5" class="fl-ink"/>
+<line x1="45" y1="141" x2="45" y2="182" class="sk-ink"/>
+<text x="54" y="164" class="lab-accent2 lab-b" text-anchor="middle">3</text>
+<rect x="23" y="182" width="44" height="24" rx="3" class="sk-green fl-green-soft"/>
+<text x="45" y="199" text-anchor="middle">1 2 3</text>
+<line x1="74" y1="85" x2="103" y2="126" class="sk-ink"/>
+<text x="97.5" y="108" class="lab-accent2 lab-b" text-anchor="middle">3</text>
+<circle cx="103" cy="136" r="5" class="fl-ink"/>
+<line x1="103" y1="141" x2="103" y2="182" class="sk-ink"/>
+<text x="112" y="164" class="lab-accent2 lab-b" text-anchor="middle">2</text>
+<rect x="81" y="182" width="44" height="24" rx="3" class="sk-green fl-green-soft"/>
+<text x="103" y="199" text-anchor="middle">1 3 2</text>
+<line x1="190" y1="29" x2="190" y2="70" class="sk-ink"/>
+<text x="199" y="52" class="lab-accent2 lab-b" text-anchor="middle">2</text>
+<circle cx="190" cy="80" r="5" class="fl-ink"/>
+<line x1="190" y1="85" x2="161" y2="126" class="sk-ink"/>
+<text x="166.5" y="108" class="lab-accent2 lab-b" text-anchor="middle">1</text>
+<circle cx="161" cy="136" r="5" class="fl-ink"/>
+<line x1="161" y1="141" x2="161" y2="182" class="sk-ink"/>
+<text x="170" y="164" class="lab-accent2 lab-b" text-anchor="middle">3</text>
+<rect x="139" y="182" width="44" height="24" rx="3" class="sk-green fl-green-soft"/>
+<text x="161" y="199" text-anchor="middle">2 1 3</text>
+<line x1="190" y1="85" x2="219" y2="126" class="sk-ink"/>
+<text x="213.5" y="108" class="lab-accent2 lab-b" text-anchor="middle">3</text>
+<circle cx="219" cy="136" r="5" class="fl-ink"/>
+<line x1="219" y1="141" x2="219" y2="182" class="sk-ink"/>
+<text x="228" y="164" class="lab-accent2 lab-b" text-anchor="middle">1</text>
+<rect x="197" y="182" width="44" height="24" rx="3" class="sk-green fl-green-soft"/>
+<text x="219" y="199" text-anchor="middle">2 3 1</text>
+<line x1="190" y1="29" x2="306" y2="70" class="sk-ink"/>
+<text x="257" y="52" class="lab-accent2 lab-b" text-anchor="middle">3</text>
+<circle cx="306" cy="80" r="5" class="fl-ink"/>
+<line x1="306" y1="85" x2="277" y2="126" class="sk-ink"/>
+<text x="282.5" y="108" class="lab-accent2 lab-b" text-anchor="middle">1</text>
+<circle cx="277" cy="136" r="5" class="fl-ink"/>
+<line x1="277" y1="141" x2="277" y2="182" class="sk-ink"/>
+<text x="286" y="164" class="lab-accent2 lab-b" text-anchor="middle">2</text>
+<rect x="255" y="182" width="44" height="24" rx="3" class="sk-green fl-green-soft"/>
+<text x="277" y="199" text-anchor="middle">3 1 2</text>
+<line x1="306" y1="85" x2="335" y2="126" class="sk-ink"/>
+<text x="329.5" y="108" class="lab-accent2 lab-b" text-anchor="middle">2</text>
+<circle cx="335" cy="136" r="5" class="fl-ink"/>
+<line x1="335" y1="141" x2="335" y2="182" class="sk-ink"/>
+<text x="344" y="164" class="lab-accent2 lab-b" text-anchor="middle">1</text>
+<rect x="313" y="182" width="44" height="24" rx="3" class="sk-green fl-green-soft"/>
+<text x="335" y="199" text-anchor="middle">3 2 1</text>
+</svg>
+<figcaption>Les permutations de [1, 2, 3] : on choisit la première valeur (3 choix), puis la deuxième parmi les restantes (2 choix), puis la dernière. Les \(3! = 6\) feuilles sont les permutations, dans l'ordre où <span class="code-inline">permutations</span> les renvoie.</figcaption>
+</figure>
+  <div class="prop-box">
+    <strong>Correction et coût.</strong> Une permutation de \(t\) commence par une valeur \(t[i]\) bien déterminée, suivie d'une permutation des autres valeurs : par récurrence sur \(n\), la fonction renvoie chacune exactement une fois, soit \(n \times (n-1)! = n!\) listes. Elle termine car <span class="code-inline">reste</span> est plus court d'un élément. Le résultat compte \(n!\) listes de longueur \(n\) : le coût est au moins de l'ordre de \(n \cdot n!\). Pour \(n = 10\), \(3\,628\,800\) permutations ; pour \(n = 15\), \(1{,}3 \times 10^{12}\), hors de portée.
+  </div>
+
+  <div class="method-box">
+    <strong>Exemple — Les anagrammes d'un mot</strong>
+    <p>Le même schéma s'applique à une chaîne de caractères, en concaténant des chaînes au lieu de listes :</p>
+<pre class="codeblock"><span class="kw">def</span> anagrammes(mot):
+    <span class="cmt"># chaînes formées des lettres de mot (distinctes)</span>
+    <span class="kw">if</span> len(mot) &lt;= 1:
+        <span class="kw">return</span> [mot]
+    res = []
+    <span class="kw">for</span> i <span class="kw">in</span> range(len(mot)):
+        reste = mot[0:i] + mot[i + 1:len(mot)]
+        <span class="kw">for</span> a <span class="kw">in</span> anagrammes(reste):
+            res.append(mot[i] + a)
+    <span class="kw">return</span> res</pre>
+<pre class="codeblock">anagrammes(<span class="str">"ami"</span>)
+<span class="cmt"># ['ami', 'aim', 'mai', 'mia', 'iam', 'ima']</span></pre>
+    <ol>
+      <li>Les lettres sont supposées distinctes. Avec des lettres répétées, des anagrammes sont produites plusieurs fois : « elle » en donne 24, dont 6 seulement sont différentes. On élimine les doublons avec un dictionnaire (chapitre <em>Recherche séquentielle, dictionnaires et dichotomie</em>).</li>
+      <li>La profondeur de la récursion vaut la longueur du mot : seul le nombre de résultats pose problème.</li>
+    </ol>
+  </div>
+
+  <div class="notice"><strong>Erreur classique</strong> : écrire <span class="code-inline">reste = t[0:i] + t[i:len(t)]</span>. On a oublié de retirer \(t[i]\) : <span class="code-inline">reste</span> est égale à \(t\), l'appel récursif se fait sur une liste de même longueur, et le programme s'arrête sur une <span class="code-inline">RecursionError</span>. Le variant (la longueur) doit diminuer.</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§9 · RÉCURSIF OU ITÉRATIF ?</div>
+  <h2>Choisir la bonne écriture</h2>
+  <div class="intro">Tout algorithme récursif peut s'écrire avec des boucles, quitte à gérer soi-même une pile des tâches en attente, et inversement. Le choix se fait sur la clarté du code, son coût et la profondeur des appels.</div>
+
+  <div class="prop-box">
+    <strong>Récursion terminale.</strong> Quand l'appel récursif est la dernière opération et que son résultat est renvoyé tel quel (c'est le cas de <span class="code-inline">dicho_rec</span> et de <span class="code-inline">est_palindrome</span>), la traduction en boucle est immédiate : les paramètres deviennent des variables, l'appel récursif devient une mise à jour de ces variables, et le cas de base devient la condition d'arrêt.
+  </div>
+<pre class="codeblock"><span class="kw">def</span> dicho_iter(x, t):
+    g, d = 0, len(t) - 1    <span class="cmt"># paramètres du 1er appel</span>
+    <span class="kw">while</span> g &lt;= d:           <span class="cmt"># pas encore le cas de base</span>
+        m = (g + d) // 2
+        <span class="kw">if</span> t[m] == x:
+            <span class="kw">return</span> m
+        <span class="kw">elif</span> t[m] &lt; x:
+            g = m + 1       <span class="cmt"># au lieu d'un appel</span>
+        <span class="kw">else</span>:
+            d = m - 1
+    <span class="kw">return</span> -1</pre>
+
+  <div><table>
+    <tr><th>Situation</th><th>Écriture conseillée</th><th>Raison</th></tr>
+    <tr><td>Diviser pour régner (tri fusion, tri rapide, dichotomie)</td><td>récursive</td><td>code proche de l'idée ; profondeur \(O(\log n)\) le plus souvent</td></tr>
+    <tr><td>Énumérations (sous-listes, permutations), figures et fractales</td><td>récursive</td><td>la boucle demanderait de gérer une pile à la main</td></tr>
+    <tr><td>Parcours d'une liste, d'une chaîne, compteur de 1 à \(n\)</td><td>itérative</td><td>profondeur \(n\) : <span class="code-inline">RecursionError</span> dès \(n \approx 1000\) ; espace \(O(n)\) au lieu de \(O(1)\)</td></tr>
+    <tr><td>Suites récurrentes à plusieurs termes (Fibonacci)</td><td>itérative (ou mémoïsation)</td><td>la récursion naïve refait les mêmes calculs : coût exponentiel</td></tr>
+  </table></div>
+
+  <div class="notice"><strong>Erreur classique</strong> : compter sur Python pour transformer une récursion terminale en boucle. Il ne le fait pas : une fonction récursive qui parcourt une liste de \(10^5\) éléments un par un dépasse la pile, même écrite en récursion terminale.</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">POUR ALLER PLUS LOIN · HORS PROGRAMME</div>
+  <h2>Au-delà du programme</h2>
+  <ul>
+    <li><strong>Changer la limite de la pile</strong> : <span class="code-inline">sys.setrecursionlimit(10000)</span> (module <span class="code-inline">sys</span>) augmente la profondeur permise, mais la pile réelle de la machine reste bornée et le programme peut s'arrêter brutalement. Mieux vaut réécrire la fonction.</li>
+    <li><strong>Mémoïsation</strong> : en rangeant dans un dictionnaire les valeurs déjà calculées, <span class="code-inline">fib(n)</span> ne fait plus que \(O(n)\) appels. C'est le point de départ de la programmation dynamique (2ᵉ année).</li>
+    <li><strong>Récursion terminale</strong> : certains langages (OCaml, enseigné en filière MP) transforment automatiquement un appel terminal en saut, sans empiler de cadre.</li>
+    <li><strong>Fonctions mutuellement récursives</strong> : <span class="code-inline">pair(n)</span> appelle <span class="code-inline">impair(n - 1)</span> et réciproquement ; les mêmes outils de preuve s'appliquent.</li>
+    <li><strong>Fonction d'Ackermann</strong> : définie par une double récurrence, elle termine toujours, mais croît si vite qu'aucune boucle <span class="code-inline">for</span> à nombre de tours fixé à l'avance ne peut la calculer.</li>
+  </ul>
+</div>
+</template>
+<template class="pan-tpl" data-panneau="recu-meth">
+<div class="course-section">
+  <div class="sec-num">MÉTHODES · RÉCURSIVITÉ</div>
+  <h2>Les réflexes du chapitre</h2>
+  <div class="intro">Écrire une fonction récursive qui termine, la dérouler, prouver qu'elle est juste, prévoir son coût et sa profondeur, et reconnaître les schémas classiques (dichotomie, figures, énumérations) : les savoir-faire attendus aux écrits comme aux oraux.</div>
+
+  <div class="method-box"><strong>Méthode 1 — Écrire une fonction récursive</strong>
+    <ol>
+      <li><span class="step">Cas de base.</span> Identifier le plus petit cas, traité sans appel : liste ou chaîne vide, \(n = 0\), intervalle vide \(g \gt d\).</li>
+      <li><span class="step">Réduction.</span> Exprimer le cas général à l'aide du même problème sur une donnée strictement plus petite (longueur moins un, moitié, portion intérieure).</li>
+      <li><span class="step">Combinaison.</span> Fabriquer le résultat à partir de celui des appels, et le <em>renvoyer</em> par <span class="code-inline">return</span>.</li>
+      <li><span class="step">Signature.</span> Si la récursion a besoin de paramètres supplémentaires (indices \(i, j\) ou \(g, d\)), écrire une fonction d'appel qui fixe leurs valeurs initiales.</li>
+    </ol>
+    <p><em>Exemple éclair :</em> un entier \(n \ge 10\) a un chiffre de plus que \(n /\!/ 10\).</p>
+<pre class="codeblock"><span class="kw">def</span> nb_chiffres(n):
+    <span class="cmt"># nombre de chiffres de l'entier n &gt;= 0 en base 10</span>
+    <span class="kw">if</span> n &lt; 10:                       <span class="cmt"># cas de base</span>
+        <span class="kw">return</span> 1
+    <span class="kw">return</span> 1 + nb_chiffres(n // 10)  <span class="cmt"># n // 10 &lt; n</span></pre>
+<pre class="codeblock">nb_chiffres(2026)      <span class="cmt"># 4</span>
+nb_chiffres(7)         <span class="cmt"># 1</span></pre>
+  </div>
+  <div class="notice"><strong>Piège</strong> : écrire l'appel récursif sans <span class="code-inline">return</span> devant (la fonction renvoie <span class="code-inline">None</span>), ou un cas de base qu'un argument ne peut pas atteindre (<span class="code-inline">n == 0</span> pour un \(n\) négatif ou qui diminue de 2 en 2).</div>
+
+  <div class="method-box"><strong>Méthode 2 — Dérouler un appel récursif</strong>
+    <ol>
+      <li><span class="step">Descente.</span> Écrire l'appel initial, puis les appels qu'il provoque, avec la valeur des paramètres, jusqu'aux cas de base : une ligne par appel, décalée d'un cran à chaque niveau.</li>
+      <li><span class="step">Remontée.</span> Calculer les valeurs renvoyées en partant du cas de base, chaque appel combinant la valeur reçue.</li>
+      <li><span class="step">Plusieurs appels.</span> Dessiner l'arbre des appels : un nœud par appel, ses fils sont les appels qu'il fait, de gauche à droite dans l'ordre d'exécution.</li>
+      <li><span class="step">Affichages.</span> Un <span class="code-inline">print</span> avant l'appel s'exécute à la descente, après l'appel à la remontée.</li>
+    </ol>
+    <p><em>Exemple éclair :</em> <span class="code-inline">nb_chiffres(2026)</span> \(= 1 +\) <span class="code-inline">nb_chiffres(202)</span> \(= 2 +\) <span class="code-inline">nb_chiffres(20)</span> \(= 3 +\) <span class="code-inline">nb_chiffres(2)</span> \(= 3 + 1 = 4\) ; quatre cadres dans la pile au plus profond.</p>
+  </div>
+
+  <div class="method-box"><strong>Méthode 3 — Prouver la terminaison et la correction</strong>
+    <ol>
+      <li><span class="step">Variant.</span> Trouver une quantité entière, positive hors des cas de base, qui diminue strictement d'un appel au suivant : un argument entier, une longueur, \(d - g + 1\), \(j - i\).</li>
+      <li><span class="step">Récurrence.</span> Énoncer la propriété « l'appel sur une donnée de taille \(k\) renvoie le bon résultat » et la démontrer par récurrence forte sur \(k\).</li>
+      <li><span class="step">Cas de base</span>, puis <span class="step">hérédité</span> : en supposant les appels plus petits corrects, vérifier que la combinaison donne le bon résultat.</li>
+    </ol>
+    <p><em>Exemple éclair :</em> <span class="code-inline">nb_chiffres</span>. Variant : \(n\), car \(n /\!/ 10 \lt n\) pour \(n \ge 10\). Correction : si \(10^{k-1} \le n \lt 10^k\) avec \(k \ge 2\), alors \(10^{k-2} \le n /\!/ 10 \lt 10^{k-1}\) : \(n /\!/ 10\) a \(k - 1\) chiffres par hypothèse de récurrence, et \(n\) en a \(k\).</p>
+  </div>
+
+  <div class="method-box"><strong>Méthode 4 — Calculer le coût d'une fonction récursive</strong>
+    <ol>
+      <li><span class="step">Relation.</span> \(C(n)\) = somme des coûts des appels récursifs + travail fait hors des appels (comparaisons, multiplications, tranches et concaténations, qui coûtent leur longueur).</li>
+      <li><span class="step">Reconnaître.</span> \(C(n) = C(n-1) + c\) : \(O(n)\) ; \(C(n) = C(n/2) + c\) : \(O(\log n)\) ; \(C(n) = 2\,C(n/2) + c\,n\) : \(O(n \log n)\) ; \(C(n) = 2\,C(n-1) + c\) : \(O(2^n)\).</li>
+      <li><span class="step">Compter les appels</span> sur l'arbre des appels quand la relation n'est pas classique : nombre de nœuds par niveau, nombre de niveaux.</li>
+      <li><span class="step">Profondeur.</span> Noter aussi la hauteur de l'arbre : c'est la profondeur de la pile, donc la mémoire utilisée et le risque de <span class="code-inline">RecursionError</span>.</li>
+    </ol>
+    <p><em>Exemple éclair :</em> <span class="code-inline">regle(n)</span> fait deux appels sur \(n - 1\) et un <span class="code-inline">print</span> : \(L(n) = 2L(n-1) + 1\), soit \(2^n - 1\) lignes, pour une profondeur de seulement \(n + 1\).</p>
+  </div>
+  <div class="notice"><strong>Piège</strong> : deux appels identiques là où un seul suffit (<span class="code-inline">puissance_lente</span>), ou des appels qui se recouvrent (<span class="code-inline">fib</span>) : le coût passe de logarithmique à linéaire, ou de linéaire à exponentiel. Ranger le résultat d'un appel dans une variable.</div>
+
+  <div class="method-box"><strong>Méthode 5 — Passer des indices plutôt que des tranches</strong>
+    <ol>
+      <li><span class="step">Repérer la portion</span> traitée par ses bornes (\(g, d\) ou \(i, j\)) au lieu d'en fabriquer une copie par tranche.</li>
+      <li><span class="step">Adapter le cas de base</span> à la portion vide (\(g \gt d\), \(i \ge j\), \(i\) égal à la longueur).</li>
+      <li><span class="step">Écrire la fonction d'appel</span> avec les bornes de la liste entière.</li>
+      <li><span class="step">Gagner</span> : chaque appel coûte \(O(1)\) au lieu de \(O(n)\), et un indice renvoyé est un indice de la liste de départ.</li>
+    </ol>
+    <p><em>Exemple éclair :</em> une recherche dichotomique par tranches recopie \(n/2 + n/4 + \dots\) cases, soit \(O(n)\) ; avec \(g\) et \(d\), elle coûte \(O(\log n)\).</p>
+  </div>
+
+  <div class="method-box"><strong>Méthode 6 — Énumérer des choix</strong>
+    <ol>
+      <li><span class="step">Sous-listes : avec ou sans.</span> Les sous-listes de \(t\) sont celles de \(t[1..n-1]\), et les mêmes précédées de \(t[0]\) : \(2^n\) résultats.</li>
+      <li><span class="step">Permutations : choisir le premier.</span> Pour chaque \(i\), \(t[i]\) suivi des permutations de \(t\) privée de \(t[i]\) : \(n!\) résultats.</li>
+      <li><span class="step">Recherche d'une solution.</span> Ne pas tout construire : explorer les choix récursivement et s'arrêter au premier succès (ou couper une branche qui ne peut plus réussir).</li>
+      <li><span class="step">Estimer la taille</span> avant de lancer le calcul : \(2^{20} \approx 10^6\), \(2^{40} \approx 10^{12}\) ; \(10! \approx 3{,}6 \times 10^6\), \(13! \approx 6 \times 10^9\).</li>
+    </ol>
+    <p><em>Exemple éclair :</em> les sous-listes de 20 valeurs sont \(2^{20} = 1\,048\,576\) ; les ordres possibles de 8 villes, \(8! = 40\,320\).</p>
+  </div>
+  <div class="notice"><strong>Piège</strong> : oublier de retirer l'élément choisi (<span class="code-inline">t[0:i] + t[i:len(t)]</span> au lieu de <span class="code-inline">t[0:i] + t[i + 1:len(t)]</span>) : la liste ne raccourcit pas et la récursion ne s'arrête plus.</div>
+
+  <div class="method-box"><strong>Méthode 7 — Dessiner une figure ou une fractale</strong>
+    <ol>
+      <li><span class="step">Décomposer la figure</span> en copies plus petites d'elle-même (une ligne de plus, deux moitiés, trois triangles, quatre segments).</li>
+      <li><span class="step">Figures en caractères.</span> Fabriquer chaque ligne par <span class="code-inline">" " * k + "*" * m</span> ; placer le <span class="code-inline">print</span> avant l'appel pour un ordre décroissant, après pour un ordre croissant ; ou renvoyer la liste des lignes et l'afficher ensuite.</li>
+      <li><span class="step">Fractales.</span> Renvoyer la liste des points ou des segments, avec une convention fixe sur les extrémités, puis tracer avec la bibliothèque documentée par l'énoncé.</li>
+      <li><span class="step">Compter</span> les lignes, segments ou appels par une relation de récurrence (\(4^n\) segments pour Koch).</li>
+    </ol>
+    <p><em>Exemple éclair :</em> <span class="code-inline">triangle(n)</span> appelle <span class="code-inline">triangle(n - 1)</span> puis affiche \(n\) étoiles : lignes de 1 à \(n\) étoiles ; en inversant les deux instructions, de \(n\) à 1.</p>
+  </div>
+
+  <div class="method-box"><strong>Méthode 8 — Éviter le dépassement de la pile</strong>
+    <ol>
+      <li><span class="step">Estimer la profondeur</span> : \(n\) appels en attente pour une réduction de 1 en 1, \(\log_2 n\) pour une division par 2.</li>
+      <li><span class="step">Comparer</span> à la limite de Python, environ mille appels.</li>
+      <li><span class="step">Réécrire en boucle</span> une récursion de profondeur \(n\) quand \(n\) peut être grand ; si l'appel est terminal, les paramètres deviennent des variables mises à jour dans un <span class="code-inline">while</span>.</li>
+    </ol>
+    <p><em>Exemple éclair :</em> compter les occurrences d'un caractère dans un texte de \(10^5\) caractères par une récursion caractère par caractère : <span class="code-inline">RecursionError</span> ; une boucle <span class="code-inline">for</span> convient. Une dichotomie récursive sur \(10^9\) valeurs ne fait que 31 appels.</p>
+  </div>
+</div>
+</template>
+<template class="pan-tpl" data-panneau="recu-exos">
+<div class="exo-wrapper">
+
+<div class="exo"><span class="num">EXO 01</span><span class="diff">★ ☆ ☆</span>
+  <h3>Aller et retour</h3>
+  <div class="statement">On considère la fonction suivante.</div>
+<pre class="codeblock"><span class="kw">def</span> aller_retour(n):
+    <span class="kw">if</span> n &gt; 0:
+        print(<span class="str">"aller"</span>, n)
+        aller_retour(n - 1)
+        print(<span class="str">"retour"</span>, n)</pre>
+  <div class="q"><strong>Q1.</strong> Qu'affiche <span class="code-inline">aller_retour(3)</span> ?</div>
+  <div class="q"><strong>Q2.</strong> Combien d'appels de la fonction sont en attente, au plus, pendant cette exécution ?</div>
+  <div class="q"><strong>Q3.</strong> On remplace l'appel récursif par <span class="code-inline">aller_retour(n - 2)</span>. Qu'affiche alors <span class="code-inline">aller_retour(3)</span> ?</div>
+  <div class="q"><strong>Q4.</strong> Avec cet appel <span class="code-inline">aller_retour(n - 2)</span>, on remplace aussi le test <span class="code-inline">n &gt; 0</span> par <span class="code-inline">n != 0</span>. Que se passe-t-il pour <span class="code-inline">aller_retour(3)</span> ? pour <span class="code-inline">aller_retour(4)</span> ?</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution"><h4>Correction</h4>
+    <p><strong>Q1.</strong> Les « aller » sont affichés à la descente, les « retour » à la remontée, dans l'ordre inverse :</p>
+<pre class="codeblock">aller 3
+aller 2
+aller 1
+retour 1
+retour 2
+retour 3</pre>
+    <p><strong>Q2.</strong> Quatre : les appels pour \(n = 3, 2, 1\) attendent la fin de celui pour \(n = 0\), qui ne fait rien.</p>
+    <p><strong>Q3.</strong> Les appels portent sur 3, puis 1, puis \(-1\), qui ne vérifie pas \(n \gt 0\) : « aller 3 », « aller 1 », « retour 1 », « retour 3 ».</p>
+    <p><strong>Q4.</strong> Pour 3, les arguments sont 3, 1, \(-1\), \(-3\)… : ils ne valent jamais 0, et le programme s'arrête sur une <span class="code-inline">RecursionError</span> après avoir affiché près de mille lignes « aller ». Pour 4, les arguments 4, 2, 0 atteignent le cas de base : « aller 4 », « aller 2 », « retour 2 », « retour 4 ». La quantité \(n\) n'est un variant que si elle reste positive ou nulle ; le test <span class="code-inline">n &gt; 0</span> le garantit, pas <span class="code-inline">n != 0</span>.</p>
+  </div>
+</div>
+
+<div class="exo"><span class="num">EXO 02</span><span class="diff">★ ☆ ☆</span>
+  <h3>Compter et retourner une chaîne</h3>
+  <div class="statement">Toutes les fonctions demandées sont récursives et n'utilisent pas de boucle.</div>
+  <div class="q"><strong>Q1.</strong> Écrire <span class="code-inline">occurrences(c, s, i)</span> qui renvoie le nombre d'apparitions du caractère <span class="code-inline">c</span> dans la portion \(s[i..n-1]\) de la chaîne <span class="code-inline">s</span> (\(n\) étant sa longueur). Quel appel donne le nombre d'apparitions dans toute la chaîne ?</div>
+  <div class="q"><strong>Q2.</strong> Écrire <span class="code-inline">miroir(s)</span> qui renvoie la chaîne <span class="code-inline">s</span> écrite à l'envers.</div>
+  <div class="q"><strong>Q3.</strong> Justifier la terminaison des deux fonctions. Quel est le coût de <span class="code-inline">miroir</span> pour une chaîne de longueur \(n\), sachant qu'une tranche ou une concaténation de chaînes coûte leur longueur ? Que se passe-t-il pour une chaîne de 3000 caractères ?</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution"><h4>Correction</h4>
+    <p><strong>Q1.</strong> Cas de base : la portion est vide quand \(i = n\). Sinon, on compte \(s[i]\) s'il vaut <span class="code-inline">c</span>, et l'on ajoute le résultat sur la portion suivante. L'appel <span class="code-inline">occurrences(c, s, 0)</span> traite toute la chaîne.</p>
+<pre class="codeblock"><span class="kw">def</span> occurrences(c, s, i):
+    <span class="cmt"># nombre d'apparitions du caractère c dans s[i..]</span>
+    <span class="kw">if</span> i == len(s):
+        <span class="kw">return</span> 0
+    <span class="kw">if</span> s[i] == c:
+        <span class="kw">return</span> 1 + occurrences(c, s, i + 1)
+    <span class="kw">return</span> occurrences(c, s, i + 1)</pre>
+    <p><strong>Q2.</strong> Le miroir de <span class="code-inline">s</span> est le miroir de la fin <span class="code-inline">s[1:len(s)]</span>, suivi du premier caractère :</p>
+<pre class="codeblock"><span class="kw">def</span> miroir(s):
+    <span class="cmt"># la chaîne s écrite à l'envers</span>
+    <span class="kw">if</span> len(s) == 0:
+        <span class="kw">return</span> <span class="str">""</span>
+    <span class="kw">return</span> miroir(s[1:len(s)]) + s[0]</pre>
+<pre class="codeblock">occurrences(<span class="str">"a"</span>, <span class="str">"ananas"</span>, 0)     <span class="cmt"># 3</span>
+miroir(<span class="str">"bonjour"</span>)                 <span class="cmt"># 'ruojnob'</span></pre>
+    <p><strong>Q3.</strong> Variants : \(n - i\) pour <span class="code-inline">occurrences</span>, la longueur de la chaîne pour <span class="code-inline">miroir</span> ; ils diminuent de 1 à chaque appel. L'appel de <span class="code-inline">miroir</span> sur une chaîne de longueur \(k\) fait une tranche et une concaténation de longueur \(k\) environ : \(n + (n-1) + \dots + 1 = \dfrac{n(n+1)}{2}\), coût \(O(n^2)\) (<span class="code-inline">occurrences</span>, qui n'utilise que des indices, est en \(O(n)\)). Pour 3000 caractères, la profondeur de 3001 appels dépasse la limite de la pile : <span class="code-inline">RecursionError</span>. Une boucle est préférable pour de longues chaînes.</p>
+  </div>
+</div>
+
+<div class="exo"><span class="num">EXO 03</span><span class="diff">★ ★ ☆</span>
+  <h3>Dichotomie : la première occurrence</h3>
+  <div class="statement">On dispose de <span class="code-inline">dicho_rec(x, t, g, d)</span> et <span class="code-inline">dicho_r(x, t)</span> (§4 du cours). La liste <span class="code-inline">t</span> est triée mais peut contenir des valeurs répétées.</div>
+  <div class="q"><strong>Q1.</strong> Que renvoie <span class="code-inline">dicho_r(5, [1, 5, 5, 5, 5, 8, 9])</span> ? Est-ce le plus petit indice de 5 ?</div>
+  <div class="q"><strong>Q2.</strong> Écrire une fonction récursive <span class="code-inline">premiere(x, t, g, d)</span> qui renvoie le plus petit indice \(i\) de \([g, d]\) tel que <span class="code-inline">t[i] == x</span>, ou \(-1\) s'il n'y en a pas, avec un coût logarithmique.</div>
+  <div class="q"><strong>Q3.</strong> Justifier la terminaison, la correction et le coût.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution"><h4>Correction</h4>
+    <p><strong>Q1.</strong> Le premier milieu est \(m = 3\), et \(t[3] = 5\) : la fonction renvoie 3, alors que la première occurrence est en case 1.</p>
+    <p><strong>Q2.</strong> Quand \(t[m] = x\), la première occurrence est soit plus à gauche, soit \(m\) lui-même : on la cherche dans \(t[g..m-1]\), et l'on renvoie \(m\) si elle n'y est pas.</p>
+<pre class="codeblock"><span class="kw">def</span> premiere(x, t, g, d):
+    <span class="cmt"># t triée ; plus petit indice i de [g, d] tel que</span>
+    <span class="cmt"># t[i] == x, ou -1 si x n'est pas dans t[g..d]</span>
+    <span class="kw">if</span> g &gt; d:
+        <span class="kw">return</span> -1
+    m = (g + d) // 2
+    <span class="kw">if</span> t[m] &lt; x:
+        <span class="kw">return</span> premiere(x, t, m + 1, d)
+    <span class="kw">elif</span> t[m] &gt; x:
+        <span class="kw">return</span> premiere(x, t, g, m - 1)
+    <span class="kw">else</span>:                        <span class="cmt"># t[m] == x : à gauche ?</span>
+        i = premiere(x, t, g, m - 1)
+        <span class="kw">if</span> i == -1:
+            <span class="kw">return</span> m
+        <span class="kw">return</span> i</pre>
+<pre class="codeblock">t = [1, 5, 5, 5, 5, 8, 9]
+premiere(5, t, 0, 6)      <span class="cmt"># 1</span>
+premiere(7, t, 0, 6)      <span class="cmt"># -1</span></pre>
+    <p><strong>Q3.</strong> Variant : \(d - g + 1\), qui diminue strictement, puisque chaque appel porte sur une portion qui exclut \(m\). Correction, par récurrence sur la longueur : si \(t[m] \lt x\), toutes les cases d'indice \(\le m\) sont \(\lt x\) et la première occurrence, si elle existe, est dans \([m + 1, d]\) ; de même si \(t[m] \gt x\) ; si \(t[m] = x\), la première occurrence est la première de \([g, m - 1]\) s'il y en a une, et \(m\) sinon. Chaque appel fait un seul appel récursif, sur une portion de longueur au plus moitié : \(C(L) = C(L/2) + c\), coût \(O(\log n)\).</p>
+  </div>
+</div>
+
+<div class="exo"><span class="num">EXO 04</span><span class="diff">★ ★ ☆</span>
+  <h3>Pyramide et sablier</h3>
+  <div class="statement">On veut afficher des figures centrées à l'aide de <span class="code-inline">print</span>, en utilisant la répétition de chaînes (<span class="code-inline">" " * 3</span> vaut trois espaces).</div>
+<pre class="codeblock"><span class="kw">def</span> pyramide(n, marge):
+    <span class="cmt"># pyramide de n lignes, décalée de marge espaces</span>
+    <span class="kw">if</span> n &gt; 0:
+        pyramide(n - 1, marge + 1)
+        print(<span class="str">" "</span> * marge + <span class="str">"*"</span> * (2 * n - 1))</pre>
+  <div class="q"><strong>Q1.</strong> Qu'affiche <span class="code-inline">pyramide(4, 0)</span> ? Quel est le rôle du paramètre <span class="code-inline">marge</span> ?</div>
+  <div class="q"><strong>Q2.</strong> Écrire une fonction récursive <span class="code-inline">sablier(n, marge)</span> qui affiche un sablier de \(2n - 1\) lignes, dont la ligne du milieu, d'une seule étoile, n'apparaît qu'une fois. Pour \(n = 3\) et une marge nulle : lignes de 5, 3, 1, 3 et 5 étoiles, centrées.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution"><h4>Correction</h4>
+    <p><strong>Q1.</strong> L'appel récursif précède le <span class="code-inline">print</span> : la ligne la plus courte, celle de l'appel le plus profond, sort en premier.</p>
+<pre class="codeblock">   *
+  ***
+ *****
+*******</pre>
+    <p>La ligne \(k\) (\(2k - 1\) étoiles) doit être décalée de \(n - k\) espaces pour être centrée ; chaque appel sur \(n - 1\) ajoute une espace de marge, ce qui réalise ce décalage.</p>
+    <p><strong>Q2.</strong> La ligne de l'appel est affichée avant <em>et</em> après l'appel récursif, sauf au cas de base \(n = 1\), affiché une seule fois :</p>
+<pre class="codeblock"><span class="kw">def</span> sablier(n, marge):
+    ligne = <span class="str">" "</span> * marge + <span class="str">"*"</span> * (2 * n - 1)
+    <span class="kw">if</span> n == 1:
+        print(ligne)         <span class="cmt"># milieu : une seule fois</span>
+    <span class="kw">elif</span> n &gt; 1:
+        print(ligne)
+        sablier(n - 1, marge + 1)
+        print(ligne)</pre>
+<pre class="codeblock">*****
+ ***
+  *
+ ***
+*****</pre>
+    <p>Nombre de lignes : \(\ell(1) = 1\) et \(\ell(n) = \ell(n-1) + 2\), soit \(2n - 1\).</p>
+  </div>
+</div>
+
+<div class="exo"><span class="num">EXO 05</span><span class="diff">★ ★ ☆</span>
+  <h3>Exponentiation rapide : compter les appels</h3>
+  <div class="statement">On reprend <span class="code-inline">puissance_rec</span> et <span class="code-inline">puissance_lente</span> du §4 du cours.</div>
+  <div class="q"><strong>Q1.</strong> Combien d'appels fait <span class="code-inline">puissance_rec(x, 1000)</span> ? Exprimer ce nombre pour un entier \(n \ge 1\) quelconque, à l'aide du nombre \(k\) de chiffres de \(n\) en base 2.</div>
+  <div class="q"><strong>Q2.</strong> Même question pour <span class="code-inline">puissance_lente</span>. En déduire son coût.</div>
+  <div class="q"><strong>Q3.</strong> Écrire une fonction récursive <span class="code-inline">puissance_mod(x, n, p)</span> qui renvoie le reste de \(x^n\) dans la division par \(p\), en réduisant modulo \(p\) (opérateur <span class="code-inline">%</span>) chaque résultat intermédiaire. Combien d'appels pour \(n = 10^{18}\) ?</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution"><h4>Correction</h4>
+    <p><strong>Q1.</strong> Les arguments successifs sont \(n, \lfloor n/2 \rfloor, \lfloor n/4 \rfloor, \dots, 1, 0\) : il y en a \(k + 1\), où \(k = \lfloor \log_2 n \rfloor + 1\) est le nombre de chiffres de \(n\) en base 2. Pour \(n = 1000\) (\(k = 10\)) : 11 appels.</p>
+    <p><strong>Q2.</strong> Le nombre d'appels \(A(n)\) vérifie \(A(0) = 1\) et \(A(n) = 1 + 2A(\lfloor n/2 \rfloor)\) : chaque niveau double le nombre d'appels, d'où \(A(n) = 2^{k+1} - 1\). Pour \(n = 1000\) : \(2^{11} - 1 = 2047\) appels. Comme \(2^{k-1} \le n\), \(A(n) \le 4n - 1\) : le coût est linéaire, \(O(n)\), comme la méthode naïve.</p>
+    <p><strong>Q3.</strong> On réduit modulo \(p\) chaque résultat : \(y\) est un reste, inférieur à \(p\), et les nombres manipulés restent petits, alors que \(x^n\) lui-même aurait des milliards de chiffres pour \(n = 10^{18}\).</p>
+<pre class="codeblock"><span class="kw">def</span> puissance_mod(x, n, p):
+    <span class="cmt"># x ** n modulo p (x, n entiers &gt;= 0, p &gt;= 2)</span>
+    <span class="kw">if</span> n == 0:
+        <span class="kw">return</span> 1
+    y = puissance_mod(x, n // 2, p)
+    <span class="kw">if</span> n % 2 == 0:
+        <span class="kw">return</span> y * y % p
+    <span class="kw">return</span> x * y * y % p</pre>
+<pre class="codeblock">puissance_mod(7, 1000, 13)       <span class="cmt"># 9</span>
+puissance_mod(2, 10 ** 18, 1000) <span class="cmt"># 376</span></pre>
+    <p>Pour \(n = 10^{18}\), \(n\) a 60 chiffres en base 2 : 61 appels, sans risque pour la pile.</p>
+  </div>
+</div>
+
+<div class="exo"><span class="num">EXO 06</span><span class="diff">★ ★ ☆</span>
+  <h3>Les sous-listes à \(k\) éléments</h3>
+  <div class="statement">On veut énumérer les sous-listes d'une liste <span class="code-inline">t</span> de \(n\) valeurs distinctes qui ont exactement \(k\) éléments (par exemple, les équipes de \(k\) joueurs parmi \(n\)).</div>
+  <div class="q"><strong>Q1.</strong> Écrire une fonction récursive <span class="code-inline">parties_k(t, k)</span>, sans construire toutes les sous-listes de <span class="code-inline">t</span>.</div>
+  <div class="q"><strong>Q2.</strong> On note \(N(n, k)\) le nombre de résultats. Établir une relation de récurrence et reconnaître ce nombre.</div>
+  <div class="q"><strong>Q3.</strong> Combien de grilles différentes de 5 numéros parmi 49 ? Est-il raisonnable de toutes les construire ?</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution"><h4>Correction</h4>
+    <p><strong>Q1.</strong> Une sous-liste à \(k\) éléments contient \(t[0]\), suivi de \(k - 1\) éléments pris dans la suite, ou ne le contient pas, et ses \(k\) éléments sont pris dans la suite. Cas de base : \(k = 0\) (une seule sous-liste, vide) ; liste trop courte (aucune).</p>
+<pre class="codeblock"><span class="kw">def</span> parties_k(t, k):
+    <span class="cmt"># sous-listes de t à k éléments</span>
+    <span class="kw">if</span> k == 0:
+        <span class="kw">return</span> [[]]
+    <span class="kw">if</span> len(t) &lt; k:
+        <span class="kw">return</span> []
+    reste = t[1:len(t)]
+    avec = [[t[0]] + s <span class="kw">for</span> s <span class="kw">in</span> parties_k(reste, k - 1)]
+    sans = parties_k(reste, k)
+    <span class="kw">return</span> avec + sans</pre>
+<pre class="codeblock">u = parties_k([1, 2, 3, 4], 2)
+u[0:3]        <span class="cmt"># [[1, 2], [1, 3], [1, 4]]</span>
+u[3:6]        <span class="cmt"># [[2, 3], [2, 4], [3, 4]]</span>
+len(parties_k(list(range(10)), 3))     <span class="cmt"># 120</span></pre>
+    <p><strong>Q2.</strong> \(N(n, 0) = 1\), \(N(n, k) = 0\) si \(n \lt k\), et \(N(n, k) = N(n - 1, k - 1) + N(n - 1, k)\) : c'est la relation du triangle de Pascal, donc \(N(n, k) = \dbinom{n}{k}\). Ainsi \(\dbinom{10}{3} = 120\).</p>
+    <p><strong>Q3.</strong> \(\dbinom{49}{5} = 1\,906\,884\) grilles. On peut les construire (quelques secondes, mais beaucoup de mémoire) ; pour les compter, la formule suffit, et pour en choisir une selon un critère, mieux vaut les explorer une à une sans les stocker.</p>
+  </div>
+</div>
+
+<div class="exo"><span class="num">EXO 07</span><span class="diff">★ ★ ☆</span>
+  <h3>Les permutations par insertion</h3>
+  <div class="statement">Une autre façon d'obtenir les permutations de <span class="code-inline">t</span> : prendre chaque permutation de \(t[1..n-1]\) et y insérer \(t[0]\) à toutes les places possibles.</div>
+  <div class="q"><strong>Q1.</strong> Écrire <span class="code-inline">inserer_partout(x, p)</span> qui renvoie la liste des listes obtenues en insérant <span class="code-inline">x</span> à chacune des \(\text{len}(p) + 1\) places de <span class="code-inline">p</span>.</div>
+  <div class="q"><strong>Q2.</strong> En déduire une fonction récursive <span class="code-inline">permutations2(t)</span>.</div>
+  <div class="q"><strong>Q3.</strong> Montrer que, pour des valeurs distinctes, elle renvoie \(n!\) listes deux à deux différentes.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution"><h4>Correction</h4>
+    <p><strong>Q1 et Q2.</strong></p>
+<pre class="codeblock"><span class="kw">def</span> inserer_partout(x, p):
+    <span class="cmt"># listes obtenues en insérant x à chaque place de p</span>
+    res = []
+    <span class="kw">for</span> i <span class="kw">in</span> range(len(p) + 1):
+        res.append(p[0:i] + [x] + p[i:len(p)])
+    <span class="kw">return</span> res
+
+
+<span class="kw">def</span> permutations2(t):
+    <span class="cmt"># permutations de t, par insertion de t[0]</span>
+    <span class="kw">if</span> len(t) == 0:
+        <span class="kw">return</span> [[]]
+    res = []
+    <span class="kw">for</span> p <span class="kw">in</span> permutations2(t[1:len(t)]):
+        <span class="kw">for</span> q <span class="kw">in</span> inserer_partout(t[0], p):
+            res.append(q)
+    <span class="kw">return</span> res</pre>
+<pre class="codeblock">u = inserer_partout(0, [1, 2])
+u            <span class="cmt"># [[0, 1, 2], [1, 0, 2], [1, 2, 0]]</span>
+len(permutations2([1, 2, 3, 4, 5]))     <span class="cmt"># 120</span></pre>
+    <p><strong>Q3.</strong> Par récurrence sur \(n\). Pour \(n = 0\), une seule liste, la liste vide, et \(0! = 1\). Si <span class="code-inline">permutations2</span> renvoie les \((n-1)!\) permutations distinctes de \(t[1..n-1]\), chacune donne \(n\) listes par insertion de \(t[0]\), soit \(n \times (n-1)! = n!\) listes. Elles sont distinctes : en retirant \(t[0]\) d'une liste obtenue, on retrouve la permutation de départ, et la place de \(t[0]\) indique l'insertion faite. Toute permutation de \(t\) est obtenue ainsi (en retirant \(t[0]\), on obtient une permutation de \(t[1..n-1]\)).</p>
+  </div>
+</div>
+
+<div class="exo"><span class="num">EXO 08</span><span class="diff">★ ★ ★</span>
+  <h3>Les tours de Hanoï</h3>
+  <div class="statement">Trois tiges A, B, C ; sur A sont empilés \(n\) disques de tailles différentes, du plus grand (en bas) au plus petit. On veut les amener sur la tige C, en déplaçant un seul disque à la fois (celui du haut d'une tige) et sans jamais poser un disque sur un plus petit.</div>
+  <div class="q"><strong>Q1.</strong> Expliquer pourquoi, pour déplacer les \(n\) disques de A vers C, il suffit de savoir déplacer \(n - 1\) disques d'une tige vers une autre. Écrire une fonction récursive <span class="code-inline">hanoi(n, depart, arrivee, autre)</span> qui affiche les déplacements sous la forme <span class="code-inline">A -&gt; C</span> (les tiges sont des chaînes).</div>
+  <div class="q"><strong>Q2.</strong> Qu'affiche <span class="code-inline">hanoi(3, "A", "C", "B")</span> ?</div>
+  <div class="q"><strong>Q3.</strong> Calculer le nombre \(M(n)\) de déplacements effectués. Combien de temps faudrait-il pour 64 disques, à raison d'un déplacement par seconde ?</div>
+  <div class="q"><strong>Q4.</strong> Montrer qu'aucune méthode ne peut faire moins de \(M(n)\) déplacements.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution"><h4>Correction</h4>
+    <p><strong>Q1.</strong> Le plus grand disque ne gêne jamais les autres. On déplace les \(n - 1\) disques du haut de <span class="code-inline">depart</span> vers <span class="code-inline">autre</span> (en se servant de <span class="code-inline">arrivee</span>), puis le plus grand vers <span class="code-inline">arrivee</span>, enfin les \(n - 1\) disques de <span class="code-inline">autre</span> vers <span class="code-inline">arrivee</span>.</p>
+<pre class="codeblock"><span class="kw">def</span> hanoi(n, depart, arrivee, autre):
+    <span class="cmt"># affiche les déplacements qui amènent les n disques</span>
+    <span class="cmt"># du haut de la tige depart sur la tige arrivee</span>
+    <span class="kw">if</span> n &gt; 0:
+        hanoi(n - 1, depart, autre, arrivee)
+        print(depart + <span class="str">" -&gt; "</span> + arrivee)
+        hanoi(n - 1, autre, arrivee, depart)</pre>
+    <p><strong>Q2.</strong></p>
+<pre class="codeblock">A -&gt; C
+A -&gt; B
+C -&gt; B
+A -&gt; C
+B -&gt; A
+B -&gt; C
+A -&gt; C</pre>
+    <p><strong>Q3.</strong> \(M(0) = 0\) et \(M(n) = 2M(n-1) + 1\). La suite \(M(n) + 1\) double à chaque rang : \(M(n) = 2^n - 1\) (7 pour 3 disques). Pour 64 disques, \(2^{64} - 1 \approx 1{,}8 \times 10^{19}\) secondes, soit environ \(5{,}8 \times 10^{11}\) ans.</p>
+    <p><strong>Q4.</strong> Par récurrence. Le plus grand disque doit bouger au moins une fois ; au moment de son premier déplacement, les \(n - 1\) autres sont tous sur la troisième tige, ce qui a demandé au moins \(M(n - 1)\) déplacements ; après son dernier déplacement, il faut encore les amener sur lui, au moins \(M(n - 1)\) déplacements. Total : au moins \(2M(n-1) + 1 = M(n)\).</p>
+  </div>
+</div>
+
+<div class="exo"><span class="num">EXO 09</span><span class="diff">★ ★ ★</span>
+  <h3>L'ensemble de Cantor en caractères</h3>
+  <div class="statement">L'ensemble de Cantor s'obtient en partant d'un segment, en retirant son tiers central, puis le tiers central de chacun des deux morceaux restants, et ainsi de suite. On le représente par des lignes de caractères <span class="code-inline">#</span> et d'espaces, la ligne \(k\) montrant l'étape \(k\).</div>
+  <div class="q"><strong>Q1.</strong> Écrire une fonction récursive <span class="code-inline">cantor(n)</span> qui renvoie la liste des \(n + 1\) lignes (étapes 0 à \(n\)), chacune de \(3^n\) caractères. On remarquera que les lignes 1 à \(n\) de l'ordre \(n\) sont formées de deux copies des lignes de l'ordre \(n - 1\), séparées par des espaces.</div>
+  <div class="q"><strong>Q2.</strong> Donner l'affichage de l'ordre 3.</div>
+  <div class="q"><strong>Q3.</strong> Combien la ligne \(k\) contient-elle de caractères <span class="code-inline">#</span> ? Quelle proportion de la ligne cela représente-t-il ?</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution"><h4>Correction</h4>
+    <p><strong>Q1.</strong> L'ordre \(n\) commence par une ligne pleine de \(3w\) caractères, où \(w = 3^{n-1}\) est la largeur de l'ordre \(n - 1\) ; chaque ligne de l'ordre \(n - 1\) donne ensuite une ligne formée d'elle-même, de \(w\) espaces et d'elle-même.</p>
+<pre class="codeblock"><span class="kw">def</span> cantor(n):
+    <span class="cmt"># lignes 0 à n de l'ensemble de Cantor,</span>
+    <span class="cmt"># chacune de 3 ** n caractères</span>
+    <span class="kw">if</span> n == 0:
+        <span class="kw">return</span> [<span class="str">"#"</span>]
+    t = cantor(n - 1)
+    w = len(t[0])                    <span class="cmt"># 3 ** (n - 1)</span>
+    res = [<span class="str">"#"</span> * (3 * w)]
+    <span class="kw">for</span> ligne <span class="kw">in</span> t:
+        res.append(ligne + <span class="str">" "</span> * w + ligne)
+    <span class="kw">return</span> res</pre>
+    <p><strong>Q2.</strong></p>
+<pre class="codeblock"><span class="kw">for</span> ligne <span class="kw">in</span> cantor(3):
+    print(ligne)</pre>
+<pre class="codeblock">###########################
+#########         #########
+###   ###         ###   ###
+# #   # #         # #   # #</pre>
+    <p><strong>Q3.</strong> La ligne \(k\) contient \(2^k\) blocs de \(3^{n-k}\) caractères <span class="code-inline">#</span>, soit \(2^k\, 3^{n-k}\), donc une proportion \((2/3)^k\) de la ligne, qui tend vers 0 : à la limite, l'ensemble de Cantor a une « longueur » nulle, bien qu'il contienne une infinité de points. Le coût de construction est de l'ordre du nombre total de caractères, \((n + 1)\,3^n\).</p>
+  </div>
+</div>
+
+<div class="exo concours"><span class="num">CONCOURS PT</span><span class="diff">★ ★ ★</span>
+  <h3>Tournée d'un drone de livraison</h3>
+  <div class="exo-source">Exercice <strong>original</strong> au format des épreuves PT (thème : énumération récursive des permutations, élagage, complexité).</div>
+  <div class="statement">Un drone part d'un entrepôt, livre \(n - 1\) clients puis revient à l'entrepôt. Les \(n\) lieux sont donnés par une liste <span class="code-inline">pts</span> de couples de coordonnées (en km) ; l'entrepôt est <span class="code-inline">pts[0]</span>. Une <strong>tournée</strong> est une liste d'indices de lieux qui commence par 0 et contient chaque indice de 0 à \(n - 1\) exactement une fois ; sa longueur est la somme des distances entre lieux consécutifs, retour à l'entrepôt compris. On cherche une tournée de longueur minimale. Exemple :</div>
+<pre class="codeblock">pts = [(0, 0), (2, 6), (5, 2), (6, 6), (1, 3), (4, 0)]</pre>
+  <div class="statement">On dispose de la fonction <span class="code-inline">math.sqrt</span> (racine carrée) du module <span class="code-inline">math</span>, et de la fonction <span class="code-inline">permutations(t)</span> du cours, qui renvoie la liste des permutations d'une liste de valeurs distinctes.</div>
+  <div class="exo-part"><strong>Partie A — Longueur d'une tournée</strong></div>
+  <div class="q"><strong>Q1.</strong> Écrire <span class="code-inline">distance(p: tuple, q: tuple) -&gt; float</span>, distance euclidienne entre deux points.</div>
+  <div class="q"><strong>Q2.</strong> Écrire <span class="code-inline">longueur(pts: list, tournee: list) -&gt; float</span>. Donner sa complexité.</div>
+  <div class="exo-part"><strong>Partie B — Essayer toutes les tournées</strong></div>
+  <div class="q"><strong>Q3.</strong> Combien y a-t-il de tournées pour \(n\) lieux ? Pourquoi peut-on dire que deux d'entre elles décrivent toujours le même circuit ?</div>
+  <div class="q"><strong>Q4.</strong> Écrire <span class="code-inline">meilleure_tournee(pts: list) -&gt; tuple</span> qui renvoie la longueur minimale et une tournée qui la réalise, en essayant toutes les tournées.</div>
+  <div class="q"><strong>Q5.</strong> Donner sa complexité. Estimer le nombre de tournées examinées pour \(n = 13\).</div>
+  <div class="exo-part"><strong>Partie C — Abandonner les débuts trop longs</strong></div>
+  <div class="q"><strong>Q6.</strong> On construit les tournées lieu par lieu, récursivement : un appel reçoit un début de tournée <span class="code-inline">chemin</span>, sa longueur <span class="code-inline">lg</span>, la liste <span class="code-inline">restants</span> des lieux non visités et la longueur <span class="code-inline">record</span> d'une tournée complète déjà connue ; il renvoie la plus petite longueur trouvée, au plus égale à <span class="code-inline">record</span>. Écrire <span class="code-inline">explorer(pts, chemin, restants, lg, record)</span> en abandonnant tout début de tournée dont la longueur atteint déjà <span class="code-inline">record</span>.</div>
+  <div class="q"><strong>Q7.</strong> Justifier que cet abandon ne fait jamais manquer la tournée optimale. Quel premier appel faut-il écrire ?</div>
+  <div class="q"><strong>Q8.</strong> Quelle est la profondeur maximale des appels ? Le coût dans le pire cas est-il amélioré ? Sur 10 lieux tirés au hasard, l'exploration complète ferait 986 410 appels, et la version avec abandon en fait 116 843 : commenter.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution"><h4>Correction</h4>
+    <p><strong>Q1 et Q2.</strong> On parcourt les couples de lieux consécutifs, puis on ajoute le retour ; coût \(O(n)\).</p>
+<pre class="codeblock"><span class="kw">import</span> math      <span class="cmt"># math.sqrt(x) : racine carrée de x</span>
+
+
+<span class="kw">def</span> distance(p, q):
+    dx, dy = p[0] - q[0], p[1] - q[1]
+    <span class="kw">return</span> math.sqrt(dx ** 2 + dy ** 2)
+
+
+<span class="kw">def</span> longueur(pts, tournee):
+    <span class="cmt"># tournee : indices de lieux, commençant par 0 ;</span>
+    <span class="cmt"># longueur du circuit, retour au départ compris</span>
+    n = len(tournee)
+    lg = 0
+    <span class="kw">for</span> k <span class="kw">in</span> range(n - 1):
+        a, b = pts[tournee[k]], pts[tournee[k + 1]]
+        lg = lg + distance(a, b)
+    dernier = pts[tournee[n - 1]]
+    <span class="kw">return</span> lg + distance(dernier, pts[tournee[0]])</pre>
+    <p><strong>Q3.</strong> La tournée commence par 0 ; les \(n - 1\) autres lieux peuvent être dans n'importe quel ordre : \((n - 1)!\) tournées. La tournée parcourue en sens inverse (0, puis les mêmes lieux dans l'ordre inverse) décrit le même circuit, de même longueur : il n'y a que \((n-1)!/2\) circuits différents pour \(n \ge 3\).</p>
+    <p><strong>Q4.</strong></p>
+<pre class="codeblock"><span class="kw">def</span> meilleure_tournee(pts):
+    <span class="cmt"># renvoie (longueur, tournée) d'une tournée la plus</span>
+    <span class="cmt"># courte, en essayant toutes les permutations</span>
+    autres = [k <span class="kw">for</span> k <span class="kw">in</span> range(1, len(pts))]
+    best = longueur(pts, [0] + autres)
+    best_t = [0] + autres
+    <span class="kw">for</span> p <span class="kw">in</span> permutations(autres):
+        lg = longueur(pts, [0] + p)
+        <span class="kw">if</span> lg &lt; best:
+            best, best_t = lg, [0] + p
+    <span class="kw">return</span> best, best_t</pre>
+    <p><strong>Q5.</strong> \((n - 1)!\) permutations, chacune de longueur calculée en \(O(n)\) ; leur construction coûte aussi \(O(n)\) chacune : coût \(O(n \cdot (n - 1)!) = O(n!)\), et la liste de toutes les permutations occupe autant de mémoire. Pour \(n = 13\) : \(12! \approx 4{,}8 \times 10^8\) tournées, soit des heures de calcul en Python, et une liste impossible à stocker.</p>
+    <p><strong>Q6.</strong></p>
+<pre class="codeblock"><span class="kw">def</span> explorer(pts, chemin, restants, lg, record):
+    <span class="cmt"># chemin : début de tournée, de longueur lg ;</span>
+    <span class="cmt"># restants : lieux non visités ; record : longueur</span>
+    <span class="cmt"># d'une tournée complète déjà connue.</span>
+    <span class="cmt"># Renvoie la plus petite longueur trouvée (&lt;= record).</span>
+    <span class="kw">if</span> lg &gt;= record:                 <span class="cmt"># élagage</span>
+        <span class="kw">return</span> record
+    dernier = pts[chemin[len(chemin) - 1]]
+    <span class="kw">if</span> len(restants) == 0:
+        total = lg + distance(dernier, pts[0])
+        <span class="kw">if</span> total &lt; record:
+            <span class="kw">return</span> total
+        <span class="kw">return</span> record
+    <span class="kw">for</span> i <span class="kw">in</span> range(len(restants)):
+        s = restants[i]
+        autres = restants[0:i] + restants[i + 1:]
+        d = distance(dernier, pts[s])
+        record = explorer(pts, chemin + [s], autres,
+                          lg + d, record)
+    <span class="kw">return</span> record</pre>
+    <p><strong>Q7.</strong> Les distances sont positives : prolonger un début de tournée ne peut qu'augmenter sa longueur. Si <span class="code-inline">lg</span> atteint déjà <span class="code-inline">record</span>, toute tournée complète qui commence ainsi est au moins aussi longue qu'une tournée déjà connue ; on ne perd donc pas l'optimum en l'abandonnant. Premier appel : <span class="code-inline">explorer(pts, [0], [1, 2, …, n - 1], 0, r0)</span>, où <span class="code-inline">r0</span> est la longueur d'une tournée quelconque, par exemple <span class="code-inline">longueur(pts, [0, 1, …, n - 1])</span>. Sur l'exemple :</p>
+<pre class="codeblock">lg, tour = meilleure_tournee(pts)
+tour                         <span class="cmt"># [0, 5, 2, 3, 1, 4]</span>
+round(lg, 2)                 <span class="cmt"># 20.68</span>
+r0 = longueur(pts, [0, 1, 2, 3, 4, 5])
+round(r0, 2)                 <span class="cmt"># 29.52</span>
+e = explorer(pts, [0], [1, 2, 3, 4, 5], 0, r0)
+round(e, 2)                  <span class="cmt"># 20.68</span></pre>
+    <p><strong>Q8.</strong> Chaque appel visite un lieu de plus : profondeur \(n\) (aucun risque pour la pile). Dans le pire cas (si l'abandon ne sert jamais), on explore encore tous les débuts de tournée : le coût reste de l'ordre de \(n!\). En pratique, dès qu'une bonne tournée est connue, la plupart des débuts sont abandonnés tôt : ici, environ 8 fois moins d'appels. Partir d'un meilleur record initial, par exemple celui d'une tournée gloutonne qui va toujours au client le plus proche (chapitre <em>Algorithmes gloutons</em>), améliore encore l'élagage.</p>
+  </div>
+</div>
+
+</div>
+</template>

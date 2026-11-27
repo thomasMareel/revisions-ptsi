@@ -1048,6 +1048,43 @@ module.exports = {
       return pb;
     });
 
+    /* Un résultat de chaque nature (index chapitres/recherche.json, docs/chargement-chapitres.md) :
+       le chapitre s'ouvre sur le bon onglet et l'élément visé est mis en évidence (.cours-target-flash),
+       retrouvé par son rang une fois le chapitre chargé */
+    await etape('recherche : un résultat de chaque nature ouvre son chapitre et met en évidence le bon élément', async () => {
+      const pb = [];
+      const norm = s => String(s || '').replace(/\s+/g, ' ').trim();
+      for (const [groupe, requete, titreDansCible] of [['Sections du cours', 'énergie', true], ['Définitions et propriétés', 'énergie', false],
+        ['Méthodes', 'énergie', true], ['Formules', 'énergie', false], ['Exercices', 'énergie', true]]) {
+        await naviguer(page, 'pybases', 'cours');
+        await page.keyboard.press('Control+k');
+        await pause(250);
+        await page.fill('#search-input', requete);
+        // index chargé (chapitres/recherche.json) : la requête est rejouée à son arrivée
+        await page.waitForFunction(g => !!document.querySelector('#search-results .sr-groupe[aria-label="' + g + '"] .search-result'), groupe, { timeout: 10000 }).catch(() => {});
+        const r = await page.evaluate(g => {
+          const l = document.querySelector('#search-results .sr-groupe[aria-label="' + g + '"] .search-result');
+          if (!l) return null;
+          const t = l.querySelector('.sr-title');
+          return { i: +l.dataset.i, titre: t ? t.textContent : '', meta: (l.querySelector('.sr-meta') || {}).textContent || '' };
+        }, groupe);
+        if (!r) { pb.push('« ' + requete + ' » : aucun résultat dans « ' + groupe + ' »'); await page.keyboard.press('Escape'); continue; }
+        await page.click('#sr-' + r.i);
+        await pause(300);
+        await page.waitForFunction(() => !(window.__navigationEnCours && window.__navigationEnCours()), null, { timeout: 15000 }).catch(() => {});
+        await pause(500);
+        const s = await page.evaluate(() => {
+          const ch = Array.from(document.querySelectorAll('.chapter.active')).find(c => c.offsetParent !== null);
+          const el = ch && ch.querySelector('.panel.active .cours-target-flash');
+          return { chap: ch ? ch.id : null, el: !!el, texte: el ? el.textContent : '' };
+        });
+        if (!s.el) pb.push(groupe + ' : « ' + norm(r.titre).slice(0, 40) + ' » (' + norm(r.meta) + ') — aucun élément mis en évidence dans ' + s.chap);
+        else if (titreDansCible && !norm(s.texte).includes(norm(r.titre).replace(/ …$/, '').slice(0, 25)))
+          pb.push(groupe + ' : l\'élément mis en évidence ne contient pas « ' + norm(r.titre).slice(0, 40) + ' »');
+      }
+      return pb;
+    });
+
     /* ---------- Impression (génération de l'iframe seulement) ---------- */
     await etape('impression du chapitre (document généré)', async () => {
       await naviguer(page, 'rlc', 'cours');

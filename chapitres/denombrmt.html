@@ -1,0 +1,934 @@
+<!-- Chapitre « Dénombrement et combinatoire » (denombrmt) : contenu des onglets Cours, Méthodes et Exercices, chargé à l'ouverture du chapitre.
+     On l'édite ici, puis : node tools/chapitres.js (docs/chargement-chapitres.md). -->
+<template class="pan-tpl" data-panneau="denom-cours">
+<div class="course-section">
+  <div class="sec-num">AU PROGRAMME · PTSI</div>
+  <h2>Ce que le programme officiel demande</h2>
+  <div class="intro">Ce chapitre suit la section « Dénombrement » du programme de PTSI (second semestre), complétée par les rappels sur la factorielle, les coefficients binomiaux et la formule du binôme de la section « Compléments de calcul algébrique » (premier semestre). Le programme veut un dénombrement <strong>sans formalisme excessif</strong> : les propriétés les plus intuitives sont admises, et la construction de bijections n'est pas un attendu. Le chapitre fournit l'outil de calcul des chapitres <a href="#proba/cours">« Probabilités sur un univers fini »</a> et <a href="#va/cours">« Variables aléatoires »</a>, qui s'appuient sur lui sans le refaire.</div>
+  <div class="reveal" onclick="this.classList.toggle('open')">
+    <span class="label">Programme officiel</span>
+    <span class="prompt">Les notions et capacités exigibles, dans l'ordre du chapitre</span>
+    <div class="content">
+      <ul>
+        <li><strong>Cardinal d'un ensemble fini</strong> : notations \(|A|\), \(\operatorname{Card}(A)\) ; cardinal d'une partie, cas d'égalité ; une application entre deux ensembles finis de même cardinal est bijective si et seulement si elle est injective, si et seulement si elle est surjective (§1).</li>
+        <li><strong>Opérations sur les cardinaux</strong> : réunion disjointe ou quelconque, complémentaire, différence, produit cartésien (§2).</li>
+        <li><strong>Cardinal de l'ensemble des applications</strong> d'un ensemble fini dans un autre ; cardinal de l'ensemble des parties d'un ensemble fini (§3).</li>
+        <li><strong>Nombre de \(p\)-listes d'éléments distincts</strong> d'un ensemble de cardinal \(n\), nombre d'applications injectives, nombre de permutations ; rappels sur la factorielle (§4).</li>
+        <li><strong>Nombre de parties à \(p\) éléments</strong> (\(p\)-combinaisons) d'un ensemble de cardinal \(n\) ; coefficients binomiaux et convention \(\binom nk = 0\) pour \(k \lt 0\) ou \(k \gt n\) (§5).</li>
+        <li><strong>Démonstration combinatoire</strong> de la formule de Pascal (§6) et de la formule du binôme (§7).</li>
+        <li><strong>Raisonner pour dénombrer</strong> : choisir le bon modèle, découper en cas, passer au complémentaire, corriger un double comptage (§8) ; application au calcul de probabilités uniformes (§9).</li>
+      </ul>
+      <p>Hors programme (en fin de chapitre) : la formule du crible pour trois ensembles ou plus, les combinaisons avec répétition, la loi hypergéométrique. Le vocabulaire des probabilités (univers, événement, probabilité uniforme) est posé dans le chapitre suivant ; on ne fait ici que l'utiliser au §9.</p>
+    </div>
+  </div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§1 · ENSEMBLES FINIS ET CARDINAL</div>
+  <h2>Compter les éléments d'un ensemble</h2>
+  <div class="intro">Dénombrer, c'est compter les éléments d'un ensemble fini sans les énumérer un par un : le nombre de mains possibles au poker, de mots de passe, de chemins dans un réseau. On pose d'abord le vocabulaire et deux propriétés de bon sens qui serviront partout, en particulier le principe des tiroirs.</div>
+
+  <div class="def-box">
+    Un ensemble \(E\) est <strong>fini</strong> s'il est vide ou s'il existe un entier \(n \geq 1\) et une bijection de \(\{1, \dots, n\}\) sur \(E\) : on peut numéroter ses éléments de 1 à \(n\). L'entier \(n\), qui ne dépend pas de la numérotation, est le <strong>cardinal</strong> de \(E\), noté \(|E|\) ou \(\operatorname{Card}(E)\) ; par convention \(|\varnothing| = 0\).
+  </div>
+  <p>Le programme exclut tout fondement théorique de cette notion : « avoir \(n\) éléments » est pris dans son sens intuitif. Deux ensembles finis ont le même cardinal si et seulement s'il existe une bijection de l'un sur l'autre ; c'est l'idée de toutes les preuves de ce chapitre, que l'on écrira en mots plutôt qu'en formules.</p>
+
+  <div class="prop-box">
+    <strong>Cardinal d'une partie.</strong> Si \(A\) est une partie d'un ensemble fini \(E\), alors \(A\) est finie et \(|A| \leq |E|\), avec <strong>égalité si et seulement si \(A = E\)</strong>.
+  </div>
+  <p>Le cas d'égalité est un outil de démonstration : pour prouver que deux ensembles finis \(A \subset E\) sont égaux, il suffit de vérifier l'inclusion et l'égalité des cardinaux.</p>
+
+  <div class="prop-box">
+    <strong>Applications entre ensembles de même cardinal.</strong> Soit \(f : E \to F\) une application entre deux ensembles finis de <strong>même cardinal</strong>. Alors
+    <div class="formula" data-nom="Même cardinal : injective, surjective, bijective">$$f \text{ injective} \iff f \text{ surjective} \iff f \text{ bijective}.$$</div>
+  </div>
+  <div class="reveal" onclick="this.classList.toggle('open')">
+    <span class="label">Démonstration</span>
+    <span class="prompt">Compter les images.</span>
+    <div class="content"><p>L'image \(f(E)\) est une partie de \(F\). Si \(f\) est injective, deux éléments distincts de \(E\) ont des images distinctes, donc \(|f(E)| = |E| = |F|\) ; par le cas d'égalité, \(f(E) = F\) : \(f\) est surjective. Si \(f\) est surjective, chaque élément de \(F\) a au moins un antécédent ; si deux éléments de \(E\) avaient la même image, les \(|E|\) éléments de \(E\) auraient au plus \(|E| - 1\) images distinctes, et \(f(E)\) ne pourrait pas être \(F\) tout entier. Donc \(f\) est injective, et finalement bijective.</p></div>
+  </div>
+  <p>En pratique, pour montrer qu'une application entre deux ensembles finis de même cardinal est bijective, on ne vérifie que l'injectivité (souvent la plus simple). La propriété est fausse pour des ensembles infinis : \(n \mapsto 2n\) est injective de \(\mathbb N\) dans \(\mathbb N\) sans être surjective.</p>
+
+  <h3>Le principe des tiroirs</h3>
+  <div class="prop-box">
+    <strong>Principe des tiroirs.</strong> Si \(|E| \gt |F|\), aucune application \(f : E \to F\) n'est injective : deux éléments de \(E\) ont la même image. Plus précisément, si \(|E| \gt k\,|F|\) (avec \(k\) entier), un élément de \(F\) a au moins \(k + 1\) antécédents.
+  </div>
+  <p>Image : on range plus de chaussettes que de tiroirs, donc un tiroir en reçoit au moins deux. Si chaque élément de \(F\) avait au plus \(k\) antécédents, \(E\) aurait au plus \(k\,|F|\) éléments.</p>
+  <div class="method-box">
+    <strong>Exemple — anniversaires et mois de naissance</strong>
+    <ol>
+      <li>Dans un groupe de 367 personnes, deux ont le même jour d'anniversaire : il n'y a que 366 dates possibles (29 février compris). On l'affirme sans rien savoir des dates.</li>
+      <li>Une classe de 49 élèves : comme \(49 \gt 4 \times 12\), au moins \(4 + 1 = 5\) élèves sont nés le même mois. Avec 48 élèves, on ne peut garantir que 4 (il suffit de 4 élèves par mois).</li>
+      <li>Parmi 6 entiers quelconques, deux ont le même reste dans la division par 5 : 6 entiers, 5 restes possibles (0 à 4). Leur différence est donc divisible par 5.</li>
+    </ol>
+  </div>
+  <div class="notice"><strong>Erreur classique</strong> : croire que le principe des tiroirs dit <em>quel</em> tiroir est rempli. Il affirme seulement l'existence d'une collision. Autre piège : l'inégalité est stricte ; 12 élèves peuvent très bien être nés chacun un mois différent.</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§2 · RÉUNION, COMPLÉMENTAIRE, PRODUIT</div>
+  <h2>Additionner et multiplier des cardinaux</h2>
+  <div class="intro">Deux opérations portent tout le dénombrement : on <strong>additionne</strong> quand on découpe un ensemble en morceaux disjoints (« ou » exclusif), on <strong>multiplie</strong> quand on forme des couples (« et puis »). Les formules ci-dessous en sont les traductions.</div>
+
+  <div class="prop-box">
+    <strong>Réunion disjointe (principe additif).</strong> Si \(A\) et \(B\) sont finis et <strong>disjoints</strong>, \(|A \cup B| = |A| + |B|\). Plus généralement, si \(A_1, \dots, A_m\) sont deux à deux disjoints,
+    <div class="formula" data-nom="Principe additif">$$\Big|\bigcup_{i=1}^m A_i\Big| = \sum_{i=1}^m |A_i|.$$</div>
+  </div>
+  <div class="prop-box">
+    <strong>Complémentaire, différence, réunion quelconque.</strong> Pour des parties \(A\), \(B\) d'un ensemble fini \(E\) :
+    <div class="formula" data-nom="Complémentaire, différence, réunion">$$\begin{aligned} |E \setminus A| &= |E| - |A|, \\ |B \setminus A| &= |B| - |A \cap B|, \\ |A \cup B| &= |A| + |B| - |A \cap B|. \end{aligned}$$</div>
+  </div>
+  <div class="reveal" onclick="this.classList.toggle('open')">
+    <span class="label">Démonstration</span>
+    <span class="prompt">Découper en morceaux disjoints.</span>
+    <div class="content"><p>\(E\) est la réunion disjointe de \(A\) et de \(E \setminus A\) ; \(B\) est la réunion disjointe de \(A \cap B\) et de \(B \setminus A\) ; enfin \(A \cup B\) est la réunion disjointe de \(A\) et de \(B \setminus A\). Le principe additif donne les trois formules, la dernière sous la forme \(|A \cup B| = |A| + |B \setminus A|\), où \(|B \setminus A| = |B| - |A \cap B|\). On voit sur la formule pourquoi on soustrait \(|A \cap B|\) : ses éléments sont comptés une fois dans \(|A|\) et une fois dans \(|B|\).</p></div>
+  </div>
+  <figure class="schema">
+<svg viewBox="0 0 340 200" role="img" aria-label="Diagramme de Venn : A, multiples de 6, et B, multiples de 10, parmi les entiers de 1 à 1000">
+<rect x="8" y="10" width="324" height="182" class="sk-axis" rx="6"/>
+<text x="16" y="28" class="lab-it">E = {1, …, 1000}</text>
+<circle cx="132" cy="104" r="64" class="fl-accent-soft"/>
+<circle cx="210" cy="104" r="56" class="fl-accent2-soft"/>
+<circle cx="132" cy="104" r="64" class="sk-accent"/>
+<circle cx="210" cy="104" r="56" class="sk-accent2"/>
+<text x="78" y="50" class="lab-accent lab-b" text-anchor="middle">A</text>
+<text x="262" y="56" class="lab-accent2 lab-b" text-anchor="middle">B</text>
+<text x="105" y="109" class="lab-b" text-anchor="middle">133</text>
+<text x="176" y="109" class="lab-b" text-anchor="middle">33</text>
+<text x="238" y="109" class="lab-b" text-anchor="middle">67</text>
+<text x="300" y="182" class="lab-b" text-anchor="middle">767</text>
+<text x="132" y="186" class="lab-accent" text-anchor="middle">|A| = 166</text>
+<text x="222" y="186" class="lab-accent2" text-anchor="middle">|B| = 100</text>
+</svg>
+<figcaption>Les entiers de 1 à 1000 : A (multiples de 6, 166 éléments) et B (multiples de 10, 100 éléments) ont 33 éléments communs, les multiples de 30. On lit |A ∪ B| = 133 + 33 + 67 = 233 = 166 + 100 − 33, et 767 entiers ne sont ni dans A ni dans B.</figcaption>
+</figure>
+  <div class="method-box">
+    <strong>Exemple — multiples de 6 ou de 10</strong>
+    <ol>
+      <li>Parmi les entiers de 1 à 1000, \(A\) désigne les multiples de 6 et \(B\) les multiples de 10. Il y a \(\lfloor 1000/6 \rfloor = 166\) multiples de 6 et \(100\) multiples de 10.</li>
+      <li>Un entier est multiple de 6 et de 10 si et seulement s'il est multiple de leur PPCM, 30 : \(|A \cap B| = \lfloor 1000/30 \rfloor = 33\).</li>
+      <li>\(|A \cup B| = 166 + 100 - 33 = 233\) entiers sont multiples de 6 ou de 10, et \(1000 - 233 = 767\) ne sont multiples ni de l'un ni de l'autre (complémentaire).</li>
+      <li>Multiples de 6 mais pas de 10 : \(|A \setminus B| = 166 - 33 = 133\).</li>
+    </ol>
+  </div>
+
+  <div class="prop-box">
+    <strong>Produit cartésien (principe multiplicatif).</strong> Si \(A\) et \(B\) sont finis, \(|A \times B| = |A| \times |B|\) ; plus généralement \(|A_1 \times \dots \times A_m| = |A_1| \times \dots \times |A_m|\), et \(|A^m| = |A|^m\).
+  </div>
+  <p><strong>Forme pratique.</strong> Si un objet se construit en \(m\) étapes successives, la première offrant \(n_1\) choix, la deuxième \(n_2\) choix <em>quel qu'ait été le premier</em>, et ainsi de suite, alors il y a \(n_1 \times n_2 \times \dots \times n_m\) objets. Le nombre de choix à chaque étape peut dépendre des étapes précédentes par les choix eux-mêmes, mais pas par leur <strong>nombre</strong> : c'est ce que l'on vérifie sur un arbre (§4).</p>
+  <div class="method-box">
+    <strong>Exemple — menus et codes</strong>
+    <ol>
+      <li>Un menu propose 4 entrées, 5 plats et 3 desserts : un repas est un triplet, donc il y a \(4 \times 5 \times 3 = 60\) repas différents.</li>
+      <li>Un code de carte bancaire à 4 chiffres est un élément de \(\{0, \dots, 9\}^4\) : \(10^4 = 10\,000\) codes.</li>
+      <li>Les codes dont le premier chiffre n'est pas nul : \(9 \times 10^3 = 9\,000\) ; ceux dont le premier chiffre est nul : \(10\,000 - 9\,000 = 1\,000\) (complémentaire).</li>
+    </ol>
+  </div>
+  <div class="notice"><strong>Erreur classique</strong> : additionner des ensembles qui ne sont pas disjoints. « Le nombre d'élèves qui font de l'allemand ou de l'espagnol » n'est pas la somme des deux effectifs si certains font les deux. Pour trois ensembles ou plus, la formule générale (formule du crible) est hors programme : on découpe en cas disjoints ou l'on passe au complémentaire.</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§3 · APPLICATIONS, LISTES ET PARTIES</div>
+  <h2>Choisir avec répétition possible</h2>
+  <div class="intro">Une \(p\)-liste (ou \(p\)-uplet) d'éléments de \(F\) est une suite ordonnée \((x_1, \dots, x_p)\) de \(p\) éléments de \(F\), les répétitions étant permises : mots de \(p\) lettres, résultats de \(p\) lancers de dé, tirages successifs avec remise. C'est exactement la donnée d'une application de \(\{1, \dots, p\}\) dans \(F\).</div>
+
+  <div class="prop-box">
+    <strong>Nombre d'applications.</strong> Si \(|E| = p\) et \(|F| = n\), l'ensemble \(F^E\) des applications de \(E\) dans \(F\) est fini et
+    <div class="formula" data-nom="Nombre d'applications, de p-listes">$$|F^E| = |F|^{|E|} = n^p .$$</div>
+    En particulier, il y a \(n^p\) \(p\)-listes d'éléments d'un ensemble à \(n\) éléments.
+  </div>
+  <div class="reveal" onclick="this.classList.toggle('open')">
+    <span class="label">Démonstration</span>
+    <span class="prompt">Chaque élément de E choisit son image.</span>
+    <div class="content"><p>Numérotons \(E = \{e_1, \dots, e_p\}\). Une application \(f\) est déterminée par la liste \(\big(f(e_1), \dots, f(e_p)\big)\) de ses valeurs, et toute liste de \(F^p\) provient d'une unique application. Il y a donc autant d'applications que d'éléments de \(F^p\), soit \(n^p\) par le principe multiplicatif : \(n\) choix pour l'image de \(e_1\), \(n\) pour celle de \(e_2\), etc.</p></div>
+  </div>
+  <div class="notice"><strong>Erreur classique</strong> : inverser l'exposant. On élève le nombre d'<strong>images possibles</strong> à la puissance du nombre d'<strong>éléments qui choisissent</strong>. Ranger 5 lettres distinctes dans 3 boîtes aux lettres, c'est donner à chaque lettre une boîte : \(3^5 = 243\) rangements, et non \(5^3\).</div>
+
+  <div class="prop-box">
+    <strong>Nombre de parties.</strong> Si \(|E| = n\), l'ensemble \(\mathcal P(E)\) des parties de \(E\) a pour cardinal
+    <div class="formula" data-nom="Nombre de parties">$$|\mathcal P(E)| = 2^n .$$</div>
+  </div>
+  <div class="reveal" onclick="this.classList.toggle('open')">
+    <span class="label">Démonstration</span>
+    <span class="prompt">Dedans ou dehors, pour chaque élément.</span>
+    <div class="content"><p>Une partie \(A\) de \(E = \{e_1, \dots, e_n\}\) est déterminée par la liste des réponses à « \(e_i\) appartient-il à \(A\) ? », c'est-à-dire par une liste de \(n\) bits (1 si oui, 0 si non) : c'est son <strong>indicatrice</strong> \(\mathbf 1_A\), application de \(E\) dans \(\{0, 1\}\). Réciproquement, toute liste de bits définit une partie. Il y a donc autant de parties que d'applications de \(E\) dans \(\{0, 1\}\), soit \(2^n\).</p></div>
+  </div>
+  <div class="method-box">
+    <strong>Exemple — applications, mots et parties</strong>
+    <ol>
+      <li>Applications de \(E = \{1, 2, 3\}\) dans \(F = \{a, b, c, d\}\) : \(4^3 = 64\). Applications de \(F\) dans \(E\) : \(3^4 = 81\).</li>
+      <li>Mots binaires de 8 bits (un octet) : \(2^8 = 256\), autant que de parties d'un ensemble à 8 éléments.</li>
+      <li>Un ensemble à 10 éléments a \(2^{10} = 1024\) parties, dont \(2^9 = 512\) contiennent un élément donné \(a\) : une telle partie s'écrit \(\{a\} \cup B\) avec \(B\) partie quelconque des 9 autres éléments.</li>
+    </ol>
+  </div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§4 · LISTES D'ÉLÉMENTS DISTINCTS ET PERMUTATIONS</div>
+  <h2>Choisir dans l'ordre, sans répétition</h2>
+  <div class="intro">Un podium, un tiercé, un mot de passe sans lettre répétée, un tirage successif sans remise : on choisit des éléments <strong>distincts</strong>, et l'<strong>ordre</strong> compte. Le nombre de choix diminue de 1 à chaque étape.</div>
+
+  <div class="def-box">
+    Pour \(n \in \mathbb N\), la <strong>factorielle</strong> de \(n\) est \(n! = 1 \times 2 \times \dots \times n\), avec la convention \(0! = 1\). Elle vérifie \((n+1)! = (n+1) \times n!\).
+  </div>
+  <figure class="schema">
+<svg viewBox="0 0 330 276.5" role="img" aria-label="Arbre des listes de deux éléments distincts pris dans {a, b, c, d} : 4 branches puis 3 branches, 12 feuilles">
+<text x="122" y="22" class="lab-muted" text-anchor="middle">1ᵉʳ élément</text>
+<text x="122" y="36" class="lab-muted" text-anchor="middle">4 choix</text>
+<text x="232" y="22" class="lab-muted" text-anchor="middle">2ᵉ élément</text>
+<text x="232" y="36" class="lab-muted" text-anchor="middle">3 choix</text>
+<circle cx="22" cy="153.2" r="3.2" class="fl-ink"/>
+<line x1="25" y1="153.2" x2="112" y2="65.5" class="sk-accent2"/>
+<text x="122" y="70" class="lab-b lab-accent2" text-anchor="middle">a</text>
+<line x1="132" y1="65.5" x2="220" y2="46" class="sk-axis"/>
+<text x="230" y="50.5" class="lab-b" text-anchor="middle">b</text>
+<text x="250" y="50.5" class="lab-it">(a, b)</text>
+<line x1="132" y1="65.5" x2="220" y2="65.5" class="sk-axis"/>
+<text x="230" y="70" class="lab-b" text-anchor="middle">c</text>
+<text x="250" y="70" class="lab-it">(a, c)</text>
+<line x1="132" y1="65.5" x2="220" y2="85" class="sk-axis"/>
+<text x="230" y="89.5" class="lab-b" text-anchor="middle">d</text>
+<text x="250" y="89.5" class="lab-it">(a, d)</text>
+<line x1="25" y1="153.2" x2="112" y2="124" class="sk-accent2"/>
+<text x="122" y="128.5" class="lab-b lab-accent2" text-anchor="middle">b</text>
+<line x1="132" y1="124" x2="220" y2="104.5" class="sk-axis"/>
+<text x="230" y="109" class="lab-b" text-anchor="middle">a</text>
+<text x="250" y="109" class="lab-it">(b, a)</text>
+<line x1="132" y1="124" x2="220" y2="124" class="sk-axis"/>
+<text x="230" y="128.5" class="lab-b" text-anchor="middle">c</text>
+<text x="250" y="128.5" class="lab-it">(b, c)</text>
+<line x1="132" y1="124" x2="220" y2="143.5" class="sk-axis"/>
+<text x="230" y="148" class="lab-b" text-anchor="middle">d</text>
+<text x="250" y="148" class="lab-it">(b, d)</text>
+<line x1="25" y1="153.2" x2="112" y2="182.5" class="sk-accent2"/>
+<text x="122" y="187" class="lab-b lab-accent2" text-anchor="middle">c</text>
+<line x1="132" y1="182.5" x2="220" y2="163" class="sk-axis"/>
+<text x="230" y="167.5" class="lab-b" text-anchor="middle">a</text>
+<text x="250" y="167.5" class="lab-it">(c, a)</text>
+<line x1="132" y1="182.5" x2="220" y2="182.5" class="sk-axis"/>
+<text x="230" y="187" class="lab-b" text-anchor="middle">b</text>
+<text x="250" y="187" class="lab-it">(c, b)</text>
+<line x1="132" y1="182.5" x2="220" y2="202" class="sk-axis"/>
+<text x="230" y="206.5" class="lab-b" text-anchor="middle">d</text>
+<text x="250" y="206.5" class="lab-it">(c, d)</text>
+<line x1="25" y1="153.2" x2="112" y2="241" class="sk-accent2"/>
+<text x="122" y="245.5" class="lab-b lab-accent2" text-anchor="middle">d</text>
+<line x1="132" y1="241" x2="220" y2="221.5" class="sk-axis"/>
+<text x="230" y="226" class="lab-b" text-anchor="middle">a</text>
+<text x="250" y="226" class="lab-it">(d, a)</text>
+<line x1="132" y1="241" x2="220" y2="241" class="sk-axis"/>
+<text x="230" y="245.5" class="lab-b" text-anchor="middle">b</text>
+<text x="250" y="245.5" class="lab-it">(d, b)</text>
+<line x1="132" y1="241" x2="220" y2="260.5" class="sk-axis"/>
+<text x="230" y="265" class="lab-b" text-anchor="middle">c</text>
+<text x="250" y="265" class="lab-it">(d, c)</text>
+</svg>
+<figcaption>Construire une liste de deux éléments distincts de {a, b, c, d} : 4 choix pour le premier, puis 3 pour le second (tous sauf le premier). Chaque chemin de l'arbre est une liste, et il y en a 4 × 3 = 12, quel que soit le premier choix : c'est ce qui permet de multiplier.</figcaption>
+</figure>
+  <div class="prop-box">
+    <strong>\(p\)-listes d'éléments distincts.</strong> Soit \(F\) un ensemble à \(n\) éléments et \(p \leq n\). Le nombre de \(p\)-listes d'éléments <strong>distincts</strong> de \(F\), qui est aussi le nombre d'<strong>applications injectives</strong> d'un ensemble à \(p\) éléments dans \(F\), vaut
+    <div class="formula" data-nom="p-listes d'éléments distincts (injections)">$$n(n-1)\cdots(n-p+1) = \frac{n!}{(n-p)!} .$$</div>
+    Si \(p \gt n\), il n'y en a aucune (principe des tiroirs).
+  </div>
+  <div class="reveal" onclick="this.classList.toggle('open')">
+    <span class="label">Démonstration</span>
+    <span class="prompt">Un choix de moins à chaque étape.</span>
+    <div class="content"><p>On construit la liste terme à terme : \(n\) choix pour le premier élément, puis \(n - 1\) pour le deuxième (tous sauf le premier), …, puis \(n - p + 1\) pour le \(p\)-ième (tous sauf les \(p - 1\) déjà pris). Le nombre de choix à chaque étape ne dépend pas des choix précédents, seulement de leur nombre : le principe multiplicatif donne le produit. En multipliant et divisant par \((n-p)! = (n-p)(n-p-1)\cdots 1\), on obtient \(\dfrac{n!}{(n-p)!}\). Une liste \((x_1, \dots, x_p)\) d'éléments distincts est exactement une application injective \(i \mapsto x_i\).</p></div>
+  </div>
+  <p>Ce nombre est souvent noté \(A_n^p\) (« arrangements de \(p\) parmi \(n\) ») ; la notation est commode mais ne figure pas au programme, qui préfère l'écrire en toutes lettres.</p>
+
+  <div class="prop-box">
+    <strong>Permutations.</strong> Une <strong>permutation</strong> d'un ensemble \(E\) à \(n\) éléments est une bijection de \(E\) sur lui-même, c'est-à-dire une façon de ranger ses \(n\) éléments dans un ordre. Il y en a
+    <div class="formula" data-nom="Nombre de permutations">$$n! .$$</div>
+  </div>
+  <p>C'est le cas \(p = n\) : une application injective de \(E\) dans \(E\) est bijective (§1). La factorielle croît très vite : \(10! = 3\,628\,800\), \(20! \approx 2{,}43 \times 10^{18}\), et \(52! \approx 8{,}07 \times 10^{67}\) façons de mélanger un jeu de 52 cartes, bien plus que le nombre de mélanges jamais réalisés.</p>
+  <div class="method-box">
+    <strong>Exemple — podium, étagère, mots</strong>
+    <ol>
+      <li>Une course réunit 8 coureurs. Podiums possibles (or, argent, bronze) : \(8 \times 7 \times 6 = 336\).</li>
+      <li>Ranger 10 livres distincts sur une étagère : \(10! = 3\,628\,800\) façons. Si l'on impose que deux livres donnés soient côte à côte, on les colle en un « bloc » (2 ordres internes), puis on range 9 objets : \(2 \times 9! = 725\,760\).</li>
+      <li>Mots de 4 lettres toutes distinctes sur l'alphabet de 26 lettres : \(26 \times 25 \times 24 \times 23 = 358\,800\), à comparer aux \(26^4 = 456\,976\) mots sans contrainte.</li>
+      <li>Injections de \(\{1, 2, 3\}\) dans \(\{1, \dots, 5\}\) : \(5 \times 4 \times 3 = 60\), sur \(5^3 = 125\) applications.</li>
+    </ol>
+  </div>
+  <div class="notice"><strong>Erreur classique</strong> : utiliser \(n^p\) pour un tirage sans remise, ou \(n!/(n-p)!\) pour un tirage avec remise. Se poser systématiquement les deux questions : l'ordre compte-t-il ? Les répétitions sont-elles possibles ?</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§5 · PARTIES À p ÉLÉMENTS : COEFFICIENTS BINOMIAUX</div>
+  <h2>Choisir sans ordre et sans répétition</h2>
+  <div class="intro">Une main de cartes, un comité, une grille de loto : on choisit des éléments distincts et seul compte l'<strong>ensemble</strong> choisi, pas l'ordre dans lequel on l'a obtenu. On compte des parties.</div>
+
+  <div class="def-box">
+    Soit \(E\) un ensemble à \(n\) éléments et \(p \in \{0, \dots, n\}\). Une <strong>\(p\)-combinaison</strong> de \(E\) est une partie de \(E\) à \(p\) éléments. Leur nombre, qui ne dépend que de \(n\) et \(p\), est le <strong>coefficient binomial</strong> \(\binom np\), qui se lit « \(p\) parmi \(n\) ». Par convention, \(\binom np = 0\) si \(p \lt 0\) ou \(p \gt n\) (il n'y a alors aucune partie de ce cardinal).
+  </div>
+  <div class="prop-box">
+    <strong>Formule.</strong> Pour \(0 \leq p \leq n\) :
+    <div class="formula" data-nom="Coefficient binomial">$$\binom np = \frac{n!}{p!\,(n-p)!} = \frac{n(n-1)\cdots(n-p+1)}{p!} .$$</div>
+    En particulier \(\binom n0 = \binom nn = 1\), \(\binom n1 = n\), \(\binom n2 = \dfrac{n(n-1)}{2}\), et <strong>symétrie</strong> : \(\binom np = \binom n{n-p}\).
+  </div>
+  <div class="reveal" onclick="this.classList.toggle('open')">
+    <span class="label">Démonstration</span>
+    <span class="prompt">Compter de deux façons les listes d'éléments distincts.</span>
+    <div class="content"><p>Comptons les \(p\)-listes d'éléments distincts de \(E\). D'une part, il y en a \(\dfrac{n!}{(n-p)!}\) (§4). D'autre part, on peut en former une en choisissant d'abord la partie à \(p\) éléments qu'elle utilise (\(\binom np\) choix), puis l'ordre de ces \(p\) éléments (\(p!\) choix) : il y en a \(\binom np \times p!\). En égalant, \(\binom np = \dfrac{n!}{p!\,(n-p)!}\).</p>
+    <p>Symétrie : associer à une partie à \(p\) éléments son complémentaire, qui en a \(n - p\), met en correspondance un à un les deux familles de parties. Choisir les \(p\) éléments retenus, c'est choisir les \(n - p\) éléments écartés.</p></div>
+  </div>
+  <div class="method-box">
+    <strong>Exemple — mains, comités, loto</strong>
+    <ol>
+      <li>Mains de 5 cartes dans un jeu de 52 : \(\binom{52}{5} = \dfrac{52 \times 51 \times 50 \times 49 \times 48}{120}\), soit \(2\,598\,960\).</li>
+      <li>Comités de 3 personnes dans un groupe de 10 : \(\binom{10}{3} = 120\). Si le groupe compte 6 femmes et 4 hommes, comités de 2 femmes et 1 homme : \(\binom 62 \times \binom 41 = 15 \times 4 = 60\) (principe multiplicatif : on choisit les femmes, puis l'homme).</li>
+      <li>Grille de loto (5 numéros parmi 49 et 1 numéro « chance » parmi 10) : \(\binom{49}{5} \times 10 = 19\,068\,840\) grilles.</li>
+    </ol>
+  </div>
+
+  <h3>Chemins dans un quadrillage</h3>
+  <figure class="schema">
+<svg viewBox="0 0 330 216" role="img" aria-label="Un chemin de A(0, 0) à B(5, 3) dans un quadrillage, par pas vers la droite (E) ou vers le haut (N)">
+<line x1="64" y1="166" x2="64" y2="34" class="sk-axis"/>
+<line x1="108" y1="166" x2="108" y2="34" class="sk-axis"/>
+<line x1="152" y1="166" x2="152" y2="34" class="sk-axis"/>
+<line x1="196" y1="166" x2="196" y2="34" class="sk-axis"/>
+<line x1="240" y1="166" x2="240" y2="34" class="sk-axis"/>
+<line x1="284" y1="166" x2="284" y2="34" class="sk-axis"/>
+<line x1="64" y1="166" x2="284" y2="166" class="sk-axis"/>
+<line x1="64" y1="122" x2="284" y2="122" class="sk-axis"/>
+<line x1="64" y1="78" x2="284" y2="78" class="sk-axis"/>
+<line x1="64" y1="34" x2="284" y2="34" class="sk-axis"/>
+<polyline points="64,166 108,166 152,166 152,122 196,122 196,78 196,34 240,34 284,34" class="sk-accent"/>
+<circle cx="64" cy="166" r="2.6" class="fl-accent"/>
+<circle cx="108" cy="166" r="2.6" class="fl-accent"/>
+<circle cx="152" cy="166" r="2.6" class="fl-accent"/>
+<circle cx="152" cy="122" r="2.6" class="fl-accent"/>
+<circle cx="196" cy="122" r="2.6" class="fl-accent"/>
+<circle cx="196" cy="78" r="2.6" class="fl-accent"/>
+<circle cx="196" cy="34" r="2.6" class="fl-accent"/>
+<circle cx="240" cy="34" r="2.6" class="fl-accent"/>
+<circle cx="284" cy="34" r="2.6" class="fl-accent"/>
+<text x="56" y="184" class="lab-it" text-anchor="end">A (0, 0)</text>
+<text x="288" y="25" class="lab-it" text-anchor="end">B (5, 3)</text>
+<text x="174" y="204" class="lab-accent" text-anchor="middle">pas : E E N E N N E E</text>
+<text x="108" y="182" class="lab-muted" text-anchor="middle">1</text>
+<text x="152" y="182" class="lab-muted" text-anchor="middle">2</text>
+<text x="196" y="182" class="lab-muted" text-anchor="middle">3</text>
+<text x="240" y="182" class="lab-muted" text-anchor="middle">4</text>
+<text x="284" y="182" class="lab-muted" text-anchor="middle">5</text>
+<text x="54" y="126" class="lab-muted" text-anchor="end">1</text>
+<text x="54" y="82" class="lab-muted" text-anchor="end">2</text>
+<text x="54" y="38" class="lab-muted" text-anchor="end">3</text>
+</svg>
+<figcaption>Un chemin de A à B par pas unité vers la droite (E) ou vers le haut (N) compte 8 pas, dont 3 vers le haut. Il est déterminé par les rangs de ces 3 pas parmi les 8 : il y a 56 chemins.</figcaption>
+</figure>
+  <p>Les coefficients binomiaux comptent bien d'autres objets que des parties, dès qu'on sait les décrire par « le choix de \(p\) positions parmi \(n\) ». Un chemin de \((0, 0)\) à \((a, b)\) par pas unité vers la droite ou vers le haut compte \(a + b\) pas, dont \(b\) vers le haut ; il est déterminé par les rangs de ces \(b\) pas. Il y a donc \(\binom{a+b}{b} = \binom{a+b}{a}\) chemins : 56 de \((0, 0)\) à \((5, 3)\). De même, il y a \(\binom{n}{k}\) mots binaires de longueur \(n\) qui comptent exactement \(k\) chiffres 1.</p>
+  <div class="notice"><strong>Erreur classique</strong> : compter des parties comme des listes. Si l'on tire 3 boules « simultanément », \(\{1, 2, 3\}\) et \(\{3, 1, 2\}\) sont le même tirage : on compte \(\binom n3\) tirages, pas \(n(n-1)(n-2)\). Les deux points de vue sont légitimes en probabilités (§9), à condition de ne pas les mélanger dans un même calcul.</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§6 · FORMULE DE PASCAL ET TRIANGLE</div>
+  <h2>Une relation de récurrence entre coefficients</h2>
+  <div class="intro">La formule de Pascal permet de calculer les coefficients binomiaux de proche en proche, sans factorielle, et la façon de la démontrer (distinguer selon qu'un élément fixé est choisi ou non) est l'archétype de la preuve combinatoire, exigée par le programme.</div>
+
+  <div class="prop-box">
+    <strong>Formule de Pascal.</strong> Pour tous entiers \(n \geq 0\) et \(p\) :
+    <div class="formula" data-nom="Formule de Pascal">$$\binom np + \binom n{p+1} = \binom{n+1}{p+1} .$$</div>
+  </div>
+  <div class="reveal" onclick="this.classList.toggle('open')">
+    <span class="label">Démonstration combinatoire</span>
+    <span class="prompt">Contient-elle le dernier élément ?</span>
+    <div class="content"><p>Soit \(E = \{1, \dots, n+1\}\). Les parties de \(E\) à \(p + 1\) éléments, au nombre de \(\binom{n+1}{p+1}\), se répartissent en deux familles disjointes :</p>
+    <ul><li>celles qui <strong>contiennent</strong> \(n + 1\) : on complète \(\{n + 1\}\) par \(p\) éléments pris parmi \(\{1, \dots, n\}\), soit \(\binom np\) parties ;</li>
+    <li>celles qui <strong>ne contiennent pas</strong> \(n + 1\) : ce sont les parties à \(p + 1\) éléments de \(\{1, \dots, n\}\), soit \(\binom n{p+1}\).</li></ul>
+    <p>Le principe additif conclut. Avec la convention \(\binom nk = 0\) hors de \(\{0, \dots, n\}\), la formule reste vraie pour tout \(p\) (les deux membres sont nuls ou les cas limites se vérifient directement). On peut aussi la vérifier par le calcul pour \(0 \leq p \leq n-1\), en réduisant au même dénominateur \((p+1)!\,(n-p)!\) ; la preuve combinatoire, elle, explique pourquoi elle est vraie.</p></div>
+  </div>
+  <figure class="schema">
+<svg viewBox="0 0 370 231" role="img" aria-label="Triangle de Pascal des lignes 0 à 7 ; 15 + 20 = 35 mis en évidence sur les lignes 6 et 7">
+<text x="8" y="30.5" class="lab-muted">n = 0</text>
+<text x="200" y="30.5" text-anchor="middle">1</text>
+<text x="8" y="57.5" class="lab-muted">n = 1</text>
+<text x="179" y="57.5" text-anchor="middle">1</text>
+<text x="221" y="57.5" text-anchor="middle">1</text>
+<text x="8" y="84.5" class="lab-muted">n = 2</text>
+<text x="158" y="84.5" text-anchor="middle">1</text>
+<text x="200" y="84.5" text-anchor="middle">2</text>
+<text x="242" y="84.5" text-anchor="middle">1</text>
+<text x="8" y="111.5" class="lab-muted">n = 3</text>
+<text x="137" y="111.5" text-anchor="middle">1</text>
+<text x="179" y="111.5" text-anchor="middle">3</text>
+<text x="221" y="111.5" text-anchor="middle">3</text>
+<text x="263" y="111.5" text-anchor="middle">1</text>
+<text x="8" y="138.5" class="lab-muted">n = 4</text>
+<text x="116" y="138.5" text-anchor="middle">1</text>
+<text x="158" y="138.5" text-anchor="middle">4</text>
+<text x="200" y="138.5" text-anchor="middle">6</text>
+<text x="242" y="138.5" text-anchor="middle">4</text>
+<text x="284" y="138.5" text-anchor="middle">1</text>
+<text x="8" y="165.5" class="lab-muted">n = 5</text>
+<text x="95" y="165.5" text-anchor="middle">1</text>
+<text x="137" y="165.5" text-anchor="middle">5</text>
+<text x="179" y="165.5" text-anchor="middle">10</text>
+<text x="221" y="165.5" text-anchor="middle">10</text>
+<text x="263" y="165.5" text-anchor="middle">5</text>
+<text x="305" y="165.5" text-anchor="middle">1</text>
+<text x="8" y="192.5" class="lab-muted">n = 6</text>
+<text x="74" y="192.5" text-anchor="middle">1</text>
+<text x="116" y="192.5" text-anchor="middle">6</text>
+<circle cx="158" cy="188" r="13" class="fl-accent2-soft"/>
+<text x="158" y="192.5" class="lab-b" text-anchor="middle">15</text>
+<circle cx="200" cy="188" r="13" class="fl-accent2-soft"/>
+<text x="200" y="192.5" class="lab-b" text-anchor="middle">20</text>
+<text x="242" y="192.5" text-anchor="middle">15</text>
+<text x="284" y="192.5" text-anchor="middle">6</text>
+<text x="326" y="192.5" text-anchor="middle">1</text>
+<text x="8" y="219.5" class="lab-muted">n = 7</text>
+<text x="53" y="219.5" text-anchor="middle">1</text>
+<text x="95" y="219.5" text-anchor="middle">7</text>
+<text x="137" y="219.5" text-anchor="middle">21</text>
+<circle cx="179" cy="215" r="13" class="fl-accent-soft"/>
+<text x="179" y="219.5" class="lab-b" text-anchor="middle">35</text>
+<text x="221" y="219.5" text-anchor="middle">35</text>
+<text x="263" y="219.5" text-anchor="middle">21</text>
+<text x="305" y="219.5" text-anchor="middle">7</text>
+<text x="347" y="219.5" text-anchor="middle">1</text>
+<line x1="165.6" y1="197.7" x2="170.2" y2="203.7" class="sk-accent" marker-end="url(#sk-arrow-accent)"/>
+<line x1="192.4" y1="197.7" x2="187.8" y2="203.7" class="sk-accent" marker-end="url(#sk-arrow-accent)"/>
+</svg>
+<figcaption>Triangle de Pascal : la ligne n contient les coefficients binomiaux de k = 0 à k = n, et chaque nombre est la somme des deux nombres situés au-dessus de lui (formule de Pascal). Exemple entouré : 15 + 20 = 35 sur les lignes 6 et 7. Chaque ligne est symétrique et sa somme vaut 2ⁿ.</figcaption>
+</figure>
+  <div class="method-box">
+    <strong>Exemple — remplir le triangle</strong>
+    <ol>
+      <li>On place des 1 aux deux bords de chaque ligne (\(\binom n0 = \binom nn = 1\)), puis chaque nombre intérieur est la somme des deux nombres situés au-dessus de lui.</li>
+      <li>Ligne 6 : 1, 6, 15, 20, 15, 6, 1. Ligne 7 : on lit \(\binom 73 = \binom 62 + \binom 63 = 15 + 20 = 35\), sans aucune factorielle.</li>
+      <li>Contrôle : la somme de la ligne 7, \(1 + 7 + 21 + 35 + 35 + 21 + 7 + 1\), vaut \(128 = 2^7\), le nombre de parties d'un ensemble à 7 éléments (§3) — chaque partie a un cardinal entre 0 et 7.</li>
+    </ol>
+  </div>
+
+  <div class="prop-box">
+    <strong>Formule du capitaine.</strong> Pour \(1 \leq p \leq n\) :
+    <div class="formula" data-nom="Formule du capitaine">$$p\binom np = n\binom{n-1}{p-1} .$$</div>
+  </div>
+  <div class="reveal" onclick="this.classList.toggle('open')">
+    <span class="label">Démonstration combinatoire</span>
+    <span class="prompt">Une équipe et son capitaine.</span>
+    <div class="content"><p>Comptons les façons de former, parmi \(n\) personnes, une équipe de \(p\) personnes dont l'une est capitaine. On peut choisir l'équipe (\(\binom np\) façons), puis son capitaine parmi ses \(p\) membres : \(p\binom np\). On peut aussi choisir d'abord le capitaine (\(n\) façons), puis ses \(p - 1\) coéquipiers parmi les \(n - 1\) autres : \(n\binom{n-1}{p-1}\). Les deux comptages portent sur les mêmes objets.</p></div>
+  </div>
+  <p>Contrôle sur un cas : \(2\binom 52 = 2 \times 10 = 20\) et \(5\binom 41 = 5 \times 4 = 20\). Cette formule sert à calculer \(\sum_k k\binom nk\) (§7) et l'espérance d'une loi binomiale (chapitre « Variables aléatoires »).</p>
+  <div class="notice"><strong>Erreur classique</strong> : écrire \(\binom np + \binom n{p+1} = \binom{n+1}{p}\). Moyen mnémotechnique : sur le triangle, on descend d'une ligne <em>et</em> on se décale vers la droite, donc les deux indices augmentent de 1.</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§7 · FORMULE DU BINÔME</div>
+  <h2>Développer une puissance d'une somme</h2>
+  <div class="intro">La formule du binôme de Newton développe \((a+b)^n\). Elle sert à calculer des puissances (de nombres, de matrices qui commutent, de complexes), à évaluer des sommes de coefficients binomiaux, et, en probabilités, à vérifier qu'une loi binomiale est bien de somme 1.</div>
+
+  <div class="prop-box">
+    <strong>Formule du binôme.</strong> Pour tous réels (ou complexes) \(a\), \(b\) et tout entier \(n \geq 0\) :
+    <div class="formula" data-nom="Formule du binôme">$$(a+b)^n = \sum_{k=0}^n \binom nk a^k b^{n-k} .$$</div>
+  </div>
+  <div class="reveal" onclick="this.classList.toggle('open')">
+    <span class="label">Démonstration combinatoire</span>
+    <span class="prompt">Choisir les facteurs qui donnent a.</span>
+    <div class="content"><p>Développons \((a+b)^n = (a+b)(a+b)\cdots(a+b)\) sans regrouper : on obtient une somme de \(2^n\) produits, chacun formé en choisissant \(a\) ou \(b\) dans chacun des \(n\) facteurs. Un tel produit vaut \(a^k b^{n-k}\) lorsque \(a\) a été choisi dans exactement \(k\) facteurs ; le nombre de ces produits est le nombre de façons de choisir ces \(k\) facteurs parmi \(n\), soit \(\binom nk\). En regroupant les produits égaux, on obtient la formule.</p>
+    <p><em>Autre preuve</em>, par récurrence sur \(n\) : en écrivant \((a+b)^{n+1} = (a+b)(a+b)^n\), en développant, puis en décalant l'indice dans l'une des deux sommes, le coefficient de \(a^{k}b^{n+1-k}\) est \(\binom n{k-1} + \binom nk = \binom{n+1}{k}\) par la formule de Pascal.</p></div>
+  </div>
+  <div class="notice"><strong>Attention</strong> : la formule utilise \(ab = ba\). Pour deux matrices \(A\) et \(B\), \((A+B)^2 = A^2 + AB + BA + B^2\), et la formule du binôme ne vaut que si \(AB = BA\) (chapitre « Matrices »).</div>
+  <div class="method-box">
+    <strong>Exemple — développer et extraire un coefficient</strong>
+    <ol>
+      <li>Avec la ligne 4 du triangle (1, 4, 6, 4, 1) :<div class="formula">$$\begin{aligned} (x+2)^4 &= x^4 + 4 \times 2x^3 + 6 \times 4x^2 + 4 \times 8x + 16 \\ &= x^4 + 8x^3 + 24x^2 + 32x + 16. \end{aligned}$$</div></li>
+      <li>Coefficient de \(x^3\) dans \((2x - 1)^6\) : le terme d'indice \(k = 3\) est \(\binom 63 (2x)^3(-1)^3 = 20 \times 8 \times (-1)\,x^3\), d'où \(-160\). Ne pas oublier le signe ni la puissance de 2.</li>
+      <li>Valeur approchée de \(1{,}01^{10} = (1 + 0{,}01)^{10}\) :<div class="formula">$$1 + 10 \times 0{,}01 + 45 \times 10^{-4} + 120 \times 10^{-6} + \cdots \approx 1{,}10462 ;$$</div>les termes suivants sont inférieurs à \(10^{-6}\) (valeur exacte \(1{,}104622\dots\)).</li>
+    </ol>
+  </div>
+
+  <h3>Sommes de coefficients binomiaux</h3>
+  <div class="prop-box">
+    <strong>Trois sommes à connaître.</strong> Pour \(n \geq 1\) :
+    <div class="formula" data-nom="Sommes de coefficients binomiaux">$$\begin{gathered} \sum_{k=0}^n \binom nk = 2^n, \\ \sum_{k=0}^n (-1)^k\binom nk = 0, \\ \sum_{k=0}^n k\binom nk = n\,2^{n-1} . \end{gathered}$$</div>
+  </div>
+  <div class="reveal" onclick="this.classList.toggle('open')">
+    <span class="label">Démonstration</span>
+    <span class="prompt">Choisir a et b, ou compter.</span>
+    <div class="content"><p>Binôme avec \(a = b = 1\), puis avec \(a = -1\), \(b = 1\). La première somme compte aussi les parties d'un ensemble à \(n\) éléments par leur cardinal (§3). Pour la troisième, la formule du capitaine donne \(\sum_{k=1}^n k\binom nk = n\sum_{k=1}^n \binom{n-1}{k-1} = n\,2^{n-1}\) ; en mots, on compte les couples (partie, élément distingué de cette partie) en choisissant d'abord l'élément distingué, puis une partie quelconque des \(n - 1\) autres.</p></div>
+  </div>
+  <figure class="schema">
+<svg viewBox="0 0 340 196" role="img" aria-label="Diagramme en bâtons des coefficients binomiaux k parmi 10, de k = 0 à 10">
+<line x1="34" y1="166" x2="334" y2="166" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<line x1="34" y1="166" x2="34" y2="16" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<text x="336" y="160" class="lab-it" text-anchor="end">k</text>
+<rect x="41.2" y="165.5" width="12" height="0.5" class="fl-accent2"/>
+<text x="47.2" y="160.5" class="lab-muted" text-anchor="middle">1</text>
+<text x="47.2" y="183" class="lab-muted" text-anchor="middle">0</text>
+<rect x="67.5" y="160.6" width="12" height="5.4" class="fl-accent2"/>
+<text x="73.5" y="155.6" class="lab-muted" text-anchor="middle">10</text>
+<text x="73.5" y="183" class="lab-muted" text-anchor="middle">1</text>
+<rect x="93.9" y="141.8" width="12" height="24.2" class="fl-accent2"/>
+<text x="99.9" y="136.8" class="lab-muted" text-anchor="middle">45</text>
+<text x="99.9" y="183" class="lab-muted" text-anchor="middle">2</text>
+<rect x="120.3" y="101.4" width="12" height="64.6" class="fl-accent2"/>
+<text x="126.3" y="96.4" class="lab-muted" text-anchor="middle">120</text>
+<text x="126.3" y="183" class="lab-muted" text-anchor="middle">3</text>
+<rect x="146.6" y="52.9" width="12" height="113.1" class="fl-accent2"/>
+<text x="152.6" y="47.9" class="lab-muted" text-anchor="middle">210</text>
+<text x="152.6" y="183" class="lab-muted" text-anchor="middle">4</text>
+<rect x="173" y="30.3" width="12" height="135.7" class="fl-accent"/>
+<text x="179" y="25.3" class="lab-muted" text-anchor="middle">252</text>
+<text x="179" y="183" class="lab-muted" text-anchor="middle">5</text>
+<rect x="199.4" y="52.9" width="12" height="113.1" class="fl-accent2"/>
+<text x="205.4" y="47.9" class="lab-muted" text-anchor="middle">210</text>
+<text x="205.4" y="183" class="lab-muted" text-anchor="middle">6</text>
+<rect x="225.7" y="101.4" width="12" height="64.6" class="fl-accent2"/>
+<text x="231.7" y="96.4" class="lab-muted" text-anchor="middle">120</text>
+<text x="231.7" y="183" class="lab-muted" text-anchor="middle">7</text>
+<rect x="252.1" y="141.8" width="12" height="24.2" class="fl-accent2"/>
+<text x="258.1" y="136.8" class="lab-muted" text-anchor="middle">45</text>
+<text x="258.1" y="183" class="lab-muted" text-anchor="middle">8</text>
+<rect x="278.5" y="160.6" width="12" height="5.4" class="fl-accent2"/>
+<text x="284.5" y="155.6" class="lab-muted" text-anchor="middle">10</text>
+<text x="284.5" y="183" class="lab-muted" text-anchor="middle">9</text>
+<rect x="304.8" y="165.5" width="12" height="0.5" class="fl-accent2"/>
+<text x="310.8" y="160.5" class="lab-muted" text-anchor="middle">1</text>
+<text x="310.8" y="183" class="lab-muted" text-anchor="middle">10</text>
+</svg>
+<figcaption>Les coefficients « k parmi 10 » : symétriques (k et 10 − k donnent le même nombre), croissants jusqu'au milieu, maximum 252 en k = 5, et de somme 1024 = 2¹⁰.</figcaption>
+</figure>
+  <div class="method-box">
+    <strong>Exemple — parties de cardinal pair</strong>
+    <ol>
+      <li>Additionnons les deux premières sommes : \(2\sum_{k \text{ pair}} \binom nk = 2^n\). Un ensemble à \(n \geq 1\) éléments a donc \(2^{n-1}\) parties de cardinal pair, et autant de cardinal impair.</li>
+      <li>Pour \(n = 5\) : \(\binom 50 + \binom 52 + \binom 54 = 1 + 10 + 5\), soit \(16 = 2^4\).</li>
+      <li>Contrôle de la troisième somme pour \(n = 4\) : \(0 + 4 + 2 \times 6 + 3 \times 4 + 4 \times 1\), soit \(32 = 4 \times 2^3\).</li>
+    </ol>
+  </div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§8 · RAISONNER POUR DÉNOMBRER</div>
+  <h2>Choisir le modèle, découper, compléter, corriger</h2>
+  <div class="intro">Les formules sont peu nombreuses ; la difficulté est de reconnaître la situation et d'éviter de compter un objet deux fois ou pas du tout. Quatre réflexes couvrent l'immense majorité des problèmes de concours.</div>
+
+  <div class="method-box">
+    <strong>Méthode — dénombrer en quatre réflexes</strong>
+    <ol>
+      <li><strong>Décrire précisément un objet</strong> à compter (une liste ? une partie ? une application ?) et poser les deux questions : l'ordre compte-t-il ? les répétitions sont-elles possibles ?</li>
+      <li><strong>Construire l'objet par étapes</strong> et multiplier les nombres de choix, en vérifiant que chaque objet est obtenu <em>une seule fois</em>.</li>
+      <li><strong>Découper en cas disjoints</strong> et additionner, quand les étapes dépendent d'un cas.</li>
+      <li><strong>Passer au complémentaire</strong> pour « au moins un », « pas tous », « au plus ».</li>
+    </ol>
+  </div>
+  <table>
+    <thead><tr><th>Objet</th><th>Ordre</th><th>Répétition</th><th>Nombre</th></tr></thead>
+    <tbody>
+      <tr><td>\(p\)-liste d'éléments d'un ensemble à \(n\) éléments (tirages avec remise)</td><td>oui</td><td>oui</td><td>\(n^p\)</td></tr>
+      <tr><td>\(p\)-liste d'éléments distincts (tirages successifs sans remise)</td><td>oui</td><td>non</td><td>\(\dfrac{n!}{(n-p)!}\)</td></tr>
+      <tr><td>permutation des \(n\) éléments</td><td>oui</td><td>non</td><td>\(n!\)</td></tr>
+      <tr><td>partie à \(p\) éléments (tirage simultané)</td><td>non</td><td>non</td><td>\(\binom np\)</td></tr>
+    </tbody>
+  </table>
+  <div class="method-box">
+    <strong>Exemple — anagrammes</strong>
+    <ol>
+      <li>« SUCCES » compte 6 lettres : deux S, deux C, un U, un E. Une anagramme est déterminée par les positions des S (\(\binom 62 = 15\) choix), puis celles des C parmi les 4 positions restantes (\(\binom 42 = 6\)), puis l'ordre de U et E dans les 2 dernières (\(2\)) : \(15 \times 6 \times 2 = 180\).</li>
+      <li>Autre raisonnement : si les 6 lettres étaient distinctes, il y aurait \(6! = 720\) mots ; échanger les deux S ou les deux C ne change pas le mot, donc chaque mot a été compté \(2! \times 2! = 4\) fois : \(720/4 = 180\).</li>
+    </ol>
+  </div>
+  <div class="method-box">
+    <strong>Exemple — mains de poker</strong>
+    <ol>
+      <li><em>Exactement une paire</em> (deux cartes de même hauteur, les trois autres de hauteurs différentes entre elles et de la paire) : hauteur de la paire (13), ses deux couleurs \(\binom 42 = 6\), les trois autres hauteurs \(\binom{12}{3} = 220\) (une partie : l'ordre ne compte pas), une couleur pour chacune \(4^3 = 64\). Total \(13 \times 6 \times 220 \times 64 = 1\,098\,240\), soit environ 42,3 % des mains.</li>
+      <li><em>Full</em> (un brelan et une paire) : \(13 \times \binom 43 \times 12 \times \binom 42 = 3\,744\). Ici les deux hauteurs ont des rôles différents (brelan, paire) : on choisit une hauteur puis l'autre, \(13 \times 12\), et non \(\binom{13}{2}\).</li>
+      <li><em>Au moins un as</em> : par complémentaire, \(\binom{52}{5} - \binom{48}{5}\), soit \(886\,656\) mains.</li>
+    </ol>
+  </div>
+  <div class="notice"><strong>Erreur classique — le double comptage</strong> : pour « au moins un as », choisir un as (4 façons) puis 4 cartes quelconques parmi les 51 restantes donne \(4\binom{51}{4} = 999\,600\), plus que le vrai nombre \(886\,656\). Une main à deux as y est comptée deux fois (selon l'as choisi « en premier »), une main à trois as trois fois. Test infaillible : chaque objet doit être produit par <em>exactement un</em> chemin de construction.</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§9 · DÉNOMBREMENT ET PROBABILITÉ UNIFORME</div>
+  <h2>Cas favorables sur cas possibles</h2>
+  <div class="intro">Lorsque toutes les issues d'une expérience aléatoire ont la même probabilité (dé équilibré, tirage « au hasard »), la probabilité d'un événement se calcule en comptant. Le cadre (univers, événements, probabilité) est posé au chapitre <a href="#proba/cours">« Probabilités sur un univers fini »</a> ; on retient ici la règle de calcul et le choix de l'univers.</div>
+
+  <div class="prop-box">
+    <strong>Probabilité uniforme.</strong> Si l'univers \(\Omega\) est fini et que toutes les issues ont la même probabilité \(\dfrac{1}{|\Omega|}\), la probabilité d'un événement \(A \subset \Omega\) est
+    <div class="formula" data-nom="Probabilité uniforme">$$P(A) = \frac{|A|}{|\Omega|} = \frac{\text{nombre de cas favorables}}{\text{nombre de cas possibles}} .$$</div>
+  </div>
+  <div class="method-box">
+    <strong>Exemple — tirage simultané ou successif</strong>
+    <ol>
+      <li>Une urne contient 5 boules rouges et 4 noires ; on en tire 3. Probabilité d'obtenir exactement 2 rouges ?</li>
+      <li><em>Tirage simultané</em> : \(\Omega\) = parties à 3 éléments des 9 boules, \(|\Omega| = \binom 93 = 84\). Cas favorables : 2 rouges parmi 5 et 1 noire parmi 4, \(\binom 52\binom 41 = 40\). D'où \(P = \dfrac{40}{84} = \dfrac{10}{21} \approx 0{,}476\).</li>
+      <li><em>Tirages successifs</em> : \(\Omega\) = listes de 3 boules distinctes, \(|\Omega| = 9 \times 8 \times 7 = 504\). Cas favorables : rang de la noire (3), cette noire (4), les deux rouges dans l'ordre (\(5 \times 4\)) : \(3 \times 4 \times 20 = 240\), et \(\dfrac{240}{504} = \dfrac{10}{21}\). Même résultat, à condition de compter favorables et possibles <em>dans le même univers</em>.</li>
+    </ol>
+  </div>
+  <figure class="schema">
+<svg viewBox="0 0 340 200" role="img" aria-label="Probabilité qu'au moins deux personnes parmi n aient le même anniversaire, en fonction de n">
+<line x1="40" y1="168" x2="326" y2="168" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<line x1="40" y1="168" x2="40" y2="8" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<text x="328" y="162" class="lab-it" text-anchor="end">n</text>
+<text x="46" y="12" class="lab-it">pₙ</text>
+<line x1="86" y1="168" x2="86" y2="172" class="sk-axis"/>
+<text x="86" y="185" class="lab-muted" text-anchor="middle">10</text>
+<line x1="132" y1="168" x2="132" y2="172" class="sk-axis"/>
+<text x="132" y="185" class="lab-muted" text-anchor="middle">20</text>
+<line x1="178" y1="168" x2="178" y2="172" class="sk-axis"/>
+<text x="178" y="185" class="lab-muted" text-anchor="middle">30</text>
+<line x1="224" y1="168" x2="224" y2="172" class="sk-axis"/>
+<text x="224" y="185" class="lab-muted" text-anchor="middle">40</text>
+<line x1="270" y1="168" x2="270" y2="172" class="sk-axis"/>
+<text x="270" y="185" class="lab-muted" text-anchor="middle">50</text>
+<line x1="316" y1="168" x2="316" y2="172" class="sk-axis"/>
+<text x="316" y="185" class="lab-muted" text-anchor="middle">60</text>
+<line x1="36" y1="93" x2="40" y2="93" class="sk-axis"/>
+<text x="33" y="97" class="lab-muted" text-anchor="end">0,5</text>
+<line x1="36" y1="18" x2="40" y2="18" class="sk-axis"/>
+<text x="33" y="22" class="lab-muted" text-anchor="end">1</text>
+<text x="33" y="172" class="lab-muted" text-anchor="end">0</text>
+<line x1="40" y1="93" x2="316" y2="93" class="sk-dash"/>
+<line x1="145.8" y1="168" x2="145.8" y2="91.9" class="sk-dash"/>
+<polyline points="44.6,168 49.2,167.6 53.8,166.8 58.4,165.5 63,163.9 67.6,161.9 72.2,159.6 76.8,156.8 81.4,153.8 86,150.5 90.6,146.8 95.2,142.9 99.8,138.8 104.4,134.5 109,130.1 113.6,125.5 118.2,120.7 122.8,116 127.4,111.1 132,106.3 136.6,101.4 141.2,96.6 145.8,91.9 150.4,87.2 155,82.7 159.6,78.3 164.2,74 168.8,69.8 173.4,65.9 178,62.1 182.6,58.4 187.2,55 191.8,51.8 196.4,48.7 201,45.8 205.6,43.2 210.2,40.7 214.8,38.4 219.4,36.3 224,34.3 228.6,32.5 233.2,30.9 237.8,29.4 242.4,28.1 247,26.9 251.6,25.8 256.2,24.8 260.8,23.9 265.4,23.1 270,22.4 274.6,21.8 279.2,21.3 283.8,20.8 288.4,20.4 293,20.1 297.6,19.8 302.2,19.5 306.8,19.3 311.4,19.1 316,18.9" class="sk-accent"/>
+<line x1="270" y1="168" x2="270" y2="22.4" class="sk-dash"/>
+<circle cx="145.8" cy="91.9" r="3.2" class="fl-accent"/>
+<circle cx="270" cy="22.4" r="3.2" class="fl-accent"/>
+<text x="152.8" y="107.9" class="lab-accent">n = 23 : 0,507</text>
+<text x="276" y="120" class="lab-accent">n = 50 :</text>
+<text x="276" y="136" class="lab-accent">0,970</text>
+</svg>
+<figcaption>Probabilité pₙ qu'au moins deux personnes parmi n partagent leur jour d'anniversaire (365 jours équiprobables). Elle dépasse 1/2 dès n = 23 (0,507) et vaut déjà 0,970 pour n = 50.</figcaption>
+</figure>
+  <div class="method-box">
+    <strong>Exemple — le paradoxe des anniversaires</strong>
+    <ol>
+      <li>On suppose les 365 jours équiprobables (on ignore le 29 février) et les dates de \(n\) personnes indépendantes : \(\Omega\) est l'ensemble des \(n\)-listes de jours, \(|\Omega| = 365^n\).</li>
+      <li>« Toutes les dates sont différentes » : \(n\)-listes d'éléments distincts, au nombre de \(365 \times 364 \times \dots \times (365 - n + 1)\).</li>
+      <li>La probabilité d'au moins une coïncidence est donc \(p_n = 1 - \prod_{k=0}^{n-1}\Big(1 - \dfrac{k}{365}\Big)\), qui vaut 0,476 pour \(n = 22\) et 0,507 pour \(n = 23\) : dans une classe de 23 élèves, il y a plus d'une chance sur deux que deux élèves fêtent leur anniversaire le même jour.</li>
+    </ol>
+  </div>
+  <div class="notice"><strong>Erreur classique</strong> : appliquer « favorables sur possibles » à un univers dont les issues ne sont pas équiprobables. Avec deux dés, la somme vaut 2 avec probabilité \(\frac{1}{36}\) et 7 avec probabilité \(\frac{6}{36}\) : les 11 sommes possibles ne sont pas équiprobables, alors que les 36 couples de résultats le sont. On compte toujours dans un univers où l'équiprobabilité est justifiée.</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">POUR ALLER PLUS LOIN · HORS PROGRAMME</div>
+  <h2>Crible, combinaisons avec répétition, loi hypergéométrique</h2>
+  <div class="intro">Ces compléments ne sont exigibles ni en PTSI ni en PT ; ils prolongent les §2, §5 et §9 et apparaissent parfois dans un problème, toujours avec une indication.</div>
+  <p><strong>Formule du crible pour trois ensembles.</strong> En découpant \(A \cup B \cup C\) en morceaux disjoints, on obtient</p>
+  <div class="formula">$$|A \cup B \cup C| = |A| + |B| + |C| - |A \cap B| - |A \cap C| - |B \cap C| + |A \cap B \cap C|.$$</div>
+  <p>Exemple : parmi les entiers de 1 à 1000, ceux qui sont divisibles par 2, 3 ou 5 sont au nombre de \(500 + 333 + 200\), moins \(166 + 100 + 66\), plus \(33\), soit 734. La formule générale (Poincaré) alterne les signes sur toutes les intersections.</p>
+  <p><strong>Combinaisons avec répétition.</strong> Le nombre de façons de choisir \(p\) objets parmi \(n\) types, sans ordre et avec répétition possible (par exemple 3 boules de glace parmi 4 parfums), est \(\binom{n+p-1}{p}\) : on code un choix par une suite de \(p\) étoiles et \(n - 1\) barres de séparation. Pour 3 boules et 4 parfums : \(\binom 63 = 20\).</p>
+  <p><strong>Loi hypergéométrique.</strong> On tire simultanément \(n\) objets dans une population de \(N\) objets dont \(K\) sont « marqués ». Le nombre \(X\) d'objets marqués obtenus vérifie \(P(X = k) = \dfrac{\binom Kk\binom{N-K}{n-k}}{\binom Nn}\) (même raisonnement qu'au §9) et \(E(X) = n\dfrac{K}{N}\). Le calcul de ces probabilités par dénombrement est au programme ; le nom de la loi et ses formules ne le sont pas. Avec remise, on obtient au contraire une loi binomiale (chapitre <a href="#va/cours">« Variables aléatoires »</a>).</p>
+</div>
+</template>
+<template class="pan-tpl" data-panneau="denom-meth">
+<div class="course-section">
+  <div class="sec-num">MÉTHODES · DÉNOMBREMENT</div>
+  <h2>Les réflexes du chapitre</h2>
+  <div class="intro">Dix gestes pour compter juste : reconnaître le modèle, construire l'objet par étapes, découper, passer au complémentaire, corriger un sur-comptage, démontrer une identité en comptant, utiliser le binôme, et calculer une probabilité uniforme.</div>
+
+  <div class="method-box"><strong>Méthode 1 — Choisir le bon modèle de comptage</strong>
+    <ol>
+      <li>Décrire en une phrase <em>un</em> objet à compter (« une liste de 3 chevaux », « une main de 5 cartes »).</li>
+      <li>Se demander si l'<strong>ordre</strong> compte et si les <strong>répétitions</strong> sont possibles.</li>
+      <li>Ordre et répétitions : \(n^p\) ; ordre sans répétition : \(\dfrac{n!}{(n-p)!}\) ; ni ordre ni répétition : \(\binom np\) ; ranger tous les éléments : \(n!\).</li>
+    </ol>
+    <p><em>Exemple éclair :</em> 15 chevaux au départ. Tiercé dans l'ordre : \(15 \times 14 \times 13 = 2\,730\) arrivées possibles ; trio dans le désordre : \(\binom{15}{3} = 455\), soit \(2\,730/3!\).</p>
+  </div>
+
+  <div class="method-box"><strong>Méthode 2 — Construire l'objet par étapes (principe multiplicatif)</strong>
+    <ol>
+      <li>Découper la construction en étapes successives et compter les choix possibles à chacune.</li>
+      <li>Vérifier que le <strong>nombre</strong> de choix d'une étape ne dépend pas des choix précédents (sinon, découper en cas : méthode 3).</li>
+      <li>Vérifier que chaque objet est obtenu par une seule suite de choix, puis multiplier.</li>
+    </ol>
+    <p><em>Exemple éclair :</em> nombres de 3 chiffres tous distincts : centaines non nulles (9 choix), dizaines différentes des centaines (9 choix, le 0 redevient possible), unités (8 choix) : \(9 \times 9 \times 8 = 648\).</p>
+  </div>
+  <div class="notice"><strong>Piège</strong> : commencer par l'étape la moins contrainte. Pour les nombres de 3 chiffres distincts, commencer par les unités oblige à distinguer selon que le 0 a été pris ou non ; on place toujours d'abord la position soumise à la contrainte la plus forte.</div>
+
+  <div class="method-box"><strong>Méthode 3 — Découper en cas disjoints (principe additif)</strong>
+    <ol>
+      <li>Repérer un critère qui sépare les objets en familles <strong>sans recouvrement</strong> (nombre d'éléments d'un type, position d'un élément particulier…).</li>
+      <li>Compter chaque famille, souvent par la méthode 2.</li>
+      <li>Additionner, et vérifier que les familles couvrent bien tous les cas.</li>
+    </ol>
+    <p><em>Exemple éclair :</em> mots de 5 lettres sur l'alphabet \(\{a, b\}\) contenant au plus un \(a\) : aucun \(a\) (1 mot) ou exactement un \(a\) (5 positions possibles), soit \(1 + 5 = 6\) mots.</p>
+  </div>
+
+  <div class="method-box"><strong>Méthode 4 — Passer au complémentaire</strong>
+    <ol>
+      <li>Dès que l'énoncé dit « au moins un », « pas tous », « au moins deux différents », penser à compter le contraire.</li>
+      <li>Compter l'ensemble total \(|E|\) et la partie contraire \(|E \setminus A|\), souvent une seule configuration simple (« aucun »).</li>
+      <li>Conclure par \(|A| = |E| - |E \setminus A|\).</li>
+    </ol>
+    <p><em>Exemple éclair :</em> mots de 4 lettres contenant au moins une voyelle (6 voyelles a, e, i, o, u, y parmi 26 lettres) : \(26^4 - 20^4\), soit \(296\,976\).</p>
+  </div>
+
+  <div class="method-box"><strong>Méthode 5 — Compter les parties soumises à une contrainte de composition</strong>
+    <ol>
+      <li>Séparer la population en catégories (rouges et noires, cœurs et autres, filles et garçons).</li>
+      <li>Choisir dans chaque catégorie le nombre d'éléments imposé : un coefficient binomial par catégorie.</li>
+      <li>Multiplier (les choix dans des catégories différentes sont indépendants les uns des autres).</li>
+    </ol>
+    <p><em>Exemple éclair :</em> mains de 5 cartes contenant exactement 2 cœurs : \(\binom{13}{2}\binom{39}{3} = 78 \times 9\,139 = 712\,842\).</p>
+  </div>
+
+  <div class="method-box"><strong>Méthode 6 — Corriger un sur-comptage en divisant</strong>
+    <ol>
+      <li>Compter d'abord des objets « étiquetés » (lettres toutes distinctes, places numérotées), ce qui est facile.</li>
+      <li>Vérifier que chaque objet cherché est obtenu exactement \(k\) fois, avec le même \(k\) pour tous.</li>
+      <li>Diviser par \(k\).</li>
+    </ol>
+    <p><em>Exemple éclair :</em> anagrammes de ANANAS (trois A, deux N, un S) : \(\dfrac{6!}{3!\,2!} = 60\). Disposer 6 personnes autour d'une table ronde, à rotation près : \(\dfrac{6!}{6} = 5! = 120\).</p>
+  </div>
+  <div class="notice"><strong>Piège</strong> : diviser alors que les objets ne sont pas tous comptés le même nombre de fois. Pour « au moins un as », chaque main est comptée autant de fois qu'elle contient d'as : aucune division ne corrige ce comptage, il faut passer au complémentaire ou découper selon le nombre d'as.</div>
+
+  <div class="method-box"><strong>Méthode 7 — Démontrer une identité par double comptage</strong>
+    <ol>
+      <li>Trouver un ensemble d'objets dont le nombre est le membre de gauche (« choisir une équipe puis son capitaine »).</li>
+      <li>Compter le même ensemble d'une autre façon, en classant les objets selon un critère (« selon le capitaine », « selon le plus grand élément »).</li>
+      <li>Conclure par l'égalité des deux comptages.</li>
+    </ol>
+    <p><em>Exemple éclair :</em> les parties à 3 éléments de \(\{1, \dots, 6\}\), classées selon leur plus grand élément \(m \in \{3, 4, 5, 6\}\), donnent \(\binom 63 = \binom 22 + \binom 32 + \binom 42 + \binom 52\), soit \(20 = 1 + 3 + 6 + 10\).</p>
+  </div>
+
+  <div class="method-box"><strong>Méthode 8 — Utiliser la formule du binôme</strong>
+    <ol>
+      <li>Pour un coefficient : écrire le terme général \(\binom nk a^k b^{n-k}\) avec les bons \(a\) et \(b\) (signes et constantes compris), puis choisir \(k\).</li>
+      <li>Pour une somme \(\sum \binom nk x^k\) : la reconnaître comme \((1+x)^n\) et choisir \(x\) (1, \(-1\), 2…).</li>
+      <li>Pour une somme avec un facteur \(k\) : formule du capitaine \(k\binom nk = n\binom{n-1}{k-1}\).</li>
+    </ol>
+    <p><em>Exemple éclair :</em> coefficient de \(x^2\) dans \((1+2x)^5\) : \(\binom 52 \times 2^2 = 40\). Et \(\sum_{k=0}^{4}\binom 4k 2^k = (1+2)^4 = 81\).</p>
+  </div>
+
+  <div class="method-box"><strong>Méthode 9 — Calculer une probabilité uniforme par dénombrement</strong>
+    <ol>
+      <li>Choisir un univers \(\Omega\) où les issues sont équiprobables (listes ou parties, selon le tirage) et calculer \(|\Omega|\).</li>
+      <li>Compter les issues favorables <strong>dans le même univers</strong> (même convention d'ordre).</li>
+      <li>Conclure par \(P(A) = |A|/|\Omega|\), en passant au complémentaire si c'est plus simple.</li>
+    </ol>
+    <p><em>Exemple éclair :</em> on tire 3 cartes d'un jeu de 52. Exactement 2 as : \(\dfrac{\binom 42\binom{48}{1}}{\binom{52}{3}} = \dfrac{288}{22\,100} = \dfrac{72}{5\,525} \approx 0{,}013\).</p>
+  </div>
+
+  <div class="method-box"><strong>Méthode 10 — Utiliser les cardinaux pour prouver une existence ou une bijection</strong>
+    <ol>
+      <li>Pour prouver qu'une application entre ensembles finis de même cardinal est bijective, vérifier seulement qu'elle est injective (ou seulement surjective).</li>
+      <li>Pour prouver une coïncidence (« deux objets ont la même propriété »), définir les tiroirs (valeurs possibles de la propriété) et comparer leur nombre au nombre d'objets.</li>
+      <li>Pour prouver l'égalité \(A = E\) avec \(A \subset E\), comparer les cardinaux.</li>
+    </ol>
+    <p><em>Exemple éclair :</em> parmi 5 entiers de \(\{1, \dots, 8\}\), deux ont pour somme 9 : les 4 tiroirs \(\{1, 8\}\), \(\{2, 7\}\), \(\{3, 6\}\), \(\{4, 5\}\) reçoivent 5 entiers, donc l'un en reçoit deux.</p>
+  </div>
+  <div class="notice"><strong>Pièges classiques</strong> : lire \(\binom np\) « \(p\) parmi \(n\) » (et non l'inverse) ; se souvenir que \(\binom np = 0\) si \(p \gt n\) ; ne pas confondre \(n^p\) (avec répétition) et \(\dfrac{n!}{(n-p)!}\) (sans répétition) ; pour trois ensembles ou plus, ne pas improviser une formule de réunion (le crible est hors programme) : découper ou passer au complémentaire.</div>
+</div>
+</template>
+<template class="pan-tpl" data-panneau="denom-exos">
+<div class="exo-wrapper">
+
+<div class="exo"><span class="num">EXO 01</span><span class="diff">★ ☆ ☆</span>
+  <h3>Dénombrement direct</h3>
+  <div class="statement">On travaille avec les chiffres de 0 à 9 et l'alphabet latin de 26 lettres.</div>
+  <div class="q"><strong>Q1.</strong> Combien y a-t-il de codes PIN à 4 chiffres ?</div>
+  <div class="q"><strong>Q2.</strong> Combien de plaques d'immatriculation de la forme « 2 lettres – 3 chiffres – 2 lettres » (sans contrainte) ?</div>
+  <div class="q"><strong>Q3.</strong> Combien de mots de 3 lettres toutes distinctes ?</div>
+  <div class="q"><strong>Q4.</strong> Combien de mots de 3 lettres comportent au moins une lettre répétée ?</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution"><h4>Correction</h4>
+    <p><strong>Q1.</strong> Un code est une 4-liste de chiffres, avec répétition possible et ordre significatif : \(10^4 = 10\,000\) codes.</p>
+    <p><strong>Q2.</strong> Principe multiplicatif sur les 7 positions : \(26^2 \times 10^3 \times 26^2\), soit \(456\,976\,000\) plaques.</p>
+    <p><strong>Q3.</strong> 3-listes d'éléments distincts : \(26 \times 25 \times 24 = 15\,600\).</p>
+    <p><strong>Q4.</strong> Complémentaire de Q3 dans l'ensemble des \(26^3 = 17\,576\) mots : \(17\,576 - 15\,600 = 1\,976\). Compter directement « exactement deux lettres égales » puis « trois lettres égales » donnerait le même résultat (\(3 \times 26 \times 25 + 26 = 1\,976\)), mais avec plus de risques d'erreur.</p>
+  </div>
+</div>
+
+<div class="exo"><span class="num">EXO 02</span><span class="diff">★ ☆ ☆</span>
+  <h3>Coefficients binomiaux et formule de Pascal</h3>
+  <div class="statement">Calculs directs, puis deux applications à une classe de 30 élèves dont 18 filles.</div>
+  <div class="q"><strong>Q1.</strong> Calculer \(\binom 62\), \(\binom{10}{3}\) et \(\binom{52}{5}\).</div>
+  <div class="q"><strong>Q2.</strong> Vérifier la formule de Pascal \(\binom 52 + \binom 53 = \binom 63\).</div>
+  <div class="q"><strong>Q3.</strong> Développer \((x+y)^4\) par la formule du binôme.</div>
+  <div class="q"><strong>Q4.</strong> De combien de façons peut-on choisir 3 délégués parmi les 30 élèves ?</div>
+  <div class="q"><strong>Q5.</strong> On choisit 3 élèves au hasard. Quelle est la probabilité que ce soient 3 filles ?</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution"><h4>Correction</h4>
+    <p><strong>Q1.</strong> \(\binom 62 = \dfrac{6 \times 5}{2} = 15\) ; \(\binom{10}{3} = \dfrac{10 \times 9 \times 8}{6} = 120\) ; \(\binom{52}{5} = \dfrac{52 \times 51 \times 50 \times 49 \times 48}{120} = 2\,598\,960\) (nombre de mains de poker).</p>
+    <p><strong>Q2.</strong> \(\binom 52 = \binom 53 = 10\), et \(10 + 10 = 20 = \binom 63\).</p>
+    <p><strong>Q3.</strong> Ligne 4 du triangle de Pascal (1, 4, 6, 4, 1) : \((x+y)^4 = x^4 + 4x^3y + 6x^2y^2 + 4xy^3 + y^4\).</p>
+    <p><strong>Q4.</strong> Les délégués forment une partie (pas de rôle distinct) : \(\binom{30}{3} = \dfrac{30 \times 29 \times 28}{6} = 4\,060\).</p>
+    <p><strong>Q5.</strong> Tous les groupes de 3 sont équiprobables : \(P = \dfrac{\binom{18}{3}}{\binom{30}{3}} = \dfrac{816}{4\,060} = \dfrac{204}{1\,015} \approx 0{,}201\).</p>
+  </div>
+</div>
+
+<div class="exo"><span class="num">EXO 03</span><span class="diff">★ ★ ☆</span>
+  <h3>Applications, injections, surjections</h3>
+  <div class="statement">On note \(E = \{1, 2, 3, 4\}\), \(F = \{1, \dots, 6\}\) et \(G = \{a, b, c\}\).</div>
+  <div class="q"><strong>Q1.</strong> Combien y a-t-il d'applications de \(E\) dans \(F\) ? d'applications injectives ?</div>
+  <div class="q"><strong>Q2.</strong> Combien y a-t-il d'applications <em>strictement croissantes</em> de \(E\) dans \(F\) ?</div>
+  <div class="q"><strong>Q3.</strong> On choisit au hasard une application de \(E\) dans \(F\) (toutes équiprobables). Probabilité qu'elle soit injective ?</div>
+  <div class="q"><strong>Q4.</strong> Combien y a-t-il d'applications surjectives de \(E\) sur \(G\) ?</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution"><h4>Correction</h4>
+    <p><strong>Q1.</strong> Chacun des 4 éléments de \(E\) choisit son image parmi 6 : \(6^4 = 1\,296\) applications. Injectives : images distinctes, soit des 4-listes d'éléments distincts de \(F\) : \(6 \times 5 \times 4 \times 3 = 360\).</p>
+    <p><strong>Q2.</strong> Une application strictement croissante est injective, et elle est entièrement déterminée par son <strong>ensemble image</strong>, partie à 4 éléments de \(F\) : on range ces 4 éléments dans l'ordre croissant et l'on envoie 1, 2, 3, 4 sur eux dans cet ordre. Réciproquement, chaque partie à 4 éléments donne une telle application. Il y en a donc \(\binom 64 = 15\). (Les \(360 = 15 \times 4!\) injections se regroupent par image, chacune correspondant à un des \(4!\) ordres.)</p>
+    <p><strong>Q3.</strong> Probabilité uniforme sur les 1 296 applications : \(\dfrac{360}{1\,296} = \dfrac{5}{18} \approx 0{,}278\). C'est la question des anniversaires avec 4 personnes et 6 jours.</p>
+    <p><strong>Q4.</strong> Une surjection de \(E\) (4 éléments) sur \(G\) (3 éléments) atteint chaque valeur ; comme \(4 = 2 + 1 + 1\), exactement une valeur a deux antécédents et les deux autres en ont un. On construit : la valeur doublée (3 choix), ses deux antécédents (\(\binom 42 = 6\) choix), puis les deux éléments restants de \(E\) vers les deux valeurs restantes, bijectivement (\(2\) choix). Total : \(3 \times 6 \times 2 = 36\). (Contrôle : sur les \(3^4 = 81\) applications, 45 ne sont pas surjectives.)</p>
+  </div>
+</div>
+
+<div class="exo"><span class="num">EXO 04</span><span class="diff">★ ★ ☆</span>
+  <h3>Principe des tiroirs</h3>
+  <div class="statement">Trois situations où l'on affirme une coïncidence sans pouvoir dire laquelle.</div>
+  <div class="q"><strong>Q1.</strong> Un tiroir contient 6 chaussettes noires, 6 blanches et 4 grises, en vrac. Combien faut-il en prendre, sans regarder, pour être sûr d'avoir deux chaussettes de la même couleur ? deux chaussettes noires ?</div>
+  <div class="q"><strong>Q2.</strong> Soit \(n \geq 1\). Montrer que parmi \(n + 1\) entiers choisis dans \(\{1, \dots, 2n\}\), deux sont consécutifs.</div>
+  <div class="q"><strong>Q3.</strong> Lors d'un tournoi à \(n \geq 2\) joueurs, chaque paire de joueurs s'affronte au plus une fois. Montrer qu'à tout moment, deux joueurs ont disputé le même nombre de parties.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution"><h4>Correction</h4>
+    <p><strong>Q1.</strong> Les tiroirs sont les 3 couleurs : avec 4 chaussettes, deux ont la même couleur (\(4 \gt 3\)), et 3 ne suffisent pas (une de chaque couleur). Pour deux noires, il faut envisager le pire : on peut tirer les 6 blanches, les 4 grises et une seule noire, soit 11 chaussettes sans paire noire. Il en faut donc \(6 + 4 + 2 = 12\).</p>
+    <p><strong>Q2.</strong> On forme \(n\) tiroirs : \(\{1, 2\}, \{3, 4\}, \dots, \{2n-1, 2n\}\). Ils recouvrent \(\{1, \dots, 2n\}\) et reçoivent \(n + 1\) entiers : l'un d'eux en reçoit deux, qui sont consécutifs. Le résultat est optimal : les \(n\) entiers impairs ne contiennent aucun couple d'entiers consécutifs.</p>
+    <p><strong>Q3.</strong> Le nombre de parties d'un joueur est compris entre 0 et \(n - 1\) : \(n\) valeurs pour \(n\) joueurs, le principe des tiroirs ne s'applique pas directement. Mais les valeurs 0 et \(n - 1\) ne peuvent pas être prises toutes les deux : un joueur qui a affronté les \(n - 1\) autres a joué contre celui qui n'aurait aucune partie. Les \(n\) nombres de parties prennent donc au plus \(n - 1\) valeurs, et deux joueurs ont le même nombre de parties.</p>
+  </div>
+</div>
+
+<div class="exo"><span class="num">EXO 05</span><span class="diff">★ ★ ☆</span>
+  <h3>Mains de poker</h3>
+  <div class="statement">On tire 5 cartes au hasard dans un jeu de 52 cartes (13 hauteurs, 4 couleurs), sans remise et sans tenir compte de l'ordre.</div>
+  <div class="q"><strong>Q1.</strong> Nombre de mains possibles ?</div>
+  <div class="q"><strong>Q2.</strong> Probabilité d'obtenir exactement une paire (deux cartes de même hauteur, les trois autres de hauteurs différentes entre elles et de celle de la paire) ?</div>
+  <div class="q"><strong>Q3.</strong> Probabilité d'un full (trois cartes d'une même hauteur et deux d'une autre) ?</div>
+  <div class="q"><strong>Q4.</strong> Probabilité d'avoir au moins un as. Expliquer pourquoi le calcul « \(4\binom{51}{4}\) mains favorables » est faux.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution"><h4>Correction</h4>
+    <p><strong>Q1.</strong> \(|\Omega| = \binom{52}{5} = 2\,598\,960\), toutes équiprobables.</p>
+    <p><strong>Q2.</strong> Hauteur de la paire (13), deux couleurs pour elle (\(\binom 42 = 6\)), trois autres hauteurs distinctes parmi les 12 restantes, sans ordre (\(\binom{12}{3} = 220\)), une couleur pour chacune (\(4^3 = 64\)) : \(13 \times 6 \times 220 \times 64 = 1\,098\,240\) mains, et \(P = \dfrac{1\,098\,240}{2\,598\,960} \approx 0{,}423\).</p>
+    <p><strong>Q3.</strong> Hauteur du brelan (13), ses couleurs (\(\binom 43 = 4\)), hauteur de la paire parmi les 12 autres (12), ses couleurs (6) : \(3\,744\) mains, \(P \approx 0{,}00144\). On ne prend pas \(\binom{13}{2}\) pour les deux hauteurs : elles jouent des rôles différents (un brelan de rois et une paire de 7 n'est pas un brelan de 7 et une paire de rois).</p>
+    <p><strong>Q4.</strong> Complémentaire : aucun as, soit 5 cartes parmi les 48 autres, \(\binom{48}{5} = 1\,712\,304\) mains. D'où \(P(\text{au moins un as}) = 1 - \dfrac{\binom{48}{5}}{\binom{52}{5}} \approx 0{,}341\). Le calcul « un as, puis 4 cartes quelconques parmi 51 » donne \(999\,600\) au lieu de \(886\,656\) mains : une main qui contient deux as est produite deux fois (chaque as peut être « le premier »), une main à trois as trois fois, et ainsi de suite. On ne peut pas diviser pour corriger, car les mains ne sont pas toutes comptées le même nombre de fois.</p>
+  </div>
+</div>
+
+<div class="exo"><span class="num">EXO 06</span><span class="diff">★ ★ ☆</span>
+  <h3>Le paradoxe des anniversaires</h3>
+  <div class="statement">Dans un groupe de \(n\) personnes, on suppose les dates d'anniversaire équiréparties sur 365 jours et indépendantes (on ignore le 29 février).</div>
+  <div class="q"><strong>Q1.</strong> Calculer la probabilité \(q_n\) que les \(n\) personnes aient des anniversaires deux à deux distincts (\(n \leq 365\)).</div>
+  <div class="q"><strong>Q2.</strong> Calculer numériquement \(1 - q_{23}\) et commenter.</div>
+  <div class="q"><strong>Q3.</strong> En utilisant \(\ln(1 - x) \approx -x\) pour \(x\) petit, retrouver l'ordre de grandeur du seuil \(n\) à partir duquel une coïncidence devient plus probable qu'improbable.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution"><h4>Correction</h4>
+    <p><strong>Q1.</strong> Univers : les \(n\)-listes de jours, \(|\Omega| = 365^n\), équiprobables. Favorables : \(n\)-listes d'éléments distincts, \(365 \times 364 \times \dots \times (365 - n + 1)\). Donc</p>
+    <div class="formula">$$q_n = \frac{365 \times 364 \times \cdots \times (365-n+1)}{365^n} = \prod_{k=0}^{n-1}\Big(1 - \frac{k}{365}\Big).$$</div>
+    <p><strong>Q2.</strong> \(q_{23} \approx 0{,}493\), donc la probabilité d'au moins une coïncidence vaut \(1 - q_{23} \approx 0{,}507\). Avec seulement 23 personnes, une coïncidence est déjà plus probable que le contraire. Le « paradoxe » vient de ce qu'on pense à une coïncidence avec <em>sa propre</em> date, alors qu'il y a \(\binom{23}{2} = 253\) paires de personnes susceptibles de coïncider.</p>
+    <p><strong>Q3.</strong> En prenant le logarithme du produit :</p>
+    <div class="formula">$$\ln q_n = \sum_{k=0}^{n-1}\ln\Big(1 - \frac{k}{365}\Big) \approx -\sum_{k=0}^{n-1}\frac{k}{365} = -\frac{n(n-1)}{730}.$$</div>
+    <p>La condition \(q_n \leq \frac12\) devient approximativement \(n(n-1) \geq 730\ln 2 \approx 506\), soit \(n^2 - n - 506 \geq 0\) ; la racine positive vaut \(\dfrac{1 + \sqrt{2\,025}}{2} = 23\). On retrouve le seuil exact \(n = 23\) (le calcul exact donne \(1 - q_{22} \approx 0{,}476\)).</p>
+  </div>
+</div>
+
+<div class="exo"><span class="num">EXO 07</span><span class="diff">★ ★ ☆</span>
+  <h3>Contrôle d'un lot de pièces</h3>
+  <div class="statement">Un lot de 20 pièces contient 4 pièces défectueuses. On en prélève 5 au hasard, simultanément. On note \(X\) le nombre de pièces défectueuses de l'échantillon.</div>
+  <div class="q"><strong>Q1.</strong> Quelles valeurs \(X\) peut-il prendre ? Exprimer \(P(X = k)\) par dénombrement.</div>
+  <div class="q"><strong>Q2.</strong> Calculer \(P(X = 0)\), \(P(X = 1)\), \(P(X = 2)\), puis \(P(X \geq 3)\).</div>
+  <div class="q"><strong>Q3.</strong> Calculer la moyenne \(\sum_k k\,P(X = k)\) des valeurs de \(X\) pondérées par leurs probabilités (l'espérance, définie au chapitre « Variables aléatoires »). Commenter.</div>
+  <div class="q"><strong>Q4.</strong> Comparer \(P(X = 0)\) avec la probabilité de ne tirer aucune pièce défectueuse en 5 tirages <em>avec remise</em>.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution"><h4>Correction</h4>
+    <p><strong>Q1.</strong> \(X \in \{0, 1, 2, 3, 4\}\) (il n'y a que 4 pièces défectueuses). Univers : parties à 5 éléments du lot, \(\binom{20}{5} = 15\,504\), équiprobables. Favorables : \(k\) défectueuses parmi 4 et \(5 - k\) bonnes parmi 16 (méthode « contrainte de composition ») :</p>
+    <div class="formula">$$P(X = k) = \frac{\binom 4k\binom{16}{5-k}}{\binom{20}{5}} .$$</div>
+    <p><strong>Q2.</strong> \(P(X = 0) = \dfrac{4\,368}{15\,504} \approx 0{,}282\) ; \(P(X = 1) = \dfrac{4 \times 1\,820}{15\,504} = \dfrac{7\,280}{15\,504} \approx 0{,}470\) ; \(P(X = 2) = \dfrac{6 \times 560}{15\,504} = \dfrac{3\,360}{15\,504} \approx 0{,}217\). Pour \(X \geq 3\) : \(\binom 43\binom{16}{2} + \binom 44\binom{16}{1} = 480 + 16 = 496\) parties, soit \(P(X \geq 3) \approx 0{,}032\). Contrôle : \(4\,368 + 7\,280 + 3\,360 + 480 + 16 = 15\,504\).</p>
+    <p><strong>Q3.</strong></p>
+    <div class="formula">$$\frac{7\,280 + 2 \times 3\,360 + 3 \times 480 + 4 \times 16}{15\,504} = \frac{15\,504}{15\,504} = 1.$$</div>
+    <p> En moyenne, l'échantillon contient une pièce défectueuse : la proportion de l'échantillon (1 sur 5) reproduit celle du lot (4 sur 20). Cette loi s'appelle loi hypergéométrique ; son nom et ses formules générales sont hors programme, seul le calcul par dénombrement est exigible.</p>
+    <p><strong>Q4.</strong> Avec remise, chaque tirage est une 5-liste de pièces, \(20^5\) listes équiprobables, dont \(16^5\) sans pièce défectueuse : \(\big(\frac{16}{20}\big)^5 = 0{,}8^5 \approx 0{,}328\). Sans remise, la probabilité est plus faible (\(0{,}282\)) : chaque bonne pièce tirée rend la suivante un peu moins probable.</p>
+  </div>
+</div>
+
+<div class="exo"><span class="num">EXO 08</span><span class="diff">★ ★ ☆</span>
+  <h3>Anagrammes</h3>
+  <div class="statement">On s'intéresse aux anagrammes (ayant un sens ou non) des mots SUCCES et PROBABILITE.</div>
+  <div class="q"><strong>Q1.</strong> Combien d'anagrammes a le mot SUCCES ? Donner deux raisonnements.</div>
+  <div class="q"><strong>Q2.</strong> Combien d'anagrammes a le mot PROBABILITE (11 lettres) ?</div>
+  <div class="q"><strong>Q3.</strong> Parmi elles, combien ont leurs deux B côte à côte ? En déduire la probabilité qu'une anagramme choisie au hasard ait ses deux B côte à côte, et retrouver ce résultat en ne regardant que les positions des deux B.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution"><h4>Correction</h4>
+    <p><strong>Q1.</strong> Positions des deux S (\(\binom 62 = 15\)), puis des deux C parmi les 4 restantes (\(\binom 42 = 6\)), puis ordre de U et E (2) : \(180\). Ou : \(6! = 720\) mots si l'on distingue \(S_1, S_2, C_1, C_2\), chaque anagramme étant obtenue \(2! \times 2! = 4\) fois : \(720/4 = 180\).</p>
+    <p><strong>Q2.</strong> Les lettres sont P, R, O, B, B, A, I, I, L, T, E : deux B, deux I, sept lettres simples. \(\dfrac{11!}{2!\,2!} = \dfrac{39\,916\,800}{4} = 9\,979\,200\) anagrammes.</p>
+    <p><strong>Q3.</strong> On colle les deux B en un bloc « BB » : il reste 10 objets dont deux I, soit \(\dfrac{10!}{2!} = 1\,814\,400\) anagrammes. Probabilité : \(\dfrac{1\,814\,400}{9\,979\,200} = \dfrac{2}{11}\). Autre point de vue : les positions des deux B forment une partie à 2 éléments de \(\{1, \dots, 11\}\), toutes équiprobables par symétrie ; 10 d'entre elles sur \(\binom{11}{2} = 55\) sont formées de positions voisines, d'où \(\dfrac{10}{55} = \dfrac{2}{11}\).</p>
+  </div>
+</div>
+
+<div class="exo"><span class="num">EXO 09</span><span class="diff">★ ★ ☆</span>
+  <h3>Sommes de coefficients binomiaux</h3>
+  <div class="statement">Soit \(n \geq 1\) un entier et \(E\) un ensemble à \(n\) éléments.</div>
+  <div class="q"><strong>Q1.</strong> Calculer \(\sum_{k=0}^n k\binom nk\) de deux façons : par la formule du capitaine, et en dérivant \(x \mapsto (1+x)^n\).</div>
+  <div class="q"><strong>Q2.</strong> Montrer que \(E\) a autant de parties de cardinal pair que de parties de cardinal impair. Combien en a-t-il de chaque sorte ?</div>
+  <div class="q"><strong>Q3.</strong> Calculer \(\sum_{k=0}^n \binom nk 2^k\). Interpréter ce nombre en comptant les couples \((A, B)\) de parties de \(E\) telles que \(A \subset B\).</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution"><h4>Correction</h4>
+    <p><strong>Q1.</strong> Par le capitaine :</p>
+    <div class="formula">$$\sum_{k=1}^n k\binom nk = \sum_{k=1}^n n\binom{n-1}{k-1} = n\sum_{j=0}^{n-1}\binom{n-1}{j} = n\,2^{n-1}.$$</div>
+    <p>Par dérivation : \((1+x)^n = \sum_k \binom nk x^k\) donne \(n(1+x)^{n-1} = \sum_k k\binom nk x^{k-1}\), puis \(x = 1\). Contrôle pour \(n = 5\) : \(5 + 20 + 30 + 20 + 5 = 80 = 5 \times 2^4\).</p>
+    <p><strong>Q2.</strong> Le binôme avec \(a = -1\), \(b = 1\) donne \(\sum_k (-1)^k\binom nk = 0\) (car \(n \geq 1\)) : la somme des \(\binom nk\) pour \(k\) pair égale celle pour \(k\) impair. Comme leur total vaut \(2^n\), chacune vaut \(2^{n-1}\). Pour \(n = 6\) : \(1 + 15 + 15 + 1 = 32\) parties de cardinal pair.</p>
+    <p><strong>Q3.</strong> \(\sum_k \binom nk 2^k = (1+2)^n = 3^n\). Interprétation : choisir \(B\) de cardinal \(k\) (\(\binom nk\) façons), puis \(A\) partie quelconque de \(B\) (\(2^k\) façons), et sommer sur \(k\) (cas disjoints). Directement : chaque élément de \(E\) est soit dans \(A\), soit dans \(B \setminus A\), soit hors de \(B\), trois choix indépendants : \(3^n\) couples. Pour \(n = 5\) : 243.</p>
+  </div>
+</div>
+
+<div class="exo"><span class="num">EXO 10</span><span class="diff">★ ★ ★</span>
+  <h3>Identité de Vandermonde et coefficient central</h3>
+  <div class="statement">Soit \(m\), \(n\), \(r\) des entiers naturels.</div>
+  <div class="q"><strong>Q1.</strong> Montrer par un argument combinatoire que \(\displaystyle\sum_{k=0}^r\binom mk\binom n{r-k} = \binom{m+n}{r}\) (identité de Vandermonde).</div>
+  <div class="q"><strong>Q2.</strong> En déduire que \(\displaystyle\sum_{k=0}^n\binom nk^2 = \binom{2n}{n}\).</div>
+  <div class="q"><strong>Q3.</strong> Montrer que \(\dfrac{\binom n{k+1}}{\binom nk} = \dfrac{n-k}{k+1}\) pour \(0 \leq k \leq n-1\). En déduire que, sur une ligne paire \(n = 2m\) du triangle de Pascal, le plus grand coefficient est \(\binom{2m}{m}\). Application : \(n = 20\).</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution"><h4>Correction</h4>
+    <p><strong>Q1.</strong> Double comptage. Un groupe est formé de \(m\) personnes du club A et de \(n\) du club B. On compte les comités de \(r\) personnes. Directement : \(\binom{m+n}{r}\). En classant selon le nombre \(k\) de membres du club A (cas disjoints) : \(k\) parmi \(m\) et \(r - k\) parmi \(n\), soit \(\binom mk\binom n{r-k}\) comités (les termes où \(k \gt m\) ou \(r - k \gt n\) sont nuls, conformément à la convention). La somme sur \(k\) compte tous les comités.</p>
+    <p><strong>Q2.</strong> Vandermonde avec \(m = n\) et \(r = n\) : \(\sum_k \binom nk\binom n{n-k} = \binom{2n}{n}\), et \(\binom n{n-k} = \binom nk\) (symétrie). Pour \(n = 10\) : \(\sum_k \binom{10}{k}^2 = \binom{20}{10} = 184\,756\).</p>
+    <p><strong>Q3.</strong></p>
+    <div class="formula">$$\frac{\binom n{k+1}}{\binom nk} = \frac{n!}{(k+1)!\,(n-k-1)!} \times \frac{k!\,(n-k)!}{n!} = \frac{n-k}{k+1}.$$</div>
+    <p> Ce rapport est strictement supérieur à 1 si et seulement si \(n - k \gt k + 1\), c'est-à-dire \(k \lt \frac{n-1}{2}\). Pour \(n = 2m\) : les coefficients croissent strictement tant que \(k \leq m - 1\) (on passe de \(\binom{2m}{k}\) à \(\binom{2m}{k+1}\) en augmentant), puis décroissent strictement à partir de \(k = m\). Le maximum est donc \(\binom{2m}{m}\), atteint seulement au milieu. Pour \(n = 20\) : \(\binom{20}{10} = 184\,756\) est le plus grand coefficient de \((1+x)^{20}\).</p>
+  </div>
+</div>
+
+<div class="exo"><span class="num">EXO 11</span><span class="diff">★ ★ ★</span>
+  <h3>Mots binaires sans deux 1 consécutifs</h3>
+  <div class="statement">Pour \(n \geq 1\), on note \(u_n\) le nombre de mots de longueur \(n\) écrits avec 0 et 1, ne contenant jamais deux 1 consécutifs (comme 10100, mais pas 10110).</div>
+  <div class="q"><strong>Q1.</strong> Calculer \(u_1\), \(u_2\), \(u_3\).</div>
+  <div class="q"><strong>Q2.</strong> En distinguant selon la dernière lettre, montrer que \(u_{n+2} = u_{n+1} + u_n\) pour \(n \geq 1\). Calculer \(u_{10}\).</div>
+  <div class="q"><strong>Q3.</strong> Soit \(0 \leq k \leq n\). Montrer que le nombre de ces mots contenant exactement \(k\) chiffres 1 est \(\binom{n-k+1}{k}\). (Écrire d'abord les \(n - k\) zéros.)</div>
+  <div class="q"><strong>Q4.</strong> En déduire une expression de \(u_n\) comme somme de coefficients binomiaux, et la vérifier pour \(n = 10\).</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution"><h4>Correction</h4>
+    <p><strong>Q1.</strong> \(u_1 = 2\) (0 et 1) ; \(u_2 = 3\) (00, 01, 10) ; \(u_3 = 5\) (000, 001, 010, 100, 101).</p>
+    <p><strong>Q2.</strong> Un mot valable de longueur \(n + 2\) se termine soit par 0, soit par 1 (cas disjoints). S'il finit par 0, ce qui précède est un mot valable quelconque de longueur \(n + 1\) : \(u_{n+1}\) mots. S'il finit par 1, l'avant-dernière lettre est forcément 0, et ce qui précède ce « 01 » est un mot valable de longueur \(n\) : \(u_n\) mots. D'où \(u_{n+2} = u_{n+1} + u_n\). On calcule : 2, 3, 5, 8, 13, 21, 34, 55, 89, 144 : \(u_{10} = 144\) (sur \(2^{10} = 1\,024\) mots).</p>
+    <p><strong>Q3.</strong> Écrivons les \(n - k\) zéros : ils délimitent \(n - k + 1\) emplacements (avant le premier, entre deux zéros, après le dernier). Placer \(k\) chiffres 1 sans que deux soient voisins revient à choisir \(k\) emplacements <em>distincts</em> parmi ces \(n - k + 1\), un 1 par emplacement choisi : \(\binom{n-k+1}{k}\) mots. Le coefficient est nul dès que \(k \gt n - k + 1\), ce qui est cohérent (trop de 1 pour les séparer).</p>
+    <p><strong>Q4.</strong> En sommant sur le nombre de 1 (cas disjoints) : \(u_n = \sum_{k \geq 0}\binom{n-k+1}{k}\). Pour \(n = 10\) :</p>
+    <div class="formula">$$\binom{11}{0} + \binom{10}{1} + \binom 92 + \binom 83 + \binom 74 + \binom 65 = 1 + 10 + 36 + 56 + 35 + 6 = 144.$$</div>
+    <p>On retrouve \(u_{10}\) : les deux méthodes comptent les mêmes mots.</p>
+  </div>
+</div>
+
+<div class="exo concours"><span class="num">CONCOURS PT</span><span class="diff">★ ★ ★</span>
+  <div class="exo-source">Exercice <strong>original</strong> au format des épreuves PT (thème : chemins dans un quadrillage, coefficients binomiaux et probabilité uniforme).</div>
+  <h3>Chemins dans un quadrillage</h3>
+  <div class="statement">Pour des entiers \(a, b \geq 0\), un <em>chemin</em> de \((0, 0)\) à \((a, b)\) est une suite de pas unité, chacun vers la droite (pas E, qui ajoute 1 à l'abscisse) ou vers le haut (pas N, qui ajoute 1 à l'ordonnée), partant de \((0, 0)\) et arrivant en \((a, b)\). On note \(c(a, b)\) le nombre de ces chemins.</div>
+  <div class="exo-part"><strong>Partie A — Compter les chemins</strong></div>
+  <div class="q"><strong>A1.</strong> Combien de pas compte un chemin de \((0, 0)\) à \((a, b)\) ? Montrer que \(c(a, b) = \binom{a+b}{a}\).</div>
+  <div class="q"><strong>A2.</strong> Calculer \(c(5, 3)\) et \(c(4, 4)\).</div>
+  <div class="exo-part"><strong>Partie B — Deux identités</strong></div>
+  <div class="q"><strong>B1.</strong> Pour \(a, b \geq 1\), en distinguant selon le dernier pas, montrer que \(c(a, b) = c(a-1, b) + c(a, b-1)\). Quelle formule reconnaît-on ?</div>
+  <div class="q"><strong>B2.</strong> Soit \(0 \leq p \leq n\). En classant les chemins de \((0, 0)\) à \((n - p, p + 1)\) selon l'abscisse \(j\) de leur dernier pas N, montrer que \(\displaystyle\binom{n+1}{p+1} = \sum_{k=p}^{n}\binom kp\).</div>
+  <div class="q"><strong>B3.</strong> Appliquer B2 avec \(p = 1\) puis \(p = 2\) pour retrouver \(\sum_{k=1}^n k\) et \(\sum_{k=1}^n k^2\).</div>
+  <div class="exo-part"><strong>Partie C — Un chemin tiré au hasard</strong></div>
+  <div class="q"><strong>C1.</strong> On choisit au hasard, de façon équiprobable, un chemin de \((0, 0)\) à \((4, 4)\). Probabilité qu'il passe par le point \((2, 2)\) ? par le point \((1, 3)\) ? qu'il évite \((2, 2)\) ?</div>
+  <div class="q"><strong>C2.</strong> Tout chemin de \((0, 0)\) à \((n, n)\) passe par exactement un point de la droite \(x + y = n\). En déduire une nouvelle preuve de \(\sum_{k=0}^n\binom nk^2 = \binom{2n}{n}\).</div>
+  <div class="q"><strong>C3.</strong> On construit maintenant un chemin de 8 pas en choisissant chaque pas E ou N à pile ou face (\(2^8\) suites équiprobables). Probabilité d'arriver en \((4, 4)\) ? d'arriver en \((4, 4)\) en évitant \((2, 2)\) ?</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution"><h4>Correction</h4>
+    <p><strong>A1.</strong> Il faut \(a\) pas E et \(b\) pas N, soit \(a + b\) pas. Un chemin est déterminé par l'ensemble des rangs (parmi \(1, \dots, a + b\)) de ses pas E, partie à \(a\) éléments, et toute partie à \(a\) éléments définit un chemin. Donc \(c(a, b) = \binom{a+b}{a} = \binom{a+b}{b}\).</p>
+    <p><strong>A2.</strong> \(c(5, 3) = \binom 83 = 56\) et \(c(4, 4) = \binom 84 = 70\).</p>
+    <p><strong>B1.</strong> Le dernier pas d'un chemin arrivant en \((a, b)\) vient soit de \((a - 1, b)\) (pas E), soit de \((a, b - 1)\) (pas N) : deux familles disjointes, en bijection avec les chemins arrivant en ces points. D'où la relation, qui s'écrit \(\binom{a+b}{a} = \binom{a+b-1}{a-1} + \binom{a+b-1}{a}\) : c'est la formule de Pascal avec \(n = a + b - 1\) et \(p = a - 1\).</p>
+    <p><strong>B2.</strong> Un chemin de \((0, 0)\) à \((n - p, p + 1)\) compte \(p + 1\) pas N. Son dernier pas N va de \((j, p)\) à \((j, p + 1)\) pour un \(j \in \{0, \dots, n - p\}\), et ensuite il n'y a plus que des pas E. Un tel chemin est donc déterminé par \(j\) et par un chemin de \((0, 0)\) à \((j, p)\), au nombre de \(\binom{j+p}{p}\). En sommant sur \(j\) (cas disjoints) :</p>
+    <div class="formula">$$\binom{n+1}{p+1} = c(n-p, p+1) = \sum_{j=0}^{n-p}\binom{j+p}{p} = \sum_{k=p}^{n}\binom kp \quad (k = j + p).$$</div>
+    <p><strong>B3.</strong> Pour \(p = 1\) : \(\sum_{k=1}^n k = \binom{n+1}{2} = \dfrac{n(n+1)}{2}\). Pour \(p = 2\) : \(\sum_{k=2}^n \dfrac{k(k-1)}{2} = \binom{n+1}{3}\), donc</p>
+    <div class="formula">$$\begin{aligned} \sum_{k=1}^n k^2 &= \sum_{k=1}^n k(k-1) + \sum_{k=1}^n k = 2\binom{n+1}{3} + \binom{n+1}{2} \\ &= \frac{(n+1)n(n-1)}{3} + \frac{n(n+1)}{2} = \frac{n(n+1)(2n+1)}{6}. \end{aligned}$$</div>
+    <p><strong>C1.</strong> Univers : les 70 chemins, équiprobables. Passer par \((2, 2)\) : un chemin jusqu'à \((2, 2)\) puis un chemin de \((2, 2)\) à \((4, 4)\), qui est un chemin « translaté » de \((0, 0)\) à \((2, 2)\) : \(\binom 42 \times \binom 42 = 36\), d'où \(\dfrac{36}{70} = \dfrac{18}{35} \approx 0{,}514\). Par \((1, 3)\) : \(\binom 41 \times \binom 43 = 16\), d'où \(\dfrac{16}{70} = \dfrac{8}{35}\). Éviter \((2, 2)\) : complémentaire, \(\dfrac{34}{70} = \dfrac{17}{35}\).</p>
+    <p><strong>C2.</strong> Après \(n\) pas, un chemin est en un point \((k, n - k)\) de la droite \(x + y = n\), et il n'y passe qu'une fois (chaque pas augmente \(x + y\) de 1). Les chemins passant par \((k, n - k)\) sont au nombre de \(\binom nk \times \binom{n}{n-k} = \binom nk^2\) (de \((0, 0)\) à \((k, n-k)\), puis de \((k, n-k)\) à \((n, n)\)). Les familles obtenues pour \(k = 0, \dots, n\) sont disjointes et recouvrent tous les chemins : \(\sum_k \binom nk^2 = c(n, n) = \binom{2n}{n}\). Pour \(n = 4\) : \(1 + 16 + 36 + 16 + 1 = 70\).</p>
+    <p><strong>C3.</strong> Arriver en \((4, 4)\) : 4 pas E parmi 8, \(\dfrac{\binom 84}{2^8} = \dfrac{70}{256} = \dfrac{35}{128} \approx 0{,}273\). En évitant \((2, 2)\) : \(\dfrac{34}{256} = \dfrac{17}{128} \approx 0{,}133\). Ici les chemins de 8 pas sont équiprobables, mais pas les points d'arrivée ; conditionnellement à l'arrivée en \((4, 4)\), on retrouve la probabilité uniforme de la partie C : \(\dfrac{34/256}{70/256} = \dfrac{17}{35}\).</p>
+  </div>
+</div>
+
+</div>
+</template>

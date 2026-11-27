@@ -1,0 +1,1923 @@
+<!-- Chapitre « Ingénierie système : besoin, exigences, architecture » (ingsys) : contenu des onglets Cours, Méthodes et Exercices, chargé à l'ouverture du chapitre.
+     On l'édite ici, puis : node tools/chapitres.js (docs/chargement-chapitres.md). -->
+<template class="pan-tpl" data-panneau="afs-cours">
+<div class="course-section">
+  <div class="sec-num">AU PROGRAMME · PTSI</div>
+  <h2>Ce que le programme officiel demande</h2>
+  <div class="intro">Ce chapitre ouvre presque tous les sujets de sciences industrielles : avant de calculer quoi que ce soit, on situe le système, son besoin, ses exigences et son architecture. Il couvre les compétences A1 « analyser le besoin et les exigences » (semestre S1), A2 « définir les frontières de l'analyse » (S2) et A3 « analyser l'organisation fonctionnelle et structurelle » (S1), et introduit la comparaison des performances attendues, simulées et mesurées. Les diagrammes SysML sont fournis par l'énoncé : on les <strong>lit</strong> et on les <strong>complète</strong>, on ne les écrit pas de zéro. Le fil rouge est un robot de tonte inventé pour l'occasion, mais réaliste.</div>
+  <div class="reveal" onclick="this.classList.toggle('open')">
+    <span class="label">Programme officiel</span>
+    <span class="prompt">Les capacités exigibles, dans l'ordre du chapitre</span>
+    <div class="content">
+      <ul>
+        <li><strong>Décrire le besoin et les exigences</strong> : ingénierie système et diagrammes associés, cahier des charges (A1, S1) (§1, §3).</li>
+        <li><strong>Isoler un système et justifier l'isolement</strong>, <strong>définir les éléments influents du milieu extérieur</strong> : frontière de l'étude, milieu extérieur (A2, S2) ; <strong>identifier la nature des flux</strong> de matière, d'énergie et d'information traversant la frontière d'étude (définition, nature et codage) (A2, S2) (§2).</li>
+        <li><strong>Traduire un besoin fonctionnel en exigences</strong> ; <strong>qualifier et quantifier les exigences</strong> : critères et niveaux (A1, S1) (§3, §4).</li>
+        <li><strong>Définir les critères technico-économiques et environnementaux</strong> ; <strong>évaluer l'impact environnemental et sociétal</strong> : analyse du cycle de vie (extraction, fabrication, utilisation, fin de vie, recyclage et transport) (A1, S1) (§5).</li>
+        <li><strong>Associer les fonctions aux constituants</strong> : architecture fonctionnelle et structurelle, diagramme de définition de blocs, diagramme de blocs internes, à lire ou à compléter (A3, S1) (§6, §7).</li>
+        <li><strong>Identifier et décrire les chaînes fonctionnelles</strong> : fonctions acquérir, traiter et communiquer ; alimenter, moduler, convertir, transmettre et agir (A3, S1) (§8).</li>
+        <li><strong>Identifier et décrire les liens entre les chaînes fonctionnelles</strong> : systèmes asservis et séquentiels (A3, S1) (§9). La structure d'un système asservi est détaillée dans <a href="#schblocs/cours">« Schéma-blocs et systèmes asservis »</a>, le diagramme d'états (A3, S2) dans <a href="#sequentiel/cours">« Systèmes séquentiels »</a>.</li>
+        <li><strong>Vérifier la cohérence du modèle</strong> en confrontant les résultats analytiques ou numériques aux résultats expérimentaux : critères de performances (B3, S2) (§10). Extraire un indicateur de performance, caractériser les écarts et en rechercher les causes (A4) est exigible en fin de 2ᵉ année (S4) ; la démarche est introduite ici.</li>
+      </ul>
+      <p>La syntaxe d'un langage d'ingénierie système n'est pas exigible : la structure des diagrammes SysML est fournie, et leur écriture se limite à la complétion et à la modification. Hors programme, regroupés en fin de chapitre : diagrammes de séquence, d'activité et paramétrique, outils de l'ancienne analyse fonctionnelle (bête à cornes, diagramme pieuvre, FAST), analyse de cycle de vie normalisée. Relèvent de la 2ᵉ année : le choix et le dimensionnement des constituants et l'écoconception d'une architecture (<a href="#chfonc/cours">« Chaînes fonctionnelles : choisir et dimensionner les composants »</a>), la modélisation multiphysique et le recalage d'un modèle (<a href="#multiphy/cours">« Modélisation multiphysique »</a>).</p>
+    </div>
+  </div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§1 · SYSTÈME, BESOIN ET INGÉNIERIE SYSTÈME</div>
+  <h2>Du besoin au produit</h2>
+  <div class="intro">Un produit industriel naît d'un besoin, pas d'une technologie. L'ingénierie système organise le passage du besoin au produit vérifié en gardant, à chaque étape, la trace des choix faits. SysML est le langage graphique qui porte cette trace.</div>
+
+  <h3>Système, besoin, matière d'œuvre</h3>
+  <div class="def-box">
+    <p><strong>Système</strong> : ensemble organisé de constituants en interaction, conçu pour rendre un service à un utilisateur dans un environnement donné.</p>
+    <p><strong>Besoin</strong> : nécessité ou désir d'un utilisateur, exprimé <em>sans référence à une solution</em> : « garder ma pelouse courte sans y passer mes week-ends », et non « je veux un robot ».</p>
+    <p><strong>Matière d'œuvre</strong> : ce sur quoi le système agit (une matière, de l'énergie ou de l'information). <strong>Valeur ajoutée</strong> : différence entre l'état de la matière d'œuvre en sortie et son état en entrée.</p>
+  </div>
+  <p>Pour le robot de tonte, la matière d'œuvre est la pelouse : elle entre à 40 mm de hauteur et ressort à 30 mm, les brins coupés très court restant sur place comme engrais (paillage, ou <em>mulching</em>). La valeur ajoutée est une pelouse tenue à hauteur constante sans intervention humaine.</p>
+  <p>Pour énoncer un besoin, on répond à trois questions : <strong>à qui</strong> le produit rend-il service (au propriétaire du jardin), <strong>sur quoi</strong> agit-il (sur la pelouse), <strong>dans quel but</strong> (la garder courte et régulière sans effort) ? On se demande ensuite pourquoi ce besoin existe et ce qui pourrait le faire disparaître : manque de temps, goût pour un gazon ras… mais une prairie fleurie fauchée deux fois par an, plus favorable à la biodiversité, supprimerait le besoin. C'est la <strong>validation du besoin</strong> : un produit parfait qui répond à un besoin mal posé est un échec.</p>
+
+  <h3>La démarche d'ingénierie système</h3>
+  <ol>
+    <li><strong>Analyser le besoin et le contexte</strong> : utilisateurs, lieux, moments d'utilisation, contraintes (réglementation, sécurité, environnement).</li>
+    <li><strong>Écrire les exigences</strong>, chiffrées et vérifiables (§3, §4, §5).</li>
+    <li><strong>Définir l'architecture fonctionnelle</strong> (ce que le système doit faire), puis l'<strong>architecture structurelle</strong> (avec quels constituants) (§6 à §8).</li>
+    <li><strong>Réaliser</strong> les constituants et les intégrer.</li>
+    <li><strong>Vérifier</strong> que le produit satisfait ses exigences et <strong>valider</strong> qu'il répond au besoin, par des essais et des simulations (§10).</li>
+  </ol>
+  <p>Ces étapes se représentent souvent par un « cycle en V » : la branche descendante va du besoin aux constituants, la branche montante de l'intégration aux essais, et chaque niveau de conception est vérifié au même niveau de la branche montante.</p>
+  <div class="prop-box">
+    <strong>Vérifier n'est pas valider.</strong> <em>Vérifier</em>, c'est contrôler que le produit est conforme à ses exigences : a-t-on bien fait le produit ? <em>Valider</em>, c'est contrôler qu'il répond au besoin : a-t-on fait le bon produit ? Un robot peut tenir toutes ses exigences et décevoir, si une exigence a été oubliée (tondre au ras des bordures, par exemple).
+  </div>
+
+  <h3>Un modèle, plusieurs vues : SysML</h3>
+  <p><strong>SysML</strong> (<em>Systems Modeling Language</em>) est un langage graphique normalisé, dérivé d'UML, qui décrit un système par un <strong>modèle unique</strong> vu sous plusieurs angles. Chaque diagramme répond à une question ; ils partagent les mêmes éléments (un bloc du diagramme de définition de blocs est celui qui satisfait une exigence et qui apparaît dans le diagramme de blocs internes).</p>
+  <div>
+  <table>
+    <tr><th>Diagramme</th><th>Question</th><th>Section</th></tr>
+    <tr><td>cas d'utilisation (uc)</td><td>À quoi sert le système, et pour qui ?</td><td>§3</td></tr>
+    <tr><td>exigences (req)</td><td>Que doit-il garantir, à quel niveau ?</td><td>§4</td></tr>
+    <tr><td>définition de blocs (bdd)</td><td>De quoi est-il fait ?</td><td>§6</td></tr>
+    <tr><td>blocs internes (ibd)</td><td>Comment ses constituants sont-ils reliés, quels flux échangent-ils ?</td><td>§7</td></tr>
+    <tr><td>états (stm)</td><td>Comment se comporte-t-il au cours du temps ?</td><td>§9</td></tr>
+  </table>
+  </div>
+  <div class="notice"><strong>Au concours</strong>, l'énoncé fournit les diagrammes et, si besoin, la signification de leurs symboles : il faut savoir y trouver vite l'information utile (noms des blocs, valeurs chiffrées, multiplicités, relations) et compléter ce qui manque. Personne ne demande de redessiner un diagramme entier.</div>
+
+  <div class="method-box"><strong>Exemple — Traduire le besoin en premières grandeurs chiffrées</strong>
+    <p>Le jardin fait 800 m² ; au printemps, l'herbe pousse d'environ 2 mm par jour et l'utilisateur veut la garder entre 30 et 40 mm. Le robot coupe une bande de 22 cm en avançant à 0,30 m/s ; sa trajectoire aléatoire repasse souvent aux mêmes endroits, si bien que la moitié seulement de la surface balayée est « neuve » (efficacité de couverture de 50 %).</p>
+    <ol>
+      <li><strong>Débit de tonte effectif</strong> : \(0{,}22 \times 0{,}30 \times 0{,}5 = 0{,}033\ \text{m}^2/\text{s}\), soit environ 119 m² par heure.</li>
+      <li><strong>Rythme</strong> : 10 mm de pousse tolérée à 2 mm par jour, donc tout le terrain doit être repassé tous les 5 jours, soit 1,4 fois par semaine.</li>
+      <li><strong>Temps de tonte</strong> : \(800 \times 1{,}4 / 119 \approx 9{,}4\ \text{h}\) par semaine.</li>
+      <li><strong>Conclusion</strong> : avec une heure d'autonomie et un peu plus d'une heure de recharge, le robot fonctionne environ 20 h par semaine, ce qui tient largement dans une plage de 8 h à 20 h (84 h par semaine). Le besoin a fait apparaître les grandeurs qui deviendront des exigences : surface, hauteur, autonomie, temps de recharge.</li>
+    </ol>
+  </div>
+  <div class="notice"><strong>Erreur classique</strong> : formuler le besoin avec une solution (« il faut un robot muni d'une batterie de 54 W·h »). On s'interdit alors d'emblée d'autres réponses : tondeuse partagée entre voisins, tonte moins fréquente, autre couvert végétal. Le besoin et les exigences disent <em>quoi</em> ; l'architecture dit <em>comment</em>.</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§2 · FRONTIÈRE D'ÉTUDE, MILIEU EXTÉRIEUR ET FLUX</div>
+  <h2>Isoler le système et inventorier ce qui le traverse</h2>
+  <div class="intro">Avant toute étude, on dit ce qui est dedans et ce qui est dehors. Ce choix fixe la liste des flux à décrire, exactement comme l'isolement d'un solide fixe, en statique, la liste des actions mécaniques à écrire.</div>
+  <div class="def-box">
+    <p><strong>Frontière de l'étude</strong> : limite qui sépare le système étudié de son milieu extérieur ; elle dépend de la question posée.</p>
+    <p><strong>Milieu extérieur</strong> : tout ce qui n'est pas à l'intérieur de la frontière : utilisateurs, autres systèmes, environnement physique (sol, air, météo).</p>
+    <p><strong>Élément influent</strong> : élément du milieu extérieur qui agit sur le fonctionnement ou sur les performances (pente du sol, température, humidité de l'herbe), même s'il n'échange pas de flux propre au service rendu.</p>
+    <p><strong>Flux</strong> : ce qui traverse la frontière : de la <strong>matière</strong>, de l'<strong>énergie</strong> ou de l'<strong>information</strong>.</p>
+  </div>
+  <figure class="schema">
+<svg viewBox="0 0 540 334" role="img" aria-label="Frontière d'étude du robot de tonte : flux de matière, d'énergie et d'information échangés avec le milieu extérieur">
+<rect x="180" y="52" width="180" height="176" rx="10" class="sk-dash"/>
+<rect x="200" y="70" width="140" height="140" rx="6" class="sk-ink fl-paper"/>
+<text x="270" y="136" class="lab-b" text-anchor="middle">Robot de tonte</text>
+<text x="270" y="152" class="lab-muted" text-anchor="middle">(système étudié)</text>
+<text x="176" y="48" class="lab-muted lab-it" text-anchor="end">frontière d’étude</text>
+<rect x="210" y="4" width="120" height="32" rx="4" class="sk-axis fl-soft"/>
+<text x="270" y="24.5" text-anchor="middle">Utilisateur</text>
+<line x1="240" y1="36" x2="240" y2="69" class="sk-accent2" marker-end="url(#sk-arrow-accent2)"/>
+<line x1="300" y1="69" x2="300" y2="37" class="sk-accent2" marker-end="url(#sk-arrow-accent2)"/>
+<text x="204" y="17" class="lab-accent2" text-anchor="end">réglages,</text>
+<text x="204" y="32" class="lab-accent2" text-anchor="end">code PIN</text>
+<text x="336" y="17" class="lab-accent2">état,</text>
+<text x="336" y="32" class="lab-accent2">alertes</text>
+<rect x="14" y="72" width="120" height="34" rx="4" class="sk-axis fl-soft"/>
+<text x="74" y="93.5" text-anchor="middle">Obstacles</text>
+<line x1="134" y1="89" x2="199" y2="89" class="sk-accent2" marker-end="url(#sk-arrow-accent2)"/>
+<text x="157" y="83" class="lab-accent2" text-anchor="middle">choc</text>
+<rect x="14" y="122" width="120" height="34" rx="4" class="sk-axis fl-soft"/>
+<text x="74" y="143.5" text-anchor="middle">Sol (pente)</text>
+<line x1="134" y1="139" x2="200" y2="139" class="sk-axis"/>
+<text x="157" y="133" class="lab-muted lab-it" text-anchor="middle">influe</text>
+<rect x="14" y="172" width="120" height="34" rx="4" class="sk-axis fl-soft"/>
+<text x="74" y="193.5" text-anchor="middle">Voisinage</text>
+<line x1="200" y1="189" x2="135" y2="189" class="sk-accent" marker-end="url(#sk-arrow-accent)"/>
+<text x="157" y="183" class="lab-accent" text-anchor="middle">bruit</text>
+<rect x="406" y="72" width="120" height="34" rx="4" class="sk-axis fl-soft"/>
+<text x="466" y="93.5" text-anchor="middle">Météo</text>
+<line x1="406" y1="89" x2="341" y2="89" class="sk-accent2" marker-end="url(#sk-arrow-accent2)"/>
+<text x="383" y="83" class="lab-accent2" text-anchor="middle">pluie</text>
+<rect x="406" y="122" width="120" height="34" rx="4" class="sk-axis fl-soft"/>
+<text x="466" y="143.5" text-anchor="middle">Station de charge</text>
+<line x1="406" y1="139" x2="341" y2="139" class="sk-accent" marker-end="url(#sk-arrow-accent)"/>
+<text x="383" y="133" class="lab-accent" text-anchor="middle">charge</text>
+<rect x="406" y="172" width="120" height="34" rx="4" class="sk-axis fl-soft"/>
+<text x="466" y="193.5" text-anchor="middle">Fil périphérique</text>
+<line x1="406" y1="189" x2="341" y2="189" class="sk-accent2" marker-end="url(#sk-arrow-accent2)"/>
+<text x="383" y="183" class="lab-accent2" text-anchor="middle">signal</text>
+<rect x="200" y="262" width="140" height="40" rx="4" class="sk-axis fl-soft"/>
+<text x="270" y="279" text-anchor="middle">Pelouse</text>
+<text x="270" y="294" text-anchor="middle">(matière d’œuvre)</text>
+<line x1="240" y1="262" x2="240" y2="211" class="sk-green" marker-end="url(#sk-arrow-green)"/>
+<line x1="300" y1="211" x2="300" y2="261" class="sk-green" marker-end="url(#sk-arrow-green)"/>
+<text x="234" y="249" class="lab-green" text-anchor="end">herbe à 40 mm</text>
+<text x="306" y="249" class="lab-green">herbe à 30 mm</text>
+<line x1="30" y1="322" x2="56" y2="322" class="sk-green"/>
+<text x="62" y="326" class="lab-muted">matière</text>
+<line x1="158" y1="322" x2="184" y2="322" class="sk-accent"/>
+<text x="190" y="326" class="lab-muted">énergie</text>
+<line x1="286" y1="322" x2="312" y2="322" class="sk-accent2"/>
+<text x="318" y="326" class="lab-muted">information</text>
+<line x1="414" y1="322" x2="440" y2="322" class="sk-axis"/>
+<text x="446" y="326" class="lab-muted">influence</text>
+</svg>
+<figcaption>Robot de tonte isolé par sa frontière d'étude (en pointillés). Chaque flèche traverse la frontière : flux de <strong>matière</strong> (la pelouse, matière d'œuvre), d'<strong>énergie</strong> (charge, bruit émis) ou d'<strong>information</strong> (réglages, état, signaux des capteurs). Le sol n'échange pas de flux propre au fonctionnement mais <strong>influe</strong> sur les performances (pente, adhérence).</figcaption>
+</figure>
+
+  <h3>Isoler, et justifier l'isolement</h3>
+  <p>La frontière n'est pas imposée par l'objet : elle est choisie pour répondre à une question.</p>
+  <ul>
+    <li>Pour étudier l'<strong>autonomie</strong>, on isole le robot : la station de charge est extérieure, elle lui fournit un flux d'énergie.</li>
+    <li>Pour chiffrer la <strong>consommation électrique annuelle</strong> du produit vendu, on isole le robot <em>et</em> sa station : la station, branchée en permanence, consomme en veille (§5), ce qu'une frontière autour du seul robot ne verrait pas.</li>
+    <li>Pour <strong>dimensionner la batterie</strong>, on peut isoler la seule chaîne de puissance (§8).</li>
+  </ul>
+  <p>Justifier l'isolement, c'est dire quelle question on se pose et vérifier que tous les flux et tous les éléments influents utiles à cette question ont été recensés.</p>
+
+  <h3>Nature des flux</h3>
+  <div>
+  <table>
+    <tr><th>Flux</th><th>Nature</th><th>Exemples pour le robot</th></tr>
+    <tr><td>Matière</td><td>solides, liquides, gaz, objets, personnes transportées</td><td>herbe coupée (matière d'œuvre), débris</td></tr>
+    <tr><td>Énergie</td><td>électrique, mécanique (translation ou rotation), hydraulique, pneumatique, thermique, rayonnante, acoustique</td><td>charge sous 20 V et 2,5 A ; bruit émis</td></tr>
+    <tr><td>Information</td><td>logique (tout ou rien), analogique, numérique</td><td>soulèvement (logique), tension de la batterie (analogique), trame radio (numérique)</td></tr>
+  </table>
+  </div>
+  <p>Un flux d'énergie se caractérise par sa <strong>puissance</strong>, produit d'une grandeur « effort » par une grandeur « flux » :</p>
+  <div class="formula" data-nom="Puissance d'un flux d'énergie">$$P = U\,I \qquad P = F\,v \qquad P = C\,\omega \qquad P = p\,Q_v$$</div>
+  <p>(tension et intensité ; force et vitesse ; couple et vitesse angulaire ; pression et débit volumique). Un flux d'information porte une puissance négligeable : seule sa <em>valeur</em> compte.</p>
+
+  <h3>Codage de l'information</h3>
+  <p>Une information numérique est codée en binaire : \(n\) bits distinguent \(2^n\) valeurs. Codes usuels : le <strong>binaire naturel</strong> (pour compter) ; l'<strong>hexadécimal</strong>, qui écrit 4 bits en un seul symbole (1101 s'écrit D) ; le <strong>code de Gray</strong>, dans lequel deux valeurs voisines ne diffèrent que d'un bit (codeurs absolus : <a href="#capteurs/cours">« Capteurs et chaîne de mesure »</a>, §5) ; le code ASCII pour les caractères. La nature des signaux (logique, analogique, numérique) est détaillée dans « Capteurs et chaîne de mesure » (§2), les trames dans <a href="#reseaux/cours">« Réseaux de communication »</a> (§6).</p>
+  <div class="prop-box">
+    <strong>Nombre de bits.</strong> Pour coder \(N\) valeurs distinctes, il faut \(n\) bits avec \(2^{n-1} \lt N \le 2^n\) :
+    <div class="formula" data-nom="Nombre de bits pour N valeurs">$$n = \left\lceil \log_2 N \right\rceil$$</div>
+  </div>
+  <div class="method-box"><strong>Exemple — Les flux du robot à sa frontière</strong>
+    <ol>
+      <li><strong>Énergie reçue</strong> : la station délivre 2,5 A sous 20 V, soit 50 W. Pour remettre les 48,6 W·h utilisables de la batterie avec un rendement de charge de 0,9 : \(48{,}6 / (50 \times 0{,}9) \approx 1{,}08\ \text{h}\), environ 65 min.</li>
+      <li><strong>Réglage de hauteur</strong> : de 20 à 60 mm par pas de 5 mm, soit 9 positions ; \(2^3 = 8 \lt 9 \le 16 = 2^4\) : il faut 4 bits.</li>
+      <li><strong>Code PIN</strong> à 4 chiffres : \(10^4 = 10\,000\) combinaisons ; \(2^{13} = 8192 \lt 10\,000 \le 16\,384 = 2^{14}\) : 14 bits.</li>
+      <li><strong>Matière</strong> : l'herbe entre dans la zone de coupe à 40 mm et en ressort à 30 mm ; les brins coupés restent sur la pelouse.</li>
+    </ol>
+  </div>
+  <div class="notice"><strong>Erreur classique</strong> : confondre un flux et son support. Les 3,3 V d'une entrée logique transportent une <em>information</em> (seule compte la valeur 0 ou 1), pas une énergie utile ; les 18 V qui alimentent un moteur sont un flux d'<em>énergie</em>, même s'ils sont « commandés ». Autre erreur : oublier un élément influent (pente, température) et s'étonner ensuite des écarts entre prévision et mesure (§10).</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§3 · CAS D'UTILISATION</div>
+  <h2>Lire un diagramme de cas d'utilisation (uc)</h2>
+  <div class="intro">Le diagramme de cas d'utilisation répond à la question « à quoi sert le système, et pour qui ? ». Il décrit les services vus de l'extérieur, sans rien dire de la manière dont ils sont rendus.</div>
+  <div class="def-box">
+    <p><strong>Acteur</strong> : entité extérieure au système qui interagit avec lui : une personne (utilisateur, technicien) ou un autre système (station de charge, serveur). Il est dessiné par un bonhomme ou par un bloc marqué «actor».</p>
+    <p><strong>Cas d'utilisation</strong> : service rendu par le système à un acteur, nommé par un verbe à l'infinitif (« Tondre la pelouse ») et dessiné par une ellipse à l'intérieur du rectangle qui représente le système (le <strong>sujet</strong>).</p>
+    <p><strong>Association</strong> : trait entre un acteur et un cas auquel il participe. L'acteur <strong>principal</strong> déclenche le cas et en tire le service ; un acteur <strong>secondaire</strong> est sollicité par le système pour le rendre.</p>
+  </div>
+  <figure class="schema">
+<svg viewBox="0 0 540 322" role="img" aria-label="Diagramme de cas d'utilisation du robot de tonte : acteurs Utilisateur et Station de charge, six cas d'utilisation, relations include et extend">
+<rect x="2" y="2" width="536" height="318" class="sk-axis"/>
+<path d="M2,2 H210.5 V17 L203.5,24 H2 Z" class="sk-axis fl-paper"/>
+<text x="8" y="17.5"><tspan class="lab-b" font-weight="600">uc</tspan> [Robot de tonte] Services rendus</text>
+<rect x="120" y="34" width="300" height="278" class="sk-ink"/>
+<text x="270" y="52" class="lab-b" text-anchor="middle">Robot de tonte</text>
+<circle cx="44" cy="128" r="7" class="sk-ink fl-paper"/>
+<line x1="44" y1="135" x2="44" y2="155" class="sk-ink"/>
+<line x1="32" y1="142" x2="56" y2="142" class="sk-ink"/>
+<line x1="44" y1="155" x2="35" y2="169" class="sk-ink"/>
+<line x1="44" y1="155" x2="53" y2="169" class="sk-ink"/>
+<text x="44" y="185" class="lab-b" text-anchor="middle">Utilisateur</text>
+<circle cx="482" cy="216" r="7" class="sk-ink fl-paper"/>
+<line x1="482" y1="223" x2="482" y2="243" class="sk-ink"/>
+<line x1="470" y1="230" x2="494" y2="230" class="sk-ink"/>
+<line x1="482" y1="243" x2="473" y2="257" class="sk-ink"/>
+<line x1="482" y1="243" x2="491" y2="257" class="sk-ink"/>
+<text x="482" y="273" class="lab-b" text-anchor="middle">Station</text>
+<text x="482" y="288" class="lab-b" text-anchor="middle">de charge</text>
+<ellipse cx="196" cy="95" rx="70" ry="22" class="sk-ink fl-paper"/>
+<text x="196" y="99.5" text-anchor="middle">Tondre la pelouse</text>
+<ellipse cx="196" cy="180" rx="70" ry="22" class="sk-ink fl-paper"/>
+<text x="196" y="177" text-anchor="middle">Programmer</text>
+<text x="196" y="192" text-anchor="middle">la tonte</text>
+<ellipse cx="196" cy="265" rx="70" ry="22" class="sk-ink fl-paper"/>
+<text x="196" y="269.5" text-anchor="middle">Consulter l’état</text>
+<ellipse cx="362" cy="95" rx="52" ry="25" class="sk-ink fl-paper"/>
+<text x="362" y="92" text-anchor="middle">Déclencher</text>
+<text x="362" y="107" text-anchor="middle">l’alarme</text>
+<ellipse cx="362" cy="180" rx="52" ry="25" class="sk-ink fl-paper"/>
+<text x="362" y="177" text-anchor="middle">Retourner</text>
+<text x="362" y="192" text-anchor="middle">à la station</text>
+<ellipse cx="362" cy="265" rx="52" ry="25" class="sk-ink fl-paper"/>
+<text x="362" y="262" text-anchor="middle">Recharger</text>
+<text x="362" y="277" text-anchor="middle">la batterie</text>
+<line x1="58" y1="142" x2="127" y2="98" class="sk-ink"/>
+<line x1="58" y1="142" x2="127" y2="180" class="sk-ink"/>
+<line x1="58" y1="142" x2="128" y2="260" class="sk-ink"/>
+<line x1="468" y1="236" x2="414" y2="262" class="sk-ink"/>
+<polyline points="310,95 268,95" class="sk-dash" marker-end="url(#sk-arrow-ink)"/>
+<text x="289" y="80" class="lab-muted lab-it" text-anchor="middle">«extend»</text>
+<polyline points="362,240 362,207" class="sk-dash" marker-end="url(#sk-arrow-ink)"/>
+<text x="368" y="228" class="lab-muted lab-it">«include»</text>
+</svg>
+<figcaption>Diagramme de cas d'utilisation (uc). Le rectangle est le <strong>sujet</strong> (le système) ; les <strong>acteurs</strong> sont à l'extérieur, reliés aux cas qu'ils déclenchent ou auxquels ils participent. « Recharger la batterie » <strong>inclut</strong> toujours « Retourner à la station » ; « Déclencher l'alarme » <strong>étend</strong> « Tondre la pelouse » dans un cas particulier (robot soulevé sans code).</figcaption>
+</figure>
+
+  <h3>Relations entre cas</h3>
+  <ul>
+    <li><strong>«include»</strong> (inclusion) : le cas de base contient <em>toujours</em> le cas inclus ; la flèche va du cas de base vers le cas inclus. Recharger la batterie impose toujours de retourner à la station. L'inclusion sert aussi à mettre en commun un comportement partagé par plusieurs cas.</li>
+    <li><strong>«extend»</strong> (extension) : le cas d'extension s'ajoute au cas de base <em>dans certaines conditions seulement</em> ; la flèche va de l'extension vers la base. L'alarme ne se déclenche que si le robot est soulevé pendant la tonte sans que le code ait été saisi.</li>
+  </ul>
+  <p>Le diagramme ne donne ni l'ordre chronologique des échanges (c'est le rôle du diagramme de séquence, hors programme), ni les niveaux de performance, ni les solutions. Chaque cas se traduit ensuite en exigences chiffrées (§4), et un cas peut <strong>raffiner</strong> une exigence (relation «refine»).</p>
+
+  <div class="method-box"><strong>Exemple — Un cas inclus impose une exigence chiffrée</strong>
+    <p>« Recharger la batterie » inclut « Retourner à la station » : pour rentrer, le robot suit le fil périphérique enterré au bord de la pelouse. Le jardin est un rectangle de 20 m sur 40 m.</p>
+    <ol>
+      <li><strong>Pire cas</strong> : le robot rejoint le fil juste après la station dans son sens de suivi et doit en faire tout le tour : \(2 \times (20 + 40) = 120\ \text{m}\).</li>
+      <li><strong>Durée</strong> : \(120 / 0{,}30 = 400\ \text{s}\), soit 6,7 min.</li>
+      <li><strong>Énergie</strong> : lame arrêtée, le robot consomme environ 18 W (roues et électronique) : \(18 \times 400 / 3600 = 2{,}0\ \text{W·h}\).</li>
+      <li><strong>Conséquence</strong> : le seuil « batterie faible » qui déclenche le retour doit laisser au moins 2 W·h en réserve, plus une marge. C'est une exigence dérivée, que l'on retrouve au §4.</li>
+    </ol>
+  </div>
+  <div class="notice"><strong>Erreur classique</strong> : placer dans le rectangle du sujet un élément extérieur (la station de charge est un acteur, pas un cas ni une partie du robot), ou nommer un cas par un constituant (« Moteur de lame ») au lieu d'un service (« Tondre la pelouse »). Autre piège : inverser le sens des flèches, «include» va de la base vers l'inclus, «extend» de l'extension vers la base.</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§4 · EXIGENCES</div>
+  <h2>Traduire le besoin en exigences qualifiées et quantifiées</h2>
+  <div class="intro">Une exigence est une phrase du cahier des charges qui peut être vérifiée. Les rassembler, les chiffrer et les relier entre elles et aux solutions est le cœur de l'ingénierie système : c'est ce que montre le diagramme des exigences.</div>
+  <div class="def-box">
+    <p><strong>Exigence</strong> : propriété ou service que le système doit garantir, repérée par un identifiant (id) et énoncée par un texte.</p>
+    <p><strong>Exigence fonctionnelle</strong> : ce que le système doit faire (tondre, se recharger, alerter). <strong>Exigence non fonctionnelle</strong> : comment, combien, dans quelles limites : performance (autonomie, surface), contraintes d'environnement, de sécurité, de normes, d'interface, de coût, d'impact environnemental.</p>
+    <p><strong>Critère</strong> : grandeur qui permet de juger l'exigence (l'autonomie, en minutes). <strong>Niveau</strong> : valeur visée (60 min). <strong>Flexibilité</strong> : marge de négociation sur ce niveau, d'une flexibilité nulle (niveau impératif, classe F0) à une flexibilité forte (niveau très négociable, classe F3).</p>
+  </div>
+
+  <h3>Une bonne exigence</h3>
+  <ul>
+    <li><strong>unique</strong> : une seule idée par exigence ;</li>
+    <li><strong>vérifiable</strong> : on sait par quel essai, quelle simulation ou quel calcul la vérifier ;</li>
+    <li><strong>quantifiée</strong> : critère, niveau avec son unité, flexibilité ;</li>
+    <li><strong>précise sur ses conditions</strong> : herbe sèche, 20 °C, pente au plus de 35 % ;</li>
+    <li><strong>sans solution imposée</strong>, sauf contrainte réelle (une norme, une interface existante).</li>
+  </ul>
+  <p>« Le robot doit avoir une bonne autonomie » n'est pas une exigence ; « autonomie d'au moins 60 min en tonte, sur herbe sèche, à 20 °C, flexibilité nulle » en est une.</p>
+  <div>
+  <table>
+    <tr><th>Id</th><th>Exigence</th><th>Critère</th><th>Niveau</th><th>Flexibilité</th></tr>
+    <tr><td>1.1</td><td>Surface</td><td>surface entretenue</td><td>≥ 800 m²</td><td>F1</td></tr>
+    <tr><td>1.2</td><td>Hauteur</td><td>hauteur de coupe</td><td>20 à 60 mm, pas de 5 mm</td><td>F1</td></tr>
+    <tr><td>1.3</td><td>Autonomie</td><td>durée de tonte (herbe sèche, 20 °C)</td><td>≥ 60 min</td><td>F0</td></tr>
+    <tr><td>1.4</td><td>Sécurité</td><td>délai d'arrêt de la lame après soulèvement</td><td>≤ 2 s</td><td>F0</td></tr>
+    <tr><td>1.5</td><td>Bruit</td><td>niveau sonore à 1 m</td><td>≤ 60 dB(A)</td><td>F2</td></tr>
+    <tr><td>1.6</td><td>Masse</td><td>masse du robot</td><td>≤ 10 kg</td><td>F2</td></tr>
+    <tr><td>1.7</td><td>Faune</td><td>plage horaire de tonte</td><td>aucune tonte de 20 h à 8 h</td><td>F1</td></tr>
+  </table>
+  </div>
+  <figure class="schema">
+<svg viewBox="0 0 540 424" role="img" aria-label="Diagramme d'exigences du robot de tonte : exigence mère et quatre exigences contenues, exigence dérivée, relations refine, verify, deriveReqt et satisfy">
+<rect x="2" y="2" width="536" height="420" class="sk-axis"/>
+<path d="M2,2 H183.8 V17 L176.8,24 H2 Z" class="sk-axis fl-paper"/>
+<text x="8" y="17.5"><tspan class="lab-b" font-weight="600">req</tspan> [Robot de tonte] Exigences</text>
+<rect x="170" y="34" width="200" height="104" class="sk-ink fl-paper"/>
+<text x="270" y="49" class="lab-muted" text-anchor="middle">«requirement»</text>
+<text x="270" y="64" class="lab-b" text-anchor="middle">Entretenir la pelouse</text>
+<line x1="170" y1="71" x2="370" y2="71" class="sk-axis"/>
+<text x="175" y="86" class="lab-muted">id = 1</text>
+<text x="175" y="101">Garder 800 m² entre</text>
+<text x="175" y="116">30 et 40 mm de hauteur,</text>
+<text x="175" y="131">sans intervention</text>
+<rect x="12" y="176" width="124" height="108" class="sk-ink fl-paper"/>
+<text x="74" y="191" class="lab-muted" text-anchor="middle">«requirement»</text>
+<text x="74" y="206" class="lab-b" text-anchor="middle">Surface</text>
+<line x1="12" y1="213" x2="136" y2="213" class="sk-axis"/>
+<text x="17" y="228" class="lab-muted">id = 1.1</text>
+<text x="17" y="243">Surface tondue</text>
+<text x="17" y="258">≥ 800 m²</text>
+<line x1="270" y1="150" x2="74" y2="176" class="sk-ink"/>
+<rect x="142" y="176" width="124" height="108" class="sk-ink fl-paper"/>
+<text x="204" y="191" class="lab-muted" text-anchor="middle">«requirement»</text>
+<text x="204" y="206" class="lab-b" text-anchor="middle">Hauteur</text>
+<line x1="142" y1="213" x2="266" y2="213" class="sk-axis"/>
+<text x="147" y="228" class="lab-muted">id = 1.2</text>
+<text x="147" y="243">Coupe réglable de</text>
+<text x="147" y="258">20 à 60 mm, par</text>
+<text x="147" y="273">pas de 5 mm</text>
+<line x1="270" y1="150" x2="204" y2="176" class="sk-ink"/>
+<rect x="272" y="176" width="124" height="108" class="sk-ink fl-paper"/>
+<text x="334" y="191" class="lab-muted" text-anchor="middle">«requirement»</text>
+<text x="334" y="206" class="lab-b" text-anchor="middle">Autonomie</text>
+<line x1="272" y1="213" x2="396" y2="213" class="sk-axis"/>
+<text x="277" y="228" class="lab-muted">id = 1.3</text>
+<text x="277" y="243">Autonomie ≥ 60 min</text>
+<text x="277" y="258">(herbe sèche,</text>
+<text x="277" y="273">20 °C)</text>
+<line x1="270" y1="150" x2="334" y2="176" class="sk-ink"/>
+<rect x="402" y="176" width="124" height="108" class="sk-ink fl-paper"/>
+<text x="464" y="191" class="lab-muted" text-anchor="middle">«requirement»</text>
+<text x="464" y="206" class="lab-b" text-anchor="middle">Sécurité</text>
+<line x1="402" y1="213" x2="526" y2="213" class="sk-axis"/>
+<text x="407" y="228" class="lab-muted">id = 1.4</text>
+<text x="407" y="243">Lame arrêtée</text>
+<text x="407" y="258">en ≤ 2 s après</text>
+<text x="407" y="273">soulèvement</text>
+<line x1="270" y1="150" x2="464" y2="176" class="sk-ink"/>
+<circle cx="270" cy="144" r="6" class="sk-ink fl-paper"/>
+<line x1="264" y1="144" x2="276" y2="144" class="sk-ink"/>
+<line x1="270" y1="138" x2="270" y2="150" class="sk-ink"/>
+<ellipse cx="82" cy="112" rx="62" ry="20" class="sk-ink fl-paper"/>
+<text x="82" y="116.5" text-anchor="middle">Tondre la pelouse</text>
+<polyline points="128,98 169,80" class="sk-dash" marker-end="url(#sk-arrow-ink)"/>
+<text x="164" y="72" class="lab-muted lab-it" text-anchor="end">«refine»</text>
+<rect x="12" y="322" width="138" height="46" class="sk-ink fl-paper"/>
+<text x="81" y="339" class="lab-muted" text-anchor="middle">«testCase»</text>
+<text x="81" y="356" class="lab-b" text-anchor="middle">Essai d’autonomie</text>
+<polyline points="81,322 81,304 300,304 300,285" class="sk-dash" marker-end="url(#sk-arrow-ink)"/>
+<text x="190" y="298" class="lab-muted lab-it" text-anchor="middle">«verify»</text>
+<rect x="206" y="322" width="140" height="92" class="sk-ink fl-paper"/>
+<text x="276" y="337" class="lab-muted" text-anchor="middle">«requirement»</text>
+<text x="276" y="352" class="lab-b" text-anchor="middle">Énergie</text>
+<line x1="206" y1="359" x2="346" y2="359" class="sk-axis"/>
+<text x="211" y="374" class="lab-muted">id = 1.3.1</text>
+<text x="211" y="389">Énergie nominale de</text>
+<text x="211" y="404">la batterie ≥ 47 Wh</text>
+<polyline points="320,322 320,285" class="sk-dash" marker-end="url(#sk-arrow-ink)"/>
+<text x="326" y="308" class="lab-muted lab-it">«deriveReqt»</text>
+<rect x="420" y="322" width="110" height="92" class="sk-ink fl-paper"/>
+<text x="475" y="337" class="lab-muted" text-anchor="middle">«block»</text>
+<text x="475" y="352" class="lab-b" text-anchor="middle">Batterie</text>
+<line x1="420" y1="358" x2="530" y2="358" class="sk-axis"/>
+<text x="425" y="372" class="lab-muted lab-it">values</text>
+<text x="425" y="387" class="lab-muted">18 V ; 3,0 Ah</text>
+<polyline points="420,368 347,368" class="sk-dash" marker-end="url(#sk-arrow-ink)"/>
+<text x="383" y="360" class="lab-muted lab-it" text-anchor="middle">«satisfy»</text>
+</svg>
+<figcaption>Diagramme d'exigences (req). Le symbole ⊕ marque la <strong>contenance</strong> : l'exigence 1 se décompose en 1.1 à 1.4. Les exigences 1.5 à 1.7 du tableau ne sont pas dessinées. L'exigence 1.3.1 est <strong>dérivée</strong> de 1.3 par un calcul (exemple ci-dessous) ; le bloc Batterie la <strong>satisfait</strong> ; l'essai d'autonomie <strong>vérifie</strong> 1.3 ; le cas d'utilisation « Tondre la pelouse » <strong>raffine</strong> l'exigence 1. Chaque flèche pointillée part de l'élément qui dépend et pointe vers l'exigence concernée.</figcaption>
+</figure>
+
+  <h3>Les relations du diagramme des exigences</h3>
+  <ul>
+    <li><strong>contenance</strong> (symbole ⊕ du côté de l'exigence mère) : décomposition d'une exigence en sous-exigences ; satisfaire toutes les filles revient à satisfaire la mère ;</li>
+    <li><strong>«deriveReqt»</strong> (dérivation) : exigence obtenue par analyse ou par calcul à partir d'une autre ;</li>
+    <li><strong>«refine»</strong> (raffinement) : un élément, souvent un cas d'utilisation, précise le contenu d'une exigence ;</li>
+    <li><strong>«satisfy»</strong> (satisfaction) : un bloc, c'est-à-dire une solution, satisfait l'exigence ;</li>
+    <li><strong>«verify»</strong> (vérification) : un cas de test (essai, simulation, calcul) vérifie l'exigence ;</li>
+    <li><strong>«trace»</strong> : simple lien de traçabilité, moins précis que les précédents.</li>
+  </ul>
+  <div class="notice"><strong>Sens des flèches</strong> : pour toutes les relations pointillées, la flèche part de l'élément qui dépend (l'exigence dérivée, le bloc, le cas de test, le cas d'utilisation qui raffine) et pointe vers l'exigence concernée. Lire « 1.3.1 est dérivée de 1.3 », « la batterie satisfait 1.3.1 ».</div>
+
+  <div class="method-box"><strong>Exemple — Dériver l'énergie de la batterie à partir de l'autonomie</strong>
+    <p>Puissance moyenne estimée en tonte : 40 W. Le circuit de gestion de la batterie interdit de la vider complètement : 90 % de son énergie nominale est utilisable. Il faut garder 2 W·h pour le retour à la station (§3).</p>
+    <ol>
+      <li><strong>Énergie consommée en 60 min</strong> : \(40 \times 1 = 40\ \text{W·h}\).</li>
+      <li><strong>Énergie nominale minimale</strong> : \(E \ge (40 + 2)/0{,}9 \approx 46{,}7\ \text{W·h}\). D'où l'exigence dérivée 1.3.1 : énergie nominale d'au moins 47 W·h.</li>
+      <li><strong>Choix</strong> : une batterie de 18 V et 2,5 A·h emporte \(18 \times 2{,}5 = 45\ \text{W·h}\) : insuffisant. Une batterie de 18 V et 3,0 A·h emporte 54 W·h, avec une marge de 16 % : elle satisfait 1.3.1.</li>
+      <li><strong>Traçabilité</strong> : la relation «satisfy» relie le bloc Batterie à 1.3.1 ; l'essai d'autonomie vérifiera directement 1.3.</li>
+    </ol>
+  </div>
+  <div class="formula" data-nom="Énergie d'une batterie">$$E = U_{\text{nom}}\,Q \qquad (\text{W·h} = \text{V} \times \text{A·h})$$</div>
+  <div class="notice"><strong>Erreur classique</strong> : confondre la capacité \(Q\) (en A·h, une charge électrique) et l'énergie \(E\) (en W·h). Deux batteries de 3 A·h, l'une sous 18 V, l'autre sous 36 V, emportent 54 et 108 W·h. Autre oubli fréquent : la part non utilisable de la batterie.</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§5 · CYCLE DE VIE ET IMPACT ENVIRONNEMENTAL</div>
+  <h2>Évaluer l'impact environnemental et sociétal d'un produit</h2>
+  <div class="intro">Les exigences environnementales font partie du cahier des charges au même titre que les performances. Pour les chiffrer, on suit le produit sur toute sa vie, de l'extraction des matières à sa fin de vie : c'est l'analyse du cycle de vie.</div>
+  <div class="def-box">
+    <p><strong>Cycle de vie</strong> : extraction des matières premières ; fabrication (élaboration des matériaux, des pièces, assemblage) ; distribution jusqu'à l'utilisateur ; utilisation (énergie, consommables, entretien) ; fin de vie (collecte, réemploi, recyclage, valorisation énergétique, élimination). Des transports relient chaque étape à la suivante.</p>
+    <p><strong>Analyse du cycle de vie (ACV)</strong> : méthode qui recense, phase par phase, les ressources consommées et les émissions rejetées, puis les traduit en impacts sur l'environnement.</p>
+    <p><strong>Unité fonctionnelle</strong> : le service rendu qui sert de base commune de comparaison, par exemple « entretenir 800 m² de pelouse pendant 8 saisons ». Sans elle, comparer deux produits n'a pas de sens.</p>
+  </div>
+  <figure class="schema">
+<svg viewBox="0 0 540 204" role="img" aria-label="Cycle de vie d'un produit : extraction des matières, fabrication, distribution, utilisation, fin de vie, avec recyclage et réemploi">
+<rect x="12" y="70" width="88" height="46" rx="4" class="sk-ink fl-accent2-soft"/>
+<rect x="12" y="70" width="88" height="46" rx="4" class="sk-ink"/>
+<text x="56" y="90" class="lab-b" text-anchor="middle">Extraction</text>
+<text x="56" y="105" class="lab-b" text-anchor="middle">des matières</text>
+<line x1="100" y1="93" x2="119" y2="93" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<rect x="120" y="70" width="88" height="46" rx="4" class="sk-ink fl-accent2-soft"/>
+<rect x="120" y="70" width="88" height="46" rx="4" class="sk-ink"/>
+<text x="164" y="97.5" class="lab-b" text-anchor="middle">Fabrication</text>
+<line x1="208" y1="93" x2="227" y2="93" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<rect x="228" y="70" width="88" height="46" rx="4" class="sk-ink fl-accent2-soft"/>
+<rect x="228" y="70" width="88" height="46" rx="4" class="sk-ink"/>
+<text x="272" y="97.5" class="lab-b" text-anchor="middle">Distribution</text>
+<line x1="316" y1="93" x2="335" y2="93" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<rect x="336" y="70" width="88" height="46" rx="4" class="sk-ink fl-accent2-soft"/>
+<rect x="336" y="70" width="88" height="46" rx="4" class="sk-ink"/>
+<text x="380" y="97.5" class="lab-b" text-anchor="middle">Utilisation</text>
+<line x1="424" y1="93" x2="443" y2="93" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<rect x="444" y="70" width="88" height="46" rx="4" class="sk-ink fl-accent2-soft"/>
+<rect x="444" y="70" width="88" height="46" rx="4" class="sk-ink"/>
+<text x="488" y="90" class="lab-b" text-anchor="middle">Fin de vie</text>
+<text x="488" y="105" class="lab-b" text-anchor="middle">collecte, tri</text>
+<text x="270" y="140" class="lab-muted lab-it" text-anchor="middle">un transport à chaque flèche</text>
+<polyline points="488,116 488,178 56,178 56,117" class="sk-green" marker-end="url(#sk-arrow-green)"/>
+<text x="270" y="196" class="lab-green" text-anchor="middle">recyclage : matières secondaires</text>
+<polyline points="500,70 500,36 380,36 380,69" class="sk-green" marker-end="url(#sk-arrow-green)"/>
+<text x="424" y="28" class="lab-green" text-anchor="middle">réemploi, réparation</text>
+</svg>
+<figcaption>Les phases du cycle de vie. Chaque phase consomme des ressources et rejette des émissions ; l'<strong>analyse du cycle de vie</strong> (ACV) les additionne pour un même service rendu. Le recyclage et le réemploi referment la boucle et réduisent la part de l'extraction.</figcaption>
+</figure>
+
+  <h3>Indicateurs et ordres de grandeur</h3>
+  <ul>
+    <li><strong>changement climatique</strong>, en kg CO₂e (kilogrammes équivalent CO₂ : chaque gaz à effet de serre est compté par la masse de CO₂ qui aurait le même effet) ;</li>
+    <li><strong>énergie primaire</strong> consommée, en MJ ou en kW·h ;</li>
+    <li><strong>épuisement des ressources</strong> minérales : métaux des batteries et de l'électronique (lithium, cobalt, cuivre) ;</li>
+    <li>consommation d'<strong>eau</strong>, pollution de l'air, de l'eau et des sols, écotoxicité.</li>
+  </ul>
+  <p>Ordres de grandeur, à retenir comme tels : l'électricité produite en France émet environ 0,05 à 0,06 kg CO₂e par kW·h (nucléaire et renouvelables), la moyenne européenne environ 0,25, une centrale au charbon environ 1 ; un litre d'essence brûlé rejette environ 2,3 kg de CO₂, environ 2,8 kg CO₂e si l'on compte l'extraction, le raffinage et le transport du carburant ; fabriquer une batterie lithium-ion émet de l'ordre de 100 kg CO₂e par kW·h de capacité (60 à 150 selon les études).</p>
+  <div class="prop-box">
+    <strong>Chercher la phase dominante.</strong> Pour un produit qui consomme beaucoup d'énergie pendant longtemps (véhicule, moteur industriel, compresseur), l'utilisation domine souvent : le rendement devient un critère environnemental. Pour un produit qui consomme peu, ce sont l'extraction et la fabrication : durée de vie, réparabilité et recyclage sont alors les leviers. Le mix électrique du pays d'utilisation peut faire basculer la conclusion.
+  </div>
+
+  <div class="method-box"><strong>Exemple — Robot de tonte ou tondeuse thermique ?</strong>
+    <p>Étude simplifiée, valeurs arrondies, même unité fonctionnelle : entretenir 800 m² pendant 30 semaines par an, durant 8 ans. Robot : extraction et fabrication 70 kg CO₂e, plus une batterie de remplacement (6 kg) ; transport 6 kg ; fin de vie 2 kg ; 9,4 h de tonte par semaine à 40 W (§1), rendement de charge 0,85, station en veille sous 1 W toute l'année. Tondeuse thermique : fabrication 35 kg, transport 5 kg, fin de vie 2 kg ; une heure par semaine à 0,5 L d'essence par heure.</p>
+    <ol>
+      <li><strong>Électricité du robot</strong> : tonte \(9{,}4 \times 30 \times 40 \approx 11{,}3\ \text{kW·h}\) par an aux bornes de la batterie, soit \(11{,}3/0{,}85 \approx 13{,}3\ \text{kW·h}\) prélevés au réseau ; veille \(1 \times 8760\ \text{h} \approx 8{,}8\ \text{kW·h}\) ; total environ 22 kW·h par an, 177 kW·h sur 8 ans.</li>
+      <li><strong>Utilisation du robot</strong> : \(177 \times 0{,}06 \approx 11\ \text{kg CO}_2\text{e}\) avec l'électricité française ; \(177 \times 0{,}4 \approx 71\ \text{kg}\) avec un mix électrique à 0,4 kg CO₂e par kW·h.</li>
+      <li><strong>Tondeuse</strong> : \(0{,}5 \times 30 \times 8 = 120\ \text{L}\) d'essence, soit \(120 \times 2{,}8 \approx 336\ \text{kg CO}_2\text{e}\).</li>
+      <li><strong>Totaux</strong> : robot environ 95 kg (France) ou 155 kg (mix carboné) ; tondeuse environ 380 kg, dont 89 % pour l'utilisation.</li>
+      <li><strong>Conclusion</strong> : en France, la fabrication (batterie de remplacement comprise) fait 80 % de l'empreinte du robot : sa durée de vie et sa réparabilité comptent davantage que sa consommation. La veille représente 40 % de son électricité : une exigence « veille ≤ 0,5 W » serait un levier simple.</li>
+    </ol>
+  </div>
+  <figure class="schema">
+<svg viewBox="0 0 540 226" role="img" aria-label="Émissions de gaz à effet de serre sur 8 ans, par phase : robot de tonte avec deux mix électriques et tondeuse thermique">
+<text x="142" y="33" text-anchor="end">Robot,</text>
+<text x="142" y="48" text-anchor="end">élec. 0,06 kg/kWh</text>
+<rect x="150" y="23" width="62.5" height="26" class="fl-accent2"/>
+<rect x="212.5" y="23" width="4.9" height="26" class="fl-amber"/>
+<rect x="217.4" y="23" width="8.7" height="26" class="fl-accent"/>
+<rect x="226.1" y="23" width="1.6" height="26" class="fl-ink"/>
+<text x="233.8" y="40.5" class="lab-b">≈ 95</text>
+<text x="142" y="79" text-anchor="end">Robot,</text>
+<text x="142" y="94" text-anchor="end">élec. 0,4 kg/kWh</text>
+<rect x="150" y="69" width="62.5" height="26" class="fl-accent2"/>
+<rect x="212.5" y="69" width="4.9" height="26" class="fl-amber"/>
+<rect x="217.4" y="69" width="58.1" height="26" class="fl-accent"/>
+<rect x="275.5" y="69" width="1.6" height="26" class="fl-ink"/>
+<text x="283.1" y="86.5" class="lab-b">≈ 155</text>
+<text x="142" y="125" text-anchor="end">Tondeuse</text>
+<text x="142" y="140" text-anchor="end">thermique</text>
+<rect x="150" y="115" width="28.8" height="26" class="fl-accent2"/>
+<rect x="178.8" y="115" width="4.1" height="26" class="fl-amber"/>
+<rect x="182.9" y="115" width="276.3" height="26" class="fl-accent"/>
+<rect x="459.2" y="115" width="1.6" height="26" class="fl-ink"/>
+<text x="466.8" y="132.5" class="lab-b">≈ 380</text>
+<line x1="150" y1="156" x2="520" y2="156" class="sk-axis"/>
+<line x1="150" y1="156" x2="150" y2="161" class="sk-axis"/>
+<text x="150" y="175" class="lab-muted" text-anchor="middle">0</text>
+<line x1="232.2" y1="156" x2="232.2" y2="161" class="sk-axis"/>
+<text x="232.2" y="175" class="lab-muted" text-anchor="middle">100</text>
+<line x1="314.4" y1="156" x2="314.4" y2="161" class="sk-axis"/>
+<text x="314.4" y="175" class="lab-muted" text-anchor="middle">200</text>
+<line x1="396.7" y1="156" x2="396.7" y2="161" class="sk-axis"/>
+<text x="396.7" y="175" class="lab-muted" text-anchor="middle">300</text>
+<line x1="478.9" y1="156" x2="478.9" y2="161" class="sk-axis"/>
+<text x="478.9" y="175" class="lab-muted" text-anchor="middle">400</text>
+<text x="520" y="192" class="lab-muted lab-it" text-anchor="end">kg CO₂e sur 8 ans</text>
+<rect x="14" y="206" width="14" height="12" class="fl-accent2"/>
+<text x="34" y="216" class="lab-muted">extraction et fabrication</text>
+<rect x="200" y="206" width="14" height="12" class="fl-amber"/>
+<text x="220" y="216" class="lab-muted">transport</text>
+<rect x="290" y="206" width="14" height="12" class="fl-accent"/>
+<text x="310" y="216" class="lab-muted">utilisation</text>
+<rect x="390" y="206" width="14" height="12" class="fl-ink"/>
+<text x="410" y="216" class="lab-muted">fin de vie</text>
+</svg>
+<figcaption>Ordres de grandeur de l'ACV simplifiée de l'exemple, même unité fonctionnelle : entretenir 800 m² pendant 8 saisons. Pour le robot alimenté par l'électricité française, la fabrication domine ; avec une électricité plus carbonée, l'utilisation compte presque autant ; pour la tondeuse thermique, l'utilisation (l'essence brûlée) écrase tout le reste.</figcaption>
+</figure>
+
+  <h3>Impact sociétal</h3>
+  <p>Au-delà de l'environnement, un produit agit sur la société : <strong>sécurité</strong> (lames rotatives, enfants et animaux domestiques), <strong>bruit</strong> pour le voisinage, <strong>faune</strong> (des robots qui tondent la nuit blessent des hérissons, d'où l'exigence de plage horaire 1.7), <strong>conditions de fabrication</strong> et emploi, <strong>réparabilité</strong> (pièces disponibles, batterie remplaçable sans outil spécial), <strong>accessibilité</strong> du produit. Ces aspects deviennent des exigences de contrainte, chiffrées quand c'est possible.</p>
+  <div class="notice"><strong>Erreur classique</strong> : comparer deux produits sans unité fonctionnelle commune (un robot sur 8 ans contre une tondeuse sur 3 ans), ou n'examiner que l'utilisation (« électrique, donc propre ») en oubliant la fabrication et la fin de vie. La manière d'intégrer ces contraintes dès le choix des constituants (écoconception) est vue en 2ᵉ année.</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§6 · ARCHITECTURE ET DIAGRAMME DE DÉFINITION DE BLOCS</div>
+  <h2>De quoi le système est-il fait ? (bdd)</h2>
+  <div class="intro">Après le « quoi » des exigences vient le « avec quoi » : l'architecture structurelle liste les constituants qui vont remplir les fonctions. Le diagramme de définition de blocs en donne l'arborescence.</div>
+  <div class="def-box">
+    <p><strong>Architecture fonctionnelle</strong> : les fonctions que le système doit remplir et les flux qu'elles échangent, sans choix technologique (« stocker l'énergie », « convertir l'énergie électrique en énergie mécanique »).</p>
+    <p><strong>Architecture structurelle</strong> (ou organique) : les constituants retenus (batterie lithium-ion, moteur à courant continu…) et leurs liaisons. <strong>Associer les fonctions aux constituants</strong>, c'est dire quel constituant remplit chaque fonction ; de même, chaque exigence est satisfaite par un ou plusieurs blocs.</p>
+    <p><strong>Bloc</strong> : élément de structure (constituant matériel ou logiciel, voire une personne), décrit par son nom et ses propriétés, rangées dans le compartiment <em>values</em> (masse, tension…).</p>
+  </div>
+  <figure class="schema">
+<svg viewBox="0 0 540 450" role="img" aria-label="Diagramme de définition de blocs du robot de tonte : composition en sept blocs avec multiplicités, décomposition de la motorisation de déplacement, propriétés de la batterie, association avec la station de charge">
+<rect x="2" y="2" width="536" height="446" class="sk-axis"/>
+<path d="M2,2 H179 V17 L172,24 H2 Z" class="sk-axis fl-paper"/>
+<text x="8" y="17.5"><tspan class="lab-b" font-weight="600">bdd</tspan> [Robot de tonte] Structure</text>
+<rect x="14" y="38" width="146" height="84" class="sk-ink fl-paper"/>
+<text x="87" y="53" class="lab-muted" text-anchor="middle">«block»</text>
+<text x="87" y="68" class="lab-b" text-anchor="middle">Robot de tonte</text>
+<line x1="14" y1="74" x2="160" y2="74" class="sk-axis"/>
+<text x="19" y="88" class="lab-muted lab-it">values</text>
+<text x="19" y="103" class="lab-muted">masse = 8,0 kg</text>
+<rect x="14" y="300" width="146" height="40" class="sk-ink fl-paper"/>
+<text x="87" y="315" class="lab-muted" text-anchor="middle">«block»</text>
+<text x="87" y="330" class="lab-b" text-anchor="middle">Station de charge</text>
+<line x1="87" y1="122" x2="87" y2="299" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<text x="93" y="214" class="lab-muted lab-it">se recharge</text>
+<text x="93" y="229" class="lab-muted lab-it">sur</text>
+<polygon points="160,80 167,75.8 174,80 167,84.2" class="fl-ink"/>
+<line x1="174" y1="80" x2="186" y2="80" class="sk-ink"/>
+<line x1="186" y1="52" x2="186" y2="410" class="sk-ink"/>
+<line x1="186" y1="52" x2="214" y2="52" class="sk-ink"/>
+<text x="203" y="47" class="lab-muted" text-anchor="middle">1</text>
+<rect x="214" y="34" width="150" height="36" class="sk-ink fl-paper"/>
+<text x="289" y="49" class="lab-muted" text-anchor="middle">«block»</text>
+<text x="289" y="64" class="lab-b" text-anchor="middle">Châssis</text>
+<line x1="186" y1="103" x2="214" y2="103" class="sk-ink"/>
+<text x="203" y="98" class="lab-muted" text-anchor="middle">2</text>
+<rect x="214" y="78" width="150" height="50" class="sk-ink fl-paper"/>
+<text x="289" y="93" class="lab-muted" text-anchor="middle">«block»</text>
+<text x="289" y="108" class="lab-b" text-anchor="middle">Motorisation</text>
+<text x="289" y="123" class="lab-b" text-anchor="middle">de déplacement</text>
+<line x1="186" y1="154" x2="214" y2="154" class="sk-ink"/>
+<text x="203" y="149" class="lab-muted" text-anchor="middle">2</text>
+<rect x="214" y="136" width="150" height="36" class="sk-ink fl-paper"/>
+<text x="289" y="151" class="lab-muted" text-anchor="middle">«block»</text>
+<text x="289" y="166" class="lab-b" text-anchor="middle">Roue folle</text>
+<line x1="186" y1="205" x2="214" y2="205" class="sk-ink"/>
+<text x="203" y="200" class="lab-muted" text-anchor="middle">1</text>
+<rect x="214" y="180" width="150" height="50" class="sk-ink fl-paper"/>
+<text x="289" y="195" class="lab-muted" text-anchor="middle">«block»</text>
+<text x="289" y="210" class="lab-b" text-anchor="middle">Motorisation</text>
+<text x="289" y="225" class="lab-b" text-anchor="middle">de coupe</text>
+<line x1="186" y1="260" x2="214" y2="260" class="sk-ink"/>
+<text x="203" y="255" class="lab-muted" text-anchor="middle">1</text>
+<rect x="214" y="238" width="150" height="102" class="sk-ink fl-paper"/>
+<text x="289" y="253" class="lab-muted" text-anchor="middle">«block»</text>
+<text x="289" y="268" class="lab-b" text-anchor="middle">Batterie</text>
+<line x1="214" y1="275" x2="364" y2="275" class="sk-axis"/>
+<text x="219" y="289" class="lab-muted lab-it">values</text>
+<text x="219" y="304" class="lab-muted">tension = 18 V</text>
+<text x="219" y="319" class="lab-muted">capacité = 3,0 Ah</text>
+<text x="219" y="334" class="lab-muted">masse = 0,45 kg</text>
+<line x1="186" y1="366" x2="214" y2="366" class="sk-ink"/>
+<text x="203" y="361" class="lab-muted" text-anchor="middle">1</text>
+<rect x="214" y="348" width="150" height="36" class="sk-ink fl-paper"/>
+<text x="289" y="363" class="lab-muted" text-anchor="middle">«block»</text>
+<text x="289" y="378" class="lab-b" text-anchor="middle">Carte de commande</text>
+<line x1="186" y1="410" x2="214" y2="410" class="sk-ink"/>
+<text x="203" y="405" class="lab-muted" text-anchor="middle">1</text>
+<rect x="214" y="392" width="150" height="36" class="sk-ink fl-paper"/>
+<text x="289" y="407" class="lab-muted" text-anchor="middle">«block»</text>
+<text x="289" y="422" class="lab-b" text-anchor="middle">Capteurs</text>
+<polygon points="364,103 371,98.8 378,103 371,107.2" class="fl-ink"/>
+<line x1="378" y1="103" x2="390" y2="103" class="sk-ink"/>
+<line x1="390" y1="52" x2="390" y2="140" class="sk-ink"/>
+<line x1="390" y1="52" x2="412" y2="52" class="sk-ink"/>
+<text x="401" y="47" class="lab-muted" text-anchor="middle">1</text>
+<rect x="412" y="34" width="116" height="36" class="sk-ink fl-paper"/>
+<text x="470" y="49" class="lab-muted" text-anchor="middle">«block»</text>
+<text x="470" y="64" class="lab-b" text-anchor="middle">Moteur CC</text>
+<line x1="390" y1="96" x2="412" y2="96" class="sk-ink"/>
+<text x="401" y="91" class="lab-muted" text-anchor="middle">1</text>
+<rect x="412" y="78" width="116" height="36" class="sk-ink fl-paper"/>
+<text x="470" y="93" class="lab-muted" text-anchor="middle">«block»</text>
+<text x="470" y="108" class="lab-b" text-anchor="middle">Réducteur</text>
+<line x1="390" y1="140" x2="412" y2="140" class="sk-ink"/>
+<text x="401" y="135" class="lab-muted" text-anchor="middle">1</text>
+<rect x="412" y="122" width="116" height="36" class="sk-ink fl-paper"/>
+<text x="470" y="137" class="lab-muted" text-anchor="middle">«block»</text>
+<text x="470" y="152" class="lab-b" text-anchor="middle">Roue</text>
+</svg>
+<figcaption>Diagramme de définition de blocs (bdd). Le losange plein est la <strong>composition</strong> (« est composé de »), du côté du tout ; le nombre près de chaque partie est sa <strong>multiplicité</strong> (deux motorisations de déplacement, chacune faite d'un moteur, d'un réducteur et d'une roue). Le compartiment <em>values</em> donne des propriétés chiffrées. La station de charge n'est qu'<strong>associée</strong> au robot : elle n'en fait pas partie.</figcaption>
+</figure>
+
+  <h3>Lire un bdd</h3>
+  <ul>
+    <li><strong>composition</strong> (losange plein, du côté du tout) : la partie appartient au tout ; on lit « le robot est composé de… » ;</li>
+    <li><strong>multiplicité</strong> : nombre d'exemplaires de la partie dans un tout : « 2 » motorisations de déplacement ; « 0..1 » pour une partie facultative, « 1..* » pour au moins une ;</li>
+    <li><strong>association</strong> (trait simple, éventuellement fléché) : lien entre deux blocs indépendants, comme le robot et sa station ;</li>
+    <li><strong>agrégation</strong> (losange vide) : partie partagée ou amovible ; <strong>généralisation</strong> (triangle creux) : « est une sorte de » (un moteur à courant continu est une sorte de moteur).</li>
+  </ul>
+  <p>Le bdd dit de quoi le système est fait, pas comment ses parties sont reliées : c'est le rôle du diagramme de blocs internes (§7).</p>
+
+  <div class="method-box"><strong>Exemple — Bilan de masse à partir du bdd</strong>
+    <p>Les masses unitaires des blocs sont données par le dossier technique ; une motorisation de déplacement pèse 0,90 kg (moteur 0,25 kg, réducteur 0,20 kg, roue 0,45 kg).</p>
+    <div>
+    <table>
+      <tr><th>Bloc</th><th>Multiplicité</th><th>Masse unitaire (kg)</th><th>Masse (kg)</th></tr>
+      <tr><td>Châssis (avec carrosserie)</td><td>1</td><td>3,40</td><td>3,40</td></tr>
+      <tr><td>Motorisation de déplacement</td><td>2</td><td>0,90</td><td>1,80</td></tr>
+      <tr><td>Roue folle</td><td>2</td><td>0,15</td><td>0,30</td></tr>
+      <tr><td>Motorisation de coupe</td><td>1</td><td>1,10</td><td>1,10</td></tr>
+      <tr><td>Batterie</td><td>1</td><td>0,45</td><td>0,45</td></tr>
+      <tr><td>Carte de commande</td><td>1</td><td>0,35</td><td>0,35</td></tr>
+      <tr><td>Capteurs (ensemble)</td><td>1</td><td>0,60</td><td>0,60</td></tr>
+      <tr><td><strong>Total</strong></td><td></td><td></td><td><strong>8,00</strong></td></tr>
+    </table>
+    </div>
+    <ol>
+      <li><strong>Exigence 1.6</strong> (masse au plus de 10 kg) : satisfaite, avec 2 kg de marge.</li>
+      <li><strong>Énergie massique de la batterie</strong> : \(54/0{,}45 = 120\ \text{W·h/kg}\), dans la fourchette d'un pack lithium-ion (100 à 200 W·h/kg).</li>
+      <li><strong>Contrôle</strong> : sans tenir compte des multiplicités, on trouverait 6,95 kg, une erreur de plus d'un kilogramme.</li>
+    </ol>
+  </div>
+  <div class="notice"><strong>Erreur classique</strong> : lire le bdd comme un schéma de câblage (il ne montre aucun flux), ou placer le losange du mauvais côté : il est toujours contre le tout, jamais contre la partie.</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§7 · DIAGRAMME DE BLOCS INTERNES</div>
+  <h2>Comment les constituants sont-ils reliés ? (ibd)</h2>
+  <div class="intro">Le diagramme de blocs internes ouvre un bloc et montre ses parties, leurs points de connexion et ce qui circule entre elles. C'est la vue des interfaces : une bonne part des erreurs de conception se cache dans une interface mal décrite.</div>
+  <div class="def-box">
+    <p><strong>Partie</strong> : exemplaire d'un bloc à l'intérieur d'un autre, noté « nom : Bloc » (bat : Batterie).</p>
+    <p><strong>Port</strong> : point d'interaction d'une partie avec ce qui l'entoure (petit carré sur son bord) ; il précise ce qui peut entrer ou sortir (énergie électrique continue, couple, signal logique…). Un port posé sur le cadre du diagramme est une interface du bloc étudié avec le milieu extérieur.</p>
+    <p><strong>Connecteur</strong> : trait entre deux ports ; il porte un <strong>flux</strong> dont on précise la nature (matière, énergie, information), les grandeurs et le sens.</p>
+  </div>
+  <figure class="schema">
+<svg viewBox="0 0 540 300" role="img" aria-label="Diagramme de blocs internes de la motorisation d'une roue du robot de tonte : batterie, hacheur, moteur, réducteur, roue, carte de commande et codeur reliés par leurs ports, neuf flux numérotés">
+<rect x="2" y="2" width="536" height="296" class="sk-axis"/>
+<path d="M2,2 H198.1 V17 L191.1,24 H2 Z" class="sk-axis fl-paper"/>
+<text x="8" y="17.5"><tspan class="lab-b" font-weight="600">ibd</tspan> [Robot de tonte] Déplacement</text>
+<rect x="14" y="150" width="84" height="50" class="sk-ink fl-paper"/>
+<text x="56" y="173" text-anchor="middle">bat :</text>
+<text x="56" y="189" class="lab-b" text-anchor="middle">Batterie</text>
+<rect x="122" y="150" width="84" height="50" class="sk-ink fl-paper"/>
+<text x="164" y="173" text-anchor="middle">hach :</text>
+<text x="164" y="189" class="lab-b" text-anchor="middle">Hacheur</text>
+<rect x="230" y="150" width="84" height="50" class="sk-ink fl-paper"/>
+<text x="272" y="173" text-anchor="middle">mot :</text>
+<text x="272" y="189" class="lab-b" text-anchor="middle">Moteur CC</text>
+<rect x="338" y="150" width="84" height="50" class="sk-ink fl-paper"/>
+<text x="380" y="173" text-anchor="middle">red :</text>
+<text x="380" y="189" class="lab-b" text-anchor="middle">Réducteur</text>
+<rect x="446" y="150" width="72" height="50" class="sk-ink fl-paper"/>
+<text x="482" y="173" text-anchor="middle">roue :</text>
+<text x="482" y="189" class="lab-b" text-anchor="middle">Roue</text>
+<rect x="94" y="171" width="8" height="8" class="sk-ink fl-paper"/>
+<rect x="118" y="171" width="8" height="8" class="sk-ink fl-paper"/>
+<line x1="102" y1="175" x2="117" y2="175" class="sk-accent" marker-end="url(#sk-arrow-accent)"/>
+<circle cx="110" cy="160" r="9" class="sk-ink fl-paper"/><text x="110" y="164.5" class="lab-b" text-anchor="middle">1</text>
+<rect x="202" y="171" width="8" height="8" class="sk-ink fl-paper"/>
+<rect x="226" y="171" width="8" height="8" class="sk-ink fl-paper"/>
+<line x1="210" y1="175" x2="225" y2="175" class="sk-accent" marker-end="url(#sk-arrow-accent)"/>
+<circle cx="218" cy="160" r="9" class="sk-ink fl-paper"/><text x="218" y="164.5" class="lab-b" text-anchor="middle">2</text>
+<rect x="310" y="171" width="8" height="8" class="sk-ink fl-paper"/>
+<rect x="334" y="171" width="8" height="8" class="sk-ink fl-paper"/>
+<line x1="318" y1="175" x2="333" y2="175" class="sk-accent" marker-end="url(#sk-arrow-accent)"/>
+<circle cx="326" cy="160" r="9" class="sk-ink fl-paper"/><text x="326" y="164.5" class="lab-b" text-anchor="middle">3</text>
+<rect x="418" y="171" width="8" height="8" class="sk-ink fl-paper"/>
+<rect x="442" y="171" width="8" height="8" class="sk-ink fl-paper"/>
+<line x1="426" y1="175" x2="441" y2="175" class="sk-accent" marker-end="url(#sk-arrow-accent)"/>
+<circle cx="434" cy="160" r="9" class="sk-ink fl-paper"/><text x="434" y="164.5" class="lab-b" text-anchor="middle">4</text>
+<rect x="478" y="196" width="8" height="8" class="sk-ink fl-paper"/>
+<rect x="478" y="294" width="8" height="8" class="sk-ink fl-paper"/>
+<line x1="482" y1="204" x2="482" y2="293" class="sk-accent" marker-end="url(#sk-arrow-accent)"/>
+<circle cx="496" cy="250" r="9" class="sk-ink fl-paper"/><text x="496" y="254.5" class="lab-b" text-anchor="middle">5</text>
+<text x="470" y="284" class="lab-muted lab-it" text-anchor="end">sol</text>
+<rect x="14" y="46" width="192" height="50" class="sk-ink fl-paper"/>
+<text x="110" y="69" text-anchor="middle">cde :</text>
+<text x="110" y="85" class="lab-b" text-anchor="middle">Carte de commande</text>
+<rect x="338" y="46" width="84" height="50" class="sk-ink fl-paper"/>
+<text x="380" y="69" text-anchor="middle">cod :</text>
+<text x="380" y="85" class="lab-b" text-anchor="middle">Codeur</text>
+<rect x="160" y="92" width="8" height="8" class="sk-ink fl-paper"/>
+<rect x="160" y="146" width="8" height="8" class="sk-ink fl-paper"/>
+<line x1="164" y1="100" x2="164" y2="145" class="sk-accent2" marker-end="url(#sk-arrow-accent2)"/>
+<circle cx="178" cy="123" r="9" class="sk-ink fl-paper"/><text x="178" y="127.5" class="lab-b" text-anchor="middle">6</text>
+<rect x="334" y="67" width="8" height="8" class="sk-ink fl-paper"/>
+<rect x="202" y="67" width="8" height="8" class="sk-ink fl-paper"/>
+<line x1="334" y1="71" x2="211" y2="71" class="sk-accent2" marker-end="url(#sk-arrow-accent2)"/>
+<circle cx="272" cy="57" r="9" class="sk-ink fl-paper"/><text x="272" y="61.5" class="lab-b" text-anchor="middle">7</text>
+<rect x="52" y="146" width="8" height="8" class="sk-ink fl-paper"/>
+<rect x="52" y="92" width="8" height="8" class="sk-ink fl-paper"/>
+<line x1="56" y1="146" x2="56" y2="101" class="sk-accent" marker-end="url(#sk-arrow-accent)"/>
+<circle cx="70" cy="123" r="9" class="sk-ink fl-paper"/><text x="70" y="127.5" class="lab-b" text-anchor="middle">8</text>
+<rect x="296" y="146" width="8" height="8" class="sk-ink fl-paper"/>
+<rect x="376" y="92" width="8" height="8" class="sk-ink fl-paper"/>
+<polyline points="300,146 300,123 380,123 380,101" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<circle cx="340" cy="137" r="9" class="sk-ink fl-paper"/><text x="340" y="141.5" class="lab-b" text-anchor="middle">9</text>
+</svg>
+<figcaption>Diagramme de blocs internes (ibd) d'une motorisation de déplacement. Chaque <strong>partie</strong> s'écrit « nom : Bloc » ; les petits carrés sont les <strong>ports</strong> ; chaque connecteur porte un <strong>flux</strong> numéroté, décrit dans le tableau qui suit (énergie en rouge, information en bleu, accouplement mécanique du codeur en noir). Le port posé sur le cadre est l'interface avec l'extérieur (le sol).</figcaption>
+</figure>
+  <div>
+  <table>
+    <tr><th>N°</th><th>De → vers</th><th>Nature du flux</th><th>Grandeurs</th></tr>
+    <tr><td>1</td><td>bat → hach</td><td>énergie électrique continue</td><td>tension de 15 à 21 V, intensité</td></tr>
+    <tr><td>2</td><td>hach → mot</td><td>énergie électrique modulée</td><td>tension découpée, de valeur moyenne réglable</td></tr>
+    <tr><td>3</td><td>mot → red</td><td>énergie mécanique de rotation</td><td>\(C_m\), \(\omega_m \approx 120\ \text{rad/s}\)</td></tr>
+    <tr><td>4</td><td>red → roue</td><td>énergie mécanique de rotation</td><td>\(C_r\), \(\omega_r \approx 3\ \text{rad/s}\)</td></tr>
+    <tr><td>5</td><td>roue → sol</td><td>énergie mécanique de translation</td><td>effort de traction, 0,30 m/s</td></tr>
+    <tr><td>6</td><td>cde → hach</td><td>information logique</td><td>signal MLI 0 / 3,3 V (modulation de largeur d'impulsion)</td></tr>
+    <tr><td>7</td><td>cod → cde</td><td>information numérique</td><td>impulsions (position, vitesse)</td></tr>
+    <tr><td>8</td><td>bat → cde</td><td>énergie électrique</td><td>alimentation de la carte (3,3 V après régulateur)</td></tr>
+    <tr><td>9</td><td>mot → cod</td><td>accouplement mécanique</td><td>rotation de l'arbre, puissance négligeable</td></tr>
+  </table>
+  </div>
+
+  <h3>Compléter un ibd</h3>
+  <ol>
+    <li>Repérer les parties : le bdd en donne la liste et les multiplicités.</li>
+    <li>Pour chaque connecteur, chercher ce qui le traverse et dans quel sens : l'énergie va de la source vers son utilisation, l'information de l'émetteur vers le récepteur.</li>
+    <li>Nommer la nature du flux et ses grandeurs.</li>
+    <li>Vérifier que les deux ports reliés sont <strong>compatibles</strong> : même nature, niveaux admissibles (tension, courant, couple, vitesse), même format d'information.</li>
+    <li>Vérifier qu'aucune partie n'est isolée : une partie sans alimentation ou sans commande trahit un oubli.</li>
+  </ol>
+  <div class="method-box"><strong>Exemple — Rendre compatible une interface</strong>
+    <p>La carte de commande doit mesurer la tension de la batterie (pour estimer sa charge) sur une entrée analogique de 0 à 3,3 V. La batterie comporte 5 éléments lithium-ion en série : de \(5 \times 3{,}0 = 15\ \text{V}\) (vide) à \(5 \times 4{,}2 = 21\ \text{V}\) (pleine).</p>
+    <ol>
+      <li><strong>Incompatibilité</strong> : 21 V sur une entrée prévue pour 3,3 V la détruirait. Il faut un pont diviseur, c'est-à-dire une partie et deux connecteurs de plus dans l'ibd.</li>
+      <li><strong>Rapport maximal</strong> : \(k = \dfrac{R_2}{R_1 + R_2} \le \dfrac{3{,}3}{21} \approx 0{,}157\).</li>
+      <li><strong>Choix</strong> : \(R_1 = 56\ \text{k}\Omega\) et \(R_2 = 10\ \text{k}\Omega\) donnent \(k = 10/66 \approx 0{,}152\) : la tension mesurée va de 2,27 V (batterie vide) à 3,18 V (pleine), dans la plage de l'entrée.</li>
+      <li><strong>Coût</strong> : le pont prélève en permanence \(18/66\,000 \approx 0{,}27\ \text{mA}\) : négligeable en tonte, mais 2,4 A·h sur une année d'hivernage, de quoi vider la batterie. Il faut pouvoir le déconnecter.</li>
+    </ol>
+  </div>
+  <div class="notice"><strong>Erreur classique</strong> : dessiner un connecteur sans dire ce qui y passe, ou relier deux ports incompatibles (une sortie de capteur 0–10 V sur une entrée 0–3,3 V, un moteur 24 V sur une batterie 18 V). Ne pas confondre non plus l'ibd et la chaîne fonctionnelle : l'ibd relie des constituants réels par leurs ports ; la chaîne (§8) range ces mêmes constituants par fonction.</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§8 · CHAÎNES DE PUISSANCE ET D'INFORMATION</div>
+  <h2>Les chaînes fonctionnelles d'un système</h2>
+  <div class="intro">Tout système commandé se lit comme deux chaînes couplées : la chaîne de puissance transporte et transforme l'énergie jusqu'à la matière d'œuvre ; la chaîne d'information acquiert des informations, les traite et communique des ordres. Ce découpage, commun à tous les sujets, permet de reconnaître vite le rôle de chaque constituant.</div>
+  <figure class="schema">
+<svg viewBox="0 0 540 284" role="img" aria-label="Chaîne d'information (acquérir, traiter, communiquer) et chaîne de puissance (alimenter, moduler, convertir, transmettre, agir) du déplacement du robot de tonte, reliées par les ordres et les mesures">
+<text x="14" y="16" class="lab-accent2 lab-b">Chaîne d’information</text>
+<rect x="14" y="26" width="170" height="62" rx="4" class="sk-ink fl-accent2-soft"/>
+<rect x="14" y="26" width="170" height="62" rx="4" class="sk-ink"/>
+<text x="99" y="45" class="lab-b" text-anchor="middle">Acquérir</text>
+<text x="99" y="62" class="lab-muted" text-anchor="middle">codeurs, capteurs (fil,</text>
+<text x="99" y="77" class="lab-muted" text-anchor="middle">choc, pluie), clavier</text>
+<rect x="202" y="26" width="140" height="62" rx="4" class="sk-ink fl-accent2-soft"/>
+<rect x="202" y="26" width="140" height="62" rx="4" class="sk-ink"/>
+<text x="272" y="45" class="lab-b" text-anchor="middle">Traiter</text>
+<text x="272" y="62" class="lab-muted" text-anchor="middle">microcontrôleur</text>
+<text x="272" y="77" class="lab-muted" text-anchor="middle">(carte de commande)</text>
+<rect x="360" y="26" width="166" height="62" rx="4" class="sk-ink fl-accent2-soft"/>
+<rect x="360" y="26" width="166" height="62" rx="4" class="sk-ink"/>
+<text x="443" y="45" class="lab-b" text-anchor="middle">Communiquer</text>
+<text x="443" y="62" class="lab-muted" text-anchor="middle">ordres aux hacheurs,</text>
+<text x="443" y="77" class="lab-muted" text-anchor="middle">écran, radio</text>
+<line x1="184" y1="57" x2="201" y2="57" class="sk-accent2" marker-end="url(#sk-arrow-accent2)"/>
+<line x1="342" y1="57" x2="359" y2="57" class="sk-accent2" marker-end="url(#sk-arrow-accent2)"/>
+<rect x="14" y="168" width="92" height="62" rx="4" class="sk-ink fl-accent-soft"/>
+<rect x="14" y="168" width="92" height="62" rx="4" class="sk-ink"/>
+<text x="60" y="187" class="lab-b" text-anchor="middle">Alimenter</text>
+<text x="60" y="204" class="lab-muted" text-anchor="middle">batterie</text>
+<text x="60" y="219" class="lab-muted" text-anchor="middle">Li-ion 18 V</text>
+<line x1="106" y1="199" x2="119" y2="199" class="sk-accent" marker-end="url(#sk-arrow-accent)"/>
+<rect x="120" y="168" width="92" height="62" rx="4" class="sk-ink fl-accent-soft"/>
+<rect x="120" y="168" width="92" height="62" rx="4" class="sk-ink"/>
+<text x="166" y="187" class="lab-b" text-anchor="middle">Moduler</text>
+<text x="166" y="204" class="lab-muted" text-anchor="middle">hacheur</text>
+<line x1="212" y1="199" x2="225" y2="199" class="sk-accent" marker-end="url(#sk-arrow-accent)"/>
+<rect x="226" y="168" width="92" height="62" rx="4" class="sk-ink fl-accent-soft"/>
+<rect x="226" y="168" width="92" height="62" rx="4" class="sk-ink"/>
+<text x="272" y="187" class="lab-b" text-anchor="middle">Convertir</text>
+<text x="272" y="204" class="lab-muted" text-anchor="middle">moteur</text>
+<text x="272" y="219" class="lab-muted" text-anchor="middle">électrique</text>
+<line x1="318" y1="199" x2="331" y2="199" class="sk-accent" marker-end="url(#sk-arrow-accent)"/>
+<rect x="332" y="168" width="92" height="62" rx="4" class="sk-ink fl-accent-soft"/>
+<rect x="332" y="168" width="92" height="62" rx="4" class="sk-ink"/>
+<text x="378" y="187" class="lab-b" text-anchor="middle">Transmettre</text>
+<text x="378" y="204" class="lab-muted" text-anchor="middle">réducteur</text>
+<text x="378" y="219" class="lab-muted" text-anchor="middle">1/40</text>
+<line x1="424" y1="199" x2="437" y2="199" class="sk-accent" marker-end="url(#sk-arrow-accent)"/>
+<rect x="438" y="168" width="92" height="62" rx="4" class="sk-ink fl-accent-soft"/>
+<rect x="438" y="168" width="92" height="62" rx="4" class="sk-ink"/>
+<text x="484" y="187" class="lab-b" text-anchor="middle">Agir</text>
+<text x="484" y="204" class="lab-muted" text-anchor="middle">roue</text>
+<text x="484" y="219" class="lab-muted" text-anchor="middle">motrice</text>
+<text x="14" y="248" class="lab-accent lab-b">Chaîne de puissance</text>
+<polyline points="443,88 443,128 166,128 166,167" class="sk-accent2" marker-end="url(#sk-arrow-accent2)"/>
+<text x="300" y="122" class="lab-accent2" text-anchor="middle">ordres (commande MLI)</text>
+<polyline points="272,230 272,262 6,262 6,57 13,57" class="sk-accent2" marker-end="url(#sk-arrow-accent2)"/>
+<text x="160" y="278" class="lab-accent2" text-anchor="middle">mesures (codeur sur l’arbre moteur)</text>
+<text x="484" y="248" class="lab-muted lab-it" text-anchor="middle">déplace le robot</text>
+</svg>
+<figcaption>Les deux chaînes de la motorisation d'une roue. La chaîne d'information envoie des <strong>ordres</strong> au modulateur (le hacheur) ; elle reçoit en retour des <strong>mesures</strong> (ici le codeur monté sur l'arbre du moteur) et les informations des autres capteurs. La chaîne de puissance transporte l'énergie de la batterie jusqu'à la roue, qui agit sur le sol.</figcaption>
+</figure>
+
+  <h3>La chaîne de puissance</h3>
+  <div class="def-box">
+    <p><strong>Alimenter → Moduler → Convertir → Transmettre → Agir</strong></p>
+    <ul>
+      <li><strong>Alimenter</strong> : fournir l'énergie : réseau électrique, batterie, réservoir d'air comprimé ou d'huile sous pression, réservoir de carburant.</li>
+      <li><strong>Moduler</strong> : doser l'énergie envoyée à l'actionneur selon les ordres reçus : <strong>préactionneur</strong> ou modulateur (hacheur, variateur, onduleur, contacteur ou relais en tout ou rien, distributeur pneumatique ou hydraulique).</li>
+      <li><strong>Convertir</strong> : changer la forme de l'énergie : <strong>actionneur</strong> (moteur électrique : électrique vers mécanique ; vérin : pneumatique ou hydraulique vers mécanique ; résistance chauffante : électrique vers thermique).</li>
+      <li><strong>Transmettre</strong> : adapter et acheminer l'énergie mécanique : <strong>transmetteur</strong> (réducteur, poulies et courroie, système vis-écrou, pignon et crémaillère, accouplement).</li>
+      <li><strong>Agir</strong> : agir sur la matière d'œuvre : <strong>effecteur</strong> (roue, lame, pince, ventouse, tambour).</li>
+    </ul>
+  </div>
+  <p>Les anciens programmes parlaient de « chaîne d'énergie » et de fonction « distribuer » ; le programme actuel, et la 2ᵉ année, disent <strong>chaîne de puissance</strong> et <strong>moduler</strong>. Une fonction peut manquer : la lame du robot est montée directement sur l'arbre de son moteur, sans transmetteur.</p>
+
+  <h3>La chaîne d'information</h3>
+  <div class="def-box">
+    <p><strong>Acquérir → Traiter → Communiquer</strong></p>
+    <ul>
+      <li><strong>Acquérir</strong> : prélever les informations : capteurs (état du système et de son environnement), interface homme-machine d'entrée (boutons, clavier, écran tactile), réception de messages.</li>
+      <li><strong>Traiter</strong> : élaborer les ordres à partir des consignes et des mesures : microcontrôleur, carte de commande, automate programmable, calculateur.</li>
+      <li><strong>Communiquer</strong> : transmettre les ordres aux préactionneurs, informer l'utilisateur (écran, voyants, son), échanger avec d'autres systèmes (liaison radio, réseau).</li>
+    </ul>
+  </div>
+  <p>Les capteurs et leurs signaux sont étudiés dans « Capteurs et chaîne de mesure », les échanges entre constituants dans « Réseaux de communication ».</p>
+
+  <h3>L'énergie le long de la chaîne de puissance</h3>
+  <p>Chaque constituant reçoit une puissance \(P_e\) et en restitue \(P_s = \eta\,P_e\), où \(\eta\) est son <strong>rendement</strong> ; le reste est dissipé, surtout en chaleur. Le long d'une chaîne, les rendements se multiplient :</p>
+  <div class="formula" data-nom="Rendement d'une chaîne">$$\eta_{\text{global}} = \frac{P_{\text{utile}}}{P_{\text{absorbée}}} = \eta_1\,\eta_2\cdots\eta_n$$</div>
+  <p>Ordres de grandeur des rendements : hacheur ou variateur 0,95 à 0,98 ; petit moteur électrique 0,6 à 0,85 (au-delà de 0,9 pour un gros moteur) ; réducteur à engrenages 0,95 à 0,98 par étage, mais 0,4 à 0,8 pour un réducteur à roue et vis sans fin ; vis-écrou trapézoïdale 0,3 à 0,5, vis à billes environ 0,9.</p>
+  <div class="method-box"><strong>Exemple — Puissance prélevée sur la batterie en montée</strong>
+    <p>Le robot (8,0 kg) monte à 0,30 m/s une pente de 35 % (angle \(\alpha\) tel que \(\tan\alpha = 0{,}35\), \(\alpha \approx 19{,}3^\circ\)). La résistance au roulement dans l'herbe vaut 10 % de l'effort normal. Roues de rayon \(R = 0{,}10\ \text{m}\) ; réducteur de rapport 1/40 et de rendement 0,85 ; moteur de rendement 0,80 ; hacheur de rendement 0,95.</p>
+    <ol>
+      <li><strong>Effort de traction</strong> (pente et roulement) :
+        <div class="formula">$$F = m\,g\,(\sin\alpha + 0{,}1\cos\alpha) = 8{,}0 \times 9{,}81 \times (0{,}330 + 0{,}094) \approx 33{,}3\ \text{N}$$</div>
+        puissance aux roues \(F\,v \approx 10{,}0\ \text{W}\).</li>
+      <li><strong>Par roue</strong> : couple \(C_r = F R/2 \approx 1{,}67\ \text{N·m}\) à \(\omega_r = v/R = 3{,}0\ \text{rad/s}\).</li>
+      <li><strong>Moteur</strong> : \(\omega_m = 40 \times 3{,}0 = 120\ \text{rad/s}\) (environ 1150 tr/min) ; \(C_m = C_r/(40 \times 0{,}85) \approx 0{,}049\ \text{N·m}\) ; puissance mécanique \(5{,}0/0{,}85 \approx 5{,}9\ \text{W}\).</li>
+      <li><strong>Batterie</strong> : \(5{,}9/(0{,}80 \times 0{,}95) \approx 7{,}7\ \text{W}\) par roue, 15,5 W pour les deux ; rendement global \(0{,}85 \times 0{,}80 \times 0{,}95 \approx 0{,}65\).</li>
+    </ol>
+  </div>
+  <div class="notice"><strong>Erreur classique</strong> : ranger un constituant selon sa technologie plutôt que selon sa fonction. Un hacheur est un composant électronique, mais il appartient à la chaîne de puissance (il module l'énergie du moteur) ; un codeur est monté sur un moteur, mais il appartient à la chaîne d'information. Autre erreur : additionner les rendements, ou multiplier par \(\eta\) au lieu de diviser : la puissance absorbée \(P_{\text{utile}}/\eta\) est toujours la plus grande.</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§9 · LIENS ENTRE LES CHAÎNES : SYSTÈMES ASSERVIS ET SÉQUENTIELS</div>
+  <h2>Ce que la chaîne d'information fait de ses mesures</h2>
+  <div class="intro">La chaîne d'information commande la chaîne de puissance par des ordres et reçoit en retour des informations sur son état. Selon la nature de ce lien, on parle de système asservi ou de système séquentiel ; un même produit est presque toujours les deux à la fois.</div>
+  <div class="def-box">
+    <p><strong>Système asservi</strong> : une grandeur physique continue (vitesse, position, température) est mesurée en permanence par un capteur et comparée à une <strong>consigne</strong> ; la commande dépend de l'écart (boucle fermée). Si la consigne varie et que la sortie doit la suivre, on parle de <strong>poursuite</strong> ; si la consigne est constante et que la sortie doit résister aux perturbations, de <strong>régulation</strong>.</p>
+    <p><strong>Système séquentiel</strong> : la commande enchaîne des phases (des <strong>états</strong>) en réponse à des <strong>événements</strong>, souvent issus d'informations tout ou rien (bouton, fin de course, détection) ; la sortie dépend des entrées et de l'état mémorisé.</p>
+  </div>
+  <p>La structure d'un système asservi (consigne, adaptateur, comparateur, correcteur, chaîne directe, capteur, perturbation) est détaillée dans <a href="#schblocs/cours">« Schéma-blocs et systèmes asservis »</a> (§1), son modèle dans <a href="#slci/cours">« SLCI : modélisation et transformée de Laplace »</a>, le diagramme d'états dans <a href="#sequentiel/cours">« Systèmes séquentiels »</a>.</p>
+
+  <h3>Le robot de tonte, séquentiel et asservi</h3>
+  <figure class="schema">
+<svg viewBox="0 0 540 276" role="img" aria-label="Diagramme d'états des modes du robot de tonte : En charge, Tonte, Retour à la station, Arrêt de sécurité, et les transitions qui les relient">
+<rect x="2" y="2" width="536" height="272" class="sk-axis"/>
+<path d="M2,2 H167.7 V17 L160.7,24 H2 Z" class="sk-axis fl-paper"/>
+<text x="8" y="17.5"><tspan class="lab-b" font-weight="600">stm</tspan> [Robot de tonte] Modes</text>
+<rect x="30" y="100" width="120" height="40" rx="9" class="sk-ink fl-paper"/><text x="90" y="124.5" class="lab-b" text-anchor="middle">En charge</text>
+<rect x="200" y="34" width="120" height="40" rx="9" class="sk-ink fl-paper"/><text x="260" y="58.5" class="lab-b" text-anchor="middle">Tonte</text>
+<rect x="390" y="100" width="132" height="40" rx="9" class="sk-ink fl-paper"/><text x="456" y="124.5" class="lab-b" text-anchor="middle">Retour à la station</text>
+<rect x="185" y="190" width="150" height="40" rx="9" class="sk-ink fl-paper"/><text x="260" y="214.5" class="lab-b" text-anchor="middle">Arrêt de sécurité</text>
+<circle cx="14" cy="120" r="5" class="fl-ink"/>
+<line x1="19" y1="120" x2="29" y2="120" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<polyline points="70,100 70,54 199,54" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<text x="135" y="72" class="lab-it" text-anchor="middle">début de plage</text>
+<text x="135" y="88" class="lab-it" text-anchor="middle">[batterie pleine]</text>
+<polyline points="320,54 455,54 455,99" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<text x="388" y="31" class="lab-it" text-anchor="middle">pluie ou</text>
+<text x="388" y="46" class="lab-it" text-anchor="middle">batterie faible</text>
+<polyline points="470,140 470,250 90,250 90,141" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<text x="280" y="266" class="lab-it" text-anchor="middle">contact station</text>
+<line x1="240" y1="74" x2="240" y2="189" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<text x="234" y="125" class="lab-it" text-anchor="end">soulèvement</text>
+<text x="234" y="141" class="lab-it" text-anchor="end">/ lame ← 0</text>
+<line x1="290" y1="190" x2="290" y2="75" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<text x="296" y="125" class="lab-it">code saisi</text>
+<text x="296" y="141" class="lab-it">et Marche</text>
+<polyline points="425,140 425,210 336,210" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<text x="380" y="229" class="lab-it" text-anchor="middle">soulèvement</text>
+</svg>
+<figcaption>Diagramme d'états (stm) des modes du robot. Chaque transition porte « événement [garde] / effet ». Le comportement d'ensemble du robot est <strong>séquentiel</strong> : il dépend de l'état courant et des événements (début de plage horaire, pluie, contact avec la station, soulèvement). La lecture détaillée de ce diagramme est l'objet du chapitre « Systèmes séquentiels ».</figcaption>
+</figure>
+  <p>À l'échelle de la mission, le robot est <strong>séquentiel</strong> : ses modes s'enchaînent sur des événements (début de la plage horaire, pluie, contact avec la station, soulèvement). À l'intérieur des modes, des grandeurs continues sont <strong>asservies</strong> : la vitesse de la lame est maintenue malgré la densité variable de l'herbe (régulation) ; sur les modèles à réglage motorisé, la hauteur de la lame rejoint la hauteur choisie par l'utilisateur chaque fois qu'il la modifie (poursuite). La séquence fournit leurs consignes aux asservissements, et les asservissements renvoient des événements à la séquence (« station atteinte »).</p>
+
+  <div class="method-box"><strong>Exemple — Boucle ouverte ou boucle fermée pour la lame</strong>
+    <p>Le moteur de lame, à courant continu, vérifie en régime permanent \(\omega = (U - R I)/K\) et \(C = K I\), avec \(K = 0{,}05\ \text{N·m/A}\) et \(R = 1{,}0\ \Omega\). Consigne : 280 rad/s (environ 2670 tr/min). Couple résistant : 0,08 N·m dans une herbe normale, 0,16 N·m dans une herbe haute.</p>
+    <ol>
+      <li><strong>Herbe normale</strong> : \(I = 0{,}08/0{,}05 = 1{,}6\ \text{A}\) ; tension nécessaire \(U = 0{,}05 \times 280 + 1{,}0 \times 1{,}6 = 15{,}6\ \text{V}\).</li>
+      <li><strong>Boucle ouverte</strong> (tension fixée à 15,6 V), herbe haute : \(I = 3{,}2\ \text{A}\) et \(\omega = (15{,}6 - 3{,}2)/0{,}05 = 248\ \text{rad/s}\). La vitesse chute de 11 % et la coupe se dégrade.</li>
+      <li><strong>Boucle fermée</strong> : la carte mesure \(\omega\) avec un codeur, constate l'écart et augmente la tension jusqu'à \(0{,}05 \times 280 + 3{,}2 = 17{,}2\ \text{V}\) : la vitesse revient à 280 rad/s.</li>
+      <li><strong>Limite</strong> : batterie presque vide (15 V), la tension plafonne ; au mieux \(\omega = (15 - 3{,}2)/0{,}05 = 236\ \text{rad/s}\). Un asservissement ne fait pas de miracle au-delà de ce que peut fournir sa chaîne de puissance.</li>
+    </ol>
+  </div>
+  <figure class="schema">
+<svg viewBox="0 0 540 228" role="img" aria-label="Vitesse de rotation de la lame après une augmentation du couple résistant : en boucle ouverte elle chute à 248 rad/s, en boucle fermée elle revient à la consigne de 280 rad/s">
+<line x1="58" y1="194" x2="508" y2="194" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<line x1="58" y1="194" x2="58" y2="16" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<line x1="54" y1="165.7" x2="58" y2="165.7" class="sk-axis"/>
+<text x="50" y="169.7" class="lab-muted" text-anchor="end">240</text>
+<line x1="54" y1="109" x2="58" y2="109" class="sk-axis"/>
+<text x="50" y="113" class="lab-muted" text-anchor="end">260</text>
+<line x1="54" y1="52.3" x2="58" y2="52.3" class="sk-axis"/>
+<text x="50" y="56.3" class="lab-muted" text-anchor="end">280</text>
+<line x1="168" y1="194" x2="168" y2="198" class="sk-axis"/>
+<text x="168" y="212" class="lab-muted" text-anchor="middle">1</text>
+<line x1="278" y1="194" x2="278" y2="198" class="sk-axis"/>
+<text x="278" y="212" class="lab-muted" text-anchor="middle">2</text>
+<line x1="388" y1="194" x2="388" y2="198" class="sk-axis"/>
+<text x="388" y="212" class="lab-muted" text-anchor="middle">3</text>
+<line x1="498" y1="194" x2="498" y2="198" class="sk-axis"/>
+<text x="498" y="212" class="lab-muted" text-anchor="middle">4</text>
+<text x="510" y="188" class="lab-muted lab-it" text-anchor="end">t (s)</text>
+<text x="50" y="14" class="lab-muted lab-it">ω (rad/s)</text>
+<line x1="58" y1="52.3" x2="498" y2="52.3" class="sk-dash"/>
+<text x="66.8" y="45.3" class="lab-muted">consigne 280</text>
+<polyline points="58,52.3 60.2,52.3 62.4,52.3 64.6,52.3 66.8,52.3 69,52.3 71.2,52.3 73.4,52.3 75.6,52.3 77.8,52.3 80,52.3 82.2,52.3 84.4,52.3 86.6,52.3 88.8,52.3 91,52.3 93.2,52.3 95.4,52.3 97.6,52.3 99.8,52.3 102,52.3 104.2,52.3 106.4,52.3 108.6,52.3 110.8,52.3 113,52.3 115.2,52.3 117.4,52.3 119.6,52.3 121.8,52.3 124,52.3 126.2,52.3 128.4,52.3 130.6,52.3 132.8,52.3 135,52.3 137.2,52.3 139.4,52.3 141.6,52.3 143.8,52.3 146,52.3 148.2,52.3 150.4,52.3 152.6,52.3 154.8,52.3 157,52.3 159.2,52.3 161.4,52.3 163.6,52.3 165.8,52.3 168,52.3 170.2,54.6 172.4,56.8 174.6,58.9 176.8,61 179,63 181.2,65 183.4,66.9 185.6,68.8 187.8,70.6 190,72.4 192.2,74.1 194.4,75.8 196.6,77.5 198.8,79.1 201,80.7 203.2,82.2 205.4,83.7 207.6,85.2 209.8,86.6 212,88 214.2,89.4 216.4,90.7 218.6,92 220.8,93.2 223,94.5 225.2,95.7 227.4,96.8 229.6,98 231.8,99.1 234,100.2 236.2,101.2 238.4,102.3 240.6,103.3 242.8,104.2 245,105.2 247.2,106.1 249.4,107 251.6,107.9 253.8,108.8 256,109.6 258.2,110.5 260.4,111.3 262.6,112.1 264.8,112.8 267,113.6 269.2,114.3 271.4,115 273.6,115.7 275.8,116.4 278,117 280.2,117.7 282.4,118.3 284.6,118.9 286.8,119.5 289,120.1 291.2,120.6 293.4,121.2 295.6,121.7 297.8,122.3 300,122.8 302.2,123.3 304.4,123.8 306.6,124.2 308.8,124.7 311,125.1 313.2,125.6 315.4,126 317.6,126.4 319.8,126.8 322,127.2 324.2,127.6 326.4,128 328.6,128.4 330.8,128.7 333,129.1 335.2,129.4 337.4,129.8 339.6,130.1 341.8,130.4 344,130.7 346.2,131 348.4,131.3 350.6,131.6 352.8,131.9 355,132.2 357.2,132.4 359.4,132.7 361.6,133 363.8,133.2 366,133.4 368.2,133.7 370.4,133.9 372.6,134.1 374.8,134.4 377,134.6 379.2,134.8 381.4,135 383.6,135.2 385.8,135.4 388,135.6 390.2,135.7 392.4,135.9 394.6,136.1 396.8,136.3 399,136.4 401.2,136.6 403.4,136.8 405.6,136.9 407.8,137.1 410,137.2 412.2,137.3 414.4,137.5 416.6,137.6 418.8,137.8 421,137.9 423.2,138 425.4,138.1 427.6,138.3 429.8,138.4 432,138.5 434.2,138.6 436.4,138.7 438.6,138.8 440.8,138.9 443,139 445.2,139.1 447.4,139.2 449.6,139.3 451.8,139.4 454,139.5 456.2,139.6 458.4,139.7 460.6,139.7 462.8,139.8 465,139.9 467.2,140 469.4,140 471.6,140.1 473.8,140.2 476,140.3 478.2,140.3 480.4,140.4 482.6,140.5 484.8,140.5 487,140.6 489.2,140.6 491.4,140.7 493.6,140.8 495.8,140.8 498,140.9" class="sk-accent"/>
+<polyline points="58,52.3 60.2,52.3 62.4,52.3 64.6,52.3 66.8,52.3 69,52.3 71.2,52.3 73.4,52.3 75.6,52.3 77.8,52.3 80,52.3 82.2,52.3 84.4,52.3 86.6,52.3 88.8,52.3 91,52.3 93.2,52.3 95.4,52.3 97.6,52.3 99.8,52.3 102,52.3 104.2,52.3 106.4,52.3 108.6,52.3 110.8,52.3 113,52.3 115.2,52.3 117.4,52.3 119.6,52.3 121.8,52.3 124,52.3 126.2,52.3 128.4,52.3 130.6,52.3 132.8,52.3 135,52.3 137.2,52.3 139.4,52.3 141.6,52.3 143.8,52.3 146,52.3 148.2,52.3 150.4,52.3 152.6,52.3 154.8,52.3 157,52.3 159.2,52.3 161.4,52.3 163.6,52.3 165.8,52.3 168,52.3 170.2,54.5 172.4,56.3 174.6,57.9 176.8,59.3 179,60.5 181.2,61.5 183.4,62.2 185.6,62.9 187.8,63.3 190,63.7 192.2,63.9 194.4,64 196.6,64 198.8,63.9 201,63.7 203.2,63.5 205.4,63.2 207.6,62.8 209.8,62.5 212,62.1 214.2,61.6 216.4,61.2 218.6,60.7 220.8,60.2 223,59.8 225.2,59.3 227.4,58.8 229.6,58.3 231.8,57.9 234,57.4 236.2,57 238.4,56.6 240.6,56.2 242.8,55.8 245,55.5 247.2,55.1 249.4,54.8 251.6,54.5 253.8,54.2 256,53.9 258.2,53.7 260.4,53.5 262.6,53.2 264.8,53.1 267,52.9 269.2,52.7 271.4,52.6 273.6,52.5 275.8,52.3 278,52.2 280.2,52.2 282.4,52.1 284.6,52 286.8,52 289,51.9 291.2,51.9 293.4,51.8 295.6,51.8 297.8,51.8 300,51.8 302.2,51.8 304.4,51.8 306.6,51.8 308.8,51.8 311,51.8 313.2,51.8 315.4,51.8 317.6,51.9 319.8,51.9 322,51.9 324.2,51.9 326.4,51.9 328.6,52 330.8,52 333,52 335.2,52 337.4,52.1 339.6,52.1 341.8,52.1 344,52.1 346.2,52.1 348.4,52.2 350.6,52.2 352.8,52.2 355,52.2 357.2,52.2 359.4,52.2 361.6,52.2 363.8,52.3 366,52.3 368.2,52.3 370.4,52.3 372.6,52.3 374.8,52.3 377,52.3 379.2,52.3 381.4,52.3 383.6,52.3 385.8,52.3 388,52.3 390.2,52.3 392.4,52.3 394.6,52.4 396.8,52.4 399,52.4 401.2,52.4 403.4,52.4 405.6,52.4 407.8,52.4 410,52.4 412.2,52.4 414.4,52.4 416.6,52.4 418.8,52.4 421,52.4 423.2,52.4 425.4,52.4 427.6,52.4 429.8,52.4 432,52.4 434.2,52.4 436.4,52.4 438.6,52.3 440.8,52.3 443,52.3 445.2,52.3 447.4,52.3 449.6,52.3 451.8,52.3 454,52.3 456.2,52.3 458.4,52.3 460.6,52.3 462.8,52.3 465,52.3 467.2,52.3 469.4,52.3 471.6,52.3 473.8,52.3 476,52.3 478.2,52.3 480.4,52.3 482.6,52.3 484.8,52.3 487,52.3 489.2,52.3 491.4,52.3 493.6,52.3 495.8,52.3 498,52.3" class="sk-accent2"/>
+<line x1="168" y1="24" x2="168" y2="194" class="sk-axis"/>
+<text x="174" y="177" class="lab-muted lab-it">herbe haute</text>
+<text x="498" y="161" class="lab-accent" text-anchor="end">boucle ouverte : 248</text>
+<text x="498" y="70.3" class="lab-accent2" text-anchor="end">boucle fermée : 280</text>
+</svg>
+<figcaption>Vitesse de la lame (modèle de l'exemple) quand l'herbe devient haute à t = 1 s (couple résistant doublé). En <strong>boucle ouverte</strong>, tension fixe : la vitesse chute de 11 % et y reste. En <strong>boucle fermée</strong>, la carte mesure la vitesse, la compare à la consigne et augmente la tension : la vitesse ne perd qu'environ 4 rad/s et revient à 280 rad/s en moins d'une seconde. C'est une <strong>régulation</strong>.</figcaption>
+</figure>
+  <div class="notice"><strong>Erreur classique</strong> : croire qu'un système est asservi parce qu'il a des capteurs. Un portail qui s'arrête sur un fin de course est séquentiel : l'information tout ou rien fait changer d'état la commande, rien n'est comparé en permanence à une consigne. Il deviendrait asservi en position si un codeur mesurait sa position, comparée à chaque instant à une consigne. À l'inverse, une commande tout ou rien ne rend pas un système séquentiel : un four tenu à 180 °C par un thermostat est une régulation (la température est mesurée et comparée en permanence à la consigne), réalisée par une commande tout ou rien.</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§10 · PERFORMANCES ET ÉCARTS</div>
+  <h2>Comparer les performances attendues, simulées et mesurées</h2>
+  <div class="intro">Une exigence chiffrée n'a de sens que si on la confronte à des résultats : ceux d'un modèle (calcul ou simulation) pendant la conception, ceux d'essais sur un prototype ensuite. L'ingénieur compare en permanence trois versions du même système.</div>
+  <div class="def-box">
+    <p><strong>Performance attendue</strong> : niveau fixé par l'exigence (système souhaité). <strong>Performance simulée</strong> : valeur prévue par un modèle (calcul analytique, simulation numérique). <strong>Performance mesurée</strong> : valeur obtenue par un essai sur le système réel ou sur un prototype.</p>
+    <p><strong>Indicateur de performance</strong> : grandeur, tirée du cahier des charges ou des résultats, qui permet la comparaison : autonomie en minutes, temps de réponse à 5 %, écart statique, dépassement…</p>
+  </div>
+  <figure class="schema">
+<svg viewBox="0 0 540 252" role="img" aria-label="Les trois systèmes souhaité, simulé et réel, et les trois écarts entre leurs performances, illustrés par l'autonomie du robot de tonte">
+<rect x="180" y="6" width="180" height="56" rx="6" class="sk-ink fl-paper"/>
+<text x="270" y="24" class="lab-b" text-anchor="middle">Système souhaité</text>
+<text x="270" y="40" class="lab-muted" text-anchor="middle">exigences du cahier</text>
+<text x="270" y="55" class="lab-muted" text-anchor="middle">des charges : ≥ 60 min</text>
+<rect x="10" y="186" width="170" height="56" rx="6" class="sk-ink fl-paper"/>
+<text x="95" y="204" class="lab-b" text-anchor="middle">Système simulé</text>
+<text x="95" y="220" class="lab-muted" text-anchor="middle">modèle numérique</text>
+<text x="95" y="235" class="lab-muted" text-anchor="middle">ou analytique : 70 min</text>
+<rect x="360" y="186" width="170" height="56" rx="6" class="sk-ink fl-paper"/>
+<text x="445" y="204" class="lab-b" text-anchor="middle">Système réel</text>
+<text x="445" y="220" class="lab-muted" text-anchor="middle">prototype, essais</text>
+<text x="445" y="235" class="lab-muted" text-anchor="middle">mesurés : 58 min</text>
+<line x1="215" y1="62" x2="120" y2="185" class="sk-ink"/>
+<line x1="325" y1="62" x2="420" y2="185" class="sk-ink"/>
+<line x1="181" y1="214" x2="359" y2="214" class="sk-ink"/>
+<text x="140" y="112" class="lab-b" text-anchor="end">écart de conception</text>
+<text x="140" y="128" class="lab-muted" text-anchor="end">+ 10 min : la solution</text>
+<text x="140" y="143" class="lab-muted" text-anchor="end">répond au besoin</text>
+<text x="400" y="112" class="lab-b">écart de performance</text>
+<text x="400" y="128" class="lab-muted">− 2 min : le produit</text>
+<text x="400" y="143" class="lab-muted">n’est pas conforme</text>
+<text x="270" y="206" class="lab-b" text-anchor="middle">écart de modèle</text>
+<text x="270" y="232" class="lab-muted" text-anchor="middle">− 12 min</text>
+<text x="270" y="247" class="lab-muted" text-anchor="middle">modèle trop optimiste</text>
+</svg>
+<figcaption>Les trois écarts, sur l'autonomie du robot (exemple ci-dessous). Le système souhaité est décrit par les exigences, le système simulé par un modèle, le système réel par des mesures. Chaque côté du triangle répond à une question différente ; ici le modèle prévoyait une marge confortable, mais l'essai révèle une non-conformité.</figcaption>
+</figure>
+  <div class="prop-box">
+    <strong>Trois écarts, trois questions.</strong>
+    <ul>
+      <li><strong>attendu – simulé</strong> : la solution envisagée répond-elle au besoin ? Écart de conception, réduit en changeant de solution ou de dimensionnement.</li>
+      <li><strong>simulé – mesuré</strong> : le modèle représente-t-il bien le réel ? Écart de modèle, dû à des hypothèses simplificatrices, à des paramètres mal connus, à des éléments influents oubliés.</li>
+      <li><strong>attendu – mesuré</strong> : le produit est-il conforme ? Écart de performance : c'est lui qui décide si l'exigence est vérifiée.</li>
+    </ul>
+  </div>
+
+  <h3>Juger un écart</h3>
+  <ul>
+    <li>Comparer des grandeurs <strong>homogènes</strong>, obtenues <strong>dans les mêmes conditions</strong> (charge, température, état de la batterie).</li>
+    <li>Raisonner en <strong>écart relatif</strong>, rapporté à la valeur de référence : quelques pour cent signalent un modèle satisfaisant ; 20 % une hypothèse à revoir.</li>
+  </ul>
+  <div class="formula" data-nom="Écart relatif">$$\varepsilon_r = \frac{x_{\text{mesuré}} - x_{\text{simulé}}}{x_{\text{simulé}}}$$</div>
+  <ul>
+    <li>Contrôler l'<strong>ordre de grandeur</strong> avant d'interpréter : un résultat dix fois trop grand signale une erreur d'unité, pas un phénomène.</li>
+    <li><strong>Chercher les causes</strong> : hypothèses (pertes négligées, rendement supposé constant), valeurs des paramètres, éléments influents (température, pente, état du sol), dispersion de fabrication, incertitudes de mesure.</li>
+  </ul>
+
+  <div class="method-box"><strong>Exemple — L'autonomie du robot</strong>
+    <p>Modèle : batterie de 54 W·h dont 90 % utilisables, réserve de 2 W·h pour le retour, puissance constante de 40 W. Essai : 58 min d'autonomie mesurée sur une herbe humide.</p>
+    <ol>
+      <li><strong>Simulé</strong> : \((0{,}9 \times 54 - 2)/40 = 46{,}6/40 \approx 1{,}165\ \text{h}\), soit environ 70 min.</li>
+      <li><strong>Attendu – simulé</strong> : + 10 min (+ 17 %) : sur le papier, la solution tient l'exigence avec une marge.</li>
+      <li><strong>Simulé – mesuré</strong> : − 12 min, soit − 17 % : le modèle est trop optimiste. La puissance moyenne réelle vaut \(46{,}6/(58/60) \approx 48\ \text{W}\) au lieu de 40 W (+ 20 %).</li>
+      <li><strong>Attendu – mesuré</strong> : − 2 min : l'exigence 1.3 n'est pas vérifiée par cet essai. Mais elle est énoncée pour une herbe sèche à 20 °C : l'essai n'a pas respecté ses conditions. Il faut le refaire dans les bonnes conditions et enrichir le modèle (couple de coupe fonction de l'état de l'herbe). Si l'usage réel inclut l'herbe humide, il faut revoir l'exigence ou la batterie : à 48 W, il faudrait \((48 + 2)/0{,}9 \approx 56\ \text{W·h}\), soit 3,1 A·h sous 18 V.</li>
+    </ol>
+  </div>
+  <p>Les chapitres d'automatique font les mêmes comparaisons sur les critères de stabilité, de précision et de rapidité. Modifier les paramètres d'un modèle et l'enrichir pour réduire l'écart avec la mesure est une compétence de 2ᵉ année (« Modélisation multiphysique »).</p>
+  <div class="notice"><strong>Erreur classique</strong> : conclure « le système ne marche pas » à partir d'un écart sans dire lequel, ou retoucher le modèle pour qu'il colle à une mesure faite hors des conditions de l'exigence. Un écart ne s'interprète qu'avec les conditions dans lesquelles chaque valeur a été obtenue.</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">POUR ALLER PLUS LOIN · HORS PROGRAMME</div>
+  <h2>Compléments non exigibles</h2>
+  <div class="intro">Ces outils apparaissent dans des dossiers techniques et dans d'anciens sujets ; ils ne sont pas au programme.</div>
+  <ul>
+    <li><strong>Autres diagrammes SysML</strong> : séquence (sd, ordre chronologique des messages échangés entre acteurs et blocs, par exemple pour un retrait de colis) ; activité (act, enchaînement d'actions et de flux) ; paramétrique (par, équations reliant les propriétés des blocs) ; paquetages.</li>
+    <li><strong>Analyse fonctionnelle de l'ancien programme</strong> (méthode APTE) : « bête à cornes » (à qui, sur quoi, dans quel but), diagramme « pieuvre » et diagramme FAST (de la fonction à la solution). Son vocabulaire est encore rencontré : les fonctions de service se partagent en <em>fonctions principales</em> (le produit met en relation deux éléments du milieu extérieur) et <em>fonctions contraintes</em> (limitations imposées au concepteur).</li>
+    <li><strong>Analyse de cycle de vie normalisée</strong> (normes ISO 14040 et 14044), affichage environnemental des produits, indice de réparabilité.</li>
+    <li><strong>Ingénierie système fondée sur les modèles</strong> (MBSE) : un logiciel tient le modèle unique, dont tous les diagrammes sont des vues, et vérifie automatiquement la traçabilité des exigences.</li>
+  </ul>
+</div>
+</template>
+<template class="pan-tpl" data-panneau="afs-meth">
+<div class="course-section">
+  <div class="sec-num">MÉTHODES · ANALYSE SYSTÈME</div>
+  <h2>Les réflexes du chapitre</h2>
+  <div class="intro">Ces méthodes suivent l'ordre du cours : situer le système (§2), lire ses diagrammes SysML et ses exigences (§3 à §7), le découper en chaînes fonctionnelles (§8, §9), puis juger ses performances (§10). Au concours, ce sont les questions d'ouverture de presque tous les sujets : elles se traitent vite si l'on sait où regarder.</div>
+
+  <div class="method-box">
+    <strong>Méthode 1 — Isoler un système et inventorier les flux à sa frontière</strong>
+    <ol style="margin-top:.4rem">
+      <li><span class="step">Question.</span> Écrire la question à laquelle l'étude doit répondre (autonomie, consommation annuelle, effort…) : elle fixe la frontière.</li>
+      <li><span class="step">Frontière.</span> Dire ce qui est à l'intérieur, puis lister les éléments du milieu extérieur en contact avec le système : utilisateurs, autres systèmes, environnement physique.</li>
+      <li><span class="step">Flux.</span> Pour chaque élément extérieur, noter ce qui traverse la frontière, sa nature (matière, énergie, information), son sens et ses grandeurs (puissance, débit, valeur et codage).</li>
+      <li><span class="step">Éléments influents.</span> Ajouter ce qui n'échange pas de flux propre au service mais modifie les performances : température, pente, humidité, vent.</li>
+      <li><span class="step">Contrôle.</span> Toute énergie qui entre ressort, sous forme utile ou de pertes ; la matière d'œuvre entre et sort avec une valeur ajoutée.</li>
+    </ol>
+    <p><em>Exemple éclair :</em> une bouilloire électrique de 2,2 kW. Énergie électrique entrante (230 V), énergie thermique sortante (pertes) ; matière d'œuvre : l'eau, froide en entrée, bouillante en sortie ; information : appui sur l'interrupteur, voyant allumé ; éléments influents : température ambiante, altitude (qui abaisse la température d'ébullition). Chauffer 1 L de 20 à 100 °C demande \(4180 \times 80 \approx 334\ \text{kJ}\) ; avec un rendement de 0,9, il faut \(334\,000/(2200 \times 0{,}9) \approx 170\ \text{s}\), un peu moins de 3 min.</p>
+  </div>
+
+  <div class="method-box">
+    <strong>Méthode 2 — Lire un diagramme de cas d'utilisation</strong>
+    <ol style="margin-top:.4rem">
+      <li><span class="step">Sujet.</span> Le rectangle est le système ; tout ce qui est dehors appartient au milieu extérieur.</li>
+      <li><span class="step">Acteurs.</span> Les classer : principal (déclenche le cas et en tire le service) ou secondaire (sollicité par le système).</li>
+      <li><span class="step">Cas.</span> Lire chaque ellipse comme un service rendu (verbe à l'infinitif), jamais comme un constituant.</li>
+      <li><span class="step">Relations.</span> «include» : toujours, flèche de la base vers l'inclus ; «extend» : sous condition, flèche de l'extension vers la base.</li>
+      <li><span class="step">Exigences.</span> Traduire chaque cas en au moins une exigence chiffrée (méthode 3).</li>
+    </ol>
+    <p><em>Exemple éclair :</em> le cas « Tondre la pelouse » d'un robot qui doit entretenir 1200 m², repassés deux fois par semaine, à 119 m² par heure : \(1200 \times 2/119 \approx 20\ \text{h}\) de tonte par semaine ; avec autant de temps de recharge, environ 40 h de fonctionnement, ce qui tient encore dans une plage de 8 h à 20 h (84 h par semaine).</p>
+  </div>
+
+  <div class="method-box">
+    <strong>Méthode 3 — Traduire un besoin en exigences quantifiées</strong>
+    <ol style="margin-top:.4rem">
+      <li><span class="step">Une idée.</span> Une seule propriété par exigence ; la classer : fonctionnelle (ce que le système fait) ou non fonctionnelle (performance, contrainte).</li>
+      <li><span class="step">Critère.</span> Choisir une grandeur mesurable et son unité.</li>
+      <li><span class="step">Niveau et flexibilité.</span> Fixer la valeur visée (borne, intervalle) et la marge de négociation (de F0, impératif, à F3, très négociable).</li>
+      <li><span class="step">Conditions.</span> Préciser dans quelles conditions le niveau doit être tenu (charge, température, pente).</li>
+      <li><span class="step">Vérification.</span> Dire par quel essai, quelle simulation ou quel calcul on la vérifiera.</li>
+    </ol>
+    <p><em>Exemple éclair :</em> « la recharge doit être rapide » devient « recharger 80 % d'une batterie de 54 W·h en 30 min au plus, à 20 °C, flexibilité F1 ». On en dérive une exigence sur le chargeur : puissance moyenne de charge d'au moins \(0{,}8 \times 54/0{,}5 \approx 86\ \text{W}\), avant pertes.</p>
+  </div>
+
+  <div class="method-box">
+    <strong>Méthode 4 — Lire un diagramme d'exigences</strong>
+    <ol style="margin-top:.4rem">
+      <li><span class="step">Arborescence.</span> Partir de l'exigence racine et suivre les contenances (⊕ du côté de la mère) jusqu'aux exigences feuilles.</li>
+      <li><span class="step">Contenu.</span> Pour chaque feuille, relever id, critère, niveau et conditions.</li>
+      <li><span class="step">Relations.</span> Lire chaque flèche pointillée depuis l'élément qui dépend : « 1.3.1 est dérivée de 1.3 », « le bloc satisfait », « le test vérifie », « le cas raffine ».</li>
+      <li><span class="step">Traçabilité.</span> Vérifier que chaque feuille est satisfaite par au moins un bloc et vérifiée par au moins un test ; une exigence orpheline est un oubli.</li>
+      <li><span class="step">Cohérence.</span> Confronter les exigences qui portent sur les mêmes grandeurs : elles peuvent se contredire.</li>
+    </ol>
+    <p><em>Exemple éclair :</em> un portail de 4,5 m doit s'ouvrir en 15 s au plus, et la norme limite la vitesse du vantail à 0,30 m/s. Or \(4{,}5/15 = 0{,}30\ \text{m/s}\) : il faudrait rouler à la vitesse maximale du début à la fin, sans aucune phase d'accélération. Les deux exigences sont incompatibles en pratique : il faut en négocier une (d'où l'intérêt de la flexibilité).</p>
+  </div>
+
+  <div class="notice"><strong>Piège</strong> : confondre «deriveReqt» et contenance. La contenance découpe une exigence en morceaux (les filles <em>sont</em> la mère) ; la dérivation crée une exigence nouvelle, souvent sur un constituant, obtenue par un calcul (l'énergie de la batterie déduite de l'autonomie).</div>
+
+  <div class="method-box">
+    <strong>Méthode 5 — Exploiter une analyse de cycle de vie</strong>
+    <ol style="margin-top:.4rem">
+      <li><span class="step">Unité fonctionnelle.</span> Définir le service rendu commun aux solutions comparées (quantité, durée).</li>
+      <li><span class="step">Inventaire.</span> Pour chaque phase (extraction, fabrication, transport, utilisation, fin de vie), chiffrer l'indicateur choisi (kg CO₂e, énergie, ressources), ramené à l'unité fonctionnelle.</li>
+      <li><span class="step">Utilisation.</span> Énergie consommée sur toute la durée de vie, multipliée par le facteur d'émission de la source (mix électrique, carburant).</li>
+      <li><span class="step">Phase dominante.</span> Repérer la phase qui pèse le plus : c'est sur elle qu'il faut agir.</li>
+      <li><span class="step">Sensibilité.</span> Refaire le calcul en changeant une hypothèse incertaine (durée de vie, mix électrique) : la conclusion tient-elle ?</li>
+    </ol>
+    <p><em>Exemple éclair :</em> un sèche-cheveux de 1,8 kW utilisé 10 min par jour pendant 5 ans consomme \(1{,}8 \times \frac{10}{60} \times 365 \times 5 \approx 550\ \text{kW·h}\), soit environ 33 kg CO₂e avec l'électricité française, contre une dizaine de kilogrammes pour sa fabrication : l'utilisation fait plus des trois quarts de l'impact. Le levier est la puissance et la durée d'usage, pas le choix du plastique.</p>
+  </div>
+
+  <div class="method-box">
+    <strong>Méthode 6 — Lire un diagramme de définition de blocs</strong>
+    <ol style="margin-top:.4rem">
+      <li><span class="step">Racine.</span> Repérer le bloc étudié et ses compositions (losange plein contre le tout).</li>
+      <li><span class="step">Multiplicités.</span> Lire le nombre d'exemplaires de chaque partie ; le nombre total d'un constituant est le produit des multiplicités le long de l'arbre.</li>
+      <li><span class="step">Propriétés.</span> Relever les valeurs utiles (masse, tension, capacité) dans les compartiments <em>values</em>.</li>
+      <li><span class="step">Associations.</span> Distinguer les parties (composition) des blocs simplement associés, qui ne font pas partie du système.</li>
+      <li><span class="step">Bilan.</span> Masse, coût ou énergie totale : somme des valeurs unitaires multipliées par les nombres d'exemplaires.</li>
+    </ol>
+    <p><em>Exemple éclair :</em> un chariot est composé d'une caisse (3 kg), de 4 roues (0,6 kg chacune) et de 2 motorisations, chacune composée d'un moteur de 1,1 kg : \(3 + 4 \times 0{,}6 + 2 \times 1{,}1 = 7{,}6\ \text{kg}\). Un robot composé de 2 bras, chacun composé de 3 articulations motorisées, compte \(2 \times 3 = 6\) moteurs d'articulation.</p>
+  </div>
+
+  <div class="method-box">
+    <strong>Méthode 7 — Compléter un diagramme de blocs internes</strong>
+    <ol style="margin-top:.4rem">
+      <li><span class="step">Parties.</span> Lister les parties à partir du bdd (« nom : Bloc ») ; repérer les ports du cadre, interfaces avec l'extérieur.</li>
+      <li><span class="step">Connecteurs.</span> Pour chacun, dire ce qui passe et dans quel sens : énergie de la source vers l'utilisation, information de l'émetteur vers le récepteur, matière de l'amont vers l'aval.</li>
+      <li><span class="step">Nature.</span> Écrire la nature précise : énergie électrique continue ou alternative, mécanique de rotation ou de translation, hydraulique ; information logique, analogique ou numérique.</li>
+      <li><span class="step">Compatibilité.</span> Comparer les deux ports : nature, niveaux (tension, couple, pression), format de l'information. Une incompatibilité appelle un constituant d'adaptation.</li>
+      <li><span class="step">Complétude.</span> Chaque partie active doit recevoir de l'énergie et, si elle est commandée, un ordre ; un port non relié signale un oubli.</li>
+    </ol>
+    <p><em>Exemple éclair :</em> un moteur de 24 V relié directement à une batterie de 36 V serait détruit. L'ibd doit comporter un hacheur entre les deux, dont la tension de sortie moyenne \(\alpha\,U\) ne dépasse pas 24 V : rapport cyclique \(\alpha \le 24/36 \approx 0{,}67\).</p>
+  </div>
+
+  <div class="method-box">
+    <strong>Méthode 8 — Identifier les chaînes de puissance et d'information</strong>
+    <ol style="margin-top:.4rem">
+      <li><span class="step">Matière d'œuvre.</span> Dire sur quoi le système agit et quel constituant la touche : l'effecteur (agir).</li>
+      <li><span class="step">Remonter la puissance.</span> De l'effecteur vers la source : transmetteur (transmettre), actionneur (convertir), préactionneur (moduler), source (alimenter). Noter la nature de l'énergie entre chaque fonction.</li>
+      <li><span class="step">Information.</span> Capteurs et boutons (acquérir), calculateur (traiter), ordres aux préactionneurs, affichage et liaisons (communiquer).</li>
+      <li><span class="step">Liens.</span> Repérer les ordres (vers « moduler ») et les comptes rendus (des capteurs vers « acquérir »).</li>
+      <li><span class="step">Puissances.</span> Si besoin, chiffrer la puissance utile \(F\,v\) ou \(C\,\omega\) et remonter par les rendements : \(P_{\text{absorbée}} = P_{\text{utile}}/(\eta_1\eta_2\cdots)\).</li>
+    </ol>
+    <p><em>Exemple éclair :</em> un vérin électrique pousse 600 N à 0,05 m/s : \(P_u = 30\ \text{W}\). Variateur (0,95), moteur (0,80), vis-écrou trapézoïdale (0,40) : rendement global \(0{,}304\), puissance absorbée \(30/0{,}304 \approx 99\ \text{W}\). La vis est le maillon le plus coûteux en énergie.</p>
+  </div>
+
+  <div class="notice"><strong>Piège</strong> : un constituant se range par sa <em>fonction</em>, pas par sa technologie ni par sa position. Le hacheur, électronique, est dans la chaîne de puissance ; le codeur, vissé sur le moteur, est dans la chaîne d'information ; une batterie qui alimente la carte de commande reste « alimenter ».</div>
+
+  <div class="method-box">
+    <strong>Méthode 9 — Distinguer un système asservi d'un système séquentiel</strong>
+    <ol style="margin-top:.4rem">
+      <li><span class="step">Ce qui est commandé.</span> Une grandeur continue à maintenir ou à faire suivre (vitesse, position, température, éclairement) ? Ou une suite de phases (ouvrir, attendre, fermer) ?</li>
+      <li><span class="step">Boucle.</span> Système asservi si cette grandeur est mesurée et comparée <em>en permanence</em> à une consigne, la commande dépendant de l'écart. Préciser alors consigne, capteur, perturbations, et s'il s'agit de poursuite (consigne variable) ou de régulation (consigne constante).</li>
+      <li><span class="step">Séquence.</span> Système séquentiel si des événements, souvent tout ou rien, font passer la commande d'un état au suivant : nommer les états et les événements.</li>
+      <li><span class="step">Niveaux.</span> Un même produit est souvent séquentiel au niveau de sa mission et asservi au niveau de ses actionneurs : dire à quel niveau on se place.</li>
+    </ol>
+    <p><em>Exemple éclair :</em> un store qui rentre quand l'anémomètre indique plus de 40 km/h est séquentiel (un seuil franchi déclenche une phase). Un éclairage de bureau qui maintient 500 lux est une régulation : quand la lumière du jour passe de 300 à 400 lux, le capteur le mesure et la lampe passe de 200 à 100 lux d'apport.</p>
+  </div>
+
+  <div class="method-box">
+    <strong>Méthode 10 — Caractériser les écarts entre performances attendues, simulées et mesurées</strong>
+    <ol style="margin-top:.4rem">
+      <li><span class="step">Indicateur.</span> Choisir la grandeur comparée et vérifier que les trois valeurs ont été obtenues dans les mêmes conditions.</li>
+      <li><span class="step">Écarts.</span> Calculer les trois écarts, en valeur et en relatif : attendu–simulé, simulé–mesuré, attendu–mesuré.</li>
+      <li><span class="step">Questions.</span> Répondre à chacune : la solution répond-elle au besoin ? le modèle est-il fidèle ? le produit est-il conforme ?</li>
+      <li><span class="step">Causes.</span> Pour un écart de modèle, chercher les hypothèses simplificatrices, les paramètres incertains, les éléments influents oubliés ; vérifier l'ordre de grandeur et l'homogénéité.</li>
+      <li><span class="step">Action.</span> Proposer une suite : enrichir le modèle, refaire l'essai dans les bonnes conditions, changer de solution ou renégocier l'exigence.</li>
+    </ol>
+    <p><em>Exemple éclair :</em> temps de réponse exigé de 0,5 s au plus, simulé 0,42 s, mesuré 0,55 s. Attendu–simulé : marge de 0,08 s (16 %) ; simulé–mesuré : + 31 %, le modèle est trop optimiste (frottements négligés ?) ; attendu–mesuré : + 0,05 s, le produit n'est pas conforme.</p>
+  </div>
+
+  <div class="notice"><strong>Piège</strong> : rapporter l'écart à la mauvaise référence. Pour juger un modèle, on divise par la valeur simulée (ou mesurée, en le disant) ; pour juger la conformité, on compare à l'exigence en tenant compte de sa flexibilité. Et un écart obtenu hors des conditions de l'exigence ne prouve rien sur la conformité.</div>
+</div>
+</template>
+<template class="pan-tpl" data-panneau="afs-exos">
+<div class="exo-wrapper">
+
+<div class="exo">
+  <span class="num">EXO 01</span><span class="diff">★ ☆ ☆</span>
+  <h3>Portail automatique — besoin, chaînes fonctionnelles et frontière</h3>
+  <div class="statement">Un portail coulissant motorisé s'ouvre quand l'utilisateur appuie sur une télécommande. Un moteur électrique alimenté par le secteur entraîne, via un réducteur, un pignon qui engrène sur une crémaillère fixée au vantail. Un capteur de fin de course détecte la position « ouvert » ; une cellule photoélectrique (barrière infrarouge) détecte un obstacle dans le passage ; un feu clignotant signale le mouvement.</div>
+  <div class="q"><strong>Q1.</strong> Énoncer le besoin auquel répond le portail motorisé, puis donner deux exigences non fonctionnelles avec un critère et un niveau.</div>
+  <div class="q"><strong>Q2.</strong> Identifier les éléments de la chaîne de puissance (alimenter → agir).</div>
+  <div class="q"><strong>Q3.</strong> Identifier les éléments de la chaîne d'information.</div>
+  <div class="q"><strong>Q4.</strong> Où se trouve la boucle de retour ? Le portail est-il un système asservi ?</div>
+  <div class="q"><strong>Q5.</strong> On isole le portail motorisé, vantail compris. Citer deux flux d'énergie et deux flux d'information qui traversent la frontière, puis deux éléments influents du milieu extérieur.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> Besoin : permettre à l'utilisateur d'ouvrir et de fermer l'accès à sa propriété à distance, sans descendre de voiture. Exigences non fonctionnelles, par exemple : temps d'ouverture (critère : durée ; niveau : 15 s au plus) ; sécurité (critère : effort exercé sur un obstacle ; niveau : 150 N au plus) ; alimentation (réseau 230 V) ; température de fonctionnement de −20 à +50 °C. Un <em>critère</em> est une grandeur mesurable, un <em>niveau</em> la valeur attendue, à laquelle on associe une flexibilité.</p>
+    <p><strong>Q2.</strong> Alimenter : le réseau 230 V. Moduler : le relais (ou le variateur) qui commande le moteur. Convertir : le moteur électrique (énergie électrique → énergie mécanique de rotation). Transmettre : le réducteur, puis le pignon et la crémaillère, qui transforment la rotation en translation. Agir : le vantail, qui ouvre ou ferme le passage.</p>
+    <p><strong>Q3.</strong> Acquérir : le récepteur de la télécommande (la consigne de l'utilisateur), le fin de course (détection tout ou rien de la position « ouvert »), la cellule (présence d'un obstacle). Traiter : la carte de commande. Communiquer : les ordres envoyés au relais, le feu clignotant.</p>
+    <p><strong>Q4.</strong> Le capteur de fin de course renvoie à la carte l'information « portail ouvert », qui coupe alors l'alimentation du moteur. Ce retour est une information tout ou rien qui fait passer la commande d'un état (« ouverture en cours ») au suivant (« ouvert, moteur arrêté ») : le portail est un <strong>système séquentiel</strong>, pas un asservissement. Il y aurait asservissement si une grandeur continue, la position du vantail mesurée par un codeur, était comparée en permanence à une consigne, la commande du moteur dépendant de l'écart.</p>
+    <p><strong>Q5.</strong> Énergie : énergie électrique entrante (réseau 230 V) ; chaleur sortante (pertes du moteur et du réducteur) ; en cas de contact, effort exercé sur l'obstacle. Information : ordre radio de la télécommande (entrant) ; signal lumineux du feu clignotant (sortant) ; présence d'un obstacle, détectée par la coupure du faisceau (entrante). Éléments influents : le vent sur le vantail (effort résistant), la température (viscosité de la graisse, pile de la télécommande), l'encrassement ou la pente du rail.</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 02</span><span class="diff">★ ★ ☆</span>
+  <h3>Lecture d'un diagramme des exigences : un drone</h3>
+  <div class="statement">Le cahier des charges d'un drone impose : « autonomie de vol ≥ 25 min », « masse totale ≤ 900 g », « se stabiliser en vol stationnaire ». On modélise ces exigences en SysML. En vol stationnaire, le drone consomme 120 W ; sa batterie, de tension nominale 11,1 V, n'est utilisable qu'à 80 % ; les batteries disponibles stockent 150 W·h par kilogramme.</div>
+  <div class="q"><strong>Q1.</strong> Pour l'exigence « autonomie ≥ 25 min », donner le critère, le niveau et la flexibilité.</div>
+  <div class="q"><strong>Q2.</strong> Quel type de relation lie l'exigence « stabilité en vol » à une exigence plus précise « erreur d'altitude ≤ 5 cm » ?</div>
+  <div class="q"><strong>Q3.</strong> Comment vérifie-t-on, en pratique, qu'une exigence est satisfaite ?</div>
+  <div class="q"><strong>Q4.</strong> Dériver de l'exigence d'autonomie une exigence sur l'énergie de la batterie, puis sur sa capacité et sur sa masse. Quel conflit entre exigences apparaît ?</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> Critère : la durée de vol (en vol stationnaire, dans des conditions à préciser : température, vent). Niveau : 25 min, valeur minimale ; toute valeur supérieure convient. Flexibilité : l'énoncé n'en donne pas ; si l'exigence est impérative, aucune tolérance en dessous de 25 min (classe F0).</p>
+    <p><strong>Q2.</strong> Une relation de <em>raffinement</em> («refine») : l'exigence précise quantifie l'exigence qualitative « stabilité en vol ». Si la stabilité était décomposée en plusieurs exigences chiffrées (altitude, cap, position horizontale), on les relierait à elle par <em>contenance</em>.</p>
+    <p><strong>Q3.</strong> Par un <em>cas de test</em> (essai ou simulation) relié à l'exigence par une relation «verify» : on mesure la grandeur dans les conditions prévues et on la compare au niveau exigé, avec sa flexibilité.</p>
+    <p><strong>Q4.</strong> Énergie consommée en 25 min : \(120 \times 25/60 = 50\ \text{W·h}\) ; seuls 80 % sont utilisables, d'où l'exigence dérivée («deriveReqt») \(E \ge 50/0{,}8 = 62{,}5\ \text{W·h}\). Capacité : \(Q \ge 62{,}5/11{,}1 \approx 5{,}6\ \text{A·h}\). Masse : \(62{,}5/150 \approx 0{,}42\ \text{kg}\), soit 46 % des 900 g autorisés : il ne reste que 480 g pour la structure, les moteurs, les hélices, l'électronique et la charge utile. Les exigences d'autonomie et de masse sont en <strong>conflit</strong> ; de plus, alourdir le drone augmente sa consommation. Il faut arbitrer : négocier l'une des deux exigences (d'où l'intérêt de la flexibilité) ou changer de solution (batterie plus dense, hélices plus grandes et plus efficaces).</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 03</span><span class="diff">★ ☆ ☆</span>
+  <h3>Consigne automatique à colis : lire un diagramme de cas d'utilisation</h3>
+  <div class="statement">Une consigne automatique installée dans une gare garde des colis jusqu'à leur retrait. Son diagramme de cas d'utilisation est donné ci-dessous. Elle compte 60 casiers ; elle reçoit en moyenne 40 colis par jour, qui y restent en moyenne 1,2 jour.
+  <figure class="schema">
+<svg viewBox="0 0 540 310" role="img" aria-label="Diagramme de cas d'utilisation d'une consigne automatique à colis : acteurs Livreur, Client, Plateforme de livraison, Technicien ; relations include et extend">
+<rect x="2" y="2" width="536" height="306" class="sk-axis"/>
+<path d="M2,2 H183.6 V17 L176.6,24 H2 Z" class="sk-axis fl-paper"/>
+<text x="8" y="17.5"><tspan class="lab-b" font-weight="600">uc</tspan> [Consigne à colis] Services</text>
+<rect x="118" y="34" width="300" height="266" class="sk-ink"/>
+<text x="268" y="52" class="lab-b" text-anchor="middle">Consigne à colis</text>
+<circle cx="44" cy="62" r="7" class="sk-ink fl-paper"/>
+<line x1="44" y1="69" x2="44" y2="89" class="sk-ink"/>
+<line x1="32" y1="76" x2="56" y2="76" class="sk-ink"/>
+<line x1="44" y1="89" x2="35" y2="103" class="sk-ink"/>
+<line x1="44" y1="89" x2="53" y2="103" class="sk-ink"/>
+<text x="44" y="119" class="lab-b" text-anchor="middle">Livreur</text>
+<circle cx="44" cy="188" r="7" class="sk-ink fl-paper"/>
+<line x1="44" y1="195" x2="44" y2="215" class="sk-ink"/>
+<line x1="32" y1="202" x2="56" y2="202" class="sk-ink"/>
+<line x1="44" y1="215" x2="35" y2="229" class="sk-ink"/>
+<line x1="44" y1="215" x2="53" y2="229" class="sk-ink"/>
+<text x="44" y="245" class="lab-b" text-anchor="middle">Client</text>
+<circle cx="484" cy="52" r="7" class="sk-ink fl-paper"/>
+<line x1="484" y1="59" x2="484" y2="79" class="sk-ink"/>
+<line x1="472" y1="66" x2="496" y2="66" class="sk-ink"/>
+<line x1="484" y1="79" x2="475" y2="93" class="sk-ink"/>
+<line x1="484" y1="79" x2="493" y2="93" class="sk-ink"/>
+<text x="484" y="109" class="lab-b" text-anchor="middle">Plateforme</text>
+<text x="484" y="124" class="lab-b" text-anchor="middle">de livraison</text>
+<circle cx="484" cy="196" r="7" class="sk-ink fl-paper"/>
+<line x1="484" y1="203" x2="484" y2="223" class="sk-ink"/>
+<line x1="472" y1="210" x2="496" y2="210" class="sk-ink"/>
+<line x1="484" y1="223" x2="475" y2="237" class="sk-ink"/>
+<line x1="484" y1="223" x2="493" y2="237" class="sk-ink"/>
+<text x="484" y="253" class="lab-b" text-anchor="middle">Technicien</text>
+<ellipse cx="196" cy="92" rx="66" ry="22" class="sk-ink fl-paper"/>
+<text x="196" y="96.5" text-anchor="middle">Déposer un colis</text>
+<ellipse cx="196" cy="210" rx="66" ry="22" class="sk-ink fl-paper"/>
+<text x="196" y="214.5" text-anchor="middle">Retirer un colis</text>
+<ellipse cx="354" cy="86" rx="56" ry="24" class="sk-ink fl-paper"/>
+<text x="354" y="83" text-anchor="middle">Notifier</text>
+<text x="354" y="98" text-anchor="middle">le client</text>
+<ellipse cx="354" cy="152" rx="56" ry="24" class="sk-ink fl-paper"/>
+<text x="354" y="149" text-anchor="middle">Ouvrir</text>
+<text x="354" y="164" text-anchor="middle">un casier</text>
+<ellipse cx="354" cy="212" rx="56" ry="24" class="sk-ink fl-paper"/>
+<text x="354" y="209" text-anchor="middle">Assurer la</text>
+<text x="354" y="224" text-anchor="middle">maintenance</text>
+<ellipse cx="250" cy="268" rx="62" ry="22" class="sk-ink fl-paper"/>
+<text x="250" y="272.5" text-anchor="middle">Signaler un blocage</text>
+<line x1="58" y1="76" x2="131" y2="88" class="sk-ink"/>
+<line x1="58" y1="202" x2="131" y2="208" class="sk-ink"/>
+<line x1="470" y1="70" x2="410" y2="84" class="sk-ink"/>
+<line x1="470" y1="214" x2="410" y2="213" class="sk-ink"/>
+<line x1="58" y1="210" x2="196" y2="268" class="sk-ink"/>
+<polyline points="262,90 297,87" class="sk-dash" marker-end="url(#sk-arrow-ink)"/>
+<text x="279" y="76" class="lab-muted lab-it" text-anchor="middle">«include»</text>
+<polyline points="250,105 305,140" class="sk-dash" marker-end="url(#sk-arrow-ink)"/>
+<text x="250" y="132" class="lab-muted lab-it" text-anchor="end">«include»</text>
+<polyline points="250,196 300,162" class="sk-dash" marker-end="url(#sk-arrow-ink)"/>
+<text x="256" y="168" class="lab-muted lab-it" text-anchor="end">«include»</text>
+<polyline points="232,247 215,232" class="sk-dash" marker-end="url(#sk-arrow-ink)"/>
+<text x="232" y="243" class="lab-muted lab-it">«extend»</text>
+</svg>
+<figcaption>Diagramme de cas d'utilisation de la consigne à colis (exercice 3).</figcaption>
+</figure>
+  </div>
+  <div class="q"><strong>Q1.</strong> Lister les acteurs et dire lesquels sont principaux et lesquels sont secondaires.</div>
+  <div class="q"><strong>Q2.</strong> Que signifient les trois flèches «include» ? Et la flèche «extend» ?</div>
+  <div class="q"><strong>Q3.</strong> Un élève propose d'ajouter un cas « Serrure électrique » dans le rectangle. Est-ce correct ?</div>
+  <div class="q"><strong>Q4.</strong> Combien de colis la consigne contient-elle en moyenne ? Qu'en est-il un jour de pointe à 70 colis ? Proposer une exigence chiffrée.</div>
+  <div class="q"><strong>Q5.</strong> Le code de retrait comporte 6 chiffres, et le clavier se bloque après 3 essais faux. Quelle est la probabilité qu'un inconnu ouvre un casier donné en tapant des codes au hasard ?</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> Acteurs principaux, qui déclenchent un cas et en tirent un service : le livreur (déposer), le client (retirer), le technicien (assurer la maintenance). Acteur secondaire : la plateforme de livraison, sollicitée par la consigne pour notifier le client. Ce n'est pas une personne mais un système extérieur : un acteur n'est pas forcément humain.</p>
+    <p><strong>Q2.</strong> Déposer un colis inclut <em>toujours</em> « Ouvrir un casier » et « Notifier le client » ; retirer un colis inclut toujours « Ouvrir un casier ». L'inclusion met en commun l'ouverture, utilisée par deux cas. « Signaler un blocage » étend « Retirer un colis » : ce comportement ne s'ajoute au retrait que dans un cas particulier, si le casier ne s'ouvre pas.</p>
+    <p><strong>Q3.</strong> Non. Un cas d'utilisation est un <em>service</em> rendu à un acteur, nommé par un verbe ; une serrure est un <em>constituant</em>, qui a sa place dans le diagramme de définition de blocs (et dans le diagramme de blocs internes), où il satisfera l'exigence liée à « Ouvrir un casier ».</p>
+    <p><strong>Q4.</strong> Chaque jour arrivent 40 colis, qui restent chacun 1,2 jour en moyenne : en régime établi, la consigne contient en moyenne \(40 \times 1{,}2 = 48\) colis, soit 80 % des 60 casiers. Un jour de pointe, \(70 \times 1{,}2 = 84\) colis dépasseraient la capacité. Exigence possible : « nombre de casiers ≥ 105 », pour rester à 80 % d'occupation en pointe (\(84/0{,}8 = 105\)) ; ou bien agir sur la durée de séjour : « relance du client au bout de 24 h, retour à l'expéditeur au bout de 3 jours ».</p>
+    <p><strong>Q5.</strong> Il y a \(10^6\) codes possibles ; avec 3 essais, la probabilité de tomber sur le bon vaut \(3/10^6 = 3 \times 10^{-6}\). Cela devient une exigence de sécurité chiffrée, vérifiable par le calcul.</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 04</span><span class="diff">★ ★ ☆</span>
+  <h3>Monte-escalier : exploiter un diagramme d'exigences</h3>
+  <div class="statement">Un fauteuil monte-escalier transporte une personne assise le long d'un rail de 6,0 m posé sur un escalier incliné à 30°. Son diagramme d'exigences est donné ci-dessous. Masse de la partie mobile (fauteuil et motorisation) : 40 kg. Rendement global de la chaîne de puissance (batteries, variateur, moteur, réducteur, pignon sur la crémaillère du rail) : 0,35. Les batteries au plomb ne doivent être déchargées qu'à 50 % pour durer. On prend \(g = 9{,}81\ \text{m/s}^2\).
+  <figure class="schema">
+<svg viewBox="0 0 540 424" role="img" aria-label="Diagramme d'exigences d'un fauteuil monte-escalier : exigence mère, quatre exigences contenues, exigence dérivée d'énergie, bloc Batteries et essai chronométré">
+<rect x="2" y="2" width="536" height="420" class="sk-axis"/>
+<path d="M2,2 H188.9 V17 L181.9,24 H2 Z" class="sk-axis fl-paper"/>
+<text x="8" y="17.5"><tspan class="lab-b" font-weight="600">req</tspan> [Monte-escalier] Exigences</text>
+<rect x="170" y="34" width="200" height="104" class="sk-ink fl-paper"/>
+<text x="270" y="49" class="lab-muted" text-anchor="middle">«requirement»</text>
+<text x="270" y="64" class="lab-b" text-anchor="middle">Transporter une personne</text>
+<line x1="170" y1="71" x2="370" y2="71" class="sk-axis"/>
+<text x="175" y="86" class="lab-muted">id = 1</text>
+<text x="175" y="101">Monter et descendre</text>
+<text x="175" y="116">l’escalier assis,</text>
+<text x="175" y="131">en sécurité</text>
+<rect x="12" y="176" width="124" height="108" class="sk-ink fl-paper"/>
+<text x="74" y="191" class="lab-muted" text-anchor="middle">«requirement»</text>
+<text x="74" y="206" class="lab-b" text-anchor="middle">Charge</text>
+<line x1="12" y1="213" x2="136" y2="213" class="sk-axis"/>
+<text x="17" y="228" class="lab-muted">id = 1.1</text>
+<text x="17" y="243">Charge utile</text>
+<text x="17" y="258">≥ 120 kg</text>
+<line x1="270" y1="150" x2="74" y2="176" class="sk-ink"/>
+<rect x="142" y="176" width="124" height="108" class="sk-ink fl-paper"/>
+<text x="204" y="191" class="lab-muted" text-anchor="middle">«requirement»</text>
+<text x="204" y="206" class="lab-b" text-anchor="middle">Vitesse</text>
+<line x1="142" y1="213" x2="266" y2="213" class="sk-axis"/>
+<text x="147" y="228" class="lab-muted">id = 1.2</text>
+<text x="147" y="243">Vitesse le long</text>
+<text x="147" y="258">du rail</text>
+<text x="147" y="273">≤ 0,15 m/s</text>
+<line x1="270" y1="150" x2="204" y2="176" class="sk-ink"/>
+<rect x="272" y="176" width="124" height="108" class="sk-ink fl-paper"/>
+<text x="334" y="191" class="lab-muted" text-anchor="middle">«requirement»</text>
+<text x="334" y="206" class="lab-b" text-anchor="middle">Durée</text>
+<line x1="272" y1="213" x2="396" y2="213" class="sk-axis"/>
+<text x="277" y="228" class="lab-muted">id = 1.3</text>
+<text x="277" y="243">Trajet de 6,0 m</text>
+<text x="277" y="258">en ≤ 50 s</text>
+<line x1="270" y1="150" x2="334" y2="176" class="sk-ink"/>
+<rect x="402" y="176" width="124" height="108" class="sk-ink fl-paper"/>
+<text x="464" y="191" class="lab-muted" text-anchor="middle">«requirement»</text>
+<text x="464" y="206" class="lab-b" text-anchor="middle">Secours</text>
+<line x1="402" y1="213" x2="526" y2="213" class="sk-axis"/>
+<text x="407" y="228" class="lab-muted">id = 1.4</text>
+<text x="407" y="243">10 montées</text>
+<text x="407" y="258">secteur coupé</text>
+<line x1="270" y1="150" x2="464" y2="176" class="sk-ink"/>
+<circle cx="270" cy="144" r="6" class="sk-ink fl-paper"/>
+<line x1="264" y1="144" x2="276" y2="144" class="sk-ink"/>
+<line x1="270" y1="138" x2="270" y2="150" class="sk-ink"/>
+<rect x="12" y="322" width="138" height="46" class="sk-ink fl-paper"/>
+<text x="81" y="339" class="lab-muted" text-anchor="middle">«testCase»</text>
+<text x="81" y="356" class="lab-b" text-anchor="middle">Essai chronométré</text>
+<polyline points="81,322 81,304 302,304 302,285" class="sk-dash" marker-end="url(#sk-arrow-ink)"/>
+<text x="191.5" y="298" class="lab-muted lab-it" text-anchor="middle">«verify»</text>
+<rect x="380" y="322" width="146" height="92" class="sk-ink fl-paper"/>
+<text x="453" y="337" class="lab-muted" text-anchor="middle">«requirement»</text>
+<text x="453" y="352" class="lab-b" text-anchor="middle">Énergie</text>
+<line x1="380" y1="359" x2="526" y2="359" class="sk-axis"/>
+<text x="385" y="374" class="lab-muted">id = 1.4.1</text>
+<text x="385" y="389">Énergie utilisable</text>
+<text x="385" y="404">des batteries ≥ … W·h</text>
+<polyline points="465,322 465,285" class="sk-dash" marker-end="url(#sk-arrow-ink)"/>
+<text x="459" y="312" class="lab-muted lab-it" text-anchor="end">«deriveReqt»</text>
+<rect x="188" y="330" width="118" height="76" class="sk-ink fl-paper"/>
+<text x="247" y="345" class="lab-muted" text-anchor="middle">«block»</text>
+<text x="247" y="360" class="lab-b" text-anchor="middle">Batteries</text>
+<line x1="188" y1="366" x2="306" y2="366" class="sk-axis"/>
+<text x="193" y="380" class="lab-muted lab-it">values</text>
+<text x="193" y="395" class="lab-muted">2 × 12 V ; 7 A·h</text>
+<polyline points="306,372 379,372" class="sk-dash" marker-end="url(#sk-arrow-ink)"/>
+<text x="342" y="364" class="lab-muted lab-it" text-anchor="middle">«satisfy»</text>
+</svg>
+<figcaption>Diagramme d'exigences du monte-escalier (exercice 4). La valeur de l'exigence 1.4.1 est à calculer.</figcaption>
+</figure>
+  </div>
+  <div class="q"><strong>Q1.</strong> Nommer chacune des relations du diagramme et dire, pour chacune, ce qu'elle signifie ici.</div>
+  <div class="q"><strong>Q2.</strong> Les exigences 1.2 et 1.3 sont-elles compatibles ? Quelle plage de vitesse imposent-elles ensemble ?</div>
+  <div class="q"><strong>Q3.</strong> Calculer l'énergie prélevée sur les batteries pour une montée à pleine charge, et en déduire la valeur de l'exigence 1.4.1.</div>
+  <div class="q"><strong>Q4.</strong> Les batteries proposées satisfont-elles 1.4.1 ? Avec quelle marge ?</div>
+  <div class="q"><strong>Q5.</strong> On ajoute un essai qui mesure la vitesse de la partie mobile au tachymètre. Quelle relation dessiner, et vers quelle exigence ?</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> Le symbole ⊕ (contenance) décompose l'exigence 1 en 1.1 à 1.4. «verify» : l'essai chronométré vérifie l'exigence de durée 1.3. «deriveReqt» : l'exigence 1.4.1 sur l'énergie des batteries est dérivée, par le calcul, de l'exigence de secours 1.4. «satisfy» : le bloc Batteries est la solution qui satisfait 1.4.1.</p>
+    <p><strong>Q2.</strong> À la vitesse maximale de 0,15 m/s, le trajet dure au moins \(6{,}0/0{,}15 = 40\ \text{s}\), moins que les 50 s autorisées : les exigences sont compatibles. Ensemble, elles imposent une vitesse moyenne d'au moins \(6{,}0/50 = 0{,}12\ \text{m/s}\) et une vitesse maximale de 0,15 m/s : à 0,15 m/s en régime établi, il reste 10 s pour les démarrages et les arrêts.</p>
+    <p><strong>Q3.</strong> Dénivelé : \(6{,}0 \sin 30^\circ = 3{,}0\ \text{m}\). Masse à monter à pleine charge : \(120 + 40 = 160\ \text{kg}\). Énergie potentielle gagnée : \(160 \times 9{,}81 \times 3{,}0 \approx 4709\ \text{J}\). Énergie prélevée sur les batteries : \(4709/0{,}35 \approx 13\,450\ \text{J} \approx 3{,}74\ \text{W·h}\). Pour 10 montées : environ 37,4 W·h. Exigence 1.4.1 : énergie utilisable des batteries d'au moins 38 W·h.</p>
+    <p><strong>Q4.</strong> Énergie nominale : \(2 \times 12 \times 7 = 168\ \text{W·h}\) ; utilisable à 50 % : 84 W·h, plus du double des 37,4 W·h nécessaires (marge d'un facteur 2,2). La relation «satisfy» est justifiée ; la marge couvre le vieillissement des batteries, le froid et les descentes, non comptées ici.</p>
+    <p><strong>Q5.</strong> Un cas de test «testCase» « Mesure de la vitesse », relié par une flèche «verify» qui part de l'essai et pointe vers l'exigence 1.2.</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 05</span><span class="diff">★ ★ ☆</span>
+  <h3>Trottinette électrique : analyse du cycle de vie</h3>
+  <div class="statement">On compare l'impact sur le changement climatique d'une trottinette électrique personnelle et de la même trottinette en libre-service. Données d'une étude simplifiée (ordres de grandeur) :
+    <div>
+    <table>
+      <tr><th></th><th>Personnelle</th><th>Libre-service</th></tr>
+      <tr><td>Extraction et fabrication (batterie comprise)</td><td>120 kg CO₂e</td><td>120 kg CO₂e</td></tr>
+      <tr><td>Transport jusqu'à l'utilisateur</td><td>10 kg CO₂e</td><td>10 kg CO₂e</td></tr>
+      <tr><td>Fin de vie</td><td>5 kg CO₂e</td><td>5 kg CO₂e</td></tr>
+      <tr><td>Durée de vie</td><td>8 000 km</td><td>2 500 km</td></tr>
+      <tr><td>Consommation électrique</td><td>1,5 kW·h aux 100 km</td><td>1,5 kW·h aux 100 km</td></tr>
+      <tr><td>Collecte et recharge par camionnette</td><td>aucune</td><td>50 g CO₂e par km parcouru</td></tr>
+    </table>
+    </div>
+    Électricité : 0,06 kg CO₂e par kW·h. Voiture thermique avec un seul passager : environ 200 g CO₂e par km.</div>
+  <div class="q"><strong>Q1.</strong> Proposer une unité fonctionnelle qui permette la comparaison.</div>
+  <div class="q"><strong>Q2.</strong> Calculer les émissions par kilomètre dans chaque cas.</div>
+  <div class="q"><strong>Q3.</strong> Quelle est la phase dominante dans chaque cas ? Proposer un levier d'amélioration pour chacun.</div>
+  <div class="q"><strong>Q4.</strong> Que devient le résultat de la trottinette personnelle si sa durée de vie double ?</div>
+  <div class="q"><strong>Q5.</strong> Un trajet de 3 km est fait en trottinette en libre-service. Comparer son bilan selon qu'il remplace un trajet en voiture ou un trajet à pied. Que retenir ?</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> « Transporter une personne sur 1 km ». Les deux trottinettes n'ont pas la même durée de vie : comparer les produits entiers n'aurait pas de sens, il faut comparer le service rendu.</p>
+    <p><strong>Q2.</strong> Électricité : \(1{,}5/100 \times 0{,}06 = 9 \times 10^{-4}\ \text{kg}\), soit 0,9 g par km. Personnelle : \(135/8000 \approx 16{,}9\ \text{g/km}\) pour la fabrication, le transport et la fin de vie, plus 0,9 g : environ 18 g/km. Libre-service : \(135/2500 = 54\ \text{g/km}\), plus 0,9 g, plus 50 g de collecte : environ 105 g/km.</p>
+    <p><strong>Q3.</strong> Personnelle : la fabrication, environ 95 % du total ; levier : durée de vie (robustesse, réparabilité, batterie remplaçable). Libre-service : fabrication (51 %) et collecte (48 %) presque à égalité ; leviers : robustesse contre le vandalisme et l'usage intensif, batteries échangeables collectées par des vélos-cargos électriques plutôt que par des camionnettes. L'électricité consommée est négligeable dans les deux cas, avec le mix français.</p>
+    <p><strong>Q4.</strong> \(135/16\,000 + 0{,}9 \approx 9{,}3\ \text{g/km}\) : le résultat est presque divisé par deux, puisque la fabrication domine.</p>
+    <p><strong>Q5.</strong> Remplaçant la voiture : \(3 \times (200 - 105) \approx 285\ \text{g}\) de CO₂e évités. Remplaçant la marche : \(3 \times 105 \approx 315\ \text{g}\) ajoutés. L'ACV d'un produit ne dit pas tout : son bilan dépend de l'usage qu'il remplace, ce qui relève de l'impact sociétal (habitudes de déplacement) autant que de la conception.</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 06</span><span class="diff">★ ★ ☆</span>
+  <h3>Fauteuil roulant électrique : exploiter un diagramme de définition de blocs</h3>
+  <div class="statement">Le diagramme de définition de blocs d'un fauteuil roulant électrique est donné ci-dessous. Masses unitaires : châssis pliable 18 kg ; siège 6 kg ; motorisation 7,5 kg (moteur, réducteur et roue motrice compris) ; roue avant pivotante 1,2 kg ; manipulateur (boîtier de commande) 1,5 kg ; batterie : voir le diagramme. Exigences : masse sans les batteries au plus de 45 kg, pour le charger dans une voiture ; autonomie d'au moins 25 km à 6 km/h sur sol plat. Consommation moyenne dans ces conditions : 120 W ; 90 % de l'énergie des batteries est utilisable. Dans le diagramme de blocs internes (non représenté), les deux batteries sont reliées en série.
+  <figure class="schema">
+<svg viewBox="0 0 540 396" role="img" aria-label="Diagramme de définition de blocs d'un fauteuil roulant électrique : six blocs composants avec multiplicités, motorisation décomposée, batterie et ses propriétés, chargeur associé">
+<rect x="2" y="2" width="536" height="392" class="sk-axis"/>
+<path d="M2,2 H244.5 V17 L237.5,24 H2 Z" class="sk-axis fl-paper"/>
+<text x="8" y="17.5"><tspan class="lab-b" font-weight="600">bdd</tspan> [Fauteuil roulant électrique] Structure</text>
+<rect x="14" y="38" width="150" height="56" class="sk-ink fl-paper"/>
+<text x="89" y="53" class="lab-muted" text-anchor="middle">«block»</text>
+<text x="89" y="68" class="lab-b" text-anchor="middle">Fauteuil roulant</text>
+<text x="89" y="83" class="lab-b" text-anchor="middle">électrique</text>
+<rect x="14" y="300" width="150" height="40" class="sk-ink fl-paper"/>
+<text x="89" y="315" class="lab-muted" text-anchor="middle">«block»</text>
+<text x="89" y="330" class="lab-b" text-anchor="middle">Chargeur</text>
+<line x1="89" y1="94" x2="89" y2="299" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<text x="95" y="200" class="lab-muted lab-it">se recharge</text>
+<text x="95" y="215" class="lab-muted lab-it">sur</text>
+<polygon points="164,66 171,61.8 178,66 171,70.2" class="fl-ink"/>
+<line x1="178" y1="66" x2="190" y2="66" class="sk-ink"/>
+<line x1="190" y1="52" x2="190" y2="352" class="sk-ink"/>
+<line x1="190" y1="52" x2="216" y2="52" class="sk-ink"/>
+<text x="205" y="47" class="lab-muted" text-anchor="middle">1</text>
+<rect x="216" y="34" width="150" height="36" class="sk-ink fl-paper"/>
+<text x="291" y="49" class="lab-muted" text-anchor="middle">«block»</text>
+<text x="291" y="64" class="lab-b" text-anchor="middle">Châssis pliable</text>
+<line x1="190" y1="96" x2="216" y2="96" class="sk-ink"/>
+<text x="205" y="91" class="lab-muted" text-anchor="middle">1</text>
+<rect x="216" y="78" width="150" height="36" class="sk-ink fl-paper"/>
+<text x="291" y="93" class="lab-muted" text-anchor="middle">«block»</text>
+<text x="291" y="108" class="lab-b" text-anchor="middle">Siège</text>
+<line x1="190" y1="140" x2="216" y2="140" class="sk-ink"/>
+<text x="205" y="135" class="lab-muted" text-anchor="middle">2</text>
+<rect x="216" y="122" width="150" height="36" class="sk-ink fl-paper"/>
+<text x="291" y="137" class="lab-muted" text-anchor="middle">«block»</text>
+<text x="291" y="152" class="lab-b" text-anchor="middle">Motorisation</text>
+<line x1="190" y1="191" x2="216" y2="191" class="sk-ink"/>
+<text x="205" y="186" class="lab-muted" text-anchor="middle">2</text>
+<rect x="216" y="166" width="150" height="50" class="sk-ink fl-paper"/>
+<text x="291" y="181" class="lab-muted" text-anchor="middle">«block»</text>
+<text x="291" y="196" class="lab-b" text-anchor="middle">Roue avant</text>
+<text x="291" y="211" class="lab-b" text-anchor="middle">pivotante</text>
+<line x1="190" y1="246" x2="216" y2="246" class="sk-ink"/>
+<text x="205" y="241" class="lab-muted" text-anchor="middle">2</text>
+<rect x="216" y="224" width="150" height="102" class="sk-ink fl-paper"/>
+<text x="291" y="239" class="lab-muted" text-anchor="middle">«block»</text>
+<text x="291" y="254" class="lab-b" text-anchor="middle">Batterie</text>
+<line x1="216" y1="261" x2="366" y2="261" class="sk-axis"/>
+<text x="221" y="275" class="lab-muted lab-it">values</text>
+<text x="221" y="290" class="lab-muted">tension = 12 V</text>
+<text x="221" y="305" class="lab-muted">capacité = 40 A·h</text>
+<text x="221" y="320" class="lab-muted">masse = 5,5 kg</text>
+<line x1="190" y1="352" x2="216" y2="352" class="sk-ink"/>
+<text x="205" y="347" class="lab-muted" text-anchor="middle">1</text>
+<rect x="216" y="334" width="150" height="36" class="sk-ink fl-paper"/>
+<text x="291" y="349" class="lab-muted" text-anchor="middle">«block»</text>
+<text x="291" y="364" class="lab-b" text-anchor="middle">Manipulateur</text>
+<polygon points="366,140 373,135.8 380,140 373,144.2" class="fl-ink"/>
+<line x1="380" y1="140" x2="392" y2="140" class="sk-ink"/>
+<line x1="392" y1="52" x2="392" y2="140" class="sk-ink"/>
+<line x1="392" y1="52" x2="414" y2="52" class="sk-ink"/>
+<text x="403" y="47" class="lab-muted" text-anchor="middle">1</text>
+<rect x="414" y="34" width="114" height="36" class="sk-ink fl-paper"/>
+<text x="471" y="49" class="lab-muted" text-anchor="middle">«block»</text>
+<text x="471" y="64" class="lab-b" text-anchor="middle">Moteur 24 V</text>
+<line x1="392" y1="96" x2="414" y2="96" class="sk-ink"/>
+<text x="403" y="91" class="lab-muted" text-anchor="middle">1</text>
+<rect x="414" y="78" width="114" height="36" class="sk-ink fl-paper"/>
+<text x="471" y="93" class="lab-muted" text-anchor="middle">«block»</text>
+<text x="471" y="108" class="lab-b" text-anchor="middle">Réducteur</text>
+<line x1="392" y1="140" x2="414" y2="140" class="sk-ink"/>
+<text x="403" y="135" class="lab-muted" text-anchor="middle">1</text>
+<rect x="414" y="122" width="114" height="36" class="sk-ink fl-paper"/>
+<text x="471" y="137" class="lab-muted" text-anchor="middle">«block»</text>
+<text x="471" y="152" class="lab-b" text-anchor="middle">Roue motrice</text>
+</svg>
+<figcaption>Diagramme de définition de blocs du fauteuil roulant électrique (exercice 6).</figcaption>
+</figure>
+  </div>
+  <div class="q"><strong>Q1.</strong> Combien le fauteuil compte-t-il de moteurs ? de roues ?</div>
+  <div class="q"><strong>Q2.</strong> Faire le bilan de masse. L'exigence de masse est-elle satisfaite ?</div>
+  <div class="q"><strong>Q3.</strong> Quelles sont la tension et l'énergie de l'ensemble des batteries ? Pourquoi le montage en série n'apparaît-il pas dans le bdd ?</div>
+  <div class="q"><strong>Q4.</strong> L'exigence d'autonomie est-elle satisfaite ?</div>
+  <div class="q"><strong>Q5.</strong> On ajoute un frein électromagnétique sur chaque roue motrice. Où le placer dans le bdd, avec quelle multiplicité ? Pourquoi le chargeur n'est-il pas relié par une composition ?</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> Deux motorisations, composées chacune d'un moteur : \(2 \times 1 = 2\) moteurs. Roues : 2 roues motrices (une par motorisation) et 2 roues avant pivotantes, soit 4 roues.</p>
+    <p><strong>Q2.</strong> En multipliant chaque masse unitaire par sa multiplicité :</p>
+    <div class="formula">$$\begin{aligned} M &= 18 + 6 + 2 \times 7{,}5 + 2 \times 1{,}2\\ &\quad + 2 \times 5{,}5 + 1{,}5 = 53{,}9\ \text{kg}\end{aligned}$$</div>
+    <p>Sans les batteries : \(53{,}9 - 11 = 42{,}9\ \text{kg} \le 45\ \text{kg}\) : exigence satisfaite, avec 2,1 kg de marge. En oubliant les multiplicités, on trouverait 39,7 kg.</p>
+    <p><strong>Q3.</strong> En série, les tensions s'ajoutent et la capacité reste celle d'une batterie : 24 V et 40 A·h (cohérent avec le moteur 24 V), soit \(24 \times 40 = 960\ \text{W·h}\). Le bdd ne montre que la <em>composition</em> (le fauteuil contient deux batteries), jamais les connexions : le câblage en série se lit dans le diagramme de blocs internes.</p>
+    <p><strong>Q4.</strong> Énergie utilisable : \(0{,}9 \times 960 = 864\ \text{W·h}\) ; durée à 120 W : \(864/120 = 7{,}2\ \text{h}\) ; distance à 6 km/h : 43 km, au-delà des 25 km exigés. Il suffirait de 500 W·h utilisables (\(25/6 \times 120\)) : la marge permet de rouler en pente, par temps froid, ou avec des batteries vieillies.</p>
+    <p><strong>Q5.</strong> Dans le bloc Motorisation, par une composition de multiplicité 1, à côté du moteur, du réducteur et de la roue motrice : on obtient automatiquement 2 freins en tout. Le chargeur reste à la maison, il ne fait pas partie du fauteuil : il lui est seulement <em>associé</em>.</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 07</span><span class="diff">★ ★ ☆</span>
+  <h3>Arrosage automatique : compléter un diagramme de blocs internes</h3>
+  <div class="statement">Un arrosage automatique puise l'eau de pluie d'une cuve de 1,5 m³. Un programmateur, alimenté en 24 V alternatif par un transformateur branché sur le réseau, ouvre une électrovanne 24 V quand le capteur d'humidité indique une terre sèche, et met alors en marche une pompe (230 V, 550 W). Quatre arroseurs débitent chacun 0,30 m³/h ; un arrosage dure 20 min. Le capteur délivre une tension de 0 à 5 V ; l'entrée analogique du programmateur accepte 0 à 3,3 V.
+  <figure class="schema">
+<svg viewBox="0 0 540 306" role="img" aria-label="Diagramme de blocs internes d'un arrosage automatique : transformateur, programmateur, capteur d'humidité, cuve, pompe, électrovanne et arroseurs, huit flux numérotés et un port de la pompe non relié">
+<rect x="2" y="2" width="536" height="300" class="sk-axis"/>
+<path d="M2,2 H191.7 V17 L184.7,24 H2 Z" class="sk-axis fl-paper"/>
+<text x="8" y="17.5"><tspan class="lab-b" font-weight="600">ibd</tspan> [Arrosage automatique] Flux</text>
+<rect x="40" y="44" width="110" height="50" class="sk-ink fl-paper"/>
+<text x="95" y="67" text-anchor="middle">alim :</text>
+<text x="95" y="83" class="lab-b" text-anchor="middle">Transformateur</text>
+<rect x="196" y="44" width="150" height="50" class="sk-ink fl-paper"/>
+<text x="271" y="67" text-anchor="middle">prog :</text>
+<text x="271" y="83" class="lab-b" text-anchor="middle">Programmateur</text>
+<rect x="392" y="44" width="120" height="50" class="sk-ink fl-paper"/>
+<text x="452" y="67" text-anchor="middle">cap :</text>
+<text x="452" y="83" class="lab-b" text-anchor="middle">Capteur</text>
+<rect x="40" y="190" width="92" height="50" class="sk-ink fl-paper"/>
+<text x="86" y="213" text-anchor="middle">cuve :</text>
+<text x="86" y="229" class="lab-b" text-anchor="middle">Cuve</text>
+<rect x="166" y="190" width="92" height="50" class="sk-ink fl-paper"/>
+<text x="212" y="213" text-anchor="middle">pompe :</text>
+<text x="212" y="229" class="lab-b" text-anchor="middle">Pompe</text>
+<rect x="292" y="190" width="92" height="50" class="sk-ink fl-paper"/>
+<text x="338" y="213" text-anchor="middle">ev :</text>
+<text x="338" y="229" class="lab-b" text-anchor="middle">Électrovanne</text>
+<rect x="418" y="190" width="94" height="50" class="sk-ink fl-paper"/>
+<text x="465" y="213" text-anchor="middle">arr :</text>
+<text x="465" y="229" class="lab-b" text-anchor="middle">Arroseur [4]</text>
+<rect x="-2" y="65" width="8" height="8" class="sk-ink fl-paper"/>
+<rect x="36" y="65" width="8" height="8" class="sk-ink fl-paper"/>
+<line x1="6" y1="69" x2="35" y2="69" class="sk-accent" marker-end="url(#sk-arrow-accent)"/>
+<circle cx="21" cy="54" r="9" class="sk-ink fl-paper"/><text x="21" y="58.5" class="lab-b" text-anchor="middle">1</text>
+<rect x="146" y="65" width="8" height="8" class="sk-ink fl-paper"/>
+<rect x="192" y="65" width="8" height="8" class="sk-ink fl-paper"/>
+<line x1="154" y1="69" x2="191" y2="69" class="sk-accent" marker-end="url(#sk-arrow-accent)"/>
+<circle cx="173" cy="54" r="9" class="sk-ink fl-paper"/><text x="173" y="58.5" class="lab-b" text-anchor="middle">2</text>
+<rect x="316" y="90" width="8" height="8" class="sk-ink fl-paper"/>
+<rect x="316" y="186" width="8" height="8" class="sk-ink fl-paper"/>
+<line x1="320" y1="98" x2="320" y2="185" class="sk-accent" marker-end="url(#sk-arrow-accent)"/>
+<circle cx="334" cy="142" r="9" class="sk-ink fl-paper"/><text x="334" y="146.5" class="lab-b" text-anchor="middle">3</text>
+<rect x="388" y="65" width="8" height="8" class="sk-ink fl-paper"/>
+<rect x="342" y="65" width="8" height="8" class="sk-ink fl-paper"/>
+<line x1="388" y1="69" x2="351" y2="69" class="sk-accent2" marker-end="url(#sk-arrow-accent2)"/>
+<circle cx="369" cy="54" r="9" class="sk-ink fl-paper"/><text x="369" y="58.5" class="lab-b" text-anchor="middle">4</text>
+<rect x="128" y="211" width="8" height="8" class="sk-ink fl-paper"/>
+<rect x="162" y="211" width="8" height="8" class="sk-ink fl-paper"/>
+<line x1="136" y1="215" x2="161" y2="215" class="sk-green" marker-end="url(#sk-arrow-green)"/>
+<circle cx="149" cy="240" r="9" class="sk-ink fl-paper"/><text x="149" y="244.5" class="lab-b" text-anchor="middle">5</text>
+<rect x="254" y="211" width="8" height="8" class="sk-ink fl-paper"/>
+<rect x="288" y="211" width="8" height="8" class="sk-ink fl-paper"/>
+<line x1="262" y1="215" x2="287" y2="215" class="sk-green" marker-end="url(#sk-arrow-green)"/>
+<circle cx="275" cy="240" r="9" class="sk-ink fl-paper"/><text x="275" y="244.5" class="lab-b" text-anchor="middle">6</text>
+<rect x="380" y="211" width="8" height="8" class="sk-ink fl-paper"/>
+<rect x="414" y="211" width="8" height="8" class="sk-ink fl-paper"/>
+<line x1="388" y1="215" x2="413" y2="215" class="sk-green" marker-end="url(#sk-arrow-green)"/>
+<circle cx="401" cy="240" r="9" class="sk-ink fl-paper"/><text x="401" y="244.5" class="lab-b" text-anchor="middle">7</text>
+<rect x="461" y="236" width="8" height="8" class="sk-ink fl-paper"/>
+<rect x="461" y="298" width="8" height="8" class="sk-ink fl-paper"/>
+<line x1="465" y1="244" x2="465" y2="297" class="sk-green" marker-end="url(#sk-arrow-green)"/>
+<circle cx="479" cy="272" r="9" class="sk-ink fl-paper"/><text x="479" y="276.5" class="lab-b" text-anchor="middle">8</text>
+<text x="453" y="292" class="lab-muted lab-it" text-anchor="end">pelouse</text>
+<rect x="208" y="186" width="8" height="8" class="sk-ink fl-paper"/>
+<text x="212" y="178" class="lab-b" text-anchor="middle">?</text>
+</svg>
+<figcaption>Diagramme de blocs internes de l'arrosage automatique (exercice 7). Le port marqué « ? » de la pompe n'est relié à rien.</figcaption>
+</figure>
+  </div>
+  <div class="q"><strong>Q1.</strong> Donner la nature et le sens de chacun des flux 1 à 8.</div>
+  <div class="q"><strong>Q2.</strong> Le port de la pompe marqué « ? » n'est relié à rien. Que manque-t-il ? Compléter le diagramme.</div>
+  <div class="q"><strong>Q3.</strong> Ranger les constituants dans la chaîne de puissance et dans la chaîne d'information.</div>
+  <div class="q"><strong>Q4.</strong> Le capteur est-il compatible avec l'entrée du programmateur ? Proposer une adaptation chiffrée.</div>
+  <div class="q"><strong>Q5.</strong> Combien d'arrosages une cuve pleine permet-elle ? Quelle énergie électrique la pompe consomme-t-elle par arrosage ?</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong></p>
+    <div>
+    <table>
+      <tr><th>N°</th><th>De → vers</th><th>Nature</th></tr>
+      <tr><td>1</td><td>réseau → alim</td><td>énergie électrique alternative 230 V</td></tr>
+      <tr><td>2</td><td>alim → prog</td><td>énergie électrique alternative 24 V</td></tr>
+      <tr><td>3</td><td>prog → ev</td><td>énergie électrique 24 V commutée : l'ordre d'ouverture est porté par l'énergie elle-même</td></tr>
+      <tr><td>4</td><td>cap → prog</td><td>information analogique, 0 à 5 V</td></tr>
+      <tr><td>5</td><td>cuve → pompe</td><td>matière : eau à la pression atmosphérique</td></tr>
+      <tr><td>6</td><td>pompe → ev</td><td>matière et énergie hydraulique : eau sous pression</td></tr>
+      <tr><td>7</td><td>ev → arr</td><td>eau sous pression, débit autorisé ou coupé</td></tr>
+      <tr><td>8</td><td>arr → pelouse</td><td>matière : eau répartie sur la pelouse (matière d'œuvre)</td></tr>
+    </table>
+    </div>
+    <p><strong>Q2.</strong> La pompe n'a pas d'énergie, et rien ne lui dit quand démarrer. Il faut ajouter une partie « rel : Relais » (le préactionneur de la pompe), reliée au réseau 230 V par un port du cadre, reliée à la pompe par un connecteur d'énergie électrique 230 V commutée, et commandée par le programmateur par un connecteur d'information logique (ordre de marche). Une partie active sans alimentation ou sans commande trahit toujours un oubli.</p>
+    <p><strong>Q3.</strong> Chaîne de puissance (la matière d'œuvre est l'eau) : alimenter, le réseau électrique et la cuve ; moduler, le relais (énergie électrique de la pompe) et l'électrovanne (débit d'eau, en tout ou rien) ; convertir, la pompe (énergie électrique en énergie hydraulique) ; transmettre, les tuyaux ; agir, les arroseurs. Chaîne d'information : acquérir, le capteur d'humidité (et l'horloge du programmateur) ; traiter, le programmateur ; communiquer, les ordres au relais et à l'électrovanne, l'écran du programmateur. Le transformateur alimente la partie commande.</p>
+    <p><strong>Q4.</strong> Non : 5 V sur une entrée prévue pour 3,3 V risque de la détruire. Un pont diviseur de rapport \(k \le 3{,}3/5 = 0{,}66\) convient, par exemple \(R_1 = 10\ \text{k}\Omega\) et \(R_2 = 18\ \text{k}\Omega\) : \(k = 18/28 \approx 0{,}643\), et 5 V deviennent 3,21 V, dans la plage de l'entrée.</p>
+    <p><strong>Q5.</strong> Débit total : \(4 \times 0{,}30 = 1{,}2\ \text{m}^3/\text{h}\) ; en 20 min : \(0{,}40\ \text{m}^3\). Une cuve de 1,5 m³ permet 3 arrosages complets (3,75 en théorie). Énergie de la pompe : \(0{,}55 \times 20/60 \approx 0{,}18\ \text{kW·h}\) par arrosage.</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 08</span><span class="diff">★ ★ ☆</span>
+  <h3>Bilan de puissance le long d'une chaîne de puissance</h3>
+  <div class="exo-source">Exercice <strong>original</strong> au format concours SI (thème <em>chaîne de puissance, rendements, bilan de puissance</em>).</div>
+  <div class="statement">
+    Un treuil motorisé doit fournir une puissance mécanique <strong>utile</strong> \(P_u = 180\ \text{W}\) à sa charge. Sa chaîne de puissance est : alimentation → <strong>variateur</strong> (\(\eta_1 = 0{,}95\)) → <strong>moteur</strong> (\(\eta_2 = 0{,}80\)) → <strong>réducteur</strong> (\(\eta_3 = 0{,}90\)) → effecteur.
+  </div>
+
+  <p class="exo-part">Partie A — Rendement et pertes</p>
+  <div class="q"><strong>A1.</strong> Exprimer puis calculer le rendement global \(\eta\) de la chaîne.</div>
+  <div class="q"><strong>A2.</strong> En déduire la puissance électrique \(P_e\) que doit fournir l'alimentation.</div>
+  <div class="q"><strong>A3.</strong> Calculer la puissance dissipée dans chaque étage. Quel composant est le maillon faible énergétique ?</div>
+
+  <p class="exo-part">Partie B — Optimisation</p>
+  <div class="q"><strong>B1.</strong> On peut remplacer un seul composant par un modèle de rendement \(0{,}90\). Sur lequel agir pour réduire le plus la consommation \(P_e\) (à \(P_u\) fixé) ? Quantifier le gain.</div>
+
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>A1.</strong> Les rendements se <strong>multiplient</strong> le long de la chaîne : \(\eta = \eta_1\eta_2\eta_3 = 0{,}95\times0{,}80\times0{,}90 = 0{,}684\) (soit \(68{,}4\,\%\)).</p>
+    <p><strong>A2.</strong> \(\eta = P_u/P_e\) donc \(P_e = \dfrac{P_u}{\eta} = \dfrac{180}{0{,}684} \approx 263\ \text{W}\).</p>
+    <p><strong>A3.</strong> Puissances transmises : après variateur \(P_1 = 263\times0{,}95 \approx 250\ \text{W}\) (perte \(\approx 13\ \text{W}\)) ; après moteur \(P_2 = 250\times0{,}80 = 200\ \text{W}\) (perte \(50\ \text{W}\)) ; après réducteur \(P_3 = 200\times0{,}90 = 180\ \text{W} = P_u\) (perte \(20\ \text{W}\)). Pertes totales \(\approx 83\ \text{W} = P_e - P_u\) ✓. Le <strong>moteur</strong> (\(\eta_2 = 0{,}80\)) est le maillon faible : il dissipe à lui seul \(50\ \text{W}\).</p>
+    <p><strong>B1.</strong> Il faut améliorer l'étage de <strong>plus mauvais rendement</strong>, donc le moteur (\(0{,}80 \to 0{,}90\)). Nouveau rendement \(\eta' = 0{,}95\times0{,}90\times0{,}90 \approx 0{,}770\), d'où \(P_e' = 180/0{,}770 \approx 234\ \text{W}\) : on économise \(\approx 29\ \text{W}\) (le réducteur est déjà à 0,90, et remplacer le variateur, à 0,95, par un modèle à 0,90 dégraderait au contraire le bilan : 278 W). Agir sur le maillon faible est le plus rentable.</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 09</span><span class="diff">★ ☆ ☆</span>
+  <h3>Asservi ou séquentiel ?</h3>
+  <div class="statement">On considère les systèmes suivants.
+    <ul>
+      <li>(a) Le régulateur de vitesse d'une voiture, qui maintient 110 km/h dans les montées comme dans les descentes.</li>
+      <li>(b) Un feu tricolore qui passe au vert, à l'orange puis au rouge selon un cycle fixe, et donne le passage aux piétons quand on appuie sur le bouton d'appel.</li>
+      <li>(c) Un chauffe-eau électrique dont le thermostat coupe la résistance au-dessus de 58 °C et la remet en marche en dessous de 52 °C.</li>
+      <li>(d) Un distributeur de boissons.</li>
+      <li>(e) Le pilote automatique d'un voilier, qui tient le cap affiché malgré les vagues, et que l'on peut faire virer de 10° d'un appui sur un bouton.</li>
+      <li>(f) Une imprimante 3D dont la tête est déplacée par des moteurs pas à pas commandés sans capteur de position, et dont la buse est maintenue à 210 °C.</li>
+    </ul>
+  </div>
+  <div class="q"><strong>Q1.</strong> Classer chaque système : asservi, séquentiel, ou les deux à des niveaux différents.</div>
+  <div class="q"><strong>Q2.</strong> Pour chaque grandeur asservie, donner la consigne, le capteur, une perturbation, et dire s'il s'agit de poursuite ou de régulation.</div>
+  <div class="q"><strong>Q3.</strong> Dans une côte, une voiture sans régulateur (pédale immobile) passe de 110 à 96 km/h ; avec le régulateur, sa vitesse ne descend qu'à 108 km/h. Calculer les deux écarts relatifs à la consigne.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1 et Q2.</strong></p>
+    <ul>
+      <li>(a) <strong>Asservi</strong> : la vitesse, mesurée par un capteur de rotation des roues, est comparée en permanence à la consigne de 110 km/h ; perturbations : pente, vent, chargement. Régulation tant que la consigne est fixe ; poursuite quand le conducteur la change.</li>
+      <li>(b) <strong>Séquentiel</strong> : des états (vert, orange, rouge, passage piétons) qui s'enchaînent sur des événements (fin de temporisation, appui sur le bouton).</li>
+      <li>(c) <strong>Asservi</strong> : c'est une régulation de température en tout ou rien. La température est mesurée et comparée en permanence à la consigne ; elle oscille entre 52 et 58 °C. Perturbations : puisage d'eau chaude, pertes thermiques. La commande tout ou rien ne rend pas le système séquentiel.</li>
+      <li>(d) <strong>Séquentiel</strong> : choix, paiement, préparation, service, rendu de la monnaie, enchaînés sur des événements. (Un chauffe-eau interne serait, lui, régulé.)</li>
+      <li>(e) <strong>Asservi</strong> : le cap, mesuré par un compas électronique, comparé au cap affiché ; perturbations : vagues, vent, courant. Régulation en route droite ; poursuite pendant le virement, où la consigne change.</li>
+      <li>(f) <strong>Les deux, et un piège</strong> : la position de la tête n'est <em>pas</em> asservie, car aucun capteur ne la mesure ; les moteurs pas à pas suivent les impulsions en boucle ouverte, et un pas perdu n'est jamais corrigé. La température de la buse est régulée (consigne 210 °C, thermistance, perturbation : flux d'air, filament froid). L'impression elle-même enchaîne des phases (chauffe, impression, refroidissement) : séquentiel au niveau de la mission.</li>
+    </ul>
+    <p><strong>Q3.</strong> Sans régulateur : \((110 - 96)/110 \approx 12{,}7\,\%\). Avec : \((110 - 108)/110 \approx 1{,}8\,\%\). La boucle fermée divise l'effet de la perturbation par environ 7.</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 10</span><span class="diff">★ ★ ★</span>
+  <h3>Halage d'un bateau sur une cale : performances attendues, simulées et mesurées</h3>
+  <div class="statement">Un treuil électrique hisse sur une cale un bateau posé sur sa remorque, de masse totale \(m = 450\ \text{kg}\). La cale a une pente de 12 % (\(\tan\alpha = 0{,}12\)). Le câble, parallèle à la cale, s'enroule sur un tambour de rayon \(R_t = 50\ \text{mm}\), entraîné par un moteur à courant continu à travers un réducteur de rapport 1/60. Sous 12 V, la vitesse du moteur vérifie \(\omega_m = \omega_0\,(1 - C_m/C_d)\), avec \(\omega_0 = 300\ \text{rad/s}\) et \(C_d = 4{,}0\ \text{N·m}\) ; \(\omega_0\) et \(C_d\) sont proportionnels à la tension d'alimentation.
+    <ul>
+      <li>Exigence : vitesse de halage d'au moins 10 m/min à pleine charge.</li>
+      <li>Modèle du bureau d'études : rendement du réducteur 0,70, roulement de la remorque négligé, tension de 12 V.</li>
+      <li>Essai à pleine charge : 9,4 m/min, avec 11,0 V mesurés aux bornes du moteur.</li>
+    </ul>
+    On prend \(g = 9{,}81\ \text{m/s}^2\).</div>
+  <div class="q"><strong>Q1.</strong> Calculer la vitesse de halage simulée.</div>
+  <div class="q"><strong>Q2.</strong> Calculer les trois écarts (en valeur et en relatif) et répondre à la question que pose chacun.</div>
+  <div class="q"><strong>Q3.</strong> Proposer des causes possibles à l'écart entre la simulation et l'essai.</div>
+  <div class="q"><strong>Q4.</strong> On enrichit le modèle : résistance au roulement de la remorque \(f\,m\,g\cos\alpha\) avec \(f = 0{,}04\), et tension réelle de 11,0 V. Recalculer la vitesse simulée et l'écart restant. Laquelle des deux corrections pèse le plus ?</div>
+  <div class="q"><strong>Q5.</strong> (Pour aller plus loin : recaler un modèle est une compétence de 2ᵉ année.) Quel rendement du réducteur expliquerait entièrement la mesure ? Est-ce plausible ? Quelle action proposer ?</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> \(\sin\alpha = 0{,}12/\sqrt{1 + 0{,}12^2} \approx 0{,}119\). Effort dans le câble (régime établi, roulement négligé) : \(F = m\,g\sin\alpha \approx 526\ \text{N}\). Couple sur le tambour : \(C_t = F\,R_t \approx 26{,}3\ \text{N·m}\). Couple moteur : \(C_m = C_t/(60 \times 0{,}70) \approx 0{,}626\ \text{N·m}\). Vitesse moteur : \(\omega_m = 300\,(1 - 0{,}626/4{,}0) \approx 253\ \text{rad/s}\). Tambour : \(253/60 \approx 4{,}22\ \text{rad/s}\), d'où \(v = 4{,}22 \times 0{,}050 \approx 0{,}211\ \text{m/s}\), soit <strong>12,7 m/min</strong>.</p>
+    <p><strong>Q2.</strong> Attendu–simulé : \(+2{,}7\ \text{m/min}\) (+ 26 %) : sur le papier, la solution répond au besoin avec une marge confortable. Simulé–mesuré : \(9{,}4 - 12{,}7 = -3{,}3\ \text{m/min}\), soit − 26 % de la valeur simulée : le modèle est nettement trop optimiste. Attendu–mesuré : \(-0{,}6\ \text{m/min}\) (− 6 %) : le produit n'est pas conforme.</p>
+    <p><strong>Q3.</strong> Hypothèses du modèle à remettre en cause : roulement de la remorque négligé ; tension supposée égale à 12 V alors que la batterie et les câbles chutent sous le fort courant ; rendement du réducteur supposé (0,70) ; frottement du câble et du bateau ; état de la cale (pente réelle, algues). L'écart de 26 % est trop grand pour une simple incertitude de mesure.</p>
+    <p><strong>Q4.</strong> Roulement : \(0{,}04 \times 450 \times 9{,}81 \times \cos\alpha \approx 175\ \text{N}\), d'où \(F \approx 701\ \text{N}\) et \(C_t \approx 35{,}1\ \text{N·m}\), \(C_m = 35{,}1/42 \approx 0{,}835\ \text{N·m}\). Sous 11 V : \(\omega_0 = 300 \times 11/12 = 275\ \text{rad/s}\) et \(C_d = 4{,}0 \times 11/12 \approx 3{,}67\ \text{N·m}\), donc \(\omega_m = 275\,(1 - 0{,}835/3{,}67) \approx 212\ \text{rad/s}\) et \(v \approx 10{,}6\ \text{m/min}\). Écart restant : \((9{,}4 - 10{,}6)/10{,}6 \approx -11{,}5\,\%\). Chaque correction seule donne 11,4 m/min (tension) et 11,9 m/min (roulement) : la chute de tension pèse un peu plus.</p>
+    <p><strong>Q5.</strong> À 9,4 m/min : \(\omega_t = 0{,}157/0{,}050 \approx 3{,}13\ \text{rad/s}\), \(\omega_m = 60 \times 3{,}13 \approx 188\ \text{rad/s}\), d'où \(C_m = 3{,}67\,(1 - 188/275) \approx 1{,}16\ \text{N·m}\) et un rendement \(\eta = 35{,}1/(60 \times 1{,}16) \approx 0{,}50\). C'est plausible pour un réducteur à roue et vis sans fin (0,4 à 0,8), souvent choisi parce qu'il est <em>irréversible</em> : le bateau ne redescend pas quand le moteur s'arrête. Actions : avec un réducteur de rendement 0,90, le modèle enrichi donne 11,3 m/min, mais il faut alors ajouter un frein ; ou bien réduire la chute de tension (câbles plus gros, batterie en meilleur état). Le choix est un compromis entre performance et sécurité.</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 11</span><span class="diff">★ ★ ☆</span>
+  <h3>Station météo : nature et codage des informations</h3>
+  <div class="statement">Une station météo transmet par radio la direction et la vitesse du vent. La girouette porte un codeur absolu de 4 bits en code de Gray : 16 secteurs de 22,5°, le secteur 0 centré sur le nord, numérotés dans le sens des aiguilles d'une montre. L'anémomètre délivre une impulsion par tour ; la vitesse du vent vaut 2,4 km/h par hertz. Toutes les 10 s, la station envoie une trame de 16 bits : les 4 bits de la girouette (en code de Gray, tels que lus), puis la vitesse en dixièmes de km/h, codée en binaire naturel sur 12 bits.</div>
+  <div class="q"><strong>Q1.</strong> Quelle est la nature de l'information fournie par la girouette ? par l'anémomètre ? transmise par la radio ?</div>
+  <div class="q"><strong>Q2.</strong> Pourquoi coder la girouette en code de Gray plutôt qu'en binaire naturel ? Illustrer avec le passage du secteur 7 au secteur 8.</div>
+  <div class="q"><strong>Q3.</strong> La girouette lit 1101. Quel est le secteur, et quelle est la direction du vent ?</div>
+  <div class="q"><strong>Q4.</strong> L'anémomètre a donné 7 impulsions en 2 s. Quelle est la vitesse du vent ? Combien de bits faut-il au minimum pour coder une vitesse de 0 à 200 km/h au dixième près ?</div>
+  <div class="q"><strong>Q5.</strong> Écrire la trame correspondant à ces deux mesures, en binaire puis en hexadécimal. Quel est le débit utile de la liaison ?</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> Girouette : information numérique, un mot de 4 bits lu en parallèle. Anémomètre : information logique (impulsions tout ou rien), devenue numérique après comptage par la carte. Radio : information numérique transmise en série, bit après bit, sur un support sans fil.</p>
+    <p><strong>Q2.</strong> En binaire naturel, 7 = 0111 et 8 = 1000 : les quatre bits changent. Comme les pistes du codeur ne basculent jamais exactement au même instant, une lecture pendant la transition peut donner n'importe quel mot (1111 = 15, par exemple : la direction opposée). En code de Gray, 7 = 0100 et 8 = 1100 : un seul bit change, et une lecture pendant la transition donne 7 ou 8, jamais une valeur aberrante.</p>
+    <p><strong>Q3.</strong> Conversion du Gray en binaire : le premier bit est recopié, puis chaque bit binaire est le OU exclusif du bit binaire précédent et du bit de Gray courant : \(b_3 = 1\), \(b_2 = 1 \oplus 1 = 0\), \(b_1 = 0 \oplus 0 = 0\), \(b_0 = 0 \oplus 1 = 1\). Binaire 1001 = secteur 9, soit \(9 \times 22{,}5 = 202{,}5^\circ\) depuis le nord : vent de sud-sud-ouest.</p>
+    <p><strong>Q4.</strong> Fréquence : \(7/2 = 3{,}5\ \text{Hz}\), d'où \(3{,}5 \times 2{,}4 = 8{,}4\ \text{km/h}\). De 0 à 200,0 km/h au dixième : 2001 valeurs ; \(2^{10} = 1024 \lt 2001 \le 2048 = 2^{11}\) : 11 bits au minimum. Les 12 bits de la trame permettent d'aller jusqu'à 409,5 km/h.</p>
+    <p><strong>Q5.</strong> Vitesse : 84 dixièmes, soit 0000 0101 0100 sur 12 bits. Trame : 1101 0000 0101 0100, soit D054 en hexadécimal (chaque groupe de 4 bits donne un chiffre : 1101 = D, 0000 = 0, 0101 = 5, 0100 = 4). Débit utile : 16 bits toutes les 10 s, soit 1,6 bit/s, dérisoire pour n'importe quelle liaison radio.</p>
+  </div>
+</div>
+
+<div class="exo concours">
+  <span class="num">CONCOURS PT</span><span class="diff">★ ★ ★</span>
+  <h3>Plateforme élévatrice pour personnes à mobilité réduite</h3>
+  <div class="exo-source">
+    Exercice <strong>original</strong> au format des épreuves de sciences industrielles PT (thème <em>analyse système : exigences, frontière, architecture, chaînes fonctionnelles, performances</em>). Pour t'entraîner sur les sujets réellement tombés :
+    <a href="https://www.banquept.fr/rubrique38.html" target="_blank" rel="noopener">annales officielles de la Banque PT</a>.
+  </div>
+  <div class="statement">
+    Une plateforme élévatrice verticale permet à un usager en fauteuil roulant de franchir les 1,50 m qui séparent le trottoir de l'entrée d'une mairie. Un moteur à courant continu de 24 V, alimenté par un variateur et par deux batteries au plomb de 12 V en série (rechargées par un chargeur branché sur le réseau), entraîne par un réducteur une vis trapézoïdale ; l'écrou est lié au plateau. La commande est <strong>à action maintenue</strong> : le plateau ne bouge que tant que l'usager garde le bouton enfoncé. Une barre palpeuse sous le plateau arrête tout mouvement en cas de contact.
+    Données : masse du plateau 120 kg ; vitesse nominale du plateau 0,10 m/s ; rendements : variateur 0,95, moteur 0,80, réducteur 0,90, vis-écrou 0,40 ; pas de la vis 5 mm ; vitesse nominale du moteur 3000 tr/min ; les batteries ne sont déchargées qu'à 50 % ; une descente consomme 30 % de l'énergie d'une montée ; \(g = 9{,}81\ \text{m/s}^2\).
+    <figure class="schema">
+<svg viewBox="0 0 540 424" role="img" aria-label="Diagramme d'exigences de la plateforme élévatrice : exigence mère, quatre exigences contenues, exigence dérivée d'énergie, bloc Batteries et cas de test de mesure du temps de montée">
+<rect x="2" y="2" width="536" height="420" class="sk-axis"/>
+<path d="M2,2 H222.5 V17 L215.5,24 H2 Z" class="sk-axis fl-paper"/>
+<text x="8" y="17.5"><tspan class="lab-b" font-weight="600">req</tspan> [Plateforme élévatrice] Exigences</text>
+<rect x="170" y="34" width="200" height="104" class="sk-ink fl-paper"/>
+<text x="270" y="49" class="lab-muted" text-anchor="middle">«requirement»</text>
+<text x="270" y="64" class="lab-b" text-anchor="middle">Élever un usager</text>
+<line x1="170" y1="71" x2="370" y2="71" class="sk-axis"/>
+<text x="175" y="86" class="lab-muted">id = 1</text>
+<text x="175" y="101">Monter et descendre un</text>
+<text x="175" y="116">usager en fauteuil</text>
+<text x="175" y="131">roulant de 1,50 m</text>
+<rect x="12" y="176" width="124" height="108" class="sk-ink fl-paper"/>
+<text x="74" y="191" class="lab-muted" text-anchor="middle">«requirement»</text>
+<text x="74" y="206" class="lab-b" text-anchor="middle">Charge</text>
+<line x1="12" y1="213" x2="136" y2="213" class="sk-axis"/>
+<text x="17" y="228" class="lab-muted">id = 1.1</text>
+<text x="17" y="243">Charge nominale</text>
+<text x="17" y="258">250 kg</text>
+<line x1="270" y1="150" x2="74" y2="176" class="sk-ink"/>
+<rect x="142" y="176" width="124" height="108" class="sk-ink fl-paper"/>
+<text x="204" y="191" class="lab-muted" text-anchor="middle">«requirement»</text>
+<text x="204" y="206" class="lab-b" text-anchor="middle">Vitesse</text>
+<line x1="142" y1="213" x2="266" y2="213" class="sk-axis"/>
+<text x="147" y="228" class="lab-muted">id = 1.2</text>
+<text x="147" y="243">Vitesse du plateau</text>
+<text x="147" y="258">≤ 0,15 m/s</text>
+<line x1="270" y1="150" x2="204" y2="176" class="sk-ink"/>
+<rect x="272" y="176" width="124" height="108" class="sk-ink fl-paper"/>
+<text x="334" y="191" class="lab-muted" text-anchor="middle">«requirement»</text>
+<text x="334" y="206" class="lab-b" text-anchor="middle">Durée</text>
+<line x1="272" y1="213" x2="396" y2="213" class="sk-axis"/>
+<text x="277" y="228" class="lab-muted">id = 1.3</text>
+<text x="277" y="243">Montée de 1,50 m</text>
+<text x="277" y="258">en ≤ 20 s</text>
+<line x1="270" y1="150" x2="334" y2="176" class="sk-ink"/>
+<rect x="402" y="176" width="124" height="108" class="sk-ink fl-paper"/>
+<text x="464" y="191" class="lab-muted" text-anchor="middle">«requirement»</text>
+<text x="464" y="206" class="lab-b" text-anchor="middle">Secours</text>
+<line x1="402" y1="213" x2="526" y2="213" class="sk-axis"/>
+<text x="407" y="228" class="lab-muted">id = 1.4</text>
+<text x="407" y="243">20 allers-retours</text>
+<text x="407" y="258">secteur coupé</text>
+<line x1="270" y1="150" x2="464" y2="176" class="sk-ink"/>
+<circle cx="270" cy="144" r="6" class="sk-ink fl-paper"/>
+<line x1="264" y1="144" x2="276" y2="144" class="sk-ink"/>
+<line x1="270" y1="138" x2="270" y2="150" class="sk-ink"/>
+<rect x="12" y="322" width="138" height="46" class="sk-ink fl-paper"/>
+<text x="81" y="339" class="lab-muted" text-anchor="middle">«testCase»</text>
+<text x="81" y="356" class="lab-b" text-anchor="middle">Mesure du temps</text>
+<polyline points="81,322 81,304 302,304 302,285" class="sk-dash" marker-end="url(#sk-arrow-ink)"/>
+<text x="191.5" y="298" class="lab-muted lab-it" text-anchor="middle">«verify»</text>
+<rect x="380" y="322" width="146" height="92" class="sk-ink fl-paper"/>
+<text x="453" y="337" class="lab-muted" text-anchor="middle">«requirement»</text>
+<text x="453" y="352" class="lab-b" text-anchor="middle">Énergie</text>
+<line x1="380" y1="359" x2="526" y2="359" class="sk-axis"/>
+<text x="385" y="374" class="lab-muted">id = 1.4.1</text>
+<text x="385" y="389">Énergie utilisable</text>
+<text x="385" y="404">des batteries ≥ … W·h</text>
+<polyline points="465,322 465,285" class="sk-dash" marker-end="url(#sk-arrow-ink)"/>
+<text x="459" y="312" class="lab-muted lab-it" text-anchor="end">«deriveReqt»</text>
+<rect x="188" y="330" width="118" height="76" class="sk-ink fl-paper"/>
+<text x="247" y="345" class="lab-muted" text-anchor="middle">«block»</text>
+<text x="247" y="360" class="lab-b" text-anchor="middle">Batteries</text>
+<line x1="188" y1="366" x2="306" y2="366" class="sk-axis"/>
+<text x="193" y="380" class="lab-muted lab-it">values</text>
+<text x="193" y="395" class="lab-muted">2 × 12 V ; 17 A·h</text>
+<polyline points="306,372 379,372" class="sk-dash" marker-end="url(#sk-arrow-ink)"/>
+<text x="342" y="364" class="lab-muted lab-it" text-anchor="middle">«satisfy»</text>
+</svg>
+<figcaption>Diagramme d'exigences de la plateforme élévatrice (partie A). La valeur de l'exigence 1.4.1 est à établir en partie D.</figcaption>
+</figure>
+  </div>
+
+  <p class="exo-part">Partie A — Exigences</p>
+  <div class="q"><strong>A1.</strong> Nommer les relations du diagramme d'exigences. Quelles exigences du texte ou du diagramme relèvent de la sécurité ?</div>
+  <div class="q"><strong>A2.</strong> Montrer que les exigences 1.2 et 1.3 encadrent la vitesse moyenne du plateau. La vitesse nominale de 0,10 m/s est-elle bien choisie ?</div>
+
+  <p class="exo-part">Partie B — Frontière, flux et architecture</p>
+  <figure class="schema">
+<svg viewBox="0 0 540 310" role="img" aria-label="Diagramme de blocs internes de la plateforme élévatrice : chargeur, batteries, variateur, moteur, réducteur, vis-écrou, carte de commande et barre palpeuse, dix flux numérotés">
+<rect x="2" y="2" width="536" height="304" class="sk-axis"/>
+<path d="M2,2 H234.4 V17 L227.4,24 H2 Z" class="sk-axis fl-paper"/>
+<text x="8" y="17.5"><tspan class="lab-b" font-weight="600">ibd</tspan> [Motorisation de la plateforme] Flux</text>
+<rect x="14" y="170" width="84" height="50" class="sk-ink fl-paper"/>
+<text x="56" y="193" text-anchor="middle">bat :</text>
+<text x="56" y="209" class="lab-b" text-anchor="middle">Batteries</text>
+<rect x="122" y="170" width="84" height="50" class="sk-ink fl-paper"/>
+<text x="164" y="193" text-anchor="middle">var :</text>
+<text x="164" y="209" class="lab-b" text-anchor="middle">Variateur</text>
+<rect x="230" y="170" width="84" height="50" class="sk-ink fl-paper"/>
+<text x="272" y="193" text-anchor="middle">mot :</text>
+<text x="272" y="209" class="lab-b" text-anchor="middle">Moteur CC</text>
+<rect x="338" y="170" width="84" height="50" class="sk-ink fl-paper"/>
+<text x="380" y="193" text-anchor="middle">red :</text>
+<text x="380" y="209" class="lab-b" text-anchor="middle">Réducteur</text>
+<rect x="446" y="170" width="80" height="50" class="sk-ink fl-paper"/>
+<text x="486" y="193" text-anchor="middle">vis :</text>
+<text x="486" y="209" class="lab-b" text-anchor="middle">Vis-écrou</text>
+<rect x="94" y="191" width="8" height="8" class="sk-ink fl-paper"/>
+<rect x="118" y="191" width="8" height="8" class="sk-ink fl-paper"/>
+<line x1="102" y1="195" x2="117" y2="195" class="sk-accent" marker-end="url(#sk-arrow-accent)"/>
+<circle cx="110" cy="180" r="9" class="sk-ink fl-paper"/><text x="110" y="184.5" class="lab-b" text-anchor="middle">3</text>
+<rect x="202" y="191" width="8" height="8" class="sk-ink fl-paper"/>
+<rect x="226" y="191" width="8" height="8" class="sk-ink fl-paper"/>
+<line x1="210" y1="195" x2="225" y2="195" class="sk-accent" marker-end="url(#sk-arrow-accent)"/>
+<circle cx="218" cy="180" r="9" class="sk-ink fl-paper"/><text x="218" y="184.5" class="lab-b" text-anchor="middle">4</text>
+<rect x="310" y="191" width="8" height="8" class="sk-ink fl-paper"/>
+<rect x="334" y="191" width="8" height="8" class="sk-ink fl-paper"/>
+<line x1="318" y1="195" x2="333" y2="195" class="sk-accent" marker-end="url(#sk-arrow-accent)"/>
+<circle cx="326" cy="180" r="9" class="sk-ink fl-paper"/><text x="326" y="184.5" class="lab-b" text-anchor="middle">5</text>
+<rect x="418" y="191" width="8" height="8" class="sk-ink fl-paper"/>
+<rect x="442" y="191" width="8" height="8" class="sk-ink fl-paper"/>
+<line x1="426" y1="195" x2="441" y2="195" class="sk-accent" marker-end="url(#sk-arrow-accent)"/>
+<circle cx="434" cy="180" r="9" class="sk-ink fl-paper"/><text x="434" y="184.5" class="lab-b" text-anchor="middle">6</text>
+<rect x="482" y="216" width="8" height="8" class="sk-ink fl-paper"/>
+<rect x="482" y="302" width="8" height="8" class="sk-ink fl-paper"/>
+<line x1="486" y1="224" x2="486" y2="301" class="sk-accent" marker-end="url(#sk-arrow-accent)"/>
+<circle cx="500" cy="262" r="9" class="sk-ink fl-paper"/><text x="500" y="266.5" class="lab-b" text-anchor="middle">7</text>
+<text x="474" y="296" class="lab-muted lab-it" text-anchor="end">plateau</text>
+<rect x="40" y="50" width="84" height="50" class="sk-ink fl-paper"/>
+<text x="82" y="73" text-anchor="middle">chg :</text>
+<text x="82" y="89" class="lab-b" text-anchor="middle">Chargeur</text>
+<rect x="160" y="50" width="170" height="50" class="sk-ink fl-paper"/>
+<text x="245" y="73" text-anchor="middle">cde :</text>
+<text x="245" y="89" class="lab-b" text-anchor="middle">Carte de commande</text>
+<rect x="392" y="50" width="134" height="50" class="sk-ink fl-paper"/>
+<text x="459" y="73" text-anchor="middle">pal :</text>
+<text x="459" y="89" class="lab-b" text-anchor="middle">Barre palpeuse</text>
+<rect x="-2" y="71" width="8" height="8" class="sk-ink fl-paper"/>
+<rect x="36" y="71" width="8" height="8" class="sk-ink fl-paper"/>
+<line x1="6" y1="75" x2="35" y2="75" class="sk-accent" marker-end="url(#sk-arrow-accent)"/>
+<circle cx="21" cy="60" r="9" class="sk-ink fl-paper"/><text x="21" y="64.5" class="lab-b" text-anchor="middle">1</text>
+<rect x="66" y="96" width="8" height="8" class="sk-ink fl-paper"/>
+<rect x="66" y="166" width="8" height="8" class="sk-ink fl-paper"/>
+<line x1="70" y1="104" x2="70" y2="165" class="sk-accent" marker-end="url(#sk-arrow-accent)"/>
+<circle cx="84" cy="135" r="9" class="sk-ink fl-paper"/><text x="84" y="139.5" class="lab-b" text-anchor="middle">2</text>
+<rect x="176" y="96" width="8" height="8" class="sk-ink fl-paper"/>
+<rect x="176" y="166" width="8" height="8" class="sk-ink fl-paper"/>
+<line x1="180" y1="104" x2="180" y2="165" class="sk-accent2" marker-end="url(#sk-arrow-accent2)"/>
+<circle cx="194" cy="135" r="9" class="sk-ink fl-paper"/><text x="194" y="139.5" class="lab-b" text-anchor="middle">8</text>
+<rect x="388" y="71" width="8" height="8" class="sk-ink fl-paper"/>
+<rect x="326" y="71" width="8" height="8" class="sk-ink fl-paper"/>
+<line x1="388" y1="75" x2="335" y2="75" class="sk-accent2" marker-end="url(#sk-arrow-accent2)"/>
+<circle cx="361" cy="60" r="9" class="sk-ink fl-paper"/><text x="361" y="64.5" class="lab-b" text-anchor="middle">9</text>
+<rect x="296" y="-2" width="8" height="8" class="sk-ink fl-paper"/>
+<rect x="296" y="46" width="8" height="8" class="sk-ink fl-paper"/>
+<line x1="300" y1="6" x2="300" y2="45" class="sk-accent2" marker-end="url(#sk-arrow-accent2)"/>
+<circle cx="314" cy="28" r="9" class="sk-ink fl-paper"/><text x="314" y="32.5" class="lab-b" text-anchor="middle">10</text>
+<text x="288" y="40" class="lab-muted lab-it" text-anchor="end">usager</text>
+</svg>
+<figcaption>Diagramme de blocs internes de la motorisation de la plateforme (partie B). Les ports posés sur le cadre sont les interfaces avec le milieu extérieur : réseau électrique, usager, plateau.</figcaption>
+</figure>
+  <div class="q"><strong>B1.</strong> Quelle est la matière d'œuvre de la plateforme ? On isole la motorisation représentée par l'ibd : quels flux traversent sa frontière ? Citer deux éléments influents du milieu extérieur.</div>
+  <div class="q"><strong>B2.</strong> Donner la nature de chacun des flux 1 à 10.</div>
+  <div class="q"><strong>B3.</strong> Décrire la chaîne de puissance et la chaîne d'information de la plateforme.</div>
+
+  <p class="exo-part">Partie C — Dimensionnement de la chaîne de puissance</p>
+  <div class="q"><strong>C1.</strong> Calculer la puissance utile à la vitesse nominale, à charge nominale.</div>
+  <div class="q"><strong>C2.</strong> Calculer le rendement global, la puissance prélevée sur les batteries et le courant qu'elles débitent.</div>
+  <div class="q"><strong>C3.</strong> Calculer la vitesse de rotation de la vis, le rapport de réduction et le couple du moteur.</div>
+
+  <p class="exo-part">Partie D — Fonctionnement sur batteries (exigence 1.4)</p>
+  <div class="q"><strong>D1.</strong> Calculer l'énergie prélevée pour une montée à charge nominale, puis pour un aller-retour. En déduire la valeur de l'exigence dérivée 1.4.1.</div>
+  <div class="q"><strong>D2.</strong> Les batteries de 2 × 12 V et 17 A·h satisfont-elles 1.4.1 ? Des batteries de 12 A·h conviendraient-elles ?</div>
+
+  <p class="exo-part">Partie E — Comportement et écarts</p>
+  <div class="q"><strong>E1.</strong> La plateforme est-elle un système asservi ou séquentiel ? Citer ses états et les événements qui les font changer. La vitesse du plateau est-elle asservie ?</div>
+  <div class="q"><strong>E2.</strong> Un essai à charge nominale donne une montée de 1,50 m en 18,2 s. Le modèle simple (vitesse constante de 0,10 m/s) prévoyait 15 s. Calculer les trois écarts et conclure.</div>
+  <div class="q"><strong>E3.</strong> Le variateur impose en réalité une accélération et une décélération d'une seconde chacune (rampes linéaires). Recalculer la durée simulée. Quelle cause peut expliquer l'écart restant ?</div>
+
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>A1.</strong> Contenance (⊕) : l'exigence 1 se décompose en 1.1 à 1.4. «verify» : la mesure du temps vérifie 1.3. «deriveReqt» : 1.4.1 est dérivée de 1.4 par un calcul. «satisfy» : les batteries satisfont 1.4.1. Sécurité : la vitesse limitée (1.2, imposée par la norme pour ce type d'appareil), la commande à action maintenue et l'arrêt par la barre palpeuse ; le fonctionnement sans secteur (1.4) évite aussi de bloquer un usager pendant une coupure.</p>
+    <p><strong>A2.</strong> Pour monter 1,50 m en 20 s au plus, il faut une vitesse moyenne d'au moins \(1{,}50/20 = 0{,}075\ \text{m/s}\) ; 1.2 limite la vitesse à 0,15 m/s. La vitesse nominale de 0,10 m/s laisse une marge des deux côtés : elle tolère des démarrages progressifs et un ralentissement sous charge sans dépasser la limite de sécurité.</p>
+    <p><strong>B1.</strong> La matière d'œuvre est l'usager dans son fauteuil : il entre en bas et sort en haut (ou l'inverse), sa valeur ajoutée est le dénivelé franchi. Flux traversant la frontière de la motorisation : énergie électrique du réseau (1), entrante ; énergie mécanique transmise par l'écrou au plateau (7), sortante, et chaleur dissipée par les pertes ; information de l'usager, appui sur le bouton (10), entrante ; contact d'un obstacle, détecté par la barre palpeuse. Éléments influents : la température (une batterie au plomb perd une partie de sa capacité au froid), la charge réelle sur le plateau.</p>
+    <p><strong>B2.</strong></p>
+    <div>
+    <table>
+      <tr><th>N°</th><th>Nature</th></tr>
+      <tr><td>1</td><td>énergie électrique alternative 230 V (réseau → chargeur)</td></tr>
+      <tr><td>2</td><td>énergie électrique continue (chargeur → batteries)</td></tr>
+      <tr><td>3</td><td>énergie électrique continue 24 V (batteries → variateur)</td></tr>
+      <tr><td>4</td><td>énergie électrique modulée (variateur → moteur)</td></tr>
+      <tr><td>5</td><td>énergie mécanique de rotation rapide (moteur → réducteur)</td></tr>
+      <tr><td>6</td><td>énergie mécanique de rotation lente (réducteur → vis)</td></tr>
+      <tr><td>7</td><td>énergie mécanique de translation (écrou → plateau)</td></tr>
+      <tr><td>8</td><td>information : commande du variateur (carte → variateur)</td></tr>
+      <tr><td>9</td><td>information logique : contact détecté (barre palpeuse → carte)</td></tr>
+      <tr><td>10</td><td>information logique : appui maintenu sur le bouton (usager → carte)</td></tr>
+    </table>
+    </div>
+    <p><strong>B3.</strong> Chaîne de puissance : alimenter, les batteries (rechargées depuis le réseau par le chargeur) ; moduler, le variateur ; convertir, le moteur à courant continu ; transmettre, le réducteur et la vis-écrou (rotation → translation) ; agir, le plateau, qui élève l'usager. Chaîne d'information : acquérir, les boutons, la barre palpeuse, les fins de course ; traiter, la carte de commande ; communiquer, les ordres au variateur et la signalisation à l'usager.</p>
+    <p><strong>C1.</strong> Masse déplacée : \(250 + 120 = 370\ \text{kg}\) ; \(P_u = m\,g\,v = 370 \times 9{,}81 \times 0{,}10 \approx 363\ \text{W}\).</p>
+    <p><strong>C2.</strong> \(\eta = 0{,}95 \times 0{,}80 \times 0{,}90 \times 0{,}40 \approx 0{,}274\) ; \(P_{\text{bat}} = 363/0{,}274 \approx 1327\ \text{W}\) ; \(I = 1327/24 \approx 55\ \text{A}\). La vis trapézoïdale divise à elle seule la puissance utile par 2,5 : c'est le prix de son irréversibilité (le plateau ne redescend pas seul si le moteur s'arrête).</p>
+    <p><strong>C3.</strong> Un tour de vis fait monter l'écrou d'un pas : \(n_{\text{vis}} = 0{,}10/0{,}005 = 20\ \text{tr/s} = 1200\ \text{tr/min}\). Rapport de réduction : \(1200/3000 = 0{,}4\). Puissance mécanique du moteur : \(363/(0{,}90 \times 0{,}40) \approx 1008\ \text{W}\), à \(\omega_m = 3000 \times 2\pi/60 \approx 314\ \text{rad/s}\) : \(C_m \approx 1008/314 \approx 3{,}2\ \text{N·m}\).</p>
+    <p><strong>D1.</strong> Une montée dure \(1{,}50/0{,}10 = 15\ \text{s}\) : \(1327 \times 15 \approx 19\,900\ \text{J} \approx 5{,}53\ \text{W·h}\). Un aller-retour : \(5{,}53 \times 1{,}3 \approx 7{,}19\ \text{W·h}\). Pour 20 allers-retours : environ 144 W·h. Exigence 1.4.1 : énergie utilisable des batteries d'au moins 144 W·h.</p>
+    <p><strong>D2.</strong> Avec 17 A·h : \(2 \times 12 \times 17 = 408\ \text{W·h}\) nominaux, 204 W·h utilisables : 1.4.1 est satisfaite avec 42 % de marge. Avec 12 A·h : 144 W·h utilisables, exactement le besoin : aucune marge pour le froid ou le vieillissement, à rejeter.</p>
+    <p><strong>E1.</strong> Séquentiel : états « arrêt en bas », « montée », « arrêt en haut », « descente », « arrêt de sécurité » ; événements : appui ou relâchement du bouton, fins de course haut et bas, contact de la barre palpeuse. La vitesse du plateau n'est pas asservie : aucun capteur ne la mesure, le variateur applique une consigne de tension (boucle ouverte).</p>
+    <p><strong>E2.</strong> Attendu–simulé : 15 s pour 20 s exigées, 5 s de marge : la solution répond au besoin. Simulé–mesuré : \(+3{,}2\ \text{s}\), soit + 21 % : le modèle est trop simple. Attendu–mesuré : 18,2 s ≤ 20 s : le produit est conforme, avec seulement 1,8 s de marge.</p>
+    <p><strong>E3.</strong> Pendant chaque rampe, la vitesse moyenne vaut 0,05 m/s : \(0{,}05\ \text{m}\) parcourus en 1 s, deux fois, soit 0,10 m. Le reste, 1,40 m, est parcouru à 0,10 m/s en 14 s. Durée simulée : \(1 + 14 + 1 = 16\ \text{s}\). Écart restant : 2,2 s (+ 14 %). Cause plausible : la vitesse en palier est plus faible que prévu, environ \(1{,}40/16{,}2 \approx 0{,}086\ \text{m/s}\), parce que le moteur ralentit sous la charge et que la tension des batteries baisse sous 55 A. Pour rendre la durée indépendante de la charge, il faudrait asservir la vitesse (un codeur sur le moteur).</p>
+  </div>
+</div>
+
+</div>
+</template>

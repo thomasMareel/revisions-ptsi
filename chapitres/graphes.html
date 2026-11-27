@@ -1,0 +1,1595 @@
+<!-- Chapitre « Graphes : parcours et plus courts chemins » (graphes) : contenu des onglets Cours, Méthodes et Exercices, chargé à l'ouverture du chapitre.
+     On l'édite ici, puis : node tools/chapitres.js (docs/chargement-chapitres.md). -->
+<template class="pan-tpl" data-panneau="gra-cours">
+<div class="course-section">
+  <div class="sec-num">AU PROGRAMME · INFORMATIQUE</div>
+  <h2>Ce que le programme officiel demande</h2>
+  <div class="intro">Ce chapitre couvre la partie 2.3 du programme d'informatique commune, « Bases des graphes, plus courts chemins », étudiée au 2ᵉ semestre de 1ʳᵉ année. Il réutilise les listes et les dictionnaires (chapitre « Types construits »), la discipline de preuve et de complexité (chapitre « Spécification, correction et complexité ») et prépare la 2ᵉ année : distances de Floyd-Warshall en programmation dynamique, jeux sur des graphes en intelligence artificielle.</div>
+  <div class="reveal" onclick="this.classList.toggle('open')">
+    <span class="label">Programme officiel</span>
+    <span class="prompt">Les notions exigibles, dans l'ordre du chapitre (toutes du 2ᵉ semestre)</span>
+    <div class="content">
+      <ul>
+        <li><strong>Vocabulaire</strong> : graphe orienté, non orienté ; sommet (nœud), arc, arête ; boucle ; degré, degrés entrant et sortant ; chemin d'un sommet à un autre ; cycle ; connexité des graphes non orientés (§1, §2).</li>
+        <li><strong>Notations</strong> \(G = (S, A)\), \(d(s)\) pour un graphe non orienté, \(d^+(s)\) et \(d^-(s)\) pour un graphe orienté (§1, §2).</li>
+        <li><strong>Implémentation</strong> par listes d'adjacence (rassemblées dans une liste ou un dictionnaire) et par matrice d'adjacence ; ni multi-arcs ni multi-arêtes (§3).</li>
+        <li><strong>Pondération</strong> d'un graphe, étiquettes des arcs ou des arêtes, motivées par des exemples concrets (§4).</li>
+        <li><strong>Parcours</strong> d'un graphe ; piles et files ; inefficacité d'une file faite d'une liste Python et avantage de <span class="code-inline">collections.deque</span> (§5, §6, §7).</li>
+        <li><strong>Détection</strong> de la présence de cycles et de la connexité d'un graphe non orienté (§8).</li>
+        <li><strong>Plus court chemin</strong> dans un graphe pondéré à poids positifs : algorithme de Dijkstra, avec une file de priorité naïve (§9).</li>
+        <li><strong>Algorithme A*</strong>, vu comme une variante de celui de Dijkstra, pour une première approche de la notion d'heuristique (§10).</li>
+      </ul>
+      <p>Hors programme : files de priorité efficaces (tas), poids négatifs, cycles des graphes orientés (voir la dernière section).</p>
+    </div>
+  </div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§1 · MODÉLISER PAR UN GRAPHE</div>
+  <h2>Des objets et des liens entre eux</h2>
+  <div class="intro">Dès qu'un problème parle d'objets reliés deux à deux (stations et tronçons, pages et liens, personnes et relations, molécules et réactions), un graphe le modélise. Une fois le problème ramené à un graphe, quelques algorithmes généraux répondent à beaucoup de questions : peut-on aller de A à B ? par combien d'étapes au moins ? quel est le trajet le plus rapide ?</div>
+
+  <div class="def-box">Un <strong>graphe</strong> \(G = (S, A)\) est formé d'un ensemble fini \(S\) de <strong>sommets</strong> (ou nœuds) et d'un ensemble \(A\) de liens entre sommets. On note \(n = |S|\) et \(m = |A|\).
+    <ul>
+      <li>Dans un graphe <strong>non orienté</strong>, un lien est une <strong>arête</strong> \(\{u, v\}\), notée \(u - v\) : elle relie \(u\) et \(v\) dans les deux sens. Les deux sommets sont dits <strong>voisins</strong> (ou adjacents).</li>
+      <li>Dans un graphe <strong>orienté</strong>, un lien est un <strong>arc</strong> \((u, v)\), noté \(u \to v\) : il va de \(u\) (son origine) vers \(v\) (son extrémité) ; \(v\) est un <strong>successeur</strong> de \(u\).</li>
+      <li>Une <strong>boucle</strong> est un arc (ou une arête) qui relie un sommet à lui-même.</li>
+    </ul>
+    Entre deux sommets, il y a au plus un arc dans chaque sens (au plus une arête) : les « multi-arcs » sont exclus.
+  </div>
+  <figure class="schema" style="max-width:345px">
+<svg viewBox="0 0 345 168" role="img" aria-label="Graphe non orienté à 7 sommets numérotés de 0 à 6 et 8 arêtes, avec le degré de chaque sommet">
+<line x1="46.7" y1="72.6" x2="95.3" y2="39.4" class="sk-ink"/>
+<line x1="46.7" y1="87.4" x2="95.3" y2="120.6" class="sk-ink"/>
+<line x1="116.7" y1="39.4" x2="165.3" y2="72.6" class="sk-ink"/>
+<line x1="116.7" y1="120.6" x2="165.3" y2="87.4" class="sk-ink"/>
+<line x1="189" y1="80" x2="233" y2="80" class="sk-ink"/>
+<line x1="256.2" y1="71.9" x2="295.8" y2="40.1" class="sk-ink"/>
+<line x1="256.2" y1="88.1" x2="295.8" y2="119.9" class="sk-ink"/>
+<line x1="306" y1="45" x2="306" y2="115" class="sk-ink"/>
+<circle cx="36" cy="80" r="13" class="sk-ink fl-paper"/><text x="36" y="84.6" class="lab-b" text-anchor="middle">0</text>
+<text x="36" y="112" class="lab-muted" text-anchor="middle">d = 2</text>
+<circle cx="106" cy="32" r="13" class="sk-ink fl-paper"/><text x="106" y="36.6" class="lab-b" text-anchor="middle">1</text>
+<text x="106" y="13" class="lab-muted" text-anchor="middle">d = 2</text>
+<circle cx="106" cy="128" r="13" class="sk-ink fl-paper"/><text x="106" y="132.6" class="lab-b" text-anchor="middle">2</text>
+<text x="106" y="160" class="lab-muted" text-anchor="middle">d = 2</text>
+<circle cx="176" cy="80" r="13" class="sk-ink fl-paper"/><text x="176" y="84.6" class="lab-b" text-anchor="middle">3</text>
+<text x="176" y="112" class="lab-muted" text-anchor="middle">d = 3</text>
+<circle cx="246" cy="80" r="13" class="sk-ink fl-paper"/><text x="246" y="84.6" class="lab-b" text-anchor="middle">4</text>
+<text x="246" y="112" class="lab-muted" text-anchor="middle">d = 3</text>
+<circle cx="306" cy="32" r="13" class="sk-ink fl-paper"/><text x="306" y="36.6" class="lab-b" text-anchor="middle">5</text>
+<text x="306" y="13" class="lab-muted" text-anchor="middle">d = 2</text>
+<circle cx="306" cy="128" r="13" class="sk-ink fl-paper"/><text x="306" y="132.6" class="lab-b" text-anchor="middle">6</text>
+<text x="306" y="160" class="lab-muted" text-anchor="middle">d = 2</text>
+</svg>
+<figcaption>Le graphe non orienté \(G_1\) : 7 sommets, 8 arêtes. Le cycle 0 – 1 – 3 – 2 – 0 est relié par l’arête 3 – 4 au cycle 4 – 5 – 6 – 4. Somme des degrés : 2 + 2 + 2 + 3 + 3 + 2 + 2 = 16 = 2 × 8.</figcaption>
+</figure>
+  <figure class="schema" style="max-width:345px">
+<svg viewBox="0 0 345 205" role="img" aria-label="Graphe orienté à 5 sommets et 8 arcs, dont une boucle sur le sommet 3">
+<line x1="51.1" y1="93.2" x2="131.8" y2="43.2" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<path d="M 52.3,104.2 Q 99.9,120.6 134,154.1" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<line x1="145" y1="48" x2="145" y2="149.5" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<path d="M 132.7,160.8 Q 85.1,144.4 51,110.9" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<line x1="158" y1="165" x2="234.5" y2="165" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<path d="M 256.6,153.8 C 292.4,122.5 309.8,159.8 265.3,167.5" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<line x1="250" y1="152" x2="250" y2="50.5" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<line x1="237" y1="35" x2="160.5" y2="35" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<circle cx="40" cy="100" r="13" class="sk-ink fl-paper"/><text x="40" y="104.6" class="lab-b" text-anchor="middle">0</text>
+<circle cx="145" cy="35" r="13" class="sk-ink fl-paper"/><text x="145" y="39.6" class="lab-b" text-anchor="middle">1</text>
+<circle cx="145" cy="165" r="13" class="sk-ink fl-paper"/><text x="145" y="169.6" class="lab-b" text-anchor="middle">2</text>
+<circle cx="250" cy="165" r="13" class="sk-ink fl-paper"/><text x="250" y="169.6" class="lab-b" text-anchor="middle">3</text>
+<circle cx="250" cy="35" r="13" class="sk-ink fl-paper"/><text x="250" y="39.6" class="lab-b" text-anchor="middle">4</text>
+<text x="296" y="124" class="lab-muted">boucle</text>
+</svg>
+<figcaption>Le graphe orienté \(D\) : 5 sommets, 8 arcs (dont la boucle 3 → 3, et les deux arcs 0 → 2 et 2 → 0). Degrés : \(d^+(2) = 2\) (arcs 2 → 0 et 2 → 3) et \(d^-(2) = 2\) (arcs 0 → 2 et 1 → 2) ; la boucle compte dans \(d^+(3)\) et dans \(d^-(3)\).</figcaption>
+</figure>
+
+  <h3>Des graphes partout, et souvent très grands</h3>
+  <p>Ordres de grandeur, pour fixer les idées :</p>
+  <div><table>
+    <tr><th>application</th><th>sommets</th><th>liens</th><th>taille typique</th></tr>
+    <tr><td>métro d'une grande ville</td><td>stations</td><td>tronçons (non orienté)</td><td>quelques centaines de sommets</td></tr>
+    <tr><td>réseau routier d'un pays</td><td>carrefours</td><td>routes (orientées s'il y a des sens uniques)</td><td>plusieurs millions de sommets</td></tr>
+    <tr><td>graphe du web</td><td>pages</td><td>liens hypertextes (orienté)</td><td>des dizaines de milliards de sommets</td></tr>
+    <tr><td>réseau social</td><td>personnes</td><td>amitiés (non orienté) ou abonnements (orienté)</td><td>quelques milliards de sommets, quelques centaines de voisins chacun</td></tr>
+    <tr><td>bio-informatique</td><td>protéines</td><td>interactions connues</td><td>environ 20 000 protéines humaines, des centaines de milliers d'interactions</td></tr>
+  </table></div>
+  <p>Ces graphes sont <strong>creux</strong> : le nombre de liens est de l'ordre du nombre de sommets, très loin du maximum possible. Cela guide le choix de leur représentation (§3) et rend indispensables des algorithmes en \(O(n + m)\).</p>
+
+  <div class="prop-box"><strong>Nombre maximal de liens.</strong> Un graphe non orienté sans boucle a au plus \(\dfrac{n(n-1)}{2}\) arêtes (une par paire de sommets) ; un graphe orienté a au plus \(n^2\) arcs (boucles comprises). Ainsi \(m = O(n^2)\) dans tous les cas.</div>
+
+  <div class="method-box"><strong>Exemple — choisir le bon modèle</strong>
+    <ol>
+      <li>« Qui suit qui » sur un réseau social : on peut suivre quelqu'un sans être suivi en retour, donc graphe <strong>orienté</strong> (arc \(u \to v\) si \(u\) suit \(v\)).</li>
+      <li>Liaisons d'un réseau de bus où chaque bus fait l'aller et le retour : graphe <strong>non orienté</strong>, une arête par tronçon entre deux arrêts consécutifs.</li>
+      <li>Rues d'un centre-ville avec des sens uniques : graphe <strong>orienté</strong> ; une rue à double sens donne deux arcs opposés.</li>
+      <li>Dans chaque cas, on numérote les sommets de 0 à \(n - 1\) pour les représenter en Python (§3), en gardant au besoin une liste des noms.</li>
+    </ol>
+  </div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§2 · DEGRÉS, CHEMINS, CYCLES, CONNEXITÉ</div>
+  <h2>Le vocabulaire des graphes</h2>
+  <div class="intro">Ces quelques définitions servent dans tous les énoncés : un sujet de concours les rappelle rarement. On les illustre sur les graphes \(G_1\) (non orienté) et \(D\) (orienté) du §1.</div>
+
+  <div class="def-box">
+    <ul>
+      <li>Graphe non orienté : le <strong>degré</strong> \(d(s)\) d'un sommet \(s\) est le nombre d'arêtes qui le touchent, c'est-à-dire son nombre de voisins (sans boucle).</li>
+      <li>Graphe orienté : le <strong>degré sortant</strong> \(d^+(s)\) est le nombre d'arcs qui partent de \(s\) (ses successeurs), le <strong>degré entrant</strong> \(d^-(s)\) le nombre d'arcs qui y arrivent. Une boucle compte une fois dans chacun.</li>
+    </ul>
+  </div>
+  <div class="prop-box"><strong>Somme des degrés.</strong> Dans un graphe non orienté sans boucle, la somme des degrés vaut deux fois le nombre d'arêtes ; dans un graphe orienté, les degrés sortants et les degrés entrants ont chacun pour somme le nombre d'arcs :</div>
+  <div class="formula" data-nom="Somme des degrés">$$\sum_{s \in S} d(s) = 2m \qquad\qquad \sum_{s \in S} d^+(s) = \sum_{s \in S} d^-(s) = m$$</div>
+  <div class="reveal" onclick="this.classList.toggle('open')"><span class="label">Démonstration</span><span class="prompt">Chaque lien est compté deux fois</span><div class="content">
+    <p>Une arête \(u - v\) compte une fois dans \(d(u)\) et une fois dans \(d(v)\) : en additionnant tous les degrés, on compte chaque arête exactement deux fois. Un arc \(u \to v\) compte une fois dans \(d^+(u)\) (et dans aucun autre degré sortant) et une fois dans \(d^-(v)\). Conséquence : dans un graphe non orienté, le nombre de sommets de degré impair est pair (sinon la somme serait impaire).</p>
+  </div></div>
+
+  <div class="def-box">
+    <ul>
+      <li>Un <strong>chemin</strong> de longueur \(k\) de \(u\) à \(v\) est une suite de sommets \(s_0 = u, s_1, \dots, s_k = v\) où chaque \(s_i \to s_{i+1}\) est un arc (chaque \(s_i - s_{i+1}\) une arête). Sa <strong>longueur</strong> est son nombre d'arcs \(k\), pas son nombre de sommets \(k + 1\). On dit alors que \(v\) est <strong>accessible</strong> depuis \(u\).</li>
+      <li>Un <strong>cycle</strong> est un chemin de longueur au moins 1 qui revient à son point de départ sans emprunter deux fois le même arc (la même arête). Dans un graphe non orienté sans boucle, un cycle a donc au moins trois arêtes.</li>
+      <li>Un graphe non orienté est <strong>connexe</strong> si, pour tous sommets \(u\) et \(v\), il existe un chemin de \(u\) à \(v\). Ses <strong>composantes connexes</strong> sont les groupes de sommets reliés entre eux par des chemins.</li>
+    </ul>
+  </div>
+  <div class="method-box"><strong>Exemple — lire le vocabulaire sur les figures</strong>
+    <ol>
+      <li>Dans \(G_1\) : \(d(3) = 3\) (voisins 1, 2, 4). La somme des degrés vaut 16 et \(G_1\) a 8 arêtes, conformément à la formule.</li>
+      <li>\(0 - 1 - 3 - 4 - 6\) est un chemin de longueur 4 de 0 à 6 ; \(0 - 2 - 3 - 4 - 6\) aussi. \(4 - 5 - 6 - 4\) et \(0 - 1 - 3 - 2 - 0\) sont des cycles. \(G_1\) est connexe.</li>
+      <li>Dans \(D\) : \(d^+(0) = 2\), \(d^-(0) = 1\) ; \(0 \to 2 \to 3 \to 4 \to 1\) est un chemin de longueur 4. Le sommet 0 est accessible depuis 1 (\(1 \to 2 \to 0\)). \(0 \to 2 \to 0\), \(0 \to 1 \to 2 \to 0\) et la boucle \(3 \to 3\) sont des cycles.</li>
+    </ol>
+  </div>
+  <div class="notice"><strong>Erreur classique</strong> : confondre la longueur d'un chemin (nombre d'arcs) avec son nombre de sommets, ou, dans un graphe pondéré (§4), avec son poids. Un énoncé précise toujours de quoi il parle ; à défaut, la longueur est le nombre d'arcs.</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§3 · REPRÉSENTER UN GRAPHE EN PYTHON</div>
+  <h2>Matrice d'adjacence ou listes d'adjacence</h2>
+  <div class="intro">On numérote les sommets de 0 à \(n - 1\). Deux représentations sont au programme : une matrice qui dit, pour chaque couple de sommets, s'il y a un arc ; ou, pour chaque sommet, la liste de ses voisins. Le choix dépend de la taille du graphe et des opérations utiles.</div>
+
+  <h3>Matrice d'adjacence</h3>
+  <div class="def-box">La <strong>matrice d'adjacence</strong> d'un graphe à \(n\) sommets est la matrice \(M\) de taille \(n \times n\) telle que \(M[i][j] = 1\) s'il y a un arc \(i \to j\) (une arête \(i - j\)), et 0 sinon. Elle est <strong>symétrique</strong> pour un graphe non orienté.</div>
+  <p>Matrice du graphe orienté \(D\) (ligne \(i\) = arcs qui partent de \(i\)) :</p>
+  <div class="formula">$$M_D = \begin{pmatrix} 0 &amp; 1 &amp; 1 &amp; 0 &amp; 0 \\ 0 &amp; 0 &amp; 1 &amp; 0 &amp; 0 \\ 1 &amp; 0 &amp; 0 &amp; 1 &amp; 0 \\ 0 &amp; 0 &amp; 0 &amp; 1 &amp; 1 \\ 0 &amp; 1 &amp; 0 &amp; 0 &amp; 0 \end{pmatrix}$$</div>
+  <pre class="codeblock"><span class="cmt"># graphe orienté de la figure : M[i][j] == 1 si l'arc i -&gt; j existe</span>
+M = [[0, 1, 1, 0, 0],
+     [0, 0, 1, 0, 0],
+     [1, 0, 0, 1, 0],
+     [0, 0, 0, 1, 1],    <span class="cmt"># 3 -&gt; 3 est une boucle</span>
+     [0, 1, 0, 0, 0]]</pre>
+  <p>Le degré sortant de \(s\) est la somme de la ligne \(s\), le degré entrant la somme de la colonne \(s\) ; chacun coûte \(O(n)\) :</p>
+  <pre class="codeblock"><span class="kw">def</span> degre_sortant(M: list, s: int) -&gt; int:
+    <span class="str">"""d+(s) : nombre d'arcs partant de s (somme de la ligne s)."""</span>
+    d = 0
+    <span class="kw">for</span> j <span class="kw">in</span> range(len(M)):
+        d = d + M[s][j]
+    <span class="kw">return</span> d
+
+<span class="kw">def</span> degre_entrant(M: list, s: int) -&gt; int:
+    <span class="str">"""d-(s) : nombre d'arcs arrivant en s (somme de la colonne)."""</span>
+    d = 0
+    <span class="kw">for</span> i <span class="kw">in</span> range(len(M)):
+        d = d + M[i][s]
+    <span class="kw">return</span> d</pre>
+
+  <h3>Listes d'adjacence</h3>
+  <div class="def-box">La représentation par <strong>listes d'adjacence</strong> associe à chaque sommet \(s\) la liste de ses voisins (de ses successeurs, pour un graphe orienté). Ces listes sont rassemblées dans une liste <span class="code-inline">G</span>, où <span class="code-inline">G[s]</span> est la liste des voisins de \(s\), ou dans un dictionnaire quand les sommets ont des noms. Dans un graphe non orienté, chaque arête \(u - v\) apparaît deux fois : \(v\) dans <span class="code-inline">G[u]</span> et \(u\) dans <span class="code-inline">G[v]</span>.</div>
+  <pre class="codeblock"><span class="cmt"># graphe non orienté de la figure : 7 sommets numérotés de 0 à 6</span>
+G = [[1, 2], [0, 3], [0, 3], [1, 2, 4], [3, 5, 6], [4, 6], [4, 5]]</pre>
+  <pre class="codeblock"><span class="cmt"># le même graphe, sommets nommés : dictionnaire nom -&gt; voisins</span>
+H = {<span class="str">"A"</span>: [<span class="str">"B"</span>, <span class="str">"C"</span>], <span class="str">"B"</span>: [<span class="str">"A"</span>, <span class="str">"D"</span>], <span class="str">"C"</span>: [<span class="str">"A"</span>, <span class="str">"D"</span>],
+     <span class="str">"D"</span>: [<span class="str">"B"</span>, <span class="str">"C"</span>, <span class="str">"E"</span>], <span class="str">"E"</span>: [<span class="str">"D"</span>, <span class="str">"F"</span>, <span class="str">"G"</span>],
+     <span class="str">"F"</span>: [<span class="str">"E"</span>, <span class="str">"G"</span>], <span class="str">"G"</span>: [<span class="str">"E"</span>, <span class="str">"F"</span>]}</pre>
+  <p>Le degré d'un sommet se lit directement : \(d(s)\) = <span class="code-inline">len(G[s])</span>. La somme des longueurs des listes vaut \(2m\) pour un graphe non orienté, \(m\) pour un graphe orienté.</p>
+
+  <div class="method-box"><strong>Exemple — passer d'une représentation à l'autre</strong>
+    <pre class="codeblock"><span class="kw">def</span> listes_vers_matrice(G: list) -&gt; list:
+    <span class="str">"""Matrice d'adjacence du graphe de listes d'adjacence G."""</span>
+    n = len(G)
+    M = [[0] * n <span class="kw">for</span> i <span class="kw">in</span> range(n)]    <span class="cmt"># n lignes indépendantes</span>
+    <span class="kw">for</span> u <span class="kw">in</span> range(n):
+        <span class="kw">for</span> v <span class="kw">in</span> G[u]:
+            M[u][v] = 1
+    <span class="kw">return</span> M
+
+<span class="kw">def</span> matrice_vers_listes(M: list) -&gt; list:
+    <span class="str">"""Listes d'adjacence du graphe de matrice d'adjacence M."""</span>
+    n = len(M)
+    G = [[] <span class="kw">for</span> i <span class="kw">in</span> range(n)]
+    <span class="kw">for</span> u <span class="kw">in</span> range(n):
+        <span class="kw">for</span> v <span class="kw">in</span> range(n):
+            <span class="kw">if</span> M[u][v] == 1:
+                G[u].append(v)
+    <span class="kw">return</span> G</pre>
+    <ol>
+      <li>Pour la matrice \(M_D\), <span class="code-inline">matrice_vers_listes</span> donne <span class="code-inline">[[1, 2], [2], [0, 3], [3, 4], [1]]</span> : la liste du sommet 2 contient 0 et 3, les colonnes des 1 de la ligne 2.</li>
+      <li>Coût : la conversion vers les listes examine les \(n^2\) cases, \(O(n^2)\) ; l'autre crée la matrice en \(O(n^2)\) puis parcourt les listes en \(O(n + m)\).</li>
+      <li>La matrice est construite par compréhension : <span class="code-inline">[[0] * n] * n</span> répéterait <em>la même</em> ligne \(n\) fois, et poser un 1 dans une ligne le poserait dans toutes.</li>
+    </ol>
+  </div>
+
+  <div class="prop-box"><strong>Comparer les deux représentations</strong> (graphe à \(n\) sommets et \(m\) arcs) :
+  <div><table>
+    <tr><th>opération</th><th>matrice</th><th>listes d'adjacence</th></tr>
+    <tr><td>mémoire</td><td>\(O(n^2)\)</td><td>\(O(n + m)\)</td></tr>
+    <tr><td>y a-t-il un arc \(u \to v\) ?</td><td>\(O(1)\)</td><td>\(O(d^+(u))\) (parcours de <span class="code-inline">G[u]</span>)</td></tr>
+    <tr><td>parcourir les successeurs de \(u\)</td><td>\(O(n)\) (toute la ligne)</td><td>\(O(d^+(u))\)</td></tr>
+    <tr><td>parcourir tous les arcs</td><td>\(O(n^2)\)</td><td>\(O(n + m)\)</td></tr>
+  </table></div></div>
+  <p>Pour un réseau routier d'un million de carrefours et d'environ deux millions de routes à double sens, la matrice aurait \(10^{12}\) cases (plus que la mémoire d'un ordinateur), les listes environ quatre millions d'entrées. La matrice ne convient qu'aux petits graphes ou aux graphes denses ; les listes d'adjacence sont le choix par défaut.</p>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§4 · GRAPHES PONDÉRÉS</div>
+  <h2>Ajouter une information aux liens</h2>
+  <div class="intro">Pour un trajet, ce n'est pas le nombre de tronçons qui compte, mais leur longueur, leur durée ou leur prix. On ajoute donc à chaque lien un nombre (son poids) ou une information (son étiquette).</div>
+
+  <div class="def-box">Un graphe est <strong>pondéré</strong> quand chaque arc (ou arête) \(u \to v\) porte un nombre \(p(u, v)\), son <strong>poids</strong> : distance, durée, coût, débit… Plus généralement, une <strong>étiquette</strong> est une information attachée à un arc (numéro de ligne de bus, lettre d'un automate). Le <strong>poids d'un chemin</strong> est la somme des poids de ses arcs.</div>
+  <figure class="schema" style="max-width:345px">
+<svg viewBox="0 0 345 208" role="img" aria-label="Graphe pondéré non orienté à 6 sommets et 9 arêtes, avec le poids de chaque arête">
+<line x1="40.6" y1="97.5" x2="111.4" y2="47.5" class="sk-ink"/>
+<line x1="40.6" y1="112.5" x2="111.4" y2="162.5" class="sk-ink"/>
+<line x1="122" y1="53" x2="122" y2="157" class="sk-ink"/>
+<line x1="135" y1="40" x2="209" y2="40" class="sk-ink"/>
+<line x1="129.9" y1="159.7" x2="214.1" y2="50.3" class="sk-ink"/>
+<line x1="135" y1="170" x2="209" y2="170" class="sk-ink"/>
+<line x1="222" y1="53" x2="222" y2="157" class="sk-ink"/>
+<line x1="232.5" y1="47.6" x2="301.5" y2="97.4" class="sk-ink"/>
+<line x1="232.5" y1="162.4" x2="301.5" y2="112.6" class="sk-ink"/>
+<rect x="74.7" y="73.3" width="16.5" height="17" rx="3" class="fl-paper"/><text x="82.9" y="86.8" text-anchor="middle">4</text>
+<rect x="74.7" y="118.7" width="16.5" height="17" rx="3" class="fl-paper"/><text x="82.9" y="132.2" text-anchor="middle">1</text>
+<rect x="101.8" y="96" width="16.5" height="17" rx="3" class="fl-paper"/><text x="110" y="109.5" text-anchor="middle">2</text>
+<rect x="163.8" y="43" width="16.5" height="17" rx="3" class="fl-paper"/><text x="172" y="56.5" text-anchor="middle">5</text>
+<rect x="173.3" y="103.3" width="16.5" height="17" rx="3" class="fl-paper"/><text x="181.5" y="116.8" text-anchor="middle">8</text>
+<rect x="160" y="149" width="24" height="17" rx="3" class="fl-paper"/><text x="172" y="162.5" text-anchor="middle">10</text>
+<rect x="201.8" y="96" width="16.5" height="17" rx="3" class="fl-paper"/><text x="210" y="109.5" text-anchor="middle">2</text>
+<rect x="251.7" y="73.2" width="16.5" height="17" rx="3" class="fl-paper"/><text x="260" y="86.7" text-anchor="middle">6</text>
+<rect x="251.7" y="118.8" width="16.5" height="17" rx="3" class="fl-paper"/><text x="260" y="132.3" text-anchor="middle">3</text>
+<circle cx="30" cy="105" r="13" class="sk-ink fl-paper"/><text x="30" y="109.6" class="lab-b" text-anchor="middle">0</text>
+<circle cx="122" cy="40" r="13" class="sk-ink fl-paper"/><text x="122" y="44.6" class="lab-b" text-anchor="middle">1</text>
+<circle cx="122" cy="170" r="13" class="sk-ink fl-paper"/><text x="122" y="174.6" class="lab-b" text-anchor="middle">2</text>
+<circle cx="222" cy="40" r="13" class="sk-ink fl-paper"/><text x="222" y="44.6" class="lab-b" text-anchor="middle">3</text>
+<circle cx="222" cy="170" r="13" class="sk-ink fl-paper"/><text x="222" y="174.6" class="lab-b" text-anchor="middle">4</text>
+<circle cx="312" cy="105" r="13" class="sk-ink fl-paper"/><text x="312" y="109.6" class="lab-b" text-anchor="middle">5</text>
+</svg>
+<figcaption>Le graphe pondéré \(P\) : les poids sont des durées de trajet, en minutes, entre six carrefours.</figcaption>
+</figure>
+  <p>Représentations : dans les listes d'adjacence, on range des couples (voisin, poids) ; dans la matrice, on écrit le poids dans la case \(M[u][v]\), et \(+\infty\) quand il n'y a pas d'arc. En Python, <span class="code-inline">float('inf')</span> est un flottant qui représente \(+\infty\) : il est plus grand que tout nombre, et \(\infty + x = \infty\).</p>
+  <pre class="codeblock">inf = float(<span class="str">'inf'</span>)     <span class="cmt"># +∞ : flottant plus grand que tout nombre</span>
+
+<span class="cmt"># graphe pondéré non orienté : G[u] = liste de couples (v, poids)</span>
+P = [[(1, 4), (2, 1)],
+     [(0, 4), (2, 2), (3, 5)],
+     [(0, 1), (1, 2), (3, 8), (4, 10)],
+     [(1, 5), (2, 8), (4, 2), (5, 6)],
+     [(2, 10), (3, 2), (5, 3)],
+     [(3, 6), (4, 3)]]
+
+<span class="kw">def</span> poids_chemin(G: list, c: list) -&gt; float:
+    <span class="str">"""Poids du chemin c = [s0, s1, …, sk]</span>
+<span class="str">    (inf s'il manque une arête)."""</span>
+    total = 0
+    <span class="kw">for</span> i <span class="kw">in</span> range(len(c) - 1):
+        p = inf
+        <span class="kw">for</span> v, w <span class="kw">in</span> G[c[i]]:
+            <span class="kw">if</span> v == c[i + 1]:
+                p = w
+        total = total + p
+    <span class="kw">return</span> total</pre>
+  <div class="method-box"><strong>Exemple — comparer deux trajets</strong>
+    <ol>
+      <li>\(0 - 1 - 3 - 5\) : 3 arêtes, poids \(4 + 5 + 6 = 15\) min.</li>
+      <li>\(0 - 2 - 1 - 3 - 4 - 5\) : 5 arêtes, poids \(1 + 2 + 5 + 2 + 3 = 13\) min.</li>
+      <li>Le chemin le plus court en nombre d'arêtes n'est pas le plus léger : le parcours en largeur (§6) répond à la première question, l'algorithme de Dijkstra (§9) à la seconde. On vérifie : <span class="code-inline">poids_chemin(P, [0, 2, 1, 3, 4, 5])</span> vaut 13.</li>
+    </ol>
+  </div>
+  <div class="notice"><strong>Erreur classique</strong> : marquer l'absence d'arc par 0 dans une matrice pondérée. Un poids nul est possible (passage gratuit) et un algorithme de plus court chemin choisirait cet « arc » fantôme : on utilise \(+\infty\).</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§5 · PILES ET FILES</div>
+  <h2>Deux façons de ranger les sommets en attente</h2>
+  <div class="intro">Parcourir un graphe, c'est gérer une collection de sommets « découverts mais pas encore traités ». L'ordre dans lequel on les ressort fait toute la différence : le dernier arrivé (pile) donne un parcours en profondeur, le premier arrivé (file) un parcours en largeur.</div>
+
+  <div class="def-box">
+    <ul>
+      <li>Une <strong>pile</strong> est une collection où l'on <strong>empile</strong> un élément au sommet et où l'on <strong>dépile</strong> le dernier élément empilé : « dernier arrivé, premier sorti » (LIFO en anglais). Image : une pile d'assiettes.</li>
+      <li>Une <strong>file</strong> est une collection où l'on <strong>enfile</strong> un élément à la fin et où l'on <strong>défile</strong> le premier élément enfilé : « premier arrivé, premier sorti » (FIFO). Image : une file d'attente.</li>
+    </ul>
+    Dans les deux cas, on veut aussi savoir si la collection est vide, et que chaque opération se fasse en temps constant.
+  </div>
+  <figure class="schema" style="max-width:345px">
+<svg viewBox="0 0 345 160" role="img" aria-label="Une pile où l’on empile et dépile par le haut, et une file où l’on enfile à droite et défile à gauche">
+<rect x="40" y="104" width="64" height="26" class="sk-ink fl-paper"/>
+<text x="72" y="122" text-anchor="middle">3</text>
+<rect x="40" y="78" width="64" height="26" class="sk-ink fl-paper"/>
+<text x="72" y="96" text-anchor="middle">8</text>
+<rect x="40" y="52" width="64" height="26" class="sk-ink fl-accent-soft"/>
+<text x="72" y="70" text-anchor="middle">5</text>
+<path d="M 37,40 L 37,133 L 107,133 L 107,40" class="sk-ink"/>
+<line x1="58" y1="22" x2="58" y2="48" class="sk-accent2" marker-end="url(#sk-arrow-accent2)"/>
+<line x1="86" y1="48" x2="86" y2="22" class="sk-accent" marker-end="url(#sk-arrow-accent)"/>
+<text x="50" y="16" class="lab-accent2" text-anchor="end">empiler</text>
+<text x="94" y="16" class="lab-accent">dépiler</text>
+<text x="72" y="152" class="lab-b" text-anchor="middle">pile (LIFO)</text>
+<rect x="165" y="70" width="42" height="30" class="sk-ink fl-accent-soft"/>
+<text x="186" y="90" text-anchor="middle">3</text>
+<rect x="207" y="70" width="42" height="30" class="sk-ink fl-paper"/>
+<text x="228" y="90" text-anchor="middle">8</text>
+<rect x="249" y="70" width="42" height="30" class="sk-ink fl-paper"/>
+<text x="270" y="90" text-anchor="middle">5</text>
+<line x1="325" y1="85" x2="297" y2="85" class="sk-accent2" marker-end="url(#sk-arrow-accent2)"/>
+<text x="311" y="60" class="lab-accent2" text-anchor="middle">enfiler</text>
+<line x1="159" y1="85" x2="131" y2="85" class="sk-accent" marker-end="url(#sk-arrow-accent)"/>
+<text x="145" y="60" class="lab-accent" text-anchor="middle">défiler</text>
+<text x="228" y="152" class="lab-b" text-anchor="middle">file (FIFO)</text>
+</svg>
+<figcaption>Après avoir ajouté 3, 8 puis 5 : la <strong>pile</strong> rend d’abord 5 (dernier arrivé, premier sorti), la <strong>file</strong> rend d’abord 3 (premier arrivé, premier sorti).</figcaption>
+</figure>
+  <h3>Une pile : une liste Python</h3>
+  <p>La fin de la liste joue le rôle du sommet : <span class="code-inline">append</span> empile et <span class="code-inline">pop()</span> dépile, chacun en \(O(1)\). Le sommet, sans le retirer, est <span class="code-inline">p[len(p) - 1]</span>.</p>
+  <pre class="codeblock">&gt;&gt;&gt; p = []              <span class="cmt"># pile vide</span>
+&gt;&gt;&gt; p.append(3)         <span class="cmt"># empiler 3, puis 8, puis 5</span>
+&gt;&gt;&gt; p.append(8)
+&gt;&gt;&gt; p.append(5)
+&gt;&gt;&gt; p.pop()             <span class="cmt"># dépiler : le DERNIER arrivé sort</span>
+5
+&gt;&gt;&gt; p
+[3, 8]
+&gt;&gt;&gt; len(p) == 0         <span class="cmt"># la pile est-elle vide ?</span>
+<span class="kw">False</span></pre>
+  <h3>Une file : surtout pas une liste</h3>
+  <p>Avec une liste, défiler revient à retirer le premier élément par <span class="code-inline">f.pop(0)</span> :</p>
+  <pre class="codeblock">f = [3, 8, 5]          <span class="cmt"># file représentée par une liste</span>
+x = f.pop(0)           <span class="cmt"># défile 3… en décalant tout le reste</span></pre>
+  <p>Les éléments d'une liste sont rangés dans des cases consécutives : retirer le premier oblige à décaler tous les autres d'une case, ce qui coûte \(O(n)\). Un parcours qui défile \(n\) sommets coûte alors \(O(n^2)\) rien qu'en défilements. Sur un ordinateur ordinaire, vider une file de 400 000 éléments par <span class="code-inline">pop(0)</span> prend plusieurs secondes, et le temps est multiplié par 4 environ quand la taille double.</p>
+  <div class="def-box">Le module <span class="code-inline">collections</span> fournit le type <span class="code-inline">deque</span> (« file à deux bouts »), où ajouter ou retirer un élément <strong>à chaque extrémité</strong> coûte \(O(1)\) :
+    <ul>
+      <li><span class="code-inline">from collections import deque</span> : importation ;</li>
+      <li><span class="code-inline">deque()</span> crée une file vide, <span class="code-inline">deque([a, b])</span> une file contenant <span class="code-inline">a</span> puis <span class="code-inline">b</span> ;</li>
+      <li><span class="code-inline">f.append(x)</span> ajoute <span class="code-inline">x</span> à droite (enfiler) ;</li>
+      <li><span class="code-inline">f.popleft()</span> retire et renvoie l'élément de gauche (défiler) ;</li>
+      <li><span class="code-inline">len(f)</span> donne le nombre d'éléments.</li>
+    </ul>
+  </div>
+  <pre class="codeblock">&gt;&gt;&gt; <span class="kw">from</span> collections <span class="kw">import</span> deque
+&gt;&gt;&gt; f = deque([3])      <span class="cmt"># file contenant 3</span>
+&gt;&gt;&gt; f.append(8)         <span class="cmt"># enfiler 8, puis 5 (à droite)</span>
+&gt;&gt;&gt; f.append(5)
+&gt;&gt;&gt; f.popleft()         <span class="cmt"># défiler : le PREMIER arrivé sort</span>
+3
+&gt;&gt;&gt; len(f)
+2</pre>
+  <p>Avec <span class="code-inline">deque</span>, la même file de 400 000 éléments se vide en quelques centièmes de seconde.</p>
+  <div class="method-box"><strong>Exemple — pile ou file ?</strong>
+    <p>On ajoute 1, 2, 3, puis on retire un élément, on ajoute 4, et on retire deux éléments.</p>
+    <ol>
+      <li>Avec une pile : on retire 3 (dernier arrivé), puis, après l'ajout de 4, on retire 4 et 2. Il reste <span class="code-inline">[1]</span>.</li>
+      <li>Avec une file : on retire 1 (premier arrivé), puis 2 et 3. Il reste 4.</li>
+    </ol>
+  </div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§6 · PARCOURS EN LARGEUR</div>
+  <h2>Explorer par couches de distance croissante</h2>
+  <div class="intro">Le parcours en largeur part d'un sommet \(s\), visite d'abord ses voisins, puis les voisins de ses voisins, et ainsi de suite. Il trouve, du même coup, le plus petit nombre d'arêtes nécessaires pour aller de \(s\) à chaque sommet.</div>
+  <div class="def-box"><strong>Principe.</strong> On range dans une <strong>file</strong> les sommets découverts mais pas encore traités, en commençant par \(s\). Tant que la file n'est pas vide : on défile un sommet \(u\) et on enfile chacun de ses voisins qui n'a <strong>jamais été découvert</strong>, en le marquant aussitôt comme découvert.</div>
+  <pre class="codeblock"><span class="kw">from</span> collections <span class="kw">import</span> deque
+
+<span class="kw">def</span> distances(G: list, s: int) -&gt; list:
+    <span class="str">"""Parcours en largeur depuis s ; G : listes d'adjacence.</span>
+<span class="str">    Renvoie d : d[v] = nombre minimal d'arêtes d'un chemin</span>
+<span class="str">    de s à v, ou -1 si v n'est pas accessible depuis s."""</span>
+    n = len(G)
+    d = [-1] * n            <span class="cmt"># -1 : sommet pas encore découvert</span>
+    d[s] = 0
+    f = deque([s])          <span class="cmt"># sommets découverts, à traiter</span>
+    <span class="kw">while</span> len(f) &gt; 0:
+        u = f.popleft()     <span class="cmt"># le plus anciennement découvert</span>
+        <span class="kw">for</span> v <span class="kw">in</span> G[u]:
+            <span class="kw">if</span> d[v] == -1:  <span class="cmt"># v découvert pour la 1re fois</span>
+                d[v] = d[u] + 1
+                f.append(v)
+    <span class="kw">return</span> d</pre>
+  <p>Ici le tableau <span class="code-inline">d</span> sert à la fois de marquage (\(-1\) : jamais découvert) et de résultat. Le parcours ne fait que <em>lire</em> le graphe.</p>
+  <figure class="schema" style="max-width:345px">
+<svg viewBox="0 0 345 208" role="img" aria-label="Parcours en largeur depuis 0 : sommets rangés par distance, arêtes de l’arbre du parcours en trait plein">
+<rect x="10" y="6" width="52" height="176" rx="8" class="fl-soft"/>
+<text x="36" y="200" class="lab-muted" text-anchor="middle">d = 0</text>
+<rect x="80" y="6" width="52" height="176" rx="8" class="fl-soft"/>
+<text x="106" y="200" class="lab-muted" text-anchor="middle">d = 1</text>
+<rect x="150" y="6" width="52" height="176" rx="8" class="fl-soft"/>
+<text x="176" y="200" class="lab-muted" text-anchor="middle">d = 2</text>
+<rect x="220" y="6" width="52" height="176" rx="8" class="fl-soft"/>
+<text x="246" y="200" class="lab-muted" text-anchor="middle">d = 3</text>
+<rect x="280" y="6" width="52" height="176" rx="8" class="fl-soft"/>
+<text x="306" y="200" class="lab-muted" text-anchor="middle">d = 4</text>
+<line x1="46.7" y1="72.6" x2="95.3" y2="39.4" class="sk-accent"/>
+<line x1="46.7" y1="87.4" x2="95.3" y2="120.6" class="sk-accent"/>
+<line x1="116.7" y1="39.4" x2="165.3" y2="72.6" class="sk-accent"/>
+<line x1="116.7" y1="120.6" x2="165.3" y2="87.4" class="sk-dash"/>
+<line x1="189" y1="80" x2="233" y2="80" class="sk-accent"/>
+<line x1="256.2" y1="71.9" x2="295.8" y2="40.1" class="sk-accent"/>
+<line x1="256.2" y1="88.1" x2="295.8" y2="119.9" class="sk-accent"/>
+<line x1="306" y1="45" x2="306" y2="115" class="sk-dash"/>
+<circle cx="36" cy="80" r="13" class="sk-accent fl-paper"/><text x="36" y="84.6" class="lab-b" text-anchor="middle">0</text>
+<circle cx="106" cy="32" r="13" class="sk-ink fl-paper"/><text x="106" y="36.6" class="lab-b" text-anchor="middle">1</text>
+<circle cx="106" cy="128" r="13" class="sk-ink fl-paper"/><text x="106" y="132.6" class="lab-b" text-anchor="middle">2</text>
+<circle cx="176" cy="80" r="13" class="sk-ink fl-paper"/><text x="176" y="84.6" class="lab-b" text-anchor="middle">3</text>
+<circle cx="246" cy="80" r="13" class="sk-ink fl-paper"/><text x="246" y="84.6" class="lab-b" text-anchor="middle">4</text>
+<circle cx="306" cy="32" r="13" class="sk-ink fl-paper"/><text x="306" y="36.6" class="lab-b" text-anchor="middle">5</text>
+<circle cx="306" cy="128" r="13" class="sk-ink fl-paper"/><text x="306" y="132.6" class="lab-b" text-anchor="middle">6</text>
+</svg>
+<figcaption>Parcours en largeur depuis 0 : les sommets sont découverts par couches de distance croissante (nombre d’arêtes depuis 0). En trait plein, les arêtes par lesquelles chaque sommet a été découvert (<span class="code-inline">parent</span>) : elles forment un arbre de plus courts chemins.</figcaption>
+</figure>
+  <div class="method-box"><strong>Exemple — déroulé de <span class="code-inline">distances(G, 0)</span> sur \(G_1\)</strong>
+    <p>Chaque ligne correspond à un sommet défilé ; les voisins découverts sont enfilés dans l'ordre de la liste d'adjacence.</p>
+    <div><table>
+<tr><th>étape</th><th>défilé <span class="code-inline">u</span></th><th>découverts</th><th>file après</th><th><span class="code-inline">d</span> après</th></tr>
+<tr><td>départ</td><td>—</td><td>—</td><td><span class="code-inline">[0]</span></td><td><span class="code-inline">[0, -1, -1, -1, -1, -1, -1]</span></td></tr>
+<tr><td>1</td><td>0</td><td>1, 2</td><td><span class="code-inline">[1, 2]</span></td><td><span class="code-inline">[0, 1, 1, -1, -1, -1, -1]</span></td></tr>
+<tr><td>2</td><td>1</td><td>3</td><td><span class="code-inline">[2, 3]</span></td><td><span class="code-inline">[0, 1, 1, 2, -1, -1, -1]</span></td></tr>
+<tr><td>3</td><td>2</td><td>aucun</td><td><span class="code-inline">[3]</span></td><td><span class="code-inline">[0, 1, 1, 2, -1, -1, -1]</span></td></tr>
+<tr><td>4</td><td>3</td><td>4</td><td><span class="code-inline">[4]</span></td><td><span class="code-inline">[0, 1, 1, 2, 3, -1, -1]</span></td></tr>
+<tr><td>5</td><td>4</td><td>5, 6</td><td><span class="code-inline">[5, 6]</span></td><td><span class="code-inline">[0, 1, 1, 2, 3, 4, 4]</span></td></tr>
+<tr><td>6</td><td>5</td><td>aucun</td><td><span class="code-inline">[6]</span></td><td><span class="code-inline">[0, 1, 1, 2, 3, 4, 4]</span></td></tr>
+<tr><td>7</td><td>6</td><td>aucun</td><td>vide</td><td><span class="code-inline">[0, 1, 1, 2, 3, 4, 4]</span></td></tr>
+</table></div>
+    <p>Les sommets sortent de la file dans l'ordre 0, 1, 2, 3, 4, 5, 6, par distances croissantes : 0, puis 1, 1, puis 2, puis 3, puis 4, 4.</p>
+  </div>
+  <div class="prop-box"><strong>Plus courts chemins en nombre d'arêtes.</strong> À la fin du parcours en largeur depuis \(s\), <span class="code-inline">d[v]</span> est le plus petit nombre d'arêtes d'un chemin de \(s\) à \(v\) ; <span class="code-inline">d[v]</span> vaut \(-1\) exactement pour les sommets non accessibles depuis \(s\).</div>
+  <div class="reveal" onclick="this.classList.toggle('open')"><span class="label">Idée de preuve</span><span class="prompt">La file contient au plus deux distances consécutives</span><div class="content">
+    <p>Invariant : les distances <span class="code-inline">d</span> des sommets présents dans la file sont, dans l'ordre de la file, de la forme \(k, \dots, k, k+1, \dots, k+1\). En effet, défiler un sommet de distance \(k\) n'enfile, à la fin, que des sommets de distance \(k + 1\). Les sommets sortent donc de la file par distances croissantes. Si un sommet \(v\) était à distance réelle \(\delta \lt\) <span class="code-inline">d[v]</span>, son prédécesseur \(w\) sur un plus court chemin, à distance \(\delta - 1\), serait sorti de la file avant le sommet qui a découvert \(v\), et aurait découvert \(v\) lui-même avec <span class="code-inline">d[w] + 1</span> \(= \delta\) : contradiction (en raisonnant sur le plus petit tel \(\delta\)).</p>
+  </div></div>
+
+  <h3>Retrouver les chemins</h3>
+  <p>Pour obtenir un plus court chemin, et pas seulement sa longueur, on mémorise pour chaque sommet celui par lequel il a été découvert, son <strong>parent</strong>. Remonter les parents depuis \(v\) jusqu'à \(s\) donne le chemin à l'envers.</p>
+  <pre class="codeblock"><span class="kw">from</span> collections <span class="kw">import</span> deque
+
+<span class="kw">def</span> largeur(G: list, s: int) -&gt; list:
+    <span class="str">"""parent[v] = sommet par lequel v a été découvert</span>
+<span class="str">    (None pour s et pour les sommets non accessibles)."""</span>
+    n = len(G)
+    vu = [<span class="kw">False</span>] * n
+    parent = [<span class="kw">None</span>] * n
+    vu[s] = <span class="kw">True</span>
+    f = deque([s])
+    <span class="kw">while</span> len(f) &gt; 0:
+        u = f.popleft()
+        <span class="kw">for</span> v <span class="kw">in</span> G[u]:
+            <span class="kw">if</span> <span class="kw">not</span> vu[v]:
+                vu[v] = <span class="kw">True</span>
+                parent[v] = u
+                f.append(v)
+    <span class="kw">return</span> parent
+
+<span class="kw">def</span> chemin(parent: list, s: int, v: int) -&gt; list:
+    <span class="str">"""Chemin de s à v lu dans parent (v accessible depuis s)."""</span>
+    c = [v]
+    <span class="kw">while</span> v != s:
+        v = parent[v]
+        c.append(v)
+    k = len(c)
+    <span class="kw">return</span> [c[k - 1 - i] <span class="kw">for</span> i <span class="kw">in</span> range(k)]   <span class="cmt"># remis à l'endroit</span></pre>
+  <p>Sur \(G_1\) depuis 0 : <span class="code-inline">parent = [None, 0, 0, 1, 3, 4, 4]</span> et <span class="code-inline">chemin(parent, 0, 6)</span> vaut <span class="code-inline">[0, 1, 3, 4, 6]</span>, un chemin de longueur 4.</p>
+
+  <div class="prop-box"><strong>Complexité.</strong> Un sommet est enfilé au plus une fois (il est marqué en même temps), donc défilé au plus une fois ; sa liste d'adjacence est alors parcourue une fois. Avec des listes d'adjacence, le coût total est \(O(n + m)\), et l'espace utilisé \(O(n)\). Avec une matrice, parcourir les voisins d'un sommet coûte \(O(n)\) : \(O(n^2)\) en tout.</div>
+  <div class="notice"><strong>Erreur classique</strong> : marquer un sommet quand on le <em>défile</em> au lieu de quand on l'<em>enfile</em>. Un même sommet peut alors être enfilé plusieurs fois (par chacun de ses voisins), la file grossit inutilement et les distances peuvent être fausses.</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§7 · PARCOURS EN PROFONDEUR</div>
+  <h2>Aller le plus loin possible, puis revenir</h2>
+  <div class="intro">Le parcours en profondeur s'enfonce dans le graphe tant qu'il trouve un sommet nouveau, et ne revient en arrière qu'une fois bloqué, comme on explore un labyrinthe en suivant un mur. Il s'écrit avec une pile, ou plus naturellement par récursivité.</div>
+  <div class="def-box"><strong>Principe (avec une pile).</strong> On empile \(s\). Tant que la pile n'est pas vide : on dépile un sommet \(u\) ; s'il n'a pas encore été visité, on le visite (on le marque) et on empile ses voisins non visités. Un sommet peut se trouver plusieurs fois dans la pile : on ignore les copies d'un sommet déjà visité.</div>
+  <pre class="codeblock"><span class="kw">def</span> profondeur(G: list, s: int) -&gt; list:
+    <span class="str">"""Sommets accessibles depuis s, dans l'ordre de visite</span>
+<span class="str">    d'un parcours en profondeur (avec une pile)."""</span>
+    n = len(G)
+    vu = [<span class="kw">False</span>] * n
+    ordre = []
+    p = [s]                 <span class="cmt"># pile des sommets à visiter</span>
+    <span class="kw">while</span> len(p) &gt; 0:
+        u = p.pop()         <span class="cmt"># le plus récemment empilé</span>
+        <span class="kw">if</span> <span class="kw">not</span> vu[u]:
+            vu[u] = <span class="kw">True</span>
+            ordre.append(u)
+            <span class="kw">for</span> v <span class="kw">in</span> G[u]:
+                <span class="kw">if</span> <span class="kw">not</span> vu[v]:
+                    p.append(v)
+    <span class="kw">return</span> ordre</pre>
+  <div class="method-box"><strong>Exemple — déroulé de <span class="code-inline">profondeur(G, 0)</span> sur \(G_1\)</strong>
+    <div><table>
+<tr><th>dépilé</th><th>action</th><th>pile après</th><th>ordre de visite</th></tr>
+<tr><td>départ</td><td>—</td><td><span class="code-inline">[0]</span></td><td></td></tr>
+<tr><td>0</td><td>visité ; empile 1, 2</td><td><span class="code-inline">[1, 2]</span></td><td><span class="code-inline">[0]</span></td></tr>
+<tr><td>2</td><td>visité ; empile 3</td><td><span class="code-inline">[1, 3]</span></td><td><span class="code-inline">[0, 2]</span></td></tr>
+<tr><td>3</td><td>visité ; empile 1, 4</td><td><span class="code-inline">[1, 1, 4]</span></td><td><span class="code-inline">[0, 2, 3]</span></td></tr>
+<tr><td>4</td><td>visité ; empile 5, 6</td><td><span class="code-inline">[1, 1, 5, 6]</span></td><td><span class="code-inline">[0, 2, 3, 4]</span></td></tr>
+<tr><td>6</td><td>visité ; empile 5</td><td><span class="code-inline">[1, 1, 5, 5]</span></td><td><span class="code-inline">[0, 2, 3, 4, 6]</span></td></tr>
+<tr><td>5</td><td>visité ; empile rien</td><td><span class="code-inline">[1, 1, 5]</span></td><td><span class="code-inline">[0, 2, 3, 4, 6, 5]</span></td></tr>
+<tr><td>5</td><td>déjà visité : ignoré</td><td><span class="code-inline">[1, 1]</span></td><td><span class="code-inline">[0, 2, 3, 4, 6, 5]</span></td></tr>
+<tr><td>1</td><td>visité ; empile rien</td><td><span class="code-inline">[1]</span></td><td><span class="code-inline">[0, 2, 3, 4, 6, 5, 1]</span></td></tr>
+<tr><td>1</td><td>déjà visité : ignoré</td><td>vide</td><td><span class="code-inline">[0, 2, 3, 4, 6, 5, 1]</span></td></tr>
+</table></div>
+    <p>Le parcours va de 0 à 2, puis 3, 4, 6, 5 : il s'enfonce, et ne revient à 1 qu'à la fin. Les sommets 1 et 5 ont été empilés deux fois (1 par 0 puis par 3, 5 par 4 puis par 6) ; les copies dépilées après la visite sont ignorées.</p>
+  </div>
+  <h3>Version récursive</h3>
+  <p>Visiter \(u\), c'est le marquer puis visiter récursivement chacun de ses voisins non encore visités ; la pile d'appels de Python joue le rôle de la pile.</p>
+  <pre class="codeblock"><span class="kw">def</span> visiter(G: list, u: int, vu: list, ordre: list) -&gt; <span class="kw">None</span>:
+    <span class="str">"""Visite en profondeur depuis u (modifie vu et ordre)."""</span>
+    vu[u] = <span class="kw">True</span>
+    ordre.append(u)
+    <span class="kw">for</span> v <span class="kw">in</span> G[u]:
+        <span class="kw">if</span> <span class="kw">not</span> vu[v]:
+            visiter(G, v, vu, ordre)
+
+<span class="kw">def</span> profondeur_rec(G: list, s: int) -&gt; list:
+    ordre = []
+    visiter(G, s, [<span class="kw">False</span>] * len(G), ordre)
+    <span class="kw">return</span> ordre</pre>
+  <p>Sur \(G_1\), <span class="code-inline">profondeur_rec(G, 0)</span> vaut <span class="code-inline">[0, 1, 3, 2, 4, 5, 6]</span> : l'ordre diffère de celui de la version avec pile, qui examine les voisins en ordre inverse (le dernier empilé sort le premier), mais les deux sont des parcours en profondeur.</p>
+  <div class="prop-box"><strong>Complexité.</strong> Chaque sommet est visité une fois et sa liste d'adjacence parcourue une fois : \(O(n + m)\) avec des listes d'adjacence. La pile de la version itérative peut contenir jusqu'à \(m\) copies de sommets ; la version récursive atteint une profondeur d'appels égale au plus à \(n\).</div>
+  <div class="notice"><strong>Erreur classique</strong> : lancer la version récursive sur un grand graphe. Une profondeur de plus d'un millier d'appels déclenche une <span class="code-inline">RecursionError</span> en Python ; un chemin de 10 000 sommets suffit. La version avec une pile n'a pas cette limite.</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§8 · CONNEXITÉ ET CYCLES</div>
+  <h2>Deux questions résolues par un parcours</h2>
+  <div class="intro">Un parcours depuis \(s\) atteint exactement les sommets accessibles depuis \(s\). Cette remarque suffit à tester la connexité d'un graphe non orienté, à compter ses composantes connexes et, avec un peu d'attention, à détecter un cycle.</div>
+  <div class="prop-box"><strong>Connexité.</strong> Un graphe non orienté est connexe si et seulement si un parcours (en largeur ou en profondeur) depuis un sommet quelconque atteint les \(n\) sommets. Pour compter les composantes, on lance un parcours depuis chaque sommet non encore atteint : chaque lancement découvre une nouvelle composante.</div>
+  <pre class="codeblock"><span class="kw">from</span> collections <span class="kw">import</span> deque
+
+<span class="kw">def</span> composantes(G: list) -&gt; list:
+    <span class="str">"""Graphe non orienté : comp[s] = numéro (0, 1, 2…) de la</span>
+<span class="str">    composante connexe de s."""</span>
+    n = len(G)
+    comp = [-1] * n
+    k = 0                    <span class="cmt"># numéro de la composante suivante</span>
+    <span class="kw">for</span> s <span class="kw">in</span> range(n):
+        <span class="kw">if</span> comp[s] == -1:    <span class="cmt"># s pas encore atteint</span>
+            comp[s] = k
+            f = deque([s])
+            <span class="kw">while</span> len(f) &gt; 0:
+                u = f.popleft()
+                <span class="kw">for</span> v <span class="kw">in</span> G[u]:
+                    <span class="kw">if</span> comp[v] == -1:
+                        comp[v] = k
+                        f.append(v)
+            k = k + 1
+    <span class="kw">return</span> comp
+
+<span class="kw">def</span> est_connexe(G: list) -&gt; bool:
+    <span class="str">"""G non orienté, au moins un sommet."""</span>
+    comp = composantes(G)
+    <span class="kw">for</span> c <span class="kw">in</span> comp:
+        <span class="kw">if</span> c != 0:
+            <span class="kw">return</span> <span class="kw">False</span>
+    <span class="kw">return</span> <span class="kw">True</span></pre>
+  <figure class="schema" style="max-width:345px">
+<svg viewBox="0 0 345 160" role="img" aria-label="Graphe non orienté à 9 sommets formé de quatre composantes connexes">
+<rect x="7" y="19" width="142" height="42" rx="10" class="fl-soft"/>
+<text x="78" y="77" class="lab-muted" text-anchor="middle">composante 0</text>
+<rect x="7" y="91" width="92" height="42" rx="10" class="fl-soft"/>
+<text x="53" y="149" class="lab-muted" text-anchor="middle">composante 1</text>
+<rect x="155" y="55" width="42" height="42" rx="10" class="fl-soft"/>
+<text x="176" y="113" class="lab-muted" text-anchor="middle">composante 2</text>
+<rect x="215" y="19" width="122" height="114" rx="10" class="fl-soft"/>
+<text x="276" y="149" class="lab-muted" text-anchor="middle">composante 3</text>
+<line x1="41" y1="40" x2="65" y2="40" class="sk-ink"/>
+<line x1="91" y1="40" x2="115" y2="40" class="sk-ink"/>
+<line x1="41" y1="112" x2="65" y2="112" class="sk-ink"/>
+<line x1="249" y1="40" x2="303" y2="40" class="sk-ink"/>
+<line x1="242.3" y1="51.4" x2="269.7" y2="100.6" class="sk-ink"/>
+<line x1="309.7" y1="51.4" x2="282.3" y2="100.6" class="sk-ink"/>
+<circle cx="28" cy="40" r="13" class="sk-ink fl-paper"/><text x="28" y="44.6" class="lab-b" text-anchor="middle">0</text>
+<circle cx="78" cy="40" r="13" class="sk-ink fl-paper"/><text x="78" y="44.6" class="lab-b" text-anchor="middle">1</text>
+<circle cx="128" cy="40" r="13" class="sk-ink fl-paper"/><text x="128" y="44.6" class="lab-b" text-anchor="middle">2</text>
+<circle cx="28" cy="112" r="13" class="sk-ink fl-paper"/><text x="28" y="116.6" class="lab-b" text-anchor="middle">3</text>
+<circle cx="78" cy="112" r="13" class="sk-ink fl-paper"/><text x="78" y="116.6" class="lab-b" text-anchor="middle">4</text>
+<circle cx="176" cy="76" r="13" class="sk-ink fl-paper"/><text x="176" y="80.6" class="lab-b" text-anchor="middle">5</text>
+<circle cx="236" cy="40" r="13" class="sk-ink fl-paper"/><text x="236" y="44.6" class="lab-b" text-anchor="middle">6</text>
+<circle cx="316" cy="40" r="13" class="sk-ink fl-paper"/><text x="316" y="44.6" class="lab-b" text-anchor="middle">7</text>
+<circle cx="276" cy="112" r="13" class="sk-ink fl-paper"/><text x="276" y="116.6" class="lab-b" text-anchor="middle">8</text>
+</svg>
+<figcaption>Le graphe \(G_3\) n’est pas connexe : il a quatre composantes connexes, dont une réduite au sommet isolé 5. Seule la composante 3 (le triangle 6 – 7 – 8) contient un cycle.</figcaption>
+</figure>
+  <div class="method-box"><strong>Exemple — composantes de \(G_3\)</strong>
+    <ol>
+      <li>\(G_3\) = <span class="code-inline">[[1], [0, 2], [1], [4], [3], [], [7, 8], [6, 8], [6, 7]]</span>.</li>
+      <li>Le parcours lancé depuis 0 atteint 0, 1, 2 (composante 0) ; depuis 3, il atteint 3, 4 (composante 1) ; depuis 5, rien d'autre (composante 2) ; depuis 6, il atteint 6, 7, 8 (composante 3).</li>
+      <li><span class="code-inline">composantes(G3)</span> vaut <span class="code-inline">[0, 0, 0, 1, 1, 2, 3, 3, 3]</span> et <span class="code-inline">est_connexe(G3)</span> vaut <span class="code-inline">False</span>. Coût : chaque sommet est enfilé une fois en tout, \(O(n + m)\).</li>
+    </ol>
+  </div>
+
+  <h3>Détecter un cycle dans un graphe non orienté</h3>
+  <p>Pendant un parcours, l'arête par laquelle on découvre un sommet le relie à son parent. Si, en examinant les voisins de \(u\), on rencontre un sommet <strong>déjà découvert qui n'est pas le parent de \(u\)</strong>, c'est qu'on peut l'atteindre par deux chemins différents : avec l'arête qui les relie, ils forment un cycle. Inversement, s'il y a un cycle, le parcours finit par rencontrer une telle arête.</p>
+  <pre class="codeblock"><span class="kw">from</span> collections <span class="kw">import</span> deque
+
+<span class="kw">def</span> a_un_cycle(G: list) -&gt; bool:
+    <span class="str">"""G non orienté, sans boucle : possède-t-il un cycle ?"""</span>
+    n = len(G)
+    parent = [-2] * n                 <span class="cmt"># -2 : pas encore découvert</span>
+    <span class="kw">for</span> s <span class="kw">in</span> range(n):
+        <span class="kw">if</span> parent[s] == -2:
+            parent[s] = -1        <span class="cmt"># racine d'un nouveau parcours</span>
+            f = deque([s])
+            <span class="kw">while</span> len(f) &gt; 0:
+                u = f.popleft()
+                <span class="kw">for</span> v <span class="kw">in</span> G[u]:
+                    <span class="kw">if</span> parent[v] == -2:
+                        parent[v] = u
+                        f.append(v)
+                    <span class="kw">elif</span> v != parent[u]:
+                        <span class="kw">return</span> <span class="kw">True</span>   <span class="cmt"># 2e chemin vers v</span>
+    <span class="kw">return</span> <span class="kw">False</span></pre>
+  <div class="method-box"><strong>Exemple — le cycle de \(G_1\)</strong>
+    <ol>
+      <li>Depuis 0 : on découvre 1 et 2, de parent 0.</li>
+      <li>On traite 1 : son voisin 0 est son parent, on l'ignore ; on découvre 3, de parent 1.</li>
+      <li>On traite 2 : son voisin 0 est son parent ; son voisin 3 est <em>déjà découvert</em> et n'est pas son parent : la fonction renvoie <span class="code-inline">True</span>. L'arête \(2 - 3\) ferme le cycle \(0 - 1 - 3 - 2 - 0\).</li>
+    </ol>
+  </div>
+  <div class="prop-box"><strong>Compter les arêtes.</strong> Un graphe non orienté connexe à \(n\) sommets a au moins \(n - 1\) arêtes : un parcours depuis \(s\) découvre les \(n - 1\) autres sommets, chacun par une arête différente (celle qui le relie à son parent). S'il en a \(n\) ou plus, il contient un cycle.</div>
+  <div class="reveal" onclick="this.classList.toggle('open')"><span class="label">Démonstration</span><span class="prompt">Connexe et au moins \(n\) arêtes : il y a un cycle</span><div class="content">
+    <p>Les arêtes « parent » d'un parcours sont au nombre de \(n - 1\). S'il y a au moins \(n\) arêtes, l'une d'elles, \(u - v\), n'est pas une arête parent. Quand le parcours examine les voisins du premier traité de ses deux sommets, disons \(u\), soit \(v\) est déjà découvert (et n'est pas le parent de \(u\), puisque \(u - v\) n'est pas une arête parent), soit il est découvert à ce moment, et \(u - v\) devient une arête parent : contradiction. On est donc dans le premier cas, et le raisonnement qui précède donne un cycle.</p>
+  </div></div>
+  <div class="notice"><strong>Erreur classique</strong> : oublier l'exception du parent. Dans un graphe non orienté, \(u\) figure dans la liste de chacun de ses voisins : sans ce test, toute arête serait prise pour un cycle. (Pour un graphe orienté, la détection des cycles demande une autre méthode, hors programme.)</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§9 · PLUS COURTS CHEMINS : L'ALGORITHME DE DIJKSTRA</div>
+  <h2>Le trajet le plus léger quand les poids sont positifs</h2>
+  <div class="intro">Dans un graphe pondéré, la <strong>distance</strong> \(\delta(s, v)\) est le plus petit poids d'un chemin de \(s\) à \(v\) (\(+\infty\) s'il n'y en a pas). Le parcours en largeur ne la donne plus : un chemin de plus d'arêtes peut être plus léger. L'algorithme de Dijkstra (1959) la calcule, pour tous les sommets à la fois, à condition que tous les poids soient positifs ou nuls.</div>
+  <div class="def-box"><strong>Principe.</strong> On tient à jour, pour chaque sommet \(v\), une estimation <span class="code-inline">d[v]</span> : le poids du meilleur chemin connu de \(s\) à \(v\) (\(0\) pour \(s\), \(+\infty\) au départ pour les autres). À chaque étape :
+    <ol>
+      <li>on choisit, parmi les sommets non encore <strong>fixés</strong>, celui dont <span class="code-inline">d</span> est minimale, \(u\) ; on le fixe : <span class="code-inline">d[u]</span> est désormais sa distance définitive ;</li>
+      <li>pour chaque voisin \(v\) de \(u\) non fixé, si passer par \(u\) est plus court (<span class="code-inline">d[u] + p(u, v) &lt; d[v]</span>), on met à jour <span class="code-inline">d[v]</span> et on note \(u\) comme prédécesseur de \(v\).</li>
+    </ol>
+  </div>
+  <p>Le choix du minimum se fait ici par une simple recherche dans le tableau <span class="code-inline">d</span>, en \(O(n)\) : c'est une <strong>file de priorité naïve</strong>, suffisante au programme.</p>
+  <pre class="codeblock"><span class="kw">def</span> dijkstra(G: list, s: int) -&gt; tuple:
+    <span class="str">"""G : listes d'adjacence pondérées, poids positifs ou nuls.</span>
+<span class="str">    Renvoie (d, pred) : d[v] = distance de s à v (inf si v est</span>
+<span class="str">    inaccessible), pred[v] = prédécesseur de v sur un plus</span>
+<span class="str">    court chemin."""</span>
+    n = len(G)
+    d = [inf] * n
+    pred = [<span class="kw">None</span>] * n
+    fixe = [<span class="kw">False</span>] * n       <span class="cmt"># fixe[v] : d[v] est définitive</span>
+    d[s] = 0
+    <span class="kw">for</span> k <span class="kw">in</span> range(n):
+        <span class="cmt"># extraction naïve : sommet non fixé de d minimale</span>
+        u = -1
+        <span class="kw">for</span> v <span class="kw">in</span> range(n):
+            <span class="kw">if</span> <span class="kw">not</span> fixe[v] <span class="kw">and</span> (u == -1 <span class="kw">or</span> d[v] &lt; d[u]):
+                u = v
+        <span class="kw">if</span> d[u] == inf:      <span class="cmt"># les autres sont inaccessibles</span>
+            <span class="kw">return</span> d, pred
+        fixe[u] = <span class="kw">True</span>
+        <span class="kw">for</span> v, p <span class="kw">in</span> G[u]:    <span class="cmt"># mise à jour par les voisins de u</span>
+            <span class="kw">if</span> <span class="kw">not</span> fixe[v] <span class="kw">and</span> d[u] + p &lt; d[v]:
+                d[v] = d[u] + p
+                pred[v] = u
+    <span class="kw">return</span> d, pred</pre>
+  <pre class="codeblock"><span class="kw">def</span> itineraire(pred: list, s: int, v: int) -&gt; list:
+    <span class="str">"""Plus court chemin de s à v, lu dans pred (v accessible)."""</span>
+    c = [v]
+    <span class="kw">while</span> v != s:
+        v = pred[v]
+        c.append(v)
+    k = len(c)
+    <span class="kw">return</span> [c[k - 1 - i] <span class="kw">for</span> i <span class="kw">in</span> range(k)]</pre>
+  <pre class="codeblock">&gt;&gt;&gt; d, pred = dijkstra(P, 0)
+&gt;&gt;&gt; d
+[0, 3, 1, 8, 10, 13]
+&gt;&gt;&gt; itineraire(pred, 0, 5)
+[0, 2, 1, 3, 4, 5]</pre>
+  <figure class="schema" style="max-width:345px">
+<svg viewBox="0 0 345 208" role="img" aria-label="Graphe pondéré à 6 sommets ; distances depuis 0 : 0, 3, 1, 8, 10, 13 ; arbre des plus courts chemins en trait épais">
+<line x1="40.6" y1="97.5" x2="111.4" y2="47.5" class="sk-ink"/>
+<line x1="40.6" y1="112.5" x2="111.4" y2="162.5" class="sk-accent"/>
+<line x1="122" y1="53" x2="122" y2="157" class="sk-accent"/>
+<line x1="135" y1="40" x2="209" y2="40" class="sk-accent"/>
+<line x1="129.9" y1="159.7" x2="214.1" y2="50.3" class="sk-ink"/>
+<line x1="135" y1="170" x2="209" y2="170" class="sk-ink"/>
+<line x1="222" y1="53" x2="222" y2="157" class="sk-accent"/>
+<line x1="232.5" y1="47.6" x2="301.5" y2="97.4" class="sk-ink"/>
+<line x1="232.5" y1="162.4" x2="301.5" y2="112.6" class="sk-accent"/>
+<rect x="74.7" y="73.3" width="16.5" height="17" rx="3" class="fl-paper"/><text x="82.9" y="86.8" text-anchor="middle">4</text>
+<rect x="74.7" y="118.7" width="16.5" height="17" rx="3" class="fl-paper"/><text x="82.9" y="132.2" class="lab-accent" text-anchor="middle">1</text>
+<rect x="101.8" y="96" width="16.5" height="17" rx="3" class="fl-paper"/><text x="110" y="109.5" class="lab-accent" text-anchor="middle">2</text>
+<rect x="163.8" y="43" width="16.5" height="17" rx="3" class="fl-paper"/><text x="172" y="56.5" class="lab-accent" text-anchor="middle">5</text>
+<rect x="173.3" y="103.3" width="16.5" height="17" rx="3" class="fl-paper"/><text x="181.5" y="116.8" text-anchor="middle">8</text>
+<rect x="160" y="149" width="24" height="17" rx="3" class="fl-paper"/><text x="172" y="162.5" text-anchor="middle">10</text>
+<rect x="201.8" y="96" width="16.5" height="17" rx="3" class="fl-paper"/><text x="210" y="109.5" class="lab-accent" text-anchor="middle">2</text>
+<rect x="251.7" y="73.2" width="16.5" height="17" rx="3" class="fl-paper"/><text x="260" y="86.7" text-anchor="middle">6</text>
+<rect x="251.7" y="118.8" width="16.5" height="17" rx="3" class="fl-paper"/><text x="260" y="132.3" class="lab-accent" text-anchor="middle">3</text>
+<circle cx="30" cy="105" r="13" class="sk-accent fl-paper"/><text x="30" y="109.6" class="lab-b" text-anchor="middle">0</text>
+<text x="30" y="84" class="lab-b lab-accent2" text-anchor="middle">0</text>
+<circle cx="122" cy="40" r="13" class="sk-ink fl-paper"/><text x="122" y="44.6" class="lab-b" text-anchor="middle">1</text>
+<text x="122" y="19" class="lab-b lab-accent2" text-anchor="middle">3</text>
+<circle cx="122" cy="170" r="13" class="sk-ink fl-paper"/><text x="122" y="174.6" class="lab-b" text-anchor="middle">2</text>
+<text x="122" y="201" class="lab-b lab-accent2" text-anchor="middle">1</text>
+<circle cx="222" cy="40" r="13" class="sk-ink fl-paper"/><text x="222" y="44.6" class="lab-b" text-anchor="middle">3</text>
+<text x="222" y="19" class="lab-b lab-accent2" text-anchor="middle">8</text>
+<circle cx="222" cy="170" r="13" class="sk-ink fl-paper"/><text x="222" y="174.6" class="lab-b" text-anchor="middle">4</text>
+<text x="222" y="201" class="lab-b lab-accent2" text-anchor="middle">10</text>
+<circle cx="312" cy="105" r="13" class="sk-ink fl-paper"/><text x="312" y="109.6" class="lab-b" text-anchor="middle">5</text>
+<text x="312" y="84" class="lab-b lab-accent2" text-anchor="middle">13</text>
+</svg>
+<figcaption>Graphe pondéré \(P\) (durées en minutes). Au-dessus ou au-dessous de chaque sommet, sa distance depuis 0 calculée par l’algorithme de Dijkstra ; en trait épais, les arêtes <span class="code-inline">pred[v]</span> – <span class="code-inline">v</span>, qui forment un arbre de plus courts chemins.</figcaption>
+</figure>
+  <div class="method-box"><strong>Exemple — déroulé sur le graphe \(P\) depuis 0</strong>
+    <p>En gras, les distances définitives (sommets fixés) ; la dernière colonne donne les mises à jour faites à l'étape.</p>
+    <div><table>
+<tr><th>étape</th><th>fixé</th><th><span class="code-inline">d[0]</span></th><th><span class="code-inline">d[1]</span></th><th><span class="code-inline">d[2]</span></th><th><span class="code-inline">d[3]</span></th><th><span class="code-inline">d[4]</span></th><th><span class="code-inline">d[5]</span></th><th>mises à jour</th></tr>
+<tr><td>départ</td><td>—</td><td>0</td><td>∞</td><td>∞</td><td>∞</td><td>∞</td><td>∞</td><td>—</td></tr>
+<tr><td>1</td><td>0</td><td><strong>0</strong></td><td>4</td><td>1</td><td>∞</td><td>∞</td><td>∞</td><td>d[1] : ∞ → 4<br>d[2] : ∞ → 1</td></tr>
+<tr><td>2</td><td>2</td><td><strong>0</strong></td><td>3</td><td><strong>1</strong></td><td>9</td><td>11</td><td>∞</td><td>d[1] : 4 → 3<br>d[3] : ∞ → 9<br>d[4] : ∞ → 11</td></tr>
+<tr><td>3</td><td>1</td><td><strong>0</strong></td><td><strong>3</strong></td><td><strong>1</strong></td><td>8</td><td>11</td><td>∞</td><td>d[3] : 9 → 8</td></tr>
+<tr><td>4</td><td>3</td><td><strong>0</strong></td><td><strong>3</strong></td><td><strong>1</strong></td><td><strong>8</strong></td><td>10</td><td>14</td><td>d[4] : 11 → 10<br>d[5] : ∞ → 14</td></tr>
+<tr><td>5</td><td>4</td><td><strong>0</strong></td><td><strong>3</strong></td><td><strong>1</strong></td><td><strong>8</strong></td><td><strong>10</strong></td><td>13</td><td>d[5] : 14 → 13</td></tr>
+<tr><td>6</td><td>5</td><td><strong>0</strong></td><td><strong>3</strong></td><td><strong>1</strong></td><td><strong>8</strong></td><td><strong>10</strong></td><td><strong>13</strong></td><td>aucune</td></tr>
+</table></div>
+    <p>Le sommet 1, d'abord estimé à 4 par l'arête directe, est corrigé à 3 en passant par 2 ; le sommet 5 est corrigé deux fois. Le plus court chemin de 0 à 5 se lit à l'envers dans <span class="code-inline">pred</span> : \(5 \leftarrow 4 \leftarrow 3 \leftarrow 1 \leftarrow 2 \leftarrow 0\), soit \(0 - 2 - 1 - 3 - 4 - 5\), de poids 13.</p>
+  </div>
+  <div class="prop-box"><strong>Correction.</strong> Si tous les poids sont positifs ou nuls, au moment où un sommet \(u\) est fixé, <span class="code-inline">d[u]</span> \(= \delta(s, u)\) ; à la fin, <span class="code-inline">d</span> contient les distances depuis \(s\) et <span class="code-inline">pred</span> un arbre de plus courts chemins.</div>
+  <div class="reveal" onclick="this.classList.toggle('open')"><span class="label">Idée de preuve</span><span class="prompt">Un invariant, et l'importance des poids positifs</span><div class="content">
+    <p>Invariant : pour tout sommet fixé \(x\), <span class="code-inline">d[x]</span> \(= \delta(s, x)\) ; pour tout sommet non fixé \(v\), <span class="code-inline">d[v]</span> est le plus petit poids d'un chemin de \(s\) à \(v\) dont tous les sommets, sauf \(v\), sont fixés.</p>
+    <p>Quand \(u\) est choisi, considérons un chemin quelconque de \(s\) à \(u\). Il part de la zone des sommets fixés ; soit \(w\) le premier sommet non fixé qu'il rencontre. La partie du chemin jusqu'à \(w\) pèse au moins <span class="code-inline">d[w]</span> (invariant), donc au moins <span class="code-inline">d[u]</span> (choix du minimum) ; la suite, de \(w\) à \(u\), pèse au moins 0 <strong>parce que les poids sont positifs</strong>. Tout chemin de \(s\) à \(u\) pèse donc au moins <span class="code-inline">d[u]</span> : c'est la distance. Les mises à jour rétablissent ensuite la seconde partie de l'invariant pour les voisins de \(u\).</p>
+  </div></div>
+  <div class="prop-box"><strong>Complexité.</strong> \(n\) étapes ; chacune cherche le minimum en \(O(n)\) et examine les voisins du sommet fixé. Avec des listes d'adjacence, le total est \(O(n^2 + m) = O(n^2)\), puisque \(m = O(n^2)\). Avec une file de priorité plus efficace (un tas, hors programme), on descend à \(O((n + m) \log n)\), indispensable pour un réseau routier.</div>
+  <div class="notice"><strong>Erreur classique</strong> : appliquer l'algorithme avec des poids négatifs. Dans le graphe orienté ci-dessous, 1 est fixé à la distance 2 avant que l'on découvre le chemin \(0 \to 2 \to 1\), de poids \(3 - 2 = 1\) : le résultat est faux.</div>
+  <pre class="codeblock"><span class="cmt"># arcs : 0 -&gt; 1 (poids 2), 0 -&gt; 2 (poids 3), 2 -&gt; 1 (poids -2)</span>
+N = [[(1, 2), (2, 3)], [], [(1, -2)]]
+d, pred = dijkstra(N, 0)  <span class="cmt"># d[1] vaut 2, or 0 -&gt; 2 -&gt; 1 coûte 1</span></pre>
+  <p>Remarque : si tous les poids valent 1, l'algorithme de Dijkstra fixe les sommets dans l'ordre d'un parcours en largeur ; mais le parcours en largeur fait le même travail en \(O(n + m)\), sans recherche de minimum.</p>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§10 · A* : GUIDER LA RECHERCHE PAR UNE HEURISTIQUE</div>
+  <h2>Chercher en direction de la cible</h2>
+  <div class="intro">Quand on ne cherche qu'un trajet, vers une cible \(c\) donnée, l'algorithme de Dijkstra gaspille du travail : il progresse dans toutes les directions à la fois, y compris à l'opposé de la cible. L'algorithme A* (prononcé « A étoile ») corrige ce défaut en donnant la priorité aux sommets qui <em>semblent</em> rapprocher de la cible.</div>
+  <div class="def-box">Une <strong>heuristique</strong> est une estimation, rapide à calculer, de ce qui reste à faire : ici, un nombre \(h(v)\) qui estime la distance de \(v\) à la cible \(c\). Exemples : la distance à vol d'oiseau sur une carte ; sur une grille où l'on se déplace d'une case horizontalement ou verticalement, la <strong>distance de Manhattan</strong> \(|i - i_c| + |j - j_c|\). L'heuristique est dite <strong>admissible</strong> si elle ne surestime jamais : \(h(v) \le \delta(v, c)\) pour tout sommet \(v\).</div>
+  <div class="def-box"><strong>Principe.</strong> A* est l'algorithme de Dijkstra où l'on fixe, à chaque étape, le sommet non fixé qui minimise <span class="code-inline">d[v] + h[v]</span>, estimation du poids total d'un trajet de \(s\) à \(c\) qui passe par \(v\) ; on s'arrête dès que la cible est fixée. Avec \(h = 0\), on retrouve l'algorithme de Dijkstra.</div>
+  <pre class="codeblock"><span class="kw">def</span> a_etoile(G: list, s: int, c: int, h: list) -&gt; float:
+    <span class="str">"""Distance de s à la cible c ; h[v] estime la distance de v</span>
+<span class="str">    à c sans jamais la surestimer (heuristique admissible)."""</span>
+    n = len(G)
+    d = [inf] * n
+    fixe = [<span class="kw">False</span>] * n
+    d[s] = 0
+    <span class="kw">while</span> <span class="kw">True</span>:
+        <span class="cmt"># on fixe le sommet qui minimise d[v] + h[v]</span>
+        u = -1
+        <span class="kw">for</span> v <span class="kw">in</span> range(n):
+            <span class="kw">if</span> <span class="kw">not</span> fixe[v] <span class="kw">and</span> d[v] &lt; inf:
+                <span class="kw">if</span> u == -1 <span class="kw">or</span> d[v] + h[v] &lt; d[u] + h[u]:
+                    u = v
+        <span class="kw">if</span> u == -1:          <span class="cmt"># c n'est pas accessible</span>
+            <span class="kw">return</span> inf
+        <span class="kw">if</span> u == c:           <span class="cmt"># la cible est fixée : on s'arrête</span>
+            <span class="kw">return</span> d[c]
+        fixe[u] = <span class="kw">True</span>
+        <span class="kw">for</span> v, p <span class="kw">in</span> G[u]:
+            <span class="kw">if</span> <span class="kw">not</span> fixe[v] <span class="kw">and</span> d[u] + p &lt; d[v]:
+                d[v] = d[u] + p</pre>
+  <figure class="schema" style="max-width:345px">
+<svg viewBox="0 0 345 362" role="img" aria-label="Deux grilles : Dijkstra fixe beaucoup de cases autour du départ, A* surtout celles qui vont vers la cible">
+<text x="12" y="14" class="lab-b">Dijkstra : 100 cases fixées</text>
+<rect x="12" y="22" width="20" height="20" class="sk-axis fl-accent2-soft"/>
+<rect x="32" y="22" width="20" height="20" class="sk-axis fl-accent2-soft"/>
+<rect x="52" y="22" width="20" height="20" class="sk-axis fl-accent2-soft"/>
+<rect x="72" y="22" width="20" height="20" class="sk-axis fl-accent-soft"/>
+<rect x="92" y="22" width="20" height="20" class="sk-axis fl-accent-soft"/>
+<rect x="112" y="22" width="20" height="20" class="sk-axis fl-accent-soft"/>
+<rect x="132" y="22" width="20" height="20" class="sk-axis fl-accent-soft"/>
+<rect x="152" y="22" width="20" height="20" class="sk-axis fl-accent-soft"/>
+<rect x="172" y="22" width="20" height="20" class="sk-axis fl-accent-soft"/>
+<rect x="192" y="22" width="20" height="20" class="sk-axis fl-accent-soft"/>
+<rect x="212" y="22" width="20" height="20" class="sk-axis fl-accent-soft"/>
+<rect x="232" y="22" width="20" height="20" class="sk-axis fl-accent-soft"/>
+<rect x="252" y="22" width="20" height="20" class="sk-axis fl-accent-soft"/>
+<rect x="272" y="22" width="20" height="20" class="sk-axis fl-accent-soft"/>
+<rect x="292" y="22" width="20" height="20" class="sk-axis fl-accent2-soft"/>
+<rect x="312" y="22" width="20" height="20" class="sk-axis fl-accent2-soft"/>
+<rect x="12" y="42" width="20" height="20" class="sk-axis fl-accent2-soft"/>
+<rect x="32" y="42" width="20" height="20" class="sk-axis fl-accent2-soft"/>
+<rect x="52" y="42" width="20" height="20" class="sk-axis fl-accent2-soft"/>
+<rect x="72" y="42" width="20" height="20" class="sk-axis fl-accent-soft"/>
+<rect x="92" y="42" width="20" height="20" class="sk-axis fl-accent2-soft"/>
+<rect x="112" y="42" width="20" height="20" class="sk-axis fl-accent2-soft"/>
+<rect x="132" y="42" width="20" height="20" class="sk-axis fl-accent2-soft"/>
+<rect x="152" y="42" width="20" height="20" class="sk-axis fl-accent2-soft"/>
+<rect x="172" y="42" width="20" height="20" class="sk-axis fl-ink"/>
+<rect x="192" y="42" width="20" height="20" class="sk-axis fl-accent2-soft"/>
+<rect x="212" y="42" width="20" height="20" class="sk-axis fl-accent2-soft"/>
+<rect x="232" y="42" width="20" height="20" class="sk-axis fl-accent2-soft"/>
+<rect x="252" y="42" width="20" height="20" class="sk-axis fl-accent2-soft"/>
+<rect x="272" y="42" width="20" height="20" class="sk-axis fl-accent-soft"/>
+<rect x="292" y="42" width="20" height="20" class="sk-axis fl-accent2-soft"/>
+<rect x="312" y="42" width="20" height="20" class="sk-axis fl-accent2-soft"/>
+<rect x="12" y="62" width="20" height="20" class="sk-axis fl-accent2-soft"/>
+<rect x="32" y="62" width="20" height="20" class="sk-axis fl-accent2-soft"/>
+<rect x="52" y="62" width="20" height="20" class="sk-axis fl-accent2-soft"/>
+<rect x="72" y="62" width="20" height="20" class="sk-axis fl-accent-soft"/>
+<rect x="92" y="62" width="20" height="20" class="sk-axis fl-accent2-soft"/>
+<rect x="112" y="62" width="20" height="20" class="sk-axis fl-accent2-soft"/>
+<rect x="132" y="62" width="20" height="20" class="sk-axis fl-accent2-soft"/>
+<rect x="152" y="62" width="20" height="20" class="sk-axis fl-accent2-soft"/>
+<rect x="172" y="62" width="20" height="20" class="sk-axis fl-ink"/>
+<rect x="192" y="62" width="20" height="20" class="sk-axis fl-accent2-soft"/>
+<rect x="212" y="62" width="20" height="20" class="sk-axis fl-accent2-soft"/>
+<rect x="232" y="62" width="20" height="20" class="sk-axis fl-accent2-soft"/>
+<rect x="252" y="62" width="20" height="20" class="sk-axis fl-accent2-soft"/>
+<rect x="272" y="62" width="20" height="20" class="sk-axis fl-accent-soft"/>
+<rect x="292" y="62" width="20" height="20" class="sk-axis fl-accent2-soft"/>
+<rect x="312" y="62" width="20" height="20" class="sk-axis fl-paper"/>
+<rect x="12" y="82" width="20" height="20" class="sk-axis fl-accent2-soft"/>
+<rect x="32" y="82" width="20" height="20" class="sk-axis fl-accent2-soft"/>
+<rect x="52" y="82" width="20" height="20" class="sk-axis fl-accent2-soft"/>
+<rect x="72" y="82" width="20" height="20" class="sk-axis fl-accent-soft"/>
+<text x="82" y="97" class="lab-b lab-accent" text-anchor="middle">S</text>
+<rect x="92" y="82" width="20" height="20" class="sk-axis fl-accent2-soft"/>
+<rect x="112" y="82" width="20" height="20" class="sk-axis fl-accent2-soft"/>
+<rect x="132" y="82" width="20" height="20" class="sk-axis fl-accent2-soft"/>
+<rect x="152" y="82" width="20" height="20" class="sk-axis fl-accent2-soft"/>
+<rect x="172" y="82" width="20" height="20" class="sk-axis fl-ink"/>
+<rect x="192" y="82" width="20" height="20" class="sk-axis fl-accent2-soft"/>
+<rect x="212" y="82" width="20" height="20" class="sk-axis fl-accent2-soft"/>
+<rect x="232" y="82" width="20" height="20" class="sk-axis fl-accent2-soft"/>
+<rect x="252" y="82" width="20" height="20" class="sk-axis fl-accent2-soft"/>
+<rect x="272" y="82" width="20" height="20" class="sk-axis fl-accent-soft"/>
+<text x="282" y="97" class="lab-b lab-accent" text-anchor="middle">C</text>
+<rect x="292" y="82" width="20" height="20" class="sk-axis fl-paper"/>
+<rect x="312" y="82" width="20" height="20" class="sk-axis fl-paper"/>
+<rect x="12" y="102" width="20" height="20" class="sk-axis fl-accent2-soft"/>
+<rect x="32" y="102" width="20" height="20" class="sk-axis fl-accent2-soft"/>
+<rect x="52" y="102" width="20" height="20" class="sk-axis fl-accent2-soft"/>
+<rect x="72" y="102" width="20" height="20" class="sk-axis fl-accent2-soft"/>
+<rect x="92" y="102" width="20" height="20" class="sk-axis fl-accent2-soft"/>
+<rect x="112" y="102" width="20" height="20" class="sk-axis fl-accent2-soft"/>
+<rect x="132" y="102" width="20" height="20" class="sk-axis fl-accent2-soft"/>
+<rect x="152" y="102" width="20" height="20" class="sk-axis fl-accent2-soft"/>
+<rect x="172" y="102" width="20" height="20" class="sk-axis fl-ink"/>
+<rect x="192" y="102" width="20" height="20" class="sk-axis fl-accent2-soft"/>
+<rect x="212" y="102" width="20" height="20" class="sk-axis fl-accent2-soft"/>
+<rect x="232" y="102" width="20" height="20" class="sk-axis fl-accent2-soft"/>
+<rect x="252" y="102" width="20" height="20" class="sk-axis fl-accent2-soft"/>
+<rect x="272" y="102" width="20" height="20" class="sk-axis fl-accent2-soft"/>
+<rect x="292" y="102" width="20" height="20" class="sk-axis fl-paper"/>
+<rect x="312" y="102" width="20" height="20" class="sk-axis fl-paper"/>
+<rect x="12" y="122" width="20" height="20" class="sk-axis fl-accent2-soft"/>
+<rect x="32" y="122" width="20" height="20" class="sk-axis fl-accent2-soft"/>
+<rect x="52" y="122" width="20" height="20" class="sk-axis fl-accent2-soft"/>
+<rect x="72" y="122" width="20" height="20" class="sk-axis fl-accent2-soft"/>
+<rect x="92" y="122" width="20" height="20" class="sk-axis fl-accent2-soft"/>
+<rect x="112" y="122" width="20" height="20" class="sk-axis fl-accent2-soft"/>
+<rect x="132" y="122" width="20" height="20" class="sk-axis fl-accent2-soft"/>
+<rect x="152" y="122" width="20" height="20" class="sk-axis fl-accent2-soft"/>
+<rect x="172" y="122" width="20" height="20" class="sk-axis fl-ink"/>
+<rect x="192" y="122" width="20" height="20" class="sk-axis fl-accent2-soft"/>
+<rect x="212" y="122" width="20" height="20" class="sk-axis fl-accent2-soft"/>
+<rect x="232" y="122" width="20" height="20" class="sk-axis fl-accent2-soft"/>
+<rect x="252" y="122" width="20" height="20" class="sk-axis fl-accent2-soft"/>
+<rect x="272" y="122" width="20" height="20" class="sk-axis fl-accent2-soft"/>
+<rect x="292" y="122" width="20" height="20" class="sk-axis fl-accent2-soft"/>
+<rect x="312" y="122" width="20" height="20" class="sk-axis fl-paper"/>
+<rect x="12" y="142" width="20" height="20" class="sk-axis fl-accent2-soft"/>
+<rect x="32" y="142" width="20" height="20" class="sk-axis fl-accent2-soft"/>
+<rect x="52" y="142" width="20" height="20" class="sk-axis fl-accent2-soft"/>
+<rect x="72" y="142" width="20" height="20" class="sk-axis fl-accent2-soft"/>
+<rect x="92" y="142" width="20" height="20" class="sk-axis fl-accent2-soft"/>
+<rect x="112" y="142" width="20" height="20" class="sk-axis fl-accent2-soft"/>
+<rect x="132" y="142" width="20" height="20" class="sk-axis fl-accent2-soft"/>
+<rect x="152" y="142" width="20" height="20" class="sk-axis fl-accent2-soft"/>
+<rect x="172" y="142" width="20" height="20" class="sk-axis fl-accent2-soft"/>
+<rect x="192" y="142" width="20" height="20" class="sk-axis fl-accent2-soft"/>
+<rect x="212" y="142" width="20" height="20" class="sk-axis fl-accent2-soft"/>
+<rect x="232" y="142" width="20" height="20" class="sk-axis fl-accent2-soft"/>
+<rect x="252" y="142" width="20" height="20" class="sk-axis fl-accent2-soft"/>
+<rect x="272" y="142" width="20" height="20" class="sk-axis fl-accent2-soft"/>
+<rect x="292" y="142" width="20" height="20" class="sk-axis fl-accent2-soft"/>
+<rect x="312" y="142" width="20" height="20" class="sk-axis fl-accent2-soft"/>
+<text x="12" y="200" class="lab-b">A* (distance de Manhattan) : 57 cases fixées</text>
+<rect x="12" y="208" width="20" height="20" class="sk-axis fl-paper"/>
+<rect x="32" y="208" width="20" height="20" class="sk-axis fl-paper"/>
+<rect x="52" y="208" width="20" height="20" class="sk-axis fl-paper"/>
+<rect x="72" y="208" width="20" height="20" class="sk-axis fl-accent2-soft"/>
+<rect x="92" y="208" width="20" height="20" class="sk-axis fl-accent2-soft"/>
+<rect x="112" y="208" width="20" height="20" class="sk-axis fl-accent2-soft"/>
+<rect x="132" y="208" width="20" height="20" class="sk-axis fl-accent2-soft"/>
+<rect x="152" y="208" width="20" height="20" class="sk-axis fl-accent-soft"/>
+<rect x="172" y="208" width="20" height="20" class="sk-axis fl-accent-soft"/>
+<rect x="192" y="208" width="20" height="20" class="sk-axis fl-accent-soft"/>
+<rect x="212" y="208" width="20" height="20" class="sk-axis fl-accent-soft"/>
+<rect x="232" y="208" width="20" height="20" class="sk-axis fl-accent-soft"/>
+<rect x="252" y="208" width="20" height="20" class="sk-axis fl-accent-soft"/>
+<rect x="272" y="208" width="20" height="20" class="sk-axis fl-accent-soft"/>
+<rect x="292" y="208" width="20" height="20" class="sk-axis fl-paper"/>
+<rect x="312" y="208" width="20" height="20" class="sk-axis fl-paper"/>
+<rect x="12" y="228" width="20" height="20" class="sk-axis fl-paper"/>
+<rect x="32" y="228" width="20" height="20" class="sk-axis fl-paper"/>
+<rect x="52" y="228" width="20" height="20" class="sk-axis fl-accent2-soft"/>
+<rect x="72" y="228" width="20" height="20" class="sk-axis fl-accent2-soft"/>
+<rect x="92" y="228" width="20" height="20" class="sk-axis fl-accent2-soft"/>
+<rect x="112" y="228" width="20" height="20" class="sk-axis fl-accent2-soft"/>
+<rect x="132" y="228" width="20" height="20" class="sk-axis fl-accent2-soft"/>
+<rect x="152" y="228" width="20" height="20" class="sk-axis fl-accent-soft"/>
+<rect x="172" y="228" width="20" height="20" class="sk-axis fl-ink"/>
+<rect x="192" y="228" width="20" height="20" class="sk-axis fl-accent2-soft"/>
+<rect x="212" y="228" width="20" height="20" class="sk-axis fl-accent2-soft"/>
+<rect x="232" y="228" width="20" height="20" class="sk-axis fl-accent2-soft"/>
+<rect x="252" y="228" width="20" height="20" class="sk-axis fl-accent2-soft"/>
+<rect x="272" y="228" width="20" height="20" class="sk-axis fl-accent-soft"/>
+<rect x="292" y="228" width="20" height="20" class="sk-axis fl-paper"/>
+<rect x="312" y="228" width="20" height="20" class="sk-axis fl-paper"/>
+<rect x="12" y="248" width="20" height="20" class="sk-axis fl-paper"/>
+<rect x="32" y="248" width="20" height="20" class="sk-axis fl-accent2-soft"/>
+<rect x="52" y="248" width="20" height="20" class="sk-axis fl-accent2-soft"/>
+<rect x="72" y="248" width="20" height="20" class="sk-axis fl-accent2-soft"/>
+<rect x="92" y="248" width="20" height="20" class="sk-axis fl-accent2-soft"/>
+<rect x="112" y="248" width="20" height="20" class="sk-axis fl-accent2-soft"/>
+<rect x="132" y="248" width="20" height="20" class="sk-axis fl-accent2-soft"/>
+<rect x="152" y="248" width="20" height="20" class="sk-axis fl-accent-soft"/>
+<rect x="172" y="248" width="20" height="20" class="sk-axis fl-ink"/>
+<rect x="192" y="248" width="20" height="20" class="sk-axis fl-accent2-soft"/>
+<rect x="212" y="248" width="20" height="20" class="sk-axis fl-accent2-soft"/>
+<rect x="232" y="248" width="20" height="20" class="sk-axis fl-accent2-soft"/>
+<rect x="252" y="248" width="20" height="20" class="sk-axis fl-accent2-soft"/>
+<rect x="272" y="248" width="20" height="20" class="sk-axis fl-accent-soft"/>
+<rect x="292" y="248" width="20" height="20" class="sk-axis fl-paper"/>
+<rect x="312" y="248" width="20" height="20" class="sk-axis fl-paper"/>
+<rect x="12" y="268" width="20" height="20" class="sk-axis fl-accent2-soft"/>
+<rect x="32" y="268" width="20" height="20" class="sk-axis fl-accent2-soft"/>
+<rect x="52" y="268" width="20" height="20" class="sk-axis fl-accent2-soft"/>
+<rect x="72" y="268" width="20" height="20" class="sk-axis fl-accent-soft"/>
+<text x="82" y="283" class="lab-b lab-accent" text-anchor="middle">S</text>
+<rect x="92" y="268" width="20" height="20" class="sk-axis fl-accent-soft"/>
+<rect x="112" y="268" width="20" height="20" class="sk-axis fl-accent-soft"/>
+<rect x="132" y="268" width="20" height="20" class="sk-axis fl-accent-soft"/>
+<rect x="152" y="268" width="20" height="20" class="sk-axis fl-accent-soft"/>
+<rect x="172" y="268" width="20" height="20" class="sk-axis fl-ink"/>
+<rect x="192" y="268" width="20" height="20" class="sk-axis fl-accent2-soft"/>
+<rect x="212" y="268" width="20" height="20" class="sk-axis fl-accent2-soft"/>
+<rect x="232" y="268" width="20" height="20" class="sk-axis fl-accent2-soft"/>
+<rect x="252" y="268" width="20" height="20" class="sk-axis fl-accent2-soft"/>
+<rect x="272" y="268" width="20" height="20" class="sk-axis fl-accent-soft"/>
+<text x="282" y="283" class="lab-b lab-accent" text-anchor="middle">C</text>
+<rect x="292" y="268" width="20" height="20" class="sk-axis fl-paper"/>
+<rect x="312" y="268" width="20" height="20" class="sk-axis fl-paper"/>
+<rect x="12" y="288" width="20" height="20" class="sk-axis fl-paper"/>
+<rect x="32" y="288" width="20" height="20" class="sk-axis fl-paper"/>
+<rect x="52" y="288" width="20" height="20" class="sk-axis fl-accent2-soft"/>
+<rect x="72" y="288" width="20" height="20" class="sk-axis fl-accent2-soft"/>
+<rect x="92" y="288" width="20" height="20" class="sk-axis fl-accent2-soft"/>
+<rect x="112" y="288" width="20" height="20" class="sk-axis fl-accent2-soft"/>
+<rect x="132" y="288" width="20" height="20" class="sk-axis fl-accent2-soft"/>
+<rect x="152" y="288" width="20" height="20" class="sk-axis fl-accent2-soft"/>
+<rect x="172" y="288" width="20" height="20" class="sk-axis fl-ink"/>
+<rect x="192" y="288" width="20" height="20" class="sk-axis fl-paper"/>
+<rect x="212" y="288" width="20" height="20" class="sk-axis fl-paper"/>
+<rect x="232" y="288" width="20" height="20" class="sk-axis fl-paper"/>
+<rect x="252" y="288" width="20" height="20" class="sk-axis fl-paper"/>
+<rect x="272" y="288" width="20" height="20" class="sk-axis fl-paper"/>
+<rect x="292" y="288" width="20" height="20" class="sk-axis fl-paper"/>
+<rect x="312" y="288" width="20" height="20" class="sk-axis fl-paper"/>
+<rect x="12" y="308" width="20" height="20" class="sk-axis fl-paper"/>
+<rect x="32" y="308" width="20" height="20" class="sk-axis fl-paper"/>
+<rect x="52" y="308" width="20" height="20" class="sk-axis fl-paper"/>
+<rect x="72" y="308" width="20" height="20" class="sk-axis fl-accent2-soft"/>
+<rect x="92" y="308" width="20" height="20" class="sk-axis fl-accent2-soft"/>
+<rect x="112" y="308" width="20" height="20" class="sk-axis fl-accent2-soft"/>
+<rect x="132" y="308" width="20" height="20" class="sk-axis fl-accent2-soft"/>
+<rect x="152" y="308" width="20" height="20" class="sk-axis fl-accent2-soft"/>
+<rect x="172" y="308" width="20" height="20" class="sk-axis fl-ink"/>
+<rect x="192" y="308" width="20" height="20" class="sk-axis fl-paper"/>
+<rect x="212" y="308" width="20" height="20" class="sk-axis fl-paper"/>
+<rect x="232" y="308" width="20" height="20" class="sk-axis fl-paper"/>
+<rect x="252" y="308" width="20" height="20" class="sk-axis fl-paper"/>
+<rect x="272" y="308" width="20" height="20" class="sk-axis fl-paper"/>
+<rect x="292" y="308" width="20" height="20" class="sk-axis fl-paper"/>
+<rect x="312" y="308" width="20" height="20" class="sk-axis fl-paper"/>
+<rect x="12" y="328" width="20" height="20" class="sk-axis fl-paper"/>
+<rect x="32" y="328" width="20" height="20" class="sk-axis fl-paper"/>
+<rect x="52" y="328" width="20" height="20" class="sk-axis fl-paper"/>
+<rect x="72" y="328" width="20" height="20" class="sk-axis fl-paper"/>
+<rect x="92" y="328" width="20" height="20" class="sk-axis fl-paper"/>
+<rect x="112" y="328" width="20" height="20" class="sk-axis fl-paper"/>
+<rect x="132" y="328" width="20" height="20" class="sk-axis fl-paper"/>
+<rect x="152" y="328" width="20" height="20" class="sk-axis fl-paper"/>
+<rect x="172" y="328" width="20" height="20" class="sk-axis fl-paper"/>
+<rect x="192" y="328" width="20" height="20" class="sk-axis fl-paper"/>
+<rect x="212" y="328" width="20" height="20" class="sk-axis fl-paper"/>
+<rect x="232" y="328" width="20" height="20" class="sk-axis fl-paper"/>
+<rect x="252" y="328" width="20" height="20" class="sk-axis fl-paper"/>
+<rect x="272" y="328" width="20" height="20" class="sk-axis fl-paper"/>
+<rect x="292" y="328" width="20" height="20" class="sk-axis fl-paper"/>
+<rect x="312" y="328" width="20" height="20" class="sk-axis fl-paper"/>
+</svg>
+<figcaption>Recherche d’un plus court chemin de S à C sur une grille (déplacements d’une case, coût 1 ; le mur est formé des cases pleines). Cases fixées avant d’atteindre la cible teintées en bleu, chemin trouvé teinté en rouge : les deux chemins ont la même longueur (16 pas), mais A* en examine beaucoup moins.</figcaption>
+</figure>
+  <div class="method-box"><strong>Exemple — sur une grille avec un mur</strong>
+    <ol>
+      <li>Sommets : les cases libres ; arêtes : entre cases voisines (haut, bas, gauche, droite), de poids 1.</li>
+      <li>Heuristique : distance de Manhattan à la cible. Elle est admissible : chaque déplacement change \(|i - i_c| + |j - j_c|\) d'au plus 1, donc il faut au moins \(h(v)\) déplacements pour atteindre la cible.</li>
+      <li>Résultat : le même plus court chemin, de 16 pas ; l'algorithme de Dijkstra fixe 100 cases avant d'atteindre la cible, A* seulement 57.</li>
+    </ol>
+  </div>
+  <div class="prop-box"><strong>Ce qu'il faut retenir (résultat admis).</strong> Si l'heuristique est admissible et vérifie en outre \(h(u) \le p(u, v) + h(v)\) pour chaque arc \(u \to v\) (c'est le cas des distances à vol d'oiseau et de Manhattan), A* renvoie bien la distance de \(s\) à \(c\). Plus \(h\) est proche de la vraie distance, moins A* examine de sommets ; avec une heuristique peu informative, il en examine autant que l'algorithme de Dijkstra.</div>
+  <div class="notice"><strong>Erreur classique</strong> : prendre une heuristique qui surestime (par exemple la distance à vol d'oiseau multipliée par 10). A* va plus vite, mais le trajet trouvé n'est plus forcément le plus court. Une bonne heuristique est un compromis entre précision et coût de calcul.</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">POUR ALLER PLUS LOIN · HORS PROGRAMME</div>
+  <h2>Au-delà du programme</h2>
+  <ul>
+    <li><strong>Files de priorité efficaces</strong> : un tas binaire (module <span class="code-inline">heapq</span> de Python) extrait le minimum en \(O(\log n)\) ; l'algorithme de Dijkstra passe à \(O((n + m)\log n)\), ce qui permet de traiter des graphes de millions de sommets.</li>
+    <li><strong>Poids négatifs</strong> : l'algorithme de Bellman-Ford calcule les distances en \(O(nm)\) s'il n'y a pas de cycle de poids négatif. L'algorithme de Floyd-Warshall, vu en 2ᵉ année (programmation dynamique), donne les distances entre tous les couples de sommets en \(O(n^3)\).</li>
+    <li><strong>Graphes orientés</strong> : détection des cycles par un parcours en profondeur qui distingue les sommets « en cours » des sommets « terminés », tri topologique (ordonner des tâches qui dépendent les unes des autres), composantes fortement connexes.</li>
+    <li><strong>Graphe du web</strong> : le classement des pages d'un moteur de recherche s'appuie sur une marche aléatoire dans ce graphe (algorithme PageRank).</li>
+  </ul>
+</div>
+</template>
+<template class="pan-tpl" data-panneau="gra-meth">
+<div class="course-section">
+  <div class="sec-num">MÉTHODES · GRAPHES</div>
+  <h2>Les réflexes du chapitre</h2>
+  <div class="intro">Neuf savoir-faire, de la modélisation au choix de l'algorithme, avec les déroulés à la main qu'on demande à l'écrit comme à l'oral. Les sommets sont numérotés de 0 à \(n - 1\) ; \(m\) désigne le nombre d'arcs ou d'arêtes.</div>
+
+  <div class="method-box"><strong>Méthode 1 — Modéliser une situation par un graphe</strong>
+    <ol style="margin-top:.4rem">
+      <li><span class="step">Sommets.</span> Dire ce que représente un sommet (lieu, personne, état d'un jeu…) et les numéroter de 0 à \(n - 1\).</li>
+      <li><span class="step">Liens.</span> Dire quand deux sommets sont reliés ; le lien est-il symétrique (graphe non orienté) ou non (orienté) ?</li>
+      <li><span class="step">Poids.</span> Faut-il un poids (durée, distance, coût) ou une étiquette ? Les poids sont-ils positifs ?</li>
+      <li><span class="step">Question.</span> Traduire la question : accessibilité (parcours), nombre minimal d'étapes (largeur), trajet le moins coûteux (Dijkstra), regroupements (composantes connexes).</li>
+    </ol>
+    <p><em>Exemple éclair :</em> le taquin 3 × 3. Sommets : les dispositions des pièces (181 440 accessibles depuis une position donnée) ; arête entre deux dispositions qui diffèrent d'un coup (non orienté, car chaque coup se défait). Le nombre minimal de coups pour résoudre est une distance en nombre d'arêtes : un parcours en largeur la donne.</p>
+  </div>
+
+  <div class="method-box"><strong>Méthode 2 — Choisir et construire une représentation</strong>
+    <ol style="margin-top:.4rem">
+      <li><span class="step">Choisir.</span> Listes d'adjacence par défaut (mémoire \(O(n + m)\), voisins parcourus en \(O(d(s))\)) ; matrice si le graphe est petit ou dense, ou si l'on teste souvent la présence d'un arc (\(O(1)\)).</li>
+      <li><span class="step">Construire</span> les listes vides par compréhension, puis ajouter chaque lien ; dans un graphe non orienté, l'ajouter <strong>dans les deux listes</strong>.</li>
+      <li><span class="step">Pondéré</span> : couples (voisin, poids) dans les listes ; \(+\infty\) (<span class="code-inline">float('inf')</span>) pour l'absence d'arc dans une matrice.</li>
+    </ol>
+    <pre class="codeblock"><span class="kw">def</span> listes_depuis_aretes(n: int, aretes: list) -&gt; list:
+    <span class="str">"""Listes d'adjacence du graphe non orienté à n sommets</span>
+<span class="str">    dont aretes est la liste des arêtes (couples (u, v))."""</span>
+    G = [[] <span class="kw">for</span> i <span class="kw">in</span> range(n)]
+    <span class="kw">for</span> u, v <span class="kw">in</span> aretes:
+        G[u].append(v)
+        G[v].append(u)
+    <span class="kw">return</span> G
+
+<span class="kw">def</span> degres(G: list) -&gt; list:
+    <span class="kw">return</span> [len(G[s]) <span class="kw">for</span> s <span class="kw">in</span> range(len(G))]</pre>
+    <p><em>Exemple éclair :</em> <span class="code-inline">listes_depuis_aretes(3, [(0, 1), (1, 2)])</span> vaut <span class="code-inline">[[1], [0, 2], [1]]</span> ; la construction coûte \(O(n + m)\).</p>
+  </div>
+  <div class="notice"><strong>Piège</strong> : <span class="code-inline">[[]] * n</span> ou <span class="code-inline">[[0] * n] * n</span> répètent la même liste : ajouter un voisin à un sommet l'ajoute à tous. Toujours <span class="code-inline">[[] for i in range(n)]</span>.</div>
+
+  <div class="method-box"><strong>Méthode 3 — Calculer et contrôler des degrés</strong>
+    <ol style="margin-top:.4rem">
+      <li><span class="step">Listes d'adjacence</span> : \(d(s)\) (ou \(d^+(s)\)) = <span class="code-inline">len(G[s])</span> ; \(d^-(s)\) demande de compter les apparitions de \(s\) dans toutes les listes.</li>
+      <li><span class="step">Matrice</span> : \(d^+(s)\) = somme de la ligne \(s\), \(d^-(s)\) = somme de la colonne \(s\).</li>
+      <li><span class="step">Contrôler</span> : somme des degrés \(= 2m\) (non orienté), somme des \(d^+\) = somme des \(d^-\) \(= m\) (orienté).</li>
+    </ol>
+    <p><em>Exemple éclair :</em> un graphe non orienté à 5 sommets tous de degré 3 aurait une somme des degrés égale à 15, impaire : il n'existe pas. À 6 sommets, c'est possible (somme 18, donc 9 arêtes) : deux triangles reliés sommet à sommet.</p>
+  </div>
+
+  <div class="method-box"><strong>Méthode 4 — Dérouler un parcours en largeur à la main</strong>
+    <ol style="margin-top:.4rem">
+      <li><span class="step">Tableau</span> à colonnes : sommet défilé, sommets découverts, contenu de la file, distances (et parents si on les demande).</li>
+      <li><span class="step">Défiler</span> le premier sommet de la file ; examiner ses voisins <strong>dans l'ordre de sa liste</strong> ; enfiler et marquer ceux qui n'ont jamais été découverts, avec distance = distance du défilé + 1.</li>
+      <li><span class="step">S'arrêter</span> quand la file est vide ; les sommets jamais découverts ne sont pas accessibles.</li>
+    </ol>
+    <p><em>Exemple éclair :</em> sur le graphe orienté \(D\) du cours (<span class="code-inline">[[1, 2], [2], [0, 3], [3, 4], [1]]</span>) depuis 0, la file vaut successivement [0], [1, 2], [2], [3], [4], [] et les distances [0, 1, 1, 2, 3].</p>
+  </div>
+
+  <div class="method-box"><strong>Méthode 5 — Dérouler un parcours en profondeur</strong>
+    <ol style="margin-top:.4rem">
+      <li><span class="step">Version récursive</span> : visiter \(u\) = le marquer, puis, pour chaque voisin non visité <em>dans l'ordre de la liste</em>, le visiter complètement avant de passer au voisin suivant.</li>
+      <li><span class="step">Version avec pile</span> : dépiler ; si le sommet est déjà visité, l'ignorer ; sinon le visiter et empiler ses voisins non visités. Le dernier empilé sort le premier : l'ordre de visite diffère de la version récursive.</li>
+      <li><span class="step">Noter</span> l'ordre de visite (et, si besoin, l'arbre des appels).</li>
+    </ol>
+    <p><em>Exemple éclair :</em> version récursive sur \(D\) depuis 0 : visite de 0, puis de son premier voisin 1, puis de 2 (seul voisin de 1), puis de 3 (0 est déjà visité), puis de 4 (3 est déjà visité) : ordre 0, 1, 2, 3, 4.</p>
+  </div>
+
+  <div class="method-box"><strong>Méthode 6 — Tester la connexité, compter les composantes, détecter un cycle</strong>
+    <ol style="margin-top:.4rem">
+      <li><span class="step">Connexité</span> (non orienté) : un parcours depuis un sommet quelconque ; connexe si et seulement si les \(n\) sommets sont atteints.</li>
+      <li><span class="step">Composantes</span> : boucle sur les sommets ; depuis chaque sommet pas encore atteint, lancer un parcours, qui marque toute sa composante ; compter les lancements.</li>
+      <li><span class="step">Cycle</span> : pendant le parcours, retenir le parent de chaque sommet ; un voisin déjà découvert qui n'est pas le parent signale un cycle.</li>
+      <li><span class="step">Contrôle par le compte des arêtes</span> : connexe exige \(m \ge n - 1\) ; connexe avec \(m \ge n\) impose un cycle.</li>
+    </ol>
+    <p><em>Exemple éclair :</em> un réseau de 50 ordinateurs reliés par 45 câbles ne peut pas être connexe, puisque \(45 \lt 50 - 1\).</p>
+  </div>
+
+  <div class="method-box"><strong>Méthode 7 — Dérouler l'algorithme de Dijkstra</strong>
+    <ol style="margin-top:.4rem">
+      <li><span class="step">Tableau</span> : une ligne par étape, une colonne par sommet ; départ : 0 pour la source, ∞ ailleurs.</li>
+      <li><span class="step">Fixer</span> le sommet non fixé de plus petite valeur (l'entourer ou l'écrire en gras : sa valeur ne changera plus).</li>
+      <li><span class="step">Mettre à jour</span> chaque voisin \(v\) non fixé : nouvelle valeur \(\min(d[v],\ d[u] + p(u, v))\) ; noter \(u\) comme prédécesseur en cas d'amélioration.</li>
+      <li><span class="step">Chemin</span> : remonter les prédécesseurs depuis la cible, puis renverser.</li>
+    </ol>
+    <p><em>Exemple éclair :</em> arcs \(0 \to 1\) (5), \(0 \to 2\) (1), \(2 \to 1\) (2), \(1 \to 3\) (1). On fixe 0 : \(d = [0, 5, 1, \infty]\) ; on fixe 2 : \(d[1]\) passe à 3 ; on fixe 1 : \(d[3] = 4\) ; on fixe 3. Chemin de 0 à 3 : \(0 \to 2 \to 1 \to 3\), poids 4.</p>
+  </div>
+  <div class="notice"><strong>Piège</strong> : fixer le sommet qui vient d'être mis à jour au lieu du minimum de <em>tous</em> les sommets non fixés ; ou continuer à mettre à jour un sommet déjà fixé. Et toujours vérifier que les poids sont positifs ou nuls avant d'appliquer l'algorithme.</div>
+
+  <div class="method-box"><strong>Méthode 8 — Évaluer la complexité d'un algorithme sur un graphe</strong>
+    <ol style="margin-top:.4rem">
+      <li><span class="step">Représentation</span> : listes d'adjacence ou matrice (parcourir les voisins coûte \(O(d(s))\) ou \(O(n)\)).</li>
+      <li><span class="step">Compter par sommet et par arc</span> : combien de fois chaque sommet est-il traité (une fois s'il est marqué) ? chaque liste parcourue ? Un parcours coûte alors \(O(n + m)\).</li>
+      <li><span class="step">Coûts cachés</span> : recherche d'un minimum (\(O(n)\) par étape dans Dijkstra), <span class="code-inline">pop(0)</span> sur une liste, test <span class="code-inline">v in liste</span> au lieu d'un tableau de booléens.</li>
+    </ol>
+    <p><em>Exemple éclair :</em> calculer toutes les distances en nombre d'arêtes en lançant un parcours en largeur depuis chaque sommet coûte \(n \times O(n + m) = O(n^2 + nm)\).</p>
+  </div>
+
+  <div class="method-box"><strong>Méthode 9 — Choisir le bon algorithme</strong>
+    <ol style="margin-top:.4rem">
+      <li>Accessibilité, connexité, composantes, cycles : un <strong>parcours</strong>, en largeur ou en profondeur, en \(O(n + m)\).</li>
+      <li>Plus petit nombre d'arcs (graphe non pondéré, ou tous les poids égaux) : <strong>parcours en largeur</strong>.</li>
+      <li>Trajet de poids minimal, poids positifs ou nuls : <strong>Dijkstra</strong>, \(O(n^2)\) avec la file de priorité naïve.</li>
+      <li>Un seul trajet vers une cible, avec une estimation admissible de la distance restante : <strong>A*</strong>.</li>
+      <li>Poids négatifs : aucun des algorithmes du programme ne convient tel quel.</li>
+    </ol>
+    <p><em>Exemple éclair :</em> le nombre minimal de stations à traverser dans un métro se calcule par un parcours en largeur ; la durée minimale d'un trajet, par Dijkstra ; le calcul d'itinéraire d'un GPS vers une adresse, par A* (ou ses variantes).</p>
+  </div>
+</div>
+</template>
+<template class="pan-tpl" data-panneau="gra-exos">
+<div class="exo-wrapper">
+
+<div class="exo">
+  <span class="num">EXO 01</span><span class="diff">★ ☆ ☆</span>
+  <h3>Degrés et somme des degrés</h3>
+  <div class="statement">Un graphe non orienté à 6 sommets a pour arêtes : \(0 - 1\), \(0 - 2\), \(1 - 2\), \(2 - 3\), \(3 - 4\), \(3 - 5\), \(4 - 5\).</div>
+  <div class="q"><strong>Q1.</strong> Donner ses listes d'adjacence et le degré de chaque sommet. Vérifier la formule de la somme des degrés.</div>
+  <div class="q"><strong>Q2.</strong> Écrire une fonction <span class="code-inline">listes_depuis_aretes(n, aretes)</span> qui construit les listes d'adjacence à partir de la liste des arêtes, et une fonction <span class="code-inline">degres(G)</span>.</div>
+  <div class="q"><strong>Q3.</strong> Ce graphe est-il connexe ? Contient-il un cycle ?</div>
+  <div class="q"><strong>Q4.</strong> Existe-t-il un graphe non orienté sans boucle à 5 sommets, tous de degré 3 ? À 6 sommets ?</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> <span class="code-inline">G = [[1, 2], [0, 2], [0, 1, 3], [2, 4, 5], [3, 5], [3, 4]]</span>, degrés 2, 2, 3, 3, 2, 2 ; leur somme 14 vaut bien \(2 \times 7\).</p>
+    <p><strong>Q2.</strong></p>
+    <pre class="codeblock"><span class="kw">def</span> listes_depuis_aretes(n: int, aretes: list) -&gt; list:
+    <span class="str">"""Listes d'adjacence du graphe non orienté à n sommets</span>
+<span class="str">    dont aretes est la liste des arêtes (couples (u, v))."""</span>
+    G = [[] <span class="kw">for</span> i <span class="kw">in</span> range(n)]
+    <span class="kw">for</span> u, v <span class="kw">in</span> aretes:
+        G[u].append(v)
+        G[v].append(u)
+    <span class="kw">return</span> G
+
+<span class="kw">def</span> degres(G: list) -&gt; list:
+    <span class="kw">return</span> [len(G[s]) <span class="kw">for</span> s <span class="kw">in</span> range(len(G))]</pre>
+    <p>Chaque arête est ajoutée dans les deux listes ; coût \(O(n + m)\).</p>
+    <p><strong>Q3.</strong> Oui : 0, 1, 2 sont reliés entre eux, 2 est relié à 3, et 3 à 4 et 5. Il contient deux cycles, \(0 - 1 - 2 - 0\) et \(3 - 4 - 5 - 3\) ; on pouvait le prévoir, car un graphe connexe à 6 sommets avec \(7 \ge 6\) arêtes a un cycle.</p>
+    <p><strong>Q4.</strong> À 5 sommets : la somme des degrés vaudrait 15, nombre impair, alors qu'elle vaut \(2m\) : impossible. À 6 sommets : la somme vaut 18, soit 9 arêtes ; exemple, deux triangles \(0 - 1 - 2\) et \(3 - 4 - 5\) reliés par \(0 - 3\), \(1 - 4\), \(2 - 5\).</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 02</span><span class="diff">★ ☆ ☆</span>
+  <h3>De la matrice aux listes d'adjacence</h3>
+  <div class="statement">Un graphe orienté a pour matrice d'adjacence <span class="code-inline">M = [[0, 1, 0, 1], [0, 0, 1, 0], [1, 0, 0, 1], [0, 0, 1, 0]]</span>.</div>
+  <div class="q"><strong>Q1.</strong> Dessiner le graphe. Est-il non orienté (matrice symétrique) ?</div>
+  <div class="q"><strong>Q2.</strong> Écrire <span class="code-inline">matrice_vers_listes(M)</span> et donner son résultat sur <span class="code-inline">M</span>.</div>
+  <div class="q"><strong>Q3.</strong> Écrire <span class="code-inline">degre_sortant(M, s)</span> et <span class="code-inline">degre_entrant(M, s)</span> ; donner les degrés de tous les sommets.</div>
+  <div class="q"><strong>Q4.</strong> Un réseau routier compte \(10^6\) carrefours et \(3\times10^6\) tronçons à sens unique. Comparer la mémoire nécessaire aux deux représentations.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> Arcs : \(0 \to 1\), \(0 \to 3\), \(1 \to 2\), \(2 \to 0\), \(2 \to 3\), \(3 \to 2\). La matrice n'est pas symétrique (\(M[0][1] = 1\) mais \(M[1][0] = 0\)) : le graphe est orienté ; seuls 2 et 3 sont reliés dans les deux sens.</p>
+    <p><strong>Q2 et Q3.</strong></p>
+    <pre class="codeblock"><span class="kw">def</span> listes_vers_matrice(G: list) -&gt; list:
+    <span class="str">"""Matrice d'adjacence du graphe de listes d'adjacence G."""</span>
+    n = len(G)
+    M = [[0] * n <span class="kw">for</span> i <span class="kw">in</span> range(n)]    <span class="cmt"># n lignes indépendantes</span>
+    <span class="kw">for</span> u <span class="kw">in</span> range(n):
+        <span class="kw">for</span> v <span class="kw">in</span> G[u]:
+            M[u][v] = 1
+    <span class="kw">return</span> M
+
+<span class="kw">def</span> matrice_vers_listes(M: list) -&gt; list:
+    <span class="str">"""Listes d'adjacence du graphe de matrice d'adjacence M."""</span>
+    n = len(M)
+    G = [[] <span class="kw">for</span> i <span class="kw">in</span> range(n)]
+    <span class="kw">for</span> u <span class="kw">in</span> range(n):
+        <span class="kw">for</span> v <span class="kw">in</span> range(n):
+            <span class="kw">if</span> M[u][v] == 1:
+                G[u].append(v)
+    <span class="kw">return</span> G</pre>
+    <pre class="codeblock"><span class="kw">def</span> degre_sortant(M: list, s: int) -&gt; int:
+    <span class="str">"""d+(s) : nombre d'arcs partant de s (somme de la ligne s)."""</span>
+    d = 0
+    <span class="kw">for</span> j <span class="kw">in</span> range(len(M)):
+        d = d + M[s][j]
+    <span class="kw">return</span> d
+
+<span class="kw">def</span> degre_entrant(M: list, s: int) -&gt; int:
+    <span class="str">"""d-(s) : nombre d'arcs arrivant en s (somme de la colonne)."""</span>
+    d = 0
+    <span class="kw">for</span> i <span class="kw">in</span> range(len(M)):
+        d = d + M[i][s]
+    <span class="kw">return</span> d</pre>
+    <p>Résultat : <span class="code-inline">[[1, 3], [2], [0, 3], [2]]</span>. Degrés sortants (sommes des lignes) : 2, 1, 2, 1 ; degrés entrants (sommes des colonnes) : 1, 1, 2, 2. Les deux sommes valent 6, le nombre d'arcs.</p>
+    <p><strong>Q4.</strong> Matrice : \(10^{12}\) cases, soit au moins un téraoctet même à un octet par case : impossible en mémoire vive. Listes d'adjacence : \(10^6\) listes contenant \(3\times10^6\) entrées en tout, soit quelques millions de cases : cela tient sans difficulté dans la mémoire d'un ordinateur.</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 03</span><span class="diff">★ ☆ ☆</span>
+  <h3>Pile ou file ?</h3>
+  <div class="statement">On ajoute 1, 2 et 3 à la fois dans une pile <span class="code-inline">p</span> (une liste) et dans une file <span class="code-inline">f</span> (un objet <span class="code-inline">deque</span>), puis on effectue trois fois « retirer un élément de chacune » en ajoutant 4 aux deux après le premier retrait.</div>
+  <div class="q"><strong>Q1.</strong> Quels éléments sont retirés de la pile ? de la file ? Que contient chacune à la fin ?</div>
+  <div class="q"><strong>Q2.</strong> Écrire la session Python correspondante.</div>
+  <div class="q"><strong>Q3.</strong> Pourquoi ne pas défiler avec <span class="code-inline">f.pop(0)</span> sur une liste ? Quel est le coût de \(n\) défilements dans chaque cas ?</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> Pile : 3, puis 4 (ajouté juste avant), puis 2 ; il reste <span class="code-inline">[1]</span>. File : 1, 2, 3 ; il reste 4.</p>
+    <p><strong>Q2.</strong></p>
+    <pre class="codeblock">&gt;&gt;&gt; <span class="kw">from</span> collections <span class="kw">import</span> deque
+&gt;&gt;&gt; p, f = [], deque([])
+&gt;&gt;&gt; <span class="kw">for</span> x <span class="kw">in</span> [1, 2, 3]:
+...     p.append(x)
+...     f.append(x)
+&gt;&gt;&gt; p.pop(), f.popleft()
+(3, 1)
+&gt;&gt;&gt; p.append(4)
+&gt;&gt;&gt; f.append(4)
+&gt;&gt;&gt; p.pop(), f.popleft()
+(4, 2)
+&gt;&gt;&gt; p.pop(), f.popleft()
+(2, 3)
+&gt;&gt;&gt; p, f
+([1], deque([4]))</pre>
+    <p><strong>Q3.</strong> <span class="code-inline">pop(0)</span> décale tous les éléments restants : \(O(k)\) pour une liste de \(k\) éléments, donc \(O(n^2)\) pour \(n\) défilements dans le pire cas. <span class="code-inline">popleft</span> sur un <span class="code-inline">deque</span> coûte \(O(1)\) : \(O(n)\) en tout.</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 04</span><span class="diff">★ ★ ☆</span>
+  <h3>Parcours en largeur d'une grille</h3>
+  <div class="statement">Les 9 cases d'une grille 3 × 3 sont numérotées ligne par ligne (0, 1, 2 en haut ; 6, 7, 8 en bas) et reliées à leurs voisines horizontales et verticales :
+    <span class="code-inline">G = [[1, 3], [0, 2, 4], [1, 5], [0, 4, 6], [1, 3, 5, 7], [2, 4, 8], [3, 7], [4, 6, 8], [5, 7]]</span>.</div>
+  <div class="q"><strong>Q1.</strong> Dérouler le parcours en largeur depuis 0 : ordre de sortie de la file, distances, parents.</div>
+  <div class="q"><strong>Q2.</strong> En déduire un plus court chemin de 0 à 8. Est-il unique ?</div>
+  <div class="q"><strong>Q3.</strong> Quelle est la complexité du parcours pour une grille de \(L\) lignes et \(C\) colonnes ?</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> Ordre de sortie : 0, 1, 3, 2, 4, 6, 5, 7, 8. Distances <span class="code-inline">distances(G, 0)</span> = <span class="code-inline">[0, 1, 2, 1, 2, 3, 2, 3, 4]</span> (la distance de Manhattan au coin 0). Parents : <span class="code-inline">[None, 0, 1, 0, 1, 2, 3, 4, 5]</span>.</p>
+    <pre class="codeblock"><span class="kw">from</span> collections <span class="kw">import</span> deque
+
+<span class="kw">def</span> distances(G: list, s: int) -&gt; list:
+    <span class="str">"""Parcours en largeur depuis s ; G : listes d'adjacence.</span>
+<span class="str">    Renvoie d : d[v] = nombre minimal d'arêtes d'un chemin</span>
+<span class="str">    de s à v, ou -1 si v n'est pas accessible depuis s."""</span>
+    n = len(G)
+    d = [-1] * n            <span class="cmt"># -1 : sommet pas encore découvert</span>
+    d[s] = 0
+    f = deque([s])          <span class="cmt"># sommets découverts, à traiter</span>
+    <span class="kw">while</span> len(f) &gt; 0:
+        u = f.popleft()     <span class="cmt"># le plus anciennement découvert</span>
+        <span class="kw">for</span> v <span class="kw">in</span> G[u]:
+            <span class="kw">if</span> d[v] == -1:  <span class="cmt"># v découvert pour la 1re fois</span>
+                d[v] = d[u] + 1
+                f.append(v)
+    <span class="kw">return</span> d</pre>
+    <p><strong>Q2.</strong> En remontant les parents depuis 8 : <span class="code-inline">[0, 1, 2, 5, 8]</span>, de longueur 4. Il n'est pas unique : tout trajet qui fait deux pas vers la droite et deux vers le bas, dans n'importe quel ordre, convient (6 chemins). Le parcours en donne un, qui dépend de l'ordre des listes.</p>
+    <p><strong>Q3.</strong> \(n = LC\) sommets et moins de \(2LC\) arêtes (chaque case a au plus 4 voisines) : \(O(n + m) = O(LC)\).</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 05</span><span class="diff">★ ★ ☆</span>
+  <h3>Sortir d'un labyrinthe</h3>
+  <div class="statement">Un labyrinthe est une liste de chaînes de même longueur : <span class="code-inline">"#"</span> pour un mur, <span class="code-inline">"."</span> pour une case libre (le départ S et l'arrivée A sont libres). On se déplace d'une case libre à une case libre voisine (haut, bas, gauche, droite). Le graphe n'est pas construit : on calcule les voisins d'une case à la demande.
+    <pre class="codeblock"><span class="kw">from</span> collections <span class="kw">import</span> deque
+
+LAB = [<span class="str">"S..#...."</span>,
+       <span class="str">".#.#.##."</span>,
+       <span class="str">".#...#.."</span>,
+       <span class="str">".####.#."</span>,
+       <span class="str">"......#A"</span>]
+
+<span class="kw">def</span> voisins(lab: list, i: int, j: int) -&gt; list:
+    <span class="str">"""Cases libres voisines (haut, bas, gauche, droite)."""</span>
+    res = []
+    <span class="kw">for</span> di, dj <span class="kw">in</span> [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+        a, b = i + di, j + dj
+        <span class="kw">if</span> 0 &lt;= a <span class="kw">and</span> a &lt; len(lab) <span class="kw">and</span> 0 &lt;= b <span class="kw">and</span> b &lt; len(lab[0]):
+            <span class="kw">if</span> lab[a][b] != <span class="str">"#"</span>:
+                res.append((a, b))
+    <span class="kw">return</span> res
+
+<span class="kw">def</span> nb_pas(lab: list, depart: tuple, arrivee: tuple) -&gt; int:
+    <span class="str">"""Nombre minimal de pas de depart à arrivee (-1 sinon)."""</span>
+    d = {depart: 0}              <span class="cmt"># dictionnaire case -&gt; distance</span>
+    f = deque([depart])
+    <span class="kw">while</span> len(f) &gt; 0:
+        i, j = f.popleft()
+        <span class="kw">if</span> (i, j) == arrivee:
+            <span class="kw">return</span> d[(i, j)]
+        <span class="kw">for</span> v <span class="kw">in</span> voisins(lab, i, j):
+            <span class="kw">if</span> v <span class="kw">not</span> <span class="kw">in</span> d:
+                d[v] = d[(i, j)] + 1
+                f.append(v)
+    <span class="kw">return</span> -1</pre>
+  </div>
+  <div class="q"><strong>Q1.</strong> Expliquer la fonction <span class="code-inline">voisins</span>. Pourquoi tester les bornes avant de lire <span class="code-inline">lab[a][b]</span> ?</div>
+  <div class="q"><strong>Q2.</strong> Expliquer <span class="code-inline">nb_pas</span>. Pourquoi un dictionnaire convient-il pour les distances ? Que vaut <span class="code-inline">nb_pas(LAB, (0, 0), (4, 7))</span> ?</div>
+  <div class="q"><strong>Q3.</strong> Complexité, pour un labyrinthe de \(L\) lignes et \(C\) colonnes ?</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> Pour chacun des quatre déplacements \((d_i, d_j)\), on calcule la case d'arrivée \((a, b)\) et on la garde si elle est dans la grille et libre. Le test des bornes vient d'abord (et <span class="code-inline">and</span> est paresseux) : <span class="code-inline">lab[a][b]</span> avec <span class="code-inline">a = -1</span> lirait la dernière ligne sans erreur, et <span class="code-inline">a = len(lab)</span> provoquerait une erreur d'indice.</p>
+    <p><strong>Q2.</strong> C'est un parcours en largeur, dont les sommets sont les couples \((i, j)\). Un tuple peut servir de clé de dictionnaire, et <span class="code-inline">v not in d</span> teste en \(O(1)\) en moyenne si la case a déjà été découverte : le dictionnaire sert de marquage et de tableau des distances. On s'arrête dès que l'arrivée sort de la file. Résultat : 15 pas. Le plus court chemin (il est unique) suit la ligne du haut jusqu'à la colonne 2, descend jusqu'à la ligne 2, la suit jusqu'à la colonne 4, remonte en haut, longe la ligne du haut jusqu'au bord droit et redescend par la dernière colonne ; la ligne du bas, qui semble directe, est une impasse (murs de la colonne 6).</p>
+    <p><strong>Q3.</strong> Chaque case est enfilée au plus une fois et a au plus 4 voisines : \(O(LC)\) en temps et en mémoire.</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 06</span><span class="diff">★ ★ ☆</span>
+  <h3>Compter les composantes connexes</h3>
+  <div class="statement">On dispose de la fonction récursive <span class="code-inline">visiter(G, u, vu, ordre)</span> du cours (§7), qui marque dans <span class="code-inline">vu</span> tous les sommets accessibles depuis <span class="code-inline">u</span>.</div>
+  <div class="q"><strong>Q1.</strong> Écrire <span class="code-inline">nb_composantes(G)</span> pour un graphe non orienté. La tester sur le graphe \(G_3\) du cours.</div>
+  <div class="q"><strong>Q2.</strong> Quelle est sa complexité ?</div>
+  <div class="q"><strong>Q3.</strong> Montrer qu'un graphe non orienté connexe à \(n\) sommets a au moins \(n - 1\) arêtes. Un réseau de 50 ordinateurs et 45 câbles peut-il être connexe ?</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong></p>
+    <pre class="codeblock"><span class="kw">def</span> nb_composantes(G: list) -&gt; int:
+    n = len(G)
+    vu = [<span class="kw">False</span>] * n
+    k = 0
+    <span class="kw">for</span> s <span class="kw">in</span> range(n):
+        <span class="kw">if</span> <span class="kw">not</span> vu[s]:
+            visiter(G, s, vu, [])   <span class="cmt"># marque la composante de s</span>
+            k = k + 1
+    <span class="kw">return</span> k</pre>
+    <p>Chaque appel de <span class="code-inline">visiter</span> depuis la boucle principale part d'un sommet non encore atteint, donc d'une composante nouvelle, et la marque en entier. Sur \(G_3\), le résultat est 4.</p>
+    <p><strong>Q2.</strong> Chaque sommet est visité une fois en tout, et sa liste parcourue une fois : \(O(n + m)\), plus \(O(n)\) pour la boucle principale.</p>
+    <p><strong>Q3.</strong> Un parcours depuis un sommet \(s\) atteint les \(n - 1\) autres sommets ; chacun est atteint pour la première fois par une arête qui le relie à un sommet déjà visité, et ces arêtes sont distinctes (une par sommet). Il y a donc au moins \(n - 1\) arêtes. Avec 50 ordinateurs, il faudrait au moins 49 câbles : 45 ne suffisent pas.</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 07</span><span class="diff">★ ★ ☆</span>
+  <h3>Détecter un cycle par un parcours en profondeur</h3>
+  <div class="statement">On propose la version récursive suivante, pour un graphe non orienté sans boucle.
+    <pre class="codeblock"><span class="kw">def</span> cycle_depuis(G: list, u: int, p: int, vu: list) -&gt; bool:
+    <span class="str">"""Visite en profondeur depuis u, atteint par son parent p ;</span>
+<span class="str">    renvoie True si un cycle est rencontré."""</span>
+    vu[u] = <span class="kw">True</span>
+    <span class="kw">for</span> v <span class="kw">in</span> G[u]:
+        <span class="kw">if</span> <span class="kw">not</span> vu[v]:
+            <span class="kw">if</span> cycle_depuis(G, v, u, vu):
+                <span class="kw">return</span> <span class="kw">True</span>
+        <span class="kw">elif</span> v != p:
+            <span class="kw">return</span> <span class="kw">True</span>
+    <span class="kw">return</span> <span class="kw">False</span>
+
+<span class="kw">def</span> a_un_cycle_rec(G: list) -&gt; bool:
+    vu = [<span class="kw">False</span>] * len(G)
+    <span class="kw">for</span> s <span class="kw">in</span> range(len(G)):
+        <span class="kw">if</span> <span class="kw">not</span> vu[s] <span class="kw">and</span> cycle_depuis(G, s, -1, vu):
+            <span class="kw">return</span> <span class="kw">True</span>
+    <span class="kw">return</span> <span class="kw">False</span></pre>
+  </div>
+  <div class="q"><strong>Q1.</strong> À quoi sert le paramètre <span class="code-inline">p</span> ? Que se passerait-il sans lui ?</div>
+  <div class="q"><strong>Q2.</strong> Donner le résultat sur le chemin <span class="code-inline">[[1], [0, 2], [1]]</span>, sur le triangle <span class="code-inline">[[1, 2], [0, 2], [0, 1]]</span>, et sur \(G_3\).</div>
+  <div class="q"><strong>Q3.</strong> Pourquoi la boucle de <span class="code-inline">a_un_cycle_rec</span> sur tous les sommets est-elle nécessaire ? Quelle est la complexité ?</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> <span class="code-inline">p</span> est le sommet par lequel on est arrivé en \(u\). Comme le graphe est non orienté, \(p\) figure dans la liste de \(u\) et il est déjà visité : sans l'exception <span class="code-inline">v != p</span>, la fonction croirait trouver un cycle dès la première arête, et renverrait <span class="code-inline">True</span> pour tout graphe qui a au moins une arête.</p>
+    <p><strong>Q2.</strong> Chemin : depuis 0, on visite 1 (parent 0), puis 2 (parent 1) ; chaque voisin déjà visité rencontré est le parent : <span class="code-inline">False</span>. Triangle : depuis 0, on visite 1, puis depuis 1 on visite 2 ; le voisin 0 de 2 est visité et n'est pas son parent (1) : <span class="code-inline">True</span>. \(G_3\) : <span class="code-inline">True</span>, grâce au triangle \(6 - 7 - 8\) (les autres composantes n'ont pas de cycle).</p>
+    <p><strong>Q3.</strong> Un parcours depuis \(s\) n'explore que la composante de \(s\) : le cycle peut se trouver dans une autre composante, comme dans \(G_3\). Complexité : chaque sommet est visité une fois, \(O(n + m)\) (on s'arrête même plus tôt si un cycle est trouvé).</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 08</span><span class="diff">★ ★ ☆</span>
+  <h3>Dijkstra à la main</h3>
+  <div class="statement">Un graphe orienté pondéré a 6 sommets et les arcs : \(0 \to 1\) (6), \(0 \to 2\) (2), \(1 \to 3\) (1), \(2 \to 1\) (3), \(2 \to 3\) (7), \(2 \to 4\) (9), \(3 \to 4\) (2), \(3 \to 5\) (6), \(4 \to 5\) (3).</div>
+  <div class="q"><strong>Q1.</strong> Écrire ses listes d'adjacence pondérées.</div>
+  <div class="q"><strong>Q2.</strong> Dérouler l'algorithme de Dijkstra depuis 0 dans un tableau ; donner <span class="code-inline">d</span> et <span class="code-inline">pred</span>.</div>
+  <div class="q"><strong>Q3.</strong> En déduire un plus court chemin de 0 à 5 et son poids.</div>
+  <div class="q"><strong>Q4.</strong> On remplace le poids de \(2 \to 1\) par \(-5\). Que renvoie l'algorithme pour le sommet 1 ? Est-ce la bonne distance ?</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> <span class="code-inline">E = [[(1, 6), (2, 2)], [(3, 1)], [(1, 3), (3, 7), (4, 9)], [(4, 2), (5, 6)], [(5, 3)], []]</span>.</p>
+    <p><strong>Q2.</strong> En gras, les sommets fixés :</p>
+    <div><table>
+<tr><th>étape</th><th>fixé</th><th><span class="code-inline">d[0]</span></th><th><span class="code-inline">d[1]</span></th><th><span class="code-inline">d[2]</span></th><th><span class="code-inline">d[3]</span></th><th><span class="code-inline">d[4]</span></th><th><span class="code-inline">d[5]</span></th></tr>
+<tr><td>départ</td><td>—</td><td>0</td><td>∞</td><td>∞</td><td>∞</td><td>∞</td><td>∞</td></tr>
+<tr><td>1</td><td>0</td><td><strong>0</strong></td><td>6</td><td>2</td><td>∞</td><td>∞</td><td>∞</td></tr>
+<tr><td>2</td><td>2</td><td><strong>0</strong></td><td>5</td><td><strong>2</strong></td><td>9</td><td>11</td><td>∞</td></tr>
+<tr><td>3</td><td>1</td><td><strong>0</strong></td><td><strong>5</strong></td><td><strong>2</strong></td><td>6</td><td>11</td><td>∞</td></tr>
+<tr><td>4</td><td>3</td><td><strong>0</strong></td><td><strong>5</strong></td><td><strong>2</strong></td><td><strong>6</strong></td><td>8</td><td>12</td></tr>
+<tr><td>5</td><td>4</td><td><strong>0</strong></td><td><strong>5</strong></td><td><strong>2</strong></td><td><strong>6</strong></td><td><strong>8</strong></td><td>11</td></tr>
+<tr><td>6</td><td>5</td><td><strong>0</strong></td><td><strong>5</strong></td><td><strong>2</strong></td><td><strong>6</strong></td><td><strong>8</strong></td><td><strong>11</strong></td></tr>
+</table></div>
+    <p><span class="code-inline">d</span> = <span class="code-inline">[0, 5, 2, 6, 8, 11]</span> et <span class="code-inline">pred</span> = <span class="code-inline">[None, 2, 0, 1, 3, 4]</span>.</p>
+    <p><strong>Q3.</strong> En remontant <span class="code-inline">pred</span> depuis 5 : 0 → 2 → 1 → 3 → 4 → 5, de poids \(2 + 3 + 1 + 2 + 3 = 11\). Il compte 5 arcs, alors que \(0 \to 2 \to 4 \to 5\) n'en compte que 3 (mais pèse 14).</p>
+    <p><strong>Q4.</strong> On fixe 0, puis 2 (\(d = 2\)) : la mise à jour donne \(d[1] = 2 - 5 = -3\). L'algorithme fixe ensuite 1 à \(-3\), qui est bien sa distance ici. Mais il n'y a plus de garantie : la preuve utilise la positivité des poids, et le cours montre un graphe où un sommet est fixé trop tôt (§9). Avec des poids négatifs, on n'utilise pas l'algorithme de Dijkstra.</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 09</span><span class="diff">★ ★ ★</span>
+  <h3>Échelle de mots</h3>
+  <div class="statement">On veut transformer un mot en un autre en changeant une seule lettre à la fois, chaque étape devant être un mot d'une liste donnée. Liste : <span class="code-inline">["CAPE", "CAVE", "RAVE", "RIVE", "RIRE", "LIRE", "LIME", "CIME", "CAME", "LAME", "RAME", "RIME"]</span>. On numérote les mots par leur position dans la liste.</div>
+  <div class="q"><strong>Q1.</strong> Modéliser le problème par un graphe. Écrire <span class="code-inline">voisins_mots(m1, m2)</span> et <span class="code-inline">graphe_mots(mots)</span>.</div>
+  <div class="q"><strong>Q2.</strong> Quelle est la complexité de <span class="code-inline">graphe_mots</span> pour \(n\) mots de \(L\) lettres ?</div>
+  <div class="q"><strong>Q3.</strong> Comment trouver une échelle la plus courte de CAPE à LIRE ? La donner.</div>
+  <div class="q"><strong>Q4.</strong> Avec un dictionnaire de 50 000 mots de cinq lettres, la construction du graphe est-elle raisonnable ?</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> Sommets : les mots ; arête entre deux mots qui diffèrent d'exactement une lettre (relation symétrique : graphe non orienté).</p>
+    <pre class="codeblock"><span class="kw">def</span> voisins_mots(m1: str, m2: str) -&gt; bool:
+    <span class="str">"""m1, m2 de même longueur diffèrent d'une seule lettre."""</span>
+    diff = 0
+    <span class="kw">for</span> k <span class="kw">in</span> range(len(m1)):
+        <span class="kw">if</span> m1[k] != m2[k]:
+            diff = diff + 1
+    <span class="kw">return</span> diff == 1
+
+<span class="kw">def</span> graphe_mots(mots: list) -&gt; list:
+    n = len(mots)
+    G = [[] <span class="kw">for</span> i <span class="kw">in</span> range(n)]
+    <span class="kw">for</span> i <span class="kw">in</span> range(n):
+        <span class="kw">for</span> j <span class="kw">in</span> range(i + 1, n):
+            <span class="kw">if</span> voisins_mots(mots[i], mots[j]):
+                G[i].append(j)
+                G[j].append(i)
+    <span class="kw">return</span> G</pre>
+    <p>Ce graphe a 20 arêtes.</p>
+    <p><strong>Q2.</strong> \(\dfrac{n(n-1)}{2}\) paires, chacune comparée en \(O(L)\) : \(O(n^2 L)\).</p>
+    <p><strong>Q3.</strong> Une échelle la plus courte est un plus court chemin en nombre d'arêtes : parcours en largeur depuis CAPE avec mémorisation des parents (fonctions <span class="code-inline">largeur</span> et <span class="code-inline">chemin</span> du cours), puis remontée depuis LIRE : CAPE → CAME → CIME → LIME → LIRE, en 4 changements. Le parcours en largeur garantit qu'aucune échelle plus courte n'existe dans cette liste : CAPE et LIRE diffèrent par trois lettres, il faudrait donc au moins trois changements, mais aucune suite de trois changements ne passe par des mots de la liste.</p>
+    <p><strong>Q4.</strong> \(\dfrac{n(n-1)}{2} \approx 1{,}25\times10^{9}\) comparaisons de mots, soit plusieurs minutes en Python à \(10^7\) opérations par seconde (et davantage, chaque comparaison examinant jusqu'à cinq lettres) : c'est long. On fait mieux en regroupant les mots par « motif » (le mot avec une lettre remplacée par un joker) dans un dictionnaire : deux mots sont voisins s'ils partagent un motif, et la construction devient à peu près linéaire en \(n\).</p>
+  </div>
+</div>
+
+<div class="exo concours">
+  <span class="num">CONCOURS PT</span><span class="diff">★ ★ ★</span>
+  <h3>Itinéraires dans un réseau de vélos en libre-service</h3>
+  <div class="exo-source">Exercice <strong>original</strong> au format des épreuves d'informatique des concours (thème : graphes pondérés, parcours en largeur, algorithmes de Dijkstra et A*).</div>
+  <div class="statement">Une ville compte \(n\) stations de vélos, numérotées de 0 à \(n - 1\) ; la station \(v\) est au point <span class="code-inline">coord[v] = (x, y)</span> (en km). Une piste cyclable relie directement certaines paires de stations, dans les deux sens ; la liste <span class="code-inline">troncons</span> contient des triplets <span class="code-inline">(i, j, t)</span>, où <span class="code-inline">t</span> est la durée du trajet de <span class="code-inline">i</span> à <span class="code-inline">j</span> en minutes. Exemple à \(n = 10\) stations et 14 tronçons, où l'on veut aller de la gare (station 0) à l'université (station 6) :
+    <div><table>
+<tr><th>station</th><th>position (km)</th><th>voisines (durée)</th></tr>
+<tr><td>0</td><td>(0, 0)</td><td>1 (8 min), 2 (11 min), 7 (6 min), 8 (7 min)</td></tr>
+<tr><td>1</td><td>(2, 1)</td><td>0 (8 min), 2 (7 min), 3 (9 min)</td></tr>
+<tr><td>2</td><td>(1, 3)</td><td>0 (11 min), 1 (7 min), 4 (8 min), 9 (13 min)</td></tr>
+<tr><td>3</td><td>(4, 2)</td><td>1 (9 min), 4 (7 min), 5 (8 min)</td></tr>
+<tr><td>4</td><td>(3, 4)</td><td>2 (8 min), 3 (7 min), 6 (9 min)</td></tr>
+<tr><td>5</td><td>(6, 3)</td><td>3 (8 min), 6 (7 min)</td></tr>
+<tr><td>6</td><td>(5, 5)</td><td>4 (9 min), 5 (7 min)</td></tr>
+<tr><td>7</td><td>(-2, 0)</td><td>0 (6 min), 8 (7 min), 9 (7 min)</td></tr>
+<tr><td>8</td><td>(-1, -2)</td><td>0 (7 min), 7 (7 min)</td></tr>
+<tr><td>9</td><td>(-3, 2)</td><td>2 (13 min), 7 (7 min)</td></tr>
+</table></div>
+    On rappelle : <span class="code-inline">from collections import deque</span> donne les files <span class="code-inline">deque</span> (<span class="code-inline">append</span>, <span class="code-inline">popleft</span>, <span class="code-inline">len</span>, en temps constant) ; <span class="code-inline">float('inf')</span> représente \(+\infty\) ; <span class="code-inline">from math import sqrt</span> donne la racine carrée.</div>
+  <p class="exo-part">Partie A — Représentation</p>
+  <div class="q"><strong>A1.</strong> Écrire <span class="code-inline">construire(n, troncons)</span>, qui renvoie les listes d'adjacence pondérées : <span class="code-inline">G[i]</span> contient un couple <span class="code-inline">(j, t)</span> par tronçon de durée <span class="code-inline">t</span> entre <span class="code-inline">i</span> et <span class="code-inline">j</span>.</div>
+  <div class="q"><strong>A2.</strong> Combien de couples contiennent en tout les listes de l'exemple ? Quelle est la complexité de <span class="code-inline">construire</span> ?</div>
+  <p class="exo-part">Partie B — Nombre minimal de tronçons</p>
+  <div class="q"><strong>B1.</strong> Écrire <span class="code-inline">nb_troncons(G, s)</span>, qui renvoie la liste des nombres minimaux de tronçons de <span class="code-inline">s</span> à chaque station (\(-1\) si une station est inaccessible).</div>
+  <div class="q"><strong>B2.</strong> Donner le résultat sur l'exemple depuis la station 0, et la complexité.</div>
+  <p class="exo-part">Partie C — Durée minimale</p>
+  <div class="q"><strong>C1.</strong> Écrire <span class="code-inline">dijkstra(G, s)</span>, qui renvoie la liste <span class="code-inline">d</span> des durées minimales depuis <span class="code-inline">s</span> et la liste <span class="code-inline">pred</span> des prédécesseurs, avec une recherche naïve du minimum.</div>
+  <div class="q"><strong>C2.</strong> Donner <span class="code-inline">d</span> sur l'exemple depuis 0, et l'itinéraire le plus rapide de la gare à l'université.</div>
+  <div class="q"><strong>C3.</strong> Quelle est la complexité de <span class="code-inline">dijkstra</span> ? Estimer la durée du calcul pour une métropole de \(10^4\) stations, à \(10^7\) opérations par seconde.</div>
+  <p class="exo-part">Partie D — Recherche guidée (A*)</p>
+  <div class="q"><strong>D1.</strong> On admet qu'à vélo on ne dépasse pas 20 km/h et qu'une piste n'est jamais plus courte que la ligne droite. Montrer que \(h(v) = 3\,\text{dist}(v, c)\), où \(\text{dist}\) est la distance à vol d'oiseau en km, ne surestime jamais la durée minimale (en minutes) de \(v\) à la cible \(c\). Écrire <span class="code-inline">heuristique(coord, c)</span>.</div>
+  <div class="q"><strong>D2.</strong> Écrire <span class="code-inline">a_etoile_compte(G, s, c, h)</span>, variante de l'algorithme de Dijkstra qui fixe le sommet minimisant <span class="code-inline">d[v] + h[v]</span>, s'arrête dès que \(c\) est fixé et renvoie la durée trouvée et le nombre de sommets fixés avant \(c\).</div>
+  <div class="q"><strong>D3.</strong> Sur l'exemple (de 0 à 6), comparer le nombre de stations fixées avant l'université par A* et par l'algorithme de Dijkstra arrêté à la cible (\(h = 0\)). Expliquer la différence.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>A1, B1.</strong></p>
+    <pre class="codeblock"><span class="kw">from</span> collections <span class="kw">import</span> deque
+
+inf = float(<span class="str">'inf'</span>)
+
+<span class="kw">def</span> construire(n: int, troncons: list) -&gt; list:
+    <span class="str">"""troncons : liste de triplets (i, j, duree) ;</span>
+<span class="str">    graphe non orienté."""</span>
+    G = [[] <span class="kw">for</span> k <span class="kw">in</span> range(n)]
+    <span class="kw">for</span> i, j, t <span class="kw">in</span> troncons:
+        G[i].append((j, t))
+        G[j].append((i, t))
+    <span class="kw">return</span> G
+
+<span class="kw">def</span> nb_troncons(G: list, s: int) -&gt; list:
+    <span class="str">"""Nombre minimal de tronçons de s à chaque station</span>
+<span class="str">    (-1 si la station est inaccessible)."""</span>
+    n = len(G)
+    d = [-1] * n
+    d[s] = 0
+    f = deque([s])
+    <span class="kw">while</span> len(f) &gt; 0:
+        u = f.popleft()
+        <span class="kw">for</span> v, t <span class="kw">in</span> G[u]:          <span class="cmt"># la durée t ne sert pas ici</span>
+            <span class="kw">if</span> d[v] == -1:
+                d[v] = d[u] + 1
+                f.append(v)
+    <span class="kw">return</span> d</pre>
+    <p><strong>A2.</strong> Chaque tronçon donne deux couples : 28 couples. Complexité de <span class="code-inline">construire</span> : \(O(n)\) pour créer les listes, \(O(1)\) par tronçon, donc \(O(n + m)\).</p>
+    <p><strong>B2.</strong> <span class="code-inline">nb_troncons(G, 0)</span> = <span class="code-inline">[0, 1, 1, 2, 2, 3, 3, 1, 1, 2]</span> : l'université est à 3 tronçons de la gare. Complexité \(O(n + m)\) (parcours en largeur).</p>
+    <p><strong>C1.</strong> C'est la fonction du cours (§9) ; ici les durées sont positives, l'algorithme s'applique.</p>
+    <pre class="codeblock"><span class="kw">def</span> dijkstra(G: list, s: int) -&gt; tuple:
+    <span class="str">"""G : listes d'adjacence pondérées, poids positifs ou nuls.</span>
+<span class="str">    Renvoie (d, pred) : d[v] = distance de s à v (inf si v est</span>
+<span class="str">    inaccessible), pred[v] = prédécesseur de v sur un plus</span>
+<span class="str">    court chemin."""</span>
+    n = len(G)
+    d = [inf] * n
+    pred = [<span class="kw">None</span>] * n
+    fixe = [<span class="kw">False</span>] * n       <span class="cmt"># fixe[v] : d[v] est définitive</span>
+    d[s] = 0
+    <span class="kw">for</span> k <span class="kw">in</span> range(n):
+        <span class="cmt"># extraction naïve : sommet non fixé de d minimale</span>
+        u = -1
+        <span class="kw">for</span> v <span class="kw">in</span> range(n):
+            <span class="kw">if</span> <span class="kw">not</span> fixe[v] <span class="kw">and</span> (u == -1 <span class="kw">or</span> d[v] &lt; d[u]):
+                u = v
+        <span class="kw">if</span> d[u] == inf:      <span class="cmt"># les autres sont inaccessibles</span>
+            <span class="kw">return</span> d, pred
+        fixe[u] = <span class="kw">True</span>
+        <span class="kw">for</span> v, p <span class="kw">in</span> G[u]:    <span class="cmt"># mise à jour par les voisins de u</span>
+            <span class="kw">if</span> <span class="kw">not</span> fixe[v] <span class="kw">and</span> d[u] + p &lt; d[v]:
+                d[v] = d[u] + p
+                pred[v] = u
+    <span class="kw">return</span> d, pred</pre>
+    <p><strong>C2.</strong> <span class="code-inline">d</span> = <span class="code-inline">[0, 8, 11, 17, 19, 25, 28, 6, 7, 13]</span>. Itinéraire, en remontant <span class="code-inline">pred</span> depuis 6 : 0 → 2 → 4 → 6, en 28 minutes (\(11 + 8 + 9\)). L'itinéraire \(0 \to 1 \to 3 \to 5 \to 6\) en compte 32.</p>
+    <p><strong>C3.</strong> \(n\) étapes de recherche du minimum en \(O(n)\) : \(O(n^2 + m) = O(n^2)\). Pour \(n = 10^4\) : environ \(10^8\) opérations, de l'ordre de 10 s : trop lent pour une application interactive.</p>
+    <p><strong>D1.</strong> Une piste de \(i\) à \(j\) mesure au moins \(\text{dist}(i, j)\) km ; à 20 km/h au plus, soit 3 min/km au moins, sa durée vaut au moins \(3\,\text{dist}(i, j)\). Pour un itinéraire \(v = s_0, s_1, \dots, s_k = c\), la durée vaut au moins \(3\sum \text{dist}(s_i, s_{i+1}) \ge 3\,\text{dist}(v, c)\) (inégalité triangulaire). Donc \(h(v)\) ne dépasse jamais la durée minimale : \(h\) est admissible (et, par le même argument appliqué à un tronçon, \(h(i) \le t + h(j)\) pour chaque tronçon).</p>
+    <pre class="codeblock"><span class="kw">from</span> math <span class="kw">import</span> sqrt        <span class="cmt"># sqrt(x) : racine carrée de x</span>
+
+<span class="kw">def</span> heuristique(coord: list, c: int) -&gt; list:
+    <span class="str">"""h[v] = 3 × (distance à vol d'oiseau de v à c, en km) :</span>
+<span class="str">    durée minimale, en minutes, à 20 km/h en ligne droite."""</span>
+    xc, yc = coord[c]
+    <span class="kw">return</span> [3 * sqrt((x - xc) ** 2 + (y - yc) ** 2)
+            <span class="kw">for</span> x, y <span class="kw">in</span> coord]</pre>
+    <p>Sur l'exemple, avec \(c = 6\) : \(h\) vaut (arrondi au dixième) 21,2, 15,0, 13,4, 9,5, 6,7, 6,7, 0,0, 25,8, 27,7, 25,6.</p>
+    <p><strong>D2.</strong></p>
+    <pre class="codeblock"><span class="kw">def</span> a_etoile_compte(G: list, s: int, c: int, h: list) -&gt; tuple:
+    <span class="str">"""A* : renvoie (durée minimale de s à c,</span>
+<span class="str">    nombre de sommets fixés avant c)."""</span>
+    n = len(G)
+    d = [inf] * n
+    fixe = [<span class="kw">False</span>] * n
+    d[s] = 0
+    nb = 0
+    <span class="kw">while</span> <span class="kw">True</span>:
+        u = -1
+        <span class="kw">for</span> v <span class="kw">in</span> range(n):
+            <span class="kw">if</span> <span class="kw">not</span> fixe[v] <span class="kw">and</span> d[v] &lt; inf:
+                <span class="kw">if</span> u == -1 <span class="kw">or</span> d[v] + h[v] &lt; d[u] + h[u]:
+                    u = v
+        <span class="kw">if</span> u == -1:
+            <span class="kw">return</span> inf, nb
+        <span class="kw">if</span> u == c:
+            <span class="kw">return</span> d[c], nb
+        fixe[u] = <span class="kw">True</span>
+        nb = nb + 1
+        <span class="kw">for</span> v, t <span class="kw">in</span> G[u]:
+            <span class="kw">if</span> <span class="kw">not</span> fixe[v] <span class="kw">and</span> d[u] + t &lt; d[v]:
+                d[v] = d[u] + t</pre>
+    <p><strong>D3.</strong> A* fixe 5 stations avant l'université (dans l'ordre 0, 1, 2, 4, 3), l'algorithme de Dijkstra 9 (dans l'ordre 0, 7, 8, 1, 2, 9, 3, 4, 5), et les deux trouvent 28 minutes. Les stations 7, 8 et 9 sont à l'opposé de l'université : proches de la gare, l'algorithme de Dijkstra les examine en premier, alors que pour A* leur estimation <span class="code-inline">d[v] + h[v]</span> (au moins 31 minutes) dépasse la durée du meilleur trajet. Sur un vrai réseau, le gain est bien plus important.</p>
+  </div>
+</div>
+
+</div>
+</template>

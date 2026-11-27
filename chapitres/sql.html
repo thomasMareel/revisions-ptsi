@@ -1,0 +1,2295 @@
+<!-- Chapitre « Bases de données et SQL » (sql) : contenu des onglets Cours, Méthodes et Exercices, chargé à l'ouverture du chapitre.
+     On l'édite ici, puis : node tools/chapitres.js (docs/chargement-chapitres.md). -->
+<template class="pan-tpl" data-panneau="sql-cours">
+<div class="course-section">
+  <div class="sec-num">AU PROGRAMME · INFORMATIQUE</div>
+  <h2>Ce que le programme officiel demande</h2>
+  <div class="intro">Les bases de données forment la partie 3.1 du programme d'informatique commune, étudiée au troisième semestre (début de la 2ᵉ année). Le programme s'en tient volontairement à un usage applicatif : interroger en SQL une base dont les données sont réparties dans plusieurs tables. Ce chapitre ne contient aucun programme Python : les requêtes s'écrivent et s'exécutent dans un logiciel d'interrogation de bases de données.</div>
+  <div class="reveal" onclick="this.classList.toggle('open')">
+    <span class="label">Programme officiel</span>
+    <span class="prompt">Les notions exigibles (semestre 3), dans l'ordre du chapitre</span>
+    <div class="content">
+      <ul>
+        <li><strong>Vocabulaire</strong> : tables ou relations, attributs ou colonnes, domaine (entier, flottant, chaîne), schéma de tables, enregistrements ou lignes, types de données (§1).</li>
+        <li><strong>Clé primaire</strong>, formée d'un ou de plusieurs attributs (§2).</li>
+        <li><strong>Entités et associations</strong> \(1 - 1\), \(1 - \ast\), \(\ast - \ast\) ; séparation d'une association \(\ast - \ast\) en deux associations \(1 - \ast\) ; <strong>clé étrangère</strong> ; diagrammes informels (§3).</li>
+        <li><strong>Requêtes</strong> <span class="code-inline">SELECT</span> avec clause <span class="code-inline">WHERE</span> (sélection), projection, renommage <span class="code-inline">AS</span> ; opérateurs <span class="code-inline">+ - * /</span>, <span class="code-inline">= &lt;&gt; &lt; &lt;= &gt; &gt;=</span>, <span class="code-inline">AND OR NOT</span> (§4).</li>
+        <li><strong>Mots-clés</strong> <span class="code-inline">DISTINCT</span>, <span class="code-inline">ORDER BY</span>, <span class="code-inline">LIMIT</span>, <span class="code-inline">OFFSET</span> (§5).</li>
+        <li><strong>Opérateurs ensemblistes</strong> <span class="code-inline">UNION</span>, <span class="code-inline">INTERSECT</span>, <span class="code-inline">EXCEPT</span> ; produit cartésien (§6).</li>
+        <li><strong>Jointures internes</strong> <span class="code-inline">T1 JOIN T2 … JOIN Tn ON φ</span>, limitées aux équi-jointures ; autojointure (§7).</li>
+        <li><strong>Agrégation</strong> avec <span class="code-inline">MIN</span>, <span class="code-inline">MAX</span>, <span class="code-inline">SUM</span>, <span class="code-inline">AVG</span>, <span class="code-inline">COUNT</span>, avec ou sans <span class="code-inline">GROUP BY</span> (§8).</li>
+        <li><strong>Filtrage des agrégats</strong> avec <span class="code-inline">HAVING</span> ; différence entre <span class="code-inline">WHERE</span> et <span class="code-inline">HAVING</span> (§9).</li>
+        <li><strong>Requêtes imbriquées</strong> : quelques exemples (§10).</li>
+      </ul>
+      <p>Hors programme : la valeur <span class="code-inline">NULL</span>, la création et la suppression de tables (<span class="code-inline">CREATE</span>, <span class="code-inline">DROP</span>), les transactions et les droits d'accès, les index, les collations, la représentation des dates, l'algèbre relationnelle, l'exécution d'une requête depuis un programme. Quelques mots à leur sujet en fin de chapitre.</p>
+    </div>
+  </div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§1 · TABLES, ATTRIBUTS ET DOMAINES</div>
+  <h2>Ranger des données dans des tables</h2>
+  <div class="intro">Une base de données relationnelle range l'information dans des tableaux à deux dimensions, les tables. Tout le chapitre s'appuie sur une petite base inventée : celle d'un service de vélos en libre-service, avec ses stations, ses vélos, ses abonnés et leurs trajets.</div>
+
+  <p>Pour facturer, entretenir ses vélos et dimensionner ses stations, l'opérateur d'un tel service doit répondre à des questions comme « quels abonnés roulent le plus ? » ou « de quelle station partent le plus de vélos ? ». Tout ranger dans un seul grand tableau serait maladroit : le nom de chaque station serait recopié à chaque trajet, et une faute de frappe suffirait à rendre les données incohérentes. On répartit donc l'information entre plusieurs tables reliées entre elles, et on l'interroge avec un langage de requêtes, <strong>SQL</strong> (<em>Structured Query Language</em>).</p>
+
+  <div class="def-box">
+    <ul>
+      <li>Une <strong>table</strong>, ou <strong>relation</strong>, est un ensemble d'<strong>enregistrements</strong>, ou <strong>lignes</strong>, qui ont tous la même structure.</li>
+      <li>Chaque colonne est un <strong>attribut</strong>, désigné par un nom ; ses valeurs sont prises dans un <strong>domaine</strong> fixé, le <strong>type</strong> de la donnée : entier, flottant ou chaîne de caractères.</li>
+      <li>Le <strong>schéma</strong> d'une table est la donnée de son nom et de ses attributs avec leurs domaines. On l'écrit par exemple Station(id_station : entier, nom : chaîne, quartier : chaîne, capacite : entier). Le schéma de la base est l'ensemble des schémas de ses tables.</li>
+    </ul>
+  </div>
+
+<figure class="schema" style="max-width:420px">
+<svg viewBox="0 0 360 246" role="img" aria-label="Extrait de la table Station : une ligne et une colonne surlignées, la clé primaire soulignée">
+<rect x="20" y="78" width="320" height="24" class="fl-accent-soft"/>
+<rect x="260" y="30" width="80" height="96" class="fl-green-soft"/>
+<rect x="20" y="30" width="320" height="24" class="fl-muted-soft"/>
+<rect x="20" y="30" width="320" height="96" class="sk-axis"/>
+<text x="60.0" y="46.5" class="lab-b" text-anchor="middle" style="text-decoration:underline">id_station</text>
+<text x="140.0" y="46.5" class="lab-b" text-anchor="middle">nom</text>
+<text x="220.0" y="46.5" class="lab-b" text-anchor="middle">quartier</text>
+<text x="300.0" y="46.5" class="lab-b" text-anchor="middle">capacite</text>
+<line x1="20" y1="54" x2="340" y2="54" class="sk-axis"/>
+<line x1="20" y1="78" x2="340" y2="78" class="sk-axis"/>
+<line x1="20" y1="102" x2="340" y2="102" class="sk-axis"/>
+<line x1="100" y1="30" x2="100" y2="126" class="sk-axis"/>
+<line x1="180" y1="30" x2="180" y2="126" class="sk-axis"/>
+<line x1="260" y1="30" x2="260" y2="126" class="sk-axis"/>
+<text x="60.0" y="70.5" text-anchor="middle">1</text>
+<text x="140.0" y="70.5" text-anchor="middle">Gare</text>
+<text x="220.0" y="70.5" text-anchor="middle">Centre</text>
+<text x="300.0" y="70.5" text-anchor="middle">30</text>
+<text x="60.0" y="94.5" text-anchor="middle">2</text>
+<text x="140.0" y="94.5" text-anchor="middle">Mairie</text>
+<text x="220.0" y="94.5" text-anchor="middle">Centre</text>
+<text x="300.0" y="94.5" text-anchor="middle">20</text>
+<text x="60.0" y="118.5" text-anchor="middle">3</text>
+<text x="140.0" y="118.5" text-anchor="middle">Port</text>
+<text x="220.0" y="118.5" text-anchor="middle">Rives</text>
+<text x="300.0" y="118.5" text-anchor="middle">16</text>
+<text x="20" y="20" class="lab-b">Station</text>
+<text x="340" y="20" class="lab-muted" text-anchor="end">(3 lignes sur 6)</text>
+<rect x="20" y="139" width="16" height="14" class="fl-accent-soft"/>
+<text x="44" y="150" class="lab-accent">un enregistrement (une ligne)</text>
+<rect x="20" y="161" width="16" height="14" class="fl-green-soft"/>
+<text x="44" y="172" class="lab-green">attribut (colonne) capacite, domaine entier</text>
+<text x="20" y="194" class="lab-b" style="text-decoration:underline">id_station</text>
+<text x="90" y="194">: clé primaire (soulignée)</text>
+<text x="20" y="220" class="lab-muted">schéma : Station(id_station, nom,</text>
+<text x="20" y="236" class="lab-muted">quartier, capacite)</text>
+</svg>
+<figcaption>Une table : chaque <strong>ligne</strong> décrit une station, chaque <strong>colonne</strong> est un attribut dont les valeurs sont prises dans un domaine (ici entier ou chaîne). L'en-tête donne le schéma ; la clé primaire est soulignée.</figcaption>
+</figure>
+
+  <h3>La base du chapitre</h3>
+  <p>La base comporte cinq tables, dont voici les schémas ; les attributs soulignés forment la clé primaire de chaque table (§2).</p>
+  <ul>
+    <li>Station(<u>id_station</u> : entier, nom : chaîne, quartier : chaîne, capacite : entier), où capacite est le nombre de points d'attache de la station.</li>
+    <li>Abonne(<u>id_abonne</u> : entier, nom : chaîne, prenom : chaîne, formule : chaîne, annee : entier), où formule vaut 'annuel', 'mensuel' ou 'jeune' et annee est l'année d'inscription.</li>
+    <li>Velo(<u>id_velo</u> : entier, type : chaîne, annee : entier), où type vaut 'VAE' (vélo à assistance électrique) ou 'classique' et annee est l'année de mise en service.</li>
+    <li>Trajet(<u>id_trajet</u> : entier, abonne : entier, velo : entier, depart : entier, arrivee : entier, jour : chaîne, duree : entier, distance : flottant), où abonne et velo sont les numéros de l'abonné et du vélo, depart et arrivee les numéros des stations de départ et d'arrivée, duree est en minutes et distance en kilomètres.</li>
+    <li>Favori(<u>id_abonne, id_station</u> : entiers) : les stations qu'un abonné a enregistrées comme favorites dans l'application.</li>
+  </ul>
+
+<figure><div><table style="width:auto;margin-inline:auto;white-space:nowrap">
+  <tr><th><u>id_station</u></th><th>nom</th><th>quartier</th><th>capacite</th></tr>
+  <tr><td>1</td><td>Gare</td><td>Centre</td><td>30</td></tr>
+  <tr><td>2</td><td>Mairie</td><td>Centre</td><td>20</td></tr>
+  <tr><td>3</td><td>Port</td><td>Rives</td><td>16</td></tr>
+  <tr><td>4</td><td>Faculté</td><td>Campus</td><td>24</td></tr>
+  <tr><td>5</td><td>Piscine</td><td>Campus</td><td>12</td></tr>
+  <tr><td>6</td><td>Marché</td><td>Rives</td><td>18</td></tr>
+</table></div><figcaption>Table <strong>Station</strong> : 6 enregistrements.</figcaption></figure>
+
+<figure><div><table style="width:auto;margin-inline:auto;white-space:nowrap">
+  <tr><th><u>id_abonne</u></th><th>nom</th><th>prenom</th><th>formule</th><th>annee</th></tr>
+  <tr><td>1</td><td>Lemoine</td><td>Inès</td><td>annuel</td><td>2023</td></tr>
+  <tr><td>2</td><td>Ferrand</td><td>Hugo</td><td>jeune</td><td>2025</td></tr>
+  <tr><td>3</td><td>Bastide</td><td>Léa</td><td>mensuel</td><td>2026</td></tr>
+  <tr><td>4</td><td>Ndiaye</td><td>Moussa</td><td>annuel</td><td>2022</td></tr>
+  <tr><td>5</td><td>Carvalho</td><td>Ana</td><td>jeune</td><td>2026</td></tr>
+  <tr><td>6</td><td>Roux</td><td>Théo</td><td>annuel</td><td>2024</td></tr>
+  <tr><td>7</td><td>Garnier</td><td>Chloé</td><td>mensuel</td><td>2025</td></tr>
+</table></div><figcaption>Table <strong>Abonne</strong> : 7 enregistrements.</figcaption></figure>
+
+<figure><div><table style="width:auto;margin-inline:auto;white-space:nowrap">
+  <tr><th><u>id_velo</u></th><th>type</th><th>annee</th></tr>
+  <tr><td>11</td><td>VAE</td><td>2022</td></tr>
+  <tr><td>12</td><td>VAE</td><td>2024</td></tr>
+  <tr><td>13</td><td>classique</td><td>2021</td></tr>
+  <tr><td>14</td><td>classique</td><td>2023</td></tr>
+  <tr><td>15</td><td>VAE</td><td>2025</td></tr>
+  <tr><td>16</td><td>classique</td><td>2020</td></tr>
+</table></div><figcaption>Table <strong>Velo</strong> : 6 enregistrements.</figcaption></figure>
+
+<figure><div><table style="width:auto;margin-inline:auto;white-space:nowrap">
+  <tr><th><u>id_trajet</u></th><th>abonne</th><th>velo</th><th>depart</th><th>arrivee</th><th>jour</th><th>duree</th><th>distance</th></tr>
+  <tr><td>1</td><td>1</td><td>11</td><td>1</td><td>4</td><td>2026-03-02</td><td>13</td><td>3.6</td></tr>
+  <tr><td>2</td><td>2</td><td>13</td><td>4</td><td>5</td><td>2026-03-02</td><td>6</td><td>1.2</td></tr>
+  <tr><td>3</td><td>1</td><td>11</td><td>4</td><td>1</td><td>2026-03-02</td><td>14</td><td>3.6</td></tr>
+  <tr><td>4</td><td>4</td><td>12</td><td>2</td><td>3</td><td>2026-03-03</td><td>9</td><td>2.5</td></tr>
+  <tr><td>5</td><td>3</td><td>14</td><td>6</td><td>1</td><td>2026-03-03</td><td>13</td><td>2.8</td></tr>
+  <tr><td>6</td><td>2</td><td>13</td><td>5</td><td>4</td><td>2026-03-03</td><td>7</td><td>1.2</td></tr>
+  <tr><td>7</td><td>5</td><td>14</td><td>1</td><td>6</td><td>2026-03-04</td><td>12</td><td>2.8</td></tr>
+  <tr><td>8</td><td>4</td><td>12</td><td>3</td><td>2</td><td>2026-03-04</td><td>10</td><td>2.5</td></tr>
+  <tr><td>9</td><td>6</td><td>15</td><td>3</td><td>3</td><td>2026-03-04</td><td>35</td><td>6.5</td></tr>
+  <tr><td>10</td><td>1</td><td>11</td><td>1</td><td>4</td><td>2026-03-05</td><td>12</td><td>3.6</td></tr>
+  <tr><td>11</td><td>5</td><td>14</td><td>6</td><td>1</td><td>2026-03-05</td><td>14</td><td>2.8</td></tr>
+  <tr><td>12</td><td>3</td><td>14</td><td>1</td><td>2</td><td>2026-03-05</td><td>5</td><td>0.9</td></tr>
+  <tr><td>13</td><td>2</td><td>13</td><td>4</td><td>1</td><td>2026-03-05</td><td>17</td><td>3.6</td></tr>
+  <tr><td>14</td><td>4</td><td>14</td><td>2</td><td>3</td><td>2026-03-06</td><td>12</td><td>2.5</td></tr>
+  <tr><td>15</td><td>6</td><td>13</td><td>1</td><td>5</td><td>2026-03-06</td><td>22</td><td>4.4</td></tr>
+  <tr><td>16</td><td>1</td><td>11</td><td>4</td><td>1</td><td>2026-03-06</td><td>15</td><td>3.6</td></tr>
+</table></div><figcaption>Table <strong>Trajet</strong> : 16 enregistrements.</figcaption></figure>
+
+<figure><div><table style="width:auto;margin-inline:auto;white-space:nowrap">
+  <tr><th><u>id_abonne</u></th><th><u>id_station</u></th></tr>
+  <tr><td>1</td><td>1</td></tr>
+  <tr><td>1</td><td>4</td></tr>
+  <tr><td>2</td><td>4</td></tr>
+  <tr><td>2</td><td>5</td></tr>
+  <tr><td>3</td><td>1</td></tr>
+  <tr><td>3</td><td>6</td></tr>
+  <tr><td>4</td><td>2</td></tr>
+  <tr><td>4</td><td>3</td></tr>
+  <tr><td>5</td><td>6</td></tr>
+  <tr><td>6</td><td>3</td></tr>
+  <tr><td>7</td><td>2</td></tr>
+  <tr><td>7</td><td>6</td></tr>
+</table></div><figcaption>Table <strong>Favori</strong> : 12 enregistrements.</figcaption></figure>
+
+  <div class="method-box"><strong>Exemple — lire une ligne de la table Trajet</strong>
+    <ol>
+      <li>La ligne (9, 6, 15, 3, 3, '2026-03-04', 35, 6.5) se lit attribut par attribut : le trajet numéro 9 a été effectué par l'abonné 6 avec le vélo 15, le 4 mars 2026, de la station 3 à la station 3, en 35 minutes, sur 6,5 km.</li>
+      <li>Pour savoir qui est l'abonné 6, on cherche dans Abonne la ligne dont id_abonne vaut 6 : Théo Roux. Le vélo 15 est un VAE (table Velo), la station 3 est le Port (table Station). Le trajet 9 est donc une balade de Théo en vélo électrique, partie du Port et revenue au Port.</li>
+      <li>Chaque information n'est écrite qu'une fois : le nom « Port » ne figure que dans Station, les trajets n'en gardent que le numéro. Renommer la station ne demanderait de modifier qu'une case.</li>
+    </ol>
+  </div>
+
+  <div class="notice"><strong>À retenir</strong> : une table est un <em>ensemble</em> de lignes. Leur ordre n'a aucune signification, et deux lignes ne sont jamais identiques (la clé primaire les distingue). Une case contient une seule valeur, jamais une liste. Les dates sont ici des chaînes 'AAAA-MM-JJ' : l'ordre alphabétique de ces chaînes coïncide avec l'ordre chronologique ('2026-03-04' &lt; '2026-03-05'), et c'est tout ce dont on a besoin. La valeur <span class="code-inline">NULL</span> (case vide) est hors programme : toutes les cases sont remplies.</div>
+
+  <p>Dans la suite, chaque requête est suivie de son résultat, tel que l'affiche un logiciel d'interrogation (les flottants sont arrondis au centième). Ce résultat est lui-même un tableau de lignes, sans nom, dont les colonnes sont celles que demande la requête.</p>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§2 · CLÉ PRIMAIRE</div>
+  <h2>Identifier chaque ligne sans ambiguïté</h2>
+  <div class="intro">Pour relier les tables entre elles, il faut pouvoir désigner une ligne précise : « le trajet 9 », « l'abonné 6 ». C'est le rôle de la clé primaire.</div>
+
+  <div class="def-box">
+    Une <strong>clé primaire</strong> d'une table est un attribut, ou un ensemble d'attributs, dont les valeurs suffisent à identifier chaque ligne : deux lignes distinctes ne peuvent jamais avoir les mêmes valeurs pour ces attributs. Chaque table a une clé primaire, choisie en concevant le schéma, sans attribut superflu ; on la souligne dans le schéma.
+  </div>
+
+  <p>Les tables Station, Abonne, Velo et Trajet ont une clé primaire formée d'un seul attribut, un numéro attribué par l'opérateur : c'est le cas le plus fréquent. La clé primaire de Favori est formée de <strong>deux</strong> attributs : un abonné a plusieurs stations favorites, une station est favorite de plusieurs abonnés, mais le couple (id_abonne, id_station) n'apparaît qu'une fois.</p>
+
+  <div class="prop-box"><strong>Une contrainte sur tous les contenus possibles.</strong> Être une clé est une propriété du schéma, imposée à tout contenu futur de la table, et non une constatation sur son contenu actuel. Le logiciel refuse d'ajouter une ligne qui reprendrait la valeur de clé d'une ligne existante.</div>
+
+  <div class="method-box"><strong>Exemple — chercher ce qui peut servir de clé</strong>
+    <ol>
+      <li>nom pour Abonne ? Les sept noms actuels sont distincts, mais rien n'empêche deux homonymes de s'inscrire : nom n'est pas une clé. C'est pour cela qu'on numérote les abonnés.</li>
+      <li>(abonne, jour) pour Trajet ? Non : Inès (abonnée 1) a fait deux trajets le 2026-03-02, les trajets 1 et 3, qui ont les mêmes valeurs pour ces deux attributs.</li>
+      <li>(velo, jour) ? Non plus : le vélo 11 a servi aux trajets 1 et 3, le même jour. Comme la base ne garde pas l'heure, aucun groupe d'attributs naturel n'identifie un trajet : d'où le numéro id_trajet.</li>
+      <li>(id_abonne, id_station) pour Favori : une station est favorite d'un abonné ou ne l'est pas, chaque couple n'a donc de sens qu'une fois. Aucun des deux attributs seul ne suffit : l'abonnée 1 a deux favorites, la station 6 est favorite de trois abonnés.</li>
+    </ol>
+  </div>
+
+  <div class="notice"><strong>Erreur classique</strong> : confondre clé primaire et premier attribut. La clé peut être placée n'importe où dans le schéma et compter plusieurs attributs ; à l'inverse, on n'y met pas d'attribut inutile : id_trajet suffit pour Trajet, (id_trajet, jour) identifierait aussi les lignes mais serait une clé maladroite.</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§3 · ENTITÉS, ASSOCIATIONS, CLÉS ÉTRANGÈRES</div>
+  <h2>Relier les tables entre elles</h2>
+  <div class="intro">Le modèle entité-association décrit les objets dont parle la base (les entités) et les liens entre ces objets (les associations). Les clés étrangères traduisent ces liens dans les tables.</div>
+
+  <div class="def-box">
+    <ul>
+      <li>Une <strong>entité</strong> est un objet du monde réel décrit par la base : une station, un vélo, un abonné, un trajet. Une table décrit un type d'entités, à raison d'une ligne par entité.</li>
+      <li>Une <strong>association</strong> relie des entités : « un trajet est effectué par un abonné ». Entre deux types d'entités A et B, sa <strong>cardinalité</strong> est notée \(1 - 1\), \(1 - \ast\) ou \(\ast - \ast\). Dans une association \(1 - \ast\) de A vers B, chaque entité de B est liée à une seule entité de A, et chaque entité de A à un nombre quelconque d'entités de B, éventuellement nul.</li>
+      <li>Une <strong>clé étrangère</strong> est un attribut (ou un groupe d'attributs) d'une table dont chaque valeur est la valeur de la clé primaire d'une ligne d'une autre table, ou de la même table : elle <em>référence</em> cette ligne.</li>
+    </ul>
+  </div>
+
+<figure class="schema" style="max-width:420px">
+<svg viewBox="0 0 360 488" role="img" aria-label="Diagramme entité-association de la base : Abonne, Velo et Station reliées à Trajet par des associations un à plusieurs, Abonne et Station reliées à Favori">
+<rect x="10" y="10" width="140" height="24" class="fl-accent2-soft"/>
+<rect x="10" y="10" width="140" height="115" class="sk-ink"/>
+<line x1="10" y1="34" x2="150" y2="34" class="sk-axis"/>
+<text x="80.0" y="27" class="lab-b" text-anchor="middle">Abonne</text>
+<text x="20" y="49" style="text-decoration:underline">id_abonne</text>
+<text x="20" y="66">nom</text>
+<text x="20" y="83">prenom</text>
+<text x="20" y="100">formule</text>
+<text x="20" y="117">annee</text>
+<rect x="210" y="10" width="140" height="24" class="fl-accent2-soft"/>
+<rect x="210" y="10" width="140" height="81" class="sk-ink"/>
+<line x1="210" y1="34" x2="350" y2="34" class="sk-axis"/>
+<text x="280.0" y="27" class="lab-b" text-anchor="middle">Velo</text>
+<text x="220" y="49" style="text-decoration:underline">id_velo</text>
+<text x="220" y="66">type</text>
+<text x="220" y="83">annee</text>
+<rect x="110" y="165" width="140" height="24" class="fl-accent2-soft"/>
+<rect x="110" y="165" width="140" height="166" class="sk-ink"/>
+<line x1="110" y1="189" x2="250" y2="189" class="sk-axis"/>
+<text x="180.0" y="182" class="lab-b" text-anchor="middle">Trajet</text>
+<text x="120" y="204" style="text-decoration:underline">id_trajet</text>
+<text x="120" y="221">#abonne</text>
+<text x="120" y="238">#velo</text>
+<text x="120" y="255">#depart</text>
+<text x="120" y="272">#arrivee</text>
+<text x="120" y="289">jour</text>
+<text x="120" y="306">duree</text>
+<text x="120" y="323">distance</text>
+<rect x="10" y="396" width="140" height="24" class="fl-accent2-soft"/>
+<rect x="10" y="396" width="140" height="64" class="sk-ink"/>
+<line x1="10" y1="420" x2="150" y2="420" class="sk-axis"/>
+<text x="80.0" y="413" class="lab-b" text-anchor="middle">Favori</text>
+<text x="20" y="435" style="text-decoration:underline">#id_abonne</text>
+<text x="20" y="452" style="text-decoration:underline">#id_station</text>
+<rect x="210" y="380" width="140" height="24" class="fl-accent2-soft"/>
+<rect x="210" y="380" width="140" height="98" class="sk-ink"/>
+<line x1="210" y1="404" x2="350" y2="404" class="sk-axis"/>
+<text x="280.0" y="397" class="lab-b" text-anchor="middle">Station</text>
+<text x="220" y="419" style="text-decoration:underline">id_station</text>
+<text x="220" y="436">nom</text>
+<text x="220" y="453">quartier</text>
+<text x="220" y="470">capacite</text>
+<line x1="110" y1="125" x2="150" y2="165" class="sk-ink"/>
+<text x="98" y="141" class="lab-b">1</text>
+<text x="152" y="160" class="lab-b" style="font-size:16px">*</text>
+<line x1="260" y1="91" x2="215" y2="165" class="sk-ink"/>
+<text x="266" y="107" class="lab-b">1</text>
+<text x="202" y="160" class="lab-b" style="font-size:16px">*</text>
+<line x1="240" y1="380" x2="200" y2="331" class="sk-ink"/>
+<line x1="310" y1="380" x2="250" y2="311" class="sk-ink"/>
+<text x="207" y="348" class="lab-b" style="font-size:16px">*</text>
+<text x="260" y="311" class="lab-b" style="font-size:16px">*</text>
+<text x="246" y="375" class="lab-b">1</text>
+<text x="316" y="375" class="lab-b">1</text>
+<text x="172" y="366" class="lab-muted">départ</text>
+<text x="290" y="342" class="lab-muted">arrivée</text>
+<line x1="40" y1="125" x2="40" y2="396" class="sk-ink"/>
+<text x="46" y="141" class="lab-b">1</text>
+<text x="46" y="390" class="lab-b" style="font-size:16px">*</text>
+<line x1="210" y1="432.0" x2="150" y2="432.0" class="sk-ink"/>
+<text x="198" y="426.0" class="lab-b">1</text>
+<text x="154" y="426.0" class="lab-b" style="font-size:16px">*</text>
+</svg>
+<figcaption>Diagramme de la base du chapitre. Chaque trait est une association \(1 - \ast\) : le « 1 » est du côté de la table référencée, l'étoile du côté de la table qui porte la clé étrangère (précédée de #). Les clés primaires sont soulignées ; Station est reliée deux fois à Trajet (station de départ, station d'arrivée).</figcaption>
+</figure>
+
+  <h3>Traduire les associations dans les tables</h3>
+  <div class="prop-box"><strong>Association \(1 - \ast\).</strong> On place une clé étrangère du côté « \(\ast\) ». Chaque trajet est effectué par un seul abonné, donc Trajet contient l'attribut abonne, qui référence Abonne (ses valeurs sont des valeurs de id_abonne) ; un abonné peut figurer dans zéro, une ou plusieurs lignes de Trajet. Trajet porte ainsi quatre clés étrangères : abonne (vers Abonne), velo (vers Velo), depart et arrivee (toutes deux vers Station).</div>
+  <div class="prop-box"><strong>Association \(1 - 1\).</strong> Chaque entité d'un côté correspond à exactement une entité de l'autre. On peut fusionner les deux tables, ou placer une clé étrangère d'un côté en imposant que ses valeurs soient deux à deux distinctes. Par exemple, si chaque station était équipée d'un unique terminal de paiement, une table Terminal(<u>id_terminal</u>, modele, id_station) contiendrait la clé étrangère id_station, avec des valeurs toutes différentes : deux terminaux ne peuvent pas désigner la même station.</div>
+  <div class="prop-box"><strong>Association \(\ast - \ast\).</strong> « Un abonné a plusieurs stations favorites, une station est favorite de plusieurs abonnés. » Aucune clé étrangère placée dans Abonne ou dans Station ne convient : il faudrait une liste dans une case. On crée une <strong>table d'association</strong>, Favori, dont chaque ligne est un couple (abonné, station) ; sa clé primaire est ce couple, et chacun de ses deux attributs est une clé étrangère. L'association \(\ast - \ast\) est ainsi séparée en deux associations \(1 - \ast\) : de Abonne vers Favori et de Station vers Favori.</div>
+
+<figure class="schema" style="max-width:420px">
+<svg viewBox="0 0 360 172" role="img" aria-label="Une association plusieurs à plusieurs entre Abonne et Station est remplacée par la table d association Favori, reliée à chacune par une association un à plusieurs">
+<text x="180" y="16" class="lab-muted" text-anchor="middle">une association * − * …</text>
+<rect x="10" y="28" width="90" height="30" class="fl-accent2-soft"/>
+<rect x="10" y="28" width="90" height="30" class="sk-ink"/>
+<text x="55.0" y="48" class="lab-b" text-anchor="middle">Abonne</text>
+<rect x="260" y="28" width="90" height="30" class="fl-accent2-soft"/>
+<rect x="260" y="28" width="90" height="30" class="sk-ink"/>
+<text x="305.0" y="48" class="lab-b" text-anchor="middle">Station</text>
+<line x1="100" y1="43" x2="260" y2="43" class="sk-ink"/>
+<text x="180" y="37" class="lab-it" text-anchor="middle">a pour favorite</text>
+<text x="106" y="62" class="lab-b" style="font-size:16px">*</text>
+<text x="246" y="62" class="lab-b" style="font-size:16px">*</text>
+<line x1="180" y1="70" x2="180" y2="100" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<text x="188" y="90" class="lab-muted">… devient deux associations 1 − *</text>
+<rect x="10" y="112" width="90" height="30" class="fl-accent2-soft"/>
+<rect x="10" y="112" width="90" height="30" class="sk-ink"/>
+<text x="55.0" y="132" class="lab-b" text-anchor="middle">Abonne</text>
+<rect x="135" y="112" width="90" height="30" class="fl-amber-soft"/>
+<rect x="135" y="112" width="90" height="30" class="sk-ink"/>
+<text x="180.0" y="132" class="lab-b" text-anchor="middle">Favori</text>
+<rect x="260" y="112" width="90" height="30" class="fl-accent2-soft"/>
+<rect x="260" y="112" width="90" height="30" class="sk-ink"/>
+<text x="305.0" y="132" class="lab-b" text-anchor="middle">Station</text>
+<line x1="100" y1="127" x2="135" y2="127" class="sk-ink"/>
+<line x1="225" y1="127" x2="260" y2="127" class="sk-ink"/>
+<text x="104" y="120" class="lab-b">1</text>
+<text x="126" y="122" class="lab-b" style="font-size:16px">*</text>
+<text x="229" y="122" class="lab-b" style="font-size:16px">*</text>
+<text x="250" y="120" class="lab-b">1</text>
+<text x="180" y="162" class="lab-muted" text-anchor="middle" style="text-decoration:underline">Favori(#id_abonne, #id_station)</text>
+</svg>
+<figcaption>Séparation d'une association \(\ast - \ast\) : la table d'association Favori a pour clé primaire le couple de ses deux clés étrangères.</figcaption>
+</figure>
+
+  <div class="method-box"><strong>Exemple — l'association \(\ast - \ast\) cachée dans Trajet</strong>
+    <ol>
+      <li>Un abonné emprunte plusieurs vélos et un vélo est emprunté par plusieurs abonnés : entre Abonne et Velo, l'association « a emprunté » est \(\ast - \ast\).</li>
+      <li>La table Trajet la sépare en deux associations \(1 - \ast\), car chaque trajet a un seul abonné et un seul vélo. Ainsi le vélo 14 a servi à Léa (trajets 5 et 12), à Ana (trajets 7 et 11) et à Moussa (trajet 14) ; Moussa, lui, a roulé sur les vélos 12 et 14.</li>
+      <li>Contrairement à Favori, Trajet porte des informations propres à chaque emprunt (jour, durée, distance), et un même couple (abonné, vélo) peut revenir plusieurs fois : Inès a pris quatre fois le vélo 11. Le couple (abonne, velo) n'est donc pas une clé, et l'on a introduit id_trajet.</li>
+    </ol>
+  </div>
+
+  <div class="notice"><strong>Erreur classique</strong> : placer la clé étrangère du mauvais côté. Un attribut id_trajet dans Abonne obligerait à écrire plusieurs trajets dans une même case. La clé étrangère est toujours du côté « \(\ast\) » et référence le côté « 1 ». Autre erreur : oublier que la valeur d'une clé étrangère doit exister dans la table référencée (un trajet de l'abonné 8 serait refusé, aucun abonné ne porte ce numéro).</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§4 · SÉLECTION, PROJECTION, RENOMMAGE</div>
+  <h2>Choisir des lignes et des colonnes</h2>
+  <div class="intro">Une requête <span class="code-inline">SELECT</span> ne modifie jamais la base : elle construit un nouveau tableau à partir des tables existantes. Sa forme la plus simple choisit des lignes (sélection) et des colonnes (projection).</div>
+
+  <div class="prop-box"><strong>Forme de base.</strong>
+<pre class="codeblock"><span class="kw">SELECT</span> expression1 <span class="kw">AS</span> nom1, expression2, …
+<span class="kw">FROM</span> T
+<span class="kw">WHERE</span> condition;</pre>
+    Le logiciel parcourt les lignes de la table T, garde celles qui vérifient la condition (<strong>sélection</strong>), puis calcule pour chacune les expressions demandées (<strong>projection</strong>). <span class="code-inline">SELECT *</span> garde toutes les colonnes ; sans <span class="code-inline">WHERE</span>, toutes les lignes sont gardées. <span class="code-inline">AS</span> donne un nom à une colonne du résultat (<strong>renommage</strong>).
+  </div>
+
+  <p>Les conditions et les expressions utilisent les opérateurs arithmétiques <span class="code-inline">+ - * /</span>, les comparaisons <span class="code-inline">=</span> (égal), <span class="code-inline">&lt;&gt;</span> (différent), <span class="code-inline">&lt; &lt;= &gt; &gt;=</span>, et les connecteurs logiques <span class="code-inline">AND</span>, <span class="code-inline">OR</span>, <span class="code-inline">NOT</span>. Les chaînes s'écrivent entre apostrophes droites ; les nombres se comparent dans l'ordre numérique, les chaînes dans l'ordre lexicographique usuel. Premier exemple, les stations d'au moins 20 places :</p>
+<pre class="codeblock"><span class="kw">SELECT</span> nom, capacite
+<span class="kw">FROM</span> Station
+<span class="kw">WHERE</span> capacite &gt;= 20;</pre>
+<figure><div><table style="width:auto;margin-inline:auto;white-space:nowrap">
+  <tr><th>nom</th><th>capacite</th></tr>
+  <tr><td>Gare</td><td>30</td></tr>
+  <tr><td>Mairie</td><td>20</td></tr>
+  <tr><td>Faculté</td><td>24</td></tr>
+</table></div><figcaption>Résultat : 3 lignes.</figcaption></figure>
+
+  <p>Les trajets des 4 et 5 mars de plus de 10 minutes : la comparaison de chaînes 'AAAA-MM-JJ' suit le calendrier, et l'inégalité stricte exclut le trajet 8, qui dure exactement 10 minutes.</p>
+<pre class="codeblock"><span class="kw">SELECT</span> id_trajet, jour, duree
+<span class="kw">FROM</span> Trajet
+<span class="kw">WHERE</span> jour &gt;= <span class="str">'2026-03-04'</span> <span class="kw">AND</span> jour &lt;= <span class="str">'2026-03-05'</span> <span class="kw">AND</span> duree &gt; 10;</pre>
+<figure><div><table style="width:auto;margin-inline:auto;white-space:nowrap">
+  <tr><th>id_trajet</th><th>jour</th><th>duree</th></tr>
+  <tr><td>7</td><td>2026-03-04</td><td>12</td></tr>
+  <tr><td>9</td><td>2026-03-04</td><td>35</td></tr>
+  <tr><td>10</td><td>2026-03-05</td><td>12</td></tr>
+  <tr><td>11</td><td>2026-03-05</td><td>14</td></tr>
+  <tr><td>13</td><td>2026-03-05</td><td>17</td></tr>
+</table></div><figcaption>Résultat : 5 lignes.</figcaption></figure>
+
+  <p>Une colonne du résultat peut être calculée. La vitesse moyenne d'un trajet, en km/h, vaut 60 fois la distance divisée par la durée en minutes ; <span class="code-inline">AS</span> nomme la colonne calculée :</p>
+<pre class="codeblock"><span class="kw">SELECT</span> id_trajet, 60 * distance / duree <span class="kw">AS</span> vitesse
+<span class="kw">FROM</span> Trajet
+<span class="kw">WHERE</span> abonne = 1;</pre>
+<figure><div><table style="width:auto;margin-inline:auto;white-space:nowrap">
+  <tr><th>id_trajet</th><th>vitesse</th></tr>
+  <tr><td>1</td><td>16.62</td></tr>
+  <tr><td>3</td><td>15.43</td></tr>
+  <tr><td>10</td><td>18.0</td></tr>
+  <tr><td>16</td><td>14.4</td></tr>
+</table></div><figcaption>Résultat : 4 lignes.</figcaption></figure>
+
+  <p>Enfin, <span class="code-inline">NOT</span> nie une condition. Les trajets en boucle, qui reviennent à leur station de départ, s'obtiennent par <span class="code-inline">WHERE depart = arrivee</span> (le seul est le trajet 9) ; les autres, par <span class="code-inline">WHERE NOT depart = arrivee</span> ou, plus simplement, <span class="code-inline">WHERE depart &lt;&gt; arrivee</span>.</p>
+
+
+
+  <div class="method-box"><strong>Exemple — traduire une question en requête</strong>
+    <p>Question : « quels trajets ont été faits avec le vélo 13 ou le vélo 14 et ont duré au moins 12 minutes ? Donner leur vitesse. »</p>
+    <ol>
+      <li>Table : toutes les informations sont dans Trajet.</li>
+      <li>Condition : le vélo est 13 ou 14, <em>et</em> la durée est au moins 12. Le « ou » ne porte que sur le vélo : il faut des parenthèses.</li>
+      <li>Colonnes : id_trajet, velo (utile pour contrôler) et la vitesse calculée, renommée.</li>
+    </ol>
+<pre class="codeblock"><span class="kw">SELECT</span> id_trajet, velo, 60 * distance / duree <span class="kw">AS</span> vitesse
+<span class="kw">FROM</span> Trajet
+<span class="kw">WHERE</span> (velo = 13 <span class="kw">OR</span> velo = 14) <span class="kw">AND</span> duree &gt;= 12;</pre>
+<figure><div><table style="width:auto;margin-inline:auto;white-space:nowrap">
+  <tr><th>id_trajet</th><th>velo</th><th>vitesse</th></tr>
+  <tr><td>5</td><td>14</td><td>12.92</td></tr>
+  <tr><td>7</td><td>14</td><td>14.0</td></tr>
+  <tr><td>11</td><td>14</td><td>12.0</td></tr>
+  <tr><td>13</td><td>13</td><td>12.71</td></tr>
+  <tr><td>14</td><td>14</td><td>12.5</td></tr>
+  <tr><td>15</td><td>13</td><td>12.0</td></tr>
+</table></div><figcaption>Résultat : 6 lignes.</figcaption></figure>
+    <p>Contrôle : le vélo 13 a fait quatre trajets, dont deux d'au moins 12 minutes (13 et 15) ; le vélo 14 en a fait cinq, dont quatre d'au moins 12 minutes. On attend bien six lignes.</p>
+  </div>
+
+
+  <div class="notice"><strong>Erreur classique</strong> : oublier les parenthèses. <span class="code-inline">AND</span> est prioritaire sur <span class="code-inline">OR</span> (comme × sur +) : sans parenthèses, la condition précédente se lit <span class="code-inline">velo = 13 OR (velo = 14 AND duree &gt;= 12)</span> et garde aussi les trajets courts du vélo 13 (2 et 6) : huit lignes au lieu de six. Autres pièges : l'égalité s'écrit <span class="code-inline">=</span> (et non <span class="code-inline">==</span>), la différence <span class="code-inline">&lt;&gt;</span>. Enfin, selon le logiciel, le quotient de deux entiers peut être une division entière (7 / 2 donne 3 dans certains logiciels) : le programme passe outre cette subtilité ; ici distance est un flottant, et le calcul de vitesse se fait en flottants.</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§5 · DOUBLONS, TRI, PAGINATION</div>
+  <h2>Mettre en forme le résultat : DISTINCT, ORDER BY, LIMIT, OFFSET</h2>
+  <div class="intro">Contrairement à une table, le résultat d'un <span class="code-inline">SELECT</span> peut contenir plusieurs fois la même ligne, et ses lignes arrivent dans un ordre que rien ne garantit. Quatre mots-clés règlent ces deux points.</div>
+
+  <div class="def-box">
+    <ul>
+      <li><span class="code-inline">SELECT DISTINCT …</span> retire du résultat les lignes en double (deux lignes sont en double si elles coïncident sur <em>toutes</em> les colonnes du résultat).</li>
+      <li><span class="code-inline">ORDER BY a, b DESC</span> trie le résultat selon a, puis départage les ex æquo selon b ; l'ordre est croissant par défaut (<span class="code-inline">ASC</span>), décroissant avec <span class="code-inline">DESC</span>.</li>
+      <li><span class="code-inline">LIMIT n</span> ne garde que les n premières lignes ; <span class="code-inline">LIMIT n OFFSET k</span> saute les k premières, puis garde les n suivantes. Ces deux mots-clés se placent en fin de requête, après <span class="code-inline">ORDER BY</span>.</li>
+    </ul>
+  </div>
+
+  <p>Les quartiers des stations : la projection seule répète Centre et Rives, <span class="code-inline">DISTINCT</span> donne chaque quartier une fois.</p>
+<pre class="codeblock"><span class="kw">SELECT</span> quartier <span class="kw">FROM</span> Station;</pre>
+<figure><div><table style="width:auto;margin-inline:auto;white-space:nowrap">
+  <tr><th>quartier</th></tr>
+  <tr><td>Centre</td></tr>
+  <tr><td>Centre</td></tr>
+  <tr><td>Rives</td></tr>
+  <tr><td>Campus</td></tr>
+  <tr><td>Campus</td></tr>
+  <tr><td>Rives</td></tr>
+</table></div><figcaption>Résultat : 6 lignes.</figcaption></figure>
+<pre class="codeblock"><span class="kw">SELECT</span> <span class="kw">DISTINCT</span> quartier <span class="kw">FROM</span> Station;</pre>
+<figure><div><table style="width:auto;margin-inline:auto;white-space:nowrap">
+  <tr><th>quartier</th></tr>
+  <tr><td>Centre</td></tr>
+  <tr><td>Rives</td></tr>
+  <tr><td>Campus</td></tr>
+</table></div><figcaption>Résultat : 3 lignes.</figcaption></figure>
+
+  <p>Les couples (abonné, vélo) effectivement utilisés : seize trajets, mais huit couples distincts seulement.</p>
+<pre class="codeblock"><span class="kw">SELECT</span> <span class="kw">DISTINCT</span> abonne, velo
+<span class="kw">FROM</span> Trajet
+<span class="kw">ORDER</span> <span class="kw">BY</span> abonne, velo;</pre>
+<figure><div><table style="width:auto;margin-inline:auto;white-space:nowrap">
+  <tr><th>abonne</th><th>velo</th></tr>
+  <tr><td>1</td><td>11</td></tr>
+  <tr><td>2</td><td>13</td></tr>
+  <tr><td>3</td><td>14</td></tr>
+  <tr><td>4</td><td>12</td></tr>
+  <tr><td>4</td><td>14</td></tr>
+  <tr><td>5</td><td>14</td></tr>
+  <tr><td>6</td><td>13</td></tr>
+  <tr><td>6</td><td>15</td></tr>
+</table></div><figcaption>Résultat : 8 lignes.</figcaption></figure>
+
+  <p>Les abonnés triés par formule, puis par nom à l'intérieur de chaque formule :</p>
+<pre class="codeblock"><span class="kw">SELECT</span> nom, prenom, formule
+<span class="kw">FROM</span> Abonne
+<span class="kw">ORDER</span> <span class="kw">BY</span> formule, nom;</pre>
+<figure><div><table style="width:auto;margin-inline:auto;white-space:nowrap">
+  <tr><th>nom</th><th>prenom</th><th>formule</th></tr>
+  <tr><td>Lemoine</td><td>Inès</td><td>annuel</td></tr>
+  <tr><td>Ndiaye</td><td>Moussa</td><td>annuel</td></tr>
+  <tr><td>Roux</td><td>Théo</td><td>annuel</td></tr>
+  <tr><td>Carvalho</td><td>Ana</td><td>jeune</td></tr>
+  <tr><td>Ferrand</td><td>Hugo</td><td>jeune</td></tr>
+  <tr><td>Bastide</td><td>Léa</td><td>mensuel</td></tr>
+  <tr><td>Garnier</td><td>Chloé</td><td>mensuel</td></tr>
+</table></div><figcaption>Résultat : 7 lignes.</figcaption></figure>
+
+  <p>Les trois trajets les plus longs, puis le deuxième plus long seulement :</p>
+<pre class="codeblock"><span class="kw">SELECT</span> id_trajet, duree
+<span class="kw">FROM</span> Trajet
+<span class="kw">ORDER</span> <span class="kw">BY</span> duree <span class="kw">DESC</span>
+<span class="kw">LIMIT</span> 3;</pre>
+<figure><div><table style="width:auto;margin-inline:auto;white-space:nowrap">
+  <tr><th>id_trajet</th><th>duree</th></tr>
+  <tr><td>9</td><td>35</td></tr>
+  <tr><td>15</td><td>22</td></tr>
+  <tr><td>13</td><td>17</td></tr>
+</table></div><figcaption>Résultat : 3 lignes.</figcaption></figure>
+<pre class="codeblock"><span class="kw">SELECT</span> id_trajet, duree
+<span class="kw">FROM</span> Trajet
+<span class="kw">ORDER</span> <span class="kw">BY</span> duree <span class="kw">DESC</span>
+<span class="kw">LIMIT</span> 1 <span class="kw">OFFSET</span> 1;</pre>
+<figure><div><table style="width:auto;margin-inline:auto;white-space:nowrap">
+  <tr><th>id_trajet</th><th>duree</th></tr>
+  <tr><td>15</td><td>22</td></tr>
+</table></div><figcaption>Résultat : 1 ligne.</figcaption></figure>
+
+  <div class="method-box"><strong>Exemple — afficher les trajets page par page</strong>
+    <p>L'application montre l'historique des trajets quatre par quatre, du plus récent au plus ancien. Quelle requête donne la page 2 ?</p>
+    <ol>
+      <li>Trier du plus récent au plus ancien : <span class="code-inline">ORDER BY jour DESC</span>. Plusieurs trajets ont lieu le même jour : on départage par le numéro, décroissant lui aussi (les numéros suivent l'ordre des trajets), pour que l'ordre soit entièrement déterminé.</li>
+      <li>La page \(p\) saute les \(4(p - 1)\) premières lignes et en garde 4 : pour \(p = 2\), <span class="code-inline">LIMIT 4 OFFSET 4</span>.</li>
+    </ol>
+<pre class="codeblock"><span class="kw">SELECT</span> id_trajet, jour
+<span class="kw">FROM</span> Trajet
+<span class="kw">ORDER</span> <span class="kw">BY</span> jour <span class="kw">DESC</span>, id_trajet <span class="kw">DESC</span>
+<span class="kw">LIMIT</span> 4 <span class="kw">OFFSET</span> 4;</pre>
+<figure><div><table style="width:auto;margin-inline:auto;white-space:nowrap">
+  <tr><th>id_trajet</th><th>jour</th></tr>
+  <tr><td>12</td><td>2026-03-05</td></tr>
+  <tr><td>11</td><td>2026-03-05</td></tr>
+  <tr><td>10</td><td>2026-03-05</td></tr>
+  <tr><td>9</td><td>2026-03-04</td></tr>
+</table></div><figcaption>Résultat : 4 lignes.</figcaption></figure>
+    <p>La page 1 contenait les trajets 16, 15, 14 et 13 ; la page 2 enchaîne logiquement.</p>
+  </div>
+
+
+  <div class="notice"><strong>Erreur classique</strong> : faire confiance à <span class="code-inline">LIMIT</span> en cas d'ex æquo. Les cinq trajets les plus longs durent 35, 22, 17, 15 et 14 minutes, mais deux trajets (3 et 11) durent 14 minutes : <span class="code-inline">ORDER BY duree DESC LIMIT 5</span> en garde un au hasard du logiciel. Ajouter un second critère de tri rend le résultat reproductible ; pour obtenir <em>tous</em> les ex æquo, on utilise une requête imbriquée (§10). De même, sans <span class="code-inline">ORDER BY</span>, l'ordre des lignes d'un résultat n'est jamais garanti.</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§6 · OPÉRATIONS ENSEMBLISTES ET PRODUIT CARTÉSIEN</div>
+  <h2>Combiner des résultats</h2>
+  <div class="intro">Le résultat d'une requête étant un ensemble de lignes, on peut réunir, intersecter ou soustraire deux résultats. Le produit cartésien, lui, combine les lignes de deux tables : c'est la première étape d'une jointure.</div>
+
+  <div class="def-box">
+    Si R1 et R2 sont deux requêtes dont les résultats ont le même nombre de colonnes, de mêmes domaines dans le même ordre :
+    <ul>
+      <li><span class="code-inline">R1 UNION R2</span> contient les lignes présentes dans R1 <em>ou</em> dans R2 ;</li>
+      <li><span class="code-inline">R1 INTERSECT R2</span> contient les lignes présentes dans R1 <em>et</em> dans R2 ;</li>
+      <li><span class="code-inline">R1 EXCEPT R2</span> contient les lignes de R1 qui ne sont pas dans R2.</li>
+    </ul>
+    Le résultat ne contient aucun doublon, et ses colonnes portent les noms de celles de R1.
+  </div>
+
+  <p>Les stations où Théo (abonné 6) a pris <em>ou</em> rendu un vélo : il faut réunir deux colonnes différentes de Trajet, ce qu'un simple <span class="code-inline">OR</span> ne sait pas faire. La station 3, présente dans les deux résultats, n'apparaît qu'une fois.</p>
+<pre class="codeblock"><span class="kw">SELECT</span> depart <span class="kw">AS</span> station <span class="kw">FROM</span> Trajet <span class="kw">WHERE</span> abonne = 6
+<span class="kw">UNION</span>
+<span class="kw">SELECT</span> arrivee <span class="kw">FROM</span> Trajet <span class="kw">WHERE</span> abonne = 6;</pre>
+<figure><div><table style="width:auto;margin-inline:auto;white-space:nowrap">
+  <tr><th>station</th></tr>
+  <tr><td>1</td></tr>
+  <tr><td>3</td></tr>
+  <tr><td>5</td></tr>
+</table></div><figcaption>Résultat : 3 lignes.</figcaption></figure>
+
+  <p>Les abonnés qui ont roulé le 4 mars <em>et</em> le 6 mars :</p>
+<pre class="codeblock"><span class="kw">SELECT</span> abonne <span class="kw">FROM</span> Trajet <span class="kw">WHERE</span> jour = <span class="str">'2026-03-04'</span>
+<span class="kw">INTERSECT</span>
+<span class="kw">SELECT</span> abonne <span class="kw">FROM</span> Trajet <span class="kw">WHERE</span> jour = <span class="str">'2026-03-06'</span>;</pre>
+<figure><div><table style="width:auto;margin-inline:auto;white-space:nowrap">
+  <tr><th>abonne</th></tr>
+  <tr><td>4</td></tr>
+  <tr><td>6</td></tr>
+</table></div><figcaption>Résultat : 2 lignes.</figcaption></figure>
+<pre class="codeblock"><span class="kw">SELECT</span> abonne <span class="kw">FROM</span> Trajet
+<span class="kw">WHERE</span> jour = <span class="str">'2026-03-04'</span> <span class="kw">AND</span> jour = <span class="str">'2026-03-06'</span>;</pre>
+<figure><div><table style="width:auto;margin-inline:auto;white-space:nowrap">
+  <tr><th>abonne</th></tr>
+</table></div><figcaption>Résultat : aucune ligne.</figcaption></figure>
+  <p>La seconde requête ne répond pas à la question : elle cherche une <em>ligne</em> dont le jour vaudrait à la fois deux dates, ce qui est impossible. <span class="code-inline">AND</span> combine des conditions sur une même ligne, <span class="code-inline">INTERSECT</span> combine deux ensembles de lignes.</p>
+
+  <p>Les abonnés qui n'ont fait aucun trajet : tous les abonnés, privés de ceux qui apparaissent dans Trajet.</p>
+<pre class="codeblock"><span class="kw">SELECT</span> id_abonne <span class="kw">FROM</span> Abonne
+<span class="kw">EXCEPT</span>
+<span class="kw">SELECT</span> abonne <span class="kw">FROM</span> Trajet;</pre>
+<figure><div><table style="width:auto;margin-inline:auto;white-space:nowrap">
+  <tr><th>id_abonne</th></tr>
+  <tr><td>7</td></tr>
+</table></div><figcaption>Résultat : 1 ligne.</figcaption></figure>
+
+  <div class="method-box"><strong>Exemple — opérations sur des couples</strong>
+    <p>Quels abonnés ont pris un vélo dans une station qui ne fait pas partie de leurs favorites ?</p>
+    <ol>
+      <li>Les couples (abonné, station de départ) se lisent dans Trajet ; les couples (abonné, station favorite) dans Favori. Les deux résultats ont deux colonnes entières : ils sont compatibles.</li>
+      <li>On veut les couples du premier ensemble absents du second : c'est une différence.</li>
+    </ol>
+<pre class="codeblock"><span class="kw">SELECT</span> abonne, depart <span class="kw">FROM</span> Trajet
+<span class="kw">EXCEPT</span>
+<span class="kw">SELECT</span> id_abonne, id_station <span class="kw">FROM</span> Favori;</pre>
+<figure><div><table style="width:auto;margin-inline:auto;white-space:nowrap">
+  <tr><th>abonne</th><th>depart</th></tr>
+  <tr><td>5</td><td>1</td></tr>
+  <tr><td>6</td><td>1</td></tr>
+</table></div><figcaption>Résultat : 2 lignes.</figcaption></figure>
+    <p>Ana (5) est partie de la Gare, qui n'est pas sa favorite, et Théo (6) aussi. Inès est partie deux fois de la Gare et deux fois de la Faculté, ses deux favorites : ces couples, présents dans Favori, disparaissent.</p>
+  </div>
+
+  <h3>Produit cartésien</h3>
+  <div class="def-box">
+    Le <strong>produit cartésien</strong> de deux tables, écrit <span class="code-inline">FROM T1, T2</span>, est formé de toutes les combinaisons d'une ligne de T1 et d'une ligne de T2, avec les colonnes de T1 suivies de celles de T2. Si T1 a \(n_1\) lignes et T2 en a \(n_2\), le produit en a \(n_1 \times n_2\). Une colonne présente dans les deux tables se désigne par <span class="code-inline">T.colonne</span>.
+  </div>
+
+  <p>Seul, le produit sert peu, mais il répond à certaines questions. Pour une grille de tarifs, l'opérateur veut toutes les combinaisons d'une formule et d'un type de vélo : 42 lignes dans le produit Abonne × Velo, 6 couples distincts.</p>
+<pre class="codeblock"><span class="kw">SELECT</span> <span class="kw">DISTINCT</span> formule, type
+<span class="kw">FROM</span> Abonne, Velo
+<span class="kw">ORDER</span> <span class="kw">BY</span> formule;</pre>
+<figure><div><table style="width:auto;margin-inline:auto;white-space:nowrap">
+  <tr><th>formule</th><th>type</th></tr>
+  <tr><td>annuel</td><td>VAE</td></tr>
+  <tr><td>annuel</td><td>classique</td></tr>
+  <tr><td>jeune</td><td>VAE</td></tr>
+  <tr><td>jeune</td><td>classique</td></tr>
+  <tr><td>mensuel</td><td>VAE</td></tr>
+  <tr><td>mensuel</td><td>classique</td></tr>
+</table></div><figcaption>Résultat : 6 lignes.</figcaption></figure>
+
+  <p>Son véritable intérêt vient de la sélection qui le suit. Le produit Trajet × Station a \(16 \times 6 = 96\) lignes, chacune associant un trajet à une station quelconque ; ne garder que les lignes où la station est celle du départ recolle à chaque trajet <em>sa</em> station :</p>
+<pre class="codeblock"><span class="kw">SELECT</span> Trajet.id_trajet, Station.nom
+<span class="kw">FROM</span> Trajet, Station
+<span class="kw">WHERE</span> Trajet.depart = Station.id_station <span class="kw">AND</span> Trajet.abonne = 6;</pre>
+<figure><div><table style="width:auto;margin-inline:auto;white-space:nowrap">
+  <tr><th>id_trajet</th><th>nom</th></tr>
+  <tr><td>9</td><td>Port</td></tr>
+  <tr><td>15</td><td>Gare</td></tr>
+</table></div><figcaption>Résultat : 2 lignes.</figcaption></figure>
+  <p>C'est exactement ce que fait une jointure, objet du paragraphe suivant.</p>
+
+  <div class="notice"><strong>Erreur classique</strong> : réunir des résultats incompatibles (nombres de colonnes différents, ou une colonne de noms face à une colonne de numéros). Le logiciel refuse le premier cas ; le second donne un résultat dénué de sens. Et ne pas confondre <span class="code-inline">OR</span> avec <span class="code-inline">UNION</span> : <span class="code-inline">OR</span> combine deux conditions sur une même ligne d'une même table.</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§7 · JOINTURES</div>
+  <h2>Recoller les informations en suivant les clés étrangères</h2>
+  <div class="intro">Une question porte souvent sur plusieurs tables : « le <em>nom</em> de la station de départ de chaque trajet ». La jointure recolle les lignes qui se correspondent par une clé étrangère.</div>
+
+  <div class="def-box">
+    La <strong>jointure</strong> <span class="code-inline">T1 JOIN T2 ON condition</span> est formée des lignes du produit cartésien de T1 et T2 qui vérifient la condition. Le programme se limite aux <strong>équi-jointures</strong> : la condition est une égalité, ou une conjonction d'égalités (reliées par <span class="code-inline">AND</span>), entre des colonnes des deux tables. On enchaîne <span class="code-inline">T1 JOIN T2 ON … JOIN T3 ON …</span> pour joindre plus de deux tables.
+  </div>
+
+  <p>Lorsque la condition égale une clé étrangère de T1 à la clé primaire de T2, chaque ligne de T1 est complétée par l'unique ligne de T2 qu'elle référence : le résultat a autant de lignes que T1. On donne aux tables des noms courts, ou <strong>alias</strong> (<span class="code-inline">Trajet AS t</span>), et l'on préfixe les colonnes par l'alias (<span class="code-inline">t.duree</span>) ; c'est obligatoire quand deux tables ont une colonne de même nom.</p>
+
+<figure class="schema" style="max-width:420px">
+<svg viewBox="0 0 360 298" role="img" aria-label="Chaque ligne de Trajet est recollée à la ligne de Station dont l identifiant vaut sa station de départ">
+<text x="10" y="22" class="lab-b">Trajet (extrait)</text>
+<text x="350" y="22" class="lab-b" text-anchor="end">Station (extrait)</text>
+<rect x="10" y="30" width="130" height="22" class="fl-muted-soft"/>
+<rect x="10" y="30" width="130" height="110" class="sk-axis"/>
+<text x="45.0" y="45.5" class="lab-b" text-anchor="middle">id_trajet</text>
+<text x="110.0" y="45.5" class="lab-b" text-anchor="middle">depart</text>
+<line x1="10" y1="52" x2="140" y2="52" class="sk-axis"/>
+<line x1="10" y1="74" x2="140" y2="74" class="sk-axis"/>
+<line x1="10" y1="96" x2="140" y2="96" class="sk-axis"/>
+<line x1="10" y1="118" x2="140" y2="118" class="sk-axis"/>
+<line x1="80" y1="30" x2="80" y2="140" class="sk-axis"/>
+<text x="45.0" y="67.5" text-anchor="middle">1</text>
+<text x="110.0" y="67.5" text-anchor="middle">1</text>
+<text x="45.0" y="89.5" text-anchor="middle">2</text>
+<text x="110.0" y="89.5" text-anchor="middle">4</text>
+<text x="45.0" y="111.5" text-anchor="middle">4</text>
+<text x="110.0" y="111.5" text-anchor="middle">2</text>
+<text x="45.0" y="133.5" text-anchor="middle">9</text>
+<text x="110.0" y="133.5" text-anchor="middle">3</text>
+<rect x="210" y="30" width="140" height="22" class="fl-muted-soft"/>
+<rect x="210" y="30" width="140" height="110" class="sk-axis"/>
+<text x="246.0" y="45.5" class="lab-b" text-anchor="middle">id_station</text>
+<text x="316.0" y="45.5" class="lab-b" text-anchor="middle">nom</text>
+<line x1="210" y1="52" x2="350" y2="52" class="sk-axis"/>
+<line x1="210" y1="74" x2="350" y2="74" class="sk-axis"/>
+<line x1="210" y1="96" x2="350" y2="96" class="sk-axis"/>
+<line x1="210" y1="118" x2="350" y2="118" class="sk-axis"/>
+<line x1="282" y1="30" x2="282" y2="140" class="sk-axis"/>
+<text x="246.0" y="67.5" text-anchor="middle">1</text>
+<text x="316.0" y="67.5" text-anchor="middle">Gare</text>
+<text x="246.0" y="89.5" text-anchor="middle">2</text>
+<text x="316.0" y="89.5" text-anchor="middle">Mairie</text>
+<text x="246.0" y="111.5" text-anchor="middle">3</text>
+<text x="316.0" y="111.5" text-anchor="middle">Port</text>
+<text x="246.0" y="133.5" text-anchor="middle">4</text>
+<text x="316.0" y="133.5" text-anchor="middle">Faculté</text>
+<line x1="140" y1="63.0" x2="208" y2="63.0" class="sk-accent2"/>
+<line x1="140" y1="85.0" x2="208" y2="129.0" class="sk-accent2"/>
+<line x1="140" y1="107.0" x2="208" y2="85.0" class="sk-accent2"/>
+<line x1="140" y1="129.0" x2="208" y2="107.0" class="sk-accent2"/>
+<text x="180" y="166" class="lab-accent2" text-anchor="middle" style="font-family:var(--font-code)">ON t.depart = s.id_station</text>
+<rect x="105" y="180" width="150" height="22" class="fl-muted-soft"/>
+<rect x="105" y="180" width="150" height="110" class="sk-axis"/>
+<text x="140.0" y="195.5" class="lab-b" text-anchor="middle">id_trajet</text>
+<text x="215.0" y="195.5" class="lab-b" text-anchor="middle">nom</text>
+<line x1="105" y1="202" x2="255" y2="202" class="sk-axis"/>
+<line x1="105" y1="224" x2="255" y2="224" class="sk-axis"/>
+<line x1="105" y1="246" x2="255" y2="246" class="sk-axis"/>
+<line x1="105" y1="268" x2="255" y2="268" class="sk-axis"/>
+<line x1="175" y1="180" x2="175" y2="290" class="sk-axis"/>
+<text x="140.0" y="217.5" text-anchor="middle">1</text>
+<text x="215.0" y="217.5" text-anchor="middle">Gare</text>
+<text x="140.0" y="239.5" text-anchor="middle">2</text>
+<text x="215.0" y="239.5" text-anchor="middle">Faculté</text>
+<text x="140.0" y="261.5" text-anchor="middle">4</text>
+<text x="215.0" y="261.5" text-anchor="middle">Mairie</text>
+<text x="140.0" y="283.5" text-anchor="middle">9</text>
+<text x="215.0" y="283.5" text-anchor="middle">Port</text>
+</svg>
+<figcaption>Jointure : chaque trajet est complété par l'unique ligne de Station que référence sa clé étrangère <span class="code-inline">depart</span> ; le résultat (en bas) a une ligne par trajet.</figcaption>
+</figure>
+
+  <p>Les trajets d'Inès (abonnée 1) avec le nom de leur station de départ :</p>
+<pre class="codeblock"><span class="kw">SELECT</span> t.id_trajet, t.jour, s.nom
+<span class="kw">FROM</span> Trajet <span class="kw">AS</span> t <span class="kw">JOIN</span> Station <span class="kw">AS</span> s <span class="kw">ON</span> t.depart = s.id_station
+<span class="kw">WHERE</span> t.abonne = 1;</pre>
+<figure><div><table style="width:auto;margin-inline:auto;white-space:nowrap">
+  <tr><th>id_trajet</th><th>jour</th><th>nom</th></tr>
+  <tr><td>1</td><td>2026-03-02</td><td>Gare</td></tr>
+  <tr><td>3</td><td>2026-03-02</td><td>Faculté</td></tr>
+  <tr><td>10</td><td>2026-03-05</td><td>Gare</td></tr>
+  <tr><td>16</td><td>2026-03-06</td><td>Faculté</td></tr>
+</table></div><figcaption>Résultat : 4 lignes.</figcaption></figure>
+
+
+  <p>Les abonnés qui ont roulé en VAE : on va d'Abonne à Velo en passant par Trajet, une condition <span class="code-inline">ON</span> par lien du diagramme. <span class="code-inline">DISTINCT</span> évite de voir Inès quatre fois.</p>
+<pre class="codeblock"><span class="kw">SELECT</span> <span class="kw">DISTINCT</span> a.prenom, a.nom
+<span class="kw">FROM</span> Abonne <span class="kw">AS</span> a
+<span class="kw">JOIN</span> Trajet <span class="kw">AS</span> t <span class="kw">ON</span> a.id_abonne = t.abonne
+<span class="kw">JOIN</span> Velo <span class="kw">AS</span> v <span class="kw">ON</span> t.velo = v.id_velo
+<span class="kw">WHERE</span> v.type = <span class="str">'VAE'</span>;</pre>
+<figure><div><table style="width:auto;margin-inline:auto;white-space:nowrap">
+  <tr><th>prenom</th><th>nom</th></tr>
+  <tr><td>Inès</td><td>Lemoine</td></tr>
+  <tr><td>Moussa</td><td>Ndiaye</td></tr>
+  <tr><td>Théo</td><td>Roux</td></tr>
+</table></div><figcaption>Résultat : 3 lignes.</figcaption></figure>
+
+  <p>Une même table peut intervenir deux fois sous deux alias. Pour afficher les deux stations d'un trajet, on joint Station une fois pour le départ et une fois pour l'arrivée :</p>
+<pre class="codeblock"><span class="kw">SELECT</span> t.id_trajet, d.nom <span class="kw">AS</span> de, r.nom <span class="kw">AS</span> vers
+<span class="kw">FROM</span> Trajet <span class="kw">AS</span> t
+<span class="kw">JOIN</span> Station <span class="kw">AS</span> d <span class="kw">ON</span> t.depart = d.id_station
+<span class="kw">JOIN</span> Station <span class="kw">AS</span> r <span class="kw">ON</span> t.arrivee = r.id_station
+<span class="kw">WHERE</span> t.jour = <span class="str">'2026-03-05'</span>;</pre>
+<figure><div><table style="width:auto;margin-inline:auto;white-space:nowrap">
+  <tr><th>id_trajet</th><th>de</th><th>vers</th></tr>
+  <tr><td>10</td><td>Gare</td><td>Faculté</td></tr>
+  <tr><td>11</td><td>Marché</td><td>Gare</td></tr>
+  <tr><td>12</td><td>Gare</td><td>Mairie</td></tr>
+  <tr><td>13</td><td>Faculté</td><td>Gare</td></tr>
+</table></div><figcaption>Résultat : 4 lignes.</figcaption></figure>
+
+  <h3>Autojointure</h3>
+  <div class="def-box">
+    Une <strong>autojointure</strong> est la jointure d'une table avec elle-même, sous deux alias : elle permet de comparer deux lignes d'une même table.
+  </div>
+  <p>Les paires de stations d'un même quartier : la condition d'égalité porte sur le quartier, et la condition <span class="code-inline">s1.id_station &lt; s2.id_station</span>, qui n'est pas une égalité, va dans <span class="code-inline">WHERE</span>. Sans elle, on obtiendrait aussi chaque station appariée à elle-même et chaque paire dans les deux sens : 12 lignes au lieu de 3.</p>
+<pre class="codeblock"><span class="kw">SELECT</span> s1.nom <span class="kw">AS</span> station1, s2.nom <span class="kw">AS</span> station2
+<span class="kw">FROM</span> Station <span class="kw">AS</span> s1 <span class="kw">JOIN</span> Station <span class="kw">AS</span> s2 <span class="kw">ON</span> s1.quartier = s2.quartier
+<span class="kw">WHERE</span> s1.id_station &lt; s2.id_station;</pre>
+<figure><div><table style="width:auto;margin-inline:auto;white-space:nowrap">
+  <tr><th>station1</th><th>station2</th></tr>
+  <tr><td>Gare</td><td>Mairie</td></tr>
+  <tr><td>Port</td><td>Marché</td></tr>
+  <tr><td>Faculté</td><td>Piscine</td></tr>
+</table></div><figcaption>Résultat : 3 lignes.</figcaption></figure>
+
+
+  <div class="method-box"><strong>Exemple — repérer les allers-retours dans la journée</strong>
+    <p>Un aller-retour est un couple de trajets d'un même abonné, le même jour, où l'arrivée de l'un est le départ de l'autre et inversement.</p>
+    <ol>
+      <li>Deux lignes de Trajet à comparer : autojointure, alias <span class="code-inline">a</span> (aller) et <span class="code-inline">r</span> (retour).</li>
+      <li>Les quatre conditions sont des égalités : elles forment la condition <span class="code-inline">ON</span>.</li>
+      <li>L'aller précède le retour : <span class="code-inline">a.id_trajet &lt; r.id_trajet</span>, dans <span class="code-inline">WHERE</span>. Cette condition élimine aussi le trajet en boucle 9, qui vérifie les quatre égalités avec lui-même, et le couple (3, 1), qui n'est que le couple (1, 3) lu à l'envers.</li>
+    </ol>
+<pre class="codeblock"><span class="kw">SELECT</span> a.id_trajet <span class="kw">AS</span> aller, r.id_trajet <span class="kw">AS</span> retour, a.jour
+<span class="kw">FROM</span> Trajet <span class="kw">AS</span> a <span class="kw">JOIN</span> Trajet <span class="kw">AS</span> r
+  <span class="kw">ON</span> a.abonne = r.abonne <span class="kw">AND</span> a.jour = r.jour
+     <span class="kw">AND</span> a.arrivee = r.depart <span class="kw">AND</span> a.depart = r.arrivee
+<span class="kw">WHERE</span> a.id_trajet &lt; r.id_trajet;</pre>
+<figure><div><table style="width:auto;margin-inline:auto;white-space:nowrap">
+  <tr><th>aller</th><th>retour</th><th>jour</th></tr>
+  <tr><td>1</td><td>3</td><td>2026-03-02</td></tr>
+</table></div><figcaption>Résultat : 1 ligne.</figcaption></figure>
+  </div>
+
+
+  <div class="notice"><strong>Erreur classique</strong> : oublier une condition de jointure, ou se tromper de colonne. <span class="code-inline">FROM Trajet, Station</span> sans condition donne les 96 lignes du produit, et chaque trajet semble partir de toutes les stations. Pour vérifier une jointure qui suit une clé étrangère, compter : le résultat doit avoir autant de lignes que la table qui porte la clé (avant le <span class="code-inline">WHERE</span>). Et toujours préfixer une colonne ambiguë : <span class="code-inline">nom</span> existe dans Station et dans Abonne.</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§8 · AGRÉGATS ET GROUP BY</div>
+  <h2>Résumer une colonne, puis résumer par groupe</h2>
+  <div class="intro">Les fonctions d'agrégation résument toute une colonne en une seule valeur : un nombre de lignes, une somme, une moyenne, un extremum. Avec <span class="code-inline">GROUP BY</span>, elles résument séparément chaque paquet de lignes.</div>
+
+  <div class="def-box">
+    Les <strong>fonctions d'agrégation</strong> s'appliquent aux lignes retenues par la requête :
+    <ul>
+      <li><span class="code-inline">COUNT(*)</span> : le nombre de lignes ; <span class="code-inline">COUNT(DISTINCT a)</span> : le nombre de valeurs distinctes de l'attribut a ;</li>
+      <li><span class="code-inline">SUM(e)</span>, <span class="code-inline">AVG(e)</span> : la somme et la moyenne d'une expression numérique ;</li>
+      <li><span class="code-inline">MIN(e)</span>, <span class="code-inline">MAX(e)</span> : le minimum et le maximum (nombres ou chaînes).</li>
+    </ul>
+    Sans <span class="code-inline">GROUP BY</span>, une requête dont le <span class="code-inline">SELECT</span> ne contient que des agrégats renvoie une seule ligne.
+  </div>
+<pre class="codeblock"><span class="kw">SELECT</span> <span class="kw">COUNT</span>(*) <span class="kw">AS</span> nb, <span class="kw">SUM</span>(distance) <span class="kw">AS</span> km, <span class="kw">AVG</span>(duree) <span class="kw">AS</span> moyenne,
+       <span class="kw">MAX</span>(duree) <span class="kw">AS</span> plus_long, <span class="kw">MIN</span>(jour) <span class="kw">AS</span> premier_jour
+<span class="kw">FROM</span> Trajet;</pre>
+<figure><div><table style="width:auto;margin-inline:auto;white-space:nowrap">
+  <tr><th>nb</th><th>km</th><th>moyenne</th><th>plus_long</th><th>premier_jour</th></tr>
+  <tr><td>16</td><td>48.1</td><td>13.5</td><td>35</td><td>2026-03-02</td></tr>
+</table></div><figcaption>Résultat : 1 ligne.</figcaption></figure>
+<pre class="codeblock"><span class="kw">SELECT</span> <span class="kw">COUNT</span>(<span class="kw">DISTINCT</span> velo) <span class="kw">AS</span> velos_utilises
+<span class="kw">FROM</span> Trajet;</pre>
+<figure><div><table style="width:auto;margin-inline:auto;white-space:nowrap">
+  <tr><th>velos_utilises</th></tr>
+  <tr><td>5</td></tr>
+</table></div><figcaption>Résultat : 1 ligne.</figcaption></figure>
+  <p>Les seize trajets ont parcouru 48,1 km en tout ; cinq vélos sur six ont servi (le vélo 16 jamais).</p>
+
+  <h3>Regrouper avant d'agréger</h3>
+  <div class="def-box">
+    <span class="code-inline">GROUP BY a1, …, ak</span> partage les lignes en <strong>groupes</strong> : deux lignes sont dans le même groupe si elles ont les mêmes valeurs de a1, …, ak. Le résultat a <strong>une ligne par groupe</strong> ; son <span class="code-inline">SELECT</span> ne doit contenir que les attributs du regroupement et des agrégats, calculés sur les lignes du groupe.
+  </div>
+
+<figure class="schema" style="max-width:420px">
+<svg viewBox="0 0 360 216" role="img" aria-label="Les lignes de même abonne forment un groupe ; chaque groupe donne une seule ligne avec son nombre de trajets et sa durée moyenne">
+<rect x="6" y="52" width="120" height="66" class="fl-accent2-soft"/>
+<rect x="6" y="118" width="120" height="44" class="fl-amber-soft"/>
+<rect x="6" y="162" width="120" height="44" class="fl-green-soft"/>
+<rect x="6" y="30" width="120" height="22" class="fl-muted-soft"/>
+<rect x="6" y="30" width="120" height="176" class="sk-axis"/>
+<text x="39.0" y="45.5" class="lab-b" text-anchor="middle">abonne</text>
+<text x="99.0" y="45.5" class="lab-b" text-anchor="middle">duree</text>
+<line x1="6" y1="52" x2="126" y2="52" class="sk-axis"/>
+<line x1="6" y1="74" x2="126" y2="74" class="sk-axis"/>
+<line x1="6" y1="96" x2="126" y2="96" class="sk-axis"/>
+<line x1="6" y1="118" x2="126" y2="118" class="sk-axis"/>
+<line x1="6" y1="140" x2="126" y2="140" class="sk-axis"/>
+<line x1="6" y1="162" x2="126" y2="162" class="sk-axis"/>
+<line x1="6" y1="184" x2="126" y2="184" class="sk-axis"/>
+<line x1="72" y1="30" x2="72" y2="206" class="sk-axis"/>
+<text x="39.0" y="67.5" text-anchor="middle">2</text>
+<text x="99.0" y="67.5" text-anchor="middle">6</text>
+<text x="39.0" y="89.5" text-anchor="middle">2</text>
+<text x="99.0" y="89.5" text-anchor="middle">7</text>
+<text x="39.0" y="111.5" text-anchor="middle">2</text>
+<text x="99.0" y="111.5" text-anchor="middle">17</text>
+<text x="39.0" y="133.5" text-anchor="middle">3</text>
+<text x="99.0" y="133.5" text-anchor="middle">13</text>
+<text x="39.0" y="155.5" text-anchor="middle">3</text>
+<text x="99.0" y="155.5" text-anchor="middle">5</text>
+<text x="39.0" y="177.5" text-anchor="middle">6</text>
+<text x="99.0" y="177.5" text-anchor="middle">35</text>
+<text x="39.0" y="199.5" text-anchor="middle">6</text>
+<text x="99.0" y="199.5" text-anchor="middle">22</text>
+<rect x="190" y="52" width="164" height="22" class="fl-accent2-soft"/>
+<rect x="190" y="74" width="164" height="22" class="fl-amber-soft"/>
+<rect x="190" y="96" width="164" height="22" class="fl-green-soft"/>
+<rect x="190" y="30" width="164" height="22" class="fl-muted-soft"/>
+<rect x="190" y="30" width="164" height="88" class="sk-axis"/>
+<text x="223.0" y="45.5" class="lab-b" text-anchor="middle">abonne</text>
+<text x="276.0" y="45.5" class="lab-b" text-anchor="middle">nb</text>
+<text x="325.0" y="45.5" class="lab-b" text-anchor="middle">moyenne</text>
+<line x1="190" y1="52" x2="354" y2="52" class="sk-axis"/>
+<line x1="190" y1="74" x2="354" y2="74" class="sk-axis"/>
+<line x1="190" y1="96" x2="354" y2="96" class="sk-axis"/>
+<line x1="256" y1="30" x2="256" y2="118" class="sk-axis"/>
+<line x1="296" y1="30" x2="296" y2="118" class="sk-axis"/>
+<text x="223.0" y="67.5" text-anchor="middle">2</text>
+<text x="276.0" y="67.5" text-anchor="middle">3</text>
+<text x="325.0" y="67.5" text-anchor="middle">10.0</text>
+<text x="223.0" y="89.5" text-anchor="middle">3</text>
+<text x="276.0" y="89.5" text-anchor="middle">2</text>
+<text x="325.0" y="89.5" text-anchor="middle">9.0</text>
+<text x="223.0" y="111.5" text-anchor="middle">6</text>
+<text x="276.0" y="111.5" text-anchor="middle">2</text>
+<text x="325.0" y="111.5" text-anchor="middle">28.5</text>
+<text x="6" y="20" class="lab-muted">Lignes de Trajet (abonnés 2, 3, 6)</text>
+<text x="354" y="20" class="lab-muted" text-anchor="end">Une ligne par groupe</text>
+<line x1="128" y1="85.0" x2="186" y2="63.0" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<line x1="128" y1="140" x2="186" y2="85.0" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<line x1="128" y1="184" x2="186" y2="107.0" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<text x="258" y="160" class="lab-accent2" text-anchor="middle" style="font-family:var(--font-code)">GROUP BY abonne</text>
+<text x="258" y="180" class="lab-muted" text-anchor="middle" style="font-family:var(--font-code)">nb = COUNT(*)</text>
+<text x="258" y="198" class="lab-muted" text-anchor="middle" style="font-family:var(--font-code)">moyenne = AVG(duree)</text>
+</svg>
+<figcaption>Regroupement : les lignes de même valeur de <span class="code-inline">abonne</span> forment un paquet (même teinte) ; chaque paquet est résumé en <em>une</em> ligne, où les agrégats sont calculés sur les lignes du paquet.</figcaption>
+</figure>
+
+<pre class="codeblock"><span class="kw">SELECT</span> abonne, <span class="kw">COUNT</span>(*) <span class="kw">AS</span> nb, <span class="kw">AVG</span>(duree) <span class="kw">AS</span> moyenne
+<span class="kw">FROM</span> Trajet
+<span class="kw">GROUP</span> <span class="kw">BY</span> abonne;</pre>
+<figure><div><table style="width:auto;margin-inline:auto;white-space:nowrap">
+  <tr><th>abonne</th><th>nb</th><th>moyenne</th></tr>
+  <tr><td>1</td><td>4</td><td>13.5</td></tr>
+  <tr><td>2</td><td>3</td><td>10.0</td></tr>
+  <tr><td>3</td><td>2</td><td>9.0</td></tr>
+  <tr><td>4</td><td>3</td><td>10.33</td></tr>
+  <tr><td>5</td><td>2</td><td>13.0</td></tr>
+  <tr><td>6</td><td>2</td><td>28.5</td></tr>
+</table></div><figcaption>Résultat : 6 lignes.</figcaption></figure>
+  <p>Chloé (abonnée 7) n'apparaît pas : les groupes sont formés à partir des lignes de Trajet, et elle n'en a aucune. Un <span class="code-inline">COUNT(*)</span> obtenu par regroupement ne vaut donc jamais 0.</p>
+
+  <p>Agrégats et jointures se combinent. Le nombre de départs de chaque station, avec son nom, des stations les plus utilisées aux moins utilisées (le nom départage les ex æquo) :</p>
+<pre class="codeblock"><span class="kw">SELECT</span> s.nom, <span class="kw">COUNT</span>(*) <span class="kw">AS</span> departs
+<span class="kw">FROM</span> Station <span class="kw">AS</span> s <span class="kw">JOIN</span> Trajet <span class="kw">AS</span> t <span class="kw">ON</span> s.id_station = t.depart
+<span class="kw">GROUP</span> <span class="kw">BY</span> s.id_station, s.nom
+<span class="kw">ORDER</span> <span class="kw">BY</span> departs <span class="kw">DESC</span>, s.nom;</pre>
+<figure><div><table style="width:auto;margin-inline:auto;white-space:nowrap">
+  <tr><th>nom</th><th>departs</th></tr>
+  <tr><td>Gare</td><td>5</td></tr>
+  <tr><td>Faculté</td><td>4</td></tr>
+  <tr><td>Mairie</td><td>2</td></tr>
+  <tr><td>Marché</td><td>2</td></tr>
+  <tr><td>Port</td><td>2</td></tr>
+  <tr><td>Piscine</td><td>1</td></tr>
+</table></div><figcaption>Résultat : 6 lignes.</figcaption></figure>
+  <p>On regroupe par <span class="code-inline">s.id_station</span> (deux stations pourraient porter le même nom) et l'on ajoute <span class="code-inline">s.nom</span> au regroupement pour avoir le droit de l'afficher. La vitesse moyenne selon le type de vélo :</p>
+<pre class="codeblock"><span class="kw">SELECT</span> v.type, <span class="kw">AVG</span>(60 * t.distance / t.duree) <span class="kw">AS</span> vitesse_moyenne
+<span class="kw">FROM</span> Trajet <span class="kw">AS</span> t <span class="kw">JOIN</span> Velo <span class="kw">AS</span> v <span class="kw">ON</span> t.velo = v.id_velo
+<span class="kw">GROUP</span> <span class="kw">BY</span> v.type;</pre>
+<figure><div><table style="width:auto;margin-inline:auto;white-space:nowrap">
+  <tr><th>type</th><th>vitesse_moyenne</th></tr>
+  <tr><td>VAE</td><td>15.32</td></tr>
+  <tr><td>classique</td><td>12.13</td></tr>
+</table></div><figcaption>Résultat : 2 lignes.</figcaption></figure>
+
+  <div class="method-box"><strong>Exemple — résumer les abonnés par formule</strong>
+    <p>Pour chaque formule, combien d'abonnés, et quelle est l'année d'inscription la plus ancienne ?</p>
+    <ol>
+      <li>« Pour chaque formule » : un groupe par formule, <span class="code-inline">GROUP BY formule</span>.</li>
+      <li>Ce que l'on calcule dans chaque groupe : le nombre de lignes et la plus petite année d'inscription.</li>
+      <li>Contrôle : la somme des effectifs doit redonner les 7 abonnés.</li>
+    </ol>
+<pre class="codeblock"><span class="kw">SELECT</span> formule, <span class="kw">COUNT</span>(*) <span class="kw">AS</span> effectif, <span class="kw">MIN</span>(annee) <span class="kw">AS</span> depuis
+<span class="kw">FROM</span> Abonne
+<span class="kw">GROUP</span> <span class="kw">BY</span> formule;</pre>
+<figure><div><table style="width:auto;margin-inline:auto;white-space:nowrap">
+  <tr><th>formule</th><th>effectif</th><th>depuis</th></tr>
+  <tr><td>annuel</td><td>3</td><td>2022</td></tr>
+  <tr><td>jeune</td><td>2</td><td>2025</td></tr>
+  <tr><td>mensuel</td><td>2</td><td>2025</td></tr>
+</table></div><figcaption>Résultat : 3 lignes.</figcaption></figure>
+    <p>On trouve bien \(3 + 2 + 2 = 7\).</p>
+  </div>
+
+  <div class="notice"><strong>Erreur classique</strong> : afficher, dans une requête groupée, une colonne qui n'est ni regroupée ni agrégée. Dans <span class="code-inline">SELECT abonne, jour, COUNT(*) FROM Trajet GROUP BY abonne</span>, un abonné a plusieurs jours : lequel afficher ? La plupart des logiciels refusent cette requête ; ceux qui l'acceptent renvoient un jour quelconque du groupe. Ne pas confondre non plus <span class="code-inline">COUNT(*)</span>, qui compte des lignes, et <span class="code-inline">COUNT(DISTINCT a)</span>, qui compte des valeurs : Inès a fait 4 trajets, sur 1 seul vélo.</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§9 · FILTRER LES GROUPES : HAVING</div>
+  <h2>WHERE trie les lignes, HAVING trie les groupes</h2>
+  <div class="intro"><span class="code-inline">WHERE</span> et <span class="code-inline">HAVING</span> expriment tous deux une condition, mais ne filtrent pas les mêmes objets : <span class="code-inline">WHERE</span> garde ou écarte des lignes <em>avant</em> la formation des groupes, <span class="code-inline">HAVING</span> garde ou écarte des groupes <em>après</em> leur formation.</div>
+
+  <div class="def-box">
+    La clause <span class="code-inline">HAVING condition</span> se place après <span class="code-inline">GROUP BY</span> ; elle ne garde que les groupes qui vérifient la condition. Celle-ci peut porter sur des agrégats (calculés pour chaque groupe) et sur les attributs du regroupement. Un agrégat ne peut pas figurer dans un <span class="code-inline">WHERE</span>, puisque les groupes n'existent pas encore quand <span class="code-inline">WHERE</span> est évalué.
+  </div>
+
+<figure class="schema" style="max-width:400px">
+<svg viewBox="0 0 360 330" role="img" aria-label="Ordre logique d évaluation d une requête : FROM et JOIN, puis WHERE, GROUP BY, HAVING, SELECT, DISTINCT, ORDER BY, LIMIT et OFFSET">
+<rect x="10" y="10" width="150" height="28" class="fl-soft"/>
+<rect x="10" y="10" width="150" height="28" class="sk-axis"/>
+<text x="85" y="29" class="lab-b" text-anchor="middle" style="font-family:var(--font-code)">FROM … JOIN … ON</text>
+<text x="172" y="29">assemble les tables</text>
+<line x1="85" y1="38" x2="85" y2="49" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<rect x="10" y="50" width="150" height="28" class="fl-accent2-soft"/>
+<rect x="10" y="50" width="150" height="28" class="sk-axis"/>
+<text x="85" y="69" class="lab-accent2 lab-b" text-anchor="middle" style="font-family:var(--font-code)">WHERE</text>
+<text x="172" y="69" class="lab-accent2">filtre les lignes</text>
+<line x1="85" y1="78" x2="85" y2="89" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<rect x="10" y="90" width="150" height="28" class="fl-soft"/>
+<rect x="10" y="90" width="150" height="28" class="sk-axis"/>
+<text x="85" y="109" class="lab-b" text-anchor="middle" style="font-family:var(--font-code)">GROUP BY</text>
+<text x="172" y="109">forme les groupes</text>
+<line x1="85" y1="118" x2="85" y2="129" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<rect x="10" y="130" width="150" height="28" class="fl-accent-soft"/>
+<rect x="10" y="130" width="150" height="28" class="sk-axis"/>
+<text x="85" y="149" class="lab-accent lab-b" text-anchor="middle" style="font-family:var(--font-code)">HAVING</text>
+<text x="172" y="149" class="lab-accent">filtre les groupes</text>
+<line x1="85" y1="158" x2="85" y2="169" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<rect x="10" y="170" width="150" height="28" class="fl-soft"/>
+<rect x="10" y="170" width="150" height="28" class="sk-axis"/>
+<text x="85" y="189" class="lab-b" text-anchor="middle" style="font-family:var(--font-code)">SELECT</text>
+<text x="172" y="189">calcule les colonnes</text>
+<line x1="85" y1="198" x2="85" y2="209" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<rect x="10" y="210" width="150" height="28" class="fl-soft"/>
+<rect x="10" y="210" width="150" height="28" class="sk-axis"/>
+<text x="85" y="229" class="lab-b" text-anchor="middle" style="font-family:var(--font-code)">DISTINCT</text>
+<text x="172" y="229">retire les doublons</text>
+<line x1="85" y1="238" x2="85" y2="249" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<rect x="10" y="250" width="150" height="28" class="fl-soft"/>
+<rect x="10" y="250" width="150" height="28" class="sk-axis"/>
+<text x="85" y="269" class="lab-b" text-anchor="middle" style="font-family:var(--font-code)">ORDER BY</text>
+<text x="172" y="269">trie les lignes</text>
+<line x1="85" y1="278" x2="85" y2="289" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<rect x="10" y="290" width="150" height="28" class="fl-soft"/>
+<rect x="10" y="290" width="150" height="28" class="sk-axis"/>
+<text x="85" y="309" class="lab-b" text-anchor="middle" style="font-family:var(--font-code)">LIMIT … OFFSET</text>
+<text x="172" y="309">garde une tranche</text>
+</svg>
+<figcaption>Ordre dans lequel le logiciel <em>évalue</em> une requête (on l'écrit, elle, en commençant par SELECT). WHERE agit avant la formation des groupes, HAVING après : c'est toute leur différence.</figcaption>
+</figure>
+
+  <div class="prop-box"><strong>Ordre d'écriture.</strong>
+<pre class="codeblock"><span class="kw">SELECT</span> … <span class="kw">FROM</span> … <span class="kw">JOIN</span> … <span class="kw">ON</span> … <span class="kw">WHERE</span> …
+<span class="kw">GROUP BY</span> … <span class="kw">HAVING</span> … <span class="kw">ORDER BY</span> … <span class="kw">LIMIT</span> … <span class="kw">OFFSET</span> …</pre>
+    L'ordre d'évaluation de la figure explique plusieurs règles : un renommage fait dans <span class="code-inline">SELECT</span> n'est pas connu dans <span class="code-inline">WHERE</span> (évalué avant), mais peut servir dans <span class="code-inline">ORDER BY</span> (évalué après) ; dans <span class="code-inline">HAVING</span>, on récrit l'agrégat plutôt que son nom, que tous les logiciels n'acceptent pas.
+  </div>
+
+  <div class="method-box"><strong>Exemple — trois questions voisines, trois requêtes différentes</strong>
+    <p>Voici, pour chaque abonné, ses durées de trajet, celles qui dépassent 12 minutes et sa durée moyenne.</p>
+    <div><table style="width:auto;margin-inline:auto">
+      <tr><th>abonne</th><th>durées (min)</th><th>durées &gt; 12</th><th>moyenne</th></tr>
+      <tr><td>1</td><td>13, 14, 12, 15</td><td>13, 14, 15</td><td>13.5</td></tr>
+      <tr><td>2</td><td>6, 7, 17</td><td>17</td><td>10.0</td></tr>
+      <tr><td>3</td><td>13, 5</td><td>13</td><td>9.0</td></tr>
+      <tr><td>4</td><td>9, 10, 12</td><td>aucune</td><td>10.33</td></tr>
+      <tr><td>5</td><td>12, 14</td><td>14</td><td>13.0</td></tr>
+      <tr><td>6</td><td>35, 22</td><td>35, 22</td><td>28.5</td></tr>
+    </table></div>
+    <ol>
+      <li>« Combien de trajets de plus de 12 minutes chaque abonné a-t-il faits ? » La condition porte sur chaque trajet : <span class="code-inline">WHERE</span>, puis on compte par groupe. Moussa (4), dont aucun trajet ne dépasse 12 minutes, n'a plus aucune ligne après le <span class="code-inline">WHERE</span> : il disparaît.
+<pre class="codeblock"><span class="kw">SELECT</span> abonne, <span class="kw">COUNT</span>(*) <span class="kw">AS</span> nb_longs
+<span class="kw">FROM</span> Trajet
+<span class="kw">WHERE</span> duree &gt; 12
+<span class="kw">GROUP</span> <span class="kw">BY</span> abonne;</pre>
+<figure><div><table style="width:auto;margin-inline:auto;white-space:nowrap">
+  <tr><th>abonne</th><th>nb_longs</th></tr>
+  <tr><td>1</td><td>3</td></tr>
+  <tr><td>2</td><td>1</td></tr>
+  <tr><td>3</td><td>1</td></tr>
+  <tr><td>5</td><td>1</td></tr>
+  <tr><td>6</td><td>2</td></tr>
+</table></div><figcaption>Résultat : 5 lignes.</figcaption></figure>
+      </li>
+      <li>« Quels abonnés ont une durée moyenne de plus de 12 minutes ? » La condition porte sur un agrégat de chaque groupe : <span class="code-inline">HAVING</span>.
+<pre class="codeblock"><span class="kw">SELECT</span> abonne, <span class="kw">AVG</span>(duree) <span class="kw">AS</span> moyenne
+<span class="kw">FROM</span> Trajet
+<span class="kw">GROUP</span> <span class="kw">BY</span> abonne
+<span class="kw">HAVING</span> <span class="kw">AVG</span>(duree) &gt; 12;</pre>
+<figure><div><table style="width:auto;margin-inline:auto;white-space:nowrap">
+  <tr><th>abonne</th><th>moyenne</th></tr>
+  <tr><td>1</td><td>13.5</td></tr>
+  <tr><td>5</td><td>13.0</td></tr>
+  <tr><td>6</td><td>28.5</td></tr>
+</table></div><figcaption>Résultat : 3 lignes.</figcaption></figure>
+      </li>
+      <li>« Parmi les trajets de plus de 10 minutes, quels abonnés en ont fait au moins deux ? » Les deux filtres à la fois : <span class="code-inline">WHERE</span> sur les lignes, puis <span class="code-inline">HAVING</span> sur les groupes. Inès garde ses quatre trajets, Ana et Théo leurs deux ; les autres n'en gardent qu'un.
+<pre class="codeblock"><span class="kw">SELECT</span> abonne, <span class="kw">COUNT</span>(*) <span class="kw">AS</span> nb
+<span class="kw">FROM</span> Trajet
+<span class="kw">WHERE</span> duree &gt; 10
+<span class="kw">GROUP</span> <span class="kw">BY</span> abonne
+<span class="kw">HAVING</span> <span class="kw">COUNT</span>(*) &gt;= 2;</pre>
+<figure><div><table style="width:auto;margin-inline:auto;white-space:nowrap">
+  <tr><th>abonne</th><th>nb</th></tr>
+  <tr><td>1</td><td>4</td></tr>
+  <tr><td>5</td><td>2</td></tr>
+  <tr><td>6</td><td>2</td></tr>
+</table></div><figcaption>Résultat : 3 lignes.</figcaption></figure>
+      </li>
+    </ol>
+  </div>
+
+<pre class="codeblock"><span class="kw">SELECT</span> abonne <span class="kw">FROM</span> Trajet <span class="kw">WHERE</span> <span class="kw">AVG</span>(duree) &gt; 12 <span class="kw">GROUP</span> <span class="kw">BY</span> abonne;</pre>
+
+
+  <div class="notice"><strong>Erreur classique</strong> : écrire <span class="code-inline">WHERE AVG(duree) &gt; 12</span> : le logiciel refuse, un agrégat n'a pas de sens ligne par ligne. Inversement, une condition qui ne porte que sur les lignes se met dans <span class="code-inline">WHERE</span> : <span class="code-inline">HAVING abonne &lt;&gt; 6</span> donne le même résultat que <span class="code-inline">WHERE abonne &lt;&gt; 6</span>, mais forme et calcule d'abord des groupes inutiles, et se lit moins bien. Enfin, une condition de <span class="code-inline">WHERE</span> change les lignes sur lesquelles sont calculés les agrégats : « la moyenne des trajets de plus de 12 minutes » n'est pas « la moyenne, si elle dépasse 12 minutes ».</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§10 · REQUÊTES IMBRIQUÉES</div>
+  <h2>Une requête à l'intérieur d'une autre</h2>
+  <div class="intro">Une requête peut en contenir une autre, écrite entre parenthèses. Le résultat de la requête intérieure sert alors de valeur, ou de table, à la requête extérieure. C'est le moyen naturel de comparer à un maximum, à une moyenne, ou d'agréger des agrégats.</div>
+
+  <div class="prop-box"><strong>Trois emplacements usuels.</strong>
+    <ul>
+      <li>Dans une condition (<span class="code-inline">WHERE</span> ou <span class="code-inline">HAVING</span>), une requête qui renvoie <strong>une seule valeur</strong> (une ligne, une colonne) s'utilise comme un nombre : <span class="code-inline">duree = (SELECT MAX(duree) FROM Trajet)</span>.</li>
+      <li>Dans <span class="code-inline">FROM</span>, une requête joue le rôle d'une table, à laquelle on donne un alias : <span class="code-inline">FROM (SELECT …) AS c</span>.</li>
+      <li>Avec <span class="code-inline">IN</span> ou <span class="code-inline">NOT IN</span>, on teste si une valeur appartient à la colonne renvoyée par la requête intérieure. Ce mot-clé, très courant, n'est pas cité par le programme : un énoncé peut l'employer, et l'on peut toujours s'en passer (avec <span class="code-inline">EXCEPT</span>, <span class="code-inline">INTERSECT</span> ou une jointure).</li>
+    </ul>
+  </div>
+
+  <p>Le ou les trajets les plus longs : la requête intérieure calcule le maximum (35), la requête extérieure garde les lignes qui l'atteignent. Contrairement à <span class="code-inline">ORDER BY duree DESC LIMIT 1</span>, tous les ex æquo seraient affichés.</p>
+<pre class="codeblock"><span class="kw">SELECT</span> id_trajet, abonne, duree
+<span class="kw">FROM</span> Trajet
+<span class="kw">WHERE</span> duree = (<span class="kw">SELECT</span> <span class="kw">MAX</span>(duree) <span class="kw">FROM</span> Trajet);</pre>
+<figure><div><table style="width:auto;margin-inline:auto;white-space:nowrap">
+  <tr><th>id_trajet</th><th>abonne</th><th>duree</th></tr>
+  <tr><td>9</td><td>6</td><td>35</td></tr>
+</table></div><figcaption>Résultat : 1 ligne.</figcaption></figure>
+
+  <p>Les abonnés dont la durée moyenne dépasse la durée moyenne de l'ensemble des trajets (13,5 minutes) : seul Théo convient, Inès étant exactement dans la moyenne.</p>
+<pre class="codeblock"><span class="kw">SELECT</span> abonne, <span class="kw">AVG</span>(duree) <span class="kw">AS</span> moyenne
+<span class="kw">FROM</span> Trajet
+<span class="kw">GROUP</span> <span class="kw">BY</span> abonne
+<span class="kw">HAVING</span> <span class="kw">AVG</span>(duree) &gt; (<span class="kw">SELECT</span> <span class="kw">AVG</span>(duree) <span class="kw">FROM</span> Trajet);</pre>
+<figure><div><table style="width:auto;margin-inline:auto;white-space:nowrap">
+  <tr><th>abonne</th><th>moyenne</th></tr>
+  <tr><td>6</td><td>28.5</td></tr>
+</table></div><figcaption>Résultat : 1 ligne.</figcaption></figure>
+
+  <p>Le nombre moyen de trajets par abonné ayant roulé est une moyenne de comptages : un agrégat d'agrégats. <span class="code-inline">AVG(COUNT(*))</span> est interdit ; on calcule d'abord les comptages dans une table intermédiaire, puis leur moyenne :</p>
+<pre class="codeblock"><span class="kw">SELECT</span> <span class="kw">AVG</span>(nb) <span class="kw">AS</span> moyenne_par_abonne
+<span class="kw">FROM</span> (<span class="kw">SELECT</span> abonne, <span class="kw">COUNT</span>(*) <span class="kw">AS</span> nb
+      <span class="kw">FROM</span> Trajet
+      <span class="kw">GROUP</span> <span class="kw">BY</span> abonne) <span class="kw">AS</span> c;</pre>
+<figure><div><table style="width:auto;margin-inline:auto;white-space:nowrap">
+  <tr><th>moyenne_par_abonne</th></tr>
+  <tr><td>2.67</td></tr>
+</table></div><figcaption>Résultat : 1 ligne.</figcaption></figure>
+  <p>On retrouve \(16 / 6 \approx 2{,}67\). Les abonnés qui n'ont jamais roulé en VAE, avec <span class="code-inline">NOT IN</span> :</p>
+<pre class="codeblock"><span class="kw">SELECT</span> prenom, nom
+<span class="kw">FROM</span> Abonne
+<span class="kw">WHERE</span> id_abonne <span class="kw">NOT</span> <span class="kw">IN</span> (<span class="kw">SELECT</span> t.abonne
+                        <span class="kw">FROM</span> Trajet <span class="kw">AS</span> t <span class="kw">JOIN</span> Velo <span class="kw">AS</span> v <span class="kw">ON</span> t.velo = v.id_velo
+                        <span class="kw">WHERE</span> v.type = <span class="str">'VAE'</span>);</pre>
+<figure><div><table style="width:auto;margin-inline:auto;white-space:nowrap">
+  <tr><th>prenom</th><th>nom</th></tr>
+  <tr><td>Hugo</td><td>Ferrand</td></tr>
+  <tr><td>Léa</td><td>Bastide</td></tr>
+  <tr><td>Ana</td><td>Carvalho</td></tr>
+  <tr><td>Chloé</td><td>Garnier</td></tr>
+</table></div><figcaption>Résultat : 4 lignes.</figcaption></figure>
+
+
+  <div class="method-box"><strong>Exemple — l'abonné qui a roulé le plus longtemps</strong>
+    <p>Donner le nom du ou des abonnés dont la durée totale de trajet est la plus grande.</p>
+    <ol>
+      <li>Durée totale par abonné : <span class="code-inline">SELECT SUM(duree) AS total FROM Trajet GROUP BY abonne</span> (54, 30, 18, 31, 26 et 57 minutes).</li>
+      <li>La plus grande de ces durées totales : on prend le maximum de cette table intermédiaire, <span class="code-inline">SELECT MAX(total) FROM (…) AS d</span>, soit 57.</li>
+      <li>Les abonnés qui l'atteignent : on regroupe à nouveau par abonné, joint à Abonne pour avoir le nom, et l'on compare dans <span class="code-inline">HAVING</span>.</li>
+    </ol>
+<pre class="codeblock"><span class="kw">SELECT</span> a.prenom, a.nom, <span class="kw">SUM</span>(t.duree) <span class="kw">AS</span> total
+<span class="kw">FROM</span> Abonne <span class="kw">AS</span> a <span class="kw">JOIN</span> Trajet <span class="kw">AS</span> t <span class="kw">ON</span> a.id_abonne = t.abonne
+<span class="kw">GROUP</span> <span class="kw">BY</span> a.id_abonne, a.prenom, a.nom
+<span class="kw">HAVING</span> <span class="kw">SUM</span>(t.duree) = (<span class="kw">SELECT</span> <span class="kw">MAX</span>(total)
+                       <span class="kw">FROM</span> (<span class="kw">SELECT</span> <span class="kw">SUM</span>(duree) <span class="kw">AS</span> total
+                             <span class="kw">FROM</span> Trajet
+                             <span class="kw">GROUP</span> <span class="kw">BY</span> abonne) <span class="kw">AS</span> d);</pre>
+<figure><div><table style="width:auto;margin-inline:auto;white-space:nowrap">
+  <tr><th>prenom</th><th>nom</th><th>total</th></tr>
+  <tr><td>Théo</td><td>Roux</td><td>57</td></tr>
+</table></div><figcaption>Résultat : 1 ligne.</figcaption></figure>
+    <p>Théo devance Inès de trois minutes. La même construction, avec <span class="code-inline">MIN</span> et <span class="code-inline">COUNT(*)</span>, donne les abonnés qui ont fait le moins de trajets : Léa, Ana et Théo, à égalité avec deux trajets chacun, là où <span class="code-inline">ORDER BY … LIMIT 1</span> n'en aurait gardé qu'un.</p>
+
+  </div>
+
+  <div class="notice"><strong>Erreur classique</strong> : comparer avec <span class="code-inline">=</span> à une requête qui renvoie plusieurs valeurs (<span class="code-inline">duree = (SELECT duree FROM Trajet WHERE abonne = 1)</span> n'a pas de sens : Inès a quatre durées). Autre piège : tester l'égalité de deux flottants calculés (une somme de distances, par exemple), que les arrondis peuvent rendre fausse (chapitre sur la représentation des nombres) ; l'exemple ci-dessus compare des durées entières.</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">POUR ALLER PLUS LOIN · HORS PROGRAMME</div>
+  <h2>Ce que l'on rencontre au-delà du programme</h2>
+  <div class="intro">Rien de ce qui suit n'est exigible ; ces notions aident à comprendre un logiciel de bases de données réel.</div>
+  <ul>
+    <li><strong>Créer et remplir une base.</strong> La base du chapitre a été créée par des instructions <span class="code-inline">CREATE TABLE</span>, qui déclarent les attributs, la clé primaire et les clés étrangères, puis remplie par des <span class="code-inline">INSERT INTO</span>. Ces instructions, comme <span class="code-inline">DROP TABLE</span>, <span class="code-inline">UPDATE</span> ou <span class="code-inline">DELETE</span>, et la gestion des transactions et des droits d'accès, sont hors programme.</li>
+    <li><strong>La valeur NULL et les jointures externes.</strong> Une case peut être vide (<span class="code-inline">NULL</span>), avec une logique à trois valeurs déroutante. Une jointure externe (<span class="code-inline">LEFT JOIN</span>) garde les lignes sans correspondant en complétant par des <span class="code-inline">NULL</span> : elle ferait apparaître Chloé avec 0 trajet.</li>
+    <li><strong>Index.</strong> Un index sur une colonne permet au logiciel de trouver vite les lignes ayant une valeur donnée, sans parcourir toute la table, un peu comme une recherche dichotomique dans un tableau trié.</li>
+    <li><strong>SQL depuis Python.</strong> Le module <span class="code-inline">sqlite3</span> permet d'exécuter une requête depuis un programme et d'en récupérer les lignes sous forme de liste de tuples ; c'est ainsi qu'ont été vérifiés tous les résultats de ce chapitre. Le programme précise que ce n'est pas un objectif.</li>
+  </ul>
+</div>
+</template>
+<template class="pan-tpl" data-panneau="sql-meth">
+<div class="course-section">
+  <div class="sec-num">MÉTHODES · BASES DE DONNÉES, SQL</div>
+  <h2>Les réflexes du chapitre</h2>
+  <div class="intro">Ces méthodes transforment une question posée en français en une requête SQL juste, et donnent les moyens de la contrôler. Les exemples éclair utilisent la base du cours (vélos en libre-service) : Station(<u>id_station</u>, nom, quartier, capacite), Abonne(<u>id_abonne</u>, nom, prenom, formule, annee), Velo(<u>id_velo</u>, type, annee), Trajet(<u>id_trajet</u>, abonne, velo, depart, arrivee, jour, duree, distance), Favori(<u>id_abonne, id_station</u>).</div>
+
+  <div class="method-box"><strong>Méthode 1 — Lire le schéma d'une base</strong>
+    <ol style="margin-top:.4rem">
+      <li>Pour chaque table, dire en une phrase ce que représente <em>une</em> ligne (« une ligne de Trajet = un emprunt de vélo ») et repérer sa clé primaire, soulignée.</li>
+      <li>Repérer les clés étrangères et la table qu'elles référencent : leurs valeurs sont des valeurs de la clé primaire de cette table, même si leur nom diffère (depart référence id_station).</li>
+      <li>Dessiner le diagramme : un trait par clé étrangère, « \(\ast\) » du côté de la table qui porte la clé, « 1 » du côté de la table référencée.</li>
+      <li>Repérer les tables d'association, dont la clé primaire est formée de clés étrangères : chacune réalise une association \(\ast - \ast\).</li>
+    </ol>
+    <p><em>Exemple éclair :</em> une ligne de Favori signifie « telle station est une favorite de tel abonné » ; ses deux attributs sont des clés étrangères (vers Abonne et Station) et forment ensemble sa clé primaire : Favori réalise l'association \(\ast - \ast\) « a pour favorite » entre Abonne et Station.</p>
+  </div>
+
+  <div class="method-box"><strong>Méthode 2 — Traduire une association en tables</strong>
+    <ol style="margin-top:.4rem">
+      <li>Trouver la cardinalité par deux questions : « une entité A est liée à combien d'entités B ? » et « une entité B est liée à combien d'entités A ? ».</li>
+      <li>\(1 - \ast\) : une clé étrangère dans la table du côté « \(\ast\) », qui référence la clé primaire de l'autre table.</li>
+      <li>\(1 - 1\) : une clé étrangère d'un côté, à valeurs deux à deux distinctes, ou bien une seule table qui regroupe les deux.</li>
+      <li>\(\ast - \ast\) : une table d'association avec les deux clés étrangères et les attributs propres au lien ; sa clé primaire est le couple des clés étrangères, ou un identifiant ajouté si un même couple peut revenir plusieurs fois (des emprunts datés, par exemple).</li>
+    </ol>
+    <p><em>Exemple éclair :</em> l'opérateur enregistre les réparations ; une réparation concerne un seul vélo, un vélo peut être réparé plusieurs fois. Association \(1 - \ast\) de Velo vers Reparation : Reparation(<u>id_reparation</u>, velo, jour, cout), où velo est une clé étrangère vers Velo.</p>
+  </div>
+  <div class="notice"><strong>Piège</strong> : vouloir écrire une liste dans une case (« les réparations du vélo » dans Velo). Une case contient une seule valeur : une association multiple se traduit toujours par des lignes dans une autre table.</div>
+
+  <div class="method-box"><strong>Méthode 3 — Écrire une requête de sélection à partir d'une question</strong>
+    <ol style="margin-top:.4rem">
+      <li><span class="code-inline">FROM</span> : la table qui contient les informations demandées.</li>
+      <li><span class="code-inline">WHERE</span> : traduire chaque condition sur une ligne ; mettre des parenthèses autour de chaque « ou ».</li>
+      <li><span class="code-inline">SELECT</span> : les colonnes et les calculs demandés, renommés par <span class="code-inline">AS</span> si besoin.</li>
+      <li>Mise en forme : « sans répétition » → <span class="code-inline">DISTINCT</span> ; « trié » → <span class="code-inline">ORDER BY</span> ; « les k premiers » → <span class="code-inline">ORDER BY … LIMIT k</span>.</li>
+    </ol>
+    <p><em>Exemple éclair :</em> les noms des stations des quartiers Centre ou Campus de moins de 25 places, de la plus grande à la plus petite :</p>
+<pre class="codeblock"><span class="kw">SELECT</span> nom, capacite
+<span class="kw">FROM</span> Station
+<span class="kw">WHERE</span> (quartier = <span class="str">'Centre'</span> <span class="kw">OR</span> quartier = <span class="str">'Campus'</span>) <span class="kw">AND</span> capacite &lt; 25
+<span class="kw">ORDER</span> <span class="kw">BY</span> capacite <span class="kw">DESC</span>;</pre>
+<figure><div><table style="width:auto;margin-inline:auto;white-space:nowrap">
+  <tr><th>nom</th><th>capacite</th></tr>
+  <tr><td>Faculté</td><td>24</td></tr>
+  <tr><td>Mairie</td><td>20</td></tr>
+  <tr><td>Piscine</td><td>12</td></tr>
+</table></div><figcaption>Résultat : 3 lignes.</figcaption></figure>
+  </div>
+  <div class="notice"><strong>Piège</strong> : oublier les apostrophes d'une chaîne (<span class="code-inline">quartier = Centre</span> désignerait une colonne Centre, qui n'existe pas), ou les parenthèses autour du <span class="code-inline">OR</span> : sans elles, la condition se lit « Centre, ou bien Campus de moins de 25 places », et la Gare (Centre, 30 places) apparaîtrait.</div>
+
+
+  <div class="method-box"><strong>Méthode 4 — Joindre plusieurs tables</strong>
+    <ol style="margin-top:.4rem">
+      <li>Repérer sur le diagramme le chemin de tables qui relie les informations demandées.</li>
+      <li>Écrire <span class="code-inline">FROM T1 AS a JOIN T2 AS b ON … JOIN T3 AS c ON …</span>, avec une condition <span class="code-inline">ON</span> par trait parcouru : clé étrangère = clé primaire référencée.</li>
+      <li>Préfixer chaque colonne par son alias ; donner deux alias à une table qui joue deux rôles (station de départ, station d'arrivée).</li>
+      <li>Ajouter <span class="code-inline">DISTINCT</span> si une même entité peut être atteinte par plusieurs chemins (un abonné, par plusieurs trajets).</li>
+    </ol>
+    <p><em>Exemple éclair :</em> les prénoms des abonnés partis d'une station du Campus. Chemin : Abonne → Trajet → Station.</p>
+<pre class="codeblock"><span class="kw">SELECT</span> <span class="kw">DISTINCT</span> a.prenom
+<span class="kw">FROM</span> Abonne <span class="kw">AS</span> a
+<span class="kw">JOIN</span> Trajet <span class="kw">AS</span> t <span class="kw">ON</span> a.id_abonne = t.abonne
+<span class="kw">JOIN</span> Station <span class="kw">AS</span> s <span class="kw">ON</span> t.depart = s.id_station
+<span class="kw">WHERE</span> s.quartier = <span class="str">'Campus'</span>;</pre>
+<figure><div><table style="width:auto;margin-inline:auto;white-space:nowrap">
+  <tr><th>prenom</th></tr>
+  <tr><td>Hugo</td></tr>
+  <tr><td>Inès</td></tr>
+</table></div><figcaption>Résultat : 2 lignes.</figcaption></figure>
+    <p>Sans <span class="code-inline">DISTINCT</span>, Hugo apparaîtrait trois fois et Inès deux fois (cinq départs du Campus).</p>
+
+  </div>
+  <div class="notice"><strong>Piège</strong> : une condition de jointure oubliée ne provoque aucune erreur, elle produit un produit cartésien. Si le résultat est anormalement long, compter : une jointure qui suit une clé étrangère a autant de lignes que la table qui porte cette clé.</div>
+
+  <div class="method-box"><strong>Méthode 5 — Calculer « pour chaque … »</strong>
+    <ol style="margin-top:.4rem">
+      <li>« Pour chaque X », « par X » : regrouper par X, c'est-à-dire par sa clé (plus les attributs de X que l'on veut afficher).</li>
+      <li>Choisir l'agrégat : <span class="code-inline">COUNT(*)</span> pour un nombre de lignes, <span class="code-inline">COUNT(DISTINCT …)</span> pour un nombre de valeurs différentes, <span class="code-inline">SUM</span>, <span class="code-inline">AVG</span>, <span class="code-inline">MIN</span>, <span class="code-inline">MAX</span>.</li>
+      <li>Dans le <span class="code-inline">SELECT</span>, ne mettre que les attributs du regroupement et des agrégats.</li>
+      <li>Contrôler : une ligne par groupe ; la somme des comptages redonne le nombre total de lignes.</li>
+    </ol>
+    <p><em>Exemple éclair :</em> la distance parcourue par chaque vélo.</p>
+<pre class="codeblock"><span class="kw">SELECT</span> velo, <span class="kw">SUM</span>(distance) <span class="kw">AS</span> km
+<span class="kw">FROM</span> Trajet
+<span class="kw">GROUP</span> <span class="kw">BY</span> velo;</pre>
+<figure><div><table style="width:auto;margin-inline:auto;white-space:nowrap">
+  <tr><th>velo</th><th>km</th></tr>
+  <tr><td>11</td><td>14.4</td></tr>
+  <tr><td>12</td><td>5.0</td></tr>
+  <tr><td>13</td><td>10.4</td></tr>
+  <tr><td>14</td><td>11.8</td></tr>
+  <tr><td>15</td><td>6.5</td></tr>
+</table></div><figcaption>Résultat : 5 lignes.</figcaption></figure>
+    <p>Contrôle : \(14{,}4 + 5 + 10{,}4 + 11{,}8 + 6{,}5 = 48{,}1\) km, la distance totale. Le vélo 16, qui n'a jamais roulé, n'a pas de ligne.</p>
+
+  </div>
+
+  <div class="method-box"><strong>Méthode 6 — Choisir entre WHERE et HAVING</strong>
+    <ol style="margin-top:.4rem">
+      <li>Pour chaque condition, se demander : « puis-je la vérifier en regardant <em>une seule</em> ligne ? »</li>
+      <li>Oui : elle va dans <span class="code-inline">WHERE</span>, avant le regroupement, et elle change les lignes sur lesquelles seront calculés les agrégats.</li>
+      <li>Non, elle porte sur un agrégat (un total, une moyenne, un comptage) : elle va dans <span class="code-inline">HAVING</span>, après <span class="code-inline">GROUP BY</span>, en récrivant l'agrégat.</li>
+    </ol>
+    <p><em>Exemple éclair :</em> les vélos qui ont parcouru plus de 10 km au total, en ne comptant que les trajets à partir du 3 mars. « À partir du 3 mars » se lit sur une ligne (<span class="code-inline">WHERE</span>) ; « plus de 10 km au total » porte sur une somme (<span class="code-inline">HAVING</span>).</p>
+<pre class="codeblock"><span class="kw">SELECT</span> velo, <span class="kw">SUM</span>(distance) <span class="kw">AS</span> km
+<span class="kw">FROM</span> Trajet
+<span class="kw">WHERE</span> jour &gt;= <span class="str">'2026-03-03'</span>
+<span class="kw">GROUP</span> <span class="kw">BY</span> velo
+<span class="kw">HAVING</span> <span class="kw">SUM</span>(distance) &gt; 10;</pre>
+<figure><div><table style="width:auto;margin-inline:auto;white-space:nowrap">
+  <tr><th>velo</th><th>km</th></tr>
+  <tr><td>14</td><td>11.8</td></tr>
+</table></div><figcaption>Résultat : 1 ligne.</figcaption></figure>
+  </div>
+  <div class="notice"><strong>Piège</strong> : un agrégat dans <span class="code-inline">WHERE</span> est une erreur (le logiciel refuse la requête). Et l'ordre des clauses est imposé : <span class="code-inline">WHERE</span> avant <span class="code-inline">GROUP BY</span>, <span class="code-inline">HAVING</span> juste après.</div>
+
+  <div class="method-box"><strong>Méthode 7 — Trouver un extremum et les lignes qui l'atteignent</strong>
+    <ol style="margin-top:.4rem">
+      <li>Calculer l'extremum dans une requête intérieure : <span class="code-inline">(SELECT MAX(…) FROM …)</span>. S'il porte sur un agrégat (le plus grand nombre de trajets), calculer d'abord les agrégats dans une table dérivée : <span class="code-inline">SELECT MAX(nb) FROM (SELECT COUNT(*) AS nb FROM … GROUP BY …) AS c</span>.</li>
+      <li>Garder les lignes (<span class="code-inline">WHERE</span>) ou les groupes (<span class="code-inline">HAVING</span>) dont la valeur égale cet extremum.</li>
+      <li>N'employer <span class="code-inline">ORDER BY … LIMIT 1</span> que si l'énoncé demande « un » élément ou garantit l'unicité : cette forme perd les ex æquo.</li>
+    </ol>
+    <p><em>Exemple éclair :</em> le ou les jours où il y a eu le plus de trajets.</p>
+<pre class="codeblock"><span class="kw">SELECT</span> jour, <span class="kw">COUNT</span>(*) <span class="kw">AS</span> nb
+<span class="kw">FROM</span> Trajet
+<span class="kw">GROUP</span> <span class="kw">BY</span> jour
+<span class="kw">HAVING</span> <span class="kw">COUNT</span>(*) = (<span class="kw">SELECT</span> <span class="kw">MAX</span>(n)
+                   <span class="kw">FROM</span> (<span class="kw">SELECT</span> <span class="kw">COUNT</span>(*) <span class="kw">AS</span> n <span class="kw">FROM</span> Trajet <span class="kw">GROUP</span> <span class="kw">BY</span> jour) <span class="kw">AS</span> c);</pre>
+<figure><div><table style="width:auto;margin-inline:auto;white-space:nowrap">
+  <tr><th>jour</th><th>nb</th></tr>
+  <tr><td>2026-03-05</td><td>4</td></tr>
+</table></div><figcaption>Résultat : 1 ligne.</figcaption></figure>
+    <p>Les quatre autres jours comptent trois trajets chacun.</p>
+
+  </div>
+  <div class="notice"><strong>Piège</strong> : <span class="code-inline">MAX(COUNT(*))</span> n'existe pas (pas d'agrégat d'agrégat dans une même requête) ; il faut passer par une table dérivée, comme ci-dessus.</div>
+
+  <div class="method-box"><strong>Méthode 8 — Exprimer « jamais », « à la fois », « tous »</strong>
+    <ol style="margin-top:.4rem">
+      <li>« Les X qui n'ont jamais … » : tous les X, privés (<span class="code-inline">EXCEPT</span>) de ceux qui ont … ; ou <span class="code-inline">NOT IN</span>. Exemple : <span class="code-inline">SELECT id_velo FROM Velo EXCEPT SELECT velo FROM Trajet</span> donne le vélo 16, jamais emprunté.</li>
+      <li>« Les X qui ont … et … », les deux faits étant lus sur des lignes différentes : <span class="code-inline">INTERSECT</span>, et non <span class="code-inline">AND</span>.</li>
+      <li>« Les X liés à tous les Y » : compter. Regrouper par X et comparer le nombre de Y distincts atteints au nombre total de Y : <span class="code-inline">HAVING COUNT(DISTINCT …) = (SELECT COUNT(…) FROM …)</span>.</li>
+    </ol>
+    <p><em>Exemple éclair :</em> les stations d'où sont partis des vélos des deux types (« de tous les types »).</p>
+<pre class="codeblock"><span class="kw">SELECT</span> s.nom
+<span class="kw">FROM</span> Station <span class="kw">AS</span> s
+<span class="kw">JOIN</span> Trajet <span class="kw">AS</span> t <span class="kw">ON</span> s.id_station = t.depart
+<span class="kw">JOIN</span> Velo <span class="kw">AS</span> v <span class="kw">ON</span> t.velo = v.id_velo
+<span class="kw">GROUP</span> <span class="kw">BY</span> s.id_station, s.nom
+<span class="kw">HAVING</span> <span class="kw">COUNT</span>(<span class="kw">DISTINCT</span> v.type) = (<span class="kw">SELECT</span> <span class="kw">COUNT</span>(<span class="kw">DISTINCT</span> type) <span class="kw">FROM</span> Velo);</pre>
+<figure><div><table style="width:auto;margin-inline:auto;white-space:nowrap">
+  <tr><th>nom</th></tr>
+  <tr><td>Gare</td></tr>
+  <tr><td>Mairie</td></tr>
+  <tr><td>Faculté</td></tr>
+</table></div><figcaption>Résultat : 3 lignes.</figcaption></figure>
+
+  </div>
+
+  <div class="notice"><strong>Piège</strong> : pour « les abonnés qui n'ont jamais pris de VAE », on est tenté d'écrire :
+<pre class="codeblock"><span class="kw">SELECT</span> <span class="kw">DISTINCT</span> a.prenom
+<span class="kw">FROM</span> Abonne <span class="kw">AS</span> a
+<span class="kw">JOIN</span> Trajet <span class="kw">AS</span> t <span class="kw">ON</span> a.id_abonne = t.abonne
+<span class="kw">JOIN</span> Velo <span class="kw">AS</span> v <span class="kw">ON</span> t.velo = v.id_velo
+<span class="kw">WHERE</span> v.type &lt;&gt; <span class="str">'VAE'</span>;</pre>
+<figure><div><table style="width:auto;margin-inline:auto;white-space:nowrap">
+  <tr><th>prenom</th></tr>
+  <tr><td>Hugo</td></tr>
+  <tr><td>Léa</td></tr>
+  <tr><td>Ana</td></tr>
+  <tr><td>Moussa</td></tr>
+  <tr><td>Théo</td></tr>
+</table></div><figcaption>Résultat : 5 lignes.</figcaption></figure>
+    <p>Cette requête ne donne <em>pas</em> les abonnés qui n'ont jamais pris de VAE, mais ceux qui ont pris au moins une fois un vélo classique. Moussa et Théo, qui ont aussi roulé en VAE, y figurent, et Chloé, qui n'a jamais roulé, en est absente. « Jamais » se traduit par une différence (<span class="code-inline">EXCEPT</span>, <span class="code-inline">NOT IN</span>), pas par <span class="code-inline">&lt;&gt;</span>.</p></div>
+
+  <div class="method-box"><strong>Méthode 9 — Vérifier une requête</strong>
+    <ol style="margin-top:.4rem">
+      <li>Prévoir la forme du résultat : une ligne par quoi (trajet, abonné, groupe) ? Combien de lignes environ ?</li>
+      <li>Dérouler la requête à la main sur deux ou trois lignes, en suivant l'ordre d'évaluation : <span class="code-inline">FROM</span>, <span class="code-inline">WHERE</span>, <span class="code-inline">GROUP BY</span>, <span class="code-inline">HAVING</span>, <span class="code-inline">SELECT</span>, <span class="code-inline">ORDER BY</span>.</li>
+      <li>Chercher les lignes en trop (doublons, produit cartésien) et les lignes perdues (entités sans correspondant, condition trop stricte, <span class="code-inline">&lt;</span> au lieu de <span class="code-inline">&lt;=</span>).</li>
+      <li>Faire un contrôle de cohérence : total des comptages, somme des sommes partielles.</li>
+    </ol>
+    <p><em>Exemple éclair :</em> le nombre de trajets par formule d'abonnement.</p>
+<pre class="codeblock"><span class="kw">SELECT</span> a.formule, <span class="kw">COUNT</span>(*) <span class="kw">AS</span> nb
+<span class="kw">FROM</span> Abonne <span class="kw">AS</span> a <span class="kw">JOIN</span> Trajet <span class="kw">AS</span> t <span class="kw">ON</span> a.id_abonne = t.abonne
+<span class="kw">GROUP</span> <span class="kw">BY</span> a.formule;</pre>
+<figure><div><table style="width:auto;margin-inline:auto;white-space:nowrap">
+  <tr><th>formule</th><th>nb</th></tr>
+  <tr><td>annuel</td><td>9</td></tr>
+  <tr><td>jeune</td><td>5</td></tr>
+  <tr><td>mensuel</td><td>2</td></tr>
+</table></div><figcaption>Résultat : 3 lignes.</figcaption></figure>
+    <p>Une ligne par formule ; \(9 + 5 + 2 = 16\) trajets, le total attendu. Le groupe « mensuel » ne compte que les deux trajets de Léa : Chloé, sans trajet, ne contribue à aucune ligne de la jointure.</p>
+  </div>
+</div>
+</template>
+<template class="pan-tpl" data-panneau="sql-exos">
+<div class="exo-wrapper">
+
+<div class="exo">
+  <span class="num">EXO 01</span><span class="diff">★ ☆ ☆</span>
+  <h3>Relevés météorologiques : vocabulaire, clés, premières requêtes</h3>
+  <div class="statement">Un réseau de capteurs de montagne enregistre chaque jour, pour chaque capteur, la température minimale et la température maximale (en °C) et la hauteur de pluie tombée (en mm). La base comporte deux tables, Capteur(id_capteur : entier, lieu : chaîne, altitude : entier), de clé primaire id_capteur, et Releve(capteur, jour, tmin, tmax, pluie), dont voici les contenus.
+<figure><div><table style="width:auto;margin-inline:auto;white-space:nowrap">
+  <tr><th><u>id_capteur</u></th><th>lieu</th><th>altitude</th></tr>
+  <tr><td>1</td><td>Col du Vent</td><td>1340</td></tr>
+  <tr><td>2</td><td>Vallon</td><td>420</td></tr>
+  <tr><td>3</td><td>Lac Bleu</td><td>980</td></tr>
+</table></div><figcaption>Table <strong>Capteur</strong> : 3 enregistrements.</figcaption></figure>
+<figure><div><table style="width:auto;margin-inline:auto;white-space:nowrap">
+  <tr><th>capteur</th><th>jour</th><th>tmin</th><th>tmax</th><th>pluie</th></tr>
+  <tr><td>1</td><td>2026-01-12</td><td>-6.5</td><td>1.0</td><td>0.0</td></tr>
+  <tr><td>1</td><td>2026-01-13</td><td>-4.0</td><td>2.5</td><td>3.2</td></tr>
+  <tr><td>1</td><td>2026-01-14</td><td>-8.0</td><td>-1.5</td><td>0.0</td></tr>
+  <tr><td>1</td><td>2026-01-15</td><td>-2.5</td><td>3.0</td><td>7.4</td></tr>
+  <tr><td>2</td><td>2026-01-12</td><td>1.5</td><td>9.0</td><td>0.0</td></tr>
+  <tr><td>2</td><td>2026-01-13</td><td>2.0</td><td>10.5</td><td>5.6</td></tr>
+  <tr><td>2</td><td>2026-01-14</td><td>0.5</td><td>8.0</td><td>0.0</td></tr>
+  <tr><td>2</td><td>2026-01-15</td><td>3.0</td><td>11.5</td><td>12.2</td></tr>
+  <tr><td>3</td><td>2026-01-12</td><td>-3.0</td><td>4.5</td><td>0.0</td></tr>
+  <tr><td>3</td><td>2026-01-13</td><td>-1.5</td><td>6.0</td><td>4.1</td></tr>
+  <tr><td>3</td><td>2026-01-14</td><td>-4.5</td><td>2.0</td><td>0.2</td></tr>
+  <tr><td>3</td><td>2026-01-15</td><td>0.0</td><td>7.0</td><td>9.8</td></tr>
+</table></div><figcaption>Table <strong>Releve</strong> : 12 enregistrements.</figcaption></figure>
+  </div>
+  <div class="q"><strong>Q1.</strong> Donner le domaine de chaque attribut de Releve. Que représente une ligne de cette table ?</div>
+  <div class="q"><strong>Q2.</strong> Expliquer pourquoi ni capteur seul, ni jour seul ne peuvent être la clé primaire de Releve. Proposer une clé primaire.</div>
+  <div class="q"><strong>Q3.</strong> Quelle est la clé étrangère de la base ? Quelle association traduit-elle, avec quelle cardinalité ? Le relevé (4, '2026-01-12', 1.0, 6.0, 0.0) pourrait-il être ajouté ?</div>
+  <div class="q"><strong>Q4.</strong> Écrire une requête donnant les jours où il est tombé plus de 5 mm de pluie au capteur 2.</div>
+  <div class="q"><strong>Q5.</strong> Écrire une requête donnant, pour chaque relevé du capteur 1, le jour et l'amplitude thermique \(t_{\max} - t_{\min}\), renommée amplitude.</div>
+  <div class="q"><strong>Q6.</strong> Écrire une requête donnant le capteur et le jour des relevés où il a gelé (température minimale strictement négative) sans pleuvoir.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> capteur : entier ; jour : chaîne (de la forme 'AAAA-MM-JJ', dont l'ordre alphabétique est l'ordre chronologique) ; tmin, tmax et pluie : flottants. Une ligne est la mesure d'une journée par un capteur : par exemple, le 13 janvier, le capteur 2 (Vallon) a mesuré entre 2 et 10,5 °C et 5,6 mm de pluie.</p>
+    <p><strong>Q2.</strong> Un capteur fait un relevé par jour : la valeur 1 de capteur apparaît sur quatre lignes. Chaque jour, les trois capteurs mesurent : la valeur '2026-01-12' de jour apparaît sur trois lignes. En revanche, un capteur ne fait qu'un relevé par jour : le couple (capteur, jour) identifie chaque ligne. C'est la clé primaire, formée de deux attributs.</p>
+    <p><strong>Q3.</strong> capteur est une clé étrangère : ses valeurs sont des valeurs de id_capteur dans Capteur. Elle traduit l'association « est mesuré par », \(1 - \ast\) de Capteur vers Releve : un relevé provient d'un seul capteur, un capteur produit un nombre quelconque de relevés. Le relevé proposé serait refusé : aucun capteur ne porte le numéro 4.</p>
+    <p><strong>Q4.</strong> Une condition sur deux attributs d'une même ligne :</p>
+<pre class="codeblock"><span class="kw">SELECT</span> jour
+<span class="kw">FROM</span> Releve
+<span class="kw">WHERE</span> capteur = 2 <span class="kw">AND</span> pluie &gt; 5;</pre>
+<figure><div><table style="width:auto;margin-inline:auto;white-space:nowrap">
+  <tr><th>jour</th></tr>
+  <tr><td>2026-01-13</td></tr>
+  <tr><td>2026-01-15</td></tr>
+</table></div><figcaption>Résultat : 2 lignes.</figcaption></figure>
+    <p><strong>Q5.</strong> Une colonne calculée, renommée :</p>
+<pre class="codeblock"><span class="kw">SELECT</span> jour, tmax - tmin <span class="kw">AS</span> amplitude
+<span class="kw">FROM</span> Releve
+<span class="kw">WHERE</span> capteur = 1;</pre>
+<figure><div><table style="width:auto;margin-inline:auto;white-space:nowrap">
+  <tr><th>jour</th><th>amplitude</th></tr>
+  <tr><td>2026-01-12</td><td>7.5</td></tr>
+  <tr><td>2026-01-13</td><td>6.5</td></tr>
+  <tr><td>2026-01-14</td><td>6.5</td></tr>
+  <tr><td>2026-01-15</td><td>5.5</td></tr>
+</table></div><figcaption>Résultat : 4 lignes.</figcaption></figure>
+    <p><strong>Q6.</strong> Les deux conditions doivent être vraies : <span class="code-inline">AND</span>. Le relevé du Lac Bleu du 14 janvier (\(t_{\min} = -4{,}5\) °C mais 0,2 mm de pluie) est écarté.</p>
+<pre class="codeblock"><span class="kw">SELECT</span> capteur, jour
+<span class="kw">FROM</span> Releve
+<span class="kw">WHERE</span> tmin &lt; 0 <span class="kw">AND</span> pluie = 0;</pre>
+<figure><div><table style="width:auto;margin-inline:auto;white-space:nowrap">
+  <tr><th>capteur</th><th>jour</th></tr>
+  <tr><td>1</td><td>2026-01-12</td></tr>
+  <tr><td>1</td><td>2026-01-14</td></tr>
+  <tr><td>3</td><td>2026-01-12</td></tr>
+</table></div><figcaption>Résultat : 3 lignes.</figcaption></figure>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 02</span><span class="diff">★ ☆ ☆</span>
+  <h3>Sélections, tris et tranches sur la base des vélos</h3>
+  <div class="statement">On reprend la base du cours : Station(<u>id_station</u>, nom, quartier, capacite), Abonne(<u>id_abonne</u>, nom, prenom, formule, annee), Velo(<u>id_velo</u>, type, annee), Trajet(<u>id_trajet</u>, abonne, velo, depart, arrivee, jour, duree, distance), Favori(<u>id_abonne, id_station</u>). Écrire chaque requête, puis prévoir son résultat à l'aide des tables du cours.</div>
+  <div class="q"><strong>Q1.</strong> Les numéros des VAE mis en service en 2024 ou après.</div>
+  <div class="q"><strong>Q2.</strong> Le numéro, la durée et la distance des trajets de plus de 3 km qui ont duré moins de 15 minutes.</div>
+  <div class="q"><strong>Q3.</strong> Les jours, sans répétition et dans l'ordre chronologique, où le vélo 14 a roulé.</div>
+  <div class="q"><strong>Q4.</strong> Le nom et le prénom des deux abonnés inscrits depuis le plus longtemps.</div>
+  <div class="q"><strong>Q5.</strong> Le numéro et la durée du troisième trajet le plus court. Expliquer ensuite pourquoi <span class="code-inline">ORDER BY duree LIMIT 1 OFFSET 9</span> ne désigne pas un trajet bien déterminé, et corriger.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong></p>
+<pre class="codeblock"><span class="kw">SELECT</span> id_velo
+<span class="kw">FROM</span> Velo
+<span class="kw">WHERE</span> type = <span class="str">'VAE'</span> <span class="kw">AND</span> annee &gt;= 2024;</pre>
+<figure><div><table style="width:auto;margin-inline:auto;white-space:nowrap">
+  <tr><th>id_velo</th></tr>
+  <tr><td>12</td></tr>
+  <tr><td>15</td></tr>
+</table></div><figcaption>Résultat : 2 lignes.</figcaption></figure>
+    <p><strong>Q2.</strong> « Plus de » et « moins de » se traduisent par des inégalités strictes.</p>
+<pre class="codeblock"><span class="kw">SELECT</span> id_trajet, duree, distance
+<span class="kw">FROM</span> Trajet
+<span class="kw">WHERE</span> distance &gt; 3 <span class="kw">AND</span> duree &lt; 15;</pre>
+<figure><div><table style="width:auto;margin-inline:auto;white-space:nowrap">
+  <tr><th>id_trajet</th><th>duree</th><th>distance</th></tr>
+  <tr><td>1</td><td>13</td><td>3.6</td></tr>
+  <tr><td>3</td><td>14</td><td>3.6</td></tr>
+  <tr><td>10</td><td>12</td><td>3.6</td></tr>
+</table></div><figcaption>Résultat : 3 lignes.</figcaption></figure>
+    <p><strong>Q3.</strong> Le vélo 14 a fait deux trajets le 5 mars : sans <span class="code-inline">DISTINCT</span>, ce jour apparaîtrait deux fois.</p>
+<pre class="codeblock"><span class="kw">SELECT</span> <span class="kw">DISTINCT</span> jour
+<span class="kw">FROM</span> Trajet
+<span class="kw">WHERE</span> velo = 14
+<span class="kw">ORDER</span> <span class="kw">BY</span> jour;</pre>
+<figure><div><table style="width:auto;margin-inline:auto;white-space:nowrap">
+  <tr><th>jour</th></tr>
+  <tr><td>2026-03-03</td></tr>
+  <tr><td>2026-03-04</td></tr>
+  <tr><td>2026-03-05</td></tr>
+  <tr><td>2026-03-06</td></tr>
+</table></div><figcaption>Résultat : 4 lignes.</figcaption></figure>
+    <p><strong>Q4.</strong> Les plus anciens inscrits ont la plus petite année d'inscription : tri croissant, puis les deux premières lignes.</p>
+<pre class="codeblock"><span class="kw">SELECT</span> nom, prenom
+<span class="kw">FROM</span> Abonne
+<span class="kw">ORDER</span> <span class="kw">BY</span> annee
+<span class="kw">LIMIT</span> 2;</pre>
+<figure><div><table style="width:auto;margin-inline:auto;white-space:nowrap">
+  <tr><th>nom</th><th>prenom</th></tr>
+  <tr><td>Ndiaye</td><td>Moussa</td></tr>
+  <tr><td>Lemoine</td><td>Inès</td></tr>
+</table></div><figcaption>Résultat : 2 lignes.</figcaption></figure>
+    <p><strong>Q5.</strong> Tri croissant des durées, on saute les deux premières lignes :</p>
+<pre class="codeblock"><span class="kw">SELECT</span> id_trajet, duree
+<span class="kw">FROM</span> Trajet
+<span class="kw">ORDER</span> <span class="kw">BY</span> duree
+<span class="kw">LIMIT</span> 1 <span class="kw">OFFSET</span> 2;</pre>
+<figure><div><table style="width:auto;margin-inline:auto;white-space:nowrap">
+  <tr><th>id_trajet</th><th>duree</th></tr>
+  <tr><td>6</td><td>7</td></tr>
+</table></div><figcaption>Résultat : 1 ligne.</figcaption></figure>
+
+    <p>Triées, les durées commencent par 5, 6, 7, 9, 10, 12, 12, 12, 13, 13 : la 9ᵉ et la 10ᵉ valent toutes deux 13 minutes (trajets 1 et 5). La 10ᵉ ligne (<span class="code-inline">OFFSET 9</span>) peut donc être le trajet 1 ou le trajet 5, selon l'ordre que choisit le logiciel entre ces ex æquo. Un second critère de tri lève l'ambiguïté :</p>
+<pre class="codeblock"><span class="kw">SELECT</span> id_trajet, duree
+<span class="kw">FROM</span> Trajet
+<span class="kw">ORDER</span> <span class="kw">BY</span> duree, id_trajet
+<span class="kw">LIMIT</span> 1 <span class="kw">OFFSET</span> 9;</pre>
+<figure><div><table style="width:auto;margin-inline:auto;white-space:nowrap">
+  <tr><th>id_trajet</th><th>duree</th></tr>
+  <tr><td>5</td><td>13</td></tr>
+</table></div><figcaption>Résultat : 1 ligne.</figcaption></figure>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 03</span><span class="diff">★ ★ ☆</span>
+  <h3>Modéliser les concerts d'un orchestre</h3>
+  <div class="statement">Une association gère les concerts de son orchestre. Chaque musicien a un nom et joue d'un seul instrument (violon, alto, flûte…), chaque instrument étant joué par plusieurs musiciens. Un concert a lieu un jour donné dans une salle (nom, ville) ; une salle accueille plusieurs concerts. Un musicien participe à plusieurs concerts, un concert réunit plusieurs musiciens, et chaque participation donne lieu à un cachet. Enfin, chaque concert fait l'objet d'exactement un enregistrement (numéro, durée en minutes), qui ne concerne que ce concert.</div>
+  <div class="q"><strong>Q1.</strong> Lister les entités et les associations, avec leur cardinalité.</div>
+  <div class="q"><strong>Q2.</strong> Proposer un schéma de tables, en soulignant les clés primaires et en indiquant les clés étrangères. Où se trouve l'information « cachet » ?</div>
+  <div class="q"><strong>Q3.</strong> Un camarade propose d'ajouter à Concert une colonne musiciens contenant la liste des participants. Pourquoi est-ce une mauvaise idée ?</div>
+  <div class="q"><strong>Q4.</strong> Avec votre schéma, écrire une requête donnant, pour chaque concert, son numéro, son jour, le nom de sa salle et le total des cachets versés.</div>
+  <div class="q"><strong>Q5.</strong> Écrire une requête donnant les noms des violonistes qui ont participé au concert du 2026-04-03.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> Entités : musicien, instrument, salle, concert, enregistrement. Associations : « joue de », \(1 - \ast\) d'Instrument vers Musicien (un musicien, un seul instrument) ; « a lieu dans », \(1 - \ast\) de Salle vers Concert ; « participe à », \(\ast - \ast\) entre Musicien et Concert, avec l'attribut cachet ; « est enregistré par », \(1 - 1\) entre Concert et Enregistrement.</p>
+    <p><strong>Q2.</strong> Une solution (les noms sont libres) :</p>
+    <ul>
+      <li>Instrument(<u>id_instrument</u>, nom) ;</li>
+      <li>Musicien(<u>id_musicien</u>, nom, instrument), où instrument référence Instrument ;</li>
+      <li>Salle(<u>id_salle</u>, nom, ville) ;</li>
+      <li>Concert(<u>id_concert</u>, jour, salle), où salle référence Salle ;</li>
+      <li>Participation(<u>musicien, concert</u>, cachet), table d'association : musicien référence Musicien, concert référence Concert ;</li>
+      <li>Enregistrement(<u>id_enregistrement</u>, duree, concert), où concert référence Concert et prend des valeurs toutes distinctes (association \(1 - 1\)).</li>
+    </ul>
+    <p>Le cachet dépend à la fois du musicien et du concert : c'est un attribut de l'association, donc de Participation. L'association \(\ast - \ast\) est séparée en deux associations \(1 - \ast\) : de Musicien vers Participation, de Concert vers Participation. On pouvait aussi fusionner Enregistrement dans Concert (colonnes numéro et durée), puisque l'association est \(1 - 1\).</p>
+    <p><strong>Q3.</strong> Une case ne contient qu'une valeur : une liste n'est pas une valeur d'un domaine (entier, flottant, chaîne). Même codée dans une chaîne, elle empêcherait toute jointure et tout comptage en SQL, et dupliquerait des informations (les noms) qui doivent n'être écrites qu'une fois. Une association \(\ast - \ast\) se traduit par une table d'association.</p>
+    <p><strong>Q4.</strong> Trois tables sur le chemin Salle — Concert — Participation, un regroupement par concert (on ajoute au regroupement le jour et le nom de la salle pour pouvoir les afficher) :</p>
+<pre class="codeblock"><span class="kw">SELECT</span> c.id_concert, c.jour, s.nom, <span class="kw">SUM</span>(p.cachet) <span class="kw">AS</span> total
+<span class="kw">FROM</span> Concert <span class="kw">AS</span> c
+<span class="kw">JOIN</span> Salle <span class="kw">AS</span> s <span class="kw">ON</span> c.salle = s.id_salle
+<span class="kw">JOIN</span> Participation <span class="kw">AS</span> p <span class="kw">ON</span> p.concert = c.id_concert
+<span class="kw">GROUP</span> <span class="kw">BY</span> c.id_concert, c.jour, s.nom;</pre>
+    <p><strong>Q5.</strong> Chemin Instrument — Musicien — Participation — Concert :</p>
+<pre class="codeblock"><span class="kw">SELECT</span> m.nom
+<span class="kw">FROM</span> Musicien <span class="kw">AS</span> m
+<span class="kw">JOIN</span> Instrument <span class="kw">AS</span> i <span class="kw">ON</span> m.instrument = i.id_instrument
+<span class="kw">JOIN</span> Participation <span class="kw">AS</span> p <span class="kw">ON</span> p.musicien = m.id_musicien
+<span class="kw">JOIN</span> Concert <span class="kw">AS</span> c <span class="kw">ON</span> p.concert = c.id_concert
+<span class="kw">WHERE</span> i.nom = <span class="str">'violon'</span> <span class="kw">AND</span> c.jour = <span class="str">'2026-04-03'</span>;</pre>
+    <p>Testées sur un petit jeu de données (cinq musiciens, trois concerts), ces requêtes donnent bien un total par concert et les deux violonistes du 3 avril.</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 04</span><span class="diff">★ ★ ☆</span>
+  <h3>Jointures et autojointure sur la base des vélos</h3>
+  <div class="statement">Base du cours : Station(<u>id_station</u>, nom, quartier, capacite), Abonne(<u>id_abonne</u>, nom, prenom, formule, annee), Velo(<u>id_velo</u>, type, annee), Trajet(<u>id_trajet</u>, abonne, velo, depart, arrivee, jour, duree, distance), Favori(<u>id_abonne, id_station</u>).</div>
+  <div class="q"><strong>Q1.</strong> Les noms des stations favorites de Léa Bastide (on ne connaît pas son numéro).</div>
+  <div class="q"><strong>Q2.</strong> Pour chaque trajet du 2026-03-04 : son numéro, le prénom de l'abonné, le type du vélo et le nom de la station d'arrivée.</div>
+  <div class="q"><strong>Q3.</strong> Les trajets des 3 et 4 mars qui changent de quartier, avec le quartier de départ et le quartier d'arrivée.</div>
+  <div class="q"><strong>Q4.</strong> Les couples d'abonnés (numéros) qui ont une station favorite en commun, chaque couple n'apparaissant qu'une fois, avec le numéro de cette station. Pourquoi faut-il deux alias de Favori ?</div>
+  <div class="q"><strong>Q5.</strong> Reprendre Q4 en affichant les prénoms des deux abonnés et le nom de la station.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> Chemin Abonne — Favori — Station ; la condition sur le nom et le prénom remplace le numéro inconnu.</p>
+<pre class="codeblock"><span class="kw">SELECT</span> s.nom
+<span class="kw">FROM</span> Abonne <span class="kw">AS</span> a
+<span class="kw">JOIN</span> Favori <span class="kw">AS</span> f <span class="kw">ON</span> a.id_abonne = f.id_abonne
+<span class="kw">JOIN</span> Station <span class="kw">AS</span> s <span class="kw">ON</span> f.id_station = s.id_station
+<span class="kw">WHERE</span> a.nom = <span class="str">'Bastide'</span> <span class="kw">AND</span> a.prenom = <span class="str">'Léa'</span>;</pre>
+<figure><div><table style="width:auto;margin-inline:auto;white-space:nowrap">
+  <tr><th>nom</th></tr>
+  <tr><td>Gare</td></tr>
+  <tr><td>Marché</td></tr>
+</table></div><figcaption>Résultat : 2 lignes.</figcaption></figure>
+    <p><strong>Q2.</strong> Trajet est au centre : on le joint à Abonne, à Velo et à Station (par arrivee), une condition par clé étrangère suivie.</p>
+<pre class="codeblock"><span class="kw">SELECT</span> t.id_trajet, a.prenom, v.type, s.nom <span class="kw">AS</span> arrivee
+<span class="kw">FROM</span> Trajet <span class="kw">AS</span> t
+<span class="kw">JOIN</span> Abonne <span class="kw">AS</span> a <span class="kw">ON</span> t.abonne = a.id_abonne
+<span class="kw">JOIN</span> Velo <span class="kw">AS</span> v <span class="kw">ON</span> t.velo = v.id_velo
+<span class="kw">JOIN</span> Station <span class="kw">AS</span> s <span class="kw">ON</span> t.arrivee = s.id_station
+<span class="kw">WHERE</span> t.jour = <span class="str">'2026-03-04'</span>;</pre>
+<figure><div><table style="width:auto;margin-inline:auto;white-space:nowrap">
+  <tr><th>id_trajet</th><th>prenom</th><th>type</th><th>arrivee</th></tr>
+  <tr><td>7</td><td>Ana</td><td>classique</td><td>Marché</td></tr>
+  <tr><td>8</td><td>Moussa</td><td>VAE</td><td>Mairie</td></tr>
+  <tr><td>9</td><td>Théo</td><td>VAE</td><td>Port</td></tr>
+</table></div><figcaption>Résultat : 3 lignes.</figcaption></figure>
+    <p><strong>Q3.</strong> Station intervient deux fois, avec deux rôles : deux alias. La comparaison des quartiers n'est pas une égalité, elle va dans <span class="code-inline">WHERE</span>.</p>
+<pre class="codeblock"><span class="kw">SELECT</span> t.id_trajet, d.quartier <span class="kw">AS</span> q_depart, r.quartier <span class="kw">AS</span> q_arrivee
+<span class="kw">FROM</span> Trajet <span class="kw">AS</span> t
+<span class="kw">JOIN</span> Station <span class="kw">AS</span> d <span class="kw">ON</span> t.depart = d.id_station
+<span class="kw">JOIN</span> Station <span class="kw">AS</span> r <span class="kw">ON</span> t.arrivee = r.id_station
+<span class="kw">WHERE</span> d.quartier &lt;&gt; r.quartier
+  <span class="kw">AND</span> t.jour &gt;= <span class="str">'2026-03-03'</span> <span class="kw">AND</span> t.jour &lt;= <span class="str">'2026-03-04'</span>;</pre>
+<figure><div><table style="width:auto;margin-inline:auto;white-space:nowrap">
+  <tr><th>id_trajet</th><th>q_depart</th><th>q_arrivee</th></tr>
+  <tr><td>4</td><td>Centre</td><td>Rives</td></tr>
+  <tr><td>5</td><td>Rives</td><td>Centre</td></tr>
+  <tr><td>7</td><td>Centre</td><td>Rives</td></tr>
+  <tr><td>8</td><td>Rives</td><td>Centre</td></tr>
+</table></div><figcaption>Résultat : 4 lignes.</figcaption></figure>
+    <p>Les trajets 6 (Piscine → Faculté) et 9 (boucle au Port) restent dans leur quartier.</p>
+    <p><strong>Q4.</strong> Il faut comparer deux lignes de Favori (une par abonné) : autojointure, donc deux alias, f1 et f2. L'égalité des stations est la condition de jointure ; <span class="code-inline">f1.id_abonne &lt; f2.id_abonne</span> écarte les couples d'un abonné avec lui-même et ne garde chaque couple que dans un sens.</p>
+<pre class="codeblock"><span class="kw">SELECT</span> f1.id_abonne <span class="kw">AS</span> abonne1, f2.id_abonne <span class="kw">AS</span> abonne2, f1.id_station
+<span class="kw">FROM</span> Favori <span class="kw">AS</span> f1 <span class="kw">JOIN</span> Favori <span class="kw">AS</span> f2 <span class="kw">ON</span> f1.id_station = f2.id_station
+<span class="kw">WHERE</span> f1.id_abonne &lt; f2.id_abonne;</pre>
+<figure><div><table style="width:auto;margin-inline:auto;white-space:nowrap">
+  <tr><th>abonne1</th><th>abonne2</th><th>id_station</th></tr>
+  <tr><td>1</td><td>3</td><td>1</td></tr>
+  <tr><td>1</td><td>2</td><td>4</td></tr>
+  <tr><td>3</td><td>5</td><td>6</td></tr>
+  <tr><td>3</td><td>7</td><td>6</td></tr>
+  <tr><td>4</td><td>7</td><td>2</td></tr>
+  <tr><td>4</td><td>6</td><td>3</td></tr>
+  <tr><td>5</td><td>7</td><td>6</td></tr>
+</table></div><figcaption>Résultat : 7 lignes.</figcaption></figure>
+    <p>Si deux abonnés avaient deux favorites en commun, leur couple apparaîtrait deux fois, une fois par station : c'est voulu ici, puisqu'on affiche la station.</p>
+    <p><strong>Q5.</strong> Abonne joue deux rôles (premier et second abonné) : deux alias de plus, et Station pour le nom.</p>
+<pre class="codeblock"><span class="kw">SELECT</span> a1.prenom <span class="kw">AS</span> prenom1, a2.prenom <span class="kw">AS</span> prenom2, s.nom <span class="kw">AS</span> station
+<span class="kw">FROM</span> Favori <span class="kw">AS</span> f1
+<span class="kw">JOIN</span> Favori <span class="kw">AS</span> f2 <span class="kw">ON</span> f1.id_station = f2.id_station
+<span class="kw">JOIN</span> Abonne <span class="kw">AS</span> a1 <span class="kw">ON</span> f1.id_abonne = a1.id_abonne
+<span class="kw">JOIN</span> Abonne <span class="kw">AS</span> a2 <span class="kw">ON</span> f2.id_abonne = a2.id_abonne
+<span class="kw">JOIN</span> Station <span class="kw">AS</span> s <span class="kw">ON</span> f1.id_station = s.id_station
+<span class="kw">WHERE</span> f1.id_abonne &lt; f2.id_abonne;</pre>
+<figure><div><table style="width:auto;margin-inline:auto;white-space:nowrap">
+  <tr><th>prenom1</th><th>prenom2</th><th>station</th></tr>
+  <tr><td>Inès</td><td>Léa</td><td>Gare</td></tr>
+  <tr><td>Inès</td><td>Hugo</td><td>Faculté</td></tr>
+  <tr><td>Léa</td><td>Ana</td><td>Marché</td></tr>
+  <tr><td>Léa</td><td>Chloé</td><td>Marché</td></tr>
+  <tr><td>Moussa</td><td>Chloé</td><td>Mairie</td></tr>
+  <tr><td>Moussa</td><td>Théo</td><td>Port</td></tr>
+  <tr><td>Ana</td><td>Chloé</td><td>Marché</td></tr>
+</table></div><figcaption>Résultat : 7 lignes.</figcaption></figure>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 05</span><span class="diff">★ ★ ☆</span>
+  <h3>Opérations ensemblistes et produit cartésien</h3>
+  <div class="statement">Base du cours (vélos en libre-service), dont on rappelle Velo(<u>id_velo</u>, type, annee), Trajet(<u>id_trajet</u>, abonne, velo, depart, arrivee, jour, duree, distance), Favori(<u>id_abonne, id_station</u>) ; la base compte 6 stations, 7 abonnés, 6 vélos, 16 trajets.</div>
+  <div class="q"><strong>Q1.</strong> Écrire de deux façons, avec <span class="code-inline">UNION</span> puis avec <span class="code-inline">OR</span>, une requête donnant les vélos utilisés le 2 mars ou le 6 mars.</div>
+  <div class="q"><strong>Q2.</strong> Donner les vélos utilisés à la fois le 2 mars et le 6 mars. Pourquoi ne peut-on pas remplacer ici l'opérateur ensembliste par <span class="code-inline">AND</span> ?</div>
+  <div class="q"><strong>Q3.</strong> Donner le numéro et le nom des stations d'où est parti au moins un VAE, mais jamais un vélo classique.</div>
+  <div class="q"><strong>Q4.</strong> Combien de lignes comptent <span class="code-inline">FROM Abonne, Velo, Station</span> et <span class="code-inline">FROM Trajet JOIN Velo ON Trajet.velo = Velo.id_velo</span> ? Justifier sans exécuter.</div>
+  <div class="q"><strong>Q5.</strong> Les abonnés qui ont au moins une station favorite mais n'ont jamais fait de trajet.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> Les deux résultats sont les vélos 11, 13 et 14. Avec <span class="code-inline">OR</span>, il faut <span class="code-inline">DISTINCT</span> (le vélo 11 a roulé deux fois le 2 mars) ; <span class="code-inline">UNION</span> retire lui-même les doublons.</p>
+<pre class="codeblock"><span class="kw">SELECT</span> velo <span class="kw">FROM</span> Trajet <span class="kw">WHERE</span> jour = <span class="str">'2026-03-02'</span>
+<span class="kw">UNION</span>
+<span class="kw">SELECT</span> velo <span class="kw">FROM</span> Trajet <span class="kw">WHERE</span> jour = <span class="str">'2026-03-06'</span>;</pre>
+<figure><div><table style="width:auto;margin-inline:auto;white-space:nowrap">
+  <tr><th>velo</th></tr>
+  <tr><td>11</td></tr>
+  <tr><td>13</td></tr>
+  <tr><td>14</td></tr>
+</table></div><figcaption>Résultat : 3 lignes.</figcaption></figure>
+<pre class="codeblock"><span class="kw">SELECT</span> <span class="kw">DISTINCT</span> velo
+<span class="kw">FROM</span> Trajet
+<span class="kw">WHERE</span> jour = <span class="str">'2026-03-02'</span> <span class="kw">OR</span> jour = <span class="str">'2026-03-06'</span>;</pre>
+    <p><strong>Q2.</strong></p>
+<pre class="codeblock"><span class="kw">SELECT</span> velo <span class="kw">FROM</span> Trajet <span class="kw">WHERE</span> jour = <span class="str">'2026-03-02'</span>
+<span class="kw">INTERSECT</span>
+<span class="kw">SELECT</span> velo <span class="kw">FROM</span> Trajet <span class="kw">WHERE</span> jour = <span class="str">'2026-03-06'</span>;</pre>
+<figure><div><table style="width:auto;margin-inline:auto;white-space:nowrap">
+  <tr><th>velo</th></tr>
+  <tr><td>11</td></tr>
+  <tr><td>13</td></tr>
+</table></div><figcaption>Résultat : 2 lignes.</figcaption></figure>
+    <p>Les deux faits (« a roulé le 2 », « a roulé le 6 ») concernent deux <em>lignes</em> différentes de Trajet. La condition <span class="code-inline">jour = '2026-03-02' AND jour = '2026-03-06'</span> porte sur une seule ligne et n'est jamais vraie : résultat vide. <span class="code-inline">OR</span> pouvait remplacer <span class="code-inline">UNION</span> en Q1 parce que les deux requêtes portaient sur la même table et la même colonne.</p>
+    <p><strong>Q3.</strong> Une différence d'ensembles de couples (numéro, nom) ; chaque partie joint Trajet, Velo et Station.</p>
+<pre class="codeblock"><span class="kw">SELECT</span> s.id_station, s.nom
+<span class="kw">FROM</span> Station <span class="kw">AS</span> s
+<span class="kw">JOIN</span> Trajet <span class="kw">AS</span> t <span class="kw">ON</span> s.id_station = t.depart
+<span class="kw">JOIN</span> Velo <span class="kw">AS</span> v <span class="kw">ON</span> t.velo = v.id_velo
+<span class="kw">WHERE</span> v.type = <span class="str">'VAE'</span>
+<span class="kw">EXCEPT</span>
+<span class="kw">SELECT</span> s.id_station, s.nom
+<span class="kw">FROM</span> Station <span class="kw">AS</span> s
+<span class="kw">JOIN</span> Trajet <span class="kw">AS</span> t <span class="kw">ON</span> s.id_station = t.depart
+<span class="kw">JOIN</span> Velo <span class="kw">AS</span> v <span class="kw">ON</span> t.velo = v.id_velo
+<span class="kw">WHERE</span> v.type = <span class="str">'classique'</span>;</pre>
+<figure><div><table style="width:auto;margin-inline:auto;white-space:nowrap">
+  <tr><th>id_station</th><th>nom</th></tr>
+  <tr><td>3</td><td>Port</td></tr>
+</table></div><figcaption>Résultat : 1 ligne.</figcaption></figure>
+    <p>Les VAE sont partis des stations 1, 2, 3 et 4, les vélos classiques des stations 1, 2, 4, 5 et 6 : seul le Port reste.</p>
+    <p><strong>Q4.</strong> Le produit cartésien de trois tables compte \(7 \times 6 \times 6 = 252\) lignes. La jointure suit la clé étrangère velo : chaque trajet est complété par l'unique vélo qu'il référence, d'où 16 lignes, autant que de trajets.</p>
+
+
+    <p><strong>Q5.</strong> Les deux colonnes comparées n'ont pas le même nom, mais le même domaine (des numéros d'abonnés) : c'est ce qui compte.</p>
+<pre class="codeblock"><span class="kw">SELECT</span> id_abonne <span class="kw">FROM</span> Favori
+<span class="kw">EXCEPT</span>
+<span class="kw">SELECT</span> abonne <span class="kw">FROM</span> Trajet;</pre>
+<figure><div><table style="width:auto;margin-inline:auto;white-space:nowrap">
+  <tr><th>id_abonne</th></tr>
+  <tr><td>7</td></tr>
+</table></div><figcaption>Résultat : 1 ligne.</figcaption></figure>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 06</span><span class="diff">★ ★ ☆</span>
+  <h3>Agrégats : la production d'une centrale photovoltaïque</h3>
+  <div class="statement">Une petite centrale compte six panneaux, répartis en deux rangées. La table Panneau(<u>id_panneau</u>, rangee, orientation, puissance) donne la puissance crête de chaque panneau (en W, entier) ; la table Mesure(<u>panneau, jour</u>, energie) donne l'énergie produite par chaque panneau chaque jour (en Wh, flottant), panneau étant une clé étrangère vers Panneau.
+<figure><div><table style="width:auto;margin-inline:auto;white-space:nowrap">
+  <tr><th><u>id_panneau</u></th><th>rangee</th><th>orientation</th><th>puissance</th></tr>
+  <tr><td>1</td><td>A</td><td>sud</td><td>400</td></tr>
+  <tr><td>2</td><td>A</td><td>sud</td><td>400</td></tr>
+  <tr><td>3</td><td>A</td><td>sud-est</td><td>400</td></tr>
+  <tr><td>4</td><td>B</td><td>sud-ouest</td><td>375</td></tr>
+  <tr><td>5</td><td>B</td><td>sud-ouest</td><td>375</td></tr>
+  <tr><td>6</td><td>B</td><td>est</td><td>375</td></tr>
+</table></div><figcaption>Table <strong>Panneau</strong> : 6 enregistrements.</figcaption></figure>
+<figure><div><table style="width:auto;margin-inline:auto;white-space:nowrap">
+  <tr><th><u>panneau</u></th><th><u>jour</u></th><th>energie</th></tr>
+  <tr><td>1</td><td>2026-06-20</td><td>2480.0</td></tr>
+  <tr><td>1</td><td>2026-06-21</td><td>2600.0</td></tr>
+  <tr><td>1</td><td>2026-06-22</td><td>960.0</td></tr>
+  <tr><td>2</td><td>2026-06-20</td><td>2406.0</td></tr>
+  <tr><td>2</td><td>2026-06-21</td><td>2522.0</td></tr>
+  <tr><td>2</td><td>2026-06-22</td><td>931.0</td></tr>
+  <tr><td>3</td><td>2026-06-20</td><td>2306.0</td></tr>
+  <tr><td>3</td><td>2026-06-21</td><td>2418.0</td></tr>
+  <tr><td>3</td><td>2026-06-22</td><td>893.0</td></tr>
+  <tr><td>4</td><td>2026-06-20</td><td>2209.0</td></tr>
+  <tr><td>4</td><td>2026-06-21</td><td>2316.0</td></tr>
+  <tr><td>4</td><td>2026-06-22</td><td>855.0</td></tr>
+  <tr><td>5</td><td>2026-06-20</td><td>2195.0</td></tr>
+  <tr><td>5</td><td>2026-06-21</td><td>2301.0</td></tr>
+  <tr><td>5</td><td>2026-06-22</td><td>849.0</td></tr>
+  <tr><td>6</td><td>2026-06-20</td><td>1906.0</td></tr>
+  <tr><td>6</td><td>2026-06-21</td><td>1999.0</td></tr>
+  <tr><td>6</td><td>2026-06-22</td><td>738.0</td></tr>
+</table></div><figcaption>Table <strong>Mesure</strong> : 18 enregistrements.</figcaption></figure>
+  </div>
+  <div class="q"><strong>Q1.</strong> L'énergie totale produite par la centrale le 2026-06-21.</div>
+  <div class="q"><strong>Q2.</strong> Pour chaque panneau, l'énergie moyenne produite par jour.</div>
+  <div class="q"><strong>Q3.</strong> L'énergie totale produite par orientation, de l'orientation la plus productive à la moins productive.</div>
+  <div class="q"><strong>Q4.</strong> Pour chaque rangée, le nombre de panneaux et la puissance crête installée.</div>
+  <div class="q"><strong>Q5.</strong> Le « productible » d'un panneau est l'énergie qu'il a produite divisée par sa puissance crête (en heures). Écrire une requête donnant le productible de chaque panneau sur les trois jours, du meilleur au moins bon. Les panneaux 1 et 2 sont identiques et orientés de la même façon : que suggère le résultat ?</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> Une seule valeur : agrégat sans regroupement, sur les lignes retenues par <span class="code-inline">WHERE</span>.</p>
+<pre class="codeblock"><span class="kw">SELECT</span> <span class="kw">SUM</span>(energie) <span class="kw">AS</span> total
+<span class="kw">FROM</span> Mesure
+<span class="kw">WHERE</span> jour = <span class="str">'2026-06-21'</span>;</pre>
+<figure><div><table style="width:auto;margin-inline:auto;white-space:nowrap">
+  <tr><th>total</th></tr>
+  <tr><td>14156.0</td></tr>
+</table></div><figcaption>Résultat : 1 ligne.</figcaption></figure>
+    <p><strong>Q2.</strong> « Pour chaque panneau » : un groupe par panneau.</p>
+<pre class="codeblock"><span class="kw">SELECT</span> panneau, <span class="kw">AVG</span>(energie) <span class="kw">AS</span> moyenne
+<span class="kw">FROM</span> Mesure
+<span class="kw">GROUP</span> <span class="kw">BY</span> panneau;</pre>
+<figure><div><table style="width:auto;margin-inline:auto;white-space:nowrap">
+  <tr><th>panneau</th><th>moyenne</th></tr>
+  <tr><td>1</td><td>2013.33</td></tr>
+  <tr><td>2</td><td>1953.0</td></tr>
+  <tr><td>3</td><td>1872.33</td></tr>
+  <tr><td>4</td><td>1793.33</td></tr>
+  <tr><td>5</td><td>1781.67</td></tr>
+  <tr><td>6</td><td>1547.67</td></tr>
+</table></div><figcaption>Résultat : 6 lignes.</figcaption></figure>
+    <p><strong>Q3.</strong> L'orientation est dans Panneau, l'énergie dans Mesure : jointure, puis regroupement par orientation ; le tri porte sur l'agrégat renommé.</p>
+<pre class="codeblock"><span class="kw">SELECT</span> p.orientation, <span class="kw">SUM</span>(m.energie) <span class="kw">AS</span> total
+<span class="kw">FROM</span> Panneau <span class="kw">AS</span> p <span class="kw">JOIN</span> Mesure <span class="kw">AS</span> m <span class="kw">ON</span> p.id_panneau = m.panneau
+<span class="kw">GROUP</span> <span class="kw">BY</span> p.orientation
+<span class="kw">ORDER</span> <span class="kw">BY</span> total <span class="kw">DESC</span>;</pre>
+<figure><div><table style="width:auto;margin-inline:auto;white-space:nowrap">
+  <tr><th>orientation</th><th>total</th></tr>
+  <tr><td>sud</td><td>11899.0</td></tr>
+  <tr><td>sud-ouest</td><td>10725.0</td></tr>
+  <tr><td>sud-est</td><td>5617.0</td></tr>
+  <tr><td>est</td><td>4643.0</td></tr>
+</table></div><figcaption>Résultat : 4 lignes.</figcaption></figure>
+    <p>Attention à l'interprétation : le sud et le sud-ouest comptent deux panneaux chacun, le sud-est et l'est un seul. Pour comparer les orientations, une moyenne par panneau serait plus juste.</p>
+    <p><strong>Q4.</strong> Seule la table Panneau est utile ; joindre Mesure multiplierait chaque panneau par trois jours et fausserait comptage et somme.</p>
+<pre class="codeblock"><span class="kw">SELECT</span> rangee, <span class="kw">COUNT</span>(*) <span class="kw">AS</span> nb, <span class="kw">SUM</span>(puissance) <span class="kw">AS</span> puissance_totale
+<span class="kw">FROM</span> Panneau
+<span class="kw">GROUP</span> <span class="kw">BY</span> rangee;</pre>
+<figure><div><table style="width:auto;margin-inline:auto;white-space:nowrap">
+  <tr><th>rangee</th><th>nb</th><th>puissance_totale</th></tr>
+  <tr><td>A</td><td>3</td><td>1200</td></tr>
+  <tr><td>B</td><td>3</td><td>1125</td></tr>
+</table></div><figcaption>Résultat : 2 lignes.</figcaption></figure>
+
+    <p><strong>Q5.</strong> La puissance n'est ni regroupée ni agrégée : on l'ajoute au regroupement (elle ne prend qu'une valeur par panneau). Comme energie est un flottant, la division se fait en flottants.</p>
+<pre class="codeblock"><span class="kw">SELECT</span> p.id_panneau, <span class="kw">SUM</span>(m.energie) / p.puissance <span class="kw">AS</span> productible
+<span class="kw">FROM</span> Panneau <span class="kw">AS</span> p <span class="kw">JOIN</span> Mesure <span class="kw">AS</span> m <span class="kw">ON</span> p.id_panneau = m.panneau
+<span class="kw">GROUP</span> <span class="kw">BY</span> p.id_panneau, p.puissance
+<span class="kw">ORDER</span> <span class="kw">BY</span> productible <span class="kw">DESC</span>;</pre>
+<figure><div><table style="width:auto;margin-inline:auto;white-space:nowrap">
+  <tr><th>id_panneau</th><th>productible</th></tr>
+  <tr><td>1</td><td>15.1</td></tr>
+  <tr><td>2</td><td>14.65</td></tr>
+  <tr><td>4</td><td>14.35</td></tr>
+  <tr><td>5</td><td>14.25</td></tr>
+  <tr><td>3</td><td>14.04</td></tr>
+  <tr><td>6</td><td>12.38</td></tr>
+</table></div><figcaption>Résultat : 6 lignes.</figcaption></figure>
+    <p>Le panneau 2 produit environ 3 % de moins que le panneau 1, chaque jour : un défaut (salissure, ombre, connectique) est probable. Le panneau 3, orienté sud-est, et le panneau 6, orienté est, sont pénalisés par leur orientation.</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 07</span><span class="diff">★ ★ ☆</span>
+  <h3>WHERE ou HAVING ?</h3>
+  <div class="statement">Base du cours (vélos en libre-service) : Velo(<u>id_velo</u>, type, annee), Trajet(<u>id_trajet</u>, abonne, velo, depart, arrivee, jour, duree, distance). Pour chaque question, écrire la requête en se demandant pour chaque condition si elle porte sur une ligne ou sur un groupe.</div>
+  <div class="q"><strong>Q1.</strong> Pour chaque vélo, le nombre de ses trajets de plus de 3 km.</div>
+  <div class="q"><strong>Q2.</strong> Les vélos dont la distance moyenne par trajet dépasse 3 km.</div>
+  <div class="q"><strong>Q3.</strong> Les jours où au moins quatre abonnés différents ont roulé.</div>
+  <div class="q"><strong>Q4.</strong> En ne comptant que les trajets en VAE, les abonnés qui ont parcouru en tout plus de 6 km.</div>
+  <div class="q"><strong>Q5.</strong> La requête <span class="code-inline">SELECT velo, COUNT(*) FROM Trajet WHERE COUNT(*) &gt; 3 GROUP BY velo;</span> est refusée. Pourquoi ? La corriger.</div>
+  <div class="q"><strong>Q6.</strong> Comparer <span class="code-inline">SELECT abonne, AVG(duree) FROM Trajet WHERE duree &lt; 20 GROUP BY abonne;</span> et <span class="code-inline">SELECT abonne, AVG(duree) FROM Trajet GROUP BY abonne HAVING AVG(duree) &lt; 20;</span>. Montrer qu'elles donnent ici le même résultat, puis imaginer un trajet supplémentaire qui les ferait différer.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> « Plus de 3 km » se lit sur un trajet : <span class="code-inline">WHERE</span>. Les vélos 12 et 14, sans trajet de plus de 3 km, n'apparaissent pas.</p>
+<pre class="codeblock"><span class="kw">SELECT</span> velo, <span class="kw">COUNT</span>(*) <span class="kw">AS</span> nb
+<span class="kw">FROM</span> Trajet
+<span class="kw">WHERE</span> distance &gt; 3
+<span class="kw">GROUP</span> <span class="kw">BY</span> velo;</pre>
+<figure><div><table style="width:auto;margin-inline:auto;white-space:nowrap">
+  <tr><th>velo</th><th>nb</th></tr>
+  <tr><td>11</td><td>4</td></tr>
+  <tr><td>13</td><td>2</td></tr>
+  <tr><td>15</td><td>1</td></tr>
+</table></div><figcaption>Résultat : 3 lignes.</figcaption></figure>
+    <p><strong>Q2.</strong> Une moyenne porte sur un groupe : <span class="code-inline">HAVING</span>.</p>
+<pre class="codeblock"><span class="kw">SELECT</span> velo, <span class="kw">AVG</span>(distance) <span class="kw">AS</span> moyenne
+<span class="kw">FROM</span> Trajet
+<span class="kw">GROUP</span> <span class="kw">BY</span> velo
+<span class="kw">HAVING</span> <span class="kw">AVG</span>(distance) &gt; 3;</pre>
+<figure><div><table style="width:auto;margin-inline:auto;white-space:nowrap">
+  <tr><th>velo</th><th>moyenne</th></tr>
+  <tr><td>11</td><td>3.6</td></tr>
+  <tr><td>15</td><td>6.5</td></tr>
+</table></div><figcaption>Résultat : 2 lignes.</figcaption></figure>
+    <p><strong>Q3.</strong> On compte des abonnés <em>différents</em> : <span class="code-inline">COUNT(DISTINCT abonne)</span>, dans <span class="code-inline">HAVING</span>.</p>
+<pre class="codeblock"><span class="kw">SELECT</span> jour, <span class="kw">COUNT</span>(<span class="kw">DISTINCT</span> abonne) <span class="kw">AS</span> nb_abonnes
+<span class="kw">FROM</span> Trajet
+<span class="kw">GROUP</span> <span class="kw">BY</span> jour
+<span class="kw">HAVING</span> <span class="kw">COUNT</span>(<span class="kw">DISTINCT</span> abonne) &gt;= 4;</pre>
+<figure><div><table style="width:auto;margin-inline:auto;white-space:nowrap">
+  <tr><th>jour</th><th>nb_abonnes</th></tr>
+  <tr><td>2026-03-05</td><td>4</td></tr>
+</table></div><figcaption>Résultat : 1 ligne.</figcaption></figure>
+    <p><strong>Q4.</strong> « En VAE » porte sur chaque trajet (<span class="code-inline">WHERE</span>, après une jointure avec Velo) ; « plus de 6 km en tout » porte sur une somme (<span class="code-inline">HAVING</span>).</p>
+<pre class="codeblock"><span class="kw">SELECT</span> t.abonne, <span class="kw">SUM</span>(t.distance) <span class="kw">AS</span> km
+<span class="kw">FROM</span> Trajet <span class="kw">AS</span> t <span class="kw">JOIN</span> Velo <span class="kw">AS</span> v <span class="kw">ON</span> t.velo = v.id_velo
+<span class="kw">WHERE</span> v.type = <span class="str">'VAE'</span>
+<span class="kw">GROUP</span> <span class="kw">BY</span> t.abonne
+<span class="kw">HAVING</span> <span class="kw">SUM</span>(t.distance) &gt; 6;</pre>
+<figure><div><table style="width:auto;margin-inline:auto;white-space:nowrap">
+  <tr><th>abonne</th><th>km</th></tr>
+  <tr><td>1</td><td>14.4</td></tr>
+  <tr><td>6</td><td>6.5</td></tr>
+</table></div><figcaption>Résultat : 2 lignes.</figcaption></figure>
+    <p>Moussa (abonné 4) a parcouru 5 km en VAE : il est écarté par <span class="code-inline">HAVING</span>, alors qu'il a parcouru 7,5 km en tout.</p>
+<pre class="codeblock"><span class="kw">SELECT</span> velo, <span class="kw">COUNT</span>(*) <span class="kw">FROM</span> Trajet <span class="kw">WHERE</span> <span class="kw">COUNT</span>(*) &gt; 3 <span class="kw">GROUP</span> <span class="kw">BY</span> velo;</pre>
+    <p><strong>Q5.</strong> <span class="code-inline">WHERE</span> est évalué ligne par ligne, avant la formation des groupes : un agrégat n'y a pas de sens. La condition porte sur le nombre de trajets de chaque vélo, donc sur un groupe :</p>
+<pre class="codeblock"><span class="kw">SELECT</span> velo, <span class="kw">COUNT</span>(*) <span class="kw">AS</span> nb
+<span class="kw">FROM</span> Trajet
+<span class="kw">GROUP</span> <span class="kw">BY</span> velo
+<span class="kw">HAVING</span> <span class="kw">COUNT</span>(*) &gt; 3;</pre>
+<figure><div><table style="width:auto;margin-inline:auto;white-space:nowrap">
+  <tr><th>velo</th><th>nb</th></tr>
+  <tr><td>11</td><td>4</td></tr>
+  <tr><td>13</td><td>4</td></tr>
+  <tr><td>14</td><td>5</td></tr>
+</table></div><figcaption>Résultat : 3 lignes.</figcaption></figure>
+
+
+    <p><strong>Q6.</strong> La première requête écarte les <em>trajets</em> de 20 minutes ou plus, puis fait la moyenne des trajets restants ; la seconde fait la moyenne de <em>tous</em> les trajets, puis écarte les <em>abonnés</em> dont la moyenne atteint 20 minutes. Ici, seul Théo a des trajets d'au moins 20 minutes (35 et 22), et ce sont ses seuls trajets : la première requête lui retire toutes ses lignes, la seconde écarte sa moyenne de 28,5 ; les cinq autres abonnés ont la même moyenne dans les deux cas. Les deux résultats coïncident donc (abonnés 1 à 5, moyennes 13,5 ; 10 ; 9 ; 10,33 ; 13). Si Inès faisait en plus un trajet de 45 minutes, la première requête lui donnerait toujours 13,5, la seconde \((54 + 45) / 5 = 19{,}8\) : les résultats différeraient.</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 08</span><span class="diff">★ ★ ★</span>
+  <h3>Requêtes imbriquées : moyennes, records, absences</h3>
+  <div class="statement">Base du cours : Station(<u>id_station</u>, nom, quartier, capacite), Abonne(<u>id_abonne</u>, nom, prenom, formule, annee), Velo(<u>id_velo</u>, type, annee), Trajet(<u>id_trajet</u>, abonne, velo, depart, arrivee, jour, duree, distance).</div>
+  <div class="q"><strong>Q1.</strong> Les trajets (numéro, durée) plus longs que la durée moyenne de l'ensemble des trajets.</div>
+  <div class="q"><strong>Q2.</strong> Les trajets plus longs que la durée moyenne des trajets de <em>leur</em> abonné. Indication : joindre Trajet à une table dérivée donnant la durée moyenne de chaque abonné.</div>
+  <div class="q"><strong>Q3.</strong> Le nom de la ou des stations d'arrivée les plus fréquentes, avec le nombre d'arrivées.</div>
+  <div class="q"><strong>Q4.</strong> Le prénom des abonnés qui n'ont jamais pris de vélo à la Gare.</div>
+  <div class="q"><strong>Q5.</strong> Les vélos utilisés plus souvent que la moyenne des vélos qui ont servi.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> La moyenne (13,5 minutes) est calculée par une requête intérieure qui renvoie une seule valeur.</p>
+<pre class="codeblock"><span class="kw">SELECT</span> id_trajet, duree
+<span class="kw">FROM</span> Trajet
+<span class="kw">WHERE</span> duree &gt; (<span class="kw">SELECT</span> <span class="kw">AVG</span>(duree) <span class="kw">FROM</span> Trajet);</pre>
+<figure><div><table style="width:auto;margin-inline:auto;white-space:nowrap">
+  <tr><th>id_trajet</th><th>duree</th></tr>
+  <tr><td>3</td><td>14</td></tr>
+  <tr><td>9</td><td>35</td></tr>
+  <tr><td>11</td><td>14</td></tr>
+  <tr><td>13</td><td>17</td></tr>
+  <tr><td>15</td><td>22</td></tr>
+  <tr><td>16</td><td>15</td></tr>
+</table></div><figcaption>Résultat : 6 lignes.</figcaption></figure>
+    <p><strong>Q2.</strong> La table dérivée m contient une ligne par abonné ; la jointure sur l'abonné donne à chaque trajet la moyenne de son abonné, que l'on compare à sa durée dans <span class="code-inline">WHERE</span>.</p>
+<pre class="codeblock"><span class="kw">SELECT</span> t.id_trajet, t.abonne, t.duree, m.moyenne
+<span class="kw">FROM</span> Trajet <span class="kw">AS</span> t
+<span class="kw">JOIN</span> (<span class="kw">SELECT</span> abonne, <span class="kw">AVG</span>(duree) <span class="kw">AS</span> moyenne
+      <span class="kw">FROM</span> Trajet
+      <span class="kw">GROUP</span> <span class="kw">BY</span> abonne) <span class="kw">AS</span> m <span class="kw">ON</span> t.abonne = m.abonne
+<span class="kw">WHERE</span> t.duree &gt; m.moyenne;</pre>
+<figure><div><table style="width:auto;margin-inline:auto;white-space:nowrap">
+  <tr><th>id_trajet</th><th>abonne</th><th>duree</th><th>moyenne</th></tr>
+  <tr><td>3</td><td>1</td><td>14</td><td>13.5</td></tr>
+  <tr><td>5</td><td>3</td><td>13</td><td>9.0</td></tr>
+  <tr><td>9</td><td>6</td><td>35</td><td>28.5</td></tr>
+  <tr><td>11</td><td>5</td><td>14</td><td>13.0</td></tr>
+  <tr><td>13</td><td>2</td><td>17</td><td>10.0</td></tr>
+  <tr><td>14</td><td>4</td><td>12</td><td>10.33</td></tr>
+  <tr><td>16</td><td>1</td><td>15</td><td>13.5</td></tr>
+</table></div><figcaption>Résultat : 7 lignes.</figcaption></figure>
+    <p>Chaque abonné a au moins un trajet au-dessus de sa propre moyenne, sauf si tous ses trajets ont la même durée : il ne peut pas être au-dessus de sa moyenne partout.</p>
+    <p><strong>Q3.</strong> Un maximum de comptages : table dérivée des comptages, puis comparaison dans <span class="code-inline">HAVING</span>.</p>
+<pre class="codeblock"><span class="kw">SELECT</span> s.nom, <span class="kw">COUNT</span>(*) <span class="kw">AS</span> arrivees
+<span class="kw">FROM</span> Station <span class="kw">AS</span> s <span class="kw">JOIN</span> Trajet <span class="kw">AS</span> t <span class="kw">ON</span> s.id_station = t.arrivee
+<span class="kw">GROUP</span> <span class="kw">BY</span> s.id_station, s.nom
+<span class="kw">HAVING</span> <span class="kw">COUNT</span>(*) = (<span class="kw">SELECT</span> <span class="kw">MAX</span>(n)
+                   <span class="kw">FROM</span> (<span class="kw">SELECT</span> <span class="kw">COUNT</span>(*) <span class="kw">AS</span> n
+                         <span class="kw">FROM</span> Trajet
+                         <span class="kw">GROUP</span> <span class="kw">BY</span> arrivee) <span class="kw">AS</span> c);</pre>
+<figure><div><table style="width:auto;margin-inline:auto;white-space:nowrap">
+  <tr><th>nom</th><th>arrivees</th></tr>
+  <tr><td>Gare</td><td>5</td></tr>
+</table></div><figcaption>Résultat : 1 ligne.</figcaption></figure>
+    <p><strong>Q4.</strong> « Jamais » : différence. Avec <span class="code-inline">NOT IN</span> :</p>
+<pre class="codeblock"><span class="kw">SELECT</span> prenom
+<span class="kw">FROM</span> Abonne
+<span class="kw">WHERE</span> id_abonne <span class="kw">NOT</span> <span class="kw">IN</span> (<span class="kw">SELECT</span> t.abonne
+                        <span class="kw">FROM</span> Trajet <span class="kw">AS</span> t <span class="kw">JOIN</span> Station <span class="kw">AS</span> s <span class="kw">ON</span> t.depart = s.id_station
+                        <span class="kw">WHERE</span> s.nom = <span class="str">'Gare'</span>);</pre>
+<figure><div><table style="width:auto;margin-inline:auto;white-space:nowrap">
+  <tr><th>prenom</th></tr>
+  <tr><td>Hugo</td></tr>
+  <tr><td>Moussa</td></tr>
+  <tr><td>Chloé</td></tr>
+</table></div><figcaption>Résultat : 3 lignes.</figcaption></figure>
+    <p>Sans <span class="code-inline">IN</span>, on calcule d'abord les numéros par <span class="code-inline">EXCEPT</span>, puis on joint pour avoir les prénoms :</p>
+<pre class="codeblock"><span class="kw">SELECT</span> a.prenom
+<span class="kw">FROM</span> Abonne <span class="kw">AS</span> a
+<span class="kw">JOIN</span> (<span class="kw">SELECT</span> id_abonne <span class="kw">FROM</span> Abonne
+      <span class="kw">EXCEPT</span>
+      <span class="kw">SELECT</span> t.abonne
+      <span class="kw">FROM</span> Trajet <span class="kw">AS</span> t <span class="kw">JOIN</span> Station <span class="kw">AS</span> s <span class="kw">ON</span> t.depart = s.id_station
+      <span class="kw">WHERE</span> s.nom = <span class="str">'Gare'</span>) <span class="kw">AS</span> e <span class="kw">ON</span> a.id_abonne = e.id_abonne;</pre>
+    <p>Chloé figure dans le résultat : elle n'a jamais roulé, donc jamais depuis la Gare.</p>
+    <p><strong>Q5.</strong> Cinq vélos ont servi, pour seize trajets : la moyenne est \(16/5 = 3{,}2\) trajets par vélo.</p>
+<pre class="codeblock"><span class="kw">SELECT</span> velo, <span class="kw">COUNT</span>(*) <span class="kw">AS</span> nb
+<span class="kw">FROM</span> Trajet
+<span class="kw">GROUP</span> <span class="kw">BY</span> velo
+<span class="kw">HAVING</span> <span class="kw">COUNT</span>(*) &gt; (<span class="kw">SELECT</span> <span class="kw">AVG</span>(n)
+                   <span class="kw">FROM</span> (<span class="kw">SELECT</span> <span class="kw">COUNT</span>(*) <span class="kw">AS</span> n
+                         <span class="kw">FROM</span> Trajet
+                         <span class="kw">GROUP</span> <span class="kw">BY</span> velo) <span class="kw">AS</span> c);</pre>
+<figure><div><table style="width:auto;margin-inline:auto;white-space:nowrap">
+  <tr><th>velo</th><th>nb</th></tr>
+  <tr><td>11</td><td>4</td></tr>
+  <tr><td>13</td><td>4</td></tr>
+  <tr><td>14</td><td>5</td></tr>
+</table></div><figcaption>Résultat : 3 lignes.</figcaption></figure>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 09</span><span class="diff">★ ★ ★</span>
+  <h3>Débusquer les requêtes fausses, puis exprimer « toutes »</h3>
+  <div class="statement">Base du cours (vélos en libre-service). Chacune des requêtes des questions Q1 à Q4 est censée répondre à la question posée, mais elle est fausse ou refusée. Expliquer le problème et corriger.</div>
+  <div class="q"><strong>Q1.</strong> « Nombre de départs de chaque station, avec son nom » : <span class="code-inline">SELECT s.nom, COUNT(*) FROM Station AS s, Trajet AS t GROUP BY s.id_station, s.nom;</span></div>
+  <div class="q"><strong>Q2.</strong> « Abonnés qui ont fait au moins deux trajets le même jour » : <span class="code-inline">SELECT abonne FROM Trajet GROUP BY abonne HAVING COUNT(*) &gt;= 2;</span></div>
+  <div class="q"><strong>Q3.</strong> « Vélo le plus utilisé » : <span class="code-inline">SELECT velo, MAX(COUNT(*)) FROM Trajet GROUP BY velo;</span></div>
+  <div class="q"><strong>Q4.</strong> « Nom des abonnés et durée de leurs trajets partis du Port » : <span class="code-inline">SELECT nom, duree FROM Trajet JOIN Abonne ON abonne = id_abonne JOIN Station ON depart = id_station WHERE nom = 'Port';</span></div>
+  <div class="q"><strong>Q5.</strong> Écrire une requête donnant les abonnés qui sont arrivés au moins une fois à <em>chacune</em> de leurs stations favorites. Indication : former d'abord les couples (abonné, station favorite) jamais atteints.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+
+    <p><strong>Q1.</strong> Aucune condition ne relie les deux tables : c'est le produit cartésien, et chaque station se voit attribuer les 16 trajets. Il faut la condition de jointure :</p>
+<pre class="codeblock"><span class="kw">SELECT</span> s.nom, <span class="kw">COUNT</span>(*) <span class="kw">AS</span> departs
+<span class="kw">FROM</span> Station <span class="kw">AS</span> s <span class="kw">JOIN</span> Trajet <span class="kw">AS</span> t <span class="kw">ON</span> s.id_station = t.depart
+<span class="kw">GROUP</span> <span class="kw">BY</span> s.id_station, s.nom;</pre>
+<figure><div><table style="width:auto;margin-inline:auto;white-space:nowrap">
+  <tr><th>nom</th><th>departs</th></tr>
+  <tr><td>Gare</td><td>5</td></tr>
+  <tr><td>Mairie</td><td>2</td></tr>
+  <tr><td>Port</td><td>2</td></tr>
+  <tr><td>Faculté</td><td>4</td></tr>
+  <tr><td>Piscine</td><td>1</td></tr>
+  <tr><td>Marché</td><td>2</td></tr>
+</table></div><figcaption>Résultat : 6 lignes.</figcaption></figure>
+
+    <p><strong>Q2.</strong> Cette requête compte les trajets de chaque abonné sur toute la période : elle renvoie les six abonnés qui ont roulé. Pour compter par abonné <em>et par jour</em>, il faut regrouper par le couple (abonne, jour) ; <span class="code-inline">DISTINCT</span> évite de répéter un abonné qui remplirait la condition plusieurs jours.</p>
+<pre class="codeblock"><span class="kw">SELECT</span> <span class="kw">DISTINCT</span> abonne
+<span class="kw">FROM</span> Trajet
+<span class="kw">GROUP</span> <span class="kw">BY</span> abonne, jour
+<span class="kw">HAVING</span> <span class="kw">COUNT</span>(*) &gt;= 2;</pre>
+<figure><div><table style="width:auto;margin-inline:auto;white-space:nowrap">
+  <tr><th>abonne</th></tr>
+  <tr><td>1</td></tr>
+</table></div><figcaption>Résultat : 1 ligne.</figcaption></figure>
+    <p>Seule Inès (le 2 mars, trajets 1 et 3) convient.</p>
+<pre class="codeblock"><span class="kw">SELECT</span> velo, <span class="kw">MAX</span>(<span class="kw">COUNT</span>(*)) <span class="kw">FROM</span> Trajet <span class="kw">GROUP</span> <span class="kw">BY</span> velo;</pre>
+    <p><strong>Q3.</strong> Un agrégat d'agrégat est refusé. On calcule les comptages dans une table dérivée, on en prend le maximum, et l'on garde les vélos qui l'atteignent (il pourrait y en avoir plusieurs) :</p>
+<pre class="codeblock"><span class="kw">SELECT</span> velo, <span class="kw">COUNT</span>(*) <span class="kw">AS</span> nb
+<span class="kw">FROM</span> Trajet
+<span class="kw">GROUP</span> <span class="kw">BY</span> velo
+<span class="kw">HAVING</span> <span class="kw">COUNT</span>(*) = (<span class="kw">SELECT</span> <span class="kw">MAX</span>(n)
+                   <span class="kw">FROM</span> (<span class="kw">SELECT</span> <span class="kw">COUNT</span>(*) <span class="kw">AS</span> n
+                         <span class="kw">FROM</span> Trajet
+                         <span class="kw">GROUP</span> <span class="kw">BY</span> velo) <span class="kw">AS</span> c);</pre>
+<figure><div><table style="width:auto;margin-inline:auto;white-space:nowrap">
+  <tr><th>velo</th><th>nb</th></tr>
+  <tr><td>14</td><td>5</td></tr>
+</table></div><figcaption>Résultat : 1 ligne.</figcaption></figure>
+<pre class="codeblock"><span class="kw">SELECT</span> nom, duree <span class="kw">FROM</span> Trajet <span class="kw">JOIN</span> Abonne <span class="kw">ON</span> abonne = id_abonne <span class="kw">JOIN</span> Station <span class="kw">ON</span> depart = id_station <span class="kw">WHERE</span> nom = <span class="str">'Port'</span>;</pre>
+    <p><strong>Q4.</strong> La colonne nom existe dans Abonne et dans Station : le logiciel refuse la requête (nom ambigu). Les deux « nom » n'ont d'ailleurs pas le même sens dans le <span class="code-inline">SELECT</span> (abonné) et dans le <span class="code-inline">WHERE</span> (station). Avec des alias :</p>
+<pre class="codeblock"><span class="kw">SELECT</span> a.nom, t.duree
+<span class="kw">FROM</span> Trajet <span class="kw">AS</span> t
+<span class="kw">JOIN</span> Abonne <span class="kw">AS</span> a <span class="kw">ON</span> t.abonne = a.id_abonne
+<span class="kw">JOIN</span> Station <span class="kw">AS</span> s <span class="kw">ON</span> t.depart = s.id_station
+<span class="kw">WHERE</span> s.nom = <span class="str">'Port'</span>;</pre>
+<figure><div><table style="width:auto;margin-inline:auto;white-space:nowrap">
+  <tr><th>nom</th><th>duree</th></tr>
+  <tr><td>Ndiaye</td><td>10</td></tr>
+  <tr><td>Roux</td><td>35</td></tr>
+</table></div><figcaption>Résultat : 2 lignes.</figcaption></figure>
+    <p><strong>Q5.</strong> Les couples (abonné, station favorite) jamais atteints s'obtiennent par une différence entre Favori et les couples (abonne, arrivee) de Trajet. Un abonné convient s'il a des favorites et si aucune ne figure parmi ces couples : seconde différence.</p>
+<pre class="codeblock"><span class="kw">SELECT</span> id_abonne <span class="kw">FROM</span> Favori
+<span class="kw">EXCEPT</span>
+<span class="kw">SELECT</span> id_abonne
+<span class="kw">FROM</span> (<span class="kw">SELECT</span> id_abonne, id_station <span class="kw">FROM</span> Favori
+      <span class="kw">EXCEPT</span>
+      <span class="kw">SELECT</span> abonne, arrivee <span class="kw">FROM</span> Trajet) <span class="kw">AS</span> manque;</pre>
+<figure><div><table style="width:auto;margin-inline:auto;white-space:nowrap">
+  <tr><th>id_abonne</th></tr>
+  <tr><td>1</td></tr>
+  <tr><td>2</td></tr>
+  <tr><td>4</td></tr>
+  <tr><td>5</td></tr>
+  <tr><td>6</td></tr>
+</table></div><figcaption>Résultat : 5 lignes.</figcaption></figure>
+    <p>Léa n'est jamais arrivée au Marché (station 6), Chloé n'a jamais roulé : elles sont écartées. On peut aussi compter, pour chaque abonné, ses favorites atteintes et les comparer au nombre de ses favorites :</p>
+<pre class="codeblock"><span class="kw">SELECT</span> f.id_abonne
+<span class="kw">FROM</span> Favori <span class="kw">AS</span> f
+<span class="kw">JOIN</span> (<span class="kw">SELECT</span> <span class="kw">DISTINCT</span> abonne, arrivee <span class="kw">FROM</span> Trajet) <span class="kw">AS</span> d
+  <span class="kw">ON</span> f.id_abonne = d.abonne <span class="kw">AND</span> f.id_station = d.arrivee
+<span class="kw">JOIN</span> (<span class="kw">SELECT</span> id_abonne, <span class="kw">COUNT</span>(*) <span class="kw">AS</span> nb_fav
+      <span class="kw">FROM</span> Favori
+      <span class="kw">GROUP</span> <span class="kw">BY</span> id_abonne) <span class="kw">AS</span> n <span class="kw">ON</span> f.id_abonne = n.id_abonne
+<span class="kw">GROUP</span> <span class="kw">BY</span> f.id_abonne, n.nb_fav
+<span class="kw">HAVING</span> <span class="kw">COUNT</span>(*) = n.nb_fav;</pre>
+    <p>Le <span class="code-inline">DISTINCT</span> de la table dérivée d est indispensable : sans lui, Inès, arrivée deux fois à la Gare et deux fois à la Faculté, compterait quatre favorites atteintes pour deux favorites.</p>
+
+  </div>
+</div>
+
+<div class="exo concours">
+  <span class="num">CONCOURS PT</span><span class="diff">★ ★ ★</span>
+  <h3>Concours PT — Exploitation d'un parc éolien</h3>
+  <div class="exo-source">Exercice <strong>original</strong> au format des épreuves PT (thème : suivi de la production et de la maintenance d'éoliennes).</div>
+  <div class="statement">
+    <p>Un exploitant suit la production de ses éoliennes, réparties en plusieurs parcs, et les interventions de maintenance. Sa base de données comporte cinq tables :</p>
+    <ul>
+      <li>Parc(<u>id_parc</u> : entier, nom : chaîne, region : chaîne) ;</li>
+      <li>Eolienne(<u>id_eol</u> : entier, parc : entier, modele : chaîne, puissance : entier, annee : entier), où puissance est la puissance nominale en kW et annee l'année de mise en service ;</li>
+      <li>Production(eolienne : entier, jour : chaîne, energie : flottant, vent : flottant), où energie est l'énergie produite ce jour-là en kWh et vent la vitesse moyenne du vent en m/s ;</li>
+      <li>Technicien(<u>id_tech</u> : entier, nom : chaîne, societe : chaîne) ;</li>
+      <li>Intervention(<u>id_inter</u> : entier, eolienne : entier, technicien : entier, jour : chaîne, duree : entier), où duree est en heures.</li>
+    </ul>
+    <p>Les attributs parc, eolienne et technicien référencent respectivement Parc, Eolienne et Technicien. Les jours sont des chaînes 'AAAA-MM-JJ'. On rappelle que les requêtes ne doivent pas utiliser de valeur NULL. Un jeu d'essai, sur quatre jours de janvier, permet de contrôler les requêtes.</p>
+    <div class="reveal" onclick="this.classList.toggle('open')">
+      <span class="label">Jeu d'essai</span>
+      <span class="prompt">Contenu des cinq tables</span>
+      <div class="content">
+<figure><div><table style="width:auto;margin-inline:auto;white-space:nowrap">
+  <tr><th><u>id_parc</u></th><th>nom</th><th>region</th></tr>
+  <tr><td>1</td><td>Les Crêtes</td><td>Occitanie</td></tr>
+  <tr><td>2</td><td>Plateau de Lanne</td><td>Bretagne</td></tr>
+  <tr><td>3</td><td>Les Trois Moulins</td><td>Hauts-de-France</td></tr>
+</table></div><figcaption>Table <strong>Parc</strong> : 3 enregistrements.</figcaption></figure>
+<figure><div><table style="width:auto;margin-inline:auto;white-space:nowrap">
+  <tr><th><u>id_eol</u></th><th>parc</th><th>modele</th><th>puissance</th><th>annee</th></tr>
+  <tr><td>1</td><td>1</td><td>Alto 90</td><td>2000</td><td>2011</td></tr>
+  <tr><td>2</td><td>1</td><td>Alto 90</td><td>2000</td><td>2011</td></tr>
+  <tr><td>3</td><td>1</td><td>Brise 115</td><td>3000</td><td>2018</td></tr>
+  <tr><td>4</td><td>2</td><td>Cirrus 117</td><td>3600</td><td>2019</td></tr>
+  <tr><td>5</td><td>2</td><td>Cirrus 117</td><td>3600</td><td>2019</td></tr>
+  <tr><td>6</td><td>3</td><td>Alto 82</td><td>2300</td><td>2014</td></tr>
+  <tr><td>7</td><td>3</td><td>Brise 115</td><td>3000</td><td>2021</td></tr>
+</table></div><figcaption>Table <strong>Eolienne</strong> : 7 enregistrements.</figcaption></figure>
+<figure><div><table style="width:auto;margin-inline:auto;white-space:nowrap">
+  <tr><th>eolienne</th><th>jour</th><th>energie</th><th>vent</th></tr>
+  <tr><td>1</td><td>2026-01-10</td><td>10500.0</td><td>7.8</td></tr>
+  <tr><td>1</td><td>2026-01-11</td><td>22790.0</td><td>10.1</td></tr>
+  <tr><td>1</td><td>2026-01-12</td><td>5160.0</td><td>6.5</td></tr>
+  <tr><td>1</td><td>2026-01-13</td><td>35430.0</td><td>11.7</td></tr>
+  <tr><td>2</td><td>2026-01-10</td><td>8600.0</td><td>7.3</td></tr>
+  <tr><td>2</td><td>2026-01-11</td><td>19570.0</td><td>9.6</td></tr>
+  <tr><td>2</td><td>2026-01-12</td><td>4780.0</td><td>6.0</td></tr>
+  <tr><td>2</td><td>2026-01-13</td><td>31070.0</td><td>11.2</td></tr>
+  <tr><td>3</td><td>2026-01-10</td><td>11020.0</td><td>7.8</td></tr>
+  <tr><td>3</td><td>2026-01-11</td><td>34180.0</td><td>10.1</td></tr>
+  <tr><td>3</td><td>2026-01-12</td><td>9110.0</td><td>6.5</td></tr>
+  <tr><td>3</td><td>2026-01-13</td><td>47820.0</td><td>11.7</td></tr>
+  <tr><td>4</td><td>2026-01-10</td><td>39810.0</td><td>10.0</td></tr>
+  <tr><td>4</td><td>2026-01-11</td><td>75910.0</td><td>12.4</td></tr>
+  <tr><td>4</td><td>2026-01-12</td><td>21950.0</td><td>8.2</td></tr>
+  <tr><td>4</td><td>2026-01-13</td><td>28070.0</td><td>8.9</td></tr>
+  <tr><td>5</td><td>2026-01-10</td><td>46090.0</td><td>10.5</td></tr>
+  <tr><td>5</td><td>2026-01-11</td><td>53350.0</td><td>12.9</td></tr>
+  <tr><td>5</td><td>2026-01-12</td><td>26220.0</td><td>8.7</td></tr>
+  <tr><td>5</td><td>2026-01-13</td><td>29760.0</td><td>9.4</td></tr>
+  <tr><td>6</td><td>2026-01-10</td><td>16180.0</td><td>8.6</td></tr>
+  <tr><td>6</td><td>2026-01-11</td><td>6360.0</td><td>6.3</td></tr>
+  <tr><td>6</td><td>2026-01-12</td><td>30550.0</td><td>11.7</td></tr>
+  <tr><td>6</td><td>2026-01-13</td><td>26210.0</td><td>10.1</td></tr>
+  <tr><td>7</td><td>2026-01-10</td><td>25000.0</td><td>9.1</td></tr>
+  <tr><td>7</td><td>2026-01-11</td><td>10430.0</td><td>6.8</td></tr>
+  <tr><td>7</td><td>2026-01-12</td><td>60250.0</td><td>12.2</td></tr>
+  <tr><td>7</td><td>2026-01-13</td><td>39520.0</td><td>10.6</td></tr>
+</table></div><figcaption>Table <strong>Production</strong> : 28 enregistrements.</figcaption></figure>
+<figure><div><table style="width:auto;margin-inline:auto;white-space:nowrap">
+  <tr><th><u>id_tech</u></th><th>nom</th><th>societe</th></tr>
+  <tr><td>1</td><td>Arnaud</td><td>Eolmaint</td></tr>
+  <tr><td>2</td><td>Benali</td><td>Eolmaint</td></tr>
+  <tr><td>3</td><td>Costa</td><td>VentServices</td></tr>
+  <tr><td>4</td><td>Duval</td><td>VentServices</td></tr>
+</table></div><figcaption>Table <strong>Technicien</strong> : 4 enregistrements.</figcaption></figure>
+<figure><div><table style="width:auto;margin-inline:auto;white-space:nowrap">
+  <tr><th><u>id_inter</u></th><th>eolienne</th><th>technicien</th><th>jour</th><th>duree</th></tr>
+  <tr><td>1</td><td>3</td><td>1</td><td>2026-01-10</td><td>4</td></tr>
+  <tr><td>2</td><td>3</td><td>2</td><td>2026-01-10</td><td>4</td></tr>
+  <tr><td>3</td><td>5</td><td>3</td><td>2026-01-11</td><td>6</td></tr>
+  <tr><td>4</td><td>1</td><td>1</td><td>2026-01-12</td><td>3</td></tr>
+  <tr><td>5</td><td>6</td><td>4</td><td>2026-01-12</td><td>5</td></tr>
+  <tr><td>6</td><td>5</td><td>3</td><td>2026-01-13</td><td>2</td></tr>
+  <tr><td>7</td><td>3</td><td>1</td><td>2026-01-13</td><td>2</td></tr>
+</table></div><figcaption>Table <strong>Intervention</strong> : 7 enregistrements.</figcaption></figure>
+      </div>
+    </div>
+  </div>
+  <div class="exo-part"><strong>Partie I — Modélisation</strong></div>
+  <div class="q"><strong>Q1.</strong> Expliquer pourquoi le couple (eolienne, jour) peut servir de clé primaire à Production, et pourquoi jour seul ne le peut pas.</div>
+  <div class="q"><strong>Q2.</strong> Quelles associations les clés étrangères traduisent-elles ? Quelle association \(\ast - \ast\) la table Intervention réalise-t-elle ? Pourquoi n'a-t-on pas choisi (eolienne, technicien) comme clé primaire d'Intervention ?</div>
+  <div class="q"><strong>Q3.</strong> L'exploitant veut enregistrer, pour chaque éolienne, son contrat de maintenance (numéro, société, date de fin), chaque contrat portant sur une seule éolienne et chaque éolienne ayant un seul contrat. Proposer une modification du schéma.</div>
+  <div class="exo-part"><strong>Partie II — Interrogations simples</strong></div>
+  <div class="q"><strong>Q4.</strong> Écrire une requête donnant l'identifiant, le modèle et la puissance des éoliennes d'au moins 3 000 kW mises en service à partir de 2015, par puissance décroissante, puis par identifiant.</div>
+  <div class="q"><strong>Q5.</strong> Écrire une requête donnant le nombre de modèles d'éoliennes différents.</div>
+  <div class="q"><strong>Q6.</strong> Écrire une requête donnant les trois journées (jour et énergie) de plus forte production de l'éolienne 7.</div>
+  <div class="exo-part"><strong>Partie III — Jointures et agrégats</strong></div>
+  <div class="q"><strong>Q7.</strong> Combien de lignes compte le produit cartésien de Eolienne et Production sur le jeu d'essai ? Et leur jointure selon la clé étrangère ? L'exploitant possède en réalité 200 éoliennes, suivies chaque jour depuis dix ans : reprendre ces deux décomptes.</div>
+  <div class="q"><strong>Q8.</strong> Écrire une requête donnant, pour chaque parc (son nom), l'énergie totale produite sur la période, par énergie décroissante.</div>
+  <div class="q"><strong>Q9.</strong> Le facteur de charge d'une éolienne est le rapport de l'énergie produite à l'énergie qu'elle aurait produite en fonctionnant en permanence à sa puissance nominale : \(\dfrac{E}{24 \, P \, n}\), avec \(E\) en kWh, \(P\) en kW et \(n\) le nombre de jours mesurés. Écrire une requête donnant le facteur de charge de chaque éolienne. Pourquoi faut-il mentionner la puissance dans le <span class="code-inline">GROUP BY</span> ?</div>
+  <div class="q"><strong>Q10.</strong> Écrire une requête donnant les parcs (nom) où la vitesse moyenne du vent sur la période dépasse 9 m/s, avec cette vitesse.</div>
+  <div class="q"><strong>Q11.</strong> Écrire une requête donnant, pour chaque intervention, son identifiant, l'éolienne, le jour et l'énergie produite par cette éolienne ce jour-là.</div>
+  <div class="q"><strong>Q12.</strong> Écrire une requête donnant le nom des techniciens qui ont passé au moins 8 heures en intervention, avec leur total d'heures.</div>
+  <div class="exo-part"><strong>Partie IV — Requêtes imbriquées</strong></div>
+  <div class="q"><strong>Q13.</strong> Écrire une requête donnant l'éolienne, le jour et l'énergie de la ou des productions journalières record.</div>
+  <div class="q"><strong>Q14.</strong> Écrire une requête donnant l'identifiant et le parc des éoliennes qui n'ont reçu aucune intervention.</div>
+  <div class="q"><strong>Q15.</strong> Écrire une requête donnant les jours où la production totale du parc « Les Crêtes » a dépassé la moyenne des productions totales journalières de ce parc.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> Une éolienne n'a qu'une production par jour : deux lignes distinctes de Production diffèrent par l'éolienne ou par le jour, donc le couple identifie chaque ligne. Le jour seul ne suffit pas : chaque jour, toutes les éoliennes produisent (le 2026-01-10 apparaît sur sept lignes). L'éolienne seule non plus : elle a une ligne par jour.</p>
+    <p><strong>Q2.</strong> parc traduit l'association \(1 - \ast\) de Parc vers Eolienne (un parc contient plusieurs éoliennes, une éolienne est dans un seul parc) ; eolienne dans Production, l'association \(1 - \ast\) d'Eolienne vers Production ; eolienne et technicien dans Intervention, deux associations \(1 - \ast\), d'Eolienne et de Technicien vers Intervention. Ensemble, elles réalisent l'association \(\ast - \ast\) « est entretenue par » entre Eolienne et Technicien : un technicien intervient sur plusieurs éoliennes, une éolienne reçoit plusieurs techniciens. Le couple (eolienne, technicien) n'est pas une clé : un même technicien peut intervenir plusieurs fois sur la même éolienne (dans le jeu d'essai, le technicien 1 est intervenu sur l'éolienne 3 le 10 et le 13 janvier) ; d'où l'identifiant id_inter.</p>
+    <p><strong>Q3.</strong> L'association est \(1 - 1\). On peut créer Contrat(<u>id_contrat</u> : entier, societe : chaîne, fin : chaîne, eolienne : entier), où eolienne référence Eolienne avec des valeurs deux à deux distinctes ; ou, plus simplement, ajouter à Eolienne trois attributs (numéro de contrat, société, date de fin).</p>
+    <p><strong>Q4.</strong></p>
+<pre class="codeblock"><span class="kw">SELECT</span> id_eol, modele, puissance
+<span class="kw">FROM</span> Eolienne
+<span class="kw">WHERE</span> puissance &gt;= 3000 <span class="kw">AND</span> annee &gt;= 2015
+<span class="kw">ORDER</span> <span class="kw">BY</span> puissance <span class="kw">DESC</span>, id_eol;</pre>
+<figure><div><table style="width:auto;margin-inline:auto;white-space:nowrap">
+  <tr><th>id_eol</th><th>modele</th><th>puissance</th></tr>
+  <tr><td>4</td><td>Cirrus 117</td><td>3600</td></tr>
+  <tr><td>5</td><td>Cirrus 117</td><td>3600</td></tr>
+  <tr><td>3</td><td>Brise 115</td><td>3000</td></tr>
+  <tr><td>7</td><td>Brise 115</td><td>3000</td></tr>
+</table></div><figcaption>Résultat : 4 lignes.</figcaption></figure>
+    <p><strong>Q5.</strong></p>
+<pre class="codeblock"><span class="kw">SELECT</span> <span class="kw">COUNT</span>(<span class="kw">DISTINCT</span> modele) <span class="kw">AS</span> nb_modeles
+<span class="kw">FROM</span> Eolienne;</pre>
+<figure><div><table style="width:auto;margin-inline:auto;white-space:nowrap">
+  <tr><th>nb_modeles</th></tr>
+  <tr><td>4</td></tr>
+</table></div><figcaption>Résultat : 1 ligne.</figcaption></figure>
+    <p><strong>Q6.</strong></p>
+<pre class="codeblock"><span class="kw">SELECT</span> jour, energie
+<span class="kw">FROM</span> Production
+<span class="kw">WHERE</span> eolienne = 7
+<span class="kw">ORDER</span> <span class="kw">BY</span> energie <span class="kw">DESC</span>
+<span class="kw">LIMIT</span> 3;</pre>
+<figure><div><table style="width:auto;margin-inline:auto;white-space:nowrap">
+  <tr><th>jour</th><th>energie</th></tr>
+  <tr><td>2026-01-12</td><td>60250.0</td></tr>
+  <tr><td>2026-01-13</td><td>39520.0</td></tr>
+  <tr><td>2026-01-10</td><td>25000.0</td></tr>
+</table></div><figcaption>Résultat : 3 lignes.</figcaption></figure>
+
+
+    <p><strong>Q7.</strong> Le produit compte \(7 \times 28 = 196\) lignes, la jointure 28 (une par ligne de Production, complétée par son éolienne). Avec 200 éoliennes suivies pendant dix ans, Production compte environ \(200 \times 3\,650 = 730\,000\) lignes, la jointure autant, et le produit cartésien \(200 \times 730\,000 \approx 1{,}5 \times 10^{8}\) lignes : on ne forme jamais un produit sans condition qui le restreigne.</p>
+    <p><strong>Q8.</strong> Chemin Parc — Eolienne — Production, regroupement par parc :</p>
+<pre class="codeblock"><span class="kw">SELECT</span> c.nom, <span class="kw">SUM</span>(p.energie) <span class="kw">AS</span> total
+<span class="kw">FROM</span> Parc <span class="kw">AS</span> c
+<span class="kw">JOIN</span> Eolienne <span class="kw">AS</span> e <span class="kw">ON</span> e.parc = c.id_parc
+<span class="kw">JOIN</span> Production <span class="kw">AS</span> p <span class="kw">ON</span> p.eolienne = e.id_eol
+<span class="kw">GROUP</span> <span class="kw">BY</span> c.id_parc, c.nom
+<span class="kw">ORDER</span> <span class="kw">BY</span> total <span class="kw">DESC</span>;</pre>
+<figure><div><table style="width:auto;margin-inline:auto;white-space:nowrap">
+  <tr><th>nom</th><th>total</th></tr>
+  <tr><td>Plateau de Lanne</td><td>321160.0</td></tr>
+  <tr><td>Les Crêtes</td><td>240030.0</td></tr>
+  <tr><td>Les Trois Moulins</td><td>214500.0</td></tr>
+</table></div><figcaption>Résultat : 3 lignes.</figcaption></figure>
+    <p><strong>Q9.</strong> Pour une éolienne, \(E\) est la somme de ses énergies et \(n\) le nombre de ses lignes de Production :</p>
+<pre class="codeblock"><span class="kw">SELECT</span> e.id_eol, <span class="kw">SUM</span>(p.energie) / (24 * e.puissance * <span class="kw">COUNT</span>(*)) <span class="kw">AS</span> facteur
+<span class="kw">FROM</span> Eolienne <span class="kw">AS</span> e <span class="kw">JOIN</span> Production <span class="kw">AS</span> p <span class="kw">ON</span> p.eolienne = e.id_eol
+<span class="kw">GROUP</span> <span class="kw">BY</span> e.id_eol, e.puissance;</pre>
+<figure><div><table style="width:auto;margin-inline:auto;white-space:nowrap">
+  <tr><th>id_eol</th><th>facteur</th></tr>
+  <tr><td>1</td><td>0.38</td></tr>
+  <tr><td>2</td><td>0.33</td></tr>
+  <tr><td>3</td><td>0.35</td></tr>
+  <tr><td>4</td><td>0.48</td></tr>
+  <tr><td>5</td><td>0.45</td></tr>
+  <tr><td>6</td><td>0.36</td></tr>
+  <tr><td>7</td><td>0.47</td></tr>
+</table></div><figcaption>Résultat : 7 lignes.</figcaption></figure>
+    <p>Dans le <span class="code-inline">SELECT</span>, toute colonne doit être regroupée ou agrégée ; la puissance, qui ne prend qu'une valeur par éolienne, est donc ajoutée au regroupement sans le modifier. Le quotient est flottant, car energie l'est. Les facteurs de charge vont de 0,33 (éolienne 2) à 0,48 (éolienne 4, dans le parc le plus venté, voir Q10).</p>
+    <p><strong>Q10.</strong> La moyenne porte sur un groupe (le parc) : <span class="code-inline">HAVING</span>.</p>
+<pre class="codeblock"><span class="kw">SELECT</span> c.nom, <span class="kw">AVG</span>(p.vent) <span class="kw">AS</span> vent_moyen
+<span class="kw">FROM</span> Parc <span class="kw">AS</span> c
+<span class="kw">JOIN</span> Eolienne <span class="kw">AS</span> e <span class="kw">ON</span> e.parc = c.id_parc
+<span class="kw">JOIN</span> Production <span class="kw">AS</span> p <span class="kw">ON</span> p.eolienne = e.id_eol
+<span class="kw">GROUP</span> <span class="kw">BY</span> c.id_parc, c.nom
+<span class="kw">HAVING</span> <span class="kw">AVG</span>(p.vent) &gt; 9;</pre>
+<figure><div><table style="width:auto;margin-inline:auto;white-space:nowrap">
+  <tr><th>nom</th><th>vent_moyen</th></tr>
+  <tr><td>Plateau de Lanne</td><td>10.12</td></tr>
+  <tr><td>Les Trois Moulins</td><td>9.42</td></tr>
+</table></div><figcaption>Résultat : 2 lignes.</figcaption></figure>
+    <p><strong>Q11.</strong> La ligne de Production cherchée est désignée par sa clé (eolienne, jour) : la condition de jointure est la conjonction de deux égalités.</p>
+<pre class="codeblock"><span class="kw">SELECT</span> i.id_inter, i.eolienne, i.jour, p.energie
+<span class="kw">FROM</span> Intervention <span class="kw">AS</span> i
+<span class="kw">JOIN</span> Production <span class="kw">AS</span> p <span class="kw">ON</span> p.eolienne = i.eolienne <span class="kw">AND</span> p.jour = i.jour;</pre>
+<figure><div><table style="width:auto;margin-inline:auto;white-space:nowrap">
+  <tr><th>id_inter</th><th>eolienne</th><th>jour</th><th>energie</th></tr>
+  <tr><td>1</td><td>3</td><td>2026-01-10</td><td>11020.0</td></tr>
+  <tr><td>2</td><td>3</td><td>2026-01-10</td><td>11020.0</td></tr>
+  <tr><td>3</td><td>5</td><td>2026-01-11</td><td>53350.0</td></tr>
+  <tr><td>4</td><td>1</td><td>2026-01-12</td><td>5160.0</td></tr>
+  <tr><td>5</td><td>6</td><td>2026-01-12</td><td>30550.0</td></tr>
+  <tr><td>6</td><td>5</td><td>2026-01-13</td><td>29760.0</td></tr>
+  <tr><td>7</td><td>3</td><td>2026-01-13</td><td>47820.0</td></tr>
+</table></div><figcaption>Résultat : 7 lignes.</figcaption></figure>
+    <p><strong>Q12.</strong></p>
+<pre class="codeblock"><span class="kw">SELECT</span> t.nom, <span class="kw">SUM</span>(i.duree) <span class="kw">AS</span> heures
+<span class="kw">FROM</span> Technicien <span class="kw">AS</span> t <span class="kw">JOIN</span> Intervention <span class="kw">AS</span> i <span class="kw">ON</span> i.technicien = t.id_tech
+<span class="kw">GROUP</span> <span class="kw">BY</span> t.id_tech, t.nom
+<span class="kw">HAVING</span> <span class="kw">SUM</span>(i.duree) &gt;= 8;</pre>
+<figure><div><table style="width:auto;margin-inline:auto;white-space:nowrap">
+  <tr><th>nom</th><th>heures</th></tr>
+  <tr><td>Arnaud</td><td>9</td></tr>
+  <tr><td>Costa</td><td>8</td></tr>
+</table></div><figcaption>Résultat : 2 lignes.</figcaption></figure>
+    <p><strong>Q13.</strong> Requête intérieure pour le maximum, extérieure pour les lignes qui l'atteignent (toutes, en cas d'égalité) :</p>
+<pre class="codeblock"><span class="kw">SELECT</span> eolienne, jour, energie
+<span class="kw">FROM</span> Production
+<span class="kw">WHERE</span> energie = (<span class="kw">SELECT</span> <span class="kw">MAX</span>(energie) <span class="kw">FROM</span> Production);</pre>
+<figure><div><table style="width:auto;margin-inline:auto;white-space:nowrap">
+  <tr><th>eolienne</th><th>jour</th><th>energie</th></tr>
+  <tr><td>4</td><td>2026-01-11</td><td>75910.0</td></tr>
+</table></div><figcaption>Résultat : 1 ligne.</figcaption></figure>
+    <p><strong>Q14.</strong> Différence entre toutes les éoliennes et celles qui figurent dans Intervention ; les deux résultats ont deux colonnes (identifiant, parc).</p>
+<pre class="codeblock"><span class="kw">SELECT</span> id_eol, parc <span class="kw">FROM</span> Eolienne
+<span class="kw">EXCEPT</span>
+<span class="kw">SELECT</span> e.id_eol, e.parc
+<span class="kw">FROM</span> Eolienne <span class="kw">AS</span> e <span class="kw">JOIN</span> Intervention <span class="kw">AS</span> i <span class="kw">ON</span> i.eolienne = e.id_eol;</pre>
+<figure><div><table style="width:auto;margin-inline:auto;white-space:nowrap">
+  <tr><th>id_eol</th><th>parc</th></tr>
+  <tr><td>2</td><td>1</td></tr>
+  <tr><td>4</td><td>2</td></tr>
+  <tr><td>7</td><td>3</td></tr>
+</table></div><figcaption>Résultat : 3 lignes.</figcaption></figure>
+    <p><strong>Q15.</strong> La requête intérieure calcule les totaux journaliers du parc dans une table dérivée, puis leur moyenne ; la requête extérieure recalcule les totaux journaliers et garde ceux qui la dépassent.</p>
+<pre class="codeblock"><span class="kw">SELECT</span> p.jour, <span class="kw">SUM</span>(p.energie) <span class="kw">AS</span> total
+<span class="kw">FROM</span> Production <span class="kw">AS</span> p
+<span class="kw">JOIN</span> Eolienne <span class="kw">AS</span> e <span class="kw">ON</span> p.eolienne = e.id_eol
+<span class="kw">JOIN</span> Parc <span class="kw">AS</span> c <span class="kw">ON</span> e.parc = c.id_parc
+<span class="kw">WHERE</span> c.nom = <span class="str">'Les Crêtes'</span>
+<span class="kw">GROUP</span> <span class="kw">BY</span> p.jour
+<span class="kw">HAVING</span> <span class="kw">SUM</span>(p.energie) &gt; (<span class="kw">SELECT</span> <span class="kw">AVG</span>(tj)
+                         <span class="kw">FROM</span> (<span class="kw">SELECT</span> <span class="kw">SUM</span>(p2.energie) <span class="kw">AS</span> tj
+                               <span class="kw">FROM</span> Production <span class="kw">AS</span> p2
+                               <span class="kw">JOIN</span> Eolienne <span class="kw">AS</span> e2 <span class="kw">ON</span> p2.eolienne = e2.id_eol
+                               <span class="kw">JOIN</span> Parc <span class="kw">AS</span> c2 <span class="kw">ON</span> e2.parc = c2.id_parc
+                               <span class="kw">WHERE</span> c2.nom = <span class="str">'Les Crêtes'</span>
+                               <span class="kw">GROUP</span> <span class="kw">BY</span> p2.jour) <span class="kw">AS</span> q);</pre>
+<figure><div><table style="width:auto;margin-inline:auto;white-space:nowrap">
+  <tr><th>jour</th><th>total</th></tr>
+  <tr><td>2026-01-11</td><td>76540.0</td></tr>
+  <tr><td>2026-01-13</td><td>114320.0</td></tr>
+</table></div><figcaption>Résultat : 2 lignes.</figcaption></figure>
+    <p>Les totaux journaliers du parc valent 30 120, 76 540, 19 050 et 114 320 kWh, de moyenne 60 007,5 kWh : seuls les 11 et 13 janvier la dépassent.</p>
+  </div>
+</div>
+
+</div>
+</template>

@@ -1,0 +1,1375 @@
+<!-- Chapitre « Spécification, correction et complexité » (pyanalyse) : contenu des onglets Cours, Méthodes et Exercices, chargé à l'ouverture du chapitre.
+     On l'édite ici, puis : node tools/chapitres.js (docs/chargement-chapitres.md). -->
+<template class="pan-tpl" data-panneau="anal-cours">
+<div class="course-section">
+  <div class="sec-num">AU PROGRAMME · INFORMATIQUE</div>
+  <h2>Ce que le programme officiel demande</h2>
+  <div class="intro">Ce chapitre couvre la partie 2.1 du programme d'informatique commune, « Méthodes de programmation et analyse des algorithmes », étudiée au 2ᵉ semestre de 1ʳᵉ année. Elle formalise la discipline commencée au 1ᵉʳ semestre : spécifier ses fonctions, les tester, prouver qu'un algorithme s'arrête et donne le bon résultat, estimer son coût. C'est le chapitre de référence de ces notions : les chapitres sur les tris, la dichotomie, les algorithmes gloutons ou les graphes les appliquent.</div>
+  <div class="reveal" onclick="this.classList.toggle('open')">
+    <span class="label">Programme officiel</span>
+    <span class="prompt">Les notions exigibles, dans l'ordre du chapitre (toutes du 2ᵉ semestre)</span>
+    <div class="content">
+      <ul>
+        <li><strong>Instruction et expression ; effet de bord</strong>, y compris les conséquences du choix de Python de faire de l'affectation une instruction (§1).</li>
+        <li><strong>Spécification</strong> des données attendues en entrée et fournies en sortie ; signature des fonctions toujours précisée (§2).</li>
+        <li><strong>Annotation</strong> d'un bloc d'instructions par une précondition, une postcondition, une propriété invariante, à l'aide de commentaires (§2, §4).</li>
+        <li><strong>Assertion</strong> <span class="code-inline">assert</span> (sans message), en particulier pour valider des entrées ; sa levée arrête le programme (§2).</li>
+        <li><strong>Explicitation et justification des choix</strong> de conception : commentaires qui éclairent sans paraphraser, choix raisonné des collections (liste ou dictionnaire) (§2, §7).</li>
+        <li><strong>Terminaison</strong> ; <strong>variant</strong> de boucle (§3).</li>
+        <li><strong>Correction partielle, correction totale</strong> ; <strong>invariant</strong> de boucle, explicité sans formalisme excessif (§4).</li>
+        <li><strong>Jeu de tests</strong> écrit à la main, entrées et sorties attendues ; partitionnement des domaines d'entrée, test des limites (§5).</li>
+        <li><strong>Complexité temporelle dans le pire cas</strong>, en ordre de grandeur (§6, §7) ; <strong>complexité en espace</strong> sur des exemples (§8).</li>
+        <li>Synthèse sur un algorithme complet (§9).</li>
+      </ul>
+      <p>Hors programme : la génération automatique de tests, la définition et le rattrapage des exceptions, tout formalisme de preuve, la complexité en moyenne (voir la dernière section).</p>
+    </div>
+  </div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§1 · INSTRUCTIONS, EXPRESSIONS, EFFETS DE BORD</div>
+  <h2>Ce qu'un programme calcule et ce qu'il modifie</h2>
+  <div class="intro">Avant de raisonner sur un programme, il faut savoir distinguer ce qui <em>produit une valeur</em> de ce qui <em>agit</em>, et repérer ce qu'une fonction modifie en dehors d'elle-même. Beaucoup d'erreurs viennent d'une liste modifiée sans qu'on s'en aperçoive.</div>
+
+  <div class="def-box">
+    Une <strong>expression</strong> est un morceau de code qui a une <strong>valeur</strong> : <span class="code-inline">3 * x + 1</span>, <span class="code-inline">len(t) &gt; 0</span>, <span class="code-inline">t[i]</span>, <span class="code-inline">f(2)</span>. On peut l'écrire partout où une valeur est attendue (à droite d'un <span class="code-inline">=</span>, dans un test, en argument).<br>
+    Une <strong>instruction</strong> est un ordre exécuté pour son action : affectation <span class="code-inline">x = 3</span>, <span class="code-inline">if</span>, <span class="code-inline">while</span>, <span class="code-inline">for</span>, <span class="code-inline">def</span>, <span class="code-inline">return</span>, <span class="code-inline">assert</span>, <span class="code-inline">import</span>. Une instruction n'a pas de valeur.
+  </div>
+
+  <div class="prop-box"><strong>L'affectation est une instruction.</strong> En Python, <span class="code-inline">x = 3</span> n'a pas de valeur : on ne peut l'écrire ni dans un calcul ni dans la condition d'un <span class="code-inline">if</span> ou d'un <span class="code-inline">while</span>. C'est un choix des concepteurs du langage. Il protège de la confusion entre <span class="code-inline">=</span> (affecter) et <span class="code-inline">==</span> (comparer), source d'erreurs célèbres dans les langages où l'affectation est une expression ; en contrepartie, une affectation occupe toujours sa propre ligne, avant le test qui l'utilise.</div>
+  <pre class="codeblock"><span class="kw">if</span> x = 3:
+    print(<span class="str">"trois"</span>)</pre>
+  <p>Ce programme est refusé avant même d'être exécuté (erreur de syntaxe) : il fallait écrire <span class="code-inline">if x == 3:</span>.</p>
+
+  <h3>Effet de bord</h3>
+  <div class="def-box">Une fonction a un <strong>effet de bord</strong> quand son exécution modifie un état extérieur au calcul de son résultat : elle affiche (<span class="code-inline">print</span>), écrit dans un fichier, modifie une variable globale ou <strong>modifie un objet modifiable reçu en argument</strong> (liste, dictionnaire). Une fonction sans effet de bord, dont le résultat ne dépend que de ses arguments, se comporte comme une fonction mathématique : on peut l'appeler deux fois et obtenir deux fois la même chose.</div>
+  <pre class="codeblock"><span class="kw">def</span> doubler_en_place(t):
+    <span class="str">"""Double chaque élément de t : modifie t, ne renvoie rien."""</span>
+    <span class="kw">for</span> i <span class="kw">in</span> range(len(t)):
+        t[i] = 2 * t[i]
+
+<span class="kw">def</span> doubles(t):
+    <span class="str">"""Renvoie une NOUVELLE liste : les éléments de t doublés."""</span>
+    <span class="kw">return</span> [2 * x <span class="kw">for</span> x <span class="kw">in</span> t]</pre>
+  <pre class="codeblock">&gt;&gt;&gt; a = [1, 5, 7]
+&gt;&gt;&gt; b = doubles(a)
+&gt;&gt;&gt; a, b
+([1, 5, 7], [2, 10, 14])
+&gt;&gt;&gt; doubler_en_place(a)
+&gt;&gt;&gt; a
+[2, 10, 14]</pre>
+  <p>Pourquoi <span class="code-inline">doubler_en_place(a)</span> modifie-t-elle <span class="code-inline">a</span> alors que Python appelle les fonctions <strong>par valeur</strong> ? Parce que la valeur d'une variable de type liste est la liste elle-même, partagée : le paramètre <span class="code-inline">t</span> reçoit cette valeur et désigne donc <em>le même objet</em> que <span class="code-inline">a</span>. Une affectation <span class="code-inline">t = …</span> dans la fonction, en revanche, donne simplement un autre sens au nom local <span class="code-inline">t</span>, sans toucher à <span class="code-inline">a</span>.</p>
+  <figure class="schema" style="max-width:340px">
+<svg viewBox="0 0 340 150" role="img" aria-label="Les variables a et t désignent la même liste 1, 5, 7 ; la variable b désigne une autre liste 2, 10, 14">
+<text x="20" y="16" class="lab-muted">variables</text>
+<text x="200" y="16" class="lab-muted">listes en mémoire</text>
+<rect x="20" y="30" width="40" height="26" rx="3" class="sk-ink fl-soft"/>
+<text x="40" y="48" class="lab-b lab-it" text-anchor="middle">a</text>
+<rect x="20" y="70" width="40" height="26" rx="3" class="sk-ink fl-soft"/>
+<text x="40" y="88" class="lab-b lab-it" text-anchor="middle">t</text>
+<rect x="20" y="116" width="40" height="26" rx="3" class="sk-ink fl-soft"/>
+<text x="40" y="134" class="lab-b lab-it" text-anchor="middle">b</text>
+<text x="68" y="101" class="lab-muted">local à l’appel</text>
+<rect x="200" y="34" width="40" height="30" class="sk-ink fl-paper"/>
+<text x="220" y="54" text-anchor="middle">1</text>
+<rect x="240" y="34" width="40" height="30" class="sk-ink fl-paper"/>
+<text x="260" y="54" text-anchor="middle">5</text>
+<rect x="280" y="34" width="40" height="30" class="sk-ink fl-paper"/>
+<text x="300" y="54" text-anchor="middle">7</text>
+<rect x="200" y="110" width="40" height="30" class="sk-ink fl-paper"/>
+<text x="220" y="130" text-anchor="middle">2</text>
+<rect x="240" y="110" width="40" height="30" class="sk-ink fl-paper"/>
+<text x="260" y="130" text-anchor="middle">10</text>
+<rect x="280" y="110" width="40" height="30" class="sk-ink fl-paper"/>
+<text x="300" y="130" text-anchor="middle">14</text>
+<line x1="62" y1="43" x2="196" y2="46" class="sk-accent" marker-end="url(#sk-arrow-accent)"/>
+<line x1="62" y1="83" x2="196" y2="58" class="sk-accent" marker-end="url(#sk-arrow-accent)"/>
+<line x1="62" y1="129" x2="196" y2="125" class="sk-accent2" marker-end="url(#sk-arrow-accent2)"/>
+</svg>
+<figcaption>Pendant l’appel <span class="code-inline">doubler_en_place(a)</span> : le paramètre local <span class="code-inline">t</span> et la variable <span class="code-inline">a</span> désignent la <strong>même</strong> liste, que la fonction modifie (effet de bord). La liste <span class="code-inline">b</span>, fabriquée par <span class="code-inline">doubles(a)</span>, est un autre objet.</figcaption>
+</figure>
+  <p>Le même partage existe hors des fonctions : après <span class="code-inline">u = t</span>, les deux noms désignent une seule liste. Pour obtenir une liste indépendante, on la <strong>copie</strong> (<span class="code-inline">t.copy()</span> ou la tranche <span class="code-inline">t[:]</span>). Cette copie est <strong>superficielle</strong> : pour une liste de listes, les listes intérieures restent partagées (voir le chapitre « Types construits »).</p>
+  <pre class="codeblock">&gt;&gt;&gt; t = [4, 8]
+&gt;&gt;&gt; u = t            <span class="cmt"># u et t désignent la même liste</span>
+&gt;&gt;&gt; v = t.copy()     <span class="cmt"># v est une autre liste, de même contenu</span>
+&gt;&gt;&gt; u.append(15)
+&gt;&gt;&gt; t, v
+([4, 8, 15], [4, 8])</pre>
+
+  <div class="method-box"><strong>Exemple — prédire un affichage</strong>
+    <p>Qu'affiche ce programme ?</p>
+    <pre class="codeblock"><span class="kw">def</span> ajoute1(t, x):
+    t.append(x)          <span class="cmt"># modifie la liste reçue</span>
+
+<span class="kw">def</span> ajoute2(t, x):
+    t = t + [x]          <span class="cmt"># nouvelle liste, nommée t localement</span>
+
+a = [1, 2]
+ajoute1(a, 3)
+ajoute2(a, 4)
+print(a)</pre>
+    <ol>
+      <li><span class="code-inline">ajoute1(a, 3)</span> : <span class="code-inline">t</span> désigne la liste de <span class="code-inline">a</span> ; <span class="code-inline">t.append(3)</span> la modifie. <span class="code-inline">a</span> vaut <span class="code-inline">[1, 2, 3]</span>.</li>
+      <li><span class="code-inline">ajoute2(a, 4)</span> : l'expression <span class="code-inline">t + [x]</span> fabrique une <em>nouvelle</em> liste <span class="code-inline">[1, 2, 3, 4]</span>, que l'affectation donne au nom local <span class="code-inline">t</span>. La liste de <span class="code-inline">a</span> n'est pas touchée, et la nouvelle liste est perdue à la fin de l'appel.</li>
+      <li>Le programme affiche <span class="code-inline">[1, 2, 3]</span>.</li>
+    </ol>
+  </div>
+
+  <div class="notice"><strong>Erreur classique</strong> : écrire <span class="code-inline">a = doubler_en_place(a)</span>. La fonction ne renvoie rien, donc <span class="code-inline">None</span> : la liste a bien été doublée, mais le nom <span class="code-inline">a</span> désigne maintenant <span class="code-inline">None</span>. Règle de conduite : une fonction <strong>ou bien</strong> modifie son argument (et ne renvoie rien), <strong>ou bien</strong> renvoie un nouvel objet ; la spécification dit lequel.</div>
+  <p>Remarque : un appel de méthode comme <span class="code-inline">t.append(4)</span> est une <em>expression</em> (de valeur <span class="code-inline">None</span>) qu'on écrit seule sur une ligne pour son effet de bord.</p>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§2 · SPÉCIFIER UNE FONCTION</div>
+  <h2>Dire ce qu'une fonction attend et ce qu'elle garantit</h2>
+  <div class="intro">Une spécification est un contrat entre celui qui écrit la fonction et celui qui l'utilise. Elle dit <em>quoi</em>, jamais <em>comment</em> : on doit pouvoir changer l'algorithme sans changer la spécification. C'est aussi le point de départ des tests (§5) et des preuves (§3 et §4).</div>
+
+  <div class="def-box">La <strong>spécification</strong> d'une fonction comprend :
+    <ul>
+      <li>sa <strong>signature</strong> : nom, paramètres avec leur type, type du résultat ;</li>
+      <li>ses <strong>préconditions</strong> : les propriétés que doivent vérifier les arguments (liste non vide, entier positif, liste triée…) ;</li>
+      <li>sa <strong>postcondition</strong> : la propriété que vérifie le résultat en fonction des arguments, et les <strong>effets de bord</strong> éventuels.</li>
+    </ul>
+    Si un appel ne respecte pas les préconditions, la fonction ne promet rien.
+  </div>
+  <p>On écrit la spécification dans la <strong>chaîne de documentation</strong> (la chaîne entre triples guillemets placée juste après la ligne <span class="code-inline">def</span>). Python accepte aussi d'écrire la signature dans l'en-tête : <span class="code-inline">def position_min(t: list) -&gt; int:</span>. Ces annotations de type ne sont pas vérifiées à l'exécution (Python est typé dynamiquement) : elles documentent, comme dans les sujets de concours.</p>
+  <pre class="codeblock"><span class="kw">def</span> position_min(t: list) -&gt; int:
+    <span class="str">"""Indice de la première occurrence du minimum de t.</span>
+<span class="str">    Précondition : t est une liste non vide de nombres.</span>
+<span class="str">    Postcondition : renvoie i tel que t[i] &lt;= t[j] pour tout j</span>
+<span class="str">    et t[j] &gt; t[i] pour tout j &lt; i ; t n'est pas modifiée."""</span>
+    <span class="kw">assert</span> len(t) &gt; 0
+    i_min = 0
+    <span class="kw">for</span> j <span class="kw">in</span> range(1, len(t)):
+        <span class="cmt"># invariant : t[i_min] est la 1re occurrence</span>
+        <span class="cmt">#             du minimum de t[0:j]</span>
+        <span class="kw">if</span> t[j] &lt; t[i_min]:
+            i_min = j
+    <span class="kw">return</span> i_min</pre>
+  <p>Le commentaire placé dans la boucle est une <strong>propriété invariante</strong> (§4) : vraie à chaque tour, elle explique pourquoi le résultat est juste. Le programme demande d'annoter ainsi, par des commentaires, préconditions, postconditions et invariants.</p>
+
+  <h3>Assertions</h3>
+  <div class="def-box">L'instruction <span class="code-inline">assert condition</span> évalue la condition : si elle est vraie, rien ne se passe ; si elle est fausse, le programme <strong>s'arrête</strong> sur une erreur <span class="code-inline">AssertionError</span> qui indique la ligne fautive.</div>
+  <pre class="codeblock">&gt;&gt;&gt; position_min([])
+Traceback (most recent call last):
+  ...
+AssertionError</pre>
+  <p>On s'en sert pour <strong>valider les entrées</strong> (une précondition fausse est détectée tout de suite, au lieu de produire plus loin un résultat absurde) et pour écrire des <strong>tests</strong> (§5). Au programme, l'assertion s'écrit sans message ; définir ou rattraper des erreurs (exceptions) n'est pas au programme.</p>
+
+  <div class="method-box"><strong>Exemple — spécifier une fonction à effet de bord</strong>
+    <p>On veut insérer un nombre dans une liste triée, sans fabriquer de nouvelle liste.</p>
+    <pre class="codeblock"><span class="kw">def</span> inserer(t: list, x: float) -&gt; <span class="kw">None</span>:
+    <span class="str">"""Insère x dans t en gardant t triée.</span>
+<span class="str">    Précondition : t est triée dans l'ordre croissant.</span>
+<span class="str">    Postcondition : t contient en plus x, et reste triée.</span>
+<span class="str">    Effet de bord : t est modifiée ; aucune valeur renvoyée."""</span>
+    t.append(x)
+    i = len(t) - 1
+    <span class="kw">while</span> i &gt; 0 <span class="kw">and</span> t[i - 1] &gt; x:
+        <span class="cmt"># invariant : t[i] == x, t[i+1:] &gt; x,</span>
+        <span class="cmt">#             et t privée de t[i] est triée</span>
+        t[i - 1], t[i] = t[i], t[i - 1]
+        i = i - 1</pre>
+    <ol>
+      <li><strong>Signature</strong> : <span class="code-inline">inserer(t: list, x: float) -&gt; None</span> ; le type de retour <span class="code-inline">None</span> annonce qu'il n'y a pas de résultat.</li>
+      <li><strong>Précondition</strong> : <span class="code-inline">t</span> triée. Sans elle, la fonction ne place pas <span class="code-inline">x</span> au bon endroit. On ne la vérifie pas par une assertion : cela coûterait un parcours complet de la liste, plus cher que l'insertion elle-même dans le meilleur cas.</li>
+      <li><strong>Postcondition et effet de bord</strong> : <span class="code-inline">t</span> est modifiée, contient un élément de plus et reste triée. Pour <span class="code-inline">t = [2, 5, 9]</span> et <span class="code-inline">x = 4</span> : après <span class="code-inline">append</span>, <span class="code-inline">[2, 5, 9, 4]</span> ; deux échanges donnent <span class="code-inline">[2, 5, 4, 9]</span> puis <span class="code-inline">[2, 4, 5, 9]</span> ; on s'arrête car <span class="code-inline">2 &gt; 4</span> est faux.</li>
+    </ol>
+  </div>
+
+  <h3>Commenter et justifier ses choix</h3>
+  <p>Un bon commentaire dit <em>pourquoi</em>, pas <em>quoi</em> : <span class="code-inline">i = i + 1  # on ajoute 1 à i</span> paraphrase le code et n'apprend rien ; <span class="code-inline"># invariant : t[0:i] ne contient que des négatifs</span> éclaire la partie délicate. On justifie aussi le <strong>choix des collections</strong> : une liste pour des données rangées par position et parcourues dans l'ordre ; un dictionnaire pour retrouver une valeur à partir d'une clé (un nom, un mot) ou tester rapidement la présence d'un élément (§7).</p>
+
+  <div class="notice"><strong>Erreur classique</strong> : écrire <span class="code-inline">assert (x &gt; 0, "x doit être positif")</span>. Les parenthèses et la virgule fabriquent un <em>couple</em>, qui est toujours considéré comme vrai : l'assertion ne vérifie plus rien. Au programme, on écrit simplement <span class="code-inline">assert x &gt; 0</span>.</div>
+  <div class="notice"><strong>Erreur classique</strong> : vérifier par une assertion une précondition qui coûte plus cher que la fonction. Tester qu'une liste est triée avant une recherche dichotomique fait passer la recherche d'un coût logarithmique à un coût linéaire (§7) : on écrit alors la précondition en commentaire seulement.</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§3 · TERMINAISON : LE VARIANT</div>
+  <h2>Prouver qu'une boucle s'arrête</h2>
+  <div class="intro">Une boucle <span class="code-inline">for</span> sur <span class="code-inline">range(a, b)</span> fait un nombre de tours fixé dès le départ : elle termine toujours. Une boucle <span class="code-inline">while</span>, elle, peut tourner indéfiniment ; pour prouver qu'elle s'arrête, on exhibe une quantité entière qui ne peut pas diminuer indéfiniment.</div>
+
+  <div class="def-box">Un <strong>variant</strong> d'une boucle <span class="code-inline">while</span> est une expression construite sur les variables du programme qui
+    <ul>
+      <li>prend des valeurs <strong>entières positives ou nulles</strong> à chaque test de la condition ;</li>
+      <li><strong>diminue strictement</strong> à chaque tour de boucle.</li>
+    </ul>
+  </div>
+  <div class="prop-box"><strong>Terminaison par un variant.</strong> Une boucle qui admet un variant termine : une suite d'entiers positifs ou nuls strictement décroissante ne peut avoir qu'un nombre fini de termes. Plus précisément, si le variant vaut \(v_0\) au premier test, la boucle fait au plus \(v_0\) tours : c'est aussi une première majoration du coût (§6).</div>
+
+  <pre class="codeblock"><span class="kw">def</span> pgcd(a: int, b: int) -&gt; int:
+    <span class="str">"""Précondition : a, b entiers &gt;= 0, non tous deux nuls.</span>
+<span class="str">    Postcondition : renvoie le pgcd de a et b."""</span>
+    <span class="kw">while</span> b &gt; 0:
+        a, b = b, a % b      <span class="cmt"># variant : b (entier &gt;= 0)</span>
+    <span class="kw">return</span> a</pre>
+  <div class="method-box"><strong>Exemple — terminaison de l'algorithme d'Euclide</strong>
+    <ol>
+      <li><strong>Variant</strong> : \(b\). C'est un entier positif ou nul : au départ par la précondition, puis comme reste d'une division euclidienne.</li>
+      <li><strong>Décroissance</strong> : à chaque tour, la nouvelle valeur de \(b\) est \(a \bmod b\), reste de la division par \(b\), donc strictement inférieure à \(b\).</li>
+      <li><strong>Conclusion</strong> : la boucle termine, en au plus \(b_0\) tours. Le déroulé de <span class="code-inline">pgcd(252, 198)</span> le confirme :</li>
+    </ol>
+    <div><table>
+<tr><th>moment</th><th><span class="code-inline">a</span></th><th><span class="code-inline">b</span></th><th>test <span class="code-inline">b &gt; 0</span></th></tr>
+<tr><td>avant le 1er tour</td><td>252</td><td>198</td><td>198 &gt; 0 : on continue</td></tr>
+<tr><td>après le tour 1</td><td>198</td><td>54</td><td>54 &gt; 0 : on continue</td></tr>
+<tr><td>après le tour 2</td><td>54</td><td>36</td><td>36 &gt; 0 : on continue</td></tr>
+<tr><td>après le tour 3</td><td>36</td><td>18</td><td>18 &gt; 0 : on continue</td></tr>
+<tr><td>après le tour 4</td><td>18</td><td>0</td><td>0 : arrêt</td></tr>
+</table></div>
+    <p>La fonction renvoie 18 (et \(252 = 18\times 14\), \(198 = 18\times 11\)). La correction du résultat, elle, repose sur l'invariant « \(\operatorname{pgcd}(a, b)\) ne change pas », qui découle de \(\operatorname{pgcd}(a, b) = \operatorname{pgcd}(b, a \bmod b)\).</p>
+  </div>
+
+  <h3>Choisir le variant</h3>
+  <p>Le variant est souvent la variable qui pilote la boucle (\(n\) dans une boucle qui divise \(n\) par 10), mais pas toujours. Dans une boucle à deux indices qui se rapprochent, c'est la <strong>taille de la zone qui reste à examiner</strong> :</p>
+  <pre class="codeblock"><span class="kw">def</span> est_palindrome(s: str) -&gt; bool:
+    <span class="str">"""Indique si s se lit de la même façon dans les deux sens."""</span>
+    i, j = 0, len(s) - 1
+    <span class="kw">while</span> i &lt; j:             <span class="cmt"># variant : j - i + 1</span>
+        <span class="kw">if</span> s[i] != s[j]:
+            <span class="kw">return</span> <span class="kw">False</span>
+        i, j = i + 1, j - 1
+    <span class="kw">return</span> <span class="kw">True</span></pre>
+  <p>Variant : \(j - i + 1\). Tant que la boucle tourne, \(i \lt j\) ; un tour augmente \(i\) de 1 et diminue \(j\) de 1, donc le variant baisse de 2 et reste positif ou nul (il vaut au moins \(-1 + 1 = 0\) après le dernier tour). La sortie anticipée par <span class="code-inline">return False</span> ne gêne pas : elle ne peut qu'arrêter la boucle plus tôt.</p>
+
+  <h3>Une boucle dont on ne sait pas prouver la terminaison</h3>
+  <pre class="codeblock"><span class="kw">def</span> temps_de_vol(n: int) -&gt; int:
+    <span class="str">"""Nombre d'étapes pour atteindre 1 (n entier &gt;= 1)."""</span>
+    k = 0
+    <span class="kw">while</span> n != 1:
+        <span class="kw">if</span> n % 2 == 0:
+            n = n // 2
+        <span class="kw">else</span>:
+            n = 3 * n + 1
+        k = k + 1
+    <span class="kw">return</span> k</pre>
+  <p>Partant de 27, la suite monte jusqu'à 9 232 avant de redescendre ; <span class="code-inline">temps_de_vol(27)</span> vaut 111. Personne ne sait démontrer que cette boucle termine pour tout \(n \ge 1\) (c'est la conjecture de Syracuse) : aucun variant n'est connu. Cela montre qu'une preuve de terminaison n'a rien d'automatique.</p>
+
+  <h3>Fonctions récursives</h3>
+  <p>Pour une fonction récursive, le variant est une quantité entière positive ou nulle qui diminue strictement d'un appel au suivant (souvent l'argument lui-même, ou la longueur d'une liste) ; atteindre le cas de base arrête les appels. Ainsi <span class="code-inline">binaire(n)</span> (§4) appelle <span class="code-inline">binaire(n // 2)</span> avec \(1 \le n /\!/ 2 \lt n\) dès que \(n \ge 2\) : la suite des arguments décroît strictement et finit par valoir 1 (voir le chapitre « Récursivité »).</p>
+
+  <div class="notice"><strong>Erreur classique</strong> : un « variant » flottant. Le programme ci-dessous ne s'arrête pas : à cause des arrondis, \(x\) passe de \(1{,}4\times10^{-16}\) environ à une valeur négative sans jamais valoir exactement 0. Un variant est <strong>entier</strong> ; avec des flottants, on teste <span class="code-inline">x &gt; 0</span>, jamais <span class="code-inline">x != 0</span> (voir le chapitre « Représentation des nombres »).</div>
+  <pre class="codeblock">x = 1.0
+<span class="kw">while</span> x != 0:        <span class="cmt"># jamais exactement 0 : boucle infinie</span>
+    x = x - 0.1</pre>
+  <div class="notice"><strong>Erreur classique</strong> : modifier la liste parcourue par une boucle <span class="code-inline">for</span>. Le parcours d'une liste avance case par case jusqu'à sa longueur <em>actuelle</em> : en ajoutant un élément à chaque tour, on ne l'atteint jamais.</div>
+  <pre class="codeblock">t = [1, 2]
+<span class="kw">for</span> x <span class="kw">in</span> t:          <span class="cmt"># parcourt aussi les éléments ajoutés…</span>
+    t.append(x)      <span class="cmt"># … donc ne s'arrête jamais</span></pre>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§4 · CORRECTION : L'INVARIANT DE BOUCLE</div>
+  <h2>Prouver qu'une boucle calcule ce qu'on veut</h2>
+  <div class="intro">Savoir que l'algorithme s'arrête ne suffit pas : il faut aussi que son résultat vérifie la postcondition. L'outil est l'invariant de boucle, une propriété qui décrit ce que les variables contiennent « en cours de route ».</div>
+
+  <div class="def-box">Un algorithme est <strong>partiellement correct</strong> si, pour toute entrée vérifiant la précondition, <em>lorsqu'il s'arrête</em>, son résultat vérifie la postcondition. Il est <strong>totalement correct</strong> s'il est partiellement correct <strong>et</strong> s'il termine pour toute entrée vérifiant la précondition.</div>
+  <div class="def-box">Un <strong>invariant de boucle</strong> est une propriété \(I\) des variables qui est :
+    <ul>
+      <li><strong>vraie avant le premier tour</strong> (initialisation) ;</li>
+      <li><strong>conservée</strong> par chaque tour : si \(I\) est vraie au début d'un tour (et la condition de boucle aussi), elle est vraie à la fin de ce tour.</li>
+    </ul>
+    \(I\) est alors vraie à la sortie de la boucle. Combinée à la négation de la condition de boucle, elle doit donner la postcondition.
+  </div>
+  <figure class="schema" style="max-width:345px">
+<svg viewBox="0 0 345 205" role="img" aria-label="Schéma de preuve par invariant : initialisation, conservation par chaque tour, conclusion à la sortie">
+<rect x="15" y="8" width="200" height="44" rx="6" class="sk-green fl-green-soft"/>
+<text x="115" y="26" class="lab-b lab-green" text-anchor="middle">Initialisation</text>
+<text x="115" y="43" text-anchor="middle">I est vraie avant le 1ᵉʳ test</text>
+<line x1="115" y1="52" x2="115" y2="76" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<polygon points="115,78 177,100 115,122 53,100" class="sk-ink fl-paper"/>
+<text x="115" y="105" class="lab-it" text-anchor="middle">condition ?</text>
+<rect x="215" y="78" width="122" height="44" rx="6" class="sk-accent2 fl-accent2-soft"/>
+<text x="276" y="96" class="lab-b lab-accent2" text-anchor="middle">Un tour</text>
+<text x="276" y="113" text-anchor="middle">conserve I</text>
+<line x1="177" y1="100" x2="211" y2="100" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<text x="194" y="94" class="lab-muted" text-anchor="middle">oui</text>
+<path d="M 276,78 C 276,46 200,52 140,82" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<text x="258" y="50" class="lab-muted" text-anchor="middle">le variant diminue</text>
+<line x1="115" y1="122" x2="115" y2="150" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<text x="123" y="140" class="lab-muted">non</text>
+<rect x="15" y="154" width="322" height="44" rx="6" class="sk-accent fl-accent-soft"/>
+<text x="176" y="172" class="lab-b lab-accent" text-anchor="middle">Sortie</text>
+<text x="176" y="189" text-anchor="middle">I et non(condition)  ⟹  postcondition</text>
+</svg>
+<figcaption>Les trois temps d’une preuve par invariant. Le variant, lui, garantit qu’on finit par prendre la branche « non ».</figcaption>
+</figure>
+
+  <pre class="codeblock"><span class="kw">def</span> div_eucl(a: int, b: int) -&gt; tuple:
+    <span class="str">"""Précondition : a &gt;= 0 et b &gt; 0 entiers.</span>
+<span class="str">    Postcondition : renvoie (q, r) tel que a == b * q + r</span>
+<span class="str">    et 0 &lt;= r &lt; b."""</span>
+    <span class="kw">assert</span> a &gt;= 0 <span class="kw">and</span> b &gt; 0
+    q, r = 0, a
+    <span class="kw">while</span> r &gt;= b:
+        <span class="cmt"># invariant : a == b * q + r et r &gt;= 0</span>
+        q, r = q + 1, r - b
+    <span class="kw">return</span> q, r</pre>
+  <div class="method-box"><strong>Exemple — correction totale de la division par soustractions</strong>
+    <p>Invariant \(I\) : \(a = bq + r\) et \(r \ge 0\).</p>
+    <ol>
+      <li><strong>Initialisation</strong> : avec \(q = 0\) et \(r = a\), \(bq + r = a\) et \(r = a \ge 0\) par la précondition.</li>
+      <li><strong>Conservation</strong> : si \(a = bq + r\), \(r \ge 0\) et la condition \(r \ge b\) est vraie, les nouvelles valeurs \(q' = q + 1\) et \(r' = r - b\) vérifient \(bq' + r' = bq + b + r - b = a\) et \(r' = r - b \ge 0\), <em>grâce à la condition</em> \(r \ge b\).</li>
+      <li><strong>Sortie</strong> : la condition est fausse, donc \(r \lt b\) ; avec \(I\), \(a = bq + r\) et \(0 \le r \lt b\) : c'est la postcondition (correction partielle).</li>
+      <li><strong>Terminaison</strong> : \(r\) est un variant (entier, positif ou nul par \(I\), et diminue de \(b \ge 1\) à chaque tour). La fonction est totalement correcte.</li>
+    </ol>
+    <p>Déroulé de <span class="code-inline">div_eucl(23, 5)</span> : la colonne \(5q + r\) vaut 23 à chaque ligne, c'est l'invariant qu'on voit.</p>
+    <div><table>
+<tr><th>moment</th><th><span class="code-inline">q</span></th><th><span class="code-inline">r</span></th><th><span class="code-inline">5*q + r</span></th><th><span class="code-inline">r &gt;= 5</span> ?</th></tr>
+<tr><td>avant le 1er tour</td><td>0</td><td>23</td><td>23</td><td>oui</td></tr>
+<tr><td>après le tour 1</td><td>1</td><td>18</td><td>23</td><td>oui</td></tr>
+<tr><td>après le tour 2</td><td>2</td><td>13</td><td>23</td><td>oui</td></tr>
+<tr><td>après le tour 3</td><td>3</td><td>8</td><td>23</td><td>oui</td></tr>
+<tr><td>après le tour 4</td><td>4</td><td>3</td><td>23</td><td>non : sortie</td></tr>
+</table></div>
+  </div>
+
+  <h3>Une boucle qui peut s'interrompre</h3>
+  <pre class="codeblock"><span class="kw">def</span> premier_negatif(t: list) -&gt; int:
+    <span class="str">"""Plus petit i tel que t[i] &lt; 0, ou -1 s'il n'y en a pas."""</span>
+    <span class="kw">for</span> i <span class="kw">in</span> range(len(t)):
+        <span class="cmt"># invariant : aucun élément de t[0:i] n'est négatif</span>
+        <span class="kw">if</span> t[i] &lt; 0:
+            <span class="kw">return</span> i
+    <span class="kw">return</span> -1</pre>
+  <p>On énonce l'invariant au début du tour d'indice \(i\) ; « après le dernier tour » correspond à \(i = n\) (avec \(n\) = <span class="code-inline">len(t)</span>). Il y a deux façons de sortir :</p>
+  <ul>
+    <li>par <span class="code-inline">return i</span> : \(t[i] \lt 0\) et, par l'invariant, aucun indice plus petit ne convient, donc \(i\) est bien le plus petit ;</li>
+    <li>par <span class="code-inline">return -1</span> après le dernier tour : l'invariant pour \(i = n\) dit qu'aucun élément de \(t\) n'est négatif.</li>
+  </ul>
+  <p>L'initialisation est évidente (\(t[0:0]\) est vide) ; la conservation aussi : si le tour \(i\) ne s'est pas interrompu, c'est que \(t[i] \ge 0\).</p>
+
+  <h3>Correction d'une fonction récursive : la récurrence</h3>
+  <p>Pour une fonction récursive, l'invariant est remplacé par une <strong>récurrence</strong> : on suppose les appels sur des arguments plus petits corrects, et on en déduit l'appel courant.</p>
+  <pre class="codeblock"><span class="kw">def</span> binaire(n: int) -&gt; str:
+    <span class="str">"""Écriture en base 2 de n (entier &gt;= 1), en chaîne."""</span>
+    <span class="kw">if</span> n == 1:
+        <span class="kw">return</span> <span class="str">"1"</span>
+    <span class="kw">return</span> binaire(n // 2) + str(n % 2)</pre>
+  <p>Montrons par récurrence forte sur \(n \ge 1\) que <span class="code-inline">binaire(n)</span> est l'écriture binaire de \(n\). Pour \(n = 1\), c'est <span class="code-inline">"1"</span>. Pour \(n \ge 2\), \(n = 2\,(n /\!/ 2) + (n \bmod 2)\) avec \(1 \le n /\!/ 2 \lt n\) : par hypothèse de récurrence, <span class="code-inline">binaire(n // 2)</span> écrit \(n /\!/ 2\) ; lui ajouter le chiffre \(n \bmod 2\) à droite revient à multiplier par 2 et à ajouter ce chiffre, ce qui écrit \(n\). Ainsi <span class="code-inline">binaire(13)</span> = <span class="code-inline">binaire(6) + "1"</span> = <span class="code-inline">binaire(3) + "0" + "1"</span> = <span class="code-inline">"1" + "1" + "0" + "1"</span> = <span class="code-inline">"1101"</span>.</p>
+
+  <div class="prop-box"><strong>Trouver un invariant.</strong> Dérouler la boucle sur un petit exemple, écrire dans un tableau les valeurs des variables à chaque tour, puis se demander : « que représente cette variable vis-à-vis de la partie déjà traitée ? ». L'invariant décrit le plus souvent le <em>résultat partiel</em> : le minimum, la somme, le nombre d'occurrences <strong>de la partie déjà parcourue</strong>.</div>
+  <div class="notice"><strong>Erreur classique</strong> : proposer un invariant vrai mais inutile, comme « \(i \ge 0\) ». Un bon invariant doit, à la sortie, <strong>entraîner la postcondition</strong> ; c'est ce dernier point qu'on vérifie en premier.</div>
+  <div class="notice"><strong>Erreur classique</strong> : oublier d'utiliser la condition de boucle dans la conservation. Dans la division, \(r' \ge 0\) n'est vrai que parce que \(r \ge b\) : sans la condition, la preuve ne passe pas.</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§5 · TESTER UN PROGRAMME</div>
+  <h2>Écrire un jeu de tests</h2>
+  <div class="intro">Une preuve garantit la correction d'un algorithme ; des tests vérifient qu'un programme réel, avec ses fautes de frappe et ses indices décalés, se comporte comme prévu. Les tests ne prouvent rien (un test réussi ne dit rien des entrées non essayées), mais ils trouvent vite les erreurs, à condition d'être bien choisis.</div>
+
+  <div class="def-box">Un <strong>jeu de tests</strong> est une liste d'entrées accompagnées des <strong>sorties attendues</strong>, calculées à la main ou par un autre moyen que le programme testé. En Python, on l'écrit sous la forme d'une fonction d'assertions : elle reste silencieuse si tout va bien et s'arrête sur le premier test qui échoue.</div>
+  <pre class="codeblock"><span class="kw">def</span> test_div_eucl():
+    <span class="kw">assert</span> div_eucl(23, 5) == (4, 3)     <span class="cmt"># cas général</span>
+    <span class="kw">assert</span> div_eucl(0, 7) == (0, 0)      <span class="cmt"># a nul</span>
+    <span class="kw">assert</span> div_eucl(5, 6) == (0, 5)      <span class="cmt"># a &lt; b : aucun tour</span>
+    <span class="kw">assert</span> div_eucl(6, 6) == (1, 0)      <span class="cmt"># a == b : limite</span>
+    <span class="kw">assert</span> div_eucl(17, 1) == (17, 0)    <span class="cmt"># b == 1</span>
+    <span class="kw">assert</span> div_eucl(60, 12) == (5, 0)    <span class="cmt"># reste nul</span>
+
+test_div_eucl()          <span class="cmt"># silencieux si tout va bien</span></pre>
+
+  <div class="prop-box"><strong>Partitionner le domaine d'entrée, tester les limites.</strong>
+    <ul>
+      <li>On découpe les entrées possibles en <strong>classes</strong> sur lesquelles le programme devrait se comporter de la même façon (une branche du <span class="code-inline">if</span>, une position du résultat…) et on teste <strong>au moins une entrée par classe</strong>.</li>
+      <li>On teste les <strong>limites</strong> : frontières entre classes (là où <span class="code-inline">&lt;</span> et <span class="code-inline">&lt;=</span> diffèrent), et cas extrêmes : liste vide, un seul élément, résultat en première ou en dernière position, valeurs égales, zéro, boucle qui fait 0 ou 1 tour.</li>
+    </ul>
+  </div>
+
+  <div class="method-box"><strong>Exemple — trouver l'erreur par les limites</strong>
+    <p>La fonction suivante doit donner la mention d'une note : insuffisant sous 10, passable de 10 à 12 (exclu), assez bien de 12 à 14, bien de 14 à 16, très bien à partir de 16.</p>
+    <pre class="codeblock"><span class="kw">def</span> mention(note: float) -&gt; str:
+    <span class="str">"""Mention pour une note de 0 à 20 (version FAUSSE)."""</span>
+    <span class="kw">if</span> note &lt; 10:
+        <span class="kw">return</span> <span class="str">"insuffisant"</span>
+    <span class="kw">elif</span> note &lt; 12:
+        <span class="kw">return</span> <span class="str">"passable"</span>
+    <span class="kw">elif</span> note &lt; 14:
+        <span class="kw">return</span> <span class="str">"assez bien"</span>
+    <span class="kw">elif</span> note &gt; 16:
+        <span class="kw">return</span> <span class="str">"très bien"</span>
+    <span class="kw">else</span>:
+        <span class="kw">return</span> <span class="str">"bien"</span></pre>
+    <figure class="schema" style="max-width:345px">
+<svg viewBox="0 0 345 110" role="img" aria-label="Partition des notes de 0 à 20 en cinq classes, avec un test par classe et un test à chaque limite">
+<rect x="22" y="34" width="150" height="26" class="fl-muted-soft"/>
+<text x="97" y="52" class="lab-b" text-anchor="middle">I</text>
+<rect x="172" y="34" width="30" height="26" class="fl-amber-soft"/>
+<text x="187" y="52" class="lab-b" text-anchor="middle">P</text>
+<rect x="202" y="34" width="30" height="26" class="fl-accent2-soft"/>
+<text x="217" y="52" class="lab-b" text-anchor="middle">AB</text>
+<rect x="232" y="34" width="30" height="26" class="fl-green-soft"/>
+<text x="247" y="52" class="lab-b" text-anchor="middle">B</text>
+<rect x="262" y="34" width="60" height="26" class="fl-accent-soft"/>
+<text x="292" y="52" class="lab-b" text-anchor="middle">TB</text>
+<rect x="22" y="34" width="300" height="26" class="sk-ink"/>
+<line x1="172" y1="34" x2="172" y2="60" class="sk-ink"/>
+<line x1="202" y1="34" x2="202" y2="60" class="sk-ink"/>
+<line x1="232" y1="34" x2="232" y2="60" class="sk-ink"/>
+<line x1="262" y1="34" x2="262" y2="60" class="sk-ink"/>
+<line x1="16" y1="82" x2="336" y2="82" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<line x1="22" y1="79" x2="22" y2="85" class="sk-axis"/>
+<line x1="52" y1="79" x2="52" y2="85" class="sk-axis"/>
+<line x1="82" y1="79" x2="82" y2="85" class="sk-axis"/>
+<line x1="112" y1="79" x2="112" y2="85" class="sk-axis"/>
+<line x1="142" y1="79" x2="142" y2="85" class="sk-axis"/>
+<line x1="172" y1="79" x2="172" y2="85" class="sk-axis"/>
+<line x1="202" y1="79" x2="202" y2="85" class="sk-axis"/>
+<line x1="232" y1="79" x2="232" y2="85" class="sk-axis"/>
+<line x1="262" y1="79" x2="262" y2="85" class="sk-axis"/>
+<line x1="292" y1="79" x2="292" y2="85" class="sk-axis"/>
+<line x1="322" y1="79" x2="322" y2="85" class="sk-axis"/>
+<text x="22" y="101" class="lab-muted" text-anchor="middle">0</text>
+<text x="172" y="101" class="lab-muted" text-anchor="middle">10</text>
+<text x="202" y="101" class="lab-muted" text-anchor="middle">12</text>
+<text x="232" y="101" class="lab-muted" text-anchor="middle">14</text>
+<text x="262" y="101" class="lab-muted" text-anchor="middle">16</text>
+<text x="322" y="101" class="lab-muted" text-anchor="middle">20</text>
+<circle cx="134.5" cy="70" r="4.5" class="fl-green"/>
+<circle cx="187" cy="70" r="4.5" class="fl-green"/>
+<circle cx="217" cy="70" r="4.5" class="fl-green"/>
+<circle cx="247" cy="70" r="4.5" class="fl-green"/>
+<circle cx="292" cy="70" r="4.5" class="fl-green"/>
+<rect x="18" y="66" width="8" height="8" class="fl-accent" transform="rotate(45 22 70)"/>
+<rect x="168" y="66" width="8" height="8" class="fl-accent" transform="rotate(45 172 70)"/>
+<rect x="198" y="66" width="8" height="8" class="fl-accent" transform="rotate(45 202 70)"/>
+<rect x="228" y="66" width="8" height="8" class="fl-accent" transform="rotate(45 232 70)"/>
+<rect x="258" y="66" width="8" height="8" class="fl-accent" transform="rotate(45 262 70)"/>
+<rect x="318" y="66" width="8" height="8" class="fl-accent" transform="rotate(45 322 70)"/>
+<text x="22" y="20" class="lab-muted">note sur 20</text>
+<circle cx="206" cy="15" r="4.5" class="fl-green"/>
+<text x="214" y="20" class="lab-muted">classe</text>
+<rect x="270" y="11" width="8" height="8" class="fl-accent" transform="rotate(45 274 15)"/>
+<text x="282" y="20" class="lab-muted">limite</text>
+</svg>
+<figcaption>Partition du domaine d’entrée de <span class="code-inline">mention</span> : cinq classes (I insuffisant, P passable, AB assez bien, B bien, TB très bien). Un test au cœur de chaque classe (●) et un test à chaque limite (◆).</figcaption>
+</figure>
+    <pre class="codeblock"><span class="kw">def</span> test_mention():
+    <span class="kw">assert</span> mention(7.5) == <span class="str">"insuffisant"</span>  <span class="cmt"># un test par classe…</span>
+    <span class="kw">assert</span> mention(11) == <span class="str">"passable"</span>
+    <span class="kw">assert</span> mention(13) == <span class="str">"assez bien"</span>
+    <span class="kw">assert</span> mention(15) == <span class="str">"bien"</span>
+    <span class="kw">assert</span> mention(18) == <span class="str">"très bien"</span>
+    <span class="kw">assert</span> mention(0) == <span class="str">"insuffisant"</span>    <span class="cmt"># … puis les limites</span>
+    <span class="kw">assert</span> mention(10) == <span class="str">"passable"</span>
+    <span class="kw">assert</span> mention(12) == <span class="str">"assez bien"</span>
+    <span class="kw">assert</span> mention(14) == <span class="str">"bien"</span>
+    <span class="kw">assert</span> mention(16) == <span class="str">"très bien"</span>     <span class="cmt"># échoue ici</span>
+    <span class="kw">assert</span> mention(20) == <span class="str">"très bien"</span></pre>
+    <ol>
+      <li>Les cinq premiers tests, un par classe, passent tous : la version fausse donne bien « très bien » pour 18.</li>
+      <li>Le test à la limite 16 échoue : <span class="code-inline">mention(16)</span> renvoie « bien », car la condition <span class="code-inline">note &gt; 16</span> exclut 16. Il fallait <span class="code-inline">note &gt;= 16</span>.</li>
+      <li>Leçon : les erreurs se cachent aux frontières, que seuls les tests de limites atteignent.</li>
+    </ol>
+  </div>
+
+  <p>Pour <span class="code-inline">position_min</span> (§2), un jeu de tests raisonnable couvre : le minimum en première, au milieu, en dernière position ; un minimum présent deux fois (c'est la <em>première</em> occurrence qui est attendue) ; une liste à un seul élément ; des valeurs négatives ; tous les éléments égaux (réponse 0). On vérifie aussi que la liste n'a pas été modifiée, puisque la spécification le promet.</p>
+
+  <div class="notice"><strong>Erreur classique</strong> : tester des flottants avec <span class="code-inline">==</span>. Le résultat d'un calcul en flottants est approché : on vérifie qu'il est proche de la valeur attendue, par exemple <span class="code-inline">assert abs(x - 0.3) &lt; 1e-9</span> (<span class="code-inline">abs</span> : valeur absolue), et non <span class="code-inline">assert x == 0.3</span>.</div>
+  <div class="notice"><strong>Erreur classique</strong> : calculer la sortie « attendue » avec le programme testé lui-même. Le test devient une tautologie : il passera toujours, même si le programme est faux.</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§6 · COMPLEXITÉ TEMPORELLE</div>
+  <h2>Estimer le temps de calcul avant d'exécuter</h2>
+  <div class="intro">Deux programmes justes peuvent mettre l'un une seconde, l'autre une journée sur les mêmes données. La complexité estime, avant toute exécution, comment le temps de calcul grandit avec la taille des données : c'est elle qui décide si un algorithme est utilisable sur un million de valeurs.</div>
+
+  <div class="def-box">
+    <ul>
+      <li>La <strong>taille</strong> de l'entrée est un entier \(n\) qui mesure les données : longueur d'une liste ou d'une chaîne, nombre de chiffres d'un entier, nombre de sommets d'un graphe…</li>
+      <li>Une <strong>opération élémentaire</strong> est une opération dont le coût ne dépend pas de \(n\) : affectation, opération arithmétique ou comparaison sur des nombres de taille bornée, accès <span class="code-inline">t[i]</span>, <span class="code-inline">len(t)</span>, <span class="code-inline">t.append(x)</span>, <span class="code-inline">t.pop()</span>.</li>
+      <li>La <strong>complexité dans le pire cas</strong> \(C(n)\) est le plus grand nombre d'opérations élémentaires effectuées sur une entrée de taille \(n\).</li>
+    </ul>
+  </div>
+  <div class="def-box">On note \(C(n) = O(f(n))\) s'il existe une constante \(K\) et un rang \(n_0\) tels que \(C(n) \le K f(n)\) pour tout \(n \ge n_0\). On ne s'intéresse qu'à l'<strong>ordre de grandeur</strong> : on garde le terme qui domine et on oublie les constantes. Par exemple \(3n^2 + 5n + 7 = O(n^2)\).</div>
+  <p>Deux résultats servent sans cesse : la somme des premiers entiers (boucles imbriquées) et le nombre de divisions par 2 qui mènent un entier \(n \ge 1\) à 0 (boucles qui divisent) :</p>
+  <div class="formula" data-nom="Somme des premiers entiers">$$\sum_{i=0}^{n-1} i = \frac{n(n-1)}{2} = O(n^2)$$</div>
+  <div class="formula" data-nom="Nombre de chiffres binaires">$$\text{nombre de chiffres binaires de } n = \lfloor \log_2 n \rfloor + 1 = O(\log n)$$</div>
+
+  <figure class="schema" style="max-width:350px">
+<svg viewBox="0 0 350 220" role="img" aria-label="Courbes de log n, n, n log n, n carré et 2 puissance n pour n de 1 à 40">
+<line x1="42" y1="194" x2="334" y2="194" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<line x1="42" y1="194" x2="42" y2="8" class="sk-axis" marker-end="url(#sk-arrow-ink)"/>
+<line x1="38" y1="149" x2="42" y2="149" class="sk-axis"/>
+<text x="35" y="153" class="lab-muted" text-anchor="end">50</text>
+<line x1="38" y1="104" x2="42" y2="104" class="sk-axis"/>
+<text x="35" y="108" class="lab-muted" text-anchor="end">100</text>
+<line x1="38" y1="59" x2="42" y2="59" class="sk-axis"/>
+<text x="35" y="63" class="lab-muted" text-anchor="end">150</text>
+<line x1="38" y1="14" x2="42" y2="14" class="sk-axis"/>
+<text x="35" y="18" class="lab-muted" text-anchor="end">200</text>
+<line x1="106.6" y1="194" x2="106.6" y2="198" class="sk-axis"/>
+<text x="106.6" y="211" class="lab-muted" text-anchor="middle">10</text>
+<line x1="178.4" y1="194" x2="178.4" y2="198" class="sk-axis"/>
+<text x="178.4" y="211" class="lab-muted" text-anchor="middle">20</text>
+<line x1="250.2" y1="194" x2="250.2" y2="198" class="sk-axis"/>
+<text x="250.2" y="211" class="lab-muted" text-anchor="middle">30</text>
+<line x1="322" y1="194" x2="322" y2="198" class="sk-axis"/>
+<text x="322" y="211" class="lab-muted" text-anchor="middle">40</text>
+<text x="338" y="198" class="lab-it">n</text>
+<polyline points="42,194 43.8,193.7 45.6,193.5 47.4,193.3 49.2,193.1 51,192.9 52.8,192.8 54.6,192.7 56.4,192.6 58.2,192.5 59.9,192.4 61.7,192.3 63.5,192.2 65.3,192.1 67.1,192 68.9,192 70.7,191.9 72.5,191.8 74.3,191.8 76.1,191.7 77.9,191.7 79.7,191.6 81.5,191.6 83.3,191.5 85.1,191.5 86.9,191.4 88.7,191.4 90.5,191.3 92.3,191.3 94.1,191.3 95.8,191.2 97.6,191.2 99.4,191.1 101.2,191.1 103,191.1 104.8,191 106.6,191 108.4,191 110.2,190.9 112,190.9 113.8,190.9 115.6,190.9 117.4,190.8 119.2,190.8 121,190.8 122.8,190.7 124.6,190.7 126.4,190.7 128.2,190.7 129.9,190.6 131.7,190.6 133.5,190.6 135.3,190.6 137.1,190.6 138.9,190.5 140.7,190.5 142.5,190.5 144.3,190.5 146.1,190.4 147.9,190.4 149.7,190.4 151.5,190.4 153.3,190.4 155.1,190.3 156.9,190.3 158.7,190.3 160.5,190.3 162.3,190.3 164.1,190.2 165.8,190.2 167.6,190.2 169.4,190.2 171.2,190.2 173,190.2 174.8,190.1 176.6,190.1 178.4,190.1 180.2,190.1 182,190.1 183.8,190.1 185.6,190 187.4,190 189.2,190 191,190 192.8,190 194.6,190 196.4,190 198.2,189.9 199.9,189.9 201.7,189.9 203.5,189.9 205.3,189.9 207.1,189.9 208.9,189.9 210.7,189.8 212.5,189.8 214.3,189.8 216.1,189.8 217.9,189.8 219.7,189.8 221.5,189.8 223.3,189.8 225.1,189.7 226.9,189.7 228.7,189.7 230.5,189.7 232.3,189.7 234.1,189.7 235.8,189.7 237.6,189.7 239.4,189.7 241.2,189.6 243,189.6 244.8,189.6 246.6,189.6 248.4,189.6 250.2,189.6 252,189.6 253.8,189.6 255.6,189.6 257.4,189.5 259.2,189.5 261,189.5 262.8,189.5 264.6,189.5 266.4,189.5 268.2,189.5 269.9,189.5 271.7,189.5 273.5,189.5 275.3,189.4 277.1,189.4 278.9,189.4 280.7,189.4 282.5,189.4 284.3,189.4 286.1,189.4 287.9,189.4 289.7,189.4 291.5,189.4 293.3,189.3 295.1,189.3 296.9,189.3 298.7,189.3 300.5,189.3 302.3,189.3 304.1,189.3 305.8,189.3 307.6,189.3 309.4,189.3 311.2,189.3 313,189.3 314.8,189.2 316.6,189.2 318.4,189.2 320.2,189.2 322,189.2" class="sk-green"/>
+<text x="326" y="183.2" class="lab-green" text-anchor="end">log₂ n</text>
+<polyline points="42,193.1 43.8,192.9 45.6,192.7 47.4,192.4 49.2,192.2 51,192 52.8,191.8 54.6,191.5 56.4,191.3 58.2,191.1 59.9,190.8 61.7,190.6 63.5,190.4 65.3,190.2 67.1,189.9 68.9,189.7 70.7,189.5 72.5,189.3 74.3,189.1 76.1,188.8 77.9,188.6 79.7,188.4 81.5,188.2 83.3,187.9 85.1,187.7 86.9,187.5 88.7,187.2 90.5,187 92.3,186.8 94.1,186.6 95.8,186.3 97.6,186.1 99.4,185.9 101.2,185.7 103,185.4 104.8,185.2 106.6,185 108.4,184.8 110.2,184.6 112,184.3 113.8,184.1 115.6,183.9 117.4,183.7 119.2,183.4 121,183.2 122.8,183 124.6,182.8 126.4,182.5 128.2,182.3 129.9,182.1 131.7,181.8 133.5,181.6 135.3,181.4 137.1,181.2 138.9,180.9 140.7,180.7 142.5,180.5 144.3,180.3 146.1,180.1 147.9,179.8 149.7,179.6 151.5,179.4 153.3,179.2 155.1,178.9 156.9,178.7 158.7,178.5 160.5,178.2 162.3,178 164.1,177.8 165.8,177.6 167.6,177.3 169.4,177.1 171.2,176.9 173,176.7 174.8,176.4 176.6,176.2 178.4,176 180.2,175.8 182,175.6 183.8,175.3 185.6,175.1 187.4,174.9 189.2,174.7 191,174.4 192.8,174.2 194.6,174 196.4,173.8 198.2,173.5 199.9,173.3 201.7,173.1 203.5,172.8 205.3,172.6 207.1,172.4 208.9,172.2 210.7,171.9 212.5,171.7 214.3,171.5 216.1,171.3 217.9,171.1 219.7,170.8 221.5,170.6 223.3,170.4 225.1,170.2 226.9,169.9 228.7,169.7 230.5,169.5 232.3,169.2 234.1,169 235.8,168.8 237.6,168.6 239.4,168.3 241.2,168.1 243,167.9 244.8,167.7 246.6,167.4 248.4,167.2 250.2,167 252,166.8 253.8,166.6 255.6,166.3 257.4,166.1 259.2,165.9 261,165.7 262.8,165.4 264.6,165.2 266.4,165 268.2,164.8 269.9,164.5 271.7,164.3 273.5,164.1 275.3,163.8 277.1,163.6 278.9,163.4 280.7,163.2 282.5,162.9 284.3,162.7 286.1,162.5 287.9,162.3 289.7,162.1 291.5,161.8 293.3,161.6 295.1,161.4 296.9,161.2 298.7,160.9 300.5,160.7 302.3,160.5 304.1,160.2 305.8,160 307.6,159.8 309.4,159.6 311.2,159.3 313,159.1 314.8,158.9 316.6,158.7 318.4,158.4 320.2,158.2 322,158" class="sk-accent2"/>
+<text x="326" y="150" class="lab-accent2">n</text>
+<polyline points="42,194 43.8,193.6 45.6,193.2 47.4,192.7 49.2,192.2 51,191.6 52.8,191 54.6,190.4 56.4,189.7 58.2,189 59.9,188.3 61.7,187.6 63.5,186.8 65.3,186 67.1,185.2 68.9,184.4 70.7,183.6 72.5,182.7 74.3,181.8 76.1,180.9 77.9,180 79.7,179.1 81.5,178.2 83.3,177.3 85.1,176.3 86.9,175.4 88.7,174.4 90.5,173.4 92.3,172.4 94.1,171.4 95.8,170.4 97.6,169.4 99.4,168.3 101.2,167.3 103,166.2 104.8,165.2 106.6,164.1 108.4,163 110.2,161.9 112,160.9 113.8,159.8 115.6,158.6 117.4,157.5 119.2,156.4 121,155.3 122.8,154.1 124.6,153 126.4,151.9 128.2,150.7 129.9,149.5 131.7,148.4 133.5,147.2 135.3,146 137.1,144.8 138.9,143.7 140.7,142.5 142.5,141.3 144.3,140.1 146.1,138.8 147.9,137.6 149.7,136.4 151.5,135.2 153.3,133.9 155.1,132.7 156.9,131.5 158.7,130.2 160.5,129 162.3,127.7 164.1,126.4 165.8,125.2 167.6,123.9 169.4,122.6 171.2,121.4 173,120.1 174.8,118.8 176.6,117.5 178.4,116.2 180.2,114.9 182,113.6 183.8,112.3 185.6,111 187.4,109.7 189.2,108.4 191,107 192.8,105.7 194.6,104.4 196.4,103 198.2,101.7 199.9,100.4 201.7,99 203.5,97.7 205.3,96.3 207.1,95 208.9,93.6 210.7,92.2 212.5,90.9 214.3,89.5 216.1,88.1 217.9,86.8 219.7,85.4 221.5,84 223.3,82.6 225.1,81.2 226.9,79.8 228.7,78.5 230.5,77.1 232.3,75.7 234.1,74.3 235.8,72.9 237.6,71.4 239.4,70 241.2,68.6 243,67.2 244.8,65.8 246.6,64.4 248.4,62.9 250.2,61.5 252,60.1 253.8,58.7 255.6,57.2 257.4,55.8 259.2,54.3 261,52.9 262.8,51.4 264.6,50 266.4,48.5 268.2,47.1 269.9,45.6 271.7,44.2 273.5,42.7 275.3,41.3 277.1,39.8 278.9,38.3 280.7,36.9 282.5,35.4 284.3,33.9 286.1,32.4 287.9,30.9 289.7,29.5 291.5,28 293.3,26.5 295.1,25 296.9,23.5 298.7,22 300.5,20.5 302.3,19 304.1,17.5 305.8,16 307.6,14.5 309.4,14" class="sk-amber"/>
+<text x="309.4" y="12" class="lab-amber" text-anchor="middle">n log₂ n</text>
+<polyline points="42,193.1 43.8,192.6 45.6,192 47.4,191.2 49.2,190.4 51,189.4 52.8,188.4 54.6,187.2 56.4,185.9 58.2,184.5 59.9,183 61.7,181.3 63.5,179.6 65.3,177.7 67.1,175.8 68.9,173.7 70.7,171.5 72.5,169.2 74.3,166.8 76.1,164.2 77.9,161.6 79.7,158.8 81.5,156 83.3,153 85.1,149.9 86.9,146.7 88.7,143.4 90.5,139.9 92.3,136.4 94.1,132.7 95.8,129 97.6,125.1 99.4,121.1 101.2,117 103,112.8 104.8,108.4 106.6,104 108.4,99.4 110.2,94.8 112,90 113.8,85.1 115.6,80.1 117.4,75 119.2,69.7 121,64.4 122.8,58.9 124.6,53.4 126.4,47.7 128.2,41.9 129.9,36 131.7,30 133.5,23.8 135.3,17.6 137.1,14" class="sk-accent"/>
+<text x="137.1" y="12" class="lab-accent" text-anchor="middle">n²</text>
+<polyline points="42,192.2 43.8,191.9 45.6,191.5 47.4,191 49.2,190.4 51,189.7 52.8,188.9 54.6,187.9 56.4,186.8 58.2,185.4 59.9,183.8 61.7,181.9 63.5,179.6 65.3,176.9 67.1,173.6 68.9,169.8 70.7,165.2 72.5,159.8 74.3,153.3 76.1,145.6 77.9,136.4 79.7,125.5 81.5,112.5 83.3,97.1 85.1,78.8 86.9,57 88.7,31.1 90.5,14" class="sk-ink"/>
+<text x="90.5" y="12" class="lab-b" text-anchor="middle">2ⁿ</text>
+</svg>
+<figcaption>Nombre d’opérations en fonction de la taille <em>n</em> : les complexités se séparent très vite. À <em>n</em> = 40, log₂ <em>n</em> ≈ 5, mais <em>n</em>² = 1 600 et 2<sup><em>n</em></sup> ≈ 10¹².</figcaption>
+</figure>
+  <p>Le tableau suivant donne l'ordre de grandeur du temps de calcul à raison de \(10^7\) opérations élémentaires par seconde, valeur typique pour un programme Python :</p>
+  <div><table>
+<tr><th>coût</th><th>nom</th><th>exemple typique</th><th>\(n = 10^3\)</th><th>\(n = 10^6\)</th></tr>
+<tr><td>\(O(\log n)\)</td><td>logarithmique</td><td>dichotomie</td><td>1 µs</td><td>2 µs</td></tr>
+<tr><td>\(O(n)\)</td><td>linéaire</td><td>parcours d’une liste</td><td>100 µs</td><td>100 ms</td></tr>
+<tr><td>\(O(n\log n)\)</td><td>quasi linéaire</td><td>tri fusion</td><td>996,6 µs</td><td>2 s</td></tr>
+<tr><td>\(O(n^2)\)</td><td>quadratique</td><td>deux boucles imbriquées</td><td>100 ms</td><td>27,8 h</td></tr>
+<tr><td>\(O(n^3)\)</td><td>cubique</td><td>trois boucles imbriquées</td><td>100 s</td><td>3 200 ans</td></tr>
+<tr><td>\(O(2^n)\)</td><td>exponentielle</td><td>toutes les sous-listes</td><td>plus que l’âge de l’Univers</td><td>plus que l’âge de l’Univers</td></tr>
+</table></div>
+  <p>Un algorithme quadratique reste confortable pour mille valeurs mais prend plus d'une journée pour un million : améliorer l'<em>algorithme</em> (passer de \(O(n^2)\) à \(O(n \log n)\)) fait gagner bien plus qu'un ordinateur dix fois plus rapide.</p>
+
+  <h3>Coût des opérations de Python</h3>
+  <p>Certaines écritures courtes cachent une boucle. Avec \(n\) = <span class="code-inline">len(t)</span> et \(k\) la longueur d'une tranche :</p>
+  <div><table>
+    <tr><th>opération</th><th>coût</th><th>commentaire</th></tr>
+    <tr><td><span class="code-inline">t[i]</span>, <span class="code-inline">t[i] = x</span>, <span class="code-inline">len(t)</span></td><td>\(O(1)\)</td><td>accès direct à une case</td></tr>
+    <tr><td><span class="code-inline">t.append(x)</span>, <span class="code-inline">t.pop()</span></td><td>\(O(1)\)</td><td>à la fin de la liste</td></tr>
+    <tr><td><span class="code-inline">t.pop(0)</span></td><td>\(O(n)\)</td><td>tous les éléments sont décalés (chapitre « Graphes »)</td></tr>
+    <tr><td><span class="code-inline">x in t</span></td><td>\(O(n)\)</td><td>parcours de la liste</td></tr>
+    <tr><td><span class="code-inline">t.copy()</span>, <span class="code-inline">[0] * n</span></td><td>\(O(n)\)</td><td>fabrique une nouvelle liste</td></tr>
+    <tr><td><span class="code-inline">t + u</span></td><td>\(O(n + m)\), \(m\) = <span class="code-inline">len(u)</span></td><td>nouvelle liste : copie de <span class="code-inline">t</span> puis de <span class="code-inline">u</span></td></tr>
+    <tr><td><span class="code-inline">t[a:b]</span></td><td>\(O(k)\), \(k = b - a\)</td><td>la tranche est une copie</td></tr>
+    <tr><td><span class="code-inline">d[c]</span>, <span class="code-inline">d[c] = v</span>, <span class="code-inline">c in d</span></td><td>\(O(1)\) en moyenne</td><td>dictionnaire (principe étudié en 2ᵉ année)</td></tr>
+  </table></div>
+
+  <div class="prop-box"><strong>Règles de calcul.</strong>
+    <ul>
+      <li><strong>Séquence</strong> : les coûts s'ajoutent ; seul le plus grand compte en ordre de grandeur.</li>
+      <li><strong>Test</strong> <span class="code-inline">if</span> : dans le pire cas, on retient la branche la plus coûteuse (plus le coût du test).</li>
+      <li><strong>Boucle</strong> : on additionne les coûts de tous les tours ; si chaque tour coûte \(O(1)\), c'est le nombre de tours.</li>
+      <li><strong>Appel de fonction</strong> : on compte le coût de la fonction appelée, pas un seul « pas ».</li>
+    </ul>
+  </div>
+
+  <div class="method-box"><strong>Exemple — meilleur cas et pire cas d'une recherche</strong>
+    <pre class="codeblock"><span class="kw">def</span> indice(t: list, x) -&gt; int:
+    <span class="str">"""Indice de la première occurrence de x dans t, ou -1."""</span>
+    <span class="kw">for</span> i <span class="kw">in</span> range(len(t)):
+        <span class="kw">if</span> t[i] == x:
+            <span class="kw">return</span> i         <span class="cmt"># meilleur cas : 1 tour</span>
+    <span class="kw">return</span> -1                <span class="cmt"># pire cas : x absent, n tours</span></pre>
+    <ol>
+      <li>Taille : \(n\) = <span class="code-inline">len(t)</span>. Chaque tour coûte \(O(1)\) (un accès, une comparaison).</li>
+      <li>Meilleur cas : <span class="code-inline">x</span> est en tête, un seul tour. Pire cas : <span class="code-inline">x</span> est absent, \(n\) tours.</li>
+      <li>Complexité dans le pire cas : \(O(n)\), linéaire. C'est elle qu'on donne quand on parle de « la » complexité : elle garantit un temps maximal quelle que soit l'entrée.</li>
+    </ol>
+  </div>
+  <div class="notice"><strong>Erreur classique</strong> : compter une opération comme élémentaire alors qu'elle ne l'est pas. Une tranche, un test <span class="code-inline">in</span> sur une liste, une concaténation <span class="code-inline">+</span> coûtent autant que la longueur concernée. De même, les entiers de Python n'ont pas de taille maximale : une opération sur des entiers de plusieurs milliers de chiffres coûte d'autant plus cher que les nombres sont longs, ce qui rend la complexité de tels calculs difficile à évaluer (chapitre « Représentation des nombres »).</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§7 · CALCULER UNE COMPLEXITÉ</div>
+  <h2>Boucles imbriquées, boucles qui divisent, appels récursifs</h2>
+  <div class="intro">Quelques formes de programmes reviennent sans cesse. Savoir les reconnaître donne la complexité presque au premier coup d'œil ; savoir la justifier par un calcul de somme est ce qu'on attend à l'écrit.</div>
+
+  <div class="method-box"><strong>Exemple — deux boucles imbriquées dépendantes</strong>
+    <pre class="codeblock"><span class="kw">def</span> nb_inversions(t: list) -&gt; int:
+    <span class="str">"""Nombre de couples (i, j) avec i &lt; j et t[i] &gt; t[j]."""</span>
+    n = len(t)
+    c = 0
+    <span class="kw">for</span> i <span class="kw">in</span> range(n):
+        <span class="kw">for</span> j <span class="kw">in</span> range(i + 1, n):   <span class="cmt"># n - 1 - i tours</span>
+            <span class="kw">if</span> t[i] &gt; t[j]:
+                c = c + 1
+    <span class="kw">return</span> c</pre>
+    <ol>
+      <li>Pour \(i\) fixé, la boucle intérieure fait \(n - 1 - i\) tours, chacun en \(O(1)\).</li>
+      <li>Nombre total de tours : \(\displaystyle\sum_{i=0}^{n-1} (n - 1 - i) = \sum_{k=0}^{n-1} k = \frac{n(n-1)}{2}\).</li>
+      <li>Complexité \(O(n^2)\), quadratique. Pour <span class="code-inline">[3, 1, 4, 1, 5]</span>, la fonction examine 10 couples et en trouve 3 inversés : (3, 1), (3, 1) et (4, 1).</li>
+    </ol>
+  </div>
+
+  <div class="method-box"><strong>Exemple — une boucle qui divise par deux</strong>
+    <pre class="codeblock"><span class="kw">def</span> nb_bits(n: int) -&gt; int:
+    <span class="str">"""Nombre de chiffres binaires de n (entier &gt;= 1)."""</span>
+    k = 0
+    <span class="kw">while</span> n &gt; 0:
+        n = n // 2           <span class="cmt"># n divisé par 2 à chaque tour</span>
+        k = k + 1
+    <span class="kw">return</span> k</pre>
+    <ol>
+      <li>Après \(k\) tours, \(n\) a été divisé \(k\) fois par 2 (division entière) : il vaut au plus \(n_0 / 2^k\).</li>
+      <li>La boucle s'arrête quand \(n\) vaut 0 ; c'est le cas dès que \(2^k \gt n_0\), soit après \(\lfloor \log_2 n_0 \rfloor + 1\) tours exactement (le nombre de chiffres binaires de \(n_0\)).</li>
+      <li>Complexité \(O(\log n)\), logarithmique : 20 tours pour un million, 40 pour mille milliards. C'est le principe de la dichotomie (chapitre « Recherche séquentielle, dictionnaires et dichotomie »).</li>
+    </ol>
+  </div>
+
+  <div class="method-box"><strong>Exemple — un coût caché et le bon choix de collection</strong>
+    <pre class="codeblock"><span class="kw">def</span> sans_doublons(t: list) -&gt; list:
+    <span class="str">"""Éléments de t sans répétition, dans l'ordre d'arrivée."""</span>
+    res = []
+    <span class="kw">for</span> x <span class="kw">in</span> t:
+        <span class="kw">if</span> x <span class="kw">not</span> <span class="kw">in</span> res:     <span class="cmt"># parcours de res : coût len(res)</span>
+            res.append(x)
+    <span class="kw">return</span> res</pre>
+    <ol>
+      <li>Le test <span class="code-inline">x not in res</span> parcourt la liste <span class="code-inline">res</span> : jusqu'à \(k\) comparaisons quand <span class="code-inline">res</span> contient \(k\) éléments.</li>
+      <li>Pire cas : tous les éléments sont distincts ; <span class="code-inline">res</span> grandit d'un élément par tour et le coût total est \(0 + 1 + \dots + (n-1) = \dfrac{n(n-1)}{2}\), soit \(O(n^2)\).</li>
+      <li>Avec un dictionnaire pour mémoriser les éléments déjà vus, le test de présence coûte \(O(1)\) en moyenne et la fonction devient linéaire :</li>
+    </ol>
+    <pre class="codeblock"><span class="kw">def</span> sans_doublons2(t: list) -&gt; list:
+    <span class="str">"""Même spécification (éléments utilisables comme clés)."""</span>
+    vus = {}             <span class="cmt"># test de présence en temps constant</span>
+    res = []
+    <span class="kw">for</span> x <span class="kw">in</span> t:
+        <span class="kw">if</span> x <span class="kw">not</span> <span class="kw">in</span> vus:
+            vus[x] = <span class="kw">True</span>
+            res.append(x)
+    <span class="kw">return</span> res</pre>
+  </div>
+
+  <h3>Fonctions récursives : une relation de récurrence</h3>
+  <p>Le coût \(C(n)\) d'une fonction récursive s'exprime en fonction du coût des appels qu'elle fait. Quelques relations à reconnaître (\(c\) désigne une constante) :</p>
+  <div class="formula" data-nom="Relations de récurrence usuelles">$$\begin{aligned}
+  C(n) &= C(n-1) + c &&\Longrightarrow\ C(n) = O(n) \\
+  C(n) &= C(n /\!/ 2) + c &&\Longrightarrow\ C(n) = O(\log n) \\
+  C(n) &= 2\,C(n/2) + c\,n &&\Longrightarrow\ C(n) = O(n \log n) \\
+  C(n) &= 2\,C(n-1) + c &&\Longrightarrow\ C(n) = O(2^n)
+  \end{aligned}$$</div>
+  <div class="reveal" onclick="this.classList.toggle('open')"><span class="label">Démonstration</span><span class="prompt">Les deux premières relations, par télescopage</span><div class="content">
+    <p>Si \(C(n) = C(n-1) + c\), alors \(C(n) = C(0) + nc\) en additionnant les \(n\) égalités \(C(k) - C(k-1) = c\) : c'est \(O(n)\).</p>
+    <p>Si \(C(n) = C(n /\!/ 2) + c\), la suite des arguments \(n, n /\!/ 2, n /\!/ 4, \dots\) atteint 1 après \(\lfloor \log_2 n \rfloor\) étapes (même calcul que pour <span class="code-inline">nb_bits</span>) ; on ajoute \(c\) à chaque étape : \(C(n) = C(1) + c\lfloor \log_2 n\rfloor = O(\log n)\).</p>
+    <p>La troisième (tri fusion) et la quatrième (deux appels sur \(n-1\), comme l'énumération des sous-listes) se traitent en dessinant l'arbre des appels : \(\log_2 n\) niveaux de coût \(cn\) chacun pour l'une, \(2^k\) appels au niveau \(k\) pour l'autre.</p>
+  </div></div>
+
+  <h3>Vérifier par l'expérience</h3>
+  <p>On peut confronter le calcul à une mesure : si le temps double quand \(n\) double, l'algorithme est linéaire ; s'il est multiplié par 4, quadratique. Le module <span class="code-inline">time</span> fournit <span class="code-inline">time.perf_counter()</span>, une horloge précise qui renvoie un nombre de secondes ; la différence de deux lectures donne une durée.</p>
+  <pre class="codeblock"><span class="kw">import</span> time       <span class="cmt"># time.perf_counter() : horloge, en secondes</span>
+
+<span class="kw">def</span> duree(f, t):
+    <span class="str">"""Durée (en s) de l'appel f(t)."""</span>
+    debut = time.perf_counter()
+    f(t)
+    <span class="kw">return</span> time.perf_counter() - debut
+
+<span class="kw">for</span> n <span class="kw">in</span> [1000, 2000, 4000]:
+    t = [k <span class="kw">for</span> k <span class="kw">in</span> range(n)]          <span class="cmt"># pire cas : aucun doublon</span>
+    print(n, duree(sans_doublons, t))  <span class="cmt"># × 4 quand n double</span></pre>
+  <p>Sur un ordinateur ordinaire, les durées affichées sont de quelques millisecondes et le rapport de deux durées successives est voisin de 4, comme le prévoit le calcul du pire cas de <span class="code-inline">sans_doublons</span>.</p>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§8 · COMPLEXITÉ EN ESPACE</div>
+  <h2>Mesurer la mémoire utilisée</h2>
+  <div class="intro">Le temps n'est pas la seule ressource : une liste d'un milliard d'entiers ne tient pas dans la mémoire d'un ordinateur portable. On estime donc aussi la mémoire qu'un algorithme utilise en plus de ses données.</div>
+
+  <div class="def-box">La <strong>complexité en espace</strong> d'un algorithme est l'ordre de grandeur de la mémoire <strong>supplémentaire</strong> qu'il utilise dans le pire cas, comptée en nombre de cases (nombres, éléments de listes), en plus de la place occupée par les données d'entrée. Un algorithme en espace \(O(1)\) travaille <strong>en place</strong>.</div>
+  <pre class="codeblock"><span class="kw">def</span> renverse(t: list) -&gt; list:
+    <span class="str">"""Nouvelle liste : t dans l'ordre inverse (t intacte)."""</span>
+    n = len(t)
+    <span class="kw">return</span> [t[n - 1 - i] <span class="kw">for</span> i <span class="kw">in</span> range(n)]      <span class="cmt"># espace O(n)</span>
+
+<span class="kw">def</span> renverse_en_place(t: list) -&gt; <span class="kw">None</span>:
+    <span class="str">"""Retourne t sur place (effet de bord) ; espace O(1)."""</span>
+    i, j = 0, len(t) - 1
+    <span class="kw">while</span> i &lt; j:
+        t[i], t[j] = t[j], t[i]
+        i, j = i + 1, j - 1</pre>
+  <p>Les deux fonctions ont un coût en temps \(O(n)\). La première fabrique une nouvelle liste de \(n\) éléments : espace \(O(n)\), mais la liste de départ est préservée. La seconde n'utilise que deux indices : espace \(O(1)\), au prix d'un effet de bord. La spécification dit lequel des deux comportements on attend.</p>
+
+  <h3>La mémoire des appels récursifs</h3>
+  <p>Chaque appel récursif en attente occupe une place dans la <strong>pile d'appels</strong> (ses paramètres, ses variables locales) : une récursion de profondeur \(p\) utilise un espace \(O(p)\) au moins. Python limite par défaut cette profondeur à environ mille appels, au-delà de quoi il s'arrête sur une erreur (<span class="code-inline">RecursionError</span>).</p>
+  <div class="method-box"><strong>Exemple — le coût caché des tranches</strong>
+    <pre class="codeblock"><span class="kw">def</span> somme_rec(t: list) -&gt; float:
+    <span class="str">"""Somme des éléments de t (version coûteuse)."""</span>
+    <span class="kw">if</span> len(t) == 0:
+        <span class="kw">return</span> 0
+    <span class="kw">return</span> t[0] + somme_rec(t[1:])  <span class="cmt"># t[1:] : copie de n-1 cases</span></pre>
+    <ol>
+      <li>L'appel sur une liste de longueur \(k\) fabrique la tranche <span class="code-inline">t[1:]</span> de longueur \(k - 1\) : \(O(k)\) opérations.</li>
+      <li>Temps total : \((n-1) + (n-2) + \dots + 1 + 0 = \dfrac{n(n-1)}{2}\), donc \(O(n^2)\) pour une simple somme.</li>
+      <li>Espace : au moment du cas de base, les \(n\) appels sont en attente et chacun garde sa tranche ; elles totalisent \(O(n^2)\) cases.</li>
+      <li>En passant un indice au lieu d'une tranche, on retrouve un temps \(O(n)\) et un espace \(O(n)\), celui de la pile :</li>
+    </ol>
+    <pre class="codeblock"><span class="kw">def</span> somme_rec2(t: list, i: int) -&gt; float:
+    <span class="str">"""Somme de t[i:], sans copie (appel : somme_rec2(t, 0))."""</span>
+    <span class="kw">if</span> i == len(t):
+        <span class="kw">return</span> 0
+    <span class="kw">return</span> t[i] + somme_rec2(t, i + 1)</pre>
+  </div>
+
+  <h3>Échanger de la mémoire contre du temps</h3>
+  <pre class="codeblock"><span class="kw">def</span> sommes_prefixes(t: list) -&gt; list:
+    <span class="str">"""s[k] = t[0] + … + t[k-1] pour 0 &lt;= k &lt;= len(t)."""</span>
+    s = [0] * (len(t) + 1)
+    <span class="kw">for</span> k <span class="kw">in</span> range(len(t)):
+        s[k + 1] = s[k] + t[k]
+    <span class="kw">return</span> s
+
+<span class="kw">def</span> somme_tranche(s: list, a: int, b: int) -&gt; float:
+    <span class="str">"""Somme de t[a:b] (0 &lt;= a &lt;= b &lt;= len(t)) ;</span>
+<span class="str">    s est la liste sommes_prefixes(t)."""</span>
+    <span class="kw">return</span> s[b] - s[a]</pre>
+  <p>Pour répondre à \(q\) questions « somme de <span class="code-inline">t[a:b]</span> ? », recalculer chaque somme coûte jusqu'à \(O(n)\) par question, soit \(O(qn)\). En stockant d'abord les sommes partielles (temps \(O(n)\), espace \(O(n)\)), chaque question coûte \(O(1)\) par différence : \(O(n + q)\) en tout. Pour <span class="code-inline">t = [4, -2, 7, 1]</span>, <span class="code-inline">s = [0, 4, 2, 9, 10]</span> et la somme de <span class="code-inline">t[1:3]</span> vaut <span class="code-inline">s[3] - s[1]</span> = 5. Ce compromis annonce la programmation dynamique de 2ᵉ année.</p>
+  <div class="notice"><strong>Erreur classique</strong> : oublier la pile d'appels dans l'espace d'une fonction récursive, ou les tranches créées à chaque appel. Une fonction récursive sans liste ni tableau peut tout de même utiliser un espace \(O(n)\).</div>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">§9 · ÉTUDE COMPLÈTE D'UN ALGORITHME</div>
+  <h2>Séparer les négatifs des positifs, du contrat aux tests</h2>
+  <div class="intro">On reprend tous les outils du chapitre sur un même problème : réordonner une liste de nombres, sur place, pour mettre d'abord tous les nombres strictement négatifs. L'ordre entre les négatifs, et entre les autres, est sans importance.</div>
+  <pre class="codeblock"><span class="kw">def</span> separer(t: list) -&gt; int:
+    <span class="str">"""Réordonne t sur place : les éléments &lt; 0, puis les autres.</span>
+<span class="str">    Précondition : t est une liste de nombres.</span>
+<span class="str">    Postcondition : renvoie k tel que t[0:k] ne contient que</span>
+<span class="str">    des nombres &lt; 0 et t[k:] que des nombres &gt;= 0 ;</span>
+<span class="str">    t contient les mêmes éléments qu'au départ."""</span>
+    i, j = 0, len(t) - 1
+    <span class="kw">while</span> i &lt;= j:
+        <span class="cmt"># invariant : t[0:i] &lt; 0, t[j+1:] &gt;= 0,</span>
+        <span class="cmt">#             mêmes éléments qu'au départ</span>
+        <span class="kw">if</span> t[i] &lt; 0:
+            i = i + 1
+        <span class="kw">else</span>:
+            t[i], t[j] = t[j], t[i]
+            j = j - 1
+    <span class="kw">return</span> i</pre>
+  <figure class="schema" style="max-width:345px">
+<svg viewBox="0 0 345 108" role="img" aria-label="Les trois zones de la liste pendant la séparation : négatifs avant i, zone à examiner de i à j, positifs ou nuls après j">
+<rect x="18" y="40" width="31" height="30" class="sk-ink fl-green-soft"/>
+<text x="33.5" y="60" text-anchor="middle">−2</text>
+<rect x="49" y="40" width="31" height="30" class="sk-ink fl-green-soft"/>
+<text x="64.5" y="60" text-anchor="middle">−1</text>
+<rect x="80" y="40" width="31" height="30" class="sk-ink fl-green-soft"/>
+<text x="95.5" y="60" text-anchor="middle">−5</text>
+<rect x="111" y="40" width="31" height="30" class="sk-ink fl-soft"/>
+<text x="126.5" y="60" class="lab-muted" text-anchor="middle">?</text>
+<rect x="142" y="40" width="31" height="30" class="sk-ink fl-soft"/>
+<text x="157.5" y="60" class="lab-muted" text-anchor="middle">?</text>
+<rect x="173" y="40" width="31" height="30" class="sk-ink fl-soft"/>
+<text x="188.5" y="60" class="lab-muted" text-anchor="middle">?</text>
+<rect x="204" y="40" width="31" height="30" class="sk-ink fl-soft"/>
+<text x="219.5" y="60" class="lab-muted" text-anchor="middle">?</text>
+<rect x="235" y="40" width="31" height="30" class="sk-ink fl-accent2-soft"/>
+<text x="250.5" y="60" text-anchor="middle">4</text>
+<rect x="266" y="40" width="31" height="30" class="sk-ink fl-accent2-soft"/>
+<text x="281.5" y="60" text-anchor="middle">0</text>
+<rect x="297" y="40" width="31" height="30" class="sk-ink fl-accent2-soft"/>
+<text x="312.5" y="60" text-anchor="middle">3</text>
+<text x="126.5" y="18" class="lab-b lab-it" text-anchor="middle">i</text>
+<line x1="126.5" y1="22" x2="126.5" y2="37" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<text x="219.5" y="18" class="lab-b lab-it" text-anchor="middle">j</text>
+<line x1="219.5" y1="22" x2="219.5" y2="37" class="sk-ink" marker-end="url(#sk-arrow-ink)"/>
+<path d="M 21,78 L 21,84 L 108,84 L 108,78" class="sk-axis"/>
+<text x="64.5" y="100" class="lab-green" text-anchor="middle">négatifs</text>
+<path d="M 114,78 L 114,84 L 232,84 L 232,78" class="sk-axis"/>
+<text x="173" y="100" class="lab-muted" text-anchor="middle">à examiner</text>
+<path d="M 238,78 L 238,84 L 325,84 L 325,78" class="sk-axis"/>
+<text x="281.5" y="100" class="lab-accent2" text-anchor="middle">positifs ou nuls</text>
+</svg>
+<figcaption>Invariant de <span class="code-inline">separer</span> : <span class="code-inline">t[0:i]</span> ne contient que des négatifs, <span class="code-inline">t[j+1:]</span> que des nombres positifs ou nuls ; la zone du milieu, de taille <span class="code-inline">j - i + 1</span> (le variant), rétrécit d’une case à chaque tour.</figcaption>
+</figure>
+  <div class="method-box"><strong>Exemple — la preuve et le déroulé</strong>
+    <ol>
+      <li><strong>Invariant</strong> : <span class="code-inline">t[0:i]</span> ne contient que des négatifs, <span class="code-inline">t[j+1:]</span> que des nombres positifs ou nuls, et la liste contient les mêmes éléments qu'au départ. Initialisation : \(i = 0\) et \(j = n - 1\), les deux zones sont vides. Conservation : si \(t[i] \lt 0\), la zone des négatifs s'agrandit d'un négatif ; sinon \(t[i] \ge 0\) part en position \(j\), dans la zone des positifs qui s'agrandit, et un échange ne change pas les éléments présents.</li>
+      <li><strong>Variant</strong> : \(j - i + 1\), la taille de la zone à examiner ; il diminue de 1 à chaque tour et vaut 0 à la sortie, car la boucle s'arrête exactement quand \(i = j + 1\).</li>
+      <li><strong>Sortie</strong> : avec \(i = j + 1\), l'invariant dit que <span class="code-inline">t[0:i]</span> est négatif et <span class="code-inline">t[i:]</span> positif ou nul : la fonction renvoie \(k = i\), postcondition vérifiée. Correction totale.</li>
+      <li><strong>Déroulé</strong> sur <span class="code-inline">[3, -1, 4, -5, 0, -2]</span> :</li>
+    </ol>
+    <div><table>
+<tr><th><span class="code-inline">i</span></th><th><span class="code-inline">j</span></th><th>liste au test</th><th>action</th></tr>
+<tr><td>0</td><td>5</td><td><span class="code-inline">[3, -1, 4, -5, 0, -2]</span></td><td><span class="code-inline">t[0]</span> ≥ 0 : échange avec <span class="code-inline">t[5]</span>, j recule</td></tr>
+<tr><td>0</td><td>4</td><td><span class="code-inline">[-2, -1, 4, -5, 0, 3]</span></td><td><span class="code-inline">t[0]</span> &lt; 0 : i avance</td></tr>
+<tr><td>1</td><td>4</td><td><span class="code-inline">[-2, -1, 4, -5, 0, 3]</span></td><td><span class="code-inline">t[1]</span> &lt; 0 : i avance</td></tr>
+<tr><td>2</td><td>4</td><td><span class="code-inline">[-2, -1, 4, -5, 0, 3]</span></td><td><span class="code-inline">t[2]</span> ≥ 0 : échange avec <span class="code-inline">t[4]</span>, j recule</td></tr>
+<tr><td>2</td><td>3</td><td><span class="code-inline">[-2, -1, 0, -5, 4, 3]</span></td><td><span class="code-inline">t[2]</span> ≥ 0 : échange avec <span class="code-inline">t[3]</span>, j recule</td></tr>
+<tr><td>2</td><td>2</td><td><span class="code-inline">[-2, -1, -5, 0, 4, 3]</span></td><td><span class="code-inline">t[2]</span> &lt; 0 : i avance</td></tr>
+<tr><td>3</td><td>2</td><td><span class="code-inline">[-2, -1, -5, 0, 4, 3]</span></td><td>i &gt; j : sortie, renvoie k = 3</td></tr>
+</table></div>
+  </div>
+  <p><strong>Complexité.</strong> Le variant vaut \(n\) au départ et baisse de 1 à chaque tour : exactement \(n\) tours en \(O(1)\), donc un temps \(O(n)\) ; deux indices seulement, donc un espace \(O(1)\) (algorithme en place).</p>
+  <p><strong>Tests.</strong> Classes à couvrir : liste vide, un seul élément (négatif, positif, nul), que des négatifs, que des positifs, mélange quelconque, zéro (qui doit aller avec les positifs). Comme plusieurs réponses sont justes (l'ordre interne des zones est libre), le test vérifie la <em>propriété</em> annoncée plutôt qu'une liste précise :</p>
+  <pre class="codeblock"><span class="kw">def</span> verifie(t):
+    u = t.copy()           <span class="cmt"># on garde l'entrée pour comparer</span>
+    k = separer(u)
+    <span class="kw">for</span> x <span class="kw">in</span> u[0:k]:
+        <span class="kw">assert</span> x &lt; 0
+    <span class="kw">for</span> x <span class="kw">in</span> u[k:]:
+        <span class="kw">assert</span> x &gt;= 0
+    <span class="kw">assert</span> sorted(u) == sorted(t)    <span class="cmt"># mêmes éléments</span>
+
+<span class="kw">for</span> t <span class="kw">in</span> [[], [3], [-3], [0], [-1, -2], [4, 5],
+          [3, -1, 4, -5, 0, -2], [-1, 2, -3, 4]]:
+    verifie(t)</pre>
+  <p>Ici <span class="code-inline">sorted(u)</span> (copie triée de <span class="code-inline">u</span>, fonction de Python hors annexe, utilisée seulement pour le test) permet de vérifier que les éléments n'ont pas changé.</p>
+</div>
+
+<div class="course-section">
+  <div class="sec-num">POUR ALLER PLUS LOIN · HORS PROGRAMME</div>
+  <h2>Au-delà du programme</h2>
+  <ul>
+    <li><strong>Notations \(\Theta\) et \(\Omega\)</strong> : \(C(n) = \Theta(f(n))\) signifie que \(C(n)\) est encadré par deux multiples de \(f(n)\) (ordre de grandeur exact), \(\Omega\) donne une minoration. Les sujets de concours les définissent quand ils les emploient.</li>
+    <li><strong>Complexité en moyenne et coût amorti</strong> : moyenne du coût sur toutes les entrées d'une taille donnée (tri rapide en \(O(n \log n)\) en moyenne, mais \(O(n^2)\) au pire) ; coût moyen d'une opération sur une longue suite d'opérations (<span class="code-inline">append</span> est en \(O(1)\) amorti).</li>
+    <li><strong>Assertions avec message et exceptions</strong> : <span class="code-inline">assert x &gt; 0, "message"</span>, <span class="code-inline">raise</span>, <span class="code-inline">try … except</span> pour rattraper une erreur.</li>
+    <li><strong>Preuve formelle</strong> : la logique de Hoare écrit \(\{P\}\ \text{code}\ \{Q\}\) pour « si \(P\) est vraie avant, \(Q\) l'est après », et des logiciels vérifient de telles preuves. Il n'existe en revanche aucun programme capable de décider, pour tout programme, s'il termine (indécidabilité du problème de l'arrêt, démontrée par Turing en 1936).</li>
+  </ul>
+</div>
+</template>
+<template class="pan-tpl" data-panneau="anal-meth">
+<div class="course-section">
+  <div class="sec-num">MÉTHODES · CORRECTION ET COMPLEXITÉ</div>
+  <h2>Les réflexes du chapitre</h2>
+  <div class="intro">Neuf savoir-faire pour spécifier, prouver, tester et évaluer un programme, tels qu'on les attend dans une épreuve d'informatique : chaque méthode renvoie aux sections du cours.</div>
+
+  <div class="method-box"><strong>Méthode 1 — Écrire la spécification d'une fonction</strong>
+    <ol style="margin-top:.4rem">
+      <li><span class="step">Signature.</span> Nom, paramètres avec leur type, type du résultat (<span class="code-inline">None</span> si la fonction ne renvoie rien) : <span class="code-inline">moyenne(t: list) -&gt; float</span>.</li>
+      <li><span class="step">Préconditions.</span> Tout ce que le code suppose sur les arguments : liste non vide, triée, entier positif, indices valides.</li>
+      <li><span class="step">Postcondition.</span> La relation entre le résultat et les arguments, sans décrire l'algorithme ; puis les effets de bord : « <span class="code-inline">t</span> est modifiée » ou « <span class="code-inline">t</span> n'est pas modifiée ».</li>
+      <li><span class="step">Assertions.</span> Vérifier par <span class="code-inline">assert</span> les préconditions peu coûteuses, en tête de fonction (§2).</li>
+    </ol>
+    <p><em>Exemple éclair :</em> <span class="code-inline">moyenne(t: list) -&gt; float</span>, « précondition : <span class="code-inline">t</span> est une liste non vide de nombres ; renvoie la moyenne arithmétique des éléments de <span class="code-inline">t</span>, qui n'est pas modifiée ». La précondition se vérifie par <span class="code-inline">assert len(t) &gt; 0</span> : sans elle, la division par <span class="code-inline">len(t)</span> échouerait.</p>
+  </div>
+
+  <div class="method-box"><strong>Méthode 2 — Prouver la terminaison d'une boucle while</strong>
+    <ol style="margin-top:.4rem">
+      <li><span class="step">Observer.</span> Repérer les variables qui changent à chaque tour et ce qui finira par rendre la condition fausse.</li>
+      <li><span class="step">Proposer un variant.</span> Une expression <strong>entière</strong>, <strong>positive ou nulle</strong> à chaque test (la condition de boucle aide souvent à le montrer) et qui <strong>diminue strictement</strong> à chaque tour.</li>
+      <li><span class="step">Conclure.</span> La boucle termine, et fait au plus autant de tours que la valeur initiale du variant (§3).</li>
+      <li><span class="step">Boucle for.</span> Sur <span class="code-inline">range(a, b)</span>, la terminaison est immédiate ; sur une liste, vérifier que le corps ne l'allonge pas.</li>
+    </ol>
+    <pre class="codeblock"><span class="kw">def</span> racine_entiere(n: int) -&gt; int:
+    <span class="str">"""Plus grand entier r tel que r * r &lt;= n (n entier &gt;= 0)."""</span>
+    r = 0
+    <span class="kw">while</span> (r + 1) * (r + 1) &lt;= n:     <span class="cmt"># variant : n - r * r</span>
+        r = r + 1
+    <span class="kw">return</span> r</pre>
+    <p><em>Exemple éclair :</em> variant \(n - r^2\). C'est un entier ; il vaut \(n \ge 0\) au premier test, et un tour n'a lieu que si \((r+1)^2 \le n\), donc après le tour \(r^2 \le n\) : il reste positif ou nul. Comme \(r\) augmente, il diminue strictement.</p>
+  </div>
+  <div class="notice"><strong>Piège</strong> : un variant flottant, ou qui peut devenir négatif sans que la boucle s'arrête. <span class="code-inline">while x != 0: x = x - 0.1</span> ne termine pas ; <span class="code-inline">while i != n: i = i + 2</span> ne termine pas si \(n\) est impair.</div>
+
+  <div class="method-box"><strong>Méthode 3 — Trouver un invariant de boucle</strong>
+    <ol style="margin-top:.4rem">
+      <li><span class="step">Dérouler.</span> Sur un petit exemple, noter dans un tableau les valeurs des variables au début de chaque tour.</li>
+      <li><span class="step">Généraliser.</span> Exprimer chaque variable en fonction du numéro du tour et des données : « <span class="code-inline">p</span> vaut \(x^i\) », « <span class="code-inline">m</span> est le maximum de <span class="code-inline">t[0:i]</span> ».</li>
+      <li><span class="step">Tester la sortie.</span> Remplacer l'indice par sa valeur finale : on doit retrouver la postcondition. Sinon, renforcer l'invariant.</li>
+      <li><span class="step">Prouver.</span> Initialisation, puis conservation (méthode 4).</li>
+    </ol>
+    <pre class="codeblock"><span class="kw">def</span> puissance(x: float, n: int) -&gt; float:
+    <span class="str">"""x ** n par multiplications successives (n entier &gt;= 0)."""</span>
+    p = 1
+    <span class="kw">for</span> i <span class="kw">in</span> range(n):
+        <span class="cmt"># invariant : p == x ** i au début du tour i</span>
+        p = p * x
+    <span class="kw">return</span> p</pre>
+    <p><em>Exemple éclair :</em> pour \(x = 3\), <span class="code-inline">p</span> vaut 1, 3, 9, 27 au début des tours 0, 1, 2, 3 : invariant \(p = x^i\). Après le dernier tour, \(i\) vaut \(n\) et \(p = x^n\).</p>
+  </div>
+
+  <div class="method-box"><strong>Méthode 4 — Rédiger une preuve de correction totale</strong>
+    <ol style="margin-top:.4rem">
+      <li><span class="step">Contrat.</span> Rappeler la précondition et la postcondition.</li>
+      <li><span class="step">Invariant.</span> L'énoncer précisément, en disant à quel moment il est vrai (au début du tour d'indice \(i\), à chaque test de la condition).</li>
+      <li><span class="step">Initialisation.</span> Le vérifier avec les valeurs d'avant la boucle.</li>
+      <li><span class="step">Conservation.</span> Le supposer vrai au début d'un tour <strong>et la condition vraie</strong>, et le montrer à la fin du tour.</li>
+      <li><span class="step">Sortie.</span> Invariant + négation de la condition (ou cas d'un <span class="code-inline">return</span> dans la boucle) ⟹ postcondition : correction partielle.</li>
+      <li><span class="step">Terminaison.</span> Un variant (méthode 2) : correction totale. Pour une fonction récursive, remplacer les étapes 2 à 5 par une récurrence sur la taille de l'argument (§4).</li>
+    </ol>
+    <p><em>Exemple éclair :</em> maximum de <span class="code-inline">t</span> non vide par <span class="code-inline">m = t[0]</span> puis <span class="code-inline">for i in range(1, len(t)): if t[i] &gt; m: m = t[i]</span>. Invariant au début du tour \(i\) : \(m = \max t[0:i]\). Initialisation : \(\max t[0:1] = t[0]\). Conservation : après le tour, \(m = \max(\max t[0:i], t[i]) = \max t[0:i+1]\). Sortie (\(i = n\)) : \(m = \max t\). Terminaison : boucle <span class="code-inline">for</span>.</p>
+  </div>
+
+  <div class="method-box"><strong>Méthode 5 — Construire un jeu de tests</strong>
+    <ol style="margin-top:.4rem">
+      <li><span class="step">Partitionner.</span> Découper les entrées en classes de même comportement attendu (une par branche, par position du résultat, par signe…).</li>
+      <li><span class="step">Une entrée par classe</span>, avec la sortie attendue calculée à la main.</li>
+      <li><span class="step">Les limites.</span> Frontières des conditions (<span class="code-inline">&lt;</span> contre <span class="code-inline">&lt;=</span>), liste vide, un seul élément, résultat en première ou dernière position, valeurs égales, zéro.</li>
+      <li><span class="step">Écrire</span> une fonction de test faite d'assertions ; comparer les flottants avec une tolérance ; si plusieurs réponses sont justes, tester la propriété attendue (§5).</li>
+    </ol>
+    <pre class="codeblock"><span class="kw">def</span> est_bissextile(a: int) -&gt; bool:
+    <span class="str">"""Année bissextile (calendrier grégorien, a &gt;= 1583)."""</span>
+    <span class="kw">return</span> (a % 4 == 0 <span class="kw">and</span> a % 100 != 0) <span class="kw">or</span> a % 400 == 0
+
+<span class="kw">def</span> test_bissextile():
+    <span class="kw">assert</span> <span class="kw">not</span> est_bissextile(2023)    <span class="cmt"># non multiple de 4</span>
+    <span class="kw">assert</span> est_bissextile(2024)        <span class="cmt"># de 4, pas de 100</span>
+    <span class="kw">assert</span> <span class="kw">not</span> est_bissextile(1900)    <span class="cmt"># de 100, pas de 400</span>
+    <span class="kw">assert</span> est_bissextile(2000)        <span class="cmt"># multiple de 400</span>
+
+test_bissextile()</pre>
+    <p><em>Exemple éclair :</em> quatre classes (non multiple de 4 ; multiple de 4 mais pas de 100 ; multiple de 100 mais pas de 400 ; multiple de 400), un test chacune. Une version qui oublierait la règle des siècles serait prise en défaut par 1900.</p>
+  </div>
+  <div class="notice"><strong>Piège</strong> : des tests tous « au milieu » des classes. La plupart des erreurs (indice décalé de un, inégalité stricte au lieu de large) ne se voient qu'aux limites.</div>
+
+  <div class="method-box"><strong>Méthode 6 — Calculer une complexité dans le pire cas</strong>
+    <ol style="margin-top:.4rem">
+      <li><span class="step">Taille.</span> Choisir le paramètre \(n\) (longueur, nombre de chiffres, nombre de sommets…).</li>
+      <li><span class="step">Coûts cachés.</span> Repérer ce qui n'est pas élémentaire : <span class="code-inline">in</span> sur une liste, tranches, concaténations, <span class="code-inline">pop(0)</span>, appels de fonctions (§6).</li>
+      <li><span class="step">Compter.</span> De la boucle la plus intérieure vers l'extérieure ; si la boucle intérieure dépend de l'indice de l'extérieure, écrire la somme et la calculer.</li>
+      <li><span class="step">Conclure.</span> Garder le terme dominant, sans constante : \(O(\dots)\) ; dire quelle entrée réalise le pire cas.</li>
+    </ol>
+    <p><em>Exemple éclair :</em> <span class="code-inline">for i in range(n):</span> puis <span class="code-inline">for j in range(i, n):</span> avec un corps en \(O(1)\) : \(\sum_{i=0}^{n-1}(n - i) = \dfrac{n(n+1)}{2}\) tours, donc \(O(n^2)\).</p>
+  </div>
+
+  <div class="method-box"><strong>Méthode 7 — Reconnaître une complexité sur la forme du code</strong>
+    <ol style="margin-top:.4rem">
+      <li>Une boucle de \(n\) tours en \(O(1)\) : \(O(n)\).</li>
+      <li>Deux boucles imbriquées de \(n\) tours au plus chacune, même dépendantes (<span class="code-inline">j</span> de <span class="code-inline">i</span> à <span class="code-inline">n</span>) : \(O(n^2)\).</li>
+      <li>Une variable multipliée ou divisée par une constante à chaque tour (2, 3, 10…) : \(O(\log n)\), quelle que soit la base.</li>
+      <li>Une boucle de \(n\) tours qui contient une boucle « qui divise » : \(O(n \log n)\).</li>
+      <li>Récursion : un appel sur \(n - 1\) donne \(O(n)\) ; un appel sur \(n /\!/ 2\), \(O(\log n)\) ; deux appels sur \(n - 1\), \(O(2^n)\) (§7).</li>
+    </ol>
+    <p><em>Exemple éclair :</em> <span class="code-inline">while i &gt; 0: i = i // 3</span> fait \(\lfloor \log_3 n \rfloor + 1\) tours : \(O(\log n)\), car \(\log_3 n = \log_2 n / \log_2 3\) ne diffère de \(\log_2 n\) que par une constante.</p>
+  </div>
+  <div class="notice"><strong>Piège</strong> : conclure « deux boucles, donc \(O(n^2)\) » sans regarder leurs bornes. Deux boucles <em>successives</em> de \(n\) tours coûtent \(O(n)\) ; une boucle intérieure qui divise par 2 donne \(O(n \log n)\).</div>
+
+  <div class="method-box"><strong>Méthode 8 — Évaluer une complexité en espace</strong>
+    <ol style="margin-top:.4rem">
+      <li><span class="step">Structures créées.</span> Lister les listes, dictionnaires, copies et tranches fabriqués, avec leur taille maximale <em>simultanée</em>.</li>
+      <li><span class="step">Pile d'appels.</span> Pour une fonction récursive, ajouter la profondeur maximale des appels en attente, multipliée par la mémoire de chacun (§8).</li>
+      <li><span class="step">Ne pas compter</span> les données d'entrée ; conclure par \(O(\dots)\) ; \(O(1)\) signifie « en place ».</li>
+    </ol>
+    <p><em>Exemple éclair :</em> une fonction récursive qui teste si une chaîne est un palindrome en s'appelant sur <span class="code-inline">s[1:len(s)-1]</span> fait environ \(n/2\) appels en attente, chacun avec une tranche de longueur \(n - 2, n - 4, \dots\) : espace \(O(n^2)\). La version à deux indices (§3) est en espace \(O(1)\).</p>
+  </div>
+
+  <div class="method-box"><strong>Méthode 9 — Repérer un effet de bord ou un partage indésirable</strong>
+    <ol style="margin-top:.4rem">
+      <li><span class="step">Modifications.</span> Chercher les instructions qui modifient un objet : <span class="code-inline">t[i] = …</span>, <span class="code-inline">append</span>, <span class="code-inline">pop</span>, <span class="code-inline">d[c] = …</span>.</li>
+      <li><span class="step">Noms partagés.</span> Pour chaque objet modifié, lister les noms qui le désignent : argument et paramètre, <span class="code-inline">u = t</span>, lignes d'une liste construite par <span class="code-inline">[ligne] * n</span>.</li>
+      <li><span class="step">Copier si besoin.</span> Si la spécification promet de ne pas modifier l'argument, travailler sur <span class="code-inline">t.copy()</span> (copie superficielle : les listes intérieures restent partagées).</li>
+      <li><span class="step">Choisir</span> : modifier en place sans rien renvoyer, ou renvoyer un nouvel objet ; ne pas mélanger les deux (§1).</li>
+    </ol>
+    <p><em>Exemple éclair :</em> avec <span class="code-inline">def ajoute_zero(t): t.append(0); return t</span>, l'instruction <span class="code-inline">u = ajoute_zero(v)</span> modifie <span class="code-inline">v</span>, et <span class="code-inline">u</span> et <span class="code-inline">v</span> désignent ensuite la même liste : toute modification de l'une se voit dans l'autre.</p>
+  </div>
+</div>
+</template>
+<template class="pan-tpl" data-panneau="anal-exos">
+<div class="exo-wrapper">
+
+<div class="exo">
+  <span class="num">EXO 01</span><span class="diff">★ ☆ ☆</span>
+  <h3>Expressions, instructions et listes partagées</h3>
+  <div class="statement">On considère le programme suivant.
+    <pre class="codeblock"><span class="kw">def</span> f(t):
+    t[0] = 10
+    t = [7, 7]
+    t[1] = 20
+    <span class="kw">return</span> t
+
+a = [1, 2, 3]
+b = a
+c = f(b)
+print(a, b, c)</pre>
+  </div>
+  <div class="q"><strong>Q1.</strong> Classer en expressions et instructions : <span class="code-inline">x == 3</span>, <span class="code-inline">x = 3</span>, <span class="code-inline">len(t) - 1</span>, <span class="code-inline">t.append(4)</span>, <span class="code-inline">return t</span>, <span class="code-inline">f(b)</span>.</div>
+  <div class="q"><strong>Q2.</strong> Qu'affiche le programme ? Justifier ligne par ligne.</div>
+  <div class="q"><strong>Q3.</strong> Que vaut <span class="code-inline">m</span> après <span class="code-inline">m = [[0] * 2] * 2</span> puis <span class="code-inline">m[0][0] = 1</span> ? Comment construire une matrice 2 × 2 de zéros dont les lignes sont indépendantes ?</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> Expressions (elles ont une valeur) : <span class="code-inline">x == 3</span> (un booléen), <span class="code-inline">len(t) - 1</span> (un entier), <span class="code-inline">f(b)</span> (la valeur renvoyée), et aussi <span class="code-inline">t.append(4)</span>, expression de valeur <span class="code-inline">None</span> qu'on écrit seule pour son effet de bord. Instructions : <span class="code-inline">x = 3</span> (affectation) et <span class="code-inline">return t</span>.</p>
+    <p><strong>Q2.</strong> <span class="code-inline">b = a</span> : <span class="code-inline">a</span> et <span class="code-inline">b</span> désignent la même liste. Dans <span class="code-inline">f(b)</span>, le paramètre <span class="code-inline">t</span> la désigne aussi : <span class="code-inline">t[0] = 10</span> la modifie, elle devient <span class="code-inline">[10, 2, 3]</span>. Ensuite <span class="code-inline">t = [7, 7]</span> donne au nom local <span class="code-inline">t</span> une nouvelle liste ; <span class="code-inline">t[1] = 20</span> ne modifie que celle-ci, qui est renvoyée. Affichage : <span class="code-inline">[10, 2, 3] [10, 2, 3] [7, 20]</span>.</p>
+    <p><strong>Q3.</strong> <span class="code-inline">[[0] * 2] * 2</span> répète deux fois <em>la même</em> ligne : modifier l'une modifie « l'autre ». Une compréhension construit une nouvelle ligne à chaque tour :</p>
+    <pre class="codeblock">&gt;&gt;&gt; m = [[0] * 2] * 2
+&gt;&gt;&gt; m[0][0] = 1
+&gt;&gt;&gt; m
+[[1, 0], [1, 0]]
+&gt;&gt;&gt; p = [[0] * 2 <span class="kw">for</span> i <span class="kw">in</span> range(2)]
+&gt;&gt;&gt; p[0][0] = 1
+&gt;&gt;&gt; p
+[[1, 0], [0, 0]]</pre>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 02</span><span class="diff">★ ☆ ☆</span>
+  <h3>Spécifier, écrire et tester une fonction</h3>
+  <div class="statement">On veut une fonction <span class="code-inline">est_trie</span> qui indique si une liste de nombres est triée dans l'ordre croissant (au sens large).</div>
+  <div class="q"><strong>Q1.</strong> Donner sa signature et sa spécification. Y a-t-il une précondition ?</div>
+  <div class="q"><strong>Q2.</strong> L'écrire, avec un commentaire d'invariant.</div>
+  <div class="q"><strong>Q3.</strong> Écrire un jeu de tests d'au moins six cas, en justifiant le choix des cas.</div>
+  <div class="q"><strong>Q4.</strong> Donner la complexité dans le pire et dans le meilleur cas.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> <span class="code-inline">est_trie(t: list) -&gt; bool</span> : renvoie <span class="code-inline">True</span> si et seulement si <span class="code-inline">t[i] &lt;= t[i+1]</span> pour tout indice <span class="code-inline">i</span> de 0 à <span class="code-inline">len(t) - 2</span> ; <span class="code-inline">t</span> n'est pas modifiée. Pas de précondition sur la longueur : une liste vide ou à un élément est triée.</p>
+    <p><strong>Q2 et Q3.</strong></p>
+    <pre class="codeblock"><span class="kw">def</span> est_trie(t: list) -&gt; bool:
+    <span class="str">"""Indique si t est triée (ordre croissant au sens large)."""</span>
+    <span class="kw">for</span> i <span class="kw">in</span> range(len(t) - 1):
+        <span class="cmt"># invariant : t[0:i+1] est triée</span>
+        <span class="kw">if</span> t[i] &gt; t[i + 1]:
+            <span class="kw">return</span> <span class="kw">False</span>
+    <span class="kw">return</span> <span class="kw">True</span>
+
+<span class="kw">def</span> test_est_trie():
+    <span class="kw">assert</span> est_trie([])                  <span class="cmt"># liste vide : triée</span>
+    <span class="kw">assert</span> est_trie([7])                 <span class="cmt"># un seul élément</span>
+    <span class="kw">assert</span> est_trie([1, 3, 3, 8])        <span class="cmt"># égalités permises</span>
+    <span class="kw">assert</span> <span class="kw">not</span> est_trie([2, 1, 5, 6])    <span class="cmt"># défaut au début</span>
+    <span class="kw">assert</span> <span class="kw">not</span> est_trie([1, 2, 6, 5])    <span class="cmt"># défaut à la fin</span>
+    <span class="kw">assert</span> <span class="kw">not</span> est_trie([5, 4, 3])       <span class="cmt"># décroissante</span>
+
+test_est_trie()</pre>
+    <p>Les cas couvrent : les limites de longueur (0 et 1 élément, la boucle fait 0 tour), une liste triée avec des égalités (pour vérifier qu'on a bien écrit <span class="code-inline">&gt;</span> et non <span class="code-inline">&gt;=</span>), un défaut au début et un défaut à la fin (premier et dernier tour de la boucle), une liste décroissante.</p>
+    <p><strong>Q4.</strong> Pire cas : la liste est triée, la boucle fait \(n - 1\) tours en \(O(1)\) : \(O(n)\). Meilleur cas : <span class="code-inline">t[0] &gt; t[1]</span>, un seul tour : \(O(1)\).</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 03</span><span class="diff">★ ★ ☆</span>
+  <h3>Variant ou boucle infinie ?</h3>
+  <div class="statement">Pour chacune des quatre fonctions suivantes, dire si elle termine pour toutes les entrées indiquées. Si oui, donner un variant (ou un autre argument) ; sinon, donner une entrée pour laquelle elle ne termine pas.
+    <p>(a) pour \(a, b\) entiers au moins égaux à 1 :</p>
+    <pre class="codeblock"><span class="kw">def</span> pgcd_sous(a: int, b: int) -&gt; int:
+    <span class="str">"""a, b entiers &gt;= 1."""</span>
+    <span class="kw">while</span> a != b:
+        <span class="kw">if</span> a &gt; b:
+            a = a - b
+        <span class="kw">else</span>:
+            b = b - a
+    <span class="kw">return</span> a</pre>
+    <p>(b) pour \(n\) entier quelconque :</p>
+    <pre class="codeblock"><span class="kw">def</span> boucle_b(n):
+    i = 0
+    <span class="kw">while</span> i != n:
+        i = i + 2
+    <span class="kw">return</span> i</pre>
+    <p>(c) pour \(n\) entier positif ou nul :</p>
+    <pre class="codeblock"><span class="kw">def</span> boucle_c(n):
+    i, j = n, n
+    tours = 0
+    <span class="kw">while</span> i &gt; 0:
+        <span class="kw">if</span> j &gt; 0:
+            j = j - 1
+        <span class="kw">else</span>:
+            i, j = i - 1, n
+        tours = tours + 1
+    <span class="kw">return</span> tours</pre>
+    <p>(d) pour <span class="code-inline">t</span> liste de nombres :</p>
+    <pre class="codeblock"><span class="kw">def</span> boucle_d(t):
+    <span class="kw">for</span> x <span class="kw">in</span> t:
+        <span class="kw">if</span> x &lt; 0:
+            t.append(-x)
+    <span class="kw">return</span> t</pre>
+  </div>
+  <div class="q"><strong>Q1.</strong> Étudier (a) et (b).</div>
+  <div class="q"><strong>Q2.</strong> Étudier (c) et donner le nombre exact de tours.</div>
+  <div class="q"><strong>Q3.</strong> Étudier (d) et donner le résultat pour <span class="code-inline">[3, -1, 4, -5]</span>.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> (a) Variant \(a + b\). Il est entier ; \(a\) et \(b\) restent au moins égaux à 1, car on ne retranche que le plus petit au plus grand quand ils sont différents (si \(a \gt b\), \(a - b \ge 1\)) ; et à chaque tour l'un des deux diminue d'au moins 1. La fonction termine (et renvoie le pgcd : par exemple \((21, 15) \to (6, 15) \to (6, 9) \to (6, 3) \to (3, 3)\), résultat 3).</p>
+    <p>(b) \(i\) prend les valeurs 0, 2, 4, … Si \(n\) est pair et positif ou nul, \(n - i\) est un variant (pair, positif ou nul, diminue de 2) : la boucle termine. Si \(n\) est impair (ou négatif), \(i\) ne vaut jamais \(n\) : boucle infinie, par exemple pour \(n = 3\). Écrire <span class="code-inline">while i &lt; n:</span> règle le problème.</p>
+    <p><strong>Q2.</strong> (c) Variant \(v = i\,(n+1) + j\), entier positif ou nul (\(0 \le j \le n\) et \(i \ge 0\)). Un tour avec \(j \gt 0\) diminue \(j\) de 1, donc \(v\) de 1 ; un tour avec \(j = 0\) donne</p>
+    <div class="formula">$$v' = (i - 1)(n + 1) + n = i\,(n+1) - 1 = v - 1.$$</div>
+    <p>La boucle termine. Au départ \(v = n(n+1) + n\) ; à la sortie \(i = 0\) et \(j = n\) (le dernier tour vient de remettre \(j\) à \(n\)), donc \(v = n\) : il y a exactement \(n(n+1) + n - n = n(n+1)\) tours. (Pour \(n = 0\), aucun tour.)</p>
+    <p><strong>Q3.</strong> (d) La boucle <span class="code-inline">for</span> parcourt aussi les éléments ajoutés. Mais un élément ajouté vaut \(-x \gt 0\) : il n'en ajoute aucun autre. Il y a donc au plus un ajout par élément négatif de départ, et la boucle fait \(n + (\text{nombre de négatifs}) \le 2n\) tours : elle termine. Résultat : <span class="code-inline">[3, -1, 4, -5, 1, 5]</span>.</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 04</span><span class="diff">★ ★ ☆</span>
+  <h3>Prouver l'algorithme de Horner</h3>
+  <div class="statement">Un polynôme \(P(x) = p_0 + p_1 x + \dots + p_n x^n\) est représenté par la liste <span class="code-inline">p = [p0, p1, …, pn]</span>, avec \(n\) = <span class="code-inline">len(p) - 1</span>.
+    <pre class="codeblock"><span class="kw">def</span> horner(p: list, x: float) -&gt; float:
+    <span class="str">"""p non vide, n = len(p) - 1 ;</span>
+<span class="str">    renvoie p[0] + p[1]*x + … + p[n]*x**n."""</span>
+    k = len(p) - 1
+    s = p[k]
+    <span class="kw">while</span> k &gt; 0:
+        k = k - 1
+        s = s * x + p[k]
+    <span class="kw">return</span> s</pre>
+  </div>
+  <div class="q"><strong>Q1.</strong> Dérouler <span class="code-inline">horner([5, -3, 0, 2], 2)</span> (valeurs de <span class="code-inline">k</span> et <span class="code-inline">s</span> à chaque test).</div>
+  <div class="q"><strong>Q2.</strong> Montrer que \(s = \sum_{j=k}^{n} p_j\, x^{j-k}\) est un invariant (vrai à chaque test de la condition). En déduire la correction.</div>
+  <div class="q"><strong>Q3.</strong> Justifier la terminaison. Combien de multiplications sont faites ? Comparer avec le calcul direct de \(\sum p_j x^j\) où chaque \(x^j\) est obtenu par \(j - 1\) multiplications.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> Au départ \(k = 3\), \(s = 2\) ; puis \(k = 2\), \(s = 2\times2 + 0 = 4\) ; \(k = 1\), \(s = 4\times2 - 3 = 5\) ; \(k = 0\), \(s = 5\times2 + 5 = 15\) ; arrêt. Et en effet \(P(2) = 5 - 6 + 16 = 15\).</p>
+    <p><strong>Q2.</strong> <em>Initialisation</em> : \(k = n\) et \(s = p_n = \sum_{j=n}^{n} p_j x^{j-n}\). <em>Conservation</em> : si l'invariant est vrai et \(k \gt 0\), les nouvelles valeurs sont \(k' = k - 1\) et</p>
+    <div class="formula">$$s' = s\,x + p_{k-1} = \sum_{j=k}^{n} p_j\, x^{j-k+1} + p_{k-1} = \sum_{j=k-1}^{n} p_j\, x^{j-k'}$$</div>
+    <p>donc l'invariant est vrai pour \(k'\). <em>Sortie</em> : \(k = 0\) (la condition est fausse et \(k\) ne descend jamais sous 0), et \(s = \sum_{j=0}^{n} p_j x^j = P(x)\).</p>
+    <p><strong>Q3.</strong> \(k\) est un variant : entier, positif ou nul, diminue de 1. La boucle fait \(n\) tours, chacun avec une multiplication et une addition : \(n\) multiplications, soit \(O(n)\). Le calcul direct demande \(\sum_{j=2}^{n} (j - 1) = \dfrac{n(n-1)}{2}\) multiplications pour les puissances, plus \(n\) pour les produits par les coefficients : \(O(n^2)\).</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 05</span><span class="diff">★ ★ ☆</span>
+  <h3>Multiplier en doublant et en divisant</h3>
+  <div class="statement">La fonction suivante calcule un produit d'entiers en n'utilisant que des doublements, des divisions par 2 et des additions (méthode dite « du paysan russe »). On note \(a_0\) et \(b_0\) les valeurs initiales des paramètres.
+    <pre class="codeblock"><span class="kw">def</span> produit(a: int, b: int) -&gt; int:
+    <span class="str">"""a, b entiers &gt;= 0 ; renvoie a * b."""</span>
+    p = 0
+    <span class="kw">while</span> b &gt; 0:
+        <span class="kw">if</span> b % 2 == 1:
+            p = p + a
+        a = 2 * a
+        b = b // 2
+    <span class="kw">return</span> p</pre>
+  </div>
+  <div class="q"><strong>Q1.</strong> Dérouler <span class="code-inline">produit(13, 11)</span> dans un tableau (\(p\), \(a\), \(b\) à chaque test).</div>
+  <div class="q"><strong>Q2.</strong> Montrer que \(p + a\,b = a_0 b_0\) est un invariant.</div>
+  <div class="q"><strong>Q3.</strong> Prouver la terminaison et conclure à la correction totale.</div>
+  <div class="q"><strong>Q4.</strong> Combien de tours fait la boucle ? En déduire la complexité en fonction de \(b_0\).</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> \((p, a, b)\) vaut successivement \((0, 13, 11)\), \((13, 26, 5)\), \((39, 52, 2)\), \((39, 104, 1)\), \((143, 208, 0)\) : résultat 143 = 13 × 11. À chaque ligne, \(p + ab = 143\).</p>
+    <p><strong>Q2.</strong> Initialisation : \(p = 0\), donc \(p + ab = a_0 b_0\). Conservation, si \(b \gt 0\) : si \(b\) est pair, \(p' = p\), \(a' = 2a\), \(b' = b/2\) et \(p' + a'b' = p + ab\) ; si \(b\) est impair, \(p' = p + a\), \(a' = 2a\), \(b' = (b - 1)/2\) et \(p' + a'b' = p + a + a(b - 1) = p + ab\).</p>
+    <p><strong>Q3.</strong> \(b\) est un variant : entier positif ou nul, et \(b /\!/ 2 \lt b\) dès que \(b \ge 1\). À la sortie, \(b = 0\) et l'invariant donne \(p = a_0 b_0\) : correction totale.</p>
+    <p><strong>Q4.</strong> \(b\) est divisé par 2 à chaque tour jusqu'à valoir 0 : \(\lfloor \log_2 b_0 \rfloor + 1\) tours (le nombre de chiffres binaires de \(b_0\) ; 4 pour \(b_0 = 11 = 1011_2\)). Chaque tour fait un nombre borné d'opérations : complexité \(O(\log b_0)\), si l'on compte les opérations sur les entiers comme élémentaires.</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 06</span><span class="diff">★ ★ ☆</span>
+  <h3>Complexités de fragments de code</h3>
+  <div class="statement">Donner, en fonction de \(n\) (et de \(m\) pour (d)), le nombre de tours effectués puis la complexité de chaque fragment.
+    <pre class="codeblock"><span class="kw">def</span> bloc_a(n):
+    c = 0
+    <span class="kw">for</span> i <span class="kw">in</span> range(n):
+        <span class="kw">for</span> j <span class="kw">in</span> range(i):
+            c = c + 1
+    <span class="kw">return</span> c
+
+<span class="kw">def</span> bloc_b(n):
+    c, i = 0, 1
+    <span class="kw">while</span> i &lt; n:
+        i = 2 * i
+        c = c + 1
+    <span class="kw">return</span> c
+
+<span class="kw">def</span> bloc_c(n):
+    c = 0
+    <span class="kw">for</span> i <span class="kw">in</span> range(n):
+        j = n
+        <span class="kw">while</span> j &gt; 1:
+            j = j // 2
+            c = c + 1
+    <span class="kw">return</span> c
+
+<span class="kw">def</span> bloc_e(n):
+    t = []
+    <span class="kw">for</span> k <span class="kw">in</span> range(n):
+        t = t + [k]          <span class="cmt"># concaténation : copie de t</span>
+    <span class="kw">return</span> t</pre>
+    <p>(d) Pour <span class="code-inline">t</span> de longueur \(n\) et <span class="code-inline">u</span> de longueur \(m\) : <span class="code-inline">for i in range(n):</span> puis <span class="code-inline">if t[i] in u: c = c + 1</span>.</p>
+  </div>
+  <div class="q"><strong>Q1.</strong> Traiter <span class="code-inline">bloc_a</span>, <span class="code-inline">bloc_b</span> et <span class="code-inline">bloc_c</span>.</div>
+  <div class="q"><strong>Q2.</strong> Traiter (d). Comment faire mieux ?</div>
+  <div class="q"><strong>Q3.</strong> Traiter <span class="code-inline">bloc_e</span>. Que change l'écriture <span class="code-inline">t.append(k)</span> ?</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> <span class="code-inline">bloc_a</span> : \(\sum_{i=0}^{n-1} i = \dfrac{n(n-1)}{2}\) tours de la boucle intérieure : \(O(n^2)\). <span class="code-inline">bloc_b</span> : après \(k\) tours, \(i = 2^k\) ; la boucle s'arrête dès que \(2^k \ge n\), soit \(\lceil \log_2 n \rceil\) tours : \(O(\log n)\). <span class="code-inline">bloc_c</span> : pour chaque \(i\), la boucle intérieure fait \(\lfloor \log_2 n \rfloor\) tours ; en tout \(n \lfloor \log_2 n \rfloor\) : \(O(n \log n)\).</p>
+    <p><strong>Q2.</strong> Chaque test <span class="code-inline">t[i] in u</span> parcourt <span class="code-inline">u</span> : jusqu'à \(m\) comparaisons, et le pire cas (aucun élément commun) donne \(O(nm)\). En rangeant d'abord les éléments de <span class="code-inline">u</span> comme clés d'un dictionnaire (\(O(m)\)), chaque test coûte \(O(1)\) en moyenne : \(O(n + m)\).</p>
+    <p><strong>Q3.</strong> <span class="code-inline">t + [k]</span> fabrique une nouvelle liste en copiant les \(k\) éléments de <span class="code-inline">t</span> : coût total \(\sum_{k=0}^{n-1} (k + 1) = \dfrac{n(n+1)}{2}\), soit \(O(n^2)\) pour construire une liste de \(n\) éléments. Avec <span class="code-inline">t.append(k)</span> (coût constant, la liste est modifiée en place), on passe à \(O(n)\).</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 07</span><span class="diff">★ ★ ☆</span>
+  <h3>Démasquer une erreur par un jeu de tests</h3>
+  <div class="statement">Une élève a écrit une fonction censée renvoyer la valeur du milieu de trois nombres (la médiane).
+    <pre class="codeblock"><span class="kw">def</span> mediane3(a: float, b: float, c: float) -&gt; float:
+    <span class="str">"""Valeur du milieu parmi a, b et c (version à tester)."""</span>
+    <span class="kw">if</span> a &lt;= b <span class="kw">and</span> b &lt;= c:
+        <span class="kw">return</span> b
+    <span class="kw">if</span> b &lt;= a <span class="kw">and</span> a &lt;= c:
+        <span class="kw">return</span> a
+    <span class="kw">return</span> c</pre>
+  </div>
+  <div class="q"><strong>Q1.</strong> Proposer une partition des entrées en classes, d'après l'ordre relatif de \(a\), \(b\) et \(c\).</div>
+  <div class="q"><strong>Q2.</strong> Écrire un jeu de tests qui couvre ces classes, avec les sorties attendues. Quels tests échouent ?</div>
+  <div class="q"><strong>Q3.</strong> Corriger la fonction.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> Pour trois valeurs distinctes, six classes : les six ordres possibles (\(a \lt b \lt c\), \(a \lt c \lt b\), \(b \lt a \lt c\), \(b \lt c \lt a\), \(c \lt a \lt b\), \(c \lt b \lt a\)). S'y ajoutent les limites : deux valeurs égales (à la plus petite ou à la plus grande place), trois valeurs égales.</p>
+    <p><strong>Q2.</strong> Avec les valeurs 1, 2, 3 dans les six ordres, la réponse attendue est toujours 2 ; on ajoute <span class="code-inline">(2, 2, 1)</span>, <span class="code-inline">(1, 2, 2)</span>, <span class="code-inline">(2, 1, 1)</span>, <span class="code-inline">(5, 5, 5)</span>, de médianes 2, 2, 1 et 5. Échouent : <span class="code-inline">mediane3(2, 3, 1)</span> et <span class="code-inline">mediane3(3, 2, 1)</span>, qui renvoient 1, et <span class="code-inline">mediane3(2, 2, 1)</span>, qui renvoie 1 au lieu de 2. Les quatre autres ordres passent : on vérifie (par exemple sur toutes les valeurs de 0 à 3) que la fonction se trompe exactement quand \(c\) est strictement plus petit que \(a\) et que \(b\), cas que ses deux tests ignorent.</p>
+    <p><strong>Q3.</strong> Il manque les cas symétriques :</p>
+    <pre class="codeblock"><span class="kw">def</span> mediane3(a: float, b: float, c: float) -&gt; float:
+    <span class="str">"""Valeur du milieu parmi a, b et c."""</span>
+    <span class="kw">if</span> (a &lt;= b <span class="kw">and</span> b &lt;= c) <span class="kw">or</span> (c &lt;= b <span class="kw">and</span> b &lt;= a):
+        <span class="kw">return</span> b
+    <span class="kw">if</span> (b &lt;= a <span class="kw">and</span> a &lt;= c) <span class="kw">or</span> (c &lt;= a <span class="kw">and</span> a &lt;= b):
+        <span class="kw">return</span> a
+    <span class="kw">return</span> c</pre>
+    <p>Cette version passe les 64 combinaisons de valeurs prises dans {0, 1, 2, 3}, ce qu'on peut vérifier par trois boucles imbriquées.</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 08</span><span class="diff">★ ★ ★</span>
+  <h3>Temps et mémoire : sommes récursives et sommes partielles</h3>
+  <div class="statement">On reprend les fonctions <span class="code-inline">somme_rec</span> et <span class="code-inline">somme_rec2</span> du cours (§8), pour une liste de longueur \(n\).
+    <pre class="codeblock"><span class="kw">def</span> somme_rec(t: list) -&gt; float:
+    <span class="str">"""Somme des éléments de t (version coûteuse)."""</span>
+    <span class="kw">if</span> len(t) == 0:
+        <span class="kw">return</span> 0
+    <span class="kw">return</span> t[0] + somme_rec(t[1:])  <span class="cmt"># t[1:] : copie de n-1 cases</span></pre>
+    <pre class="codeblock"><span class="kw">def</span> somme_rec2(t: list, i: int) -&gt; float:
+    <span class="str">"""Somme de t[i:], sans copie (appel : somme_rec2(t, 0))."""</span>
+    <span class="kw">if</span> i == len(t):
+        <span class="kw">return</span> 0
+    <span class="kw">return</span> t[i] + somme_rec2(t, i + 1)</pre>
+  </div>
+  <div class="q"><strong>Q1.</strong> Combien d'éléments sont copiés au total par <span class="code-inline">somme_rec</span> ? En déduire sa complexité en temps, puis en espace.</div>
+  <div class="q"><strong>Q2.</strong> Mêmes questions pour <span class="code-inline">somme_rec2</span>. Que se passe-t-il pour \(n = 10^5\) ? Proposer une version qui utilise un espace \(O(1)\).</div>
+  <div class="q"><strong>Q3.</strong> On doit répondre à \(q\) questions « somme de <span class="code-inline">t[a:b]</span> ? ». Comparer, pour \(n = q = 10^5\) et \(10^7\) opérations par seconde, le calcul direct de chaque somme et l'utilisation des sommes partielles (<span class="code-inline">sommes_prefixes</span>, §8).</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> L'appel sur une liste de longueur \(k \ge 1\) copie \(k - 1\) éléments ; au total \((n - 1) + (n - 2) + \dots + 0 = \dfrac{n(n-1)}{2}\) : temps \(O(n^2)\). Quand le cas de base est atteint, \(n + 1\) appels sont en attente et chacun garde sa tranche : \((n - 1) + (n - 2) + \dots + 0 = \dfrac{n(n-1)}{2}\) cases en plus de la liste de départ, espace \(O(n^2)\).</p>
+    <p><strong>Q2.</strong> Aucune copie : \(n + 1\) appels en \(O(1)\), temps \(O(n)\) ; la pile contient jusqu'à \(n + 1\) appels, espace \(O(n)\). Pour \(n = 10^5\), la profondeur dépasse la limite de Python (environ 1 000 appels) : le programme s'arrête sur une <span class="code-inline">RecursionError</span>. Une boucle n'a pas ce défaut :</p>
+    <pre class="codeblock"><span class="kw">def</span> somme_iter(t: list) -&gt; float:
+    <span class="str">"""Somme des éléments de t ; temps O(n), espace O(1)."""</span>
+    s = 0
+    <span class="kw">for</span> x <span class="kw">in</span> t:
+        s = s + x
+    <span class="kw">return</span> s</pre>
+    <p><strong>Q3.</strong> Calcul direct : jusqu'à \(n\) additions par question, soit \(qn = 10^{10}\) opérations, environ 1 000 s (17 minutes). Sommes partielles : \(n\) opérations pour construire <span class="code-inline">s</span>, puis une soustraction par question, environ \(2\times10^5\) opérations, soit 0,02 s, au prix de \(n + 1\) cases de mémoire.</p>
+  </div>
+</div>
+
+<div class="exo">
+  <span class="num">EXO 09</span><span class="diff">★ ★ ★</span>
+  <h3>Étude complète : le plus long palier</h3>
+  <div class="statement">Un <strong>palier</strong> d'une liste est un bloc d'éléments consécutifs égaux. Dans <span class="code-inline">[5, 5, 5, 1, 5]</span>, le plus long palier a pour longueur 3. On veut calculer en un seul parcours la longueur du plus long palier.</div>
+  <div class="q"><strong>Q1.</strong> Écrire la signature et la spécification de <span class="code-inline">plus_long_palier(t)</span> (convention : 0 pour une liste vide).</div>
+  <div class="q"><strong>Q2.</strong> Écrire la fonction, avec deux variables <span class="code-inline">courant</span> et <span class="code-inline">meilleur</span> dont on donnera le rôle sous forme d'invariant.</div>
+  <div class="q"><strong>Q3.</strong> Prouver l'invariant et conclure.</div>
+  <div class="q"><strong>Q4.</strong> Proposer un jeu de tests. Quel cas une version qui ne mettrait <span class="code-inline">meilleur</span> à jour que lorsque le palier se termine (dans la branche <span class="code-inline">else</span>) oublierait-elle ?</div>
+  <div class="q"><strong>Q5.</strong> Complexités en temps et en espace.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>Q1.</strong> <span class="code-inline">plus_long_palier(t: list) -&gt; int</span> ; pas de précondition ; renvoie le plus grand entier \(\ell\) tel qu'il existe \(i\) avec <span class="code-inline">t[i] == t[i+1] == … == t[i+ℓ-1]</span>, et 0 si <span class="code-inline">t</span> est vide ; <span class="code-inline">t</span> n'est pas modifiée.</p>
+    <p><strong>Q2.</strong></p>
+    <pre class="codeblock"><span class="kw">def</span> plus_long_palier(t: list) -&gt; int:
+    <span class="str">"""Longueur du plus long palier de t (0 si t est vide)."""</span>
+    <span class="kw">if</span> len(t) == 0:
+        <span class="kw">return</span> 0
+    meilleur, courant = 1, 1
+    <span class="kw">for</span> i <span class="kw">in</span> range(1, len(t)):
+        <span class="cmt"># invariant : courant = longueur du palier qui finit</span>
+        <span class="cmt">#             en t[i-1], meilleur = longueur du plus</span>
+        <span class="cmt">#             long palier de t[0:i]</span>
+        <span class="kw">if</span> t[i] == t[i - 1]:
+            courant = courant + 1
+        <span class="kw">else</span>:
+            courant = 1
+        <span class="kw">if</span> courant &gt; meilleur:
+            meilleur = courant
+    <span class="kw">return</span> meilleur</pre>
+    <p><strong>Q3.</strong> Au début du tour \(i\) : <span class="code-inline">courant</span> est la longueur du palier qui finit en \(t[i-1]\), <span class="code-inline">meilleur</span> le plus long palier de <span class="code-inline">t[0:i]</span>. Initialisation (\(i = 1\)) : <span class="code-inline">t[0:1]</span> a un seul palier, de longueur 1. Conservation : si \(t[i] = t[i-1]\), le palier qui finit en \(t[i]\) prolonge celui qui finit en \(t[i-1]\) (longueur <span class="code-inline">courant + 1</span>) ; sinon il commence en \(t[i]\) (longueur 1). Un palier de <span class="code-inline">t[0:i+1]</span> finit avant \(i\) (longueur au plus <span class="code-inline">meilleur</span>) ou en \(i\) (longueur <span class="code-inline">courant</span>) : la mise à jour donne bien le maximum. Sortie : \(i = n\), <span class="code-inline">meilleur</span> est le plus long palier de <span class="code-inline">t</span>. La boucle <span class="code-inline">for</span> termine : correction totale.</p>
+    <pre class="codeblock"><span class="kw">def</span> test_palier():
+    <span class="kw">assert</span> plus_long_palier([]) == 0
+    <span class="kw">assert</span> plus_long_palier([4]) == 1
+    <span class="kw">assert</span> plus_long_palier([1, 2, 3]) == 1
+    <span class="kw">assert</span> plus_long_palier([6, 6, 6]) == 3
+    <span class="kw">assert</span> plus_long_palier([5, 5, 5, 1, 5]) == 3    <span class="cmt"># au début</span>
+    <span class="kw">assert</span> plus_long_palier([1, 2, 2, 3]) == 2       <span class="cmt"># au milieu</span>
+    <span class="kw">assert</span> plus_long_palier([2, 2, 1, 1, 1]) == 3    <span class="cmt"># à la fin</span>
+
+test_palier()</pre>
+    <p><strong>Q4.</strong> Les tests couvrent : liste vide, un élément, aucun palier de longueur 2, une liste constante, le plus long palier au début, au milieu, à la fin. La version proposée oublierait le palier <strong>qui finit la liste</strong> (aucun <span class="code-inline">else</span> n'est exécuté après lui) : <span class="code-inline">[2, 2, 1, 1, 1]</span> donnerait 2, et <span class="code-inline">[6, 6, 6]</span> donnerait 1.</p>
+    <p><strong>Q5.</strong> \(n - 1\) tours en \(O(1)\) : temps \(O(n)\). Trois variables entières : espace \(O(1)\).</p>
+  </div>
+</div>
+
+<div class="exo concours">
+  <span class="num">CONCOURS PT</span><span class="diff">★ ★ ★</span>
+  <h3>Analyse d'un relevé d'altitudes</h3>
+  <div class="exo-source">Exercice <strong>original</strong> au format des épreuves d'informatique des concours (thème : spécification, preuve et complexité d'un traitement de données).</div>
+  <div class="statement">Une montre de randonnée relève l'altitude (en mètres, nombre entier) à intervalles réguliers. Un relevé est une liste non vide <span class="code-inline">alt</span> de \(n\) entiers. Pour \(0 \le i \le j \le n - 1\), la <strong>montée</strong> du tronçon de \(i\) à \(j\) est <span class="code-inline">alt[j] - alt[i]</span> (elle peut être négative). La <strong>montée maximale</strong> du relevé est le maximum de ces montées ; elle est positive ou nulle (prendre \(i = j\)). Exemple : <span class="code-inline">alt = [300, 340, 310, 420, 380, 260, 330]</span>. Les fonctions sont à écrire en Python, sans utiliser <span class="code-inline">max</span> ni <span class="code-inline">min</span>.</div>
+  <p class="exo-part">Partie A — Spécification et tests</p>
+  <div class="q"><strong>A1.</strong> Donner la signature et la spécification d'une fonction <span class="code-inline">montee_max</span> qui renvoie la montée maximale d'un relevé.</div>
+  <div class="q"><strong>A2.</strong> Que vaut la montée maximale de l'exemple ? Proposer un jeu de tests de cinq cas au moins, en indiquant la classe d'entrées que chacun représente.</div>
+  <p class="exo-part">Partie B — Un premier algorithme</p>
+  <div class="q"><strong>B1.</strong> Écrire <span class="code-inline">montee_max_naif(alt)</span>, qui examine tous les tronçons.</div>
+  <div class="q"><strong>B2.</strong> Combien de différences calcule-t-elle exactement ? En déduire sa complexité.</div>
+  <div class="q"><strong>B3.</strong> La montre enregistre une altitude par seconde pendant une randonnée de 10 h. Estimer la durée du calcul à raison de \(10^7\) opérations par seconde.</div>
+  <p class="exo-part">Partie C — Un algorithme en un seul parcours</p>
+  <div class="q"><strong>C1.</strong> On propose la fonction ci-dessous. Démontrer l'invariant annoncé en commentaire (au début du tour d'indice \(j\)), et en déduire la correction.
+    <pre class="codeblock"><span class="kw">def</span> montee_max(alt: list) -&gt; int:
+    mini = alt[0]
+    meilleur = 0
+    <span class="kw">for</span> j <span class="kw">in</span> range(1, len(alt)):
+        <span class="cmt"># invariant : mini = min de alt[0:j],</span>
+        <span class="cmt">#             meilleur = montée maximale dans alt[0:j]</span>
+        <span class="kw">if</span> alt[j] - mini &gt; meilleur:
+            meilleur = alt[j] - mini
+        <span class="kw">if</span> alt[j] &lt; mini:
+            mini = alt[j]
+    <span class="kw">return</span> meilleur</pre>
+  </div>
+  <div class="q"><strong>C2.</strong> Justifier la terminaison ; donner les complexités en temps et en espace.</div>
+  <div class="q"><strong>C3.</strong> Dérouler la fonction sur l'exemple.</div>
+  <div class="q"><strong>C4.</strong> Modifier la fonction pour qu'elle renvoie aussi un tronçon \((i, j)\) qui réalise la montée maximale.</div>
+  <p class="exo-part">Partie D — Dénivelé positif</p>
+  <div class="q"><strong>D1.</strong> Le dénivelé positif d'un relevé est la somme des montées entre points consécutifs (on ne compte que les différences positives). Écrire <span class="code-inline">denivele_positif(alt)</span> et donner sa valeur sur l'exemple.</div>
+  <div class="q"><strong>D2.</strong> Montrer que la montée maximale est toujours inférieure ou égale au dénivelé positif.</div>
+  <button class="toggle-sol" onclick="toggleSol(this)">Voir la solution</button>
+  <div class="solution">
+    <h4>Correction</h4>
+    <p><strong>A1.</strong> <span class="code-inline">montee_max(alt: list) -&gt; int</span>. Précondition : <span class="code-inline">alt</span> est une liste non vide d'entiers. Postcondition : renvoie le maximum de <span class="code-inline">alt[j] - alt[i]</span> pour \(0 \le i \le j \le n - 1\) ; <span class="code-inline">alt</span> n'est pas modifiée.</p>
+    <p><strong>A2.</strong> 120 (de 300 à 420, tronçon \((0, 3)\)). Tests : un seul point <span class="code-inline">[700]</span> → 0 (limite) ; relevé croissant <span class="code-inline">[200, 250, 300]</span> → 100 (du premier au dernier point) ; relevé décroissant <span class="code-inline">[500, 480, 450]</span> → 0 ; relevé constant <span class="code-inline">[400, 400, 400]</span> → 0 ; minimum global <em>après</em> le maximum global, <span class="code-inline">[600, 650, 200, 280]</span> → 80 (piège : la différence « maximum moins minimum » vaudrait 450) ; l'exemple → 120.</p>
+    <p><strong>B1.</strong></p>
+    <pre class="codeblock"><span class="kw">def</span> montee_max_naif(alt: list) -&gt; int:
+    n = len(alt)
+    meilleur = 0
+    <span class="kw">for</span> i <span class="kw">in</span> range(n):
+        <span class="kw">for</span> j <span class="kw">in</span> range(i, n):
+            <span class="kw">if</span> alt[j] - alt[i] &gt; meilleur:
+                meilleur = alt[j] - alt[i]
+    <span class="kw">return</span> meilleur</pre>
+    <p><strong>B2.</strong> Pour chaque \(i\), \(n - i\) valeurs de \(j\) : \(\sum_{i=0}^{n-1} (n - i) = \dfrac{n(n+1)}{2}\) différences, d'où \(O(n^2)\).</p>
+    <p><strong>B3.</strong> \(n = 36\,000\) points ; \(\dfrac{n(n+1)}{2} \approx 6{,}5\times10^{8}\) opérations, soit environ 65 s : c'est long pour un calcul affiché sur une montre.</p>
+    <p><strong>C1.</strong> Invariant au début du tour \(j\) : <span class="code-inline">mini</span> \(= \min\) <span class="code-inline">alt[0:j]</span> et <span class="code-inline">meilleur</span> est la montée maximale de <span class="code-inline">alt[0:j]</span>. <em>Initialisation</em> (\(j = 1\)) : <span class="code-inline">mini = alt[0]</span> et la seule montée de <span class="code-inline">alt[0:1]</span> est 0. <em>Conservation</em> : les tronçons de <span class="code-inline">alt[0:j+1]</span> sont ceux de <span class="code-inline">alt[0:j]</span> et ceux qui finissent en \(j\). Parmi ces derniers, la plus grande montée est <span class="code-inline">alt[j] - mini</span> (on retranche la plus petite altitude précédente), ou 0 pour \(i = j\), déjà inférieur ou égal à <span class="code-inline">meilleur</span>. Le premier <span class="code-inline">if</span> donne donc la montée maximale de <span class="code-inline">alt[0:j+1]</span>, et le second met <span class="code-inline">mini</span> à jour en \(\min\) <span class="code-inline">alt[0:j+1]</span>. <em>Sortie</em> : après le dernier tour (\(j = n\)), <span class="code-inline">meilleur</span> est la montée maximale de tout le relevé.</p>
+    <p><strong>C2.</strong> Boucle <span class="code-inline">for</span> de \(n - 1\) tours : elle termine. Chaque tour coûte \(O(1)\) : temps \(O(n)\) (36 000 tours, quelques millisecondes pour la question B3). Deux variables : espace \(O(1)\).</p>
+    <p><strong>C3.</strong></p>
+    <div><table>
+<tr><th><span class="code-inline">j</span></th><th><span class="code-inline">alt[j]</span></th><th><span class="code-inline">mini</span> après le tour</th><th><span class="code-inline">meilleur</span> après le tour</th></tr>
+<tr><td>1</td><td>340</td><td>300</td><td>40</td></tr>
+<tr><td>2</td><td>310</td><td>300</td><td>40</td></tr>
+<tr><td>3</td><td>420</td><td>300</td><td>120</td></tr>
+<tr><td>4</td><td>380</td><td>300</td><td>120</td></tr>
+<tr><td>5</td><td>260</td><td>260</td><td>120</td></tr>
+<tr><td>6</td><td>330</td><td>260</td><td>120</td></tr>
+</table></div>
+    <p>Le résultat est 120.</p>
+    <p><strong>C4.</strong> On mémorise l'indice du minimum plutôt que sa valeur, et le tronçon réalisant le meilleur :</p>
+    <pre class="codeblock"><span class="kw">def</span> montee_max_indices(alt: list) -&gt; tuple:
+    <span class="str">"""Renvoie (meilleur, i, j) avec i &lt;= j et</span>
+<span class="str">    alt[j] - alt[i] == meilleur."""</span>
+    i_mini = 0
+    meilleur, i_best, j_best = 0, 0, 0
+    <span class="kw">for</span> j <span class="kw">in</span> range(1, len(alt)):
+        <span class="kw">if</span> alt[j] - alt[i_mini] &gt; meilleur:
+            meilleur = alt[j] - alt[i_mini]
+            i_best, j_best = i_mini, j
+        <span class="kw">if</span> alt[j] &lt; alt[i_mini]:
+            i_mini = j
+    <span class="kw">return</span> meilleur, i_best, j_best</pre>
+    <p>Sur l'exemple : <span class="code-inline">(120, 0, 3)</span>.</p>
+    <p><strong>D1.</strong></p>
+    <pre class="codeblock"><span class="kw">def</span> denivele_positif(alt: list) -&gt; int:
+    <span class="str">"""Somme des montées entre points consécutifs."""</span>
+    d = 0
+    <span class="kw">for</span> i <span class="kw">in</span> range(len(alt) - 1):
+        <span class="kw">if</span> alt[i + 1] &gt; alt[i]:
+            d = d + alt[i + 1] - alt[i]
+    <span class="kw">return</span> d</pre>
+    <p>Sur l'exemple : \(40 + 110 + 70 = 220\) m.</p>
+    <p><strong>D2.</strong> Pour \(i \le j\), <span class="code-inline">alt[j] - alt[i]</span> \(= \sum_{k=i}^{j-1} (\text{alt}[k+1] - \text{alt}[k])\) (somme télescopique). Chaque terme est inférieur ou égal à sa partie positive, et la somme des parties positives sur \([i, j]\) est au plus le dénivelé positif total \(D\). Donc toute montée est au plus \(D\), et la montée maximale aussi (120 ≤ 220 sur l'exemple).</p>
+  </div>
+</div>
+
+</div>
+</template>
