@@ -116,7 +116,8 @@ Chaque lot laisse le site fonctionnel, testé, commité et poussé sur la branch
    qui attend, repère de chargement. Batterie verte avec et sans délai artificiel.
 2. et 3. (**fusionnés** le 2026-11-27 : l'empreinte des données dérivées se calcule bien plus simplement sur des
    fichiers séparés) **Données dérivées et externalisation** : `tools/chapitres.js`, recherche branchée sur
-   `recherche.json` (test : un résultat de chaque nature ouvre et met en évidence le bon élément) ; : contenu déplacé dans `chapitres/` (RLC compris), chargement par `fetch`, préchargement du
+   `recherche.json` (test : un résultat de chaque nature ouvre et met en évidence le bon élément) ; contenu déplacé
+   dans `chapitres/` (RLC compris, 184 fichiers, 514 panneaux, octet pour octet), chargement par `fetch`, préchargement du
    `<head>`, service worker (cache `ptsi-chapitres`, préchargement en arrière-plan, nettoyage), messages d'échec,
    tests `site` et `pwa`, mesures avant / après. Batterie complète, **publication** (point de retour
    `sauvegarde-avant-decoupage`), avec la documentation à jour (`CLAUDE.md`, `docs/interface.md`,
@@ -127,7 +128,8 @@ Chaque lot laisse le site fonctionnel, testé, commité et poussé sur la branch
 ## 7. Risques
 
 - Synchronisation (focus, défilement, historique) autour du clic différé : lot 1 avec délai artificiel.
-- Fidélité de la recherche : test d'équivalence (lot 2).
+- Fidélité de la recherche : même code d'extraction qu'avant (Chromium), même nombre d'entrées (12 219) ; test
+  « un résultat de chaque nature » (suite `interactions`).
 - Hors ligne : préchargement et suite `pwa` (lot 3).
 - Le premier commit du lot 3 ajoute ≈ 20 Mo de fichiers au dépôt (une fois) ; ensuite, une publication n'ajoute
   que la coquille et les chapitres modifiés.
@@ -137,3 +139,7 @@ Chaque lot laisse le site fonctionnel, testé, commité et poussé sur la branch
 - 2026-11-27 : plan écrit. Lot 1 fait : `navigateTo` ne rend plus l'onglet par défaut d'un chapitre quand il en
   vise un autre (le Cours de RLC était composé pour rien à chaque lien vers ses exercices ou ses cartes) ;
   `window.__navigationEnCours()` attendu par les tests au démarrage ; suites vertes avec `--delai-chapitres=300`.
+- 2026-11-27 : lots 2 et 3 faits sur la branche de travail : `index.html` 23,1 → 3,0 Mo ; suites `site`, `pwa`
+  (chapitres en cache en arrière-plan, chapitre jamais ouvert lisible hors ligne, version périmée retirée) et
+  `interactions` vertes. Corrigé en route : `majPage` (module PAGE) enrichissait l'intercalaire du chapitre affiché
+  au départ avant l'arrivée de son contenu (compteurs à zéro, Formulaire masqué).

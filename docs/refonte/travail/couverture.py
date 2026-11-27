@@ -4,8 +4,11 @@ sélecteurs des blocs <style> (hors template d'impression). Usage :
   python3 couverture.py index.html [sortie.json]
 Sortie : classes utilisées sans aucune règle CSS (à vérifier), classes stylées
 jamais utilisées (CSS mort probable), comptes par classe."""
-import re, sys, json, collections
+import re, sys, json, collections, glob, os
 src = open(sys.argv[1], encoding='utf-8').read()
+# contenu des chapitres (chapitres/<id>.html, à côté d'index.html depuis le 2026-11-27) : compté comme HTML
+for f in sorted(glob.glob(os.path.join(os.path.dirname(os.path.abspath(sys.argv[1])), 'chapitres', '*.html'))):
+    src += '\n' + open(f, encoding='utf-8').read()
 # blocs <style> de la page (le template d'impression est dans une chaîne JS ${CSS})
 styles = re.findall(r'<style>(.*?)</style>', src, re.S)
 css = '\n'.join(s for s in styles if '${' not in s)

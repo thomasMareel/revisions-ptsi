@@ -2,9 +2,9 @@
 
 Ce fichier est un **modèle à copier-coller** dans `index.html`. Il n'est pas utilisé par le site, c'est juste une aide-mémoire.
 
-> 💡 **Retrouver un endroit dans `index.html`** : le fichier fait près de 80 000 lignes et les numéros de ligne changent à chaque modification. On cherche donc un **texte repère** : dans ton éditeur, `Ctrl+F` puis le repère indiqué (par ex. `const CHAP_GROUPS`) ; dans un terminal, `grep -n "const CHAP_GROUPS" index.html`.
+> 💡 **Retrouver un endroit dans `index.html`** : le fichier fait des dizaines de milliers de lignes et les numéros de ligne changent à chaque modification. On cherche donc un **texte repère** : dans ton éditeur, `Ctrl+F` puis le repère indiqué (par ex. `const CHAP_GROUPS`) ; dans un terminal, `grep -n "const CHAP_GROUPS" index.html`.
 
-## Principe : 5 endroits à modifier
+## Principe : 6 endroits à modifier
 
 | # | Quoi | Où (texte repère à chercher) |
 |---|------|------------------------------|
@@ -12,6 +12,7 @@ Ce fichier est un **modèle à copier-coller** dans `index.html`. Il n'est pas u
 | B | L'**id dans `CHAP_GROUPS`** (range le chapitre dans le menu, dans l'ordre) | `const CHAP_GROUPS` — dans le bon groupe |
 | C | L'**id dans `__YEAR2A`** — *seulement pour un chapitre de 2ᵉ année* | `window.__YEAR2A = new Set` |
 | D | Le **bloc du chapitre** (onglets + panneaux) | le bon `<main>` : `id="si-content"` pour la SI, le `<main>` principal pour les autres matières |
+| D′ | Le **contenu** des onglets Cours, Méthodes, Exercices | un fichier à part, `chapitres/<id>.html` (voir la fin de la section D) |
 | E | Les **flashcards** (`const …Cards` + `makeFlash(...)`) | juste après une ligne `Flash = makeFlash(` existante (repère : `Flash = makeFlash(`) |
 
 ⚠️ **Il n'y a PAS de bouton de navigation à écrire.** La navigation des chapitres (barre latérale, tiroir, page « Chapitres » du téléphone), les boutons `.chap-btn`, l'en-tête du chapitre (intercalaire avec fil d'Ariane, Formulaire, Imprimer, Épingler), les compteurs des onglets, le rail « Dans ce chapitre » et les cartes précédent / suivant sont construits automatiquement à partir de `CHAPTERS` et `CHAP_GROUPS` ; un bouton ajouté à la main serait effacé.
@@ -183,6 +184,27 @@ Ce gabarit est la **version sans simulateur** (le cas le plus courant). Pour un 
 - pas de commandes exotiques (`\cancel`, `\ce`…) : elles ne sont pas disponibles hors-ligne ;
 - une très longue formule en ligne devient défilante sur téléphone (lisible mais moins confortable) : la mettre plutôt en bloc `$$ … $$` dans une `<div class="formula">`.
 
+### D′. Où va le contenu : `chapitres/<id>.html`
+
+Le bloc ci-dessus montre le chapitre **assemblé**. Depuis le 2026-11-27, le **contenu** des onglets Cours, Méthodes et Exercices ne reste pas dans `index.html` (le site ne le charge qu'à l'ouverture du chapitre : démarrage deux fois plus rapide au téléphone) :
+
+- dans `index.html`, ces trois panneaux restent **vides** : `<section class="panel active" id="mon-cours"></section>`, `<section class="panel" id="mon-meth"></section>`, `<section class="panel" id="mon-exos"></section>` (les onglets, le panneau Flashcards, le simulateur et les vidéos ne changent pas) ;
+- leur contenu va dans un fichier **`chapitres/monid.html`** (nommé par l'`id` du chapitre, pas par le `prefix`), un `<template>` par onglet, dans le même ordre que dans `index.html` :
+
+```html
+<!-- Chapitre « Nom du chapitre » (monid) : contenu des onglets Cours, Méthodes et Exercices, chargé à l'ouverture du chapitre.
+     On l'édite ici, puis : node tools/chapitres.js (docs/chargement-chapitres.md). -->
+<template class="pan-tpl" data-panneau="mon-cours">
+  <div class="course-section"> … </div>
+</template>
+<template class="pan-tpl" data-panneau="mon-meth"> … </template>
+<template class="pan-tpl" data-panneau="mon-exos">
+  <div class="exo-wrapper"> … </div>
+</template>
+```
+
+Dans ce fichier : jamais de `<script>`, de `<style>`, ni le texte `</template>` dans le contenu.
+
 ---
 
 ## E. Flashcards
@@ -225,19 +247,19 @@ Si le chapitre a des cours vidéo en ligne (YouTube, non répertoriés), il reç
 ## Vérification après ajout
 
 1. **Change le numéro de version** au moment de publier : en haut de `sw.js`, incrémente `CACHE_VERSION` (ex. `'ptsi-cache-v88'` → `'ptsi-cache-v89'`). Sans ça, l'application installée ne proposera pas la mise à jour.
-2. **Replie les panneaux puis lance le validateur** (quelques secondes) :
+2. **Régénère les données dérivées puis lance le validateur** (quelques secondes) :
    ```
-   python tools/replier_panneaux.py
+   node tools/chapitres.js
    python tools/validate.py
    ```
-   Le premier outil range le contenu des onglets Cours, Méthodes et Exercices dans un `<template class="pan-tpl">` (le site ne le met en place qu'à l'ouverture du chapitre : démarrage bien plus rapide au téléphone) ; écris donc ton chapitre normalement, déplié, et lance-le à la fin (il ne touche pas aux panneaux déjà repliés). Le validateur vérifie la cohérence `CHAPTERS` ↔ page, les IDs dupliqués, les flashcards câblées, les `drawFn`, les `<` mal placés dans les formules et les panneaux repliés. Il affiche `[OK]` ou la liste des erreurs.
+   Le premier outil met à jour l'empreinte de chaque fichier de chapitre (inscrite dans `index.html` : le téléphone saura qu'il doit retélécharger ce chapitre) et l'index de la recherche (`chapitres/recherche.json`) ; il lui faut Playwright, comme les tests. Le validateur vérifie la cohérence `CHAPTERS` ↔ page, les IDs dupliqués, les flashcards câblées, les `drawFn`, les `<` mal placés dans les formules, les panneaux vides dans `index.html` et leur contenu dans `chapitres/`, et que les données dérivées sont à jour. Il affiche `[OK]` ou la liste des erreurs.
 3. **Vérifie la syntaxe JavaScript** : `python tools/check_js.py` (doit afficher `blocs en erreur: 0`).
 4. **Lance les tests navigateur** (mode d'emploi : [`tests/README.md`](tests/README.md)) :
    ```
    npm run test:rapide
    node tests/run.js --suite=site --chapitres=monid
    ```
-5. Ouvre `index.html` dans le navigateur, avec la **console** ouverte (F12) : aucune erreur rouge ne doit apparaître. Vérifie que le chapitre est dans le menu (au bon endroit), que les onglets fonctionnent, que les formules se rendent et que les flashcards défilent.
+5. Ouvre le site dans le navigateur **par un petit serveur local** (dans le dossier : `python -m http.server`, puis <http://localhost:8000> ; un double-clic sur `index.html` ne charge plus les chapitres), avec la **console** ouverte (F12) : aucune erreur rouge ne doit apparaître. Vérifie que le chapitre est dans le menu (au bon endroit), que les onglets fonctionnent, que les formules se rendent et que les flashcards défilent.
 
 ---
 

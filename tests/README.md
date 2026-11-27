@@ -166,7 +166,7 @@ un ordre fixe : deux lancements donnent les mêmes constats.
 2. **Relancer seulement ce qui échoue**, c'est bien plus rapide :
    `node tests/run.js --suite=site --chapitres=rlc`
 3. **Regarder** : ajouter `--visible`, ou ouvrir les captures de `tests/sortie/`.
-4. Ouvrir le site (double-clic sur `index.html`), aller sur le chapitre et
+4. Ouvrir le site (`python -m http.server` dans le dossier, puis <http://localhost:8000>), aller sur le chapitre et
    ouvrir la console du navigateur (F12) : l'erreur y apparaît souvent.
 5. Si c'est un **avertissement `!`** du type « ne déborde plus : le retirer de
    … », c'est une bonne nouvelle : supprimer la ligne indiquée dans le fichier

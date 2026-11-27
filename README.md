@@ -54,7 +54,7 @@ Colle / oral (usuels, présenter un document, donner son avis, connecteurs, réa
 ## Lancer le site
 
 - **En ligne** : <https://thomasmareel.github.io/revisions-ptsi/>.
-- **En local** : ouvrir `index.html` dans un navigateur (double-clic).
+- **En local** : dans le dossier du dépôt, `python -m http.server`, puis ouvrir <http://localhost:8000> (le contenu de chaque chapitre est chargé depuis `chapitres/<id>.html` : un double-clic sur `index.html` ne suffit plus).
 
 > ✅ **Fonctionne hors-ligne** : MathJax et les polices sont hébergés en local dans `vendor/` (aucune dépendance CDN). Les formules et la mise en page s'affichent correctement même sans connexion.
 
