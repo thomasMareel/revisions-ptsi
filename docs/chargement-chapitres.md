@@ -143,3 +143,13 @@ Chaque lot laisse le site fonctionnel, testé, commité et poussé sur la branch
   (chapitres en cache en arrière-plan, chapitre jamais ouvert lisible hors ligne, version périmée retirée) et
   `interactions` vertes. Corrigé en route : `majPage` (module PAGE) enrichissait l'intercalaire du chapitre affiché
   au départ avant l'arrivée de son contenu (compteurs à zéro, Formulaire masqué).
+- 2026-11-27 : mesures après découpage (même machine, en alternance avec la v136 en ligne ; scripts `autre.js`,
+  `dcl.js` du scratchpad) :
+
+  | Démarrage (page prête) | v136 (23 Mo) | Découpé (3 Mo + chapitre) |
+  |---|---|---|
+  | téléphone ×4, reprise d'un chapitre ordinaire (`#pybases/cours`) | 5,8 – 6,3 s | **3,0 – 3,3 s** |
+  | téléphone ×4, chapitre RLC (1ʳᵉ visite) | 12,6 – 12,7 s | 10,1 – 11,1 s |
+  | ordinateur, chapitre RLC | 2,4 – 2,6 s | **1,3 – 1,4 s** |
+
+  Reste pour RLC et les chapitres longs : la composition des formules (lot 5, piste 1).
