@@ -93,8 +93,10 @@ async function attendreApp(page, delai) {
       decks: !!window.FLASH_INSTANCES,
       charge: document.readyState === 'complete',
       mathjax: !!(window.MathJax && MathJax.startup && MathJax.startup.document && typeof MathJax.typesetPromise === 'function'),
+      // restauration du dernier chapitre ou lien profond pas encore arrivés (chargement du chapitre)
+      nav: !(window.__navigationEnCours && window.__navigationEnCours()),
     })).catch(() => null);   // contexte détruit pendant une navigation : on réessaie
-    if (etat && etat.chapters && etat.decks && etat.charge && etat.mathjax) { await pause(500); return; }
+    if (etat && etat.chapters && etat.decks && etat.charge && etat.mathjax && etat.nav) { await pause(500); return; }
     // Page chargée mais CHAPTERS absent depuis 3 s : le grand script a planté, inutile d'attendre
     if (etat && etat.charge && !etat.chapters) { planteDepuis = planteDepuis || Date.now(); if (Date.now() - planteDepuis > 3000) break; }
     await pause(200);
@@ -104,6 +106,7 @@ async function attendreApp(page, delai) {
     !etat.decks && 'aucune flashcard initialisée (makeFlash jamais appelé ?)',
     !etat.charge && 'page pas entièrement chargée',
     !etat.mathjax && 'MathJax pas prêt',
+    !etat.nav && 'navigation vers le premier chapitre jamais terminée',
   ].filter(Boolean);
   throw new Error("le site ne s'est pas initialisé (" + Math.round((Date.now() - t0) / 1000) + ' s) : ' + manque.join(' ; '));
 }

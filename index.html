@@ -3471,6 +3471,7 @@ window.__deplierChapitre = function(chap){
     return p;
   };
   window.__annulerDemandeChapitre = function(){ if(demande !== null){ demande = null; repere(false); } };
+  window.__demandeChapitreEnCours = function(){ return demande !== null; };
   window.__demanderChapitre = function(id, suite){
     var jeton = demande = { id: id };
     repere(true);
@@ -178803,8 +178804,10 @@ document.querySelectorAll('.sub-btn').forEach(b=>{
     if(firstVisible){
       firstVisible.classList.add('active');
       const chapEl = document.getElementById('chap-'+firstVisible.dataset.chap);
-      if(chapEl){ chapEl.classList.add('active'); typesetPanel(chapEl.querySelector('.panel.active')); }
-      setTimeout(()=>{ redrawChapter(firstVisible.dataset.chap); }, 50);
+      // navigateTo en cours (window.__navVers) : ce chapitre ne restera pas affiché, rien à rendre
+      const pourRien = window.__navVers && window.__navVers.chap !== 'chap-' + firstVisible.dataset.chap;
+      if(chapEl){ chapEl.classList.add('active'); if(!pourRien) typesetPanel(chapEl.querySelector('.panel.active')); }
+      if(!pourRien) setTimeout(()=>{ redrawChapter(firstVisible.dataset.chap); }, 50);
     }
   });
 });
@@ -178917,7 +178920,11 @@ document.querySelectorAll('.chap-btn').forEach(b=>{
     if(!avant || avant !== chapEl){ DEFIL_ONGLETS.clear(); scrollPageTop(); }
     setTimeout(()=>{ redrawChapter(b.dataset.chap); }, 50);
     // Rendu MathJax à la demande : seulement le panneau visible (le reste suit à l'ouverture des onglets)
-    if(chapEl) typesetPanel(chapEl.querySelector('.panel.active'));
+    // (navigateTo vers un autre onglet — lien profond, recherche, Bilan… : l'onglet par défaut n'est pas
+    // rendu pour rien, le Cours de RLC compte 577 formules ; window.__navVers posé par navigateTo)
+    const actifP = chapEl && chapEl.querySelector('.panel.active');
+    const vise = window.__navVers && window.__navVers.panel;
+    if(actifP && !(vise && vise !== actifP.id && document.getElementById(vise))) typesetPanel(actifP);
   });
 });
 
@@ -194246,6 +194253,8 @@ function navigateTo(chapId, panelId, onDone){
     return;
   }
   if(window.__annulerDemandeChapitre) window.__annulerDemandeChapitre();
+  navigateTo.enCours = (navigateTo.enCours || 0) + 1;     // lu par window.__navigationEnCours()
+  window.__navVers = { chap: chapId, panel: panelId || null };   // lu par les gestionnaires ci-dessous
   // 1) activer la bonne matière
   const matContent = chapBtn.closest('.mat-content');
   if(matContent){
@@ -194260,7 +194269,7 @@ function navigateTo(chapId, panelId, onDone){
     if(subBtn && !subBtn.classList.contains('active')) subBtn.click();
   }
   // 3) activer le chapitre
-  chapBtn.click();
+  try { chapBtn.click(); } finally { window.__navVers = null; }
   // 4) activer l'onglet (panel) après un court délai pour laisser le DOM se mettre à jour
   setTimeout(()=>{
     if(panelId){
@@ -194272,12 +194281,18 @@ function navigateTo(chapId, panelId, onDone){
     // Si pas de callback custom : haut de la page (le 1er <main> visé avant est masqué en SI)
     if(!onDone){
       scrollPageTop();
+      navigateTo.enCours--;
     } else {
       // Laisser le DOM se stabiliser avant le callback
-      setTimeout(onDone, 120);
+      setTimeout(() => { navigateTo.enCours--; onDone(); }, 120);
     }
   }, 80);
 }
+/* Une navigation est-elle en cours (chargement d'un chapitre, ou navigateTo pas encore arrivé à son
+   onglet) ? Pour les tests et le code qui doit attendre la fin d'une navigation. */
+window.__navigationEnCours = function(){
+  return !!(navigateTo.enCours > 0 || (window.__demandeChapitreEnCours && window.__demandeChapitreEnCours()));
+};
 
 /* ====== Routage par URL (deep-link + bouton précédent du navigateur) ======
    Le hash reflète le chapitre/onglet courant : #cine/cours.
