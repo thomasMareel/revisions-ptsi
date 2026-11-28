@@ -175,3 +175,11 @@ Chaque lot laisse le site fonctionnel, testé, commité et poussé sur la branch
   formule hors morceaux. Corrigé en route (comparaison du HTML final avec la v137, 23 panneaux identiques) : mesures
   d'un morceau qui est lui-même un bloc de code ou un tableau défilant, typographie appliquée à du code (« figure : »
   dans un programme Python), libellé de section pris sur le TeX en clair (titres désormais composés d'emblée).
+  Batterie complète : la suite `site`, qui garde ses 184 chapitres (4,8 millions d'éléments, 135 000 formules)
+  dans une seule page, passait de 20 à 29 min et finissait par échouer (page occupée plus de 5 s au moment d'un
+  clic). Cause : chaque rendu de MathJax reparcourt toute sa liste de formules déjà composées et, pour son menu
+  contextuel pourtant retiré, toute la page (`getElementsByClassName`) ; la composition par lots fait plus de
+  rendus (365 au lieu de 133 sur 25 chapitres). Corrigé : chaque lot est rendu sur une liste à lui, versée ensuite
+  dans celle de la page, le tri du menu n'a lieu que si un menu est attaché, et les titres partent avec le premier
+  lot. Rendu de 12 formules après 40 chapitres ouverts : 105 – 110 ms → **10 ms** (35 ms → 10 ms après
+  10 chapitres). HTML final toujours identique (28 comparaisons).

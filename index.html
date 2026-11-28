@@ -127,6 +127,19 @@ window.MathJax = {
           });
         }
       });
+      // Menu contextuel retiré (renderActions.addMenu vide) : son registre reste vide, mais MathJax
+      // le retriait à chaque rendu en cherchant ses éléments dans TOUTE la page
+      // (getElementsByClassName : un parcours du document, plus long à chaque chapitre ouvert, et
+      // répété à chaque lot de la composition progressive). Tri seulement si un menu a été attaché.
+      try {
+        const reg = MathJax.startup.document.menu.menu.store;
+        if (reg && typeof reg.sort === 'function' && typeof reg.insert === 'function') {
+          const trier = reg.sort, inserer = reg.insert;
+          let attache = false;
+          reg.insert = function(){ attache = true; return inserer.apply(this, arguments); };
+          reg.sort = function(){ if (attache) return trier.apply(this, arguments); };
+        }
+      } catch (e) { /* MathJax sans menu : rien à faire */ }
       // Ne rendre d'abord que le panneau visible (Cours) ; les autres panneaux
       // sont typesettés à l'ouverture de leur onglet → premier affichage plus rapide.
       // On attend que le DOM soit prêt : avec MathJax servi depuis le cache (PWA),
@@ -13312,13 +13325,27 @@ function redrawChapter(chap){
   }
   // MathJax.typeset est synchrone ; s'il doit d'abord charger quelque chose (erreur « retry »), le même
   // rendu reprend une fois prêt, sans tout relire (un second « find » doublerait chaque formule) : null
-  // si c'est fait, sinon une promesse
+  // si c'est fait, sinon une promesse.
+  // Chaque rendu de MathJax reparcourt TOUTE sa liste de formules (document.math : toutes celles déjà
+  // composées dans la page, plus nombreuses à chaque chapitre ouvert), plusieurs fois, et y fusionne
+  // les nouvelles. Un lot est donc rendu sur une liste à lui, versée ensuite dans celle de la page (lue
+  // par typesetClear et l'assistant) : son coût ne dépend plus des chapitres déjà ouverts
   function rendre(liste){
     if(typeof MathJax.typeset !== 'function'){
       try { return MathJax.typesetPromise(liste); } catch(err){ return null; }
     }
-    try { MathJax.typeset(liste); return null; }
+    const doc = MathJax.startup && MathJax.startup.document, page = doc && doc.math;
+    let lot = null;
+    try { if(page && typeof page.push === 'function' && typeof page.constructor === 'function'){ lot = new page.constructor(); doc.math = lot; } }
+    catch(err){ lot = null; }
+    const verser = () => {
+      if(!lot || doc.math !== lot) return;
+      doc.math = page;
+      for(const it of lot) page.push(it);
+    };
+    try { MathJax.typeset(liste); verser(); return null; }
     catch(err){
+      verser();                                       // reprise (rare) sur la liste de la page
       if(!(err && err.retry)) return null;            // erreur de MathJax : formules laissées en clair
       return new Promise(ok => {
         const reprendre = () => {
@@ -13329,18 +13356,17 @@ function redrawChapter(chap){
       });
     }
   }
-  // Titres (surtitres « §n · … », h2 à h4) composés d'emblée, avant le reste : sommaires, rail, barre du
-  // téléphone et lastPos lisent leur texte (pris sur le TeX en clair, un libellé afficherait
-  // « \(\mathcal C^k\) » au lieu de « Ck ») ; plus bas que l'écran, ils ne déplacent rien
-  function composerTitres(panel, e){
-    if(e.titres) return;
+  // Titres (surtitres « §n · … », h2 à h4) composés d'emblée, avec le premier lot (un seul rendu) :
+  // sommaires, rail, barre du téléphone et lastPos lisent leur texte (pris sur le TeX en clair, un
+  // libellé afficherait « \(\mathcal C^k\) » au lieu de « Ck ») ; plus bas que l'écran, ils ne
+  // déplacent rien. Renvoie les titres à finir (tous) et ceux à ajouter au rendu (hors du lot)
+  function titres(panel, e, avecF){
+    if(e.titres) return null;
     e.titres = true;
     const t = Array.prototype.filter.call(panel.querySelectorAll('.sec-num, h2, h3, h4'),
       h => compter(h.textContent) > 0 && !(h.closest && h.closest('pre, code')));
-    if(!t.length) return;
-    const fin = () => { if(window.__apresRendu) window.__apresRendu(t, { immediat: true }); };
-    const attente = rendre(t);
-    if(attente) attente.then(fin, fin); else fin();
+    if(!t.length) return null;
+    return { tous: t, hors: t.filter(h => !avecF.some(x => x.contains(h))) };
   }
   // Compose e.m[e.i … jusqua] (synchrone, sauf si MathJax doit d'abord charger quelque chose)
   function composer(panel, e, jusqua){
@@ -13363,11 +13389,14 @@ function redrawChapter(chap){
       else planifier(panel, e);
     };
     if(!avecF.length || !window.MathJax || !MathJax.typesetPromise){ apres(); return; }
-    composerTitres(panel, e);
+    const t = titres(panel, e, avecF);
+    if(t) t.hors.forEach(h => { nf += compter(h.textContent); });
+    // titres finis d'abord (ordre de la composition d'un seul tenant : titres, puis le lot)
+    const fin = () => { if(t && window.__apresRendu) window.__apresRendu(t.tous, { immediat: true }); apres(); };
     const t0 = performance.now();
-    const attente = rendre(avecF);
-    if(attente){ attente.then(apres, apres); return; }
-    apres();
+    const attente = rendre(t ? avecF.concat(t.hors) : avecF);
+    if(attente){ attente.then(fin, fin); return; }
+    fin();
     // vitesse mesurée (ms par formule, finitions et coût fixe d'un lot compris) : taille des lots suivants
     const v = (performance.now() - t0) / nf;
     if(nf >= 3) e.parF = e.parF ? (e.parF + v) / 2 : v;
@@ -13400,7 +13429,7 @@ function redrawChapter(chap){
     // Formule dans le texte direct du panneau (hors morceaux) : un dernier passage sur tout le panneau
     // (≈ 0,6 s au téléphone pour le Cours de RLC : seulement s'il y en a une)
     let pr = null;
-    if(e.orphelins){ try { if(window.MathJax && MathJax.typesetPromise) pr = MathJax.typesetPromise([panel]); } catch(err){ pr = null; } }
+    if(e.orphelins){ try { if(window.MathJax && MathJax.typesetPromise) pr = rendre([panel]); } catch(err){ pr = null; } }
     if(pr) pr.then(fin, fin); else fin();
   }
   // Au repos : un lot de ≈ 30 ms (vitesse mesurée), puis le suivant ; panneau masqué : pause
