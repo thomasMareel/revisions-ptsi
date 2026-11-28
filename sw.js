@@ -3,7 +3,7 @@
    IMPORTANT : à chaque modification d'un asset mis en cache (index.html, polices,
    MathJax…), incrémenter CACHE_VERSION pour forcer le rafraîchissement chez les
    utilisateurs déjà installés. */
-const CACHE_VERSION = 'ptsi-cache-v137';
+const CACHE_VERSION = 'ptsi-cache-v138';
 /* Contenu des chapitres (chapitres/<id>.html?v=<empreinte>, chapitres/recherche.json?v=…) : cache à part,
    GARDÉ d'une version à l'autre (une mise à jour ne retélécharge que les chapitres modifiés, dont
    l'empreinte change) ; la page retire les versions qui ne figurent plus à son manifeste. */
