@@ -123,7 +123,8 @@ Chaque lot laisse le site fonctionnel, testé, commité et poussé sur la branch
    `sauvegarde-avant-decoupage`), avec la documentation à jour (`CLAUDE.md`, `docs/interface.md`,
    `GABARIT-CHAPITRE.md`, `tests/README.md`).
 4. **Outils des rédacteurs** adaptés (scratchpad).
-5. **Piste 1, ensuite** : formules composées au fil du défilement (RLC, chapitres longs), mesurée à part.
+5. **Piste 1** (fait le 2026-11-28) : formules composées au fil du défilement (RLC, chapitres longs), mesurée à part
+   (mesures ci-dessous ; fonctionnement : `docs/interface.md` › « MathJax » › « Composition progressive »).
 
 ## 7. Risques
 
@@ -153,3 +154,24 @@ Chaque lot laisse le site fonctionnel, testé, commité et poussé sur la branch
   | ordinateur, chapitre RLC | 2,4 – 2,6 s | **1,3 – 1,4 s** |
 
   Reste pour RLC et les chapitres longs : la composition des formules (lot 5, piste 1).
+- 2026-11-28 : lot 5 fait (composition progressive). Le Cours de RLC composait ses 577 formules d'un seul tenant
+  pendant le démarrage (2,5 à 2,8 s d'un bloc au téléphone, rien ne s'affichait avant) ; un panneau est maintenant
+  découpé en morceaux : l'écran tout de suite, la suite au repos par lots courts et dès qu'elle approche de l'écran.
+  Mesures (même machine, en alternance avec la v137 ; scripts `lot5-mesure.js`, `lot5-trace.js` du scratchpad ;
+  « écran prêt » = plus aucun TeX en clair dans l'écran, « bloquant » = somme des tâches longues au-delà de 50 ms) :
+
+  | `#rlc/cours` | v137 | Composition progressive |
+  |---|---|---|
+  | téléphone ×4 : écran prêt | 8,7 – 10,3 s | **2,3 – 2,9 s** |
+  | téléphone ×4 : plus longue tâche | 2,6 – 2,9 s | 0,6 – 0,7 s (démarrage ; lots : 50 – 250 ms) |
+  | téléphone ×4 : temps bloquant jusqu'à la fin | 5,7 – 6,7 s | 4,6 – 5,3 s |
+  | téléphone ×4 : tout composé | 8,7 – 10,3 s | 15 – 16 s (au repos, pendant la lecture) |
+  | ordinateur : écran prêt | 1,8 – 2,2 s | **0,6 s** |
+
+  Chapitre sans formule au démarrage (`#pybases/cours`) : inchangé (2,6 – 3,2 s). Appris en route : le coût d'un lot
+  est surtout le **dessin** de la page sous l'écran (tout ce qui a bougé) ; les lots trop petits (une formule) coûtaient
+  4 s de dessin sur 6 s, d'où des lots d'environ 80 ms avec leurs finitions dans la même tâche. Un dernier balayage
+  MathJax du panneau entier, par sécurité, coûtait 0,6 s au téléphone pour ne rien trouver : seulement s'il y a une
+  formule hors morceaux. Corrigé en route (comparaison du HTML final avec la v137, 23 panneaux identiques) : mesures
+  d'un morceau qui est lui-même un bloc de code ou un tableau défilant, typographie appliquée à du code (« figure : »
+  dans un programme Python), libellé de section pris sur le TeX en clair (titres désormais composés d'emblée).
