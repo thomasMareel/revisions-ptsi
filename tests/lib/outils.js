@@ -161,12 +161,17 @@ async function choisirTheme(page, pref, mobile) {
 }
 
 /* Code exécuté DANS la page : délimiteurs TeX restés en clair et erreurs
-   MathJax (mjx-merror) d'un élément. Attend jusqu'à `attenteMs` que le rendu
-   paresseux (typesetPanel) ait fait son travail. */
+   MathJax (mjx-merror) d'un élément. Fait composer tout le panneau
+   (window.__composerTout), puis attend jusqu'à `attenteMs` que le rendu ait
+   fait son travail. */
 async function etatMathJax(page, idElement, attenteMs) {
   return page.evaluate(async ([id, attente]) => {
     const el = document.getElementById(id);
     if (!el) return null;
+    // Composition progressive (docs/chargement-chapitres.md › Lot 5) : le panneau entier, tout de suite,
+    // pour contrôler TOUTES ses formules ; la composition au repos, sans intervention, a son propre
+    // contrôle (suite interactions, « formules composées au fil du défilement »)
+    if (window.__composerTout) { try { await window.__composerTout(el.closest('section.panel') || el); } catch (e) { /* contrôle ci-dessous */ } }
     const EXCLUS = 'script,style,code,pre,textarea,mjx-container,.no-mathjax,.tex2jax_ignore';
     const DELIM = /\\\(|\\\)|\\\[|\\\]|\$\$/;
     const restes = () => {

@@ -140,6 +140,8 @@ window.MathJax = {
         if (active && window.__chapitreCharge && !window.__chapitreCharge(active.id.replace(/^chap-/, ''))) return;
         if (active) {
           const panel = active.querySelector('.panel.active') || active;
+          // composition progressive (typesetPanel, grand script) : l'écran, puis la suite au repos
+          if (typeof window.typesetPanel === 'function' && panel !== active) { window.typesetPanel(panel); return; }
           const lances = window.__typesetLances || (window.__typesetLances = new WeakSet());
           if (lances.has(panel) || panel.querySelector('mjx-container')) return;
           lances.add(panel);
@@ -13231,9 +13233,273 @@ function redrawChapter(chap){
   }
 }
 
-/* Typeset paresseux d'un seul panneau (perf : évite de tout rendre d'un coup).
-   Ne fait rien si MathJax n'est pas prêt ou si le panneau est déjà rendu. */
-function typesetPanel(panel){
+/* ===== COMPOSITION PROGRESSIVE DES FORMULES (point 6, piste 1 : docs/chargement-chapitres.md › Lot 5) =====
+   Un panneau n'est plus composé d'un seul tenant : les 577 formules du Cours de RLC bloquaient la page
+   2,5 s au téléphone, avant même son premier affichage. Il est découpé en MORCEAUX (blocs consécutifs du
+   panneau, au plus SEUIL formules chacun, sauf bloc insécable : un paragraphe), puis :
+   - à l'ouverture, les morceaux qui commencent avant un quart d'écran sous le bas de l'écran sont composés
+     tout de suite (typesetPanel) ;
+   - la suite au repos (requestIdleCallback), par lots de ≈ 30 ms, et sans attendre dès qu'un morceau
+     approche de l'écran (IntersectionObserver, un écran d'avance) ;
+   - INVARIANT : la partie composée est toujours un PRÉFIXE du panneau. Ce qui change de hauteur (une
+     formule composée n'a pas la hauteur de son TeX) est donc toujours plus bas que ce qu'on lit ;
+   - un saut dans le panneau (recherche, sommaire, carte → cours, quiz, onglet repris plus bas) compose
+     d'abord jusqu'à sa cible et l'écran qui la suit : window.__composerJusqua(élément | y de la page) ;
+     tout nouveau saut programmé doit l'appeler avant de défiler ;
+   - window.__composerTout(panneau) → promesse : tout, tout de suite (impression, Formulaire, tests) ;
+   - un panneau masqué (autre onglet, autre chapitre) est mis en pause, repris à son affichage ;
+   - finitions (module CONTENU : typographie, mesures) : chaque lot dès sa composition
+     (window.__apresRendu(liste)), le panneau entier une fois fini. Jamais sur du TeX encore en clair
+     (typographier() changerait « V_m » en V<sub>m</sub> dans la source) : window.__compositionFinie(p),
+     window.__morceauxComposes(p) pour le module CONTENU.
+   État final identique à la composition d'un seul tenant (DOM comparé sur des chapitres entiers).
+   window.__compositionEnCours() : un panneau affiché reste-t-il à composer (tests). */
+(function(){
+  const SEUIL = 12;                         // formules au plus par morceau (sauf bloc insécable)
+  const BUDGET = 80, MINI = 4;              // lot au repos : ≈ 80 ms au téléphone (finitions comprises)
+  const ETAT = new WeakMap();               // panneau → état de sa composition
+  const RE_F = /\\\(|\$\$/g;
+  function compter(t){ let n = 0; RE_F.lastIndex = 0; while(RE_F.exec(t)) n++; return n; }
+  function visible(el){ return !!(el && el.isConnected && el.getClientRects().length); }
+  // Un élément se découpe s'il a des enfants et aucune formule dans ses propres nœuds texte (une
+  // formule ne traverse pas une balise : MathJax ne composerait pas une formule coupée par un élément)
+  // Blocs jamais découpés : paragraphe, élément de liste, cellule, titre, et tout ce que MathJax ou la
+  // typographie (module CONTENU) traitent à part (code, bouton, schéma SVG…)
+  const INSECABLE = /^(P|LI|TD|TH|H[1-6]|PRE|CODE|KBD|SAMP|VAR|BUTTON|SVG|MATH|TEXTAREA|SELECT|SCRIPT|STYLE|NOSCRIPT|TEMPLATE)$/;
+  // Ignorés par MathJax (skipHtmlTags) : aucune formule à composer dedans
+  const SANS_RENDU = /^(PRE|CODE|SCRIPT|NOSCRIPT|STYLE|TEXTAREA)$/;
+  // … ni ce que le module CONTENU mesure (tableau, figure, cadre défilant) : ses mesures portent sur
+  // chaque morceau et son contenu, jamais sur un élément qui en contiendrait plusieurs
+  const MESURES = 'table, figure, .cine-svg-wrap, .codeblock, div[style*="overflow-x"]';
+  function secable(el){
+    if(!el.firstElementChild || INSECABLE.test(el.tagName.toUpperCase())) return false;
+    try { if(el.matches(MESURES) || el.querySelector(':scope > table')) return false; } catch(err){}
+    for(let n = el.firstChild; n; n = n.nextSibling) if(n.nodeType === 3 && compter(n.nodeValue)) return false;
+    return true;
+  }
+  function decouper(panel){
+    const m = [], n = [];
+    (function visiter(el){
+      for(let c = el.firstElementChild; c; c = c.nextElementSibling){
+        if(c.tagName === 'TEMPLATE' || c.tagName === 'SCRIPT' || c.tagName === 'STYLE') continue;
+        const k = SANS_RENDU.test(c.tagName.toUpperCase()) ? 0 : compter(c.textContent);
+        if(k > SEUIL && secable(c)) visiter(c);
+        else { m.push(c); n.push(k); }
+      }
+    })(panel);
+    return { m: m, n: n };
+  }
+  function chargeEtDeplie(panel){
+    const chap = panel && panel.closest ? panel.closest('.chapter') : null;
+    if(chap && window.__chapitreCharge && !window.__chapitreCharge(chap.id.replace(/^chap-/, ''))) return false;
+    if(window.__deplierChapitre && panel.firstElementChild && panel.firstElementChild.tagName === 'TEMPLATE') window.__deplierChapitre(chap);
+    return true;
+  }
+  function etat(panel){
+    let e = ETAT.get(panel);
+    if(e) return e;
+    const lances = window.__typesetLances || (window.__typesetLances = new WeakSet());
+    lances.add(panel);                      // ensemble partagé avec typesetActive (rendu de démarrage)
+    // Avant le rendu : ponctuation collée à sa formule, posée sur le TeX source (module CONTENU)
+    if(window.__colleAvantRendu) window.__colleAvantRendu(panel);
+    const d = decouper(panel);
+    let orphelins = false;
+    for(let x = panel.firstChild; x; x = x.nextSibling) if(x.nodeType === 3 && compter(x.nodeValue)) orphelins = true;
+    e = { m: d.m, n: d.n, i: 0, io: null, prevu: false, fini: false, parF: 0, idx: new Map(), attentes: [], orphelins: orphelins };
+    d.m.forEach((x, k) => e.idx.set(x, k));
+    ETAT.set(panel, e);
+    return e;
+  }
+  // MathJax.typeset est synchrone ; s'il doit d'abord charger quelque chose (erreur « retry »), le même
+  // rendu reprend une fois prêt, sans tout relire (un second « find » doublerait chaque formule) : null
+  // si c'est fait, sinon une promesse
+  function rendre(liste){
+    if(typeof MathJax.typeset !== 'function'){
+      try { return MathJax.typesetPromise(liste); } catch(err){ return null; }
+    }
+    try { MathJax.typeset(liste); return null; }
+    catch(err){
+      if(!(err && err.retry)) return null;            // erreur de MathJax : formules laissées en clair
+      return new Promise(ok => {
+        const reprendre = () => {
+          try { MathJax.startup.document.render(); ok(); }
+          catch(e2){ if(e2 && e2.retry) e2.retry.then(reprendre, ok); else ok(); }
+        };
+        err.retry.then(reprendre, ok);
+      });
+    }
+  }
+  // Titres (surtitres « §n · … », h2 à h4) composés d'emblée, avant le reste : sommaires, rail, barre du
+  // téléphone et lastPos lisent leur texte (pris sur le TeX en clair, un libellé afficherait
+  // « \(\mathcal C^k\) » au lieu de « Ck ») ; plus bas que l'écran, ils ne déplacent rien
+  function composerTitres(panel, e){
+    if(e.titres) return;
+    e.titres = true;
+    const t = Array.prototype.filter.call(panel.querySelectorAll('.sec-num, h2, h3, h4'),
+      h => compter(h.textContent) > 0 && !(h.closest && h.closest('pre, code')));
+    if(!t.length) return;
+    const fin = () => { if(window.__apresRendu) window.__apresRendu(t, { immediat: true }); };
+    const attente = rendre(t);
+    if(attente) attente.then(fin, fin); else fin();
+  }
+  // Compose e.m[e.i … jusqua] (synchrone, sauf si MathJax doit d'abord charger quelque chose)
+  function composer(panel, e, jusqua){
+    jusqua = Math.min(jusqua, e.m.length - 1);
+    if(jusqua < e.i) return;
+    const lot = e.m.slice(e.i, jusqua + 1), avecF = [];
+    let nf = 0;
+    lot.forEach((x, k) => { const f = e.n[e.i + k]; if(f > 0 && x.isConnected){ avecF.push(x); nf += f; } });
+    e.i = jusqua + 1;
+    if(e.io) lot.forEach(x => e.io.unobserve(x));
+    // ponctuation collée posée sur le TeX source : par morceau si le module CONTENU n'était pas encore
+    // lu quand le panneau a été découpé (panneau du démarrage)
+    if(window.__colleAvantRendu && !panel.__colleSource) avecF.forEach(x => window.__colleAvantRendu(x));
+    const apres = () => {
+      // finitions tout de suite (même image que la composition : un seul dessin de la page par lot)
+      if(window.__apresRendu) window.__apresRendu(lot, { immediat: true });
+      // dernier lot : finitions du panneau entier au repos (pas pendant le défilement qui l'a amené) ;
+      // sinon la suite au repos (reprise après une pause, si ce lot vient du défilement)
+      if(e.i >= e.m.length){ if(!e.fini) auRepos(() => terminer(panel, e)); }
+      else planifier(panel, e);
+    };
+    if(!avecF.length || !window.MathJax || !MathJax.typesetPromise){ apres(); return; }
+    composerTitres(panel, e);
+    const t0 = performance.now();
+    const attente = rendre(avecF);
+    if(attente){ attente.then(apres, apres); return; }
+    apres();
+    // vitesse mesurée (ms par formule, finitions et coût fixe d'un lot compris) : taille des lots suivants
+    const v = (performance.now() - t0) / nf;
+    if(nf >= 3) e.parF = e.parF ? (e.parF + v) / 2 : v;
+  }
+  // Compose tous les morceaux qui commencent au-dessus de y (coordonnée de la page). Lectures groupées
+  // (une mise en page) ; une formule composée change la hauteur : on recommence, au plus trois fois.
+  function composerJusquaY(panel, e, y){
+    for(let tour = 0; tour < 3 && e.i < e.m.length; tour++){
+      const sy = window.scrollY || window.pageYOffset || 0;
+      let k = e.i - 1;
+      for(let j = e.i; j < e.m.length; j++){
+        const r = e.m[j].getBoundingClientRect();
+        if(!r.width && !r.height) continue;            // masqué (solution repliée) : suit ses voisins
+        if(r.top + sy < y) k = j; else break;
+      }
+      if(k < e.i) break;
+      composer(panel, e, k);
+    }
+  }
+  function terminer(panel, e){
+    if(e.fini) return;
+    e.fini = true;
+    if(e.io){ e.io.disconnect(); e.io = null; }
+    // Finitions du panneau entier : typographie du texte hors morceaux (idempotente sur les morceaux),
+    // pas de nouvelles mesures si chaque morceau affiché a déjà les siennes (module CONTENU)
+    const fin = () => {
+      if(window.__apresRendu) window.__apresRendu(panel, { morceaux: e.m });
+      e.attentes.splice(0).forEach(f => { try { f(); } catch(err){} });
+    };
+    // Formule dans le texte direct du panneau (hors morceaux) : un dernier passage sur tout le panneau
+    // (≈ 0,6 s au téléphone pour le Cours de RLC : seulement s'il y en a une)
+    let pr = null;
+    if(e.orphelins){ try { if(window.MathJax && MathJax.typesetPromise) pr = MathJax.typesetPromise([panel]); } catch(err){ pr = null; } }
+    if(pr) pr.then(fin, fin); else fin();
+  }
+  // Au repos : un lot de ≈ 30 ms (vitesse mesurée), puis le suivant ; panneau masqué : pause
+  const auRepos = window.requestIdleCallback ? f => window.requestIdleCallback(f, { timeout: 1500 }) : f => setTimeout(() => f(null), 60);
+  function planifier(panel, e){
+    if(e.prevu || e.fini || e.i >= e.m.length) return;
+    e.prevu = true;
+    auRepos(dl => {
+      e.prevu = false;
+      if(e.fini || e.i >= e.m.length || !panel.isConnected) return;
+      if(!visible(panel)) return;                         // repris par typesetPanel à son affichage
+      // lot : ≈ BUDGET ms (vitesse mesurée), au moins MINI formules. Chaque lot fait redessiner la
+      // page sous l'écran (tout ce qui a bougé) : des lots trop petits coûtent plus qu'ils ne rendent
+      const parF = e.parF || 4;
+      let j = e.i, somme = e.n[j];
+      while(j + 1 < e.m.length && (somme < MINI || (somme + e.n[j + 1]) * parF <= BUDGET)){ j++; somme += e.n[j]; }
+      composer(panel, e, j);
+      planifier(panel, e);
+    });
+  }
+  function observer(panel, e){
+    if(e.io || e.fini || !('IntersectionObserver' in window)) return;
+    e.io = new IntersectionObserver(entrees => {
+      let max = -1;
+      entrees.forEach(en => { if(en.isIntersecting){ const k = e.idx.get(en.target); if(k > max) max = k; } });
+      if(max >= e.i) composer(panel, e, max);
+    }, { rootMargin: '0px 0px 100% 0px' });
+    for(let k = e.i; k < e.m.length; k++) e.io.observe(e.m[k]);
+  }
+  // Affichage d'un panneau (typesetPanel) : l'écran à lire, la suite au repos. yHaut : haut de ce qui
+  // sera affiché (coordonnée de la page), quand l'appelant va défiler ensuite (onglet repris plus bas)
+  window.__composerPanneau = function(panel, yHaut){
+    if(!panel || !window.MathJax || !MathJax.typesetPromise) return;
+    let e = ETAT.get(panel);
+    if(!e){
+      const lances = window.__typesetLances;
+      if(lances && lances.has(panel)) return;             // déjà composé d'un seul tenant
+      e = etat(panel);
+    }
+    if(e.fini) return;
+    const h = window.innerHeight || 800;
+    const y0 = (typeof yHaut === 'number' && isFinite(yHaut)) ? yHaut : (window.scrollY || window.pageYOffset || 0);
+    composerJusquaY(panel, e, y0 + h * 1.25);
+    if(e.i < e.m.length){ observer(panel, e); planifier(panel, e); }
+  };
+  // Avant un saut : composer jusqu'à la cible (élément) ou jusqu'à y (page), et l'écran qui suit
+  window.__composerJusqua = function(cible){
+    try {
+      const h = window.innerHeight || 800;
+      if(typeof cible === 'number'){
+        document.querySelectorAll('.chapter.active .panel.active').forEach(p => {
+          const e = ETAT.get(p);
+          if(e && !e.fini && visible(p)) composerJusquaY(p, e, cible + h * 1.5);
+        });
+        return;
+      }
+      const panel = cible && cible.closest ? cible.closest('section.panel') : null;
+      const e = panel && ETAT.get(panel);
+      if(!e || e.fini) return;
+      let k = e.i - 1;
+      for(let j = e.i; j < e.m.length; j++){
+        const m = e.m[j];
+        if(m === cible || (m.compareDocumentPosition(cible) & Node.DOCUMENT_POSITION_FOLLOWING)) k = j; else break;
+      }
+      composer(panel, e, k);
+      const r = cible.getBoundingClientRect();
+      composerJusquaY(panel, e, r.top + (window.scrollY || window.pageYOffset || 0) + h * 1.5);
+    } catch(err){ /* défilement non bloquant */ }
+  };
+  // Tout, tout de suite (impression, Formulaire, tests) : promesse résolue après les finitions
+  window.__composerTout = function(panel){
+    return new Promise(ok => {
+      try {
+        if(!panel || !window.MathJax || !MathJax.typesetPromise || !chargeEtDeplie(panel)) return ok();
+        let e = ETAT.get(panel);
+        if(!e){
+          const lances = window.__typesetLances;
+          if(lances && lances.has(panel)) return ok();    // déjà composé d'un seul tenant
+          e = etat(panel);
+        }
+        if(e.fini && !e.attentes.length) return ok();
+        e.attentes.push(ok);
+        if(!e.fini){ composer(panel, e, e.m.length - 1); terminer(panel, e); }
+      } catch(err){ ok(); }
+    });
+  };
+  window.__compositionFinie = function(panel){ const e = panel && ETAT.get(panel); return !e || e.fini; };
+  window.__morceauxComposes = function(panel){ const e = panel && ETAT.get(panel); return e ? e.m.slice(0, e.i) : null; };
+  window.__compositionEnCours = function(){
+    return Array.prototype.some.call(document.querySelectorAll('.chapter.active .panel.active'), p => {
+      const e = ETAT.get(p); return !!(e && !e.fini && visible(p));
+    });
+  };
+})();
+
+/* Rendu paresseux d'un seul panneau (perf : évite de tout rendre d'un coup), composé progressivement
+   (ci-dessus). Ne fait rien si MathJax n'est pas prêt ; reprend un panneau dont la composition était
+   en pause. yHaut (facultatif) : haut de ce qui sera affiché, si l'appelant défile ensuite. */
+function typesetPanel(panel, yHaut){
   // Chapitre pas encore chargé (contenu à venir, docs/chargement-chapitres.md) : rien à rendre ni à
   // marquer « lancé » (sinon son panneau ne serait jamais rendu une fois le contenu arrivé)
   const chapP = panel && panel.closest ? panel.closest('.chapter') : null;
@@ -13244,14 +13510,9 @@ function typesetPanel(panel){
   // Enrichissements d'affichage du panneau (surtitres, difficulté, outils d'exercices, curseurs) :
   // module « CONTENU » en fin de page, paresseux et idempotent
   if(panel && window.__contenuPanneau) window.__contenuPanneau(panel);
-  const lances = window.__typesetLances || (window.__typesetLances = new WeakSet());
-  if(panel && window.MathJax && window.MathJax.typesetPromise && !lances.has(panel) && !panel.querySelector('mjx-container')){
-    lances.add(panel);   // rendu lancé (ensemble partagé avec typesetActive)
-    // Avant le rendu : ponctuation collée à sa formule, posée sur le TeX source (module CONTENU)
-    if(window.__colleAvantRendu) window.__colleAvantRendu(panel);
-    // Après le rendu : typographie française, formules trop larges (.mj-large), schémas lisibles
-    MathJax.typesetPromise([panel]).then(()=>{ if(window.__apresRendu) window.__apresRendu(panel); }).catch(()=>{});
-  }
+  // Rendu : l'écran affiché tout de suite, la suite au repos ; après chaque lot, typographie
+  // française, formules trop larges (.mj-large), schémas lisibles (module CONTENU)
+  if(panel && window.__composerPanneau) window.__composerPanneau(panel, yHaut);
 }
 
 /* Nombres à la française (simulateurs) : virgule décimale, espace fine insécable des milliers
@@ -13362,10 +13623,15 @@ function noterOnglet(chap, ancien){
   return false;
 }
 // Après l'échange (seulement si les onglets collaient) : lecture retrouvée, ou début du panneau
-function defilerOnglet(chap, nouveau){
+function ouOnglet(chap, nouveau){
   const haut = (window.scrollY || window.pageYOffset || 0) + nouveau.getBoundingClientRect().top;
   const lu = DEFIL_ONGLETS.get(nouveau.id);
-  const y = Math.max(0, Math.round(lu !== undefined ? haut + lu : haut - hauteurBarresHaut(chap)));
+  return Math.max(0, Math.round(lu !== undefined ? haut + lu : haut - hauteurBarresHaut(chap)));
+}
+function defilerOnglet(chap, nouveau, y){
+  if(typeof y !== 'number') y = ouOnglet(chap, nouveau);
+  // (composé jusque-là : la partie composée d'un panneau déjà lu couvre déjà sa lecture)
+  if(window.__composerJusqua) window.__composerJusqua(y);
   try { window.scrollTo({ top:y, left:0, behavior:'instant' }); } catch(e){ window.scrollTo(0, y); }
 }
 document.querySelectorAll('.tab').forEach(t=>{
@@ -13379,10 +13645,13 @@ document.querySelectorAll('.tab').forEach(t=>{
     chap.querySelectorAll('.panel').forEach(x=>x.classList.remove('active'));
     t.classList.add('active');
     shownPanel.classList.add('active');
-    // rendu (souvent synchrone) AVANT le défilement : sinon l'ancrage du défilement du navigateur
-    // décalait la page de la hauteur prise par les formules rendues au-dessus du point visé
-    typesetPanel(shownPanel);
-    if(colles){ try { defilerOnglet(chap, shownPanel); } catch(e){} }
+    // rendu (synchrone) AVANT le défilement : sinon l'ancrage du défilement du navigateur décalait la
+    // page de la hauteur prise par les formules rendues au-dessus du point visé ; l'écran composé est
+    // celui où l'on va (yVise), pas celui de l'ancien panneau
+    let yVise;
+    if(colles){ try { yVise = ouOnglet(chap, shownPanel); } catch(e){ yVise = undefined; } }
+    typesetPanel(shownPanel, yVise);
+    if(colles){ try { defilerOnglet(chap, shownPanel, yVise); } catch(e){} }
     // Redraw simulateur si on arrive sur un panel -simu (dérivé de CHAPTERS)
     const panelId = t.dataset.panel;
     if(panelId.endsWith('-simu')){
@@ -15115,10 +15384,14 @@ window.flashToCourse = function(prefix, card){
   const tab = document.querySelector('.tab[data-panel="' + prefix + '-cours"]');
   if(!tab) return;
   tab.click();                       // réutilise la logique des onglets (active le panel + typeset)
+  // la section visée se choisit sur le texte du cours : composé en entier d'abord (TeX en clair et
+  // formules composées ne donnent pas les mêmes mots ; comme avant la composition progressive)
+  if(window.__composerTout) window.__composerTout(document.getElementById(prefix + '-cours'));
   const cb = flashCible(prefix, card);
   if(!cb) return;
   const target = cb.target, cours = cb.cours;
   setTimeout(() => {
+    if(window.__composerJusqua) window.__composerJusqua(target);   // formules composées jusqu'à la cible
     target.scrollIntoView({ behavior:window.__reduceMotion ? 'auto' : 'smooth', block:'start' });
     if(target !== cours){
       target.classList.remove('cours-target-flash');
@@ -29157,6 +29430,7 @@ window.__navigationEnCours = function(){
       if(!cible || !document.contains(cible)) return;
       const sec = r.kind === 'sec' && cible.closest ? cible.closest('.course-section') : null;
       const doux = window.__reduceMotion ? 'auto' : 'smooth';
+      if(window.__composerJusqua) window.__composerJusqua(sec || cible);   // formules composées jusqu'à la cible
       if(sec && sec.parentNode && sec.parentNode.querySelector('.course-section') === sec){
         try { window.scrollTo({ top:0, behavior:doux }); } catch(e){ window.scrollTo(0, 0); }
       } else (sec || cible).scrollIntoView({ behavior:doux, block: sec ? 'start' : 'center' });
@@ -29392,6 +29666,8 @@ function printChapter(){
   const chapName = c.name || chapId;
   const activePanel = chap.querySelector('.panel.active');
   if(!activePanel) return;
+  // composition progressive : le reste du panneau, tout de suite (synchrone : formules dans la copie)
+  if(window.__composerTout) window.__composerTout(activePanel);
   const panelId = activePanel.id;
   let panelLabel = 'Cours';
   if(panelId.endsWith('-meth'))  panelLabel = 'Méthodes';
@@ -30314,6 +30590,9 @@ document.addEventListener('keydown', e => {
         const panel = document.getElementById(coursPanelId);
         if(!panel){ return; }
 
+        // la section se choisit sur le texte du cours : composé en entier d'abord (comme avant la
+        // composition progressive : TeX en clair et formules composées ne donnent pas les mêmes mots)
+        if(window.__composerTout) window.__composerTout(panel);
         // Les sections sont soit directement dans le panel soit dans .toc-content
         const container = panel.querySelector('.toc-content') || panel;
         const sections = Array.from(container.querySelectorAll('.course-section'));
@@ -30330,6 +30609,7 @@ document.addEventListener('keydown', e => {
 
         // Scroll sur la meilleure section (ou la première par défaut)
         const target = (best && bestScore > 0) ? best : sections[0];
+        if(window.__composerJusqua) window.__composerJusqua(target);   // formules composées jusqu'à la cible
         target.scrollIntoView({ behavior:window.__reduceMotion ? 'auto' : 'smooth', block:'start' });
 
         // Highlight 1.8s
@@ -32142,7 +32422,9 @@ document.addEventListener('keydown', e => {
     // s'assurer que les panneaux Cours et Méthodes sont composés (les $$…$$
     // doivent être devenus des mjx-container avant la collecte).
     const targets = chap ? [...chap.querySelectorAll('.panel')].filter(p=>/-(cours|meth)$/.test(p.id)) : [];
-    if(window.MathJax && MathJax.typesetPromise && targets.length){
+    if(window.__composerTout && targets.length){
+      Promise.all(targets.map(p => window.__composerTout(p))).then(build).catch(build);
+    } else if(window.MathJax && MathJax.typesetPromise && targets.length){
       MathJax.typesetPromise(targets).then(build).catch(build);
     } else { build(); }
   }
@@ -32432,7 +32714,10 @@ document.getElementById('skip-link')?.addEventListener('click', e => {
       // titre de section en casse de phrase (« §2 Mise en équation »), comme le sommaire ; à défaut, le h2
       const t = (m && m[2] && window.__casPhrase) ? window.__casPhrase(m[2], s) : s.querySelector('h2').textContent.trim();
       b.innerHTML = '<span class="n">' + esc(m ? m[1].replace(/\s+/g, '') : '§' + (k + 1)) + '</span><span>' + esc(t) + '</span>';
-      b.addEventListener('click', () => s.scrollIntoView({ behavior:window.__reduceMotion ? 'auto' : 'smooth', block:'start' }));
+      b.addEventListener('click', () => {
+        if(window.__composerJusqua) window.__composerJusqua(s);   // formules composées jusqu'à la section
+        s.scrollIntoView({ behavior:window.__reduceMotion ? 'auto' : 'smooth', block:'start' });
+      });
       list.appendChild(b);
     });
     box.hidden = false;
@@ -32755,11 +33040,14 @@ document.getElementById('skip-link')?.addEventListener('click', e => {
   }
   function typographier(root){
     var a_traiter = [];
-    var w = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT, { acceptNode: function(n){
+    // racine exclue (morceau de la composition progressive : bloc de code, bouton, schéma SVG…) :
+    // traitée comme dans son panneau, où le parcours la saute (seuls ses libellés SVG changent)
+    var exclue = root.nodeType === 1 && (exclu(root) || !!(root.closest && root.closest('pre, code, button, .codeblock, .code-inline')));
+    var w = exclue ? null : document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT, { acceptNode: function(n){
       if(n.nodeType === 1) return exclu(n) ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_SKIP;
       return /[;:!?«»_]/.test(n.nodeValue) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_SKIP;
     }});
-    while(w.nextNode()) a_traiter.push(w.currentNode);
+    while(w && w.nextNode()) a_traiter.push(w.currentNode);
     a_traiter.forEach(function(t){
       var s = t.nodeValue;
       var r = s.replace(/[  ]+([;!?])/g, ' $1')      // espace fine insécable avant ; ! ?
@@ -32870,8 +33158,14 @@ document.getElementById('skip-link')?.addEventListener('click', e => {
      élargie jusqu'à la colonne, et au téléphone jusque dans la gouttière), puis .defile (la
      figure défile en largeur) seulement si cela ne suffit pas. Un schéma déjà mesuré pour la même
      largeur de fenêtre et la même taille de texte n'est pas remesuré. */
+  // root compris (morceau de la composition progressive : un schéma, un bloc de code…)
+  function dans(root, sel){
+    var l = Array.prototype.slice.call(root.querySelectorAll(sel));
+    if(root.matches && root.matches(sel)) l.unshift(root);
+    return l;
+  }
   function lireSchemas(root, cle){
-    var cadres = Array.prototype.slice.call(root.querySelectorAll('figure.schema, .cine-svg-wrap'))
+    var cadres = dans(root, 'figure.schema, .cine-svg-wrap')
       .filter(function(c){ return c.__cleSchema !== cle && c.querySelector('svg text') && visible(c); });
     if(!cadres.length) return null;
     // remesure (largeur ou taille du texte changée) : retour à l'état naturel d'abord
@@ -32918,7 +33212,7 @@ document.getElementById('skip-link')?.addEventListener('click', e => {
   try { if(CSS.supports('selector(:has(> table))')) SEL_DEFILANTS += ', .panel div:has(> table)'; } catch(e){}
   function lireDefilants(root){
     var res = [];
-    root.querySelectorAll(SEL_DEFILANTS).forEach(function(el){
+    dans(root, SEL_DEFILANTS).forEach(function(el){
       var cw = el.clientWidth;
       if(!cw && !el.classList.contains('a-defiler')) return;      // replié : au prochain affichage
       res.push([el, el.scrollWidth, cw, el.scrollLeft]);
@@ -33171,10 +33465,35 @@ document.getElementById('skip-link')?.addEventListener('click', e => {
     root.__cleMesure = cle;
   }
   function mesurer(root){ mesurerMaintenant(root); }
-  function finir(root, forcer){
+  // Morceaux d'un panneau composés ensemble (composition progressive) : mêmes mesures, toutes les
+  // lectures puis toutes les écritures sur l'ensemble des morceaux (deux mises en page par lot)
+  function mesurerListe(roots){
+    var cle = cleMesure(), vus = roots.filter(visible);
+    if(!vus.length) return;
+    var larges = [], scs = [], defs = [];
+    vus.forEach(function(r){ larges = larges.concat(lireLarges(r)); scs.push(lireSchemas(r, cle)); });
+    ecrireLarges(larges); scs.forEach(ecrireSchemas);
+    var trops = scs.map(lireTrop);
+    scs.forEach(function(sc, i){ ecrireTrop(sc, trops[i]); });
+    vus.forEach(function(r){ defs = defs.concat(lireDefilants(r)); });
+    ecrireDefilants(defs);
+    vus.forEach(function(r){ r.__cleMesure = cle; });
+  }
+  function finir(root, forcer, morceaux){
+    if(Array.isArray(root)){
+      var liste = root.filter(function(r){ return r && r.isConnected; });
+      liste.forEach(function(r){ if(forcer || !r.__typo){ r.__typo = true; typographier(r); } });
+      mesurerListe(liste);
+      return;
+    }
     if(!root || !root.isConnected) return;
     if(root.matches && root.matches('section.panel')) structurer(root);
     if(forcer || !root.__typo){ root.__typo = true; typographier(root); }
+    // panneau composé par morceaux : déjà mesuré si chaque morceau affiché l'est pour la largeur actuelle
+    if(morceaux && !forcer){
+      var cle = cleMesure();
+      if(morceaux.every(function(m){ return m.__cleMesure === cle || !visible(m); })){ if(visible(root)) root.__cleMesure = cle; return; }
+    }
     mesurer(root);
   }
   function panneauxVisibles(){
@@ -33185,18 +33504,24 @@ document.getElementById('skip-link')?.addEventListener('click', e => {
     structurer(panel);
     raf(sur(function(){
       if(!panel.isConnected) return;
-      // rendu MathJax terminé (ou panneau déjà composé ailleurs, ex. Formulaire) : finitions
+      // rendu MathJax terminé (ou panneau déjà composé ailleurs) : finitions ; jamais au milieu
+      // d'une composition progressive (TeX encore en clair : ses lots ont chacun leurs finitions)
+      if(window.__compositionFinie && !window.__compositionFinie(panel)) return;
       if(rendus.has(panel) || panel.querySelector('mjx-container')){
         if(!panel.__typo) finir(panel);
         else if(panel.__cleMesure !== cleMesure()) mesurer(panel);
       }
     }));
   });
-  // Appelé après un rendu MathJax : panneau, solution dépliée, Formulaire (forcer : contenu reconstruit)
+  // Appelé après un rendu MathJax : panneau, solution dépliée, Formulaire (forcer : contenu reconstruit),
+  // ou liste des morceaux d'un lot de la composition progressive (typesetPanel)
   window.__apresRendu = sur(function(root, opts){
     if(!root) return;
-    rendus.add(root);
-    raf(sur(function(){ finir(root, !!(opts && opts.forcer)); }));
+    if(Array.isArray(root)) root.forEach(function(r){ if(r) rendus.add(r); });
+    else rendus.add(root);
+    // immediat : finitions dans la même tâche (lots de la composition progressive, déjà hors image)
+    if(opts && opts.immediat){ sur(finir)(root, !!opts.forcer); return; }
+    raf(sur(function(){ finir(root, !!(opts && opts.forcer), opts && opts.morceaux); }));
   });
   // Mémo déplié : ses formules deviennent mesurables
   document.addEventListener('click', sur(function(e){
@@ -33224,6 +33549,9 @@ document.getElementById('skip-link')?.addEventListener('click', e => {
     var lances = window.__typesetLances, mj = window.MathJax;
     var file = mj && mj.startup && mj.startup.promise;
     document.querySelectorAll('.chapter.active .panel.active').forEach(function(p){
+      // composition progressive : ses lots déjà composés (la suite reçoit ses finitions en route)
+      var faits = window.__compositionFinie && !window.__compositionFinie(p) && window.__morceauxComposes ? window.__morceauxComposes(p) : null;
+      if(faits){ if(faits.length) window.__apresRendu(faits); return; }
       if(p.querySelector('mjx-container')) { window.__apresRendu(p); return; }
       if(lances && lances.has(p) && file && typeof file.then === 'function')
         file.then(sur(function(){ window.__apresRendu(p); }), function(){});
@@ -34387,6 +34715,7 @@ document.getElementById('skip-link')?.addEventListener('click', e => {
   }
   function defilerVers(el){
     if(!el) return;
+    if(window.__composerJusqua) window.__composerJusqua(el);   // formules composées jusqu'à la cible
     const y = Math.max(0, el.getBoundingClientRect().top + (window.scrollY || 0) - decalage());
     try { window.scrollTo({ top:y, behavior:window.__reduceMotion ? 'auto' : 'smooth' }); }
     catch(e){ window.scrollTo(0, y); }

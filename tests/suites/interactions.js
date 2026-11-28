@@ -1087,6 +1087,134 @@ module.exports = {
       return pb;
     });
 
+    /* ---------- Composition progressive des formules (point 6, lot 5 : docs/chargement-chapitres.md) ---------- */
+    await etape('formules composées au fil du défilement : écran d\'abord, suite au repos ; sauts (sommaire du rail, menu « Dans ce chapitre »), onglet repris et défilement sans TeX en clair à l\'écran ni décalage ; libellés de section', async () => {
+      const pb = [];
+      // TeX en clair dans l'écran : texte visible du chapitre affiché, hors formule composée et hors code
+      const brutEcran = () => page.evaluate(() => {
+        const ch = Array.from(document.querySelectorAll('.chapter.active')).find(c => c.offsetParent !== null);
+        const p = ch && ch.querySelector('.panel.active');
+        if (!p) return ['aucun panneau affiché'];
+        const out = [], h = innerHeight, w = document.createTreeWalker(p, NodeFilter.SHOW_TEXT);
+        while (w.nextNode()) {
+          const n = w.currentNode, v = n.nodeValue;
+          if (v.indexOf('\\(') < 0 && v.indexOf('$$') < 0) continue;
+          const e = n.parentElement;
+          if (!e || e.closest('mjx-container, code, pre, textarea') || !e.getClientRects().length) continue;
+          const r = e.getBoundingClientRect();
+          if (r.bottom > 0 && r.top < h) out.push(v.trim().slice(0, 60));
+        }
+        return out;
+      });
+      const finNav = () => page.waitForFunction(() => !(window.__navigationEnCours && window.__navigationEnCours()), null, { timeout: 15000 }).catch(() => {});
+      const haut = id => page.evaluate(id => { const e = document.getElementById(id); return e ? Math.round(e.getBoundingClientRect().top) : null; }, id);
+
+      // 1) Ouverture d'un chapitre long (≈ 1 000 formules) : l'écran est composé tout de suite
+      await naviguer(page, 'ev', 'cours');
+      await finNav();
+      let b = await brutEcran();
+      if (b.length) pb.push('ouverture : TeX en clair à l\'écran : « ' + b.slice(0, 2).join(' » « ') + ' »');
+      const enCours = await page.evaluate(() => window.__compositionEnCours ? window.__compositionEnCours() : null);
+      if (enCours === null) pb.push('window.__compositionEnCours absent');
+      await pause(400);
+      // libellés de section (sommaire, barre du téléphone, lastPos) : jamais pris sur du TeX en clair
+      const labs = await page.evaluate(() => Array.from(document.querySelectorAll('.chapter.active .panel.active .course-section[data-toc-label]'))
+        .map(s => s.dataset.tocLabel).filter(l => /\\\(|\\\)|\$\$/.test(l)));
+      if (labs.length) pb.push(labs.length + ' libellé(s) de section en TeX : « ' + labs[0] + ' »');
+
+      // 2) Saut par le sommaire du rail (dernière section) : composé jusque-là AVANT de défiler
+      const cible = await page.evaluate(() => {
+        const l = Array.from(document.querySelectorAll('#chap-rail .toc-list a.toc-item'));
+        const a = l[l.length - 1];
+        if (!a) return null;
+        a.click();
+        return a.dataset.targetId;
+      });
+      if (!cible) pb.push('sommaire du rail introuvable (fenêtre de 1 400 px)');
+      else {
+        await pause(1600);                                  // défilement doux
+        const h1 = await haut(cible);
+        b = await brutEcran();
+        if (h1 === null || h1 < -5 || h1 > 300) pb.push('sommaire du rail : la dernière section est à ' + h1 + ' px du haut de l\'écran');
+        if (b.length) pb.push('après le saut : TeX en clair à l\'écran : « ' + b.slice(0, 2).join(' » « ') + ' »');
+        await pause(1500);                                  // la suite se compose au repos (plus bas)
+        const h2 = await haut(cible);
+        if (h1 !== null && Math.abs(h2 - h1) > 2) pb.push('après le saut, la section visée a bougé de ' + (h2 - h1) + ' px pendant la composition');
+
+        // 3) Onglet quitté puis repris : même lecture, même position
+        const pre = await page.evaluate(() => CHAPTERS_BY_ID.ev.prefix);
+        await page.click('.tab[data-panel="' + pre + '-exos"]');
+        await pause(500);
+        b = await brutEcran();
+        if (b.length) pb.push('onglet Exercices : TeX en clair à l\'écran : « ' + b.slice(0, 2).join(' » « ') + ' »');
+        await page.click('.tab[data-panel="' + pre + '-cours"]');
+        await pause(500);
+        const h3 = await haut(cible);
+        // (le retour d'onglet tombait déjà 6 px plus haut avant la composition progressive : on vérifie
+        // seulement que la lecture est retrouvée, sans saut dû aux formules)
+        if (h2 !== null && Math.abs(h3 - h2) > 10) pb.push('Cours repris : la section lue est à ' + h3 + ' px au lieu de ' + h2);
+      }
+
+      // 4) Menu « Dans ce chapitre » (bouton Plus, de 768 à 1 359 px) d'un autre chapitre long : dernière section
+      const vp = page.viewportSize();
+      await page.setViewportSize({ width: 1280, height: vp.height });
+      await pause(300);
+      await naviguer(page, 'coniques', 'cours');
+      await finNav();
+      await page.click('#more-btn');
+      await pause(350);
+      const sec = await page.evaluate(() => {
+        const l = Array.from(document.querySelectorAll('#more-menu .more-toc-list .menu-item'));
+        if (!l.length) return null;
+        l[l.length - 1].click();
+        const s = Array.from(document.querySelectorAll('.chapter.active .panel.active .course-section')).filter(x => x.offsetParent !== null).pop();
+        return s ? s.id : null;
+      });
+      if (!sec) pb.push('menu « Dans ce chapitre » : aucune section');
+      else {
+        await pause(1600);
+        const h = await haut(sec);
+        b = await brutEcran();
+        if (h === null || h < -5 || h > 300) pb.push('menu « Dans ce chapitre » : la dernière section est à ' + h + ' px du haut de l\'écran');
+        if (b.length) pb.push('menu « Dans ce chapitre » : TeX en clair à l\'écran : « ' + b.slice(0, 2).join(' » « ') + ' »');
+      }
+      await page.setViewportSize(vp);
+      await pause(300);
+
+      // 5) Défilement continu d'un chapitre neuf : l'écran toujours composé, rien ne bouge sous les yeux
+      await naviguer(page, 'fpv', 'cours');
+      await finNav();
+      let bouge = 0, bruts = 0;
+      for (let k = 0; k < 14; k++) {
+        await page.evaluate(() => window.scrollBy({ top: Math.round(innerHeight * 0.9), behavior: 'instant' }));
+        await pause(60);
+        const repere = await page.evaluate(() => {
+          const e = document.elementFromPoint(innerWidth / 2 - 120, Math.round(innerHeight * 0.6));
+          if (!e || !e.closest('.panel')) return null;
+          e.setAttribute('data-repere-test', '1');
+          return Math.round(e.getBoundingClientRect().top);
+        });
+        await pause(250);
+        const apres = await page.evaluate(() => { const e = document.querySelector('[data-repere-test]'); if (!e) return null; const t = Math.round(e.getBoundingClientRect().top); e.removeAttribute('data-repere-test'); return t; });
+        if (repere !== null && apres !== null && Math.abs(apres - repere) > 2) bouge++;
+        if ((await brutEcran()).length) bruts++;
+      }
+      if (bouge) pb.push('défilement : le texte lu a bougé ' + bouge + ' fois sur 14 pendant la composition');
+      if (bruts) pb.push('défilement : TeX en clair à l\'écran ' + bruts + ' fois sur 14 (250 ms après le geste)');
+
+      // 6) La suite se compose seule, au repos : plus rien en clair dans le panneau
+      const fini = await page.waitForFunction(() => !window.__compositionEnCours(), null, { timeout: 30000, polling: 250 }).then(() => true, () => false);
+      if (!fini) pb.push('composition au repos inachevée au bout de 30 s');
+      const reste = await page.evaluate(() => {
+        const p = document.getElementById(CHAPTERS_BY_ID.fpv.prefix + '-cours'), w = document.createTreeWalker(p, NodeFilter.SHOW_TEXT);
+        let n = 0;
+        while (w.nextNode()) { const x = w.currentNode; if (/\\\(|\$\$/.test(x.nodeValue) && !x.parentElement.closest('mjx-container, code, pre')) n++; }
+        return n;
+      });
+      if (reste) pb.push('après la composition au repos : ' + reste + ' texte(s) encore en TeX dans le Cours');
+      return pb;
+    });
+
     /* ---------- Impression (génération de l'iframe seulement) ---------- */
     await etape('impression du chapitre (document généré)', async () => {
       await naviguer(page, 'rlc', 'cours');
